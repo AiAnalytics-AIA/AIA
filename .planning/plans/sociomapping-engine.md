@@ -1,15 +1,24 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 0. Methodology decision record v2 and SOMECS golden fixtures (S1-S8)"
-  - "[ ] 1. Fuzzy matrix contract: from STORM data, from object properties, aggregation, legacy bridge"
-  - "[ ] 2. H-Model layout (h_model_v1): asymmetric distance fit, Spearman accuracy, multi-start, locks, margins"
-  - "[ ] 3. STORM placement (storm_placement_v1): respondents against fixed objects, per-row fit, edge rule"
-  - "[ ] 4. WIND terrain (inverse-distance heights) beside terrain66; STORM mass; contour levels"
-  - "[ ] 5. Fit reporting: Spearman accuracy, per-point fit, H-Model density significance; D6 threshold"
-  - "[ ] 6. Coherences (alpha-cuts), zoom groups, HM correction"
+  - "[x] 0a. Read the method's documents; record what they settle and what stays open"
+  - "[x] 0b. Evidence register: every rule with source, page, formula, implementation, validation, uncertainty"
+  - "[ ] 0c. Reference exports E1-E9 from SOMECS / RTS, one per open technical question"
+  - "[ ] 0d. Method-owner decisions no export can settle (M6, M7, M8, M13, M14)"
+  - "[x] 1a. Fuzzy matrix contract: documented sources and transforms, every gap refused by name"
+  - "[x] 1b. Review corrections: products kept apart, every contract validated, signed correlations kept, weighted mean with provenance"
+  - "[ ] 1c. Fuzzy gaps as their exports land: SOMECS STORM to matrix and ordinal (E2), negative correlations (E3), discrepancy (E4)"
+  - "[x] 2a. H-Model reported accuracy: definition, per-point fit, invariances; SOMECS fig. 22 reproduced"
+  - "[ ] 2b. Experimental AIA H-Model candidate h_model_candidate_v1, evaluated per sociomapping-hmodel.md section 4 (not SOMECS equivalence)"
+  - "[ ] 2c. H-Model significance: SOMECS and matched nulls, each refitted; p and quantiles (E1 settles the generator)"
+  - "[ ] 3. STORM placement of respondents (E6)"
+  - "[x] 4a. Height vectors: column, row and object averages (certification Tab. 1 reproduced)"
+  - "[ ] 4b. Display rescale none / this / all, and the WIND surface (E7)"
+  - "[x] 6a. Coherences and zoom, reproducing the SOMECS help's worked example"
+  - "[ ] 6b. HM correction inside the H-Model"
+  - "[ ] J1. Reference study R1 end to end: inputs, fuzzy, H-Model, heights/WIND, 3D, report (first three run today)"
   - "[ ] 7. Spec v3, preset sociomapping-somecs-1, engine and research adapter wiring, artifact v3, ledgers"
-  - "[ ] 8. Regions and statistics: A vs complement, A vs B, t / chi-square, effect sizes, multiplicity policy, phrases"
+  - "[ ] 8. Regions and statistics (E8, M8)"
   - "[ ] 9. Overlays as view layers: arrows (RTS rules), shortest path, combine maps, coherence contours"
   - "[ ] 10. Time: positions taken from a reference map, wave alignment, time-series frames, animation"
   - "[ ] 11. Results UI: STORM and WIND views from the artifact, top view default, fit badge, regions, arrows"
@@ -89,151 +98,178 @@ capability; its two layouts stay refused (OI-13, OI-15) unless the owner wants t
   arrows and animation are layers over an immutable base.
 - Shared docs change in a docs PR; this plan and the PR description carry the follow-ups.
 
-## Open methodology decisions (chunk 0 collects the answers)
+## Sources read (chunk 0a)
 
-Each one blocks the chunk named; the owner answers, the answer lands in
-`docs/architecture/sociomapa-methodology-decision.md` v2 through the docs PR.
+The method owner's own material, received 2026-10-04. Cited by name and section; none of it
+is vendored into the repository.
 
-| # | Question | Blocks | Our default if unanswered |
+| Source | What it settles for the engine |
+| --- | --- |
+| SOMECS Software Help (CZ, 80 pp.) | The DATA → MATRIX → H-MODEL → MAPS pipeline; fuzzy matrix definition; STORM transforms (row, database, ordinal) and the 0 fill; aggregation as a weighted mean; coherences as alpha-cuts with a worked example; H-Model accuracy as a Spearman correlation, per-point fit, locks, margins, "iterate again" finds another layout; STORM and WIND maps; heights from column sums, STORM sums, a characteristic or custom values; region tests (t for continuous, chi-square for discrete); animation and time windows |
+| SOMECS Input tutorial (EN, 21 pp.) | Objects × properties input; scale extremes per property, lower-is-better entered negative; Euclidean / Manhattan / correlation similarity ("correlation for more than 15 properties"); a five-star data-quality indicator; anonymisation |
+| SOMECS Time Series tutorial (EN, 9 pp.) | Window and step framing; overlap, frames, average and minimum records per frame, residual; export refused on errors |
+| Certification material for internal facilitators (CZ, 75 pp.) | The data matrix (row gave, column received, diagonal empty, asymmetric) with a worked 7 × 7 example; heights from column averages, row averages or a weighted characteristic; **the layout criterion: from each person, the order of distances to the others follows the order of that person's ratings, and of the possible layouts the one closest to the data is chosen** (§ 1.2.1, § 1.3.2); the order of distances, not their size, is what a reader takes; effectiveness = quality weighted by importance, with a value table and "the real formula is a rather complex equation" (§ 1.5); arrows and subteams |
+| RTS designs doc (EN, 40 pp.) | People questions give a square matrix, object questions a respondents × objects matrix; **object relations are the correlation of the answer columns** (its example reproduces as plain Pearson: 0.96, 0.44, 0.23); answers normalised to 0-1 by their scale points, never by the data's range; heights as `.column.average`, `.row.average`, `.storm.average`; height normalisation none / each / range; arrows as boolean expressions over matrices |
+| Design description (EN, 15 pp.) | Map limits: 30 people or objects, about 20 recommended; arrow rules (desired − current ≥ 2; quality 1-2 of 5; significant negative correlation among objects); subteam maps from 4 members |
+| Cloud RTS specification (CZ, 54 pp., licence annex) | Views 3D rotate, 3D, 2D top; arrows and teams drawn only from the top; height rescale modes No Rescale (questionnaire scale), Rescale This (this map's range), Rescale All (range across the displayed maps); minimums: 2 completed questionnaires to show a map, 3 people or 3 objects to start |
+| Sociomapping step by step (CZ, 34 pp.) and Research on Sociomapping (EN, 2010) | Facilitation, not computation; "the order of distances is key, not the actual distance"; layout fidelity measured by Spearman rank correlation |
+
+**What this changes.** The H-Model is a *row-conditional rank* fit; object maps are built from
+the Pearson correlation of respondents' answers, as 18.6.6's object map also does, so PR 116's
+*input* to its object map matches RTS while its spring layout does not; and the map is a
+people-or-objects map: RTS never places respondents, only SOMECS's STORM map does.
+
+## Open questions, each with its exact dependency
+
+The register (`docs/migration/sociomapping-evidence-register.json`) is the source of truth for
+every rule; this table is what is still missing. **E** = a reference export or experiment (a
+technical fact the software can show); **O** = a decision only the method owner can make.
+
+| # | Question | Status after 0a/0b | Depends on | Blocks |
+| --- | --- | --- | --- | --- |
+| M1 | SOMECS: transformed STORM data to the n x n fuzzy matrix; the ordinal transform; a database of equal values; aspects | Object relations for **RTS** settled (RTS-O1, reproduced). SOMECS's own path open | E2 | 1c (SOMECS path only) |
+| M2 | H-Model objective; accuracy details; per-point fit | Accuracy definition inferred and implemented (SOMECS-H3, fig. 22: 0.786 vs listed 0.785). SOMECS's fitting objective unknown; an experimental AIA candidate is specified (sociomapping-hmodel.md § 4) | E1 (accuracy), E5 (per-point; a second SOMECS layout); O for the objective itself | Any claim that AIA's layout is SOMECS's; not the candidate's build or evaluation |
+| M3 | STORM placement of respondents | Open; SOMECS only | E6 | 3 |
+| M4 | WIND interpolation | Open; heights themselves settled (4a) | E7 | 4b |
+| M5 | Unanswered cells | RTS requires every answer; SOMECS fills 0. AIA keeps them empty and refuses where a complete matrix is needed | O (accept "refuse" for client work, or name a policy) | nothing today: refusal is safe |
+| M6 | Fit level below which a map is not delivered | Open | O, informed by 2c's nulls | 12 |
+| M7 | Respondent (population) weights | Open; no source weights a Sociomap | O | 7 |
+| M8 | Region tests: which t-test, chi-square construction, multiplicity | SOMECS: t for continuous, chi-square for discrete (SOMECS-T1) | E8 + O (multiplicity) | 8 |
+| M9 | Visualization Lab (PR 116) | Its object input matches RTS-O1 (Pearson, though rescaled to 1-10); its layouts match nothing documented | O | 11 |
+| M10 | Extrapolation in animation | Open | E9 | 10 |
+| M11 | Discrepancy measure gating aggregation | Weighted mean built; gate not applied and recorded as not performed | E4 | 1c |
+| M12 | Negative correlations between objects on a 0-1 relation scale | Kept signed; refused by name at the 0-1 step | E3 | object maps on real data (R1 is all-positive) |
+| M13 | Effectiveness formula (EFFECT) | Value table in certification p. 17; formula withheld | O (QED supplies it) | effectiveness designs |
+| M14 | Statistical adequacy: when a correlation, map or region difference means something | Support recorded everywhere; product minimums (RTS-L1) are not adequacy | O | 12, and any client-facing use |
+| M15 | The significance null's generator | SOMECS refits random symmetric matrices (fig. 22); distribution unstated | E1 | 2c acceptance only |
+
+## Evidence still needed (chunk 0c) -- the smallest export for each
+
+Each export can rule candidate rules in or out. One example need not identify an algorithm
+uniquely, so each row also says what could stay open after it.
+
+| Id | Export or experiment | Could distinguish | Might remain unresolved |
 | --- | --- | --- | --- |
-| M1 | How does SOMECS derive the n × n fuzzy matrix from STORM data (subjects × objects)? Row/database/ordinal normalisation is documented; the subject-to-relation step is not. | 1, 2 | refuse: no fuzzy matrix from ratings without the rule |
-| M2 | The exact H-Model objective: Spearman over all off-diagonal cells, or row-conditional (within each row), and how asymmetry enters (two directed targets per pair?). | 2 | row-conditional ordinal fit, Spearman reported over all cells, both directions as separate targets |
-| M3 | The STORM placement rule for a subject given fixed object positions, and the rule for "prefers none" subjects at the edge. | 3 | external row-conditional unfolding with objects fixed; a row whose fit is undefined goes to the rim and is counted |
-| M4 | WIND interpolation: inverse-distance exponent and search radius; is 18.6.6's Gaussian terrain66 an accepted re-implementation or a departure? | 4 | implement IDW with exponent as a spec parameter; keep terrain66 as a second declared method |
-| M5 | Missing STORM cell: 0 (SOMECS), exclude the cell (AIA), or exclude the row? | 1, 3 | exclude the cell; refuse a row with fewer than two observed cells |
-| M6 | The fit level below which a map may not be delivered, and whether the H-Model density p-value is the gate. | 5, 12 | none chosen; D6 stays open |
-| M7 | Respondent (population) weights: do they enter the fuzzy matrix, the STORM mass, the WIND heights, or nothing? | 1, 4 | nothing; unweighted, labelled |
-| M8 | Multiple-testing policy for region tests over many characteristics. | 8 | Holm; every p-value stored raw and adjusted |
-| M9 | Is the 18.6.6 Visualization Lab (PR 116) his intended simplification for market research or a prototype shortcut? | 11 | keep it as "Visualization Lab", internal, off by default; never call it a Sociomap |
-| M10 | Extrapolation (the next frame of an animation): which model? | 10 | not implemented; the control is absent |
+| E1 | SOMECS "Matrix Model Estimation", n = 10, run to completion, CSV saved (SOMECS Input p. 21) | M2: overall-pairs vs mean-per-row vs Pearson accuracy, sign or absolute value, over hundreds of matrix / coordinate / accuracy triples. M15: the random generator's distribution | Ties (continuous random values rarely tie); asymmetric input (the run ticks "symmetrical"); the optimiser, since coordinates are its output, not its process; whether the module fits the way the main H-Model does |
+| E2 | SOMECS project from a STORM table of at least 5 subjects x 4 objects with varied values, once per transform (row, database, ordinal with a tie), each exported with its fuzzy matrix | M1: each transform's formula and tie rule; whether transformed STORM becomes the fuzzy matrix by correlation, a distance or something else | Formulas that agree on the chosen values (a small table can fit several); aspects; empty cells; a database of equal values unless included on purpose |
+| E3 | RTS object question where two objects are rated in opposite directions, exported with its relation matrix | M12: whether RTS clips a negative r to 0, shifts it ((r + 1) / 2), takes `abs(r)` or refuses | Whether that is a deliberate rule or incidental; SOMECS's handling of the same case |
+| E4 | Two 3 x 3 matrices differing in one cell by 0.3; aggregate in SOMECS at thresholds 0.2 and 0.4; repeat with the difference spread over three cells | M11: maximum cell difference vs a mean or sum; whether the threshold is inclusive | What SOMECS does on failure beyond what the screen shows; more than two matrices; unequal weights unless tried |
+| E5 | SOMECS H-Model of the help's drinks example: positions ("Info o pozicích"), accuracy, per-point bars | M2: a second accuracy check on a real matrix; per-point candidates to the colour bar's resolution; a SOMECS layout to compare the AIA candidate with | The optimiser (one layout from one search); per-point candidates the bar's resolution cannot separate |
+| E6 | SOMECS STORM map of the drinks data with subject positions | M3: a subject at the weighted mean of object positions vs fitted (unfolding) vs projected; which weights | The optimiser if placement is fitted; ties and empty answers |
+| E7 | SOMECS WIND map of a 3-element matrix with heights 0, 0.5, 1 at known positions, as an image | M4: inverse-distance power vs a kernel; behaviour at and between points and at the edge | Exact parameters (an image gives heights only to its colour resolution); smoothing with many points |
+| E8 | A SOMECS region test (A vs complement) on the drinks data with its p-values | M8: Student vs Welch t; the chi-square table's construction; p's rounding | Multiplicity across regions (O); how regions are drawn in other cases |
+| E9 | A SOMECS animation with extrapolation, frame by frame | M10: linear vs curved extrapolation; frames per interval | Elements entering or leaving between waves; how waves are aligned when the frames do not show it |
+
+E1 and E5 narrow the most: they test the accuracy definition on many more examples. Neither
+identifies SOMECS's fitting objective; that needs the method owner (M2, O).
 
 ## Chunks
 
-### 0. Methodology decision record v2 and SOMECS golden fixtures
-- Collect M1-M10 with the owner; write the answers as declarations with formulas.
-- Obtain from SOMECS, on a small fictional dataset (the Drinks example from the help or a
-  purpose-built one), every intermediate: the STORM data, the fuzzy matrix under each
-  normalisation, the H-Model positions with its Spearman accuracy and per-point fit, the
-  STORM map mass grid, the WIND map heights for two height choices, a region test result,
-  and two frames of an animation. Vendor them as **S1-S8** under
-  `packages/aia_core/tests/fixtures/sociomap/`, pinned by SHA256 in
-  `docs/migration/parity-matrix.json`, each with the tolerance the owner accepts (positions
-  are compared after Procrustes alignment, because the H-Model has local optima).
-- Record the SOMECS version and the export format (.smp, .smx, CSV from the HMODEL module).
-- **Done when:** the decision document carries M1-M10 with an answer or an explicit
-  "deferred", and the eight fixtures load with their pins verified.
+Detailed chunk notes. Everything listed under a chunk as "needs" is a row above.
 
-### 1. Fuzzy matrix contract
-- `domain/sociomap/fuzzy.py`: `FuzzyMatrix` (n × n, values 0-1, diagonal undefined,
-  asymmetry allowed, element ids, provenance), `from_storm_data(ratings, aspects,
-  normalisation, missing_policy)` with the three normalisations and aspect weights 0-1,
-  `from_properties(table, extremes, method)` with Euclidean / Manhattan / correlation and
-  the sign convention for lower-is-better, `aggregate(matrices, weights, discrepancy)`.
-- Bridge: `coerce_relation_scale_1_10` already accepts a 0-1 similarity (F1); add the
-  inverse so a stored 1-10 relation becomes a `FuzzyMatrix` with its origin recorded.
-- SOMECS Input's data-quality indicator (five stars, OK/GOOD/FAIR/POOR) as a computed
-  quality record with reasons; it never blocks, it is shown.
-- **Tests:** S2 (each normalisation), S1 (properties → similarity), aggregation with a
-  discrepancy refusal, missing policy per M5. Gate on `sociomapping.core`.
+- **0c / 0d.** Collect E1-E9 and the owner decisions; each lands as a fixture under
+  `packages/aia_core/tests/fixtures/sociomapping_sources/` with a register entry upgraded from
+  INFERRED or OPEN.
+- **1c.** Only the SOMECS path and the 0-1 step for negative correlations remain; both refuse
+  today by name.
+- **2b. Experimental AIA H-Model candidate.** `h_model_candidate_v1`: objective, starts,
+  selection, gauge and acceptance exactly as `docs/architecture/sociomapping-hmodel.md` § 4,
+  labelled experimental in code and on every artifact. Buildable now. Its acceptance is on
+  AIA's own terms -- a provisional comparison with fig. 22's 0.786 (rounding band recorded),
+  MDS baselines, perfect fit only on planted data constructed to admit it, an evaluation set
+  of independent matrices (asymmetric and tied included) fixed before scoring, repeatability
+  tested apart from cross-host reproducibility. No result of 2b is presented as SOMECS
+  equivalence; E1/E5 compare it with SOMECS afterwards, they do not confirm it.
+- **2c. Significance.** § 5 of the same document; both nulls, refitted; worker step.
+- **3. STORM placement.** Needs E6. RTS has no respondent map, so an AIA object study gets an
+  object map first; respondents wait for SOMECS's rule.
+- **4b.** Rescale modes are documented (RTS-V1) and can be built with 2b; the WIND surface
+  waits for E7, and until then the existing terrain66 surface stays labelled as AIA's own.
+- **6b.** HM correction, after 2b.
+- **J1. The acceptance journey.** `tools/sociomapping_journey.py` runs R1 through every built
+  stage and lists the rest as pending with what blocks them; each new stage joins it and its
+  test. Done when R1 reaches a rendered 3-D map and a report page with every intermediate
+  and fit diagnostic shown.
+- **7-12.** As before: wiring and artifact v3, regions, overlays, time, the Results UI from the
+  artifact, the report and the client gate.
 
-### 2. H-Model layout `h_model_v1`
-- `layout.py` gains `h_model_v1`: input `FuzzyMatrix`; output positions in the 0-1 frame
-  with the chosen margin, Spearman accuracy, per-point fit, iterations, seed, the
-  objective per M2. Multi-start from a declared seed list, the best kept, all accuracies
-  recorded. Locked points and per-point importance weights as parameters. Procrustes
-  alignment to a reference configuration when one is given (reuses `procrustes_align`).
-- Refuses more than 30 elements; warns above 20 (design description § Limits).
-- **Tests:** S3 positions within tolerance after alignment, accuracy within 0.01, per-point
-  fit ordering; planted-geometry recovery; order-permutation invariance of the distance
-  matrix (the current spring loop fails this by 18.9 of 76 units, see the PR 116 review).
+## Progress
 
-### 3. STORM placement `storm_placement_v1`
-- `storm.py`: each subject placed against the fixed H-Model objects per M3; per-row fit;
-  the rim rule for rows with no preference; a counted, reasoned exclusion list.
-- The STORM mass (concentration) as a declared terrain source, separate from WIND.
-- **Tests:** S4 mass grid and subject positions; the three narrative cases from the help
-  (fan near favourite, undecided between, none at the rim); a 2,000 × 30 timing budget.
+On `feature/sociomapping-engine`; `make verify` green before each commit.
 
-### 4. WIND terrain and STORM mass
-- `terrain.py` gains `TerrainMethod = {wind_idw, terrain66}`: WIND as inverse-distance
-  weighting of object heights with exponent and radius per M4; height sources: matrix
-  column sums, STORM rating sums, a characteristic, custom, inverse column sums (mapped to
-  the existing `ObjectMetric` ids where they coincide). Contour levels stored, not drawn.
-- **Tests:** S5 and S6 heights within tolerance; F7/F8 keep passing for terrain66.
+**0a, 0b.** Sources read and cited by page; evidence register with 35 rules, each labelled
+DOCUMENTED, REPRODUCED_FROM_EXAMPLE, INFERRED, PROPOSED or OPEN, and a test
+(`test_sociomapping_evidence_register.py`) that fails if an implementation or a validating test
+goes missing, if a rule called reproduced has no source example behind it, or if an output
+records a rule id the register lacks.
 
-### 5. Fit reporting and H-Model density
-- `fit.py`: Spearman accuracy, per-point fit, and the permutation distribution of the
-  Spearman coefficient under row-shuffled fuzzy matrices (the "H-Model density function");
-  a p-value and the chosen significance level stored on the artifact.
-- The artifact says, in words, what the fit means (methodology_status, the D6 state).
-- **Tests:** known distribution for n = 5 against a brute-force enumeration; S3 accuracy.
+**1a, 1b -- `domain/sociomap/fuzzy.py`.** Review corrections to the first draft, each a defect
+the draft had:
 
-### 6. Coherences, zoom, HM correction
-- `coherence.py`: alpha-cuts as single-linkage over the pairwise minimum of mutual
-  relations, the nested grouping string the help shows `(C, (D, (A, B)0.5)0.4)0.1`,
-  zoom levels (merge groups above a cut, the merged relation as the minimum), and the HM
-  correction as a declared penalty term in `h_model_v1`.
-- **Tests:** the help's 4 × 4 worked example reproduces its grouping exactly.
+1. *Products mixed.* One `normalise_storm_ratings` served RTS and SOMECS rules alike, and the
+   correlation accepted any of its outputs. Now RTS (`rts_people_matrix`, `rts_scale_answers`,
+   `rts_object_correlations`, `rts_fuzzy_from_correlations`), SOMECS
+   (`somecs_transform_storm`) and legacy AIA (`legacy_fuzzy_from_relation_1_10`) are separate
+   functions, every output records its product and rule ids, and the correlation accepts only
+   RTS-scaled answers.
+2. *`NormalisedStorm` unvalidated.* Now checks ids, shape, finiteness, range, booleans, that
+   empty cells exist only under `KEEP_EMPTY`, that a scale is recorded with and only with the
+   RTS transform, and that product and transform agree (`test_normalised_storm_contract`).
+3. *Normalisation order unexamined.* Column scaling keeps Pearson's r; row normalisation
+   changes it (-0.620 to -0.426 on the test data). The undocumented combination is refused
+   (`test_scaling_columns_keeps_r_but_row_normalisation_changes_it`).
+4. *Negative correlations discarded.* The draft refused the whole computation. Now
+   `ObjectCorrelations` keeps the signed matrix, every pair's support and every undefined pair
+   with its reason; only the step to `[0, 1]` refuses, naming each negative pair (M12).
+5. *Aggregation overstated.* `aggregate_fuzzy` returned a bare matrix labelled aggregated.
+   Now `weighted_mean_fuzzy` returns the mean with input fingerprints, sources, raw and
+   normalised weights, and `discrepancy_check = NOT_PERFORMED` with the reason (M11).
+6. *Undocumented cases extrapolated.* The within-row transform gave 0.5 to a row with one
+   answered cell and transformed partial rows. SOMECS transforms are documented for complete
+   data, so a row with an empty cell is now refused under `KEEP_EMPTY` (M5).
+7. *Computable taken for adequate.* Support is now recorded on correlations; adequacy is
+   M14, and the product minimums are registered as display rules (RTS-L1), not adequacy.
 
-### 7. Spec v3, preset, wiring, ledgers
-- `SociomapSpec` v3: `fuzzy` (source, normalisation, aspects, missing policy),
-  `layout.algorithm = h_model_v1` with its parameters, `respondents.algorithm =
-  storm_placement_v1`, `terrain.method`, `fit` (seeds, permutations, level). Preset
-  `SOCIOMAPPING_SOMECS_1`, `methodology_version = "sociomapping-somecs-1"`. `AIA_SOCIOMAP_V1`
-  stays as a second preset for comparison; nothing auto-selects.
-- `research_sociomap.py`: a battery's ratings become STORM data; the relation matrix
-  becomes a `FuzzyMatrix`; the artifact carries both maps, fit, exclusions, provenance.
-- `SociomapExecutor` unchanged in shape; `AIA_SOCIOMAP_WORKSPACE_ENABLED` is retired once
-  chunk 11 renders from the artifact (PR 116's field stays readable).
-- Ledgers that change with the code: `parity-matrix.json` (fixtures S1-S8, gates,
-  `sociomapping.core` state), `legacy-route-ledger.json` (the eight `/api/visualization*`
-  routes to PORTING with the research artifact route), `interface-screens.json`
-  (`route-visualization` to REBUILDING).
-- **Tests:** `test_parity_matrix.py` green with the new pins; end-to-end run on the
-  synthetic fixture through the real worker.
+**2a -- `domain/sociomap/hmodel.py`.** The reported accuracy, separate from any objective:
+Spearman over all ordered pairs of `(M_rs, -d_rs)`, average ranks, undefined when a side is
+constant; per-point fit per row; `mean_per_point` reported apart from the overall figure.
+Gives 0.786 on SOMECS's fig. 22 coordinates (0.783-0.793 across the screenshot's rounding;
+listed: 0.785). Invariances tested. `tools/somecs_estimation_experiment.py`: SOMECS 0.786 vs
+classical MDS 0.661 vs best of 20 nonmetric MDS 0.743 on the same matrix, under AIA's
+evaluator.
 
-### 8. Regions and statistics
-- `regions.py`: region A vs complement and A vs B over subject characteristics: Welch t
-  for continuous, chi-square for discrete (the help's own rule), Cohen d, intervals,
-  raw and adjusted p-values per M8, minimum support per side with SUPPRESS below it;
-  significant-region search as a scan over the grid with the same tests; phrase frequency
-  in a region vs the rest (the text-info column).
-- Every reported number is an `AdmittedClaim` through `evidence/`; p-values below support
-  are suppressed, not rounded.
-- **Tests:** S7; degenerate cases (one side empty, constant characteristic, tiny n).
+8. *Objective overclaimed.* The first draft of the H-Model note read that gap as showing
+   SOMECS optimises rank agreement and set ">= 0.786 on fig. 22" as 2b's acceptance. The gap
+   is equally consistent with more starts, another optimiser, manual adjustment or a different
+   evaluator; one layout of one matrix cannot identify an algorithm. Now: SOMECS's objective is
+   recorded as unknown (AIA-H8, OPEN), 0.786 is a provisional comparison score, the MDS
+   figures are baselines of the configurations tested, and 2b builds an experimental AIA
+   candidate with acceptance criteria that do not depend on one screenshot.
 
-### 9. Overlays as view layers
-- `view.py` gains arrows (RTS rules: desired − current ≥ 2 single, both ways double;
-  quality ≤ 2 of 5; object maps: significant negative correlation at the chosen level),
-  shortest path (mediators whose chained relation beats the direct one), combine maps
-  (add or subtract normalised heights, revert), coherence contours. All read the base
-  artifact; a scenario stays a layer with its own fingerprint.
-- **Tests:** each rule on a hand-built matrix; the layer never mutates the base.
+**4a -- `domain/sociomap/heights.py`.** Column, row and object averages; certification Tab. 1
+reproduced (2.66 printed for 16/6 is a truncation).
 
-### 10. Time
-- Positions taken from a reference map (Procrustes to the earlier H-Model, locked where
-  the owner says), wave sequences as a list of aligned artifacts, time-series framing with
-  window and step and the frame-quality record from the SOMECS Time Series tool (overlap,
-  frames, average and minimum records per frame, residual; export refused below the
-  minimum), linear interpolation between frames. Dynamic H-Model motion and extrapolation
-  only per M10.
-- **Tests:** S8 two frames; frame arithmetic on the tool's worked example (10-day window,
-  7-day step, 20 days → 2 frames, 4 residual records).
+**6a -- `domain/sociomap/coherence.py`.** As before, plus the consequence of the help's tie
+rule, now tested: with ties the grouping depends on element order
+(`(C, (A, (B, D)0.5)0.4)0.1` after reordering); without ties it does not.
 
-### 11. Results UI
-- `SociomapWorkspace.tsx` renders from the v3 artifact: STORM and WIND toggle, top view
-  with contours as the default, 3D as an option, the fit badge (accuracy, p, D6 state),
-  regions A/B with the test table, arrows, animation between aligned waves. The renderer
-  parts of PR 116 (SVG surface, camera, drilldown) are reused; the barycentre and spring
-  geometry are not rendered as a Sociomap. Per M9 the Visualization Lab either stays as
-  its own named view or goes.
-- **Tests:** component tests on a fixture artifact; the workbench journey through Run →
-  Results with both maps; `make ui-capture`.
+**J1 so far.** `tools/sociomapping_journey.py` on the fictional study R1 (a six-person team with
+two questions; twelve respondents rating five fictional brands): fuzzy matrices, heights,
+coherences and object correlations, with every intermediate printed; six stages pending,
+each naming its blocker.
 
-### 12. Report and the client gate
-- Report blocks for the map (method, fit, exclusions, regions) through `report/`;
-  OI-17's gate: a Sociomap reaches a client document only when the spec's methodology
-  version carries an approval in the decision document and the fit passes M6.
+**Findings.**
+
+- `apps/web/src/i18n/cs.ts:919 @ 7c1e012` (`mapToolNotInAia`) unused after PR 116.
+- OI-13 says `fit_python_unfolding` is withheld; it is at
+  `legacy/npc-panel-18.6.6/app/sociomap.py:53 @ cf08fac`.
+- The registration form received with the sources contains an RTS administrator login; it was
+  not used and is not recorded anywhere in the repository. Rotate it.
+- A fictional fixture can still fail `make exposure_check`: its content rule matches the 18.6.6
+  demo brand names case-insensitively anywhere in a tracked file. R1's first object was named
+  after one and failed `no client-identifying legacy names in file contents`
+  (`tools/exposure_check.sh:169`); it is now Altair. Check invented names against
+  `FICTIONAL_DEMO_TOKENS` before writing a fixture.
 
 ## What this costs
 
@@ -262,6 +298,16 @@ its geometry is replaced by chunks 2-4.
 - `apps/web/src/i18n/cs.ts:919 @ 7c1e012` (`mapToolNotInAia`) is unused after PR 116.
 
 ## Doc follow-up
+
+- CLAUDE.md map, `sociomap/`: `fuzzy.py` (RTS / SOMECS / legacy paths to a fuzzy matrix, signed
+  object correlations, weighted mean with provenance), `coherence.py` (alpha-cut coherences, zoom),
+  `hmodel.py` (reported H-Model accuracy), `heights.py` (column / row / object averages).
+- CLAUDE.md map, `docs/`: `docs/migration/sociomapping-evidence-register.json` (every rule with
+  source, page, label, validation; tested) and `docs/architecture/sociomapping-hmodel.md`.
+- AGENTS.md (pytest/fixtures): invented names in a fixture must avoid `FICTIONAL_DEMO_TOKENS` in
+  `tools/exposure_check.sh`; the content rule is case-insensitive and covers test trees.
+- CLAUDE.md map, `tools/`: `sociomapping_journey.py` (reference study R1 through every built
+  stage), `somecs_estimation_experiment.py` (SOMECS fig. 22 versus MDS; NumPy, scikit-learn).
 
 - `docs/architecture/sociomapa-methodology-decision.md` v2: M1-M10 with answers.
 - `docs/architecture/sociomapa-deterministic-engine.md`: the DATA → MATICE → H-MODEL →
