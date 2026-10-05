@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. Tokens, sparkle, AiButton; the shell: sidebar, header, client tabs, stage rail, AI pomoc bar, job panel badge"
   - "[x] 2. Shared step pieces: StepSection, ActionDock, RadioCard, Switch, ChipInput, InlineConfirm, Segmented"
   - "[x] 3. Step 1 · Zadání"
-  - "[ ] 4. Step 2 · Návrh"
+  - "[x] 4. Step 2 · Návrh"
   - "[ ] 5. Step 3 · Dotazník"
   - "[ ] 6. Step 4 · Audience"
   - "[ ] 7. Step 5 · Dimenze"
@@ -70,7 +70,32 @@ zbývá" per client) and the tab count badges (ClientWorkspace carries no counts
   empty brief is no longer refused with "Nejdřív popište zadání výzkumu." after a
   click: the action is disabled and the dock says what is missing.
 
-## Chunks 4–10
+## Chunk 4 — Návrh
+
+- Jump chips (Rozsah, Porozumění, Sady, Otázky AI a/b, Komentáře) with a status dot each.
+- The variants as radio cards (`applyVariant`, as before); the understanding with
+  its two lists and the "Princip objektů" note folded in.
+- Each set edited on its card: the name in place (`renameSet` on leaving the field),
+  the items as a chip input (`addObject` / `removeObject`, the 15-item refusal
+  toasted as before), a count against 4–15 (the questionnaire's `SET_SIZE`), a
+  "Respondent uvidí například" preview, and removal confirmed on the card instead of
+  `confirm()`. "Přidat sadu" takes the name inline and calls `addSet` with no items.
+- "AI se doptává": one input per follow-up question. The answers reach
+  `answerFollowUps` as one text, each answered question followed by its answer
+  (the classic textarea took whatever the person typed); empty still refuses with
+  "Napište odpovědi.".
+- Comments: the floating "Přidat komentář" puts a row with the quote in Komentáře;
+  the comment is typed there and kept with `addComment` once it has text.
+- The dock: back to Zadání, the way on as before (always enabled), and a note:
+  a set outside 4–15, else the comments waiting, else ready.
+
+**Not built, needs a decision:** v3 also edits the understanding (objectives,
+hypotheses), a set's "Porovnáváme mezi sebou", its question(s) and scale ends, and
+allows several questions per set. None of these has a write path today
+(`plan.ts` has no setter; a set has one `object_question`), so each would be new
+logic, not a redraw. They are shown read-only.
+
+## Chunks 5–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
