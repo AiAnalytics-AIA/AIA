@@ -32,8 +32,12 @@ from urllib.parse import urlsplit
 
 __all__ = [
     "ALLOWED_CONTENT_TYPES",
+    "MAX_ALTERNATE_LINKS",
     "MAX_BODY_BYTES",
+    "MAX_LINK_TEXT_CHARS",
+    "MAX_LINK_URL_CHARS",
     "MAX_REDIRECTS",
+    "MAX_SNAPSHOT_LINKS",
     "MAX_TEXT_CHARS",
     "FetchRefused",
     "SearchHit",
@@ -48,6 +52,14 @@ MAX_BODY_BYTES: Final = 2_000_000
 #: Normalised text kept per snapshot; beyond it the snapshot says it is truncated.
 MAX_TEXT_CHARS: Final = 200_000
 ALLOWED_CONTENT_TYPES: Final = frozenset({"text/html", "text/plain", "application/xhtml+xml"})
+#: Outbound ``<a href>`` links kept with an HTML snapshot, first in document order.
+MAX_SNAPSHOT_LINKS: Final = 200
+#: ``<link rel="alternate">`` targets kept with an HTML snapshot (feeds, translations).
+MAX_ALTERNATE_LINKS: Final = 20
+#: A link's anchor text is normalised and cut to this many characters.
+MAX_LINK_TEXT_CHARS: Final = 200
+#: A longer link is dropped, never truncated: a cut URL names another resource.
+MAX_LINK_URL_CHARS: Final = 2048
 
 _ALLOWED_PORTS: Final = {"http": 80, "https": 443}
 _BLOCKED_NAMES: Final = frozenset(
