@@ -1,8 +1,8 @@
 "use client";
 
 // Znalosti: this client's own context (ADR 0015 decision 7) -- never a global
-// knowledge base. The three layers are said at the top, so it is plain where a
-// piece of knowledge comes from. What a person adds takes effect at once (ADR 0019);
+// knowledge base. (Studio v3 removed the "Odkud znalosti pocházejí" strip of the
+// three layers: the page's subtitle already says it.) What a person adds takes effect at once (ADR 0019);
 // what a study or an AI offers waits as a proposal a person accepts -- the one who
 // offered it may accept it, unless the client turned that off and the API says so.
 
@@ -23,27 +23,6 @@ const SECTIONS: Section[] = ["sources", "knowledge", "previous", "dimensions", "
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
 // Where an added item shows up (domain KNOWLEDGE_SECTIONS); a DATASET lives under Data, not here.
 const SECTION_OF: Record<string, Section> = { SOURCE: "sources", DOCUMENT: "sources", DIMENSION: "dimensions", AUDIENCE: "audiences" };
-
-export function Layers() {
-  const layers: [string, string][] = [
-    [t("aia.knowledge.layerShared"), t("aia.knowledge.layerSharedText")],
-    [t("aia.knowledge.layerClient"), t("aia.knowledge.layerClientText")],
-    [t("aia.knowledge.layerStudy"), t("aia.knowledge.layerStudyText")],
-  ];
-  return (
-    <section aria-label={t("aia.knowledge.layers")} className="mb-5 flex flex-wrap items-stretch gap-2 text-sm">
-      {layers.map(([name, text], i) => (
-        <div key={name} className="flex items-center gap-2">
-          {i > 0 ? <span aria-hidden="true" className="text-ink-faint">→</span> : null}
-          <div className={`rounded-sm border px-3 py-2 ${i === 1 ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised"}`}>
-            <div className="font-medium">{name}</div>
-            <div className="text-xs text-ink-muted">{text}</div>
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
 
 function Items({ clientId, section }: { clientId: string; section: KnowledgeSection }) {
   const [q, setQ] = useState("");
@@ -201,7 +180,6 @@ export function KnowledgeArea() {
         <Empty>{t("aia.knowledge.noAccess")}</Empty>
       ) : (
         <>
-          <Layers />
           {proposing ? (
             <AddForm
               clientId={client.client_id}
