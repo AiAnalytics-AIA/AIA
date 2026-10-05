@@ -31,6 +31,7 @@ function Waiting({ children, name }: { children: ReactNode; name?: string }) {
         { label: name ?? "…" },
       ]}
       title={name ?? t("aia.kind.RESEARCH")}
+      client={{ id: client.client_id, name: client.name }}
     >
       {children}
     </AppShell>

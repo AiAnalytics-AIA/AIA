@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
 import { REBUILT_STEPS, STEP_KEYS } from "@/research/steps";
-import { ResearchScreen, ResearchSession } from "./ResearchScreen";
+import { ResearchScreen, ResearchSession, aiHelpFor } from "./ResearchScreen";
 import { STEP_SCREENS } from "./steps";
 import { TEST_FRAME, stagePath } from "./test-frame";
 import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
@@ -155,9 +155,12 @@ describe("ResearchScreen", () => {
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Výzkum A", "Dotazník"]);
     expect(within(crumbs[1]).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-1");
     expect(within(crumbs[3]).getByRole("link").getAttribute("href")).toBe(stagePath("brief"));
-    // The stage rail is the study's own; the global navigation stays the four AIA destinations.
+    // The stage rail is the study's own; the global navigation stays the four AIA destinations,
+    // under the client the study belongs to (Studio v3's sidebar card).
     const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.textContent);
-    expect(global).toEqual(["AI Analytics", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
+    expect(global).toEqual(["AI AnalyticsResearch Studio", "Změnit klienta ›", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
+    expect(screen.getByText("Klient A", { selector: "nav span" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Zpět na klienta/ }).getAttribute("href")).toBe("/app/clients/CLI-1");
   });
 
   it("saves a new study's first change as revision one, and the next one from it", async () => {
@@ -198,5 +201,33 @@ describe("ResearchScreen", () => {
 
   it("lists as rebuilt exactly the steps that have a screen", () => {
     for (const k of STEP_KEYS) expect(REBUILT_STEPS.has(k), k).toBe(k in STEP_SCREENS);
+  });
+});
+
+describe("AI pomoc (Studio v3)", () => {
+  const offered = (step: Parameters<typeof aiHelpFor>[0]) => aiHelpFor(step).map((a) => a.action);
+
+  it("offers each AI action only on the steps it helps", () => {
+    expect(offered("brief")).toEqual(["answer_memory"]);
+    for (const step of ["plan", "questionnaire", "audience", "persona"] as const) {
+      expect(offered(step), step).toEqual(["critique_design", "design_copilot", "answer_memory"]);
+    }
+    expect(offered("run")).toEqual(["critique_design", "answer_memory"]);
+    expect(offered("progress")).toEqual(offered("run"));
+    expect(offered("results")).toEqual(["answer_memory"]);
+    expect(offered("verify")).toEqual(["answer_memory"]);
+  });
+
+  it("draws them as AI actions under the step", async () => {
+    api(() => content());
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await screen.findByText("Uloženo");
+    const bar = screen.getByRole("region", { name: t("research.aiHelpLabel") });
+    const buttons = within(bar).getAllByRole("button");
+    expect(buttons.map((b) => b.textContent)).toEqual([t("research.aiCritique"), t("research.aiCopilot"), t("research.aiMemory")]);
+    for (const b of buttons) {
+      expect(b.getAttribute("data-ai-action")).toBe("true");
+      expect(b.getAttribute("title")).toBe(t("research.aiActionTitle"));
+    }
   });
 });

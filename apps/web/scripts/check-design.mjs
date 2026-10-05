@@ -63,6 +63,10 @@ const TEXT = [
   ["on-status-fault", "status-fault", 4.5, "label on failed fill"],
   ["on-status-recovery", "status-recovery", 7, "label on recovery fill"],
   ["ink-inverse", "surface-inverse", 7, "inverse text"],
+  ...["surface", "surface-raised", "ai-wash"].map((bg) => ["ai-ink", bg, 4.5, "AI action label (Studio v3)"]),
+  ["on-ai", "ai", 4.5, "label on the primary AI action"], ["on-ai", "ai-strong", 4.5, "label on the primary AI action, hover"],
+  ...["shell-ink", "shell-item", "shell-muted", "shell-faint"].map((fg) => [fg, "shell", 4.5, "text on the sidebar"]),
+  ["shell-avatar-ink", "shell-avatar", 4.5, "initials on the account avatar"],
   ...[1, 2, 3, 4, 5, 6].map((i) => ["on-client", `client-${i}`, 4.5, "monogram on client accent"]),
   ["doc-ink", "doc-paper", 7, "report prose"], ["doc-muted", "doc-paper", 4.5, "captions"], ["doc-accent", "doc-paper", 4.5, "report headings accent"],
   ["doc-ink", "doc-wash", 7, "report callout prose"], ["doc-muted", "doc-wash", 4.5, "report callout captions"], ["doc-accent", "doc-wash", 4.5, "report callout accent"],
@@ -74,6 +78,8 @@ const NONTEXT = [
   ["status-recovery-hatch", "status-recovery", 3, "recovery hatch"],
   ...[1, 2, 3, 4, 5, 6].flatMap((i) => ["surface", "surface-raised"].map((bg) => [`client-${i}`, bg, 3, "client band on surface"])),
   ...["surface", "surface-raised"].map((bg) => ["viz-axis", bg, 4.5, "axis labels"]),
+  ...["hue-blue", "hue-teal", "hue-orange", "hue-violet", "hue-green", "hue-slate"].map((bg) => ["shell-strong", bg, 3, "icon on an active wayfinding tile"]),
+  ...["shell-hue-blue", "shell-hue-green", "shell-hue-violet", "shell-hue-slate"].map((fg) => [fg, "shell", 3, "inactive navigation icon on the sidebar"]),
 ];
 const contrastRows = [...TEXT, ...NONTEXT].flatMap(([fg, bg, min, use]) =>
   ["light", "dark"].map((theme) => { const r = contrast(hex(fg, theme), hex(bg, theme)); return { theme, fg, bg, min, use, ratio: +r.toFixed(2), pass: r >= min }; }));

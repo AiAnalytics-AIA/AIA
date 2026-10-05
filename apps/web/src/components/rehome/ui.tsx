@@ -1,7 +1,8 @@
 "use client";
 
 // AIA's interface primitives. Token utilities only (bg-surface, text-ink,
-// border-border-strong, rounded-sm/md = 2/4 px): no raw colour, radius, shadow
+// border-border-strong, rounded-sm/md = 2/4 px, rounded-control = 6 px for the
+// Studio v3 AI action): no raw colour, radius, shadow
 // or font here or in anything built on them. Components map a value to an
 // appearance; what the value is, the logic beside each screen decides.
 
@@ -13,7 +14,7 @@ import {
 
 import type { Tone } from "@/lib/tone";
 import { t } from "@/i18n/t";
-import { Icon, type IconName } from "./icons";
+import { Icon, type IconName, Sparkle } from "./icons";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
@@ -38,6 +39,35 @@ export function Button({ variant = "secondary", small = false, icon, children, t
       {...rest}
     >
       {icon ? <Icon name={icon} size={small ? 14 : 16} /> : null}
+      {children}
+    </button>
+  );
+}
+
+const AI_VARIANT = {
+  primary: "border-ai-strong bg-ai text-on-ai shadow-[0_0_0_3px_var(--ai-wash)] hover:bg-ai-strong",
+  secondary: "border-ai-edge bg-ai-wash text-ai-ink hover:border-ai",
+} as const;
+
+/**
+ * A control that starts an AI worker job (Studio v3): the sparkle, the AI colour
+ * and the same title everywhere, so a person always knows a click is paid from the
+ * study's budget. The AI colours mean this and nothing else.
+ */
+export function AiButton({ variant = "secondary", small = false, children, type = "button", className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: keyof typeof AI_VARIANT;
+  small?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type={type}
+      title={t("research.aiActionTitle")}
+      data-ai-action="true"
+      className={`inline-flex items-center gap-1.5 rounded-control border font-semibold whitespace-nowrap transition-colors duration-[var(--duration-confirm)] disabled:opacity-50 ${small ? "min-h-8 px-3 text-[13px] leading-5" : "min-h-9 px-3.5 text-sm"} ${AI_VARIANT[variant]} ${FOCUS} ${className}`}
+      {...rest}
+    >
+      <Sparkle size={15} />
       {children}
     </button>
   );
