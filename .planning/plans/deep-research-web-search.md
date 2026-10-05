@@ -2,17 +2,20 @@
 status: planned
 chunks:
   - "[x] 0. This plan: the design and the provider choice (DR-2, Class C)"
-  - "[ ] 1. Sign-off: the design, Brave and its written terms, D8, the run budget"
-  - "[ ] 2. Brave search adapter over the existing SearchAdapter seam"
+  - "[ ] 1. Sign-off: the design, Brave and its written terms, D8, the run budgets"
+  - "[ ] 2. Brave search adapter, with operators (site, freshness, language) and 20 results"
   - "[ ] 3. The API key as a credential reference (D8, for this route)"
-  - "[ ] 4. Public-web fetch: any public host, robots.txt, identified user agent, links kept"
-  - "[ ] 5. Documents as sources: PDF and XLSX snapshots, grounded by page and sheet"
+  - "[ ] 4. Public-web fetch: any public host, robots.txt, user agent, links kept, run snapshot cache"
+  - "[ ] 5. Documents as sources: PDF, XLSX and CSV, read in parts, grounded by page, sheet and cell"
   - "[ ] 6. The agent-directed investigator: action contract, loop, refs, refusals, transcript"
-  - "[ ] 7. Budgets and the run's cost ceiling for agent-directed tracks"
-  - "[ ] 8. Composition, switches and dated price"
-  - "[ ] 9. Czech source table (DR-5 input)"
-  - "[ ] 10. Quality evaluation: planned queries against agent-directed, on real search"
-  - "[ ] 11. Develop activation and one live fictional acceptance"
+  - "[ ] 7. Leads and recovery: citation chase, result annotations, search feedback"
+  - "[ ] 8. The research director: gap board, conflicts, new tracks, budget moved between tracks"
+  - "[ ] 9. Official-data retrieval: Czech open-data catalogue and statistics office (verify first)"
+  - "[ ] 10. Budgets, presets and the run's cost ceiling"
+  - "[ ] 11. Composition, switches and dated prices"
+  - "[ ] 12. Czech source table (DR-5 input)"
+  - "[ ] 13. Quality evaluation on real search: three arms"
+  - "[ ] 14. Develop activation and one live fictional acceptance"
 ---
 # Deep Research on the open web — agent-directed, code-gated
 
@@ -93,7 +96,9 @@ evidence: [ProposedEvidence]          # as today; grounded by code against S<n> 
 next: one of
   search  {query, purpose}            # a new query in Czech or English
   open    {ref: R<n> | L<n>, purpose} # a result or a link from a captured source
-  finish  {gaps: [...]}               # the track is answered, or cannot be
+  read    {ref: S<n>, part}           # another part of a long captured document
+  chase   {name, what, from: S<n>}    # a source a page cites by name, resolved by code
+  finish  {gaps: [{need, why, tried}]} # the track is answered, or cannot be
 ```
 
 What code does with each:
@@ -102,6 +107,8 @@ What code does with each:
 |---|---|
 | `search` | classify the query (Class A refused, B refused without a B route, C allowed); duplicate of an earlier query refused; reserve, journal, send through the provider; store the hits as new `R<n>` |
 | `open` | resolve the ref to the URL code stored (the model never writes a URL); classify the URL's path and query string like a query; check the address on every hop; obey `robots.txt`; fetch, snapshot, extract text and links (`L<n>`) |
+| `read` | serve the requested part of a snapshot the track already holds; nothing leaves |
+| `chase` | resolve the name in the source table to a site-restricted search, else a plain search for name and topic; then as `search` |
 | `finish` | end the track; the gaps go to the synthesizer as stated gaps, never as findings |
 | `evidence` | ground each item against the track's snapshots (quote present, numbers in the quote, source in this track); accepted or quarantined with the reason |
 
@@ -123,6 +130,69 @@ saturation (no newly grounded evidence for `saturation_window` turns); the allow
 (searches, opens, turns, reservation); `finish`; an uncertain delivery (journal closed, never
 resent); `STOP_REFUSALS`.
 
+### The four gains, pushed as far as they go
+
+The loop above is the minimum. Each gain below is taken to its strongest form that still keeps
+code sending every call. Together they are what separates a researcher from a search box.
+
+**1. Following leads.**
+
+- **Links** from every captured page, as `L<n>` refs (above).
+- **Citation chase.** Pages cite sources by name more often than by link ("podle ČSÚ", "data
+  Eurostatu", "studie Svazu obchodu"). The investigator may answer `chase {name, what, from: S<n>}`.
+  Code looks the name up in the source table: a known publisher becomes a search restricted to its
+  own site (ČSÚ → `site:czso.cz`); an unknown one becomes an ordinary search for the name and the
+  topic, classified like any query. The model never chooses the host.
+- **Long documents read in parts.** A 200-page report is captured once; the investigator sees its
+  outline and asks `read {ref: S<n>, part}` for the section it needs, so the table on page 143 is
+  reachable without reading pages 1–142.
+- **Tables.** XLSX and CSV are captured, and a number is grounded to its sheet and cell, the
+  strongest citation a number can have.
+- **One fetch per run.** Snapshots are content-addressed and cached for the run: a page one track
+  captured costs another track nothing to open, and is still grounded per track.
+
+**2. Filling gaps.**
+
+- **Structured gaps.** `finish` and every turn may record `{need, why, tried}`, not free text.
+- **The research director** (a new agent role, one governed request between rounds of tracks).
+  It reads every track's findings, gaps and **conflicts** (two accepted sources disagreeing on the
+  same measure) and proposes, within the run's budget:
+  - a new track for an unanswered gap or a sub-question the plan missed;
+  - a *resolve* track for a conflict: find the primary source both numbers came from;
+  - more allowance for a track that is still finding evidence, and an early stop for one that is
+    not (budget moved, never added beyond the run's ceiling);
+  - routing a finding from one track to another track's gap instead of searching for it again.
+  Code checks every proposal: a new track's sub-question is classified like a query and inherits
+  the Class C digest only; at most 2 director rounds (Standard) or 3 (Deep).
+
+**3. Better result choice.**
+
+- **Annotated results.** Each hit shows its host, source class and score from the source table,
+  date, file type, and whether the run already holds it or a near-duplicate (syndicated copies
+  collapse to one). 20 results per search instead of 10.
+- **More than one way to search.** Web search (Brave); site-restricted search on official hosts;
+  Wikipedia as an entry point (low source class); and, once verified, the Czech national open-data
+  catalogue and the statistics office's own data search (chunk 9). The agent picks the tool;
+  code sends it.
+- **Choice is visible.** Opening a low-class page when a higher-class hit for the same claim was on
+  the list is allowed, recorded, and counted by the evaluation.
+
+**4. Recovering from bad queries.**
+
+- **Explicit search feedback.** Code tells the agent why a search was weak: no hits, every hit
+  already held, every hit low-class, every hit outside the date range.
+- **Operators.** Site, freshness or date range, and language (Czech or English: Eurostat and
+  international bodies publish in English); file type if the provider supports it (verified in
+  chunk 2).
+- **A weak search is not a wasted round.** It spends search allowance, never the saturation window.
+- **Duplicates refused**, so rephrasing is real rephrasing.
+
+**What this costs, honestly.** Each addition widens what an injected page can try: a chase is
+steered only by a name, resolved by code against the source table; a director proposal is
+classified like a query; every action still passes the gate and the refusal limit. The path a
+track takes is no longer reproducible, but its evidence is: every snapshot is content-addressed
+and the transcript records every step. And it costs more (below).
+
 ### Documents as sources
 
 Snapshots accept `application/pdf` and the XLSX type, bounded by size, page count and ZIP limits,
@@ -138,11 +208,16 @@ the change most likely to move a run from news articles to primary sources.
   over an unchanged track reuses it whole and pays nothing; a changed track runs again.
 - **The transcript** (every turn's action, purpose, code's decision and cost) is a track
   artifact, shown on the Deep Research screen beside the findings it led to.
-- **Allowances per track** (proposal; chunk 10 measures and the owner sets them): Standard
-  preset 6 searches, 15 opens, 12 turns. **Estimate, to be measured:** a turn reads up to about
-  8,000 tokens of page text, so about $0.04 at the develop policy's prices; 12 turns, about $0.50
-  a track; 8 tracks, about $4 a run, plus under $0.25 of searches. That is above the $2 cap of the
-  first acceptance: chunk 1 asks the owner for a run budget.
+- **Presets** (proposal; chunk 13 measures and the owner sets them). **Estimates, to be
+  measured:** a turn reads up to about 8,000 tokens of page text, about $0.04 at the develop
+  policy's prices.
+
+  | Preset | Per track | Director | Estimate per run |
+  |---|---|---|---|
+  | Standard | 8 searches, 20 opens, 15 turns | 2 rounds, up to 2 new tracks | about $5–7 |
+  | Deep | 15 searches, 40 opens, 30 turns | 3 rounds, up to 4 new tracks | about $12–18 |
+
+  Both are above the $2 cap of the first acceptance: chunk 1 asks the owner for run budgets.
 - **The run's cost ceiling** (`domain/run_cost.py`) counts the agent-directed turns and the search
   price, so a study's spend limit asks before a run that could exceed it.
 
@@ -205,8 +280,9 @@ These are hypotheses about terms until chunk 1 records the signed plan and its d
 
 ## Chunks
 
-Each chunk is one PR into `develop`, green on `make verify`, with this file ticked. Chunks 2–9
-build and test entirely offline on recorded doubles; only chunks 10 and 11 send anything.
+Each chunk is one PR into `develop`, green on `make verify`, with this file ticked. Chunks 2–12
+build and test entirely offline on recorded doubles (chunk 9 starts with a written check of
+terms); only chunks 13 and 14 send anything.
 
 ### 1. Sign-off (human; no code)
 
@@ -215,18 +291,20 @@ build and test entirely offline on recorded doubles; only chunks 10 and 11 send 
   allow storing results and using them in an AI application; record the plan, its terms URL and
   date, the price per request, whether a failed request is billed, and the retention that applies.
 - D8 decided for this key (chunk 3's proposal, or Secrets Manager).
-- A run budget for chunks 10 and 11 (the estimate above is about $4 a run).
+- Run budgets for chunks 13 and 14 (estimates: about $5–7 Standard, $12–18 Deep).
 
 ### 2. Brave search adapter
 
 `infrastructure/web_retrieval_brave.py`: `BraveSearch(SearchAdapter)`, `RetrievalMode.LIVE`,
-adapter id `brave-web-search-1`. One `GET` with `q`, `country=CZ`, `search_lang=cs`, `count` ≤ the
-gate's `max_results`, safe search on. Hits map to `SearchHit(url, title, snippet, rank)`; a hit
-whose URL fails `check_url` is dropped and counted. Failures map to `ToolCallFailed` with a
-`Delivery`: rejected before processing (bad key, quota) is `RESPONDED`, a timeout or reset after
-sending is `UNKNOWN` (closed uncertain, never resent). No retry inside the adapter. The transport
-is the pinned HTTPS client scoped to the provider's API host. Tests: a captured response shape
-with fictional content, every failure mode, the key never in a log line or exception. No network.
+adapter id `brave-web-search-1`. One `GET` with `q`, `country=CZ`, `search_lang` (cs or en),
+`count` ≤ 20, freshness when asked, safe search on; `site:` in the query; whether `filetype:`
+works is verified here, and the action refused if not. Hits map to `SearchHit(url, title,
+snippet, rank)`; a hit whose URL fails `check_url` is dropped and counted. Failures map to
+`ToolCallFailed` with a `Delivery`: rejected before processing (bad key, quota) is `RESPONDED`,
+a timeout or reset after sending is `UNKNOWN` (closed uncertain, never resent). No retry inside
+the adapter. The transport is the pinned HTTPS client scoped to the provider's API host. Tests: a
+captured response shape with fictional content, every failure mode, the key never in a log line
+or exception. No network.
 
 ### 3. The key as a credential reference (D8 proposal for this route)
 
@@ -243,55 +321,89 @@ naming the key. Trade-off: no rotation, unlike Secrets Manager. Production needs
 addresses refused; `robots.txt` read once per host per run and obeyed; an identifying user agent;
 no cookies or credentials; the existing size, time and redirect caps; one request at a time per
 host. Snapshots keep the page's outbound links (absolute, `check_url`-valid, deduplicated, at most
-100) for the `L<n>` refs. The Wikipedia route keeps its narrower transport.
+200) for the `L<n>` refs. A run-level, content-addressed snapshot cache: a URL fetched once in a
+run is not fetched again. The Wikipedia route keeps its narrower transport.
 
 ### 5. Documents as sources
 
-`ALLOWED_CONTENT_TYPES` gains `application/pdf` and the XLSX type, each with its own size, page
-and ZIP bounds; text through `document_text.py`; locators by page or sheet and range; grounding
-and the instruction screen run on the extracted text. Tests: fictional PDF and XLSX fixtures,
-oversized and malformed files refused, a quote found on the right page.
+`ALLOWED_CONTENT_TYPES` gains `application/pdf`, the XLSX type and `text/csv`, each with its own
+size, page and ZIP bounds; text through `document_text.py`; an outline per document; parts
+readable by section or page range; locators by page, or by sheet and cell; grounding and the
+instruction screen on the extracted text. Tests: fictional PDF, XLSX and CSV fixtures, oversized
+and malformed files refused, a quote found on the right page, a number grounded to its cell.
 
 ### 6. The agent-directed investigator
 
 The `InvestigatorTurn` contract and prompt (versioned; the old contract stays readable for
-stored runs); the loop in `investigate.py`; ref resolution; URL classification; refusal feedback
-and `STOP_REFUSALS`; the transcript artifact. Recorded tests, with fictional pages: a lead
-followed from a news page to the PDF it cites; a gap searched; a page instructing the agent to
-search a client's name, refused three times and ended; a link to a private address refused; an
-uncertain search never resent; a retry replaying answered turns without paying twice; a reused
-track costing nothing.
+stored runs) with `search`, `open`, `read` and `finish`; the loop in `investigate.py`; ref
+resolution; URL classification; refusal feedback and `STOP_REFUSALS`; the transcript artifact.
+Recorded tests, with fictional pages: a lead followed from a news page to the PDF it links; a
+gap searched; a page instructing the agent to search a client's name, refused three times and
+ended; a link to a private address refused; an uncertain search never resent; a retry replaying
+answered turns without paying twice; a reused track costing nothing.
 
-### 7. Budgets and the run's cost ceiling
+### 7. Leads and recovery
 
-Per-track allowances in `DepthPreset` (searches, opens, turns); the turn reservation; the search
-price in `run_cost_ceiling`; tests that a study's spend limit asks before a run that could pass it.
+`chase` resolved through the source table; result annotations (source class, date, type, held,
+near-duplicate); search feedback (no hits, all held, all low-class, out of range); operators and
+language; a weak search kept out of the saturation window. Recorded tests: "podle ČSÚ" becomes a
+`site:czso.cz` search; an unknown publisher becomes a classified plain search; a syndicated copy
+collapses to the one already held; an all-held result list is said so and the next query differs.
 
-### 8. Composition, switches and price
+### 8. The research director
+
+A new agent role and closed contract (`DirectorProposal`: new tracks, resolve tracks, allowance
+moves, routed findings) run between rounds of tracks as one governed request; conflict detection
+by code (same subject, measure and period, different values) handed to it; every proposal checked
+by code against the classifier, the run's ceiling and the round limit; new tracks with their own
+fingerprints. Recorded tests: a gap becomes a track that answers it; a conflict becomes a resolve
+track that finds the primary source; budget moved from a starved track to a productive one, the
+run's total unchanged; a proposal over the ceiling refused.
+
+### 9. Official-data retrieval (verify first)
+
+Candidates: the Czech national open-data catalogue (data.gov.cz) and the statistics office's own
+data search. First establish, in writing, each one's interface, terms, rate limits and whether it
+needs a key; only then build an adapter behind `SearchAdapter` with its own route. If neither has
+a usable public interface, this chunk closes with that finding and site-restricted web search
+remains the way in.
+
+### 10. Budgets, presets and the run's cost ceiling
+
+The Standard and Deep presets in `DepthPreset` (searches, opens, turns per track; director rounds
+and new tracks per run); the turn and director reservations; the search price in
+`run_cost_ceiling`; tests that a study's spend limit asks before a run that could pass it, and
+that moving budget between tracks never raises the run's ceiling.
+
+### 11. Composition, switches and prices
 
 - `AIA_DEEP_RESEARCH_WEB_SEARCH`: `off` (default) or `brave`; needs `AIA_DEEP_RESEARCH_ENABLED`,
   the key, `AIA_DEEP_RESEARCH_SEARCH_USD_PER_CALL` and `AIA_DEEP_RESEARCH_SEARCH_PRICE_DATE`.
 - `AIA_DEEP_RESEARCH_AGENT_DIRECTED`: `off` (planned queries, as today) or `on`.
+- `AIA_DEEP_RESEARCH_DIRECTOR`: `off` or `on` (needs agent-directed).
 - Route: `ProviderRoute(route_id="brave-web-search", zone=US, eu_processing_approved=False,
   approved_for={CLASS_C_INTERNAL})`.
 - Anything missing or invalid stops the worker at start, naming the key. Settings shows each as
   configured or off, never "connected" (`lib/ai-runtime.ts`).
 
-### 9. Czech source table (DR-5 input)
+### 12. Czech source table (DR-5 input)
 
 Unknown hosts score lowest (`domain/deep_research/sources.py`). A versioned extension of
 `SOURCE_TABLE_V1` for the hosts a Czech market study meets (official statistics, regulators,
-ministries, major Czech news, trade bodies), approved by the data owner; off until approved.
+ministries, Eurostat, major Czech news, trade bodies), with the publisher names the citation
+chase resolves; approved by the data owner; off until approved.
 
-### 10. Quality evaluation on real search
+### 13. Quality evaluation on real search
 
-On develop, a fixed set of 5 fictional-client research questions, each run twice: planned
-queries, then agent-directed. Record per run: accepted findings, the share from primary sources
-(official, regulator, the publisher of the number), quarantined by reason, searches, opens,
-turns, money per accepted finding, and a researcher's blind grade of the two briefs. The owner
-sets the allowances from these numbers. Agent-directed becomes the default only if it wins.
+On develop, a fixed set of 5 fictional-client research questions, each run three ways: planned
+queries (today), agent-directed, agent-directed with the director. Record per run: accepted
+findings, the share from primary sources (official, regulator, the publisher of the number),
+numbers grounded to a table cell, conflicts found and resolved, quarantined by reason, searches,
+opens, turns, money per accepted finding, and a researcher's blind grade of the three briefs. The
+owner sets presets and defaults from these numbers; each step up becomes a default only if it
+wins.
 
-### 11. Develop activation and one live fictional acceptance
+### 14. Develop activation and one live fictional acceptance
 
 Parameters set, deployed, the worker's start-up log read, one Deep Research pass for a fictional
 client within the owner's budget. Record the run id, every count and the spend (model and search
@@ -299,7 +411,7 @@ separately). Then tick the parent plan's chunk 13 for Class C.
 
 ## Dependencies
 
-- **Tool spend in the ledger** (deep-research.md chunk 4) before chunk 10 spends money.
+- **Tool spend in the ledger** (deep-research.md chunk 4) before chunk 13 spends money.
 - **The AI runtime and research agents on develop** (ai-research-activation.md chunk 4).
 - **The model route keeps structured output by a forced tool** (`model_adapters/bedrock.py:199-209`
   @ `b2d43f7`). The pinned develop profile accepts it; newer Claude models refuse a forced tool
@@ -329,9 +441,11 @@ For the docs PR after chunk 0 merges:
   agent-directed, code-gated investigators; see `.planning/plans/deep-research-web-search.md`.
   Class B open (candidate: Linkup under an EU agreement)."
 - ADR 0017 amendment (after the owner's sign-off): "Web investigators choose their next search,
-  the result to open and the link to follow, by ref; code classifies, sends and journals every
-  call, and grounds every finding in the track's own snapshots. Sources include PDF and XLSX."
+  the result to open, the link or named source to follow and the document part to read, by ref;
+  a research director adds tracks for gaps and conflicts and moves budget between tracks within the
+  run's ceiling; code classifies, sends and journals every call, and grounds every finding in the
+  track's own snapshots. Sources include PDF, XLSX and CSV."
 - `CLAUDE.md` § 2: `web_retrieval.py` and `deep_research_runtime.py` entries corrected to name the
-  live Wikipedia route (`web_retrieval_live.py`, `deep_research_live.py`) and, after chunk 8, the
+  live Wikipedia route (`web_retrieval_live.py`, `deep_research_live.py`) and, after chunk 11, the
   Brave route and its switches.
 - `docs/architecture/deep-research.md` § 12 item 1: point to this plan.
