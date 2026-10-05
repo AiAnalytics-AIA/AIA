@@ -7,7 +7,7 @@ chunks:
   - "[x] 4. Step 2 · Návrh"
   - "[x] 5. Step 3 · Dotazník"
   - "[x] 6. Step 4 · Audience"
-  - "[ ] 7. Step 5 · Dimenze"
+  - "[x] 7. Step 5 · Dimenze"
   - "[ ] 8. Step 6 · Kontrola & spuštění"
   - "[ ] 9. Step 7 · Výsledky: jump chips and interval bars"
   - "[ ] 10. Znalosti: remove the \"Odkud znalosti pocházejí\" strip"
@@ -131,7 +131,21 @@ question. The summary is an aside (Zdroj / Populace / Strategie, amber "nevybrá
 the readable summary). The dock keeps `audienceReady`; the in-page "Audience mám →
 Persony" buttons, which had the same condition, are gone.
 
-## Chunks 7–10
+## Chunk 7 — Dimenze
+
+The catalogue as two checklists, "Doporučeno pro tento projekt" (with "Použít
+doporučené", `autofill`) and "Katalog systému", behind a search field, each row a
+toggle (`addDimension` / `removeDimension`); "AI doporučí" as an AI action; the AI's
+new-dimension card; "Chybí vám dimenze?" (the proposal to the client's knowledge,
+unchanged) with the not-in-AIA panel-factors note. An aside holds the selection (the
+pinned socio-demographic base, × per dimension, requests waiting as dashed amber
+rows) and the sample: the number field (`setSampleSize`, 50–5 000), a slider
+(200–2 000, step 50) with the recommendation marked, presets — the recommendation
+(`applyRecommendedSample`), 400, 800, 1 200 — and a note that turns amber below the
+recommendation. The handoff's fixed "800 doporučeno" is the computed
+`recommendedSample` here. The dock says "n dimenzí · N=…".
+
+## Chunks 8–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.

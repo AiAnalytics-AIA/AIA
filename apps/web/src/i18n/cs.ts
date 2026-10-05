@@ -1108,6 +1108,17 @@ export const cs = {
       failedTitle: "AI krok se nedokončil",
       requestFailedTitle: "Požadavek se nepodařilo uložit",
       next: "Další · kontrola",
+      // Studio v3 (PersonaStep).
+      asideLabel: "Výběr dimenzí a vzorek",
+      chosenTitle: "Vybrané dimenze",
+      baseRow: "Sociodemografie · vždy zapnuto",
+      groupRecommended: "Doporučeno pro tento projekt",
+      groupCatalog: "Katalog systému",
+      noMatch: "Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.",
+      sampleSlider: "Velikost vzorku",
+      presetRecommended: "{n} · doporučeno",
+      sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
+      dockNote: "{d} dimenzí · N={n}",
     },
     exec: {
       phase: {
