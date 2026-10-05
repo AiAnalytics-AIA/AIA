@@ -1,681 +1,569 @@
 ---
 status: planned
 chunks:
-  - "[x] 0. This plan: the design and the provider choice (DR-2, Class C)"
-  - "[ ] 1. Sign-off: the design, Brave and its written terms, D8, the run budgets"
-  - "[ ] 2. Brave search adapter, with operators (site, freshness, language) and 20 results"
-  - "[ ] 3. The API key as a credential reference (D8, for this route)"
-  - "[ ] 4. Public-web fetch: any public host, robots.txt, user agent, links kept, run snapshot cache"
-  - "[ ] 5. Documents as sources: PDF, XLSX and CSV, read in parts, grounded by page, sheet and cell"
-  - "[ ] 5a. Thinking between results: structured output without a forced tool choice"
-  - "[ ] 6. The agent-directed investigator: parallel actions per turn, loop, refs, refusals, transcript"
-  - "[ ] 7. Leads and recovery: citation chase, result annotations, search feedback"
-  - "[ ] 8. The lead researcher: effort scaling, delegation contract, waves, gaps, conflicts, budget"
-  - "[ ] 9. Official-data retrieval: Czech open-data catalogue and statistics office (verify first)"
-  - "[ ] 10. Budgets, presets and the run's cost ceiling"
-  - "[ ] 11. Composition, switches and dated prices"
-  - "[ ] 12. Czech source table (DR-5 input)"
-  - "[ ] 13. Quality evaluation on real search: three arms, rubric judge and human grade"
-  - "[ ] 14. Develop activation and one live fictional acceptance"
-  - "[ ] 15. Scale sign-off: the funnel, the boundaries, the Exhaustive budget, quotas"
-  - "[ ] 16. Fan-out: parallel investigators, per-host politeness, model concurrency limits"
-  - "[ ] 17. Focused crawler for authoritative hosts: sitemaps, bounded breadth-first"
-  - "[ ] 18. Common Crawl URL index and archived pages, from AIA's own AWS account"
-  - "[ ] 19. Deep-web connectors, one per source after its terms check"
-  - "[ ] 20. The funnel's code filters: near-duplicates, language, relevance ranking"
-  - "[ ] 21. Triage readers on a light model (second model policy entry, ADR 0010)"
-  - "[ ] 22. Subject leads, adversarial verifiers, independent-publisher triangulation"
-  - "[ ] 23. The Exhaustive preset: long runs, progress, storage retention"
-  - "[ ] 24. Evaluation at scale: does Exhaustive beat Deep by enough to pay for it"
+  - "[x] 0. This plan"
+  - "[ ] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
+  - "[ ] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
+  - "[ ] 3. Brave search adapter"
+  - "[ ] 4. The search key as a credential reference"
+  - "[ ] 5. Public-web fetch: any public host, robots.txt, links, run snapshot cache"
+  - "[ ] 6. Documents: PDF, XLSX, CSV, read in parts, tables kept as tables"
+  - "[ ] 7. Measures: every number with its unit, scale, period, geography, population, denominator"
+  - "[ ] 8. Source tiers and the reputation register"
+  - "[ ] 9. The investigator: parallel actions, refs, refusals, transcript"
+  - "[ ] 10. The acquisition ladder: every lawful way to reach a needed source"
+  - "[ ] 11. The lead researcher: effort scaling, delegation, waves, re-planning"
+  - "[ ] 12. Verification: adversarial verifiers, primary tracing, triangulation, conflicts"
+  - "[ ] 13. Confidence by code, gaps, acquisition gaps, the brief"
+  - "[ ] 14. Connectors I: ČSÚ DataStat and the national open-data catalogue"
+  - "[ ] 15. Connectors II: Eurostat, OpenAlex, Wayback CDX"
+  - "[ ] 16. Connectors III: ARES (legal entities), public procurement"
+  - "[ ] 17. Focused crawler for authoritative hosts"
+  - "[ ] 18. Common Crawl URL index and archived pages"
+  - "[ ] 19. Code filters: near-duplicates, language, relevance"
+  - "[ ] 20. Triage readers on the light model"
+  - "[ ] 21. Fan-out: parallel tracks, per-host politeness, model concurrency"
+  - "[ ] 22. Presets, budgets and the run's cost ceiling"
+  - "[ ] 23. Composition, switches, prices; Settings"
+  - "[ ] 24. The Deep Research screen: plan, progress, findings, gaps, transcript"
+  - "[ ] 25. Accuracy evaluation on a truth set of public Czech facts"
+  - "[ ] 26. Quality evaluation: 20 questions, three arms, rubric judge, blind grade"
+  - "[ ] 27. Develop activation and the live acceptance"
 ---
-# Deep Research on the open web — agent-directed, code-gated, at web scale
+# Deep Research — wide, precise, and defensible
 
 **Status:** planned · **Owner:** research-engine + ai-runtime · **Started:** 2026-10-05 ·
 **Base:** `develop` @ `b2d43f7`
 **Parent:** [deep-research.md](deep-research.md) chunk 13 (*Live enablement, blocked on DR-2*).
-**Decides (proposed, needs the data owner):** DR-2 for **Class C** queries, and an amendment to
-ADR 0017: investigators choose their next search and the next page to open; code still sends
-every call. Class B stays refused (see *What this plan does not do*).
+**Decides (proposed; chunk 1 is the data owner's sign-off):** DR-2 for Class C (Brave Search API),
+an amendment to ADR 0017 (agents direct the research; code still sends every call), a second
+model policy entry under ADR 0010 (a light triage model), and the boundaries in § 4.
 
-## Problem
+## 1. What we are building
 
-Deep Research has no web search. The production composition blocks every web track; the only
-live route is fee-free Czech Wikipedia (`apps/executors/src/aia_executors/deep_research_live.py`
-@ `b2d43f7`, behind `AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`), and its fetch transport refuses every
-other host (`infrastructure/web_retrieval_live.py:71-74` @ `b2d43f7`). Everything else runs on
-recorded doubles: `aia_executors.deep_research_recorded` and `fixtures/deep_research/web.json`,
-whose pages are invented `.example` sites. On 2026-10-05 a demonstration report produced locally
-from the recorded composition presented that replay as research.
+A research run that works like a good human research team, at machine scale. A **lead
+researcher** reads the study's objectives, decides how much effort each question needs and
+delegates precise tasks to many **investigators** working in parallel. Each investigator searches,
+opens, reads and follows leads, and uses every lawful way to reach the source a number really
+came from. **Code** discovers widely underneath them (search, crawls of authoritative sites,
+public databases, Common Crawl's archive), screens thousands of pages with a cheap model, and makes
+every network call itself. Every finding is a quote AIA captured; every number carries its unit,
+period, geography, population and denominator, is traced to its primary publisher, attacked by an
+independent verifier, and scored for confidence by code, not by a model. What could not be
+reached is reported as a gap, with what it would take a person to close it.
 
-Even with a search provider, the current investigator would research badly, for three reasons
-read from the code @ `b2d43f7`:
+## 2. The problem today
 
-1. **Queries are fixed before anything is read.** The planner writes every query of a track up
-   front (`domain/deep_research/agents.py:90`, at most 12); each round runs the next one
-   (`apps/executors/src/aia_executors/deep_research/investigate.py:447-451`). An investigator's
-   `gaps` are recorded and never searched (`investigate.py:397`).
-2. **No investigator chooses what to read.** Code fetches a query's results within the track's
-   allowance; nothing follows a link from a page to the source it cites, which is how a number is
-   traced to the statistics office that published it.
-3. **Documents are refused.** `ALLOWED_CONTENT_TYPES` is HTML and plain text only
-   (`domain/deep_research/web.py:50`). Czech official statistics, regulators' reports and trade
-   bodies' studies are mostly PDF or XLSX, so the strongest sources are the ones never captured.
+- **No web search.** The production composition blocks every web track. The only live route is
+  Czech Wikipedia (`apps/executors/src/aia_executors/deep_research_live.py` @ `b2d43f7`), whose
+  transport refuses every other host (`infrastructure/web_retrieval_live.py:71-74`). Everything
+  else replays `fixtures/deep_research/web.json`, invented `.example` pages. On 2026-10-05 a
+  locally produced demonstration report presented that replay as research.
+- **Queries fixed before anything is read.** The planner writes every query up front
+  (`domain/deep_research/agents.py:90`, at most 12 per track); each round runs the next
+  (`apps/executors/src/aia_executors/deep_research/investigate.py:447-451`); gaps are recorded and
+  never searched.
+- **No choice of what to read, no lead-following.** Code fetches each query's results; nothing
+  follows a page to the source it cites.
+- **Documents refused.** `ALLOWED_CONTENT_TYPES` is HTML and plain text
+  (`domain/deep_research/web.py:50`); most official statistics and industry studies are PDF or XLSX.
+- **A number is checked only as digits.** Grounding checks that a claim's numbers occur in its
+  quote (`domain/deep_research/grounding.py:190-192`), not that its unit, period, geography or
+  denominator are the source's.
 
-The data owner's instruction (2026-10-05): **the best results; open it up.**
+## 3. Design principles
 
-## The architecture: modelled on Anthropic's multi-agent Research system
+1. **Modelled on Anthropic's multi-agent Research system**
+   ([engineering post](https://www.anthropic.com/engineering/multi-agent-research-system)). Its
+   measured findings set the shape: a lead researcher with parallel subagents beat a single agent
+   by 90.2 %; effort scaled to the question; two levels of parallelism cut research time by up to
+   90 %; subagents think between tool results; token usage explains 80 % of quality variance
+   (with tool calls and model choice, 95 %). Its early failures each get a guard here: vague
+   delegation (closed task contract, overlap refused), too many agents for simple questions
+   (effort caps in code), endless searches for sources that do not exist (stop rule, ladder caps),
+   SEO farms over authoritative sources (tiers, reputation register), serial execution (fan-out).
+2. **Agents decide; code acts.** A model proposes; only code sends a query, fetches a page, reads
+   a database or writes evidence. Every outbound call passes `RetrievalGate`: classified, judged
+   against its route's approved classes, reserved, journaled before it leaves.
+3. **A finding is a quote in a snapshot AIA captured, or it is nothing** (ADR 0017).
+4. **Crawl wide with code, read narrow with models.**
+5. **Confidence is computed, never self-reported.**
+6. **Precision before breadth.** Fewer numbers, each exactly right and traced to its publisher,
+   beat many approximate ones.
 
-The owner's instruction (2026-10-05): *research so wide and precise; mimic Claude's own deep
-research.* Anthropic has published how its Research feature works
-([How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)).
-Its measured findings, and what AIA takes from each:
+## 4. Boundaries (non-negotiable)
 
-| Their finding | AIA's design |
-|---|---|
-| An orchestrator-worker pattern: a **lead researcher** plans with extended thinking, saves the plan to memory, and spawns subagents, each with its own context window; multi-agent beat single-agent by 90.2 % on their internal eval | The planner and the director become one **lead researcher** (chunk 8). Its plan is an artifact of the run (the memory that survives a long run and a retry). Each subagent is a track with its own context. |
-| **Effort scaling**: a simple fact gets 1 agent and 3–10 tool calls; a comparison 2–4 subagents with 10–15 calls each; complex research more than 10 subagents with clearly divided responsibilities | The lead classifies each subject's complexity and sizes it by those rules, inside the preset's ceiling. Code enforces the caps, so "50 subagents for a simple query" (their early failure) cannot happen. |
-| **Delegation is the hard part**: vague task descriptions made subagents duplicate each other | `SubagentTask`, a closed contract: objective, the output wanted, sources and tools to prefer, explicit boundaries ("not prices: another subagent has them"), budget. Code refuses a wave whose tasks overlap by subject and measure. |
-| **Two levels of parallelism**: the lead starts 3–5 subagents at once; each subagent runs 3+ tool calls at once; research time fell by up to 90 % | Waves of 3–5 tracks per subject in parallel (chunk 16 adds the worker fan-out). An investigator turn returns **up to 5 actions** (`search`, `open`, `read`, `chase`), which code checks one by one and sends concurrently. |
-| **Start wide, then narrow**: short broad queries first, then focus | Prompt heuristic for every investigator, and the lead's first wave is broad by design. |
-| **Interleaved thinking**: subagents think after each tool result to judge quality, find gaps and refine the next query | Investigators reason between turns about what they read. This needs the model's thinking on, which Claude does not allow with a forced tool choice, and AIA's Bedrock adapter forces one for structured output (`model_adapters/bedrock.py:199-209` @ `b2d43f7`) and sends no thinking setting today. Chunk 5a moves structured output off the forced tool. |
-| **Condensed returns**: subagents return the important tokens, not everything they read | A track returns its grounded findings, gaps and a short summary to the lead; pages and transcripts stay in artifacts. |
-| **Citations by a dedicated agent** | AIA is stricter: code grounds every quote in a captured snapshot; a model never attaches a citation. |
-| **What explains quality**: token usage (80 % of variance), number of tool calls and model choice; multi-agent research uses about 15× the tokens of chat | The budget is the quality lever, so presets are budgets; the lead runs on the strongest model the EU route offers (a policy entry, chunk 8), investigators on a strong model, triage on a light one. The cost estimates already assume this multiple. |
-| **Their failure modes**: endless searches for sources that do not exist; SEO content farms chosen over authoritative sources; serial execution | The stop rule (saturation, allowance) ends a hopeless track; the source table, result annotations and the source-class score push authoritative hosts; fan-out is parallel. |
-| **Evaluation**: start small (about 20 queries) at once; an LLM judge on a rubric of factual accuracy, citation accuracy, completeness, source quality and tool efficiency; plus human review | Chunk 13 starts with 20 fictional questions, judged on that rubric by a separate model (its own policy entry) and graded blind by a researcher; chunk 24 repeats it at scale. |
+"Every trick in the book" means every **lawful, public** route to a source. Never:
 
-What AIA keeps that Claude's Research does not have to: code sends every request (classified,
-journaled, reserved), every quote is grounded in AIA's own snapshot, and nothing non-public is
-touched. Those are the price of research a client pays for and can audit.
+- logging in, using anyone's credentials, or reaching anything behind a paywall, CAPTCHA or
+  registration wall; using an archive or mirror to get round a paywall;
+- ignoring `robots.txt` or a site's terms on automated access; disguising the user agent;
+  rotating addresses or proxies to evade a rate limit;
+- the dark web or Tor; pirate mirrors;
+- collecting personal data: extraction keeps legal-entity and aggregate facts and drops
+  person-level data before storage (GDPR);
+- republishing: snapshots stay internal; a report quotes short excerpts with their source;
+- Class A or B material in any query or URL: Class C only until an EU-processing search route and
+  D6 exist.
 
-## The design: agent-directed, code-gated
+A source only those routes would reach becomes an **acquisition gap** (§ 8.6): what it is, who
+publishes it, why it was unreachable, and how a person could obtain it (buy it, ask the publisher,
+upload it to Client Knowledge, where it becomes usable like any approved source).
 
-Agents get the freedom that makes research good: they decide what to search next, which result
-to open, which link to follow, and when they are done. Code keeps the four things that make a
-finding defensible to a client, unchanged from ADR 0017:
+## 5. Architecture
 
-- **Code sends every call.** A query or a page request leaves only through `RetrievalGate`:
-  classified, judged against the route's approved classes, reserved, journaled before it leaves,
-  outcome journaled after. The model never holds a network tool.
-- **A finding is a quote in a snapshot this track captured.** Grounding, the verifier, the
-  leakage screen and the sealed bundle are unchanged.
-- **Every action is recorded.** Each move, its stated reason and what code did with it is an
-  artifact of the track, readable by a researcher.
-- **Spend is bounded before it is spent.** Per-track allowances, a stop rule and the run's cost
-  ceiling against the study's spend limit (ADR 0019 gate 2).
+### 5.1 The run as a funnel
 
-Rejected: giving the model a provider's own search tool (Claude's server-side web search, or
-any browsing agent). It researches well, but queries leave without AIA's classification or
-ledger, the tool is not offered on the Bedrock route AIA is approved for, and the answer it
-returns is not grounded in AIA's own snapshots. Agent-directed, code-gated keeps most of the
-quality gain without those losses.
+| Stage | Who | Exhaustive preset, per run (proposal) | Output |
+|---|---|---|---|
+| Plan | lead researcher | 1 plan, re-planned after each wave | subjects, questions, effort per subject, task briefs |
+| Discover | code | ~500 searches; crawls of authoritative hosts (≤ 5,000 pages); connector queries; Common Crawl index | candidate sources |
+| Filter | code | tens of thousands → ~2,000 | deduplicated, ranked candidates |
+| Triage | light model, parallel | ~2,000 pages | relevant pages with candidate quotes, per sub-question |
+| Investigate | strong model, 20–50 investigators | waves of 3–5 per subject | grounded findings, leads followed, gaps |
+| Verify | strong model, independent | every finding the brief would use | supported, overstated, unsupported, superseded |
+| Synthesize | strong model | 1 | the brief: answers, conflicts, gaps, acquisition gaps |
 
-### The investigator loop
+Standard and Deep presets (§ 9) skip triage and the crawlers and run fewer investigators.
 
-One web track is a loop of **turns**. A turn is one governed model request (RESEARCH_REASONING,
-Bedrock EU, structured output as today: one closed contract, checkpointed, a retry replays and
-never pays twice). The turn's input:
+### 5.2 Agents
 
-- the track's sub-question and the run's Class C research digest;
-- what the track has: every search so far (query, hits as `R<n>` refs with title and snippet),
-  every captured source (`S<n>`: title, host, date, source class), the links found in captured
-  sources (`L<n>`: anchor text and host, never a raw URL the model can edit);
-- the newest captured text, marked untrusted, with `detect_instructions` flags;
-- the grounded findings so far, the stop rule's state and the remaining allowance;
-- the refusals since the last turn, each with its reason.
+| Role | Model | Contract (closed, versioned) | Can |
+|---|---|---|---|
+| Lead researcher | strongest on the EU route (own policy entry) | `ResearchPlan`, `Wave`, `Replan` | plan, size, delegate, move budget, open tracks for gaps and conflicts |
+| Investigator | strong | `InvestigatorTurn` | propose up to 5 actions a turn; propose evidence and leads |
+| Triage reader | light (`RESEARCH_TRIAGE`) | `TriageVerdict` | judge one page; propose ≤ 3 candidate quotes |
+| Verifier | strong, independent prompt | `Verification` | attack one finding; propose a search for a newer or primary figure |
+| Synthesizer | strong | `SynthesisProposal` (extended) | write the brief from accepted evidence only |
 
-The turn's output, `InvestigatorTurn` (a closed contract, replacing `ExtractionProposal` for web
-tracks):
+Stored runs stay readable under their own contract and prompt versions.
+
+### 5.3 Tools (all executed by code)
+
+| Tool | Reaches | Route |
+|---|---|---|
+| `search` | Brave web search with site, phrase, language, freshness and (if supported) file-type operators | `brave-web-search` |
+| `open` | a result or a link by ref (`R<n>`, `L<n>`) | public fetch |
+| `read` | a part of a captured document (`S<n>`: section, pages, sheet) | none, local |
+| `chase` | a source cited by name, resolved by the reputation register | search or connector |
+| `ladder` | the acquisition ladder for a needed source (§ 7) | several |
+| `dataset` | a connector query (DataStat, NKOD, Eurostat, …) | the connector's route |
+| `archive` | a dated archived copy of a dead or moved page (Wayback CDX, Common Crawl) | the archive's route |
+
+The model never writes a URL: it names refs code created, or a publisher and a description code
+resolves. Every query string, and every URL's path and query, is classified like a query.
+
+## 6. The investigator
+
+A track is a loop of turns. A turn is one governed model request with thinking on (chunk 2),
+checkpointed: a retry replays answered turns and never pays twice.
+
+**Input:** the task brief (objective, wanted output, sources to prefer, boundaries, budget); the
+track's state: searches and hits (`R<n>`: title, host, tier, date, file type, held or
+near-duplicate), captured sources (`S<n>`: title, publisher, tier, date, outline), links found
+(`L<n>`: anchor text, host, tier); the newest captured text, untrusted, with `detect_instructions`
+flags; grounded findings so far; the stop rule's state and remaining allowance; refusals, search
+feedback and ladder outcomes since the last turn.
+
+**Output, `InvestigatorTurn`:**
 
 ```text
-evidence: [ProposedEvidence]          # as today; grounded by code against S<n> snapshots
-summary: str                          # what this turn learned, for the lead (condensed return)
+evidence: [ProposedEvidence]          # quote, claim, source ref, and a measure per number (§ 8.1)
+summary: str                          # what this turn learned, condensed for the lead
+leads: [{need, publisher?, why}]      # sources it needs but has not reached; feed the ladder
 next: up to 5 of, sent concurrently
-  search  {query, purpose}            # a new query in Czech or English
-  open    {ref: R<n> | L<n>, purpose} # a result or a link from a captured source
-  read    {ref: S<n>, part}           # another part of a long captured document
-  chase   {name, what, from: S<n>}    # a source a page cites by name, resolved by code
-  finish  {gaps: [{need, why, tried}]} # the track is answered, or cannot be
+  search  {query, operators, purpose}
+  open    {ref: R<n> | L<n>, purpose}
+  read    {ref: S<n>, part, purpose}
+  chase   {name, what, from: S<n>}
+  ladder  {lead, purpose}
+  dataset {connector, query, purpose}
+  finish  {gaps: [{need, why, tried}]}
 ```
 
-What code does with each:
+**Prompt heuristics:** start wide with short queries, then narrow; prefer the publisher of a number
+to anyone repeating it; read the methodology note of any statistic used; prefer the latest complete
+period and name it; never read a number off a chart without its table; Czech and English sources
+both count.
 
-| Action | Code |
+**Feedback from code:** why a search was weak (no hits, all held, all low tier, out of date range);
+why an action was refused; which leads the ladder resolved or exhausted.
+
+**Stop rule** (before every turn): evidence target met; saturation (no newly grounded evidence for
+`saturation_window` turns; weak searches do not count); allowance spent (searches, opens, turns,
+reservation); `finish`; an uncertain delivery (journal closed, never resent); the same refusal
+reason three times (`STOP_REFUSALS`).
+
+## 7. The acquisition ladder
+
+When an investigator needs a specific source (a table a page cites, the report behind a press
+release, a figure for a year not yet found), it raises a lead and `ladder` tries these rungs **in
+order**, stopping at the first that yields a capture. Each rung is code, each request passes the
+gate, each attempt is in the transcript.
+
+| # | Rung | How |
+|---|---|---|
+| 1 | Direct link | the citing page links it: open it |
+| 2 | Same release, other formats | from an HTML release, its PDF, XLSX or CSV twin on the same host (links, `alternate` tags, a file-type search on the host) |
+| 3 | Publisher's own index | resolve the publisher in the reputation register; its sitemap, publication listing or feed; a `site:` search for the title or a distinctive phrase |
+| 4 | Publisher's data interface | a connector where the publisher has one (DataStat for ČSÚ, Eurostat, NKOD datasets), queried by topic and period |
+| 5 | Exact-phrase search | a distinctive phrase, table title or document number in quotes, with a file-type filter where supported |
+| 6 | Language and edition | the same publication in English or Czech; the previous edition when the wanted one is not out yet (period recorded) |
+| 7 | Scholarly identity | a DOI or title through OpenAlex to its legitimate open-access location (publisher, repository, preprint) |
+| 8 | Official aggregators | Eurostat, OECD, EUR-Lex, NKOD republishing a national figure |
+| 9 | Archived copy | for a dead or moved page only: the Wayback CDX or Common Crawl capture nearest the cited date, archive date recorded; never for a page live behind a paywall |
+| 10 | Same-host path discovery | for a moved document: parent paths and the host's own listing pages, only paths `robots.txt` allows, at most 10 requests per lead |
+| 11 | Acquisition gap | nothing worked: publisher, title, reason (paywall, login, not public, not found), how a person could obtain it |
+
+Attempts count against the track's allowance, and the ladder has its own cap per lead (default 12
+requests), so an unreachable source cannot consume a run.
+
+## 8. Accuracy machinery
+
+### 8.1 Every number is a measure
+
+Each number an evidence item cites carries a structured **measure**: value; unit (`%`, `p. b.`,
+`Kč`, `l`, `ks`, `osoby`…); scale (1, `tis.`, `mil.`, `mld.`); period (`2025`, `2025-Q2`, `2024/25`);
+geography (`CZ`, `Praha`, `EU27`…); population (`domácnosti`, `osoby 15+`…); denominator; measure
+name; basis (actual, estimate, forecast, preliminary). Code checks unit, scale and period against
+the quote's context window (the paragraph, or a table cell's row and column headers, caption and
+footnotes); a mismatch is quarantined as `MEASURE_NOT_IN_SOURCE` (a new reason). A household share
+claimed as a share of people fails here.
+
+### 8.2 Tables as tables
+
+PDF tables are extracted with their structure (row and column headers, caption, footnotes); XLSX
+and CSV are read as grids. A table number is grounded to its cell: the quote is the cell value with
+its headers, the locator `page/table/row/col` or `sheet!cell`; a footnote attached to the cell
+(e.g. "předběžné údaje") travels with the finding.
+
+### 8.3 Primary tracing
+
+Every finding is **primary** (captured from the number's publisher) or **secondary** (repeated by
+someone else). A secondary finding raises a lead to its primary, and the ladder tries to reach it.
+The brief uses the primary figure where found, notes any difference, and labels a figure left
+secondary.
+
+### 8.4 Verification
+
+For every finding the brief would use, an **independent verifier** (separate prompt, none of the
+investigator's reasoning) gets the claim, the measure and the source context and tries to break it:
+wrong attribute, overstated generalisation, a newer figure, a different denominator, preliminary
+data. It may propose a search, which code runs through the gate. Verdicts: `supported`,
+`overstated`, `unsupported`, `superseded` (a newer figure from the same publisher, captured). A
+superseding figure goes through §§ 8.1–8.3 itself.
+
+### 8.5 Triangulation and conflicts
+
+- **Independence is by publisher**, after near-duplicate collapse: two pages carrying one press
+  release are one confirmation.
+- **Conflicts** are found by code: same measure name, period, geography and population, values
+  differing beyond rounding. The lead opens a *resolve* track to find each value's primary source
+  and explain the difference (definition, revision, period). An unresolved conflict is shown as a
+  conflict, never averaged.
+
+### 8.6 Confidence, by code
+
+Computed from source tier, primary or secondary, independent confirmations, the verifier's verdict,
+recency of the period against the study's needs, and preliminary or final data, with versioned
+weights approved alongside the tiers. The model's own `source_quality` stays recorded and decides
+nothing.
+
+### 8.7 Source tiers and the reputation register
+
+`SourceClass` (`domain/deep_research/sources.py:50-61`) becomes tiered:
+
+| Tier | Examples |
 |---|---|
-| `search` | classify the query (Class A refused, B refused without a B route, C allowed); duplicate of an earlier query refused; reserve, journal, send through the provider; store the hits as new `R<n>` |
-| `open` | resolve the ref to the URL code stored (the model never writes a URL); classify the URL's path and query string like a query; check the address on every hop; obey `robots.txt`; fetch, snapshot, extract text and links (`L<n>`) |
-| `read` | serve the requested part of a snapshot the track already holds; nothing leaves |
-| `chase` | resolve the name in the source table to a site-restricted search, else a plain search for name and topic; then as `search` |
-| `finish` | end the track; the gaps go to the synthesizer as stated gaps, never as findings |
-| `evidence` | ground each item against the track's snapshots (quote present, numbers in the quote, source in this track); accepted or quarantined with the reason |
+| T1 | official statistics (ČSÚ, Eurostat), the central bank, regulators, ministries, EU institutions |
+| T2 | peer-reviewed research, international organisations (OECD, World Bank), academic institutions |
+| T3 | industry bodies and associations, audited company reports, established research publishers' public releases |
+| T4 | established national media |
+| T5 | other identifiable publishers |
+| Excluded | content farms, AI-generated aggregators; forums and social media (quarantined as today) |
 
-A refused action costs a turn and is reported back with its reason, so the agent can rephrase.
-The same refusal reason three times ends the track (`STOP_REFUSALS`), so a page that tries to
-steer the agent into sending client terms buys nothing.
+The **reputation register** maps each publisher to its hosts, tier, data interfaces and name
+variants ("ČSÚ", "Český statistický úřad", "Czech Statistical Office" → `csu.gov.cz`, `czso.cz`,
+DataStat). It drives `chase`, ladder rungs 3–4 and the tier annotations. Versioned data approved by
+the data owner. An unknown host is T5 at best (CLAUDE.md § 8: never score unknown as good).
 
-**Why refs, not URLs.** A model that writes URLs can be steered by a page into putting data in a
-URL to a host the page chose. With refs, the model can only open what a search returned or what a
-captured page links to, and every URL is still classified before it leaves. Opening an injected
-link sends no client data: the URL was written by the page, and classification refuses one that
-carries a client term.
+### 8.8 The brief
 
-**The planner** stays: it writes the track's sub-questions and its first two or three queries,
-and turns the brief into the Class C digest. Agents widen from there.
+The synthesizer writes only from accepted findings, per research objective: the answer; each
+number with its full measure, source, tier, primary or secondary and confidence; conflicts and how
+they were resolved; gaps; acquisition gaps. Every number cites its evidence id; the prose-number
+coverage check applies.
 
-**Stop rule**, checked before every turn: the evidence target met (`DepthPreset.evidence_target`);
-saturation (no newly grounded evidence for `saturation_window` turns); the allowance spent
-(searches, opens, turns, reservation); `finish`; an uncertain delivery (journal closed, never
-resent); `STOP_REFUSALS`.
+## 9. Presets and cost (estimates; measured in chunks 25–26)
 
-### The four gains, pushed as far as they go
+A turn reads up to about 8,000 tokens of page text, about $0.04 at the develop policy's prices;
+multi-agent research uses about 15× the tokens of chat (Anthropic's measurement).
 
-The loop above is the minimum. Each gain below is taken to its strongest form that still keeps
-code sending every call. Together they are what separates a researcher from a search box.
-
-**1. Following leads.**
-
-- **Links** from every captured page, as `L<n>` refs (above).
-- **Citation chase.** Pages cite sources by name more often than by link ("podle ČSÚ", "data
-  Eurostatu", "studie Svazu obchodu"). The investigator may answer `chase {name, what, from: S<n>}`.
-  Code looks the name up in the source table: a known publisher becomes a search restricted to its
-  own site (ČSÚ → `site:czso.cz`); an unknown one becomes an ordinary search for the name and the
-  topic, classified like any query. The model never chooses the host.
-- **Long documents read in parts.** A 200-page report is captured once; the investigator sees its
-  outline and asks `read {ref: S<n>, part}` for the section it needs, so the table on page 143 is
-  reachable without reading pages 1–142.
-- **Tables.** XLSX and CSV are captured, and a number is grounded to its sheet and cell, the
-  strongest citation a number can have.
-- **One fetch per run.** Snapshots are content-addressed and cached for the run: a page one track
-  captured costs another track nothing to open, and is still grounded per track.
-
-**2. Filling gaps.**
-
-- **Structured gaps.** `finish` and every turn may record `{need, why, tried}`, not free text.
-- **The lead researcher** (chunk 8; it also plans the run, between waves of tracks).
-  It reads every track's findings, gaps and **conflicts** (two accepted sources disagreeing on the
-  same measure) and proposes, within the run's budget:
-  - a new track for an unanswered gap or a sub-question the plan missed;
-  - a *resolve* track for a conflict: find the primary source both numbers came from;
-  - more allowance for a track that is still finding evidence, and an early stop for one that is
-    not (budget moved, never added beyond the run's ceiling);
-  - routing a finding from one track to another track's gap instead of searching for it again.
-  Code checks every proposal: a new track's sub-question is classified like a query and inherits
-  the Class C digest only; at most 2 lead rounds (Standard) or 3 (Deep).
-
-**3. Better result choice.**
-
-- **Annotated results.** Each hit shows its host, source class and score from the source table,
-  date, file type, and whether the run already holds it or a near-duplicate (syndicated copies
-  collapse to one). 20 results per search instead of 10.
-- **More than one way to search.** Web search (Brave); site-restricted search on official hosts;
-  Wikipedia as an entry point (low source class); and, once verified, the Czech national open-data
-  catalogue and the statistics office's own data search (chunk 9). The agent picks the tool;
-  code sends it.
-- **Choice is visible.** Opening a low-class page when a higher-class hit for the same claim was on
-  the list is allowed, recorded, and counted by the evaluation.
-
-**4. Recovering from bad queries.**
-
-- **Explicit search feedback.** Code tells the agent why a search was weak: no hits, every hit
-  already held, every hit low-class, every hit outside the date range.
-- **Operators.** Site, freshness or date range, and language (Czech or English: Eurostat and
-  international bodies publish in English); file type if the provider supports it (verified in
-  chunk 2).
-- **A weak search is not a wasted round.** It spends search allowance, never the saturation window.
-- **Duplicates refused**, so rephrasing is real rephrasing.
-
-**What this costs, honestly.** Each addition widens what an injected page can try: a chase is
-steered only by a name, resolved by code against the source table; a lead's proposal is
-classified like a query; every action still passes the gate and the refusal limit. The path a
-track takes is no longer reproducible, but its evidence is: every snapshot is content-addressed
-and the transcript records every step. And it costs more (below).
-
-### Documents as sources
-
-Snapshots accept `application/pdf` and the XLSX type, bounded by size, page count and ZIP limits,
-with text extracted by the readers AIA already uses for brief attachments
-(`infrastructure/document_text.py`). A PDF source's locator is its page; an XLSX source's is
-sheet and cell range. Grounding works on the extracted text exactly as it does for HTML. This is
-the change most likely to move a run from news articles to primary sources.
-
-### Reuse, audit and cost
-
-- **Reuse** is by the track's inputs (sub-question, digest, preset, prompt and contract versions,
-  provider and source table), never by the queries the agent happened to write. A second pass
-  over an unchanged track reuses it whole and pays nothing; a changed track runs again.
-- **The transcript** (every turn's action, purpose, code's decision and cost) is a track
-  artifact, shown on the Deep Research screen beside the findings it led to.
-- **Presets** (proposal; chunk 13 measures and the owner sets them). **Estimates, to be
-  measured:** a turn reads up to about 8,000 tokens of page text, about $0.04 at the develop
-  policy's prices.
-
-  | Preset | Per track | Lead researcher | Estimate per run |
-  |---|---|---|---|
-  | Standard | 8 searches, 20 opens, 15 turns | 2 rounds, up to 2 new tracks | about $5–7 |
-  | Deep | 15 searches, 40 opens, 30 turns | 3 rounds, up to 4 new tracks | about $12–18 |
-
-  Both are above the $2 cap of the first acceptance: chunk 1 asks the owner for run budgets.
-- **The run's cost ceiling** (`domain/run_cost.py`) counts the agent-directed turns and the search
-  price, so a study's spend limit asks before a run that could exceed it.
-
-## Search provider (DR-2, Class C)
-
-### What the provider has to satisfy
-
-From ADR 0008, ADR 0017 and deep-research.md §12, in order of weight:
-
-1. **Returns pointers, not answers.** A finding is a quote in a page AIA itself captured. The
-   provider gives `url, title, snippet, rank` (`domain/deep_research/web.py:78-84`); AIA fetches
-   and snapshots the page. An answer engine (a synthesised response with citations) is model
-   recollection with links and breaks the grounding contract.
-2. **Czech.** The studies are Czech-market. The index must take a Czech query and return
-   Czech-market results.
-3. **Terms that allow AIA's use.** Hits are passed to a model and recorded in the run's journal
-   and artifacts; the terms must allow storing them and using them in an AI application.
-4. **Residency per data class.** Class C may use a route outside the EU (the Wikipedia route is
-   `ResidencyZone.UNKNOWN`, approved for Class C). Class B needs EU processing, training exclusion
-   and stated retention (ADR 0008); no candidate is approved for it here.
-5. **Metered per call, at a stated price.** `ToolRoute.price_usd_per_call` is reserved before a
-   call leaves (`domain/deep_research/tooling.py:88-110`).
-6. **A plain HTTP API** behind one adapter, no SDK (`make layer_check`), no provider-side browsing.
-
-### Candidates (checked 2026-10-05; prices and terms are the providers' own, to be confirmed in writing)
-
-| Provider | Pointers | Czech | Processing / retention | Storage terms | Price | Verdict |
-|---|---|---|---|---|---|---|
-| **Brave Search API** | Yes: ranked web results | Yes: `country=CZ`, `search_lang=cs` | US; query logs kept up to 90 days; zero retention on Enterprise only | Standard terms forbid storing results; needs a plan that grants storage/AI rights | $5 / 1,000 requests; also sold through AWS Marketplace | **Chosen for Class C** |
-| Linkup (Paris) | Yes, plus an answer mode AIA would not use | Not established | EU-hosted; queries may be processed in US/EU/CA/APAC by default; guaranteed EU processing and zero retention by agreement; DPA available | To confirm | To confirm | **Candidate for Class B later**, under a signed EU-processing agreement |
-| Staan (Qwant + Ecosia) | Yes | **No**: French, English, German only | EU | To confirm | €2 / 1,000 | Rejected: no Czech |
-| Exa, Tavily, Parallel | Yes | Not established | None confirms EU residency; zero retention on enterprise or on request | Varies | Varies | Rejected for now: no advantage over Brave for Class C, no EU route for Class B |
-| Perplexity Sonar, provider-native web search | Answers | Yes | Not EU | n/a | n/a | Rejected: answer engines (criterion 1); ADR 0017 already rejects provider-native search |
-| Google Custom Search JSON API | Yes | Yes | US | Restrictive | n/a | Rejected: closed to new customers, discontinued 2027-01-01 |
-| Bing Web Search API | n/a | n/a | n/a | n/a | n/a | Rejected: retired August 2025 |
-
-**Recommendation: Brave Search API, for Class C queries, on develop, for fictional studies.**
-It is an independent index, takes Czech country and language parameters, returns the pointers
-AIA's design is built around, and costs about $0.005 a search. Pass 1 of the recorded journey
-makes 6 searches (deep-research.md §11), so a run's search spend is cents beside its model calls.
-
-What Brave costs us, stated plainly: queries go to a US company and are logged for up to 90 days
-unless AIA buys Enterprise. That is acceptable only for Class C (public market terms, no client
-identity), which code already enforces per query (`domain/deep_research/classification.py`).
-It never becomes acceptable for Class B.
-
-### Sources for the comparison
-
-Brave: [Search API](https://brave.com/search/api/), [pricing and retention summary](https://costbench.com/software/ai-search-apis/brave-search-api/),
-[storage-rights terms](https://github.com/modelcontextprotocol/servers/issues/522),
-[country and language codes](https://brave-search-python-client.readthedocs.io/en/latest/lib_reference.html),
-[AWS Marketplace listing](https://aws.amazon.com/marketplace/pp/prodview-qjlabherxghtq).
-Linkup: [security FAQ](https://docs.linkup.so/pages/security-and-privacy/faq),
-[EU search APIs](https://www.linkup.so/blog/web-search-apis-in-europe).
-Staan: [FAQ](https://staan.ai/faq), [launch](https://www.heise.de/en/news/Ecosia-and-Qwant-launch-web-search-via-European-index-10513567.html).
-Exa/Tavily/Parallel: [comparison](https://www.linkup.so/blog/best-web-search-api-in-2026-top-providers-compared)
-(a competitor's page; each provider's own terms decide).
-Google: [Custom Search shutdown](https://heise.de/-11152411).
-Part B: Common Crawl [URL index](https://blog.commoncrawl.org/blog/the-columnar-index-is-now-the-url-index),
-ČSÚ [DataStat](https://csu.gov.cz/produkty/datastat-postupne-nahrazuje-verejnou-databazi),
-Bedrock [Claude Haiku 4.5 model card](https://docs.aws.eu/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html),
-NKOD [DCAT-AP and SPARQL](https://data.gov.cz/p%C5%99%C3%ADlohy/2018-12-19/LOD%20in%20Czech%20Open%20Data%20Portal.pdf).
-These are hypotheses about terms until chunk 1 (and, for Part B, each connector's chunk) records
-the signed terms and their date.
-
-## Part B: at web scale
-
-The owner's instruction (2026-10-05): *a methodology that gets a very large number of agents and
-crawls the entire internet, including the accessible deep web, for the relevant data.* Part A
-(chunks 1–14) is the foundation and is built first; Part B scales it.
-
-### The principle: crawl wide with code, read narrow with models
-
-Nobody crawls the entire internet per study, and pointing thousands of model agents at raw pages
-is the most expensive and least accurate way to try. The internet has already been crawled:
-search providers' indexes and Common Crawl's open archive (billions of pages, monthly, free).
-AIA **queries** those, **crawls** only the hosts that matter, **connects** to the public databases
-search engines cannot see, and spends model calls only where judgement is needed. A run is a
-funnel:
-
-| Stage | Who | Scale per Exhaustive run (proposal) | What it does |
-|---|---|---|---|
-| 1. Discover | code | ~500 searches; Common Crawl index queries; focused crawl of up to ~5,000 pages on authoritative hosts; deep-web connectors | every candidate source the plan's subjects could have |
-| 2. Filter | code | tens of thousands of candidates → ~2,000 | exact and near-duplicate collapse, language, source class, relevance ranking over extracted text |
-| 3. Triage | light model, in parallel | ~2,000 pages | relevant or not, which sub-question, candidate quotes; cheap |
-| 4. Investigate | strong model, ~20–50 agents in parallel | the triaged sources | the agent-directed loop of Part A: leads, gaps, chase, documents |
-| 5. Verify | strong model, independent | every accepted finding | adversarial verifiers try to break each claim; triangulation across independent publishers |
-| 6. Synthesize | strong model | the run | the brief, conflicts, gaps |
-
-Every stage keeps Part A's rules: code sends every request, every quote is grounded in a
-snapshot, every call is journaled and paid for from a reservation.
-
-### Discover: four ways in
-
-1. **Search providers**, many queries in parallel (Brave; a second index later if the
-   evaluation shows Brave misses Czech sources).
-2. **Common Crawl.** Its URL index (Parquet on S3, queryable with Athena) lists every page it
-   captured by host and path; the archived page itself can be read from its WARC file without
-   touching the origin site. Queried from AIA's own AWS account; the data sits in `us-east-1`, so
-   only Class C (public topic terms, host names) goes into a query. This is the closest thing to
-   "the entire internet" that is practical: finding every page on every Czech trade body's site
-   that mentions a product category, including pages no search ranks.
-3. **Focused crawler.** For hosts the source table rates authoritative (statistics, regulators,
-   ministries, trade bodies, the companies a brief names), a bounded crawl: sitemap first, then
-   breadth-first inside the host, `robots.txt` obeyed, rate-limited per host, page and depth caps.
-4. **Deep-web connectors.** The *accessible* deep web is public data behind query interfaces,
-   not behind logins. One adapter per source, each built only after its interface, terms and rate
-   limits are recorded. Candidates, in order of value for Czech market research:
-   - ČSÚ **DataStat** (the statistics office's API: 700+ datasets, CSV and JSON; replacing the
-     Public Database from 2026);
-   - the national open-data catalogue **NKOD** (data.gov.cz, DCAT-AP, SPARQL endpoint);
-   - **Eurostat**'s data API, for EU comparisons;
-   - **OpenAlex** or Crossref, for studies and their metadata;
-   - the **Wayback Machine** CDX index, for how a page or a price looked before;
-   - **ARES** (business register), legal-entity fields only;
-   - public procurement (**NEN** / Věstník), for what public bodies buy.
-
-### Read narrow: triage on a light model
-
-Stage 3 is where scale is bought cheaply. A triage reader gets one page's extracted text and
-returns a closed contract: relevant or not, to which sub-question, up to three candidate quotes.
-It cannot search, open or send anything. Proposed model: Claude Haiku 4.5 on Bedrock through its
-EU cross-region profile (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`), bound to a new capability
-(`RESEARCH_TRIAGE`) by a second policy entry under ADR 0010. Investigators, verifiers, the
-lead researcher and the synthesizer stay on the strong model.
-
-### Many agents, coordinated
-
-- **Hierarchy.** The lead researcher (Part A) gains **subject leads**: one per subject of the
-  plan (market size, prices, competitors, consumers, regulation, …). A lead owns its subject's
-  tracks, reads their findings and gaps, and reports to the lead researcher; the lead moves budget
-  between subjects. Investigators run in parallel under the leads.
-- **Adversarial verifiers.** For every finding the run would publish, an independent verifier is
-  told to disprove it: look for the primary source, a newer figure, a different denominator. A
-  finding survives only if the attempt fails.
-- **Triangulation.** A number confirmed by two independent publishers (not two pages copying one
-  press release; independence is by publisher, after near-duplicate collapse) earns the
-  confirmation bonus; a number with one source says so.
-- **Fan-out limits.** The worker's concurrency, Bedrock's tokens-per-minute quota (a quota
-  increase is an operator request) and per-host politeness bound how many agents run at once;
-  the run's reservation bounds how many run in total.
-
-### Boundaries (non-negotiable)
-
-The data owner's research has to be defensible to the client who pays for it, and lawful:
-
-- **Public only.** No login, no paywall, no CAPTCHA, nothing a site's terms forbid automated
-  access to; `robots.txt` obeyed; nothing circumvented. "Deep web" means public databases and
-  pages search engines do not index, never the dark web or Tor.
-- **No personal data harvesting.** Registers and pages contain people's names; extraction keeps
-  legal-entity and aggregate facts and drops person-level data before storage (GDPR). A source
-  that is mainly about individuals is out of scope.
-- **Excerpts, not republication.** Snapshots stay internal; a report quotes short excerpts with
-  their source, as citation allows. A per-source terms register records what each connector's
-  licence permits (DataStat and NKOD data are open data; others vary).
-- **Class C only** in Part B, as in Part A.
-
-### Cost and time, estimated (to be measured in chunk 24)
-
-| Preset | Agents | Pages read by a model | Estimate per run | Run time |
+| Preset | Agents and allowances | Triage, crawl, Common Crawl | Estimate per run | Time |
 |---|---|---|---|---|
-| Standard (Part A) | 8 tracks | ~150 | about $5–7 | minutes |
-| Deep (Part A) | 12 tracks + lead researcher | ~400 | about $12–18 | under an hour |
-| **Exhaustive (Part B)** | ~20–50 investigators, subject leads, verifiers | ~2,000 triaged, ~500 investigated | **about $60–100** | about 1–3 hours |
+| Standard | 1 lead; ≤ 12 tracks; per track 8 searches, 20 opens, 15 turns | no | about $5–7 | minutes |
+| Deep | 1 lead, 3 re-plans; ≤ 20 tracks; per track 15 searches, 40 opens, 30 turns | no | about $12–18 | under an hour |
+| Exhaustive | 1 lead, subject leads; 20–50 investigators | yes | about $60–100 | 1–3 hours |
 
-The Exhaustive estimate: triage about 12M input tokens on the light model (about $12–15), 50
-investigators × 20 turns (about $40), verification and synthesis (about $5–10), 500 searches
-(about $2.50), Athena queries over a few columns (cents to dollars). Snapshots are about 1 GB a
-run in S3; chunk 23 sets their retention.
+Effort scaling inside a preset (Anthropic's rules): a simple fact, 1 track and 3–10 tool calls; a
+comparison, 2–4 tracks of 10–15 calls; complex research, more than 10 tracks with divided
+responsibilities. Code enforces the caps.
 
-## Chunks
+## 10. Search provider (DR-2, Class C)
 
-Each chunk is one PR into `develop`, green on `make verify`, with this file ticked. Chunks 2–12
-build and test entirely offline on recorded doubles (chunk 9 starts with a written check of
-terms); only chunks 13 and 14 send anything.
+Requirements: pointers, not answers (AIA grounds in its own captures); Czech; terms that allow
+storing results and using them in an AI application; Class C may leave the EU, Class B may not;
+metered per call; a plain HTTP API, no SDK.
 
-### 1. Sign-off (human; no code)
+| Provider | Verdict |
+|---|---|
+| **Brave Search API** | **Chosen for Class C.** Independent index; `country=CZ`, `search_lang=cs`; ranked results; about $5 per 1,000 requests; also sold through AWS Marketplace. US-based; query logs up to 90 days, zero retention on Enterprise only; storing results needs a plan that grants it. |
+| Linkup (Paris) | Candidate for Class B later, only under a signed EU-processing, zero-retention agreement. |
+| Staan (Qwant + Ecosia) | Rejected: no Czech (French, English, German). |
+| Exa, Tavily, Parallel | Rejected for now: no confirmed EU route, no advantage over Brave for Class C. |
+| Answer engines; a provider's own search tool (incl. Claude's server-side web search) | Rejected: answers, not pointers; queries leave without AIA's gate; not offered on the Bedrock route. |
+| Google Custom Search JSON API | Rejected: closed to new customers, discontinued 2027-01-01. |
+| Bing Web Search API | Rejected: retired August 2025. |
 
-- The data owner approves this design and the ADR 0017 amendment text (Doc follow-up).
-- DR-2 (Class C) recorded as Brave, with the date. The account is bought on a plan whose terms
-  allow storing results and using them in an AI application; record the plan, its terms URL and
-  date, the price per request, whether a failed request is billed, and the retention that applies.
-- D8 decided for this key (chunk 3's proposal, or Secrets Manager).
-- Run budgets for chunks 13 and 14 (estimates: about $5–7 Standard, $12–18 Deep).
+Sources: Brave [Search API](https://brave.com/search/api/),
+[pricing and retention](https://costbench.com/software/ai-search-apis/brave-search-api/),
+[storage rights](https://github.com/modelcontextprotocol/servers/issues/522),
+[country and language codes](https://brave-search-python-client.readthedocs.io/en/latest/lib_reference.html);
+Linkup [security FAQ](https://docs.linkup.so/pages/security-and-privacy/faq);
+Staan [FAQ](https://staan.ai/faq); Google [shutdown](https://heise.de/-11152411);
+Common Crawl [URL index](https://blog.commoncrawl.org/blog/the-columnar-index-is-now-the-url-index);
+ČSÚ [DataStat](https://csu.gov.cz/produkty/datastat-postupne-nahrazuje-verejnou-databazi);
+Bedrock [Claude Haiku 4.5](https://docs.aws.eu/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html).
+Every term and price is a hypothesis until chunk 1, and each connector's chunk, records the signed
+terms with their date.
 
-### 2. Brave search adapter
+## 11. Chunks
 
-`infrastructure/web_retrieval_brave.py`: `BraveSearch(SearchAdapter)`, `RetrievalMode.LIVE`,
-adapter id `brave-web-search-1`. One `GET` with `q`, `country=CZ`, `search_lang` (cs or en),
-`count` ≤ 20, freshness when asked, safe search on; `site:` in the query; whether `filetype:`
-works is verified here, and the action refused if not. Hits map to `SearchHit(url, title,
-snippet, rank)`; a hit whose URL fails `check_url` is dropped and counted. Failures map to
-`ToolCallFailed` with a `Delivery`: rejected before processing (bad key, quota) is `RESPONDED`,
-a timeout or reset after sending is `UNKNOWN` (closed uncertain, never resent). No retry inside
-the adapter. The transport is the pinned HTTPS client scoped to the provider's API host. Tests: a
-captured response shape with fictional content, every failure mode, the key never in a log line
-or exception. No network.
+Each chunk is one PR into `develop`, green on `make verify`, with this file ticked and its
+measurements in § 13. Chunks 2–24 build and test offline on recorded doubles (each connector chunk
+starts with a written check of its terms); only 25–27 send anything. Within a phase, chunks may run
+in parallel unless an order is stated.
 
-### 3. The key as a credential reference (D8 proposal for this route)
+### Phase 0 — decide
 
-The adapter holds a reference (`CredentialSource`, `model_adapters/transport.py:245-270`), never
-the key. Proposal: SSM `SecureString` `/aia/develop/aia_deep_research_brave_api_key`, decrypted
-into the host's `.env` by `deploy/develop/bin/write-env.sh` as every develop secret is today, and
-passed to the worker service only. A missing key with the route on stops the worker at start,
-naming the key. Trade-off: no rotation, unlike Secrets Manager. Production needs its own answer.
+**1. Sign-off (human; no code).** The data owner approves: this design and § 4; the ADR 0017
+amendment (§ 16); Brave on a plan that grants storage and AI use (plan, terms URL and date, price,
+failed-request billing, retention, recorded here); D8 for the key (chunk 4's proposal or Secrets
+Manager); run budgets per preset; the lead's model and the light model's ADR 0010 policy entries; a
+Bedrock quota request for chunk 21; the snapshot retention period; the tiers, the register and the
+confidence weights (§§ 8.6–8.7). *Done when:* each item is recorded in § 13 with a date.
 
-### 4. Public-web fetch
+### Phase 1 — retrieval foundations (chunk 2 first)
 
-`PublicHttpsTransport`, generalised from the Wikipedia transport: any public host passing
-`check_url` and `check_resolution`, every hop re-checked; private, link-local and metadata
-addresses refused; `robots.txt` read once per host per run and obeyed; an identifying user agent;
-no cookies or credentials; the existing size, time and redirect caps; one request at a time per
-host. Snapshots keep the page's outbound links (absolute, `check_url`-valid, deduplicated, at most
-200) for the `L<n>` refs. A run-level, content-addressed snapshot cache: a URL fetched once in a
-run is not fetched again. The Wikipedia route keeps its narrower transport.
+**2. Structured output with thinking on.** Claude does not allow a forced tool choice with thinking
+on; the Bedrock adapter forces one (`model_adapters/bedrock.py:199-209` @ `b2d43f7`) and sends no
+thinking setting. Add the thinking setting and a structured-output form that keeps strict
+validation without forcing the tool (tool choice `auto` with a strict schema and the instruction to
+answer through it, or the route's native structured output), for Deep Research contracts only;
+other agents unchanged. Thinking tokens metered and reserved. *Tests:* schema-valid output with
+thinking on; an off-schema reply is one counted repair; reservations cover thinking. *Done when:* a
+recorded Deep Research turn runs with thinking on.
 
-### 5. Documents as sources
+**3. Brave search adapter.** `infrastructure/web_retrieval_brave.py`: `BraveSearch(SearchAdapter)`,
+`RetrievalMode.LIVE`, adapter id `brave-web-search-1`. `GET` with `q`, `country=CZ`, `search_lang`
+(cs or en), `count` ≤ 20, freshness when asked, safe search on; `site:` and exact phrases in the
+query; `filetype:` verified against the provider and refused if unsupported. Hits → `SearchHit`; a
+hit failing `check_url` dropped and counted. Failures → `ToolCallFailed` with `Delivery` (rejected
+before processing: `RESPONDED`; timeout or reset after sending: `UNKNOWN`, closed uncertain, never
+resent). No retry inside the adapter. Pinned HTTPS client scoped to the API host. *Tests:* a
+captured response shape with fictional content; every failure mode; the key never in a log line or
+exception; no network.
 
-`ALLOWED_CONTENT_TYPES` gains `application/pdf`, the XLSX type and `text/csv`, each with its own
-size, page and ZIP bounds; text through `document_text.py`; an outline per document; parts
-readable by section or page range; locators by page, or by sheet and cell; grounding and the
-instruction screen on the extracted text. Tests: fictional PDF, XLSX and CSV fixtures, oversized
-and malformed files refused, a quote found on the right page, a number grounded to its cell.
+**4. The search key as a credential reference.** A `CredentialSource` reference
+(`model_adapters/transport.py:245-270`), never the key. Proposal: SSM `SecureString`
+`/aia/develop/aia_deep_research_brave_api_key`, decrypted by `deploy/develop/bin/write-env.sh` into
+`.env` and passed to the worker service only. Missing while the route is on: the worker stops at
+start, naming the key. *Trade-off:* no rotation; production needs its own answer.
 
-### 5a. Thinking between results
+**5. Public-web fetch.** `PublicHttpsTransport`, generalised from the Wikipedia transport: any
+public host passing `check_url` and `check_resolution`, every hop re-checked; private, link-local
+and metadata addresses refused; `robots.txt` read once per host per run and obeyed, crawl-delay
+included; an identifying user agent with a contact address; no cookies or credentials; the existing
+size, time and redirect caps; one request at a time per host. Snapshots keep outbound links
+(absolute, valid, deduplicated, ≤ 200) and `alternate` links. A run-level, content-addressed
+snapshot cache: a URL fetched once in a run is not fetched again. *Tests:* a private address refused
+on a redirect hop; a `robots.txt` disallow honoured; a cache hit sends nothing.
 
-Claude does not allow a forced tool choice with thinking on, and the Bedrock adapter gets
-structured output from a forced tool. Move the Deep Research agents' contracts to a form that
-keeps strict, schema-valid output with thinking on (tool choice `auto` with a strict schema and
-the instruction to answer through it, or the model's structured-output form where the route
-supports it), add the thinking setting to the adapter, and keep every other agent on its current
-form until each is migrated and tested. Thinking tokens are metered and reserved like any output.
-Recorded tests: a thinking turn's output validated exactly as before; a reply outside the schema
-is one counted repair, as today.
+**6. Documents.** `ALLOWED_CONTENT_TYPES` gains PDF, XLSX and CSV, each bounded (size, pages, ZIP
+entries and ratio). Text via `infrastructure/document_text.py`; an outline per document; `read` by
+section, pages or sheet. PDF tables extracted with their structure by a table extractor added to the
+`documents` extra (choice and licence recorded; measured on fictional fixtures). *Tests:* fictional
+PDF, XLSX and CSV; oversized and malformed files refused; a quote found on the right page; a number
+grounded to its cell with its headers and footnote.
 
-### 6. The agent-directed investigator
+**7. Measures.** The measure on every cited number (§ 8.1); attribute checks against the context
+window; the `MEASURE_NOT_IN_SOURCE` quarantine; Czech scale words and units normalised. *Tests:* a
+household share claimed as a people share quarantined; a value in thousands claimed as units
+quarantined; a period absent from the context quarantined; a correct measure accepted.
 
-The `InvestigatorTurn` contract and prompt (versioned; the old contract stays readable for
-stored runs) with `search`, `open`, `read` and `finish`, up to 5 actions per turn sent
-concurrently through the gate, and a condensed summary for the lead; the "start wide, then
-narrow" heuristic; the loop in `investigate.py`; ref
-resolution; URL classification; refusal feedback and `STOP_REFUSALS`; the transcript artifact.
-Recorded tests, with fictional pages: a lead followed from a news page to the PDF it links; a
-gap searched; a page instructing the agent to search a client's name, refused three times and
-ended; a link to a private address refused; an uncertain search never resent; a retry replaying
-answered turns without paying twice; a reused track costing nothing.
+**8. Source tiers and the reputation register.** Tiers T1–T5 and Excluded (§ 8.7) in
+`domain/deep_research/sources.py`; the register as versioned data (publishers, name variants,
+hosts, data interfaces); unknown hosts never above T5. *Tests:* every name variant resolves; an
+unknown host is T5; an excluded host's findings quarantined. *Done when:* the owner approved the
+register (shipped off until then).
 
-### 7. Leads and recovery
+### Phase 2 — agents and accuracy (in order: 9, 10, 11, 12, 13)
 
-`chase` resolved through the source table; result annotations (source class, date, type, held,
-near-duplicate); search feedback (no hits, all held, all low-class, out of range); operators and
-language; a weak search kept out of the saturation window. Recorded tests: "podle ČSÚ" becomes a
-`site:czso.cz` search; an unknown publisher becomes a classified plain search; a syndicated copy
-collapses to the one already held; an all-held result list is said so and the next query differs.
+**9. The investigator.** `InvestigatorTurn` (§ 6), versioned; the loop in `investigate.py`; up to 5
+actions per turn executed concurrently through the gate; refs; URL classification; refusals and
+`STOP_REFUSALS`; search feedback; the condensed summary; the transcript artifact. *Tests (recorded,
+fictional):* a lead followed from a news page to the PDF it links; a gap searched; parallel actions
+all journaled before any leaves; a page instructing a client-name search refused three times and
+ended; an uncertain search never resent; a retry replays without paying twice.
 
-### 8. The lead researcher
+**10. The acquisition ladder.** `ladder` and its eleven rungs (§ 7), each rung a small, separately
+tested function; the per-lead cap; secondary findings raising primary leads; acquisition gaps.
+*Tests:* each rung reaches a fictional source the earlier rungs could not; a paywalled live page is
+never fetched from an archive; the cap ends an unreachable lead; the gap names publisher, title and
+reason.
 
-One agent role replaces the planner and the director: plans with thinking, writes the plan to a
-run artifact, classifies each subject's complexity and sizes it by the effort-scaling rules,
-delegates waves of 3–5 tracks per subject through `SubagentTask` (objective, output wanted,
-sources to prefer, boundaries, budget), reads their condensed returns, and re-plans: new tracks
-for gaps, resolve tracks for conflicts (found by code: same subject, measure and period, different
-values), budget moved from starved tracks to productive ones, findings routed to another track's
-gap. Code checks every task (classified, no overlap with another task's subject and measure,
-within the ceiling and the round limit). The lead runs on the strongest model the EU route
-offers, bound by its own policy entry. Recorded tests: a simple subject gets one track and a
-complex one many; overlapping tasks refused; a gap becomes a track that answers it; a conflict
-becomes a resolve track that finds the primary source; budget moved, the run's total unchanged.
+**11. The lead researcher.** `ResearchPlan` (subjects, questions, complexity, effort), `Wave` (3–5
+`SubagentTask`s: objective, wanted output, sources to prefer, boundaries, budget), `Replan` (tracks
+for gaps, resolve tracks for conflicts, budget moved, findings routed). The plan is a run artifact,
+the memory that survives a long run and a retry. Code checks effort caps by complexity, no two tasks
+with the same subject and measure, the run's ceiling and the re-plan limit. The lead's model by its
+own policy entry. *Tests:* a simple subject gets one track, a complex one many; overlapping tasks
+refused; budget moved with the run's total unchanged.
 
-### 9. Official-data retrieval (verify first)
+**12. Verification.** The independent verifier (§ 8.4) with `superseded`; primary tracing (§ 8.3);
+publisher independence after near-duplicate collapse; conflict detection and resolve tracks (§ 8.5).
+*Tests:* a syndicated press release counts once; a newer figure supersedes; a conflict resolved to a
+definition difference; an overstated generalisation caught.
 
-Candidates: the Czech national open-data catalogue (data.gov.cz) and the statistics office's own
-data search. First establish, in writing, each one's interface, terms, rate limits and whether it
-needs a key; only then build an adapter behind `SearchAdapter` with its own route. If neither has
-a usable public interface, this chunk closes with that finding and site-restricted web search
-remains the way in.
+**13. Confidence, gaps and the brief.** Confidence by code (§ 8.6) from versioned weights; the brief
+(§ 8.8) with conflicts, gaps and acquisition gaps; Client Knowledge proposals for accepted sources
+unchanged. *Tests:* confidence monotone in each input; the model's self-rating ignored; every
+number in the brief cites an evidence id.
 
-### 10. Budgets, presets and the run's cost ceiling
+### Phase 3 — breadth (each connector chunk starts with its recorded terms, interface and limits)
 
-The Standard and Deep presets in `DepthPreset` (searches, opens, turns per track; lead rounds
-and new tracks per run); the turn and lead reservations; the search price in
-`run_cost_ceiling`; tests that a study's spend limit asks before a run that could pass it, and
-that moving budget between tracks never raises the run's ceiling.
+**14. Connectors I.** ČSÚ DataStat (datasets, CSV/JSON, metadata) and the national open-data
+catalogue NKOD (DCAT-AP, SPARQL). Results become snapshots with dataset id, query and cell as the
+locator. *Tests:* recorded responses; a number grounded to its dataset cell with its period.
 
-### 11. Composition, switches and prices
+**15. Connectors II.** Eurostat's data API; OpenAlex (works, open-access locations); Wayback CDX
+(captures by URL and date). *Tests:* recorded responses; the archive used only for dead or moved
+pages.
 
-- `AIA_DEEP_RESEARCH_WEB_SEARCH`: `off` (default) or `brave`; needs `AIA_DEEP_RESEARCH_ENABLED`,
-  the key, `AIA_DEEP_RESEARCH_SEARCH_USD_PER_CALL` and `AIA_DEEP_RESEARCH_SEARCH_PRICE_DATE`.
-- `AIA_DEEP_RESEARCH_AGENT_DIRECTED`: `off` (planned queries, as today) or `on`.
-- `AIA_DEEP_RESEARCH_LEAD`: `off` or `on` (needs agent-directed).
-- Route: `ProviderRoute(route_id="brave-web-search", zone=US, eu_processing_approved=False,
-  approved_for={CLASS_C_INTERNAL})`.
-- Anything missing or invalid stops the worker at start, naming the key. Settings shows each as
-  configured or off, never "connected" (`lib/ai-runtime.ts`).
+**16. Connectors III.** ARES (legal-entity fields only; person-level fields dropped before storage);
+public procurement (NEN / Věstník). *Tests:* a recorded ARES response stores no personal name;
+procurement notices grounded by notice id.
 
-### 12. Czech source table (DR-5 input)
+**17. Focused crawler.** `SiteCrawl`: sitemap, then breadth-first inside one host; page, depth and
+time caps; `robots.txt` and crawl-delay; a per-host rate; snapshots into the run cache. *Tests:* a
+fictional site with a crawler trap and an off-host redirect.
 
-Unknown hosts score lowest (`domain/deep_research/sources.py`). A versioned extension of
-`SOURCE_TABLE_V1` for the hosts a Czech market study meets (official statistics, regulators,
-ministries, Eurostat, major Czech news, trade bodies), with the publisher names the citation
-chase resolves; approved by the data owner; off until approved.
+**18. Common Crawl.** Athena over the URL index from AIA's AWS account (IAM scoped to the public
+bucket and a results bucket; cost metered from bytes scanned); archived pages by WARC byte range;
+query text classified (data in `us-east-1`, Class C only). *Tests:* recorded Athena results; a WARC
+record extracted and grounded.
 
-### 13. Quality evaluation on real search
+**19. Code filters.** Exact and near-duplicate collapse (content hash, then shingled similarity),
+language detection, tier, relevance ranking against each sub-question. *Measured:* recall and
+precision on a hand-labelled fictional corpus, recorded in § 13.
 
-On develop, a fixed set of 20 fictional-client research questions (simple facts, comparisons and
-complex questions, as in effort scaling), each run three ways: planned
-queries (today), agent-directed, agent-directed with the lead researcher. Record per run: accepted
-findings, the share from primary sources (official, regulator, the publisher of the number),
-numbers grounded to a table cell, conflicts found and resolved, quarantined by reason, searches,
-opens, turns, money per accepted finding; a rubric score from a separate judge model (factual
-accuracy, citation accuracy, completeness, source quality, tool efficiency); and a researcher's
-blind grade of the three briefs. The
-owner sets presets and defaults from these numbers; each step up becomes a default only if it
-wins.
+**20. Triage readers.** The `RESEARCH_TRIAGE` capability on the light model (proposed: Claude Haiku
+4.5 through its EU cross-region profile `eu.anthropic.claude-haiku-4-5-20251001-v1:0`), its policy
+entry and prices; `TriageVerdict` (relevant, sub-question, ≤ 3 candidate quotes); candidate quotes
+grounded before an investigator sees them; a triage reader can send nothing. *Tests:* recorded;
+parallel under the limiter.
 
-### 14. Develop activation and one live fictional acceptance
+**21. Fan-out.** Tracks run concurrently across worker processes; a per-host politeness scheduler
+shared by every fetcher in a run; a model concurrency limiter below the account's quota. *Tests:* 50
+tracks never exceed either limit; every interrupted track recovers.
 
-Parameters set, deployed, the worker's start-up log read, one Deep Research pass for a fictional
-client within the owner's budget. Record the run id, every count and the spend (model and search
-separately). Then tick the parent plan's chunk 13 for Class C.
+### Phase 4 — control and surface
 
-**Part B (after Part A is built and evaluated):**
+**22. Presets, budgets, cost ceiling.** Standard, Deep and Exhaustive (§ 9) in `DepthPreset`; turn,
+lead, verifier and triage reservations; search, connector and Athena prices in `run_cost_ceiling`
+(`domain/run_cost.py`); a study's spend limit asks first (ADR 0019 gate 2). *Tests:* moving budget
+never raises the ceiling; an Exhaustive run over the limit asks.
 
-### 15. Scale sign-off (human; no code)
+**23. Composition, switches, prices; Settings.** `AIA_DEEP_RESEARCH_WEB_SEARCH` (`off` | `brave`),
+`AIA_DEEP_RESEARCH_AGENT_DIRECTED`, `AIA_DEEP_RESEARCH_LEAD`, `AIA_DEEP_RESEARCH_CONNECTORS` (a list),
+`AIA_DEEP_RESEARCH_CRAWL`, `AIA_DEEP_RESEARCH_COMMON_CRAWL`, `AIA_DEEP_RESEARCH_TRIAGE`; dated prices
+for each paid route; every route `approved_for={CLASS_C_INTERNAL}`. Anything missing or invalid
+stops the worker at start, naming the key. Settings shows each as configured or off, never
+"connected" (`apps/web/src/lib/ai-runtime.ts`).
 
-The funnel, the boundaries above, the Exhaustive budget, the light model's policy entry, a
-Bedrock quota request, and an S3 retention period for snapshots.
+**24. The Deep Research screen.** The plan; live progress (stage, tracks, counts, spend so far);
+findings with measure, source, tier, primary or secondary, confidence and verdict; conflicts; gaps;
+acquisition gaps with how to obtain each; the transcript per track; cancel at any point, keeping
+what was captured; the snapshot retention job.
 
-### 16. Fan-out
+### Phase 5 — proof
 
-Investigator tracks executed concurrently across worker processes; a per-host politeness
-scheduler shared by every fetcher in a run; a model concurrency limiter below the account's quota;
-tests that a run with 50 tracks never exceeds either limit and recovers every interrupted track.
+**25. Accuracy on a truth set.** 50 public Czech facts with known values and primary publishers
+(population, prices, consumption, trade; Class C), fixed and recorded before any run. Measured per
+preset: exact-value accuracy with the right unit, period and geography; primary-source rate; share
+grounded to a table cell; false acceptances (a wrong number accepted); acquisition gaps. *Proposed
+target for the owner:* zero false acceptances, at least 90 % exact accuracy at Deep.
 
-### 17. Focused crawler
+**26. Quality on 20 research questions.** Fictional-client questions (simple, comparison, complex),
+each run three ways (planned queries as today; agent-directed; agent-directed with the lead
+researcher), then Deep against Exhaustive. Recorded: accepted findings; primary-source share;
+cell-grounded share; conflicts found and resolved; quarantines by reason; searches, opens, turns;
+money per accepted finding; a rubric score from a separate judge model (factual accuracy, citation
+accuracy, completeness, source quality, tool efficiency); a researcher's blind grade. Each step
+becomes a default only if it wins; the owner sets the presets from these numbers.
 
-`SiteCrawl` over `PublicHttpsTransport`: sitemap, then breadth-first inside one host; page,
-depth and time caps; `robots.txt`, crawl-delay and rate limit; every page a snapshot in the run
-cache; recorded tests over a fictional site including a crawler trap and an off-host redirect.
+**27. Develop activation and the live acceptance.** Parameters set, deployed, the worker's start-up
+log read; one run per preset for a fictional client within the owner's budget; run ids, counts and
+spend (model, search, connectors, Athena separately) recorded in § 13. Then tick the parent plan's
+chunk 13 for Class C.
 
-### 18. Common Crawl
+## 12. Dependencies
 
-An adapter that queries the URL index with Athena from AIA's AWS account (IAM scoped to the
-public bucket and a results bucket; cost metered per query from bytes scanned) and reads archived
-pages from WARC by byte range; query text classified like a search; recorded tests.
+- Tool spend in the ledger (deep-research.md chunk 4) before chunk 25 spends money.
+- The AI runtime and research agents on develop (ai-research-activation.md chunk 4).
+- Chunk 2 before every agent chunk (9–13, 20).
 
-### 19. Deep-web connectors
+## 13. Measurements and decisions log
 
-One sub-chunk per source, in the order listed above, each starting with its recorded terms,
-interface and rate limits; DataStat and NKOD first. Results enter the run as snapshots with their
-dataset identifier and query as locator, so a number is grounded to the dataset cell it came from.
+(Empty. Each chunk records its measurements here, and chunk 1 each decision with its date.)
 
-### 20. Code filters
+## 14. What this plan does not do
 
-Exact and near-duplicate collapse (content hash, then shingled similarity), language detection,
-source class, and relevance ranking over extracted text against each sub-question; measured
-recall against a hand-labelled fictional corpus.
+- Class B queries. They would research better; they need an EU-processing search route, D6 and
+  DR-2b. Candidate: Linkup under a signed agreement.
+- Anything on § 4's never list.
+- Production. Develop only, fictional studies only, as ADR 0010 accepts.
+- Freshness of reused tracks (deep-research.md § 12 item 6).
 
-### 21. Triage readers
+## 15. Findings
 
-The `RESEARCH_TRIAGE` capability, its ADR 0010 policy entry and prices, the triage contract and
-prompt; parallel execution under the concurrency limiter; tests that a triage reader can send
-nothing and that its candidate quotes are grounded before an investigator sees them.
+- `CLAUDE.md` § 2 says of `infrastructure/web_retrieval.py` "no live adapter exists (DR-2)" and of
+  `deep_research_runtime.py` "no web retrieval exists"; `web_retrieval_live.py` and the Wikipedia
+  switch exist @ `b2d43f7`. Stale; see § 16.
+- Grounding accepts a claim whose numbers occur in its quote even when the claim changes their
+  population, unit, period or geography (`domain/deep_research/grounding.py:190-192` @ `b2d43f7`).
+  Reproduced 2026-10-05: `ground(source_ref="S1", quote="kupuje rostlinné nápoje 45 % domácností",
+  claim="Rostlinné nápoje kupuje 45 % všech dospělých lidí v Česku.", sources={"S1": …"45 %
+  domácností v Česku."})` returns `Grounding(span=(15, 54), failure=None)`. Consequence: a
+  household share can enter a brief as a share of adults unless the verifier happens to catch it.
+  Smallest fix and the test that catches it: chunk 7 (`MEASURE_NOT_IN_SOURCE`; its first test is
+  this case). Today's verifier (`Verdict.OVERSTATED`) is the only line of defence.
 
-### 22. Leads, adversarial verifiers, triangulation
-
-Subject leads between the lead researcher and the tracks; the adversarial verification step; publisher
-independence after near-duplicate collapse; recorded tests for a syndicated press release (one
-publisher, not two) and a claim disproved by a newer primary figure.
-
-### 23. The Exhaustive preset
-
-The preset, its reservation and cost ceiling; progress for runs of hours (stage, counts, spend
-so far) on the Deep Research screen; cancel at any point without losing what was captured; the
-snapshot retention job.
-
-### 24. Evaluation at scale
-
-The chunk 13 question set, run at Deep and at Exhaustive. Exhaustive becomes available to
-researchers only if it finds materially more primary-source evidence per question, and the owner
-judges the difference worth the cost.
-
-## Dependencies
-
-- **Tool spend in the ledger** (deep-research.md chunk 4) before chunk 13 spends money.
-- **The AI runtime and research agents on develop** (ai-research-activation.md chunk 4).
-- **The model route keeps structured output by a forced tool** (`model_adapters/bedrock.py:199-209`
-  @ `b2d43f7`). The pinned develop profile accepts it; newer Claude models refuse a forced tool
-  choice, so a model change must move this contract to their structured-output form first.
-
-## What this plan does not do
-
-- **Class B.** Queries carrying a client's identity or confidential terms would research better,
-  and the owner's DR-2 intent asks for them, but they need an EU-processing search route. Linkup
-  under a signed EU-processing, zero-retention agreement is the candidate; a separate decision
-  with D6 (the model route) and DR-2b (the design digest).
-- **A provider's own search or browsing agent.** Rejected above.
-- **Production.** Develop only, fictional studies only, as ADR 0010 accepts.
-- **Freshness** (deep-research.md §12 item 6): a reused track is reused by fingerprint as today.
-- **Anything non-public**: logins, paywalls, CAPTCHAs, the dark web, personal-data collection.
-
-## Findings
-
-- `CLAUDE.md` § 2 says of `infrastructure/web_retrieval.py` "no live adapter exists (DR-2)", and
-  of `deep_research_runtime.py` "no web retrieval exists"; `web_retrieval_live.py` and the
-  Wikipedia switch exist @ `b2d43f7`. Stale map entry; see Doc follow-up.
-
-## Doc follow-up
+## 16. Doc follow-up
 
 For the docs PR after chunk 0 merges:
 
-- `.planning/overview.md` decision table, DR-2 row: "Proposed for Class C: Brave Search API, with
-  agent-directed, code-gated investigators; see `.planning/plans/deep-research-web-search.md`.
-  Class B open (candidate: Linkup under an EU agreement)."
-- ADR 0017 amendment (after the owner's sign-off): "Web investigators choose their next search,
-  the result to open, the link or named source to follow and the document part to read, by ref;
-  a lead researcher plans the run, sizes it by effort-scaling rules, delegates waves of parallel
-  tracks through a closed task contract, adds tracks for gaps and conflicts and moves budget between tracks within the
-  run's ceiling; code classifies, sends and journals every call, and grounds every finding in the
-  track's own snapshots. Sources include PDF, XLSX and CSV."
-- `CLAUDE.md` § 2: `web_retrieval.py` and `deep_research_runtime.py` entries corrected to name the
-  live Wikipedia route (`web_retrieval_live.py`, `deep_research_live.py`) and, after chunk 11, the
-  Brave route and its switches.
+- `.planning/overview.md`, DR-2 row: "Proposed for Class C: Brave Search API, within a
+  lead-researcher, agent-directed, code-gated Deep Research; see
+  `.planning/plans/deep-research-web-search.md`. Class B open (candidate: Linkup under an EU
+  agreement)."
+- ADR 0017 amendment (after chunk 1): "A lead researcher plans the run, scales effort per subject
+  and delegates waves of parallel investigators through a closed task contract. Investigators choose
+  their next searches, the results and links to open, the document parts to read and the sources to
+  chase, by ref; an acquisition ladder reaches needed sources by lawful public routes only. Code
+  classifies, sends and journals every call, grounds every finding in the track's own snapshot with
+  its full measure, traces it to its primary publisher, verifies it independently and computes its
+  confidence. Sources include PDF, XLSX, CSV, public datasets, archives and focused crawls."
+- `CLAUDE.md` § 2: the `web_retrieval.py` and `deep_research_runtime.py` entries corrected; after
+  chunk 23, the new routes, connectors and switches.
 - `docs/architecture/deep-research.md` § 12 item 1: point to this plan.
