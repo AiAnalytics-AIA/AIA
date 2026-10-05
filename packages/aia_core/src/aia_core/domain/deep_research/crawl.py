@@ -75,6 +75,8 @@ class CrawlLimits:
     max_seconds: float = 1800.0
     #: Sitemap documents requested (``/sitemap.xml``, robots.txt's, an index's).
     max_sitemaps: int = 20
+    #: Page entries kept from all sitemaps together, for ranking; more are skipped.
+    max_sitemap_entries: int = 50_000
     #: URLs waiting in the breadth-first frontier; more are skipped.
     max_frontier: int = 10_000
     #: Trap rules (module docstring).
@@ -92,6 +94,7 @@ class CrawlLimits:
         positive = {
             "max_pages": self.max_pages,
             "max_sitemaps": self.max_sitemaps,
+            "max_sitemap_entries": self.max_sitemap_entries,
             "max_frontier": self.max_frontier,
             "max_url_chars": self.max_url_chars,
             "max_path_segments": self.max_path_segments,
