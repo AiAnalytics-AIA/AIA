@@ -161,7 +161,6 @@ def test_the_settings_say_membership_is_access_and_offer_no_grants(owner: TestCl
     ("method", "path", "body"),
     [
         ("post", "/members", {"email": "new@art-chain.io", "role": "MEMBER"}),
-        ("post", "/clients", {"slug": "x", "name": "X"}),
         ("put", "/self-approval", {"allowed": False}),
     ],
 )

@@ -132,11 +132,15 @@ describe("Klienti", () => {
     expect(called("POST", "/api/v1/workspace/clients")[0].body).toEqual({ name: "Nový" });
   });
 
-  it("offers no new client to someone who may not administer", async () => {
+  it("offers a new client to a researcher who may not administer (ADR 0019)", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-3", email: null, organization_role: "MEMBER", may_administer: false }) });
     render(<ClientDirectory />);
     await screen.findByText("Klient A");
-    expect(screen.queryByRole("button", { name: "Nový klient" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nový klient" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "Nový" } });
+    fireEvent.submit(dialog.querySelector("form")!);
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app/clients/CLI-new"));
   });
 });
 

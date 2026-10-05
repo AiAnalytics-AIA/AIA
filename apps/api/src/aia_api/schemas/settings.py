@@ -38,7 +38,7 @@ SettingValue = str | int | float | bool | list[str] | None
 class SettingControl(StrEnum):
     """How a setting is changed."""
 
-    #: An administrative action over an existing API route.
+    #: A live, audited action over an existing API route; who may is a permission.
     API = "API"
     #: An environment variable, read and validated at process start.
     DEPLOYMENT = "DEPLOYMENT"
