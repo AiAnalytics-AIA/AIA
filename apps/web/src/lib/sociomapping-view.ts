@@ -198,10 +198,34 @@ const LIMITATIONS: Record<string, string> = {
   COMPLETE_RESPONDENTS_ONLY: "Ve výpočtu jsou jen respondenti, kteří odpověděli na všechny objekty sady.",
   NEGATIVE_CORRELATIONS_KEPT: "Některé dvojice korelují záporně; zůstávají se znaménkem, mapa je rozmisťuje podle pořadí. Matice 0–1 ani soudržnosti nevznikly.",
   UNPLACED_OBJECTS: "Některé objekty na mapě nejsou, protože nemají žádný definovaný vztah.",
+  FEW_OBJECTS: "Na mapě je málo objektů: s několika dvojicemi je přesnost blízká 1 snadno dosažitelná a o struktuře vypovídá málo.",
 };
+
+/** "1 objekt", "3 objekty", "5 objektů". */
+export function objectsWord(n: number): string {
+  if (n === 1) return `${n} objekt`;
+  return n >= 2 && n <= 4 ? `${n} objekty` : `${n} objektů`;
+}
+
+/**
+ * Where each point's label goes, so that labels do not sit on each other: from the top of
+ * the picture down, a label that would overlap one already placed moves down a line.
+ * Deterministic; it moves labels only, never points.
+ */
+export function labelOffsets(items: { id: string; sx: number; sy: number }[], line = 15, width = 110): Map<string, number> {
+  const placed: { x: number; y: number }[] = [];
+  const offsets = new Map<string, number>();
+  for (const item of [...items].sort((a, b) => a.sy - b.sy || a.sx - b.sx || a.id.localeCompare(b.id))) {
+    let y = item.sy - 8;
+    while (placed.some((p) => Math.abs(p.x - item.sx) < width && Math.abs(p.y - y) < line)) y += line;
+    placed.push({ x: item.sx, y });
+    offsets.set(item.id, y - item.sy);
+  }
+  return offsets;
+}
 
 export function limitationText(item: Limitation): string {
   const words = LIMITATIONS[item.code] ?? item.detail;
-  const detail = item.code === "COMPLETE_RESPONDENTS_ONLY" || item.code === "UNPLACED_OBJECTS" ? ` (${item.detail})` : "";
+  const detail = ["COMPLETE_RESPONDENTS_ONLY", "UNPLACED_OBJECTS", "FEW_OBJECTS"].includes(item.code) ? ` (${item.detail})` : "";
   return item.question ? `${words}${detail} Otevřená otázka ${item.question}.` : `${words}${detail}`;
 }

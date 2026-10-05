@@ -64,6 +64,8 @@ __all__ = [
 SOCIOMAPPING_VERSION: Final = "aia-research-sociomapping-1"
 METHOD_STATUS: Final = CANDIDATE_STATUS  # "EXPERIMENTAL_AIA"
 _COMPLETE_CASES_RULE: Final = "AIA-D2"
+#: Below this many placed objects the result says that a high accuracy says little.
+_FEW_OBJECTS: Final = 6
 
 
 class ExperimentalNotClientFacing(PermissionError):
@@ -294,6 +296,16 @@ def battery_sociomapping(
         layout = fit_hmodel_candidate(declared, params)
     except FuzzyMatrixError as exc:
         return _not_mapped(head, f"no layout: {exc}")
+    placed = len(layout.element_ids)
+    if placed < _FEW_OBJECTS:
+        pairs = placed * (placed - 1) // 2
+        limitations.append(
+            _limitation(
+                "FEW_OBJECTS",
+                f"{placed} objects on the map make {pairs} pairs: an accuracy near 1 is easy to "
+                "reach with so few and says little about the structure.",
+            )
+        )
     if layout.unplaced:
         limitations.append(
             _limitation(

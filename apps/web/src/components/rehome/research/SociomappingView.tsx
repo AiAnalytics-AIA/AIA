@@ -22,7 +22,9 @@ import {
   type SociomappingBattery,
   type SociomappingResult,
   clampCamera,
+  labelOffsets,
   limitationText,
+  objectsWord,
   mapPoints,
   num,
   project,
@@ -112,6 +114,7 @@ function BatteryMap({ battery }: { battery: SociomappingBattery }) {
   const drawn = points
     .map((p) => ({ p, top: project(p.x, p.y, p.share, camera), base: project(p.x, p.y, 0, camera) }))
     .sort((a, b) => b.top.depth - a.top.depth || a.p.id.localeCompare(b.p.id));
+  const labelAt = labelOffsets(drawn.map(({ p, top }) => ({ id: p.id, sx: top.sx, sy: top.sy })));
   const chosen = points.find((p) => p.id === selected) ?? null;
   const [low, high] = battery.rating_scale;
   return (
@@ -121,7 +124,7 @@ function BatteryMap({ battery }: { battery: SociomappingBattery }) {
         {tv("research.exec.sociomapping.support", {
           complete: battery.support.respondents_complete,
           total: battery.support.respondents_total,
-          objects: battery.objects.length,
+          objects: objectsWord(battery.objects.length),
         })}
       </p>
       <div className="flex flex-wrap gap-2" role="toolbar" aria-label={t("research.exec.sociomapping.controls")}>
@@ -145,7 +148,7 @@ function BatteryMap({ battery }: { battery: SociomappingBattery }) {
             onPointerMove={onMove}
             onPointerUp={onUp}
             onPointerLeave={onUp}
-            className="w-full touch-none rounded border border-border bg-surface-raised focus:outline focus:outline-2 focus:outline-[var(--focus-ring)]"
+            className="w-full touch-none select-none rounded border border-border bg-surface-raised focus:outline focus:outline-2 focus:outline-[var(--focus-ring)]"
             data-testid="sociomapping-map"
           >
             <polygon points={ground.map((g) => `${g.sx},${g.sy}`).join(" ")} fill="var(--signal-wash)" stroke="var(--border-strong)" strokeWidth={1} />
@@ -170,7 +173,7 @@ function BatteryMap({ battery }: { battery: SociomappingBattery }) {
               >
                 {camera.pitch > 0 ? <line x1={base.sx} y1={base.sy} x2={top.sx} y2={top.sy} stroke="var(--ink-muted)" strokeWidth={1} strokeDasharray="3 2" /> : null}
                 <circle cx={top.sx} cy={top.sy} r={p.id === selected ? 11 : 8} fill={SEQ(p.band)} stroke={p.id === selected ? "var(--ink)" : "var(--ink-muted)"} strokeWidth={p.id === selected ? 2.5 : 1} />
-                <text x={top.sx + 12} y={top.sy - 8} fontSize={13} fill="var(--ink)">{p.label}</text>
+                <text x={top.sx + 12} y={top.sy + (labelAt.get(p.id) ?? -8)} fontSize={13} fill="var(--ink)">{p.label}</text>
               </g>
             ))}
           </svg>

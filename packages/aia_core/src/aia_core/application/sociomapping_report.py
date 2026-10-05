@@ -81,7 +81,18 @@ _LIMITATIONS: Final[dict[str, str]] = {
         "dokud není rozhodnuto, jak RTS zápornou korelaci převádí."
     ),
     "UNPLACED_OBJECTS": "Některé objekty na mapě nejsou, protože nemají žádný definovaný vztah.",
+    "FEW_OBJECTS": (
+        "Na mapě je málo objektů: s několika dvojicemi je přesnost blízká 1 snadno dosažitelná "
+        "a o struktuře vypovídá málo."
+    ),
 }
+
+
+def objects_word(n: int) -> str:
+    """'1 objekt', '3 objekty', '5 objektů': Czech agreement with the count."""
+    if n == 1:
+        return f"{n} objekt"
+    return f"{n} objekty" if 2 <= n <= 4 else f"{n} objektů"
 
 
 class SociomappingReportRefused(ValueError):
@@ -91,7 +102,7 @@ class SociomappingReportRefused(ValueError):
 def limitation_text(item: Mapping[str, Any]) -> str:
     """One limitation in the report's words, with the open question it waits on."""
     words = _LIMITATIONS.get(str(item.get("code")), str(item.get("detail", "")))
-    if item.get("code") in {"COMPLETE_RESPONDENTS_ONLY", "UNPLACED_OBJECTS"}:
+    if item.get("code") in {"COMPLETE_RESPONDENTS_ONLY", "UNPLACED_OBJECTS", "FEW_OBJECTS"}:
         words = f"{words} ({item.get('detail')})"
     question = item.get("question")
     return f"{words} Otevřená otázka {question}." if question else words
@@ -120,7 +131,7 @@ def _battery_sections(
     blocks: list[Any] = [
         Paragraph(
             text(
-                f"Sada „{battery['title']}“: {len(battery['objects'])} objektů na škále "
+                f"Sada „{battery['title']}“: {objects_word(len(battery['objects']))} na škále "
                 f"{battery['rating_scale'][0]}-{battery['rating_scale'][1]}; ve výpočtu "
                 f"{support['respondents_complete']} z {support['respondents_total']} "
                 "respondentů (ti, kdo odpověděli na všechny objekty sady), nevážené."
@@ -282,7 +293,15 @@ def _battery_sections(
             )
         )
     elif coherence:
-        blocks.append(Paragraph(text(f"Soudržnosti nevznikly: {coherence['reason']}")))
+        blocks.append(
+            Paragraph(
+                text(
+                    "Soudržnosti nevznikly: pro tuto sadu neexistuje matice vztahů 0-1 (záporné "
+                    "nebo nedefinované korelace; otevřená otázka M12). Záznam výpočtu: "
+                    f"{coherence['reason']}"
+                )
+            )
+        )
     return Section(f"Mapa: {battery['title']}", tuple(blocks), id=f"ch-sociomapping-{index}")
 
 

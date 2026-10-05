@@ -9,9 +9,11 @@ import {
   VIEW,
   clampCamera,
   heightBand,
+  labelOffsets,
   limitationText,
   mapPoints,
   num,
+  objectsWord,
   project,
   readResult,
   relationsOf,
@@ -84,5 +86,22 @@ describe("words and numbers", () => {
     const text = battery.limitations.map(limitationText);
     expect(text.some((t) => t.includes("experimentální H-Model AIA") && t.includes("M2"))).toBe(true);
     expect(text.some((t) => t.includes("záporně") && t.includes("M12"))).toBe(true);
+  });
+});
+
+describe("labels", () => {
+  it("never stack two labels on one line and leave a lone label where it was", () => {
+    const offsets = labelOffsets([
+      { id: "a", sx: 100, sy: 100 },
+      { id: "b", sx: 120, sy: 104 },
+      { id: "c", sx: 400, sy: 102 },
+    ]);
+    expect(offsets.get("a")).toBe(-8);
+    expect(offsets.get("c")).toBe(-8); // far away horizontally: no conflict
+    expect(104 + offsets.get("b")!).toBeGreaterThanOrEqual(100 - 8 + 15);
+  });
+
+  it("agrees the count with its noun", () => {
+    expect([1, 3, 4, 5, 22].map(objectsWord)).toEqual(["1 objekt", "3 objekty", "4 objekty", "5 objektů", "22 objektů"]);
   });
 });

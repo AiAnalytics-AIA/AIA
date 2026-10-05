@@ -26,6 +26,25 @@ def height_band(value: float, low: float, high: float) -> int:
     return min(6, int(share * 7))
 
 
+def label_lines(positions: Sequence[Sequence[float]]) -> list[int]:
+    """How many lines each label moves down so that no two labels sit on each other.
+
+    From the top of the frame down, a label within reach of one already placed moves a line
+    lower. Labels only; the points stay where the layout put them.
+    """
+    placed: list[tuple[float, float]] = []
+    lines = [0] * len(positions)
+    order = sorted(range(len(positions)), key=lambda k: (-positions[k][1], positions[k][0], k))
+    for k in order:
+        x, y = positions[k]
+        line = 0
+        while any(abs(px - x) < 0.2 and abs(py - (y - 0.035 * line)) < 0.035 for px, py in placed):
+            line += 1
+        placed.append((x, y - 0.035 * line))
+        lines[k] = line
+    return lines
+
+
 def draw_sociomapping_map(
     labels: Sequence[str],
     positions: Sequence[Sequence[float]],
@@ -47,16 +66,19 @@ def draw_sociomapping_map(
         ax.set_yticks([])
         for side in ax.spines.values():
             side.set_color(COLORS["viz-grid"])
-        for label, (x, y), h in zip(labels, positions, heights, strict=True):
+        lines = label_lines(positions)
+        for label, (x, y), h, line in zip(labels, positions, heights, lines, strict=True):
             color = SEQUENCE[height_band(h, low, high)]
             ax.scatter(
                 [x], [y], s=150, color=color, edgecolors=COLORS["doc-ink"], linewidths=0.6, zorder=3
             )
+            right = x > 0.7  # near the right edge the label goes left, inside the frame
             ax.annotate(
                 label,
                 (x, y),
-                xytext=(7, 5),
+                xytext=(-7, 5 - 10 * line) if right else (7, 5 - 10 * line),
                 textcoords="offset points",
+                ha="right" if right else "left",
                 fontsize=8,
                 color=COLORS["doc-ink"],
                 zorder=4,

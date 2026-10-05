@@ -169,6 +169,11 @@
       "question": "M12"
      },
      {
+      "code": "FEW_OBJECTS",
+      "detail": "4 objects on the map make 6 pairs: an accuracy near 1 is easy to reach with so few and says little about the structure.",
+      "question": null
+     },
+     {
       "code": "UNPLACED_OBJECTS",
       "detail": "Not on the map: echo (no defined relation: every answer equal for echo)",
       "question": null

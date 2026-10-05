@@ -103,6 +103,7 @@ def test_a_representative_study_is_mapped_experimental_and_never_client_facing()
     assert {"RTS-N1", "RTS-O1", "RTS-W3", "AIA-D1", "AIA-D2", "AIA-H9"} <= set(one["rules"])
     codes = {lim["code"] for lim in one["limitations"]}
     assert {"EXPERIMENTAL_METHOD", "NO_RESPONDENT_PLACEMENT", "NO_HEIGHT_SURFACE"} <= codes
+    assert "FEW_OBJECTS" not in codes  # six objects on the map
     assert one["support"]["weighting"] == "UNWEIGHTED"
     assert research_sociomappings(spec, dataset, FAST) == result  # deterministic
     with pytest.raises(ExperimentalNotClientFacing, match="experimental"):
@@ -163,7 +164,12 @@ def test_difficult_answers_are_kept_named_and_explained() -> None:
     # The constant object still has its height: everyone answered 4.
     assert one["heights"]["on_scale"][ids.index("d")] == pytest.approx(4.0)
     codes = {lim["code"] for lim in one["limitations"]}
-    assert {"COMPLETE_RESPONDENTS_ONLY", "NEGATIVE_CORRELATIONS_KEPT", "UNPLACED_OBJECTS"} <= codes
+    assert {
+        "COMPLETE_RESPONDENTS_ONLY",
+        "NEGATIVE_CORRELATIONS_KEPT",
+        "UNPLACED_OBJECTS",
+        "FEW_OBJECTS",  # three placed objects make three pairs
+    } <= codes
 
 
 def test_negative_correlations_alone_block_the_0_1_matrix_by_name_not_the_map() -> None:

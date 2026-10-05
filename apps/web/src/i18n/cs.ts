@@ -1103,7 +1103,7 @@ export const cs = {
         experimental: "Experimentální metoda AIA. Mapu rozmístil experimentální H-Model AIA (aia_hmodel_candidate_v1); nejde o ověřenou rekonstrukci SOMECS ani o schválenou metodiku. Jen pro výzkumníky studie, ne pro klienta.",
         synthetic: "Fiktivní data ({origin}): nejde o odpovědi skutečných lidí; z mapy nelze vyvozovat zjištění.",
         set: "Sada objektů",
-        support: "Ve výpočtu {complete} z {total} respondentů (odpověděli na všechny objekty) · {objects} objektů · nevážené",
+        support: "Ve výpočtu {complete} z {total} respondentů (odpověděli na všechny objekty) · {objects} · nevážené",
         controls: "Ovládání mapy",
         view3d: "3D",
         viewTop: "Pohled shora",
