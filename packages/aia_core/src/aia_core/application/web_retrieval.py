@@ -10,6 +10,7 @@ never rerouted:
    context: it came from a search result, and a client term in it still raises it.
 2. **egress** -- ``evaluate_egress`` for that class over the tool's own route
    (ADR 0008). A route not approved for the class refuses; there is no other route.
+   A URL a host's robots.txt (already read in this run) forbids is refused here too.
 3. **metering** -- a route with a price is refused unless the meter holds tool spend
    against the study's budget (it cannot yet: the generalized ledger does not exist);
    otherwise the call is reserved, and ``dispatching`` is journaled **durably
@@ -390,6 +391,9 @@ class RetrievalGate:
                 if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
                 else self._refusal(route, data_class=cls)
             )
+        if reason is None:
+            # A robots.txt the transport already holds: refused before any dispatch.
+            reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
             return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)

@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Final, Protocol
+from typing import Any, Final, Protocol, runtime_checkable
 from urllib.parse import urldefrag, urljoin
 
 from ..domain.ai_contracts import Delivery
@@ -59,6 +59,7 @@ __all__ = [
     "FetchTransport",
     "FetchedPage",
     "FetchedResponse",
+    "PoliteTransport",
     "RecordedFetchTransport",
     "RecordedResolver",
     "RecordedSearch",
@@ -141,6 +142,15 @@ class FetchTransport(Protocol):
 
     def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
         """GET ``url`` from ``address`` (already checked), at most ``max_bytes``, no redirects."""
+        ...
+
+
+@runtime_checkable
+class PoliteTransport(Protocol):
+    """A transport that obeys a host's robots.txt and can say so before it sends."""
+
+    def known_refusal(self, url: str) -> str | None:
+        """Why ``url`` would be refused by what the transport already knows; sends nothing."""
         ...
 
 
@@ -362,6 +372,16 @@ class WebFetcher:
     def retrieval_mode(self) -> RetrievalMode:
         """The transport's mode, stamped on every snapshot this fetcher takes."""
         return self._transport.retrieval_mode
+
+    def known_refusal(self, url: str) -> str | None:
+        """Why ``url`` would be refused before any request, if the transport already knows.
+
+        A transport that obeys robots.txt (:class:`PoliteTransport`) answers from
+        the policies it holds; any other answers None. Sends nothing.
+        """
+        if isinstance(self._transport, PoliteTransport):
+            return self._transport.known_refusal(url)
+        return None
 
     def fetch(self, url: str) -> FetchedPage:
         """The page at ``url`` as a snapshot. Raises FetchRefused or ToolCallFailed."""
