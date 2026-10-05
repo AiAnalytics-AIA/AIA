@@ -1,22 +1,27 @@
 ---
 status: planned
 chunks:
-  - "[x] 0. This plan: the provider choice (DR-2, Class C) and its chunks"
-  - "[ ] 1. Data owner signs the choice; Brave terms confirmed in writing"
+  - "[x] 0. This plan: the design and the provider choice (DR-2, Class C)"
+  - "[ ] 1. Sign-off: the design, Brave and its written terms, D8, the run budget"
   - "[ ] 2. Brave search adapter over the existing SearchAdapter seam"
   - "[ ] 3. The API key as a credential reference (D8, for this route)"
-  - "[ ] 4. Public-web fetch: any public host, robots.txt, identified user agent"
-  - "[ ] 5. Composition, switch and dated price"
-  - "[ ] 6. Czech source table (DR-5 input) for the hosts a real search returns"
-  - "[ ] 7. Develop activation and one live fictional acceptance"
+  - "[ ] 4. Public-web fetch: any public host, robots.txt, identified user agent, links kept"
+  - "[ ] 5. Documents as sources: PDF and XLSX snapshots, grounded by page and sheet"
+  - "[ ] 6. The agent-directed investigator: action contract, loop, refs, refusals, transcript"
+  - "[ ] 7. Budgets and the run's cost ceiling for agent-directed tracks"
+  - "[ ] 8. Composition, switches and dated price"
+  - "[ ] 9. Czech source table (DR-5 input)"
+  - "[ ] 10. Quality evaluation: planned queries against agent-directed, on real search"
+  - "[ ] 11. Develop activation and one live fictional acceptance"
 ---
-# Deep Research web search — a real search route (DR-2, Class C)
+# Deep Research on the open web — agent-directed, code-gated
 
 **Status:** planned · **Owner:** research-engine + ai-runtime · **Started:** 2026-10-05 ·
 **Base:** `develop` @ `b2d43f7`
 **Parent:** [deep-research.md](deep-research.md) chunk 13 (*Live enablement, blocked on DR-2*).
-**Decides (proposed, needs the data owner):** DR-2 for **Class C** queries only. Class B stays
-refused (see *What this plan does not do*).
+**Decides (proposed, needs the data owner):** DR-2 for **Class C** queries, and an amendment to
+ADR 0017: investigators choose their next search and the next page to open; code still sends
+every call. Class B stays refused (see *What this plan does not do*).
 
 ## Problem
 
@@ -25,21 +30,125 @@ live route is fee-free Czech Wikipedia (`apps/executors/src/aia_executors/deep_r
 @ `b2d43f7`, behind `AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`), and its fetch transport refuses every
 other host (`infrastructure/web_retrieval_live.py:71-74` @ `b2d43f7`). Everything else runs on
 recorded doubles: `aia_executors.deep_research_recorded` and `fixtures/deep_research/web.json`,
-whose pages are invented `.example` sites.
+whose pages are invented `.example` sites. On 2026-10-05 a demonstration report produced locally
+from the recorded composition presented that replay as research.
 
-That showed up on 2026-10-05: a demonstration report produced locally from the recorded
-composition presented its Deep Research appendix as research. It was a replay of a fixture. A
-researcher cannot get a real external source from AIA today.
+Even with a search provider, the current investigator would research badly, for three reasons
+read from the code @ `b2d43f7`:
 
-The rest of the pipeline is built and tested offline: classification of every query, egress per
-route, journaling before a call leaves, grounding of every quote in a snapshot the same track
-captured, verification and the sealed bundle (deep-research.md §11). What is missing is one
-provider behind `SearchAdapter` (`infrastructure/web_retrieval.py:97-110`) and a fetch transport
-that may reach the pages it points to.
+1. **Queries are fixed before anything is read.** The planner writes every query of a track up
+   front (`domain/deep_research/agents.py:90`, at most 12); each round runs the next one
+   (`apps/executors/src/aia_executors/deep_research/investigate.py:447-451`). An investigator's
+   `gaps` are recorded and never searched (`investigate.py:397`).
+2. **No investigator chooses what to read.** Code fetches a query's results within the track's
+   allowance; nothing follows a link from a page to the source it cites, which is how a number is
+   traced to the statistics office that published it.
+3. **Documents are refused.** `ALLOWED_CONTENT_TYPES` is HTML and plain text only
+   (`domain/deep_research/web.py:50`). Czech official statistics, regulators' reports and trade
+   bodies' studies are mostly PDF or XLSX, so the strongest sources are the ones never captured.
 
-## The choice
+The data owner's instruction (2026-10-05): **the best results; open it up.**
 
-### What the route has to satisfy
+## The design: agent-directed, code-gated
+
+Agents get the freedom that makes research good: they decide what to search next, which result
+to open, which link to follow, and when they are done. Code keeps the four things that make a
+finding defensible to a client, unchanged from ADR 0017:
+
+- **Code sends every call.** A query or a page request leaves only through `RetrievalGate`:
+  classified, judged against the route's approved classes, reserved, journaled before it leaves,
+  outcome journaled after. The model never holds a network tool.
+- **A finding is a quote in a snapshot this track captured.** Grounding, the verifier, the
+  leakage screen and the sealed bundle are unchanged.
+- **Every action is recorded.** Each move, its stated reason and what code did with it is an
+  artifact of the track, readable by a researcher.
+- **Spend is bounded before it is spent.** Per-track allowances, a stop rule and the run's cost
+  ceiling against the study's spend limit (ADR 0019 gate 2).
+
+Rejected: giving the model a provider's own search tool (Claude's server-side web search, or
+any browsing agent). It researches well, but queries leave without AIA's classification or
+ledger, the tool is not offered on the Bedrock route AIA is approved for, and the answer it
+returns is not grounded in AIA's own snapshots. Agent-directed, code-gated keeps most of the
+quality gain without those losses.
+
+### The investigator loop
+
+One web track is a loop of **turns**. A turn is one governed model request (RESEARCH_REASONING,
+Bedrock EU, structured output as today: one closed contract, checkpointed, a retry replays and
+never pays twice). The turn's input:
+
+- the track's sub-question and the run's Class C research digest;
+- what the track has: every search so far (query, hits as `R<n>` refs with title and snippet),
+  every captured source (`S<n>`: title, host, date, source class), the links found in captured
+  sources (`L<n>`: anchor text and host, never a raw URL the model can edit);
+- the newest captured text, marked untrusted, with `detect_instructions` flags;
+- the grounded findings so far, the stop rule's state and the remaining allowance;
+- the refusals since the last turn, each with its reason.
+
+The turn's output, `InvestigatorTurn` (a closed contract, replacing `ExtractionProposal` for web
+tracks):
+
+```text
+evidence: [ProposedEvidence]          # as today; grounded by code against S<n> snapshots
+next: one of
+  search  {query, purpose}            # a new query in Czech or English
+  open    {ref: R<n> | L<n>, purpose} # a result or a link from a captured source
+  finish  {gaps: [...]}               # the track is answered, or cannot be
+```
+
+What code does with each:
+
+| Action | Code |
+|---|---|
+| `search` | classify the query (Class A refused, B refused without a B route, C allowed); duplicate of an earlier query refused; reserve, journal, send through the provider; store the hits as new `R<n>` |
+| `open` | resolve the ref to the URL code stored (the model never writes a URL); classify the URL's path and query string like a query; check the address on every hop; obey `robots.txt`; fetch, snapshot, extract text and links (`L<n>`) |
+| `finish` | end the track; the gaps go to the synthesizer as stated gaps, never as findings |
+| `evidence` | ground each item against the track's snapshots (quote present, numbers in the quote, source in this track); accepted or quarantined with the reason |
+
+A refused action costs a turn and is reported back with its reason, so the agent can rephrase.
+The same refusal reason three times ends the track (`STOP_REFUSALS`), so a page that tries to
+steer the agent into sending client terms buys nothing.
+
+**Why refs, not URLs.** A model that writes URLs can be steered by a page into putting data in a
+URL to a host the page chose. With refs, the model can only open what a search returned or what a
+captured page links to, and every URL is still classified before it leaves. Opening an injected
+link sends no client data: the URL was written by the page, and classification refuses one that
+carries a client term.
+
+**The planner** stays: it writes the track's sub-questions and its first two or three queries,
+and turns the brief into the Class C digest. Agents widen from there.
+
+**Stop rule**, checked before every turn: the evidence target met (`DepthPreset.evidence_target`);
+saturation (no newly grounded evidence for `saturation_window` turns); the allowance spent
+(searches, opens, turns, reservation); `finish`; an uncertain delivery (journal closed, never
+resent); `STOP_REFUSALS`.
+
+### Documents as sources
+
+Snapshots accept `application/pdf` and the XLSX type, bounded by size, page count and ZIP limits,
+with text extracted by the readers AIA already uses for brief attachments
+(`infrastructure/document_text.py`). A PDF source's locator is its page; an XLSX source's is
+sheet and cell range. Grounding works on the extracted text exactly as it does for HTML. This is
+the change most likely to move a run from news articles to primary sources.
+
+### Reuse, audit and cost
+
+- **Reuse** is by the track's inputs (sub-question, digest, preset, prompt and contract versions,
+  provider and source table), never by the queries the agent happened to write. A second pass
+  over an unchanged track reuses it whole and pays nothing; a changed track runs again.
+- **The transcript** (every turn's action, purpose, code's decision and cost) is a track
+  artifact, shown on the Deep Research screen beside the findings it led to.
+- **Allowances per track** (proposal; chunk 10 measures and the owner sets them): Standard
+  preset 6 searches, 15 opens, 12 turns. **Estimate, to be measured:** a turn reads up to about
+  8,000 tokens of page text, so about $0.04 at the develop policy's prices; 12 turns, about $0.50
+  a track; 8 tracks, about $4 a run, plus under $0.25 of searches. That is above the $2 cap of the
+  first acceptance: chunk 1 asks the owner for a run budget.
+- **The run's cost ceiling** (`domain/run_cost.py`) counts the agent-directed turns and the search
+  price, so a study's spend limit asks before a run that could exceed it.
+
+## Search provider (DR-2, Class C)
+
+### What the provider has to satisfy
 
 From ADR 0008, ADR 0017 and deep-research.md §12, in order of weight:
 
@@ -96,105 +205,115 @@ These are hypotheses about terms until chunk 1 records the signed plan and its d
 
 ## Chunks
 
-Each chunk is one PR into `develop`, green on `make verify`, with this file ticked.
+Each chunk is one PR into `develop`, green on `make verify`, with this file ticked. Chunks 2–9
+build and test entirely offline on recorded doubles; only chunks 10 and 11 send anything.
 
-### 1. Sign-off and terms (human; no code)
+### 1. Sign-off (human; no code)
 
-- The data owner records DR-2 (Class C) as Brave, in this file, with the date.
-- The account is bought on a plan whose terms allow storing results and using them in an AI
-  application. Record the plan name, its terms URL and date, the price per request, whether a
-  failed request is billed, and the retention that applies.
-- Decide D8 for this key (chunk 3's proposal, or Secrets Manager).
-
-Done when: every row above is recorded here with a date; nothing else proceeds without it.
+- The data owner approves this design and the ADR 0017 amendment text (Doc follow-up).
+- DR-2 (Class C) recorded as Brave, with the date. The account is bought on a plan whose terms
+  allow storing results and using them in an AI application; record the plan, its terms URL and
+  date, the price per request, whether a failed request is billed, and the retention that applies.
+- D8 decided for this key (chunk 3's proposal, or Secrets Manager).
+- A run budget for chunks 10 and 11 (the estimate above is about $4 a run).
 
 ### 2. Brave search adapter
 
 `infrastructure/web_retrieval_brave.py`: `BraveSearch(SearchAdapter)`, `RetrievalMode.LIVE`,
-adapter id `brave-web-search-1`.
-
-- One `GET` to the web search endpoint with `q`, `country=CZ`, `search_lang=cs`, `count` ≤ the
-  gate's `max_results`, safe search on; no other parameter the provider would use to personalise.
-- Hits: `url`, `title`, `description` → `SearchHit(url, title, snippet, rank)`, in the provider's
-  order. A hit whose URL fails `check_url` is dropped and counted, never fetched.
-- Every outcome mapped to `ToolCallFailed` with a `Delivery`: 4xx before processing (bad key,
-  quota) is `RESPONDED`, timeout or reset after sending is `UNKNOWN` (the journal closes it
-  uncertain and it is never resent, `test_a_search_left_in_flight_…`). No retry inside the
-  adapter (the gate owns that).
-- The transport is the pinned HTTPS client (checked IP, TLS to the host, no redirects, no proxy),
-  scoped to the provider's API host.
-- Tests: a captured response shape (fictional queries and results), every failure mode, the
-  credential never in a log line or an exception message. No network.
+adapter id `brave-web-search-1`. One `GET` with `q`, `country=CZ`, `search_lang=cs`, `count` ≤ the
+gate's `max_results`, safe search on. Hits map to `SearchHit(url, title, snippet, rank)`; a hit
+whose URL fails `check_url` is dropped and counted. Failures map to `ToolCallFailed` with a
+`Delivery`: rejected before processing (bad key, quota) is `RESPONDED`, a timeout or reset after
+sending is `UNKNOWN` (closed uncertain, never resent). No retry inside the adapter. The transport
+is the pinned HTTPS client scoped to the provider's API host. Tests: a captured response shape
+with fictional content, every failure mode, the key never in a log line or exception. No network.
 
 ### 3. The key as a credential reference (D8 proposal for this route)
 
 The adapter holds a reference (`CredentialSource`, `model_adapters/transport.py:245-270`), never
-the key. Proposal: an SSM `SecureString` `/aia/develop/aia_deep_research_brave_api_key`, which
-`deploy/develop/bin/write-env.sh` already decrypts into the host's `.env`; the worker reads it,
-the API and the web client never do (Compose passes it to the worker service only). A missing key
-with the route on stops the worker at start, naming the key. Trade-off: the key sits in a root-only
-file on the host, as every other develop secret does today; Secrets Manager would add rotation and
-a second IAM grant. Production will need its own answer (D8 stays open there).
+the key. Proposal: SSM `SecureString` `/aia/develop/aia_deep_research_brave_api_key`, decrypted
+into the host's `.env` by `deploy/develop/bin/write-env.sh` as every develop secret is today, and
+passed to the worker service only. A missing key with the route on stops the worker at start,
+naming the key. Trade-off: no rotation, unlike Secrets Manager. Production needs its own answer.
 
 ### 4. Public-web fetch
 
-Brave's hits point anywhere, and the only live fetch transport refuses every host but
-`cs.wikipedia.org`. Generalise it into `PublicHttpsTransport`:
+`PublicHttpsTransport`, generalised from the Wikipedia transport: any public host passing
+`check_url` and `check_resolution`, every hop re-checked; private, link-local and metadata
+addresses refused; `robots.txt` read once per host per run and obeyed; an identifying user agent;
+no cookies or credentials; the existing size, time and redirect caps; one request at a time per
+host. Snapshots keep the page's outbound links (absolute, `check_url`-valid, deduplicated, at most
+100) for the `L<n>` refs. The Wikipedia route keeps its narrower transport.
 
-- every public host that passes `check_url` and `check_resolution`, every hop re-checked;
-  private, link-local and metadata addresses refused (the existing tests apply unchanged);
-- `robots.txt` read once per host per run and obeyed for the AIA user agent; a fetch it disallows
-  is refused and recorded, not attempted;
-- an identifying user agent (`AIA-research/1 (+contact)`), no cookies, no credentials;
-- the existing body, time and redirect caps; one request at a time per host.
+### 5. Documents as sources
 
-The Wikipedia route keeps its narrower transport.
+`ALLOWED_CONTENT_TYPES` gains `application/pdf` and the XLSX type, each with its own size, page
+and ZIP bounds; text through `document_text.py`; locators by page or sheet and range; grounding
+and the instruction screen run on the extracted text. Tests: fictional PDF and XLSX fixtures,
+oversized and malformed files refused, a quote found on the right page.
 
-### 5. Composition, switch and price
+### 6. The agent-directed investigator
 
-- `AIA_DEEP_RESEARCH_WEB_SEARCH`: a closed set, `off` (default) or `brave`. `brave` needs
-  `AIA_DEEP_RESEARCH_ENABLED`, the key from chunk 3, and
-  `AIA_DEEP_RESEARCH_SEARCH_USD_PER_CALL` with `AIA_DEEP_RESEARCH_SEARCH_PRICE_DATE`; anything
-  missing stops the worker at start, naming the key. It may not be combined with the Wikipedia
-  switch in this chunk (one search route per run).
+The `InvestigatorTurn` contract and prompt (versioned; the old contract stays readable for
+stored runs); the loop in `investigate.py`; ref resolution; URL classification; refusal feedback
+and `STOP_REFUSALS`; the transcript artifact. Recorded tests, with fictional pages: a lead
+followed from a news page to the PDF it cites; a gap searched; a page instructing the agent to
+search a client's name, refused three times and ended; a link to a private address refused; an
+uncertain search never resent; a retry replaying answered turns without paying twice; a reused
+track costing nothing.
+
+### 7. Budgets and the run's cost ceiling
+
+Per-track allowances in `DepthPreset` (searches, opens, turns); the turn reservation; the search
+price in `run_cost_ceiling`; tests that a study's spend limit asks before a run that could pass it.
+
+### 8. Composition, switches and price
+
+- `AIA_DEEP_RESEARCH_WEB_SEARCH`: `off` (default) or `brave`; needs `AIA_DEEP_RESEARCH_ENABLED`,
+  the key, `AIA_DEEP_RESEARCH_SEARCH_USD_PER_CALL` and `AIA_DEEP_RESEARCH_SEARCH_PRICE_DATE`.
+- `AIA_DEEP_RESEARCH_AGENT_DIRECTED`: `off` (planned queries, as today) or `on`.
 - Route: `ProviderRoute(route_id="brave-web-search", zone=US, eu_processing_approved=False,
-  approved_for={CLASS_C_INTERNAL})`, so `evaluate_egress` refuses every Class B or A query before
-  it is journaled as sent.
-- Settings shows the route as configured or off, never as "connected" (`lib/ai-runtime.ts`).
-- Tests: the production registry with the switch on composes the route; with it off, nothing
-  changes; a Class B query is refused and nothing is sent.
+  approved_for={CLASS_C_INTERNAL})`.
+- Anything missing or invalid stops the worker at start, naming the key. Settings shows each as
+  configured or off, never "connected" (`lib/ai-runtime.ts`).
 
-### 6. Czech source table (input to DR-5)
+### 9. Czech source table (DR-5 input)
 
-Unknown hosts score lowest (`domain/deep_research/sources.py`), so a real search over the Czech
-web would accept little. Propose a versioned extension of `SOURCE_TABLE_V1` for the hosts a Czech
-market study meets: official statistics and regulators, major Czech news, trade bodies, the
-companies named in the brief. The data owner approves the table; until then it ships off.
+Unknown hosts score lowest (`domain/deep_research/sources.py`). A versioned extension of
+`SOURCE_TABLE_V1` for the hosts a Czech market study meets (official statistics, regulators,
+ministries, major Czech news, trade bodies), approved by the data owner; off until approved.
 
-### 7. Develop activation and one live fictional acceptance
+### 10. Quality evaluation on real search
 
-On develop, with the AI runtime and research agents already on: set the parameters, deploy, read
-the worker's start-up log, and run one Deep Research pass for a fictional client within a budget
-the data owner sets. Record here the run id, the searches and fetches sent, the findings accepted
-and quarantined, the money spent (model and search separately), and anything refused. Then tick
-the parent plan's chunk 13 for Class C.
+On develop, a fixed set of 5 fictional-client research questions, each run twice: planned
+queries, then agent-directed. Record per run: accepted findings, the share from primary sources
+(official, regulator, the publisher of the number), quarantined by reason, searches, opens,
+turns, money per accepted finding, and a researcher's blind grade of the two briefs. The owner
+sets the allowances from these numbers. Agent-directed becomes the default only if it wins.
+
+### 11. Develop activation and one live fictional acceptance
+
+Parameters set, deployed, the worker's start-up log read, one Deep Research pass for a fictional
+client within the owner's budget. Record the run id, every count and the spend (model and search
+separately). Then tick the parent plan's chunk 13 for Class C.
 
 ## Dependencies
 
-- **Tool spend in the ledger** (deep-research.md chunk 4): searches must be metered against the
-  study's budget before chunk 7 spends money.
-- **The AI runtime on develop** (ai-research-activation.md chunk 4): Deep Research's agents are
-  Bedrock calls.
-- Chunks 2–6 build and test entirely offline; only chunk 7 sends anything.
+- **Tool spend in the ledger** (deep-research.md chunk 4) before chunk 10 spends money.
+- **The AI runtime and research agents on develop** (ai-research-activation.md chunk 4).
+- **The model route keeps structured output by a forced tool** (`model_adapters/bedrock.py:199-209`
+  @ `b2d43f7`). The pinned develop profile accepts it; newer Claude models refuse a forced tool
+  choice, so a model change must move this contract to their structured-output form first.
 
 ## What this plan does not do
 
-- **Class B.** No query carrying a client's identity or confidential terms leaves. Linkup under a
-  signed EU-processing, zero-retention agreement is the candidate to evaluate; that is a separate
-  decision (DR-2, Class B; with D6 for the model route and DR-2b for the design digest).
-- **Answer engines or provider browsing.** Rejected by criterion 1 and ADR 0017.
+- **Class B.** Queries carrying a client's identity or confidential terms would research better,
+  and the owner's DR-2 intent asks for them, but they need an EU-processing search route. Linkup
+  under a signed EU-processing, zero-retention agreement is the candidate; a separate decision
+  with D6 (the model route) and DR-2b (the design digest).
+- **A provider's own search or browsing agent.** Rejected above.
 - **Production.** Develop only, fictional studies only, as ADR 0010 accepts.
-- **Freshness** (deep-research.md §12 item 6): live results are reused by fingerprint as today.
+- **Freshness** (deep-research.md §12 item 6): a reused track is reused by fingerprint as today.
 
 ## Findings
 
@@ -206,10 +325,13 @@ the parent plan's chunk 13 for Class C.
 
 For the docs PR after chunk 0 merges:
 
-- `.planning/overview.md` decision table, DR-2 row: "Proposed for Class C: Brave Search API, see
-  `.planning/plans/deep-research-web-search.md`; Class B open (candidate: Linkup under an EU
-  agreement)."
+- `.planning/overview.md` decision table, DR-2 row: "Proposed for Class C: Brave Search API, with
+  agent-directed, code-gated investigators; see `.planning/plans/deep-research-web-search.md`.
+  Class B open (candidate: Linkup under an EU agreement)."
+- ADR 0017 amendment (after the owner's sign-off): "Web investigators choose their next search,
+  the result to open and the link to follow, by ref; code classifies, sends and journals every
+  call, and grounds every finding in the track's own snapshots. Sources include PDF and XLSX."
 - `CLAUDE.md` § 2: `web_retrieval.py` and `deep_research_runtime.py` entries corrected to name the
-  live Wikipedia route (`web_retrieval_live.py`, `deep_research_live.py`) and, after chunk 5, the
-  Brave route and its switch.
-- `docs/architecture/deep-research.md` § 12 item 1 and ADR 0017 *Consequences*: point to this plan.
+  live Wikipedia route (`web_retrieval_live.py`, `deep_research_live.py`) and, after chunk 8, the
+  Brave route and its switches.
+- `docs/architecture/deep-research.md` § 12 item 1: point to this plan.
