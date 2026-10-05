@@ -423,6 +423,9 @@ class QuarantineReason(StrEnum):
     UNVERIFIED = "unverified"
     #: The compile-time re-screen against the final questionnaire.
     QUESTIONNAIRE_LEAKAGE = "questionnaire_leakage"
+    #: The claim gives a number a unit, scale, period, population, denominator or
+    #: place its quote's context in the source does not (``measures.py``).
+    MEASURE_NOT_IN_SOURCE = "measure_not_in_source"
 
 
 class QuarantinedEvidence(_Closed):
