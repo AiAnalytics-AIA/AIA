@@ -329,10 +329,12 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
 
 
 #: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested, as
-#: origin/develop @ 757154e computed them before the thinking budget existed. A
-#: deliberate change to the harness, the rules or this file's design moves it (re-pin
-#: it then); a thinking budget left unset never may.
-FINGERPRINTS_WITHOUT_THINKING = "ebcebd817430c267256764a0fe0d2612d7dfba2007a7cb0dbc46f7919a583b50"
+#: the tree without the thinking budget computes them. A deliberate change to the
+#: harness, the rules or this file's design moves it (re-pin it then); a thinking
+#: budget left unset never may. Re-pinned when the grounding rules became
+#: ``aia-grounding-2/aia-measures-1`` (#144): computed by that branch alone
+#: (feature/dr-measures @ 70d5d80), which has no thinking budget.
+FINGERPRINTS_WITHOUT_THINKING = "8aed76aa3431271f435404d9984cb5f466ca2862bc46920f7fc4797bfad4273b"
 
 
 def _thinking(budget: int | None) -> TrackInputs:
