@@ -3,29 +3,24 @@
 All configuration comes from the environment. Nothing here has a production-ready
 default that would let the service start up insecurely by accident: secrets have no
 defaults at all, and :meth:`Settings.validate_for_production` refuses to run with
-development placeholders when ``AIA_ENV=production``.
+development placeholders in a deployed environment (``AIA_ENV`` develop, staging or
+production; :mod:`aia_core.domain.deployment` says what each allows).
 """
 
 from __future__ import annotations
 
-from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
 
+from aia_core.domain.deployment import DeploymentEnvironment, fictional_material_problem
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.infrastructure.build_identity import BuildIdentity, parse_build_sha
 from aia_core.infrastructure.storage_settings import StorageBackend, StorageSettings
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
-class Environment(StrEnum):
-    """Deployment environment."""
-
-    LOCAL = "local"
-    TEST = "test"
-    STAGING = "staging"
-    PRODUCTION = "production"
+# The deployment environment is the domain's, so the API and the worker read one list.
+Environment = DeploymentEnvironment
 
 
 class Settings(BaseSettings):
@@ -97,8 +92,8 @@ class Settings(BaseSettings):
     # The clients whose studies an administrator may run a *draft* prompt on (ADR 0020). The
     # same variable the worker reads (``AIA_AI_FICTIONAL_CLIENT_IDS``), read here so the API
     # can refuse a draft on any other client before a job exists. Comma-separated client ids;
-    # empty (the default) means no draft can be run anywhere. Refused in production, as the
-    # worker refuses it.
+    # empty (the default) means no draft can be run anywhere. Refused outside local, test and
+    # develop, by the same rule the worker applies (aia_core.domain.deployment).
     ai_fictional_client_ids: str = ""
 
     # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
@@ -163,8 +158,8 @@ class Settings(BaseSettings):
 
     @property
     def is_production(self) -> bool:
-        """True for the environments that must not run with development defaults."""
-        return self.env in (Environment.PRODUCTION, Environment.STAGING)
+        """True for the deployed environments, which must not run with development defaults."""
+        return self.env.is_deployed
 
     @property
     def allow_insecure_local_identity(self) -> bool:
@@ -230,11 +225,10 @@ class Settings(BaseSettings):
             if missing:
                 problems.append("Cognito configuration is incomplete: " + ", ".join(missing))
 
-        if self.fictional_client_ids:
-            problems.append(
-                "AIA_AI_FICTIONAL_CLIENT_IDS is refused in production: fictional material "
-                "does not belong there"
-            )
+        # The worker applies the same rule from the same module, so the two cannot disagree.
+        fictional = fictional_material_problem(self.env, self.fictional_client_ids)
+        if fictional:
+            problems.append(fictional)
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:

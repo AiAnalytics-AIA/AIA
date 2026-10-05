@@ -514,6 +514,9 @@ def test_without_an_ai_runtime_the_production_registry_still_parks_and_never_sub
         ({"AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "99999"}, "exceeds"),
         ({"AIA_AI_ROUTE_APPROVED_FOR": "CLASS_Z"}, "unknown data class"),
         ({"AIA_ENV": "production", "AIA_AI_FICTIONAL_CLIENT_IDS": "C1"}, "refused in production"),
+        ({"AIA_ENV": "staging", "AIA_AI_FICTIONAL_CLIENT_IDS": "C1"}, "refused in staging"),
+        ({"AIA_ENV": "", "AIA_AI_FICTIONAL_CLIENT_IDS": "C1"}, "unknown environment"),
+        ({"AIA_ENV": "prod", "AIA_AI_FICTIONAL_CLIENT_IDS": "C1"}, "unknown environment"),
     ],
 )
 def test_an_enabled_runtime_with_unsafe_configuration_refuses_to_start(
@@ -521,6 +524,14 @@ def test_an_enabled_runtime_with_unsafe_configuration_refuses_to_start(
 ) -> None:
     with pytest.raises(AIRuntimeConfigError, match=match):
         AIRuntimeSettings.from_env(_env(**overrides))
+
+
+def test_develop_accepts_fictional_clients() -> None:
+    """Develop always hosts fictional data; the API applies the same rule (aia_api.config)."""
+    settings = AIRuntimeSettings.from_env(
+        _env(AIA_ENV="develop", AIA_AI_FICTIONAL_CLIENT_IDS="C1,C2")
+    )
+    assert settings is not None
 
 
 def test_missing_route_approval_keys_refuse_and_retention_is_never_assumed() -> None:

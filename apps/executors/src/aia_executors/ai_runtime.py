@@ -26,7 +26,8 @@ AIA_AI_ROUTE_APPROVED_FOR               data classes, comma-separated; may be em
 AIA_AI_ROUTE_RETENTION_DAYS             optional; unset = *unspecified*, never zero
 AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS      the respondent agent's output cap per call
 AIA_AI_FIELDWORK_RESERVATION_USD        budget held per request (primary + one repair)
-AIA_AI_FICTIONAL_CLIENT_IDS             optional; clients whose designs are Class C
+AIA_AI_FICTIONAL_CLIENT_IDS             optional; clients whose designs are Class C;
+                                        refused outside local, test and develop
 AIA_BEDROCK_TIMEOUT_SECONDS             optional read timeout, default 300
 ======================================  ============================================
 
@@ -51,6 +52,7 @@ from typing import Any, Final
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.ai_models import ModelCapability, parse_model_config
+from aia_core.domain.deployment import fictional_material_problem, parse_environment
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
@@ -192,11 +194,10 @@ class AIRuntimeSettings:
             for c in (env.get("AIA_AI_FICTIONAL_CLIENT_IDS") or "").split(",")
             if c.strip()
         )
-        if fictional and (env.get("AIA_ENV") or "").strip().lower() == "production":
-            raise AIRuntimeConfigError(
-                "AIA_AI_FICTIONAL_CLIENT_IDS is refused in production: fictional material "
-                "does not belong there"
-            )
+        # The API asks the same rule (aia_api.config); an unset AIA_ENV refuses.
+        problem = fictional_material_problem(parse_environment(env.get("AIA_ENV")), fictional)
+        if problem:
+            raise AIRuntimeConfigError(problem)
         reservation = _number(env, "AIA_AI_FIELDWORK_RESERVATION_USD")
         assert reservation is not None
         if reservation <= 0:

@@ -43,15 +43,21 @@ def test_the_fictional_client_list_is_read_as_a_comma_separated_set() -> None:
     assert settings.fictional_client_ids == frozenset({"CLI-a", "CLI-b"})
 
 
-def test_production_refuses_a_fictional_client_list() -> None:
-    """The worker refuses it in production (ai_runtime); the API must not accept it either."""
-    settings = Settings(
-        env=Environment.PRODUCTION,
-        database_url="sqlite+pysqlite:///./aia.db",
-        ai_fictional_client_ids="CLI-a",
-    )
-    with pytest.raises(RuntimeError, match="AIA_AI_FICTIONAL_CLIENT_IDS is refused in production"):
+@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+def test_staging_and_production_refuse_a_fictional_client_list(env: Environment) -> None:
+    """The worker refuses it there too (ai_runtime): both ask aia_core.domain.deployment."""
+    settings = Settings(**{**PRODUCTION_OK, "env": env, "ai_fictional_client_ids": "CLI-a"})
+    with pytest.raises(
+        RuntimeError, match=f"AIA_AI_FICTIONAL_CLIENT_IDS is refused in {env.value}"
+    ):
         settings.validate_for_production()
+
+
+def test_develop_accepts_a_fictional_client_list() -> None:
+    """Develop always hosts fictional data (the outage of 2026-10-02: it ran as staging)."""
+    Settings(
+        **{**PRODUCTION_OK, "env": Environment.DEVELOP, "ai_fictional_client_ids": "CLI-a"}
+    ).validate_for_production()
 
 
 def test_production_refuses_debug_mode() -> None:
@@ -107,12 +113,13 @@ def test_valid_production_config_passes() -> None:
     Settings(**PRODUCTION_OK).validate_for_production()
 
 
-def test_staging_applies_the_same_guards_as_production() -> None:
-    """The develop host runs with AIA_ENV=staging precisely to exercise these guards."""
-    Settings(**{**PRODUCTION_OK, "env": Environment.STAGING}).validate_for_production()
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING])
+def test_develop_and_staging_apply_the_same_guards_as_production(env: Environment) -> None:
+    """Every deployed environment is guarded; the develop host exercises them all."""
+    Settings(**{**PRODUCTION_OK, "env": env}).validate_for_production()
     with pytest.raises(RuntimeError, match="identity_provider must be 'cognito'"):
         Settings(
-            **{**PRODUCTION_OK, "env": Environment.STAGING, "identity_provider": "development"}
+            **{**PRODUCTION_OK, "env": env, "identity_provider": "development"}
         ).validate_for_production()
 
 
@@ -182,6 +189,7 @@ def test_insecure_local_identity_is_granted_only_locally() -> None:
     """
     assert Settings(env=Environment.LOCAL).allow_insecure_local_identity
     assert Settings(env=Environment.TEST).allow_insecure_local_identity
+    assert not Settings(env=Environment.DEVELOP).allow_insecure_local_identity
     assert not Settings(env=Environment.STAGING).allow_insecure_local_identity
     assert not Settings(env=Environment.PRODUCTION).allow_insecure_local_identity
 
@@ -392,11 +400,11 @@ def test_legacy_postgres_scheme_is_rewritten() -> None:
     assert resolve_database_url("postgresql+psycopg://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
 
 
-@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
+@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.STAGING, Environment.PRODUCTION])
 def test_synthetic_fieldwork_is_refused_on_every_deployed_environment(env: Environment) -> None:
     """ADR 0016: the fictional dataset proves the chain in tests and the workbench only.
 
-    Develop runs as ``staging``, so this is what keeps it off the develop host too.
+    Develop hosts fictional *clients* (AI respondents on their studies), never fixture fieldwork.
     """
     with pytest.raises(RuntimeError, match="AIA_RESEARCH_FIELDWORK_SOURCE"):
         Settings(
