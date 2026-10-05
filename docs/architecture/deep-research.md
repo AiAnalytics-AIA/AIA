@@ -325,6 +325,9 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 
 1. **The provider and route per data class** (DR-2): which search API, EU processing, retention,
    training exclusion, and terms that allow storing excerpts; whether any route may carry Class B.
+   Planned (2026-10-05): Brave Search API for Class C, inside the design of
+   [`.planning/plans/deep-research-web-search.md`](../../.planning/plans/deep-research-web-search.md),
+   whose chunk 1 records the terms; Class B stays open.
 2. **Metering** (handoff 4 above): tool spend held against the study's budget, and whether a
    provider bills an errored request (the gate charges it the price until its terms say).
 3. **DR-2b**: whether a code-built digest of a client's design may travel as Class B; until then a
