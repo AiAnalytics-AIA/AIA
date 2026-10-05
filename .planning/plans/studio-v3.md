@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Tokens, sparkle, AiButton; the shell: sidebar, header, client tabs, stage rail, AI pomoc bar, job panel badge"
   - "[x] 2. Shared step pieces: StepSection, ActionDock, RadioCard, Switch, ChipInput, InlineConfirm, Segmented"
@@ -10,11 +10,11 @@ chunks:
   - "[x] 7. Step 5 · Dimenze"
   - "[x] 8. Step 6 · Kontrola & spuštění"
   - "[x] 9. Step 7 · Výsledky: jump chips and interval bars"
-  - "[ ] 10. Znalosti: remove the \"Odkud znalosti pocházejí\" strip"
+  - "[x] 10. Znalosti: remove the \"Odkud znalosti pocházejí\" strip"
 ---
 # Studio v3 — the shell redesign and the research flow's UX
 
-**Status:** in progress · **Owner:** web · **Started:** 2026-10-05
+**Status:** done (all chunks in PRs #124, #126–#133) · **Owner:** web · **Started:** 2026-10-05
 **Source:** the Claude Design handoff `design_handoff_research_flow_v3` (README and
 prototype `AIA Studio v3.dc.html` plus one file per step). The rule it sets: **no
 functional or logic change**. Layout, input controls and visual treatment change;
@@ -171,7 +171,18 @@ bar cell: the 95 % interval as a translucent signal band and the value as a tick
 drawing a 1–5 mean on 0–10 would mislead. A suppressed row has no number, so no bar
 (`ResultRow.bar` is absent). Values and intervals do not wrap.
 
-## Chunk 10
+## Chunk 10 — Znalosti
+
+The three-layer "Odkud znalosti pocházejí" strip and its strings are removed; the
+page's subtitle already says where knowledge comes from.
+
+## Open after this plan
+
+Decisions the redraw left alone, each new logic rather than layout:
+- Návrh: editing the understanding, a set's purpose, question(s) and scale ends;
+  several questions per set.
+- Dotazník: reordering questions; "Nejdřív aktualizovat research".
+- Dimenze: "Vybrat vše" for the whole catalogue.
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
