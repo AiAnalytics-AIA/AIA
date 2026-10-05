@@ -16,8 +16,18 @@ chunks:
   - "[ ] 12. Czech source table (DR-5 input)"
   - "[ ] 13. Quality evaluation on real search: three arms"
   - "[ ] 14. Develop activation and one live fictional acceptance"
+  - "[ ] 15. Scale sign-off: the funnel, the boundaries, the Exhaustive budget, quotas"
+  - "[ ] 16. Fan-out: parallel investigators, per-host politeness, model concurrency limits"
+  - "[ ] 17. Focused crawler for authoritative hosts: sitemaps, bounded breadth-first"
+  - "[ ] 18. Common Crawl URL index and archived pages, from AIA's own AWS account"
+  - "[ ] 19. Deep-web connectors, one per source after its terms check"
+  - "[ ] 20. The funnel's code filters: near-duplicates, language, relevance ranking"
+  - "[ ] 21. Triage readers on a light model (second model policy entry, ADR 0010)"
+  - "[ ] 22. Subject leads, adversarial verifiers, independent-publisher triangulation"
+  - "[ ] 23. The Exhaustive preset: long runs, progress, storage retention"
+  - "[ ] 24. Evaluation at scale: does Exhaustive beat Deep by enough to pay for it"
 ---
-# Deep Research on the open web — agent-directed, code-gated
+# Deep Research on the open web — agent-directed, code-gated, at web scale
 
 **Status:** planned · **Owner:** research-engine + ai-runtime · **Started:** 2026-10-05 ·
 **Base:** `develop` @ `b2d43f7`
@@ -276,7 +286,117 @@ Staan: [FAQ](https://staan.ai/faq), [launch](https://www.heise.de/en/news/Ecosia
 Exa/Tavily/Parallel: [comparison](https://www.linkup.so/blog/best-web-search-api-in-2026-top-providers-compared)
 (a competitor's page; each provider's own terms decide).
 Google: [Custom Search shutdown](https://heise.de/-11152411).
-These are hypotheses about terms until chunk 1 records the signed plan and its date.
+Part B: Common Crawl [URL index](https://blog.commoncrawl.org/blog/the-columnar-index-is-now-the-url-index),
+ČSÚ [DataStat](https://csu.gov.cz/produkty/datastat-postupne-nahrazuje-verejnou-databazi),
+Bedrock [Claude Haiku 4.5 model card](https://docs.aws.eu/bedrock/latest/userguide/model-card-anthropic-claude-haiku-4-5.html),
+NKOD [DCAT-AP and SPARQL](https://data.gov.cz/p%C5%99%C3%ADlohy/2018-12-19/LOD%20in%20Czech%20Open%20Data%20Portal.pdf).
+These are hypotheses about terms until chunk 1 (and, for Part B, each connector's chunk) records
+the signed terms and their date.
+
+## Part B: at web scale
+
+The owner's instruction (2026-10-05): *a methodology that gets a very large number of agents and
+crawls the entire internet, including the accessible deep web, for the relevant data.* Part A
+(chunks 1–14) is the foundation and is built first; Part B scales it.
+
+### The principle: crawl wide with code, read narrow with models
+
+Nobody crawls the entire internet per study, and pointing thousands of model agents at raw pages
+is the most expensive and least accurate way to try. The internet has already been crawled:
+search providers' indexes and Common Crawl's open archive (billions of pages, monthly, free).
+AIA **queries** those, **crawls** only the hosts that matter, **connects** to the public databases
+search engines cannot see, and spends model calls only where judgement is needed. A run is a
+funnel:
+
+| Stage | Who | Scale per Exhaustive run (proposal) | What it does |
+|---|---|---|---|
+| 1. Discover | code | ~500 searches; Common Crawl index queries; focused crawl of up to ~5,000 pages on authoritative hosts; deep-web connectors | every candidate source the plan's subjects could have |
+| 2. Filter | code | tens of thousands of candidates → ~2,000 | exact and near-duplicate collapse, language, source class, relevance ranking over extracted text |
+| 3. Triage | light model, in parallel | ~2,000 pages | relevant or not, which sub-question, candidate quotes; cheap |
+| 4. Investigate | strong model, ~20–50 agents in parallel | the triaged sources | the agent-directed loop of Part A: leads, gaps, chase, documents |
+| 5. Verify | strong model, independent | every accepted finding | adversarial verifiers try to break each claim; triangulation across independent publishers |
+| 6. Synthesize | strong model | the run | the brief, conflicts, gaps |
+
+Every stage keeps Part A's rules: code sends every request, every quote is grounded in a
+snapshot, every call is journaled and paid for from a reservation.
+
+### Discover: four ways in
+
+1. **Search providers**, many queries in parallel (Brave; a second index later if the
+   evaluation shows Brave misses Czech sources).
+2. **Common Crawl.** Its URL index (Parquet on S3, queryable with Athena) lists every page it
+   captured by host and path; the archived page itself can be read from its WARC file without
+   touching the origin site. Queried from AIA's own AWS account; the data sits in `us-east-1`, so
+   only Class C (public topic terms, host names) goes into a query. This is the closest thing to
+   "the entire internet" that is practical: finding every page on every Czech trade body's site
+   that mentions a product category, including pages no search ranks.
+3. **Focused crawler.** For hosts the source table rates authoritative (statistics, regulators,
+   ministries, trade bodies, the companies a brief names), a bounded crawl: sitemap first, then
+   breadth-first inside the host, `robots.txt` obeyed, rate-limited per host, page and depth caps.
+4. **Deep-web connectors.** The *accessible* deep web is public data behind query interfaces,
+   not behind logins. One adapter per source, each built only after its interface, terms and rate
+   limits are recorded. Candidates, in order of value for Czech market research:
+   - ČSÚ **DataStat** (the statistics office's API: 700+ datasets, CSV and JSON; replacing the
+     Public Database from 2026);
+   - the national open-data catalogue **NKOD** (data.gov.cz, DCAT-AP, SPARQL endpoint);
+   - **Eurostat**'s data API, for EU comparisons;
+   - **OpenAlex** or Crossref, for studies and their metadata;
+   - the **Wayback Machine** CDX index, for how a page or a price looked before;
+   - **ARES** (business register), legal-entity fields only;
+   - public procurement (**NEN** / Věstník), for what public bodies buy.
+
+### Read narrow: triage on a light model
+
+Stage 3 is where scale is bought cheaply. A triage reader gets one page's extracted text and
+returns a closed contract: relevant or not, to which sub-question, up to three candidate quotes.
+It cannot search, open or send anything. Proposed model: Claude Haiku 4.5 on Bedrock through its
+EU cross-region profile (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`), bound to a new capability
+(`RESEARCH_TRIAGE`) by a second policy entry under ADR 0010. Investigators, verifiers, the
+director and the synthesizer stay on the strong model.
+
+### Many agents, coordinated
+
+- **Hierarchy.** The research director (Part A) gains **subject leads**: one per subject of the
+  plan (market size, prices, competitors, consumers, regulation, …). A lead owns its subject's
+  tracks, reads their findings and gaps, and reports to the director; the director moves budget
+  between subjects. Investigators run in parallel under the leads.
+- **Adversarial verifiers.** For every finding the run would publish, an independent verifier is
+  told to disprove it: look for the primary source, a newer figure, a different denominator. A
+  finding survives only if the attempt fails.
+- **Triangulation.** A number confirmed by two independent publishers (not two pages copying one
+  press release; independence is by publisher, after near-duplicate collapse) earns the
+  confirmation bonus; a number with one source says so.
+- **Fan-out limits.** The worker's concurrency, Bedrock's tokens-per-minute quota (a quota
+  increase is an operator request) and per-host politeness bound how many agents run at once;
+  the run's reservation bounds how many run in total.
+
+### Boundaries (non-negotiable)
+
+The data owner's research has to be defensible to the client who pays for it, and lawful:
+
+- **Public only.** No login, no paywall, no CAPTCHA, nothing a site's terms forbid automated
+  access to; `robots.txt` obeyed; nothing circumvented. "Deep web" means public databases and
+  pages search engines do not index, never the dark web or Tor.
+- **No personal data harvesting.** Registers and pages contain people's names; extraction keeps
+  legal-entity and aggregate facts and drops person-level data before storage (GDPR). A source
+  that is mainly about individuals is out of scope.
+- **Excerpts, not republication.** Snapshots stay internal; a report quotes short excerpts with
+  their source, as citation allows. A per-source terms register records what each connector's
+  licence permits (DataStat and NKOD data are open data; others vary).
+- **Class C only** in Part B, as in Part A.
+
+### Cost and time, estimated (to be measured in chunk 24)
+
+| Preset | Agents | Pages read by a model | Estimate per run | Run time |
+|---|---|---|---|---|
+| Standard (Part A) | 8 tracks | ~150 | about $5–7 | minutes |
+| Deep (Part A) | 12 tracks + director | ~400 | about $12–18 | under an hour |
+| **Exhaustive (Part B)** | ~20–50 investigators, subject leads, verifiers | ~2,000 triaged, ~500 investigated | **about $60–100** | about 1–3 hours |
+
+The Exhaustive estimate: triage about 12M input tokens on the light model (about $12–15), 50
+investigators × 20 turns (about $40), verification and synthesis (about $5–10), 500 searches
+(about $2.50), Athena queries over a few columns (cents to dollars). Snapshots are about 1 GB a
+run in S3; chunk 23 sets their retention.
 
 ## Chunks
 
@@ -409,6 +529,67 @@ Parameters set, deployed, the worker's start-up log read, one Deep Research pass
 client within the owner's budget. Record the run id, every count and the spend (model and search
 separately). Then tick the parent plan's chunk 13 for Class C.
 
+**Part B (after Part A is built and evaluated):**
+
+### 15. Scale sign-off (human; no code)
+
+The funnel, the boundaries above, the Exhaustive budget, the light model's policy entry, a
+Bedrock quota request, and an S3 retention period for snapshots.
+
+### 16. Fan-out
+
+Investigator tracks executed concurrently across worker processes; a per-host politeness
+scheduler shared by every fetcher in a run; a model concurrency limiter below the account's quota;
+tests that a run with 50 tracks never exceeds either limit and recovers every interrupted track.
+
+### 17. Focused crawler
+
+`SiteCrawl` over `PublicHttpsTransport`: sitemap, then breadth-first inside one host; page,
+depth and time caps; `robots.txt`, crawl-delay and rate limit; every page a snapshot in the run
+cache; recorded tests over a fictional site including a crawler trap and an off-host redirect.
+
+### 18. Common Crawl
+
+An adapter that queries the URL index with Athena from AIA's AWS account (IAM scoped to the
+public bucket and a results bucket; cost metered per query from bytes scanned) and reads archived
+pages from WARC by byte range; query text classified like a search; recorded tests.
+
+### 19. Deep-web connectors
+
+One sub-chunk per source, in the order listed above, each starting with its recorded terms,
+interface and rate limits; DataStat and NKOD first. Results enter the run as snapshots with their
+dataset identifier and query as locator, so a number is grounded to the dataset cell it came from.
+
+### 20. Code filters
+
+Exact and near-duplicate collapse (content hash, then shingled similarity), language detection,
+source class, and relevance ranking over extracted text against each sub-question; measured
+recall against a hand-labelled fictional corpus.
+
+### 21. Triage readers
+
+The `RESEARCH_TRIAGE` capability, its ADR 0010 policy entry and prices, the triage contract and
+prompt; parallel execution under the concurrency limiter; tests that a triage reader can send
+nothing and that its candidate quotes are grounded before an investigator sees them.
+
+### 22. Leads, adversarial verifiers, triangulation
+
+Subject leads between the director and the tracks; the adversarial verification step; publisher
+independence after near-duplicate collapse; recorded tests for a syndicated press release (one
+publisher, not two) and a claim disproved by a newer primary figure.
+
+### 23. The Exhaustive preset
+
+The preset, its reservation and cost ceiling; progress for runs of hours (stage, counts, spend
+so far) on the Deep Research screen; cancel at any point without losing what was captured; the
+snapshot retention job.
+
+### 24. Evaluation at scale
+
+The chunk 13 question set, run at Deep and at Exhaustive. Exhaustive becomes available to
+researchers only if it finds materially more primary-source evidence per question, and the owner
+judges the difference worth the cost.
+
 ## Dependencies
 
 - **Tool spend in the ledger** (deep-research.md chunk 4) before chunk 13 spends money.
@@ -426,6 +607,7 @@ separately). Then tick the parent plan's chunk 13 for Class C.
 - **A provider's own search or browsing agent.** Rejected above.
 - **Production.** Develop only, fictional studies only, as ADR 0010 accepts.
 - **Freshness** (deep-research.md §12 item 6): a reused track is reused by fingerprint as today.
+- **Anything non-public**: logins, paywalls, CAPTCHAs, the dark web, personal-data collection.
 
 ## Findings
 
