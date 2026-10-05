@@ -175,7 +175,8 @@ def test_every_request_identifies_aia_with_its_contact_and_carries_nothing_else(
         assert sent.headers["Accept-Encoding"] == "identity"
         assert names.isdisjoint({"cookie", "authorization", "proxy-authorization", "referer"})
     assert wire.sent[0].max_bytes == 512_000  # robots.txt has its own cap
-    assert wire.sent[1].max_bytes == 2_000_000
+    # A page is read to the largest type cap (a document's); its own cap is kept after.
+    assert wire.sent[1].max_bytes == 20_000_000
 
 
 @pytest.mark.parametrize(

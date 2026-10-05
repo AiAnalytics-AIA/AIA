@@ -130,7 +130,7 @@ def test_redirect_loops_empty_locations_types_and_sizes_are_refused() -> None:
         {
             "https://stats.example/a": {
                 "body": "%PDF",
-                "headers": {"content-type": "application/pdf"},
+                "headers": {"content-type": "image/png"},
             }
         }
     )
