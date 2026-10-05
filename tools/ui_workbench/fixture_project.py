@@ -202,6 +202,26 @@ SECTIONS: list[dict[str, Any]] = [
     },
 ]
 
+# The persona's study with a richer tracked set (eight fictional brands) for the experimental
+# Sociomapping journey (plan sociomapping-engine I5): four objects make only six pairs.
+SOCIOMAPPING_SECTIONS: list[dict[str, Any]] = [
+    *SECTIONS[:-1],
+    {
+        **SECTIONS[-1],
+        "title": "Fiktivní značky nápojů",
+        "objects": [
+            "Altair",
+            "Borealis",
+            "Cirrus",
+            "Delta",
+            "Fjord",
+            "Gale",
+            "Halo",
+            "Iris",
+        ],
+    },
+]
+
 FIXTURES: dict[str, dict[str, Any]] = {
     # The brief with nothing filled in: the first screen as a new project sees it.
     "empty": {"project": {"title": "Workbench · prázdné zadání"}, "analysis": None},
@@ -255,6 +275,22 @@ FIXTURES: dict[str, dict[str, Any]] = {
                     "source_strategy": "document_or_research",
                 }
             ],
+            "n": 450,
+        },
+        "analysis": ANALYSIS,
+    },
+    # The persona's project with the eight-brand set: the experimental Sociomapping journey.
+    "sociomapping": {
+        "project": {
+            **BRIEF,
+            "title": "Workbench · Sociomapping (fiktivní značky)",
+            "sections": SOCIOMAPPING_SECTIONS,
+            "ui_state": {
+                "questionnaire_path": "manual",
+                "audience_entry": "analytics",
+                "analytics_choice": "cz18",
+            },
+            "persona_dimensions": {"approved": ["media", "cena", "technologie"]},
             "n": 450,
         },
         "analysis": ANALYSIS,
