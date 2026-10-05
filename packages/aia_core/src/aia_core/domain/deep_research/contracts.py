@@ -22,7 +22,14 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+)
 
 from ..ai_contracts import canonical_json
 from ..residency import DataClass
@@ -40,6 +47,8 @@ __all__ = [
     "FrozenKnowledge",
     "GridCell",
     "KnowledgeSource",
+    "Measure",
+    "MeasureBasis",
     "QualityStatus",
     "QuarantineReason",
     "QuarantinedEvidence",
@@ -317,6 +326,37 @@ class RecommendedUse(StrEnum):
     EXCLUDE_TARGET_LEAKAGE = "exclude_target_leakage"
 
 
+class MeasureBasis(StrEnum):
+    """What kind of figure a number is, as its source says (plan § 8.1)."""
+
+    ACTUAL = "actual"
+    ESTIMATE = "estimate"
+    FORECAST = "forecast"
+    PRELIMINARY = "preliminary"
+
+
+class Measure(_Closed):
+    """What one cited number means: the value and everything that makes it that number.
+
+    ``value`` is the number as written; ``scale`` multiplies it (``450`` with scale
+    1000 is "450 tis."). ``unit``, ``period``, ``geography``, ``population`` and
+    ``denominator`` hold the normalised keys of
+    :mod:`aia_core.domain.deep_research.measures` (``%``, ``CZK``, ``Y2025``,
+    ``CZ``, ``HOUSEHOLDS``...). ``None`` is *not stated*, never a default: a
+    missing population is unknown, not "everyone".
+    """
+
+    value: float = Field(allow_inf_nan=False)
+    unit: str | None = Field(default=None, max_length=40)
+    scale: int = Field(default=1, ge=1)
+    period: str | None = Field(default=None, max_length=40)
+    geography: str | None = Field(default=None, max_length=40)
+    population: str | None = Field(default=None, max_length=60)
+    denominator: str | None = Field(default=None, max_length=60)
+    measure_name: str | None = Field(default=None, max_length=200)
+    basis: MeasureBasis | None = None
+
+
 def evidence_id(track_fingerprint: str, source_ref: str, quote: str, claim: str) -> str:
     """A finding's identity: its track instance, its source, its quote and its claim."""
     return "EV-" + digest([track_fingerprint, source_ref, quote, claim])[:16]
@@ -352,6 +392,17 @@ class EvidenceItem(_Closed):
     agent_outcome_overlap: bool
     agent_recommended_use: RecommendedUse
     agent_source_quality: float = Field(ge=0.0, le=1.0)
+    #: The measure of each number the claim cites (plan § 8.1); empty until a later
+    #: chunk fills it. Empty is left out of the stored form, so an item stored
+    #: before measures existed dumps, digests and seals exactly as it did.
+    measures: tuple[Measure, ...] = Field(default=(), max_length=40)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_measures(self, handler: SerializerFunctionWrapHandler) -> Any:
+        dumped = handler(self)
+        if isinstance(dumped, dict) and not self.measures:
+            dumped.pop("measures", None)
+        return dumped
 
 
 class QuarantineReason(StrEnum):
