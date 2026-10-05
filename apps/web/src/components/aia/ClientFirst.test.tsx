@@ -192,13 +192,13 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/studies")[0].body).toEqual({ name: "Brand 2027", kind: "RESEARCH" });
   });
 
-  it("keeps the client's knowledge its own: layers said, a study's finding accepted by a person, even the one who offered it", async () => {
+  it("keeps the client's knowledge its own: a study's finding accepted by a person, even the one who offered it", async () => {
     path = "/app/clients/CLI-a/knowledge";
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    expect(await screen.findByText("Společenská inteligence AIA")).toBeTruthy();
-    expect(screen.getByText("Znalosti klienta", { selector: "div" })).toBeTruthy();
     expect(await screen.findByText("Výroční zpráva")).toBeTruthy();
+    // Studio v3: the "Odkud znalosti pocházejí" strip is gone; the subtitle says where knowledge comes from.
+    expect(screen.queryByRole("region", { name: "Odkud znalosti pocházejí" })).toBeNull();
     fireEvent.click(screen.getByRole("tab", { name: "Čekající aktualizace" }));
     const theirs = (await screen.findByText("Značka působí spolehlivě")).closest("li")!;
     const mine = screen.getByText("Můj pojem").closest("li")!;

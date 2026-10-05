@@ -100,13 +100,6 @@ export const cs = {
     knowledge: {
       title: "Znalosti klienta",
       sub: "Co AIA o tomto klientovi ví. Co sem přidá člověk, platí hned; co navrhne studie nebo AI, čeká na schválení.",
-      layers: "Odkud znalosti pocházejí",
-      layerShared: "Společenská inteligence AIA",
-      layerSharedText: "sdílená a schválená data pro všechny klienty",
-      layerClient: "Znalosti klienta",
-      layerClientText: "jen pro tohoto klienta",
-      layerStudy: "Kontext studie",
-      layerStudyText: "co z toho používá konkrétní výzkum",
       sectionsLabel: "Části znalostí",
       sections: {
         sources: "Zdroje",
