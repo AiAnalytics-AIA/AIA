@@ -17,11 +17,11 @@ chunks:
   - "[x] 6a. Coherences and zoom, reproducing the SOMECS help's worked example"
   - "[ ] 6b. HM correction inside the H-Model"
   - "[ ] J1. Reference study R1 end to end: inputs, fuzzy, H-Model, heights/WIND, 3D, report (first three run today)"
-  - "[ ] I1. Research step research_sociomapping behind AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: declared matrix, candidate layout, heights, coherences, provenance"
-  - "[ ] I2. Internal draft DOCX of the experimental map: method, fit, provenance, limitations (research_sociomapping_docx)"
-  - "[ ] I3. API: the artifact through the run (researchers only) and the report's status and download"
-  - "[ ] I4. Results page: 3D and top view, rotation, zoom, legend, object details, fit diagnostics, method, download"
-  - "[ ] I5. Workbench journey on fictional data: run -> map -> report, screenshots, the report opened"
+  - "[x] I1. Research step research_sociomapping behind AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: declared matrix, candidate layout, heights, coherences, provenance"
+  - "[x] I2. Internal draft DOCX of the experimental map: method, fit, provenance, limitations (research_sociomapping_docx)"
+  - "[x] I3. API: the artifact through the run (researchers only) and the report's status and download"
+  - "[x] I4. Results page: 3D and top view, rotation, zoom, legend, object details, fit diagnostics, method, download"
+  - "[x] I5. Workbench journey on fictional data: run -> map -> report, screenshots, the report opened"
   - "[ ] 7. Spec v3, preset sociomapping-somecs-1, engine and research adapter wiring, artifact v3, ledgers"
   - "[ ] 8. Regions and statistics (E8, M8)"
   - "[ ] 9. Overlays as view layers: arrows (RTS rules), shortest path, combine maps, coherence contours"
@@ -297,8 +297,42 @@ two questions; twelve respondents rating five fictional brands): fuzzy matrices,
 coherences and object correlations, with every intermediate printed; six stages pending,
 each naming its blocker.
 
+**Review of PR 119 (Codex, 2026-10-05), both reproduced and fixed.** (1) A column of equal
+answers on a scale whose scaled value has no exact binary form (2 on 1-10 is 1/9) correlated at
++-1: 215 of 2,464 constant cases across scales and sizes came out defined
+(`test_every_constant_column_is_undefined_on_every_scale_and_size`; fixed by deciding equality
+on the answers before any arithmetic, `fuzzy.py` `rts_object_correlations`). (2) Coherence trees
+and height vectors carried no provenance; they now record algorithm, input fingerprint and the
+rule ids that shaped them -- SOMECS-C1a only when a tie was decided, with each decision kept --
+and the register test covers every public result
+(`test_every_public_result_is_covered_by_the_provenance_check`).
+
+**2b -- `hmodel_candidate.py`, `declared.py`.** `aia_hmodel_candidate_v1`, EXPERIMENTAL_AIA,
+over a declared relationship matrix (values as measured, order only). Built and measured as
+`docs/architecture/sociomapping-hmodel.md` section 4 records: exact 1 on planted symmetric data;
+never below its classical MDS start; fig. 22 0.859 beside SOMECS's displayed 0.786 (a
+provisional comparison); identical maps under monotone conversions and object reordering.
+Finding: on asymmetric data the pooled accuracy and each row's order (QED-H2) conflict (M2).
+
+**I1-I5 -- the integration, demonstrated locally on the workbench (2026-10-05).** A run started
+with `AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED` gains `sociomapping` and `sociomapping_report`; the
+result (`research_sociomapping`, `aia-research-sociomapping-1`) and an INTERNAL unapproved DOCX
+(`research_sociomapping_docx`) are read only through the run; Results draws the stored map (3D
+and top view, rotation, zoom, legend, object details, fit, method and provenance, limitations,
+download). `make ui-workbench && make ui-fixtures && make ui-sociomapping` runs it in a browser
+and recomputes the stored numbers with NumPy: on the eight-brand fixture every step succeeded,
+no page or console error, no failed request but six navigation-aborted stage markers (answered
+204), accuracy 0.998905 stored and recomputed (largest difference 1.3e-15), the same on a fresh
+database. Not deployed: the switch is off in every deployment until someone turns it on.
+
 **Findings.**
 
+- The workbench's fictional generator draws answers from a 2-D latent plane, so a near-perfect
+  2-D fit there (0.999 on eight objects) is built in and says nothing about real data.
+- On asymmetric relations the pooled accuracy SOMECS reports (SOMECS-H3) and each point's own
+  order (QED-H2) disagree: planted layouts with every per-point fit 1 score 0.60-0.87 pooled
+  while the candidate finds 0.78-0.92 (`test_asymmetric_planted_relations_expose_pooled_versus_per_point`).
+  Owner question (M2): which criterion governs an asymmetric H-Model?
 - `apps/web/src/i18n/cs.ts:919 @ 7c1e012` (`mapToolNotInAia`) unused after PR 116.
 - OI-13 says `fit_python_unfolding` is withheld; it is at
   `legacy/npc-panel-18.6.6/app/sociomap.py:53 @ cf08fac`.
@@ -337,6 +371,23 @@ its geometry is replaced by chunks 2-4.
 - `apps/web/src/i18n/cs.ts:919 @ 7c1e012` (`mapToolNotInAia`) is unused after PR 116.
 
 ## Doc follow-up
+
+- CLAUDE.md map, `domain/sociomap/`: `declared.py` (the declared relationship matrix: values as
+  measured, undefined pairs named), `hmodel_candidate.py` (`aia_hmodel_candidate_v1`, the
+  experimental AIA H-Model; EXPERIMENTAL_AIA on every result). `domain/research_sociomapping.py`
+  (a run's experimental Sociomapping per tracked set). `application/sociomapping_report.py` and
+  `infrastructure/report_docx/sociomapping_figure.py` (its internal draft). Executors:
+  `research.py` `SociomappingExecutor`, `sociomapping_report.py`.
+- CLAUDE.md, routes: `GET .../research/runs/{run_id}/sociomapping/report` and `/download`.
+- CLAUDE.md, config: `AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED` (API; off by default; the workbench
+  turns it on), stored on the run as `sociomapping_enabled`.
+- CLAUDE.md, commands: `make ui-sociomapping`; `tools/sociomapping_independent_check.py`;
+  `tools/sociomapping_web_fixture.py` (the web fixture, written by the builder).
+- AGENTS.md (pytest/fixtures): a constant column's float mean need not equal its value; decide
+  equality on the values before centring (wrong: `norm > 0` after centring; right:
+  `len(set(column)) == 1` first).
+- AGENTS.md (DOCX): `tools/report_preview.py` and any DOCX -> PDF check need
+  `libreoffice-writer`, not only `libreoffice-core` ("source file could not be loaded" otherwise).
 
 - CLAUDE.md map, `sociomap/`: `fuzzy.py` (RTS / SOMECS / legacy paths to a fuzzy matrix, signed
   object correlations, weighted mean with provenance), `coherence.py` (alpha-cut coherences, zoom),
