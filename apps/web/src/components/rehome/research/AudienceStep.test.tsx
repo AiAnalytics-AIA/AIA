@@ -65,7 +65,7 @@ describe("Audience", () => {
   it("own audience says it is not in AIA, and the step waits for another source", async () => {
     aiaStub({});
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Vlastní audience/ }));
+    fireEvent.click(await screen.findByRole("radio", { name: /Vlastní audience/ }));
     expect(await screen.findByText(/Nahrání, kontrolu a preflight vlastního datasetu dělala 18.6.6/)).toBeTruthy();
     expect(screen.getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("Soubor")).toBeNull();
@@ -86,12 +86,14 @@ describe("Audience", () => {
     aiaStub({ ui_state: { audience_entry: "analytics" } });
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
     expect(await screen.findByText(/= výsledky reprezentují celou dospělou populaci/)).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: /Special Audience/ }));
+    // Studio v3: one page; the population is the second question, its three choices side by side.
+    fireEvent.click(await screen.findByRole("radio", { name: /Special Audience/ }));
     expect(await screen.findByText(/Profesní a speciální subpanely počítala 18.6.6/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Lékaři/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Audience AI Analytics" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Česká populace \(\+18\)/ }));
-    expect(await screen.findByRole("heading", { name: "Česká populace (+18)" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("radio", { name: /Česká populace \(\+18\)/ }));
+    // The third question appears with the whole population chosen, and the summary says so.
+    expect(await screen.findByRole("radio", { name: /Celá ČR 18\+/, checked: true })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Souhrn cílové skupiny" }).textContent).toContain("Česká populace (+18)");
     await saved();
     expect(lastSave()).toMatchObject({ reason: "audience_strategy", content: { audience: { strategy: "population", filters: {}, description: "ČR 18+" } } });
     // No preview: 18.6.6 counted the audience in its panel; the screen says so.

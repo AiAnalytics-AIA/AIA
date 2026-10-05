@@ -1057,6 +1057,15 @@ export const cs = {
       failedTitle: "AI krok se nedokončil",
       next: "Další · dimenze",
       nextHint: "Nejdřív vyberte zdroj audience.",
+      // Studio v3 (AudienceStep): one page, three questions, the summary beside them.
+      populationTitle: "Která populace?",
+      populationHint: "Vyberte databázi, ze které AIA respondenty vybere.",
+      strategyTitle: "Koho mají výsledky reprezentovat?",
+      unset: "nevybráno",
+      summaryTitleV3: "Souhrn cílové skupiny",
+      summarySource: "Zdroj",
+      summaryPopulation: "Populace",
+      summaryStrategy: "Strategie",
     },
     // Dimenze: the classic renderPersona (:979) and its 1793 wrapper, verbatim.
     persona: {
