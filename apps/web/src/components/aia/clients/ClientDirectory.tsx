@@ -1,8 +1,8 @@
 "use client";
 
 // Klienti (ADR 0015): the first decision -- which client am I working for? Each
-// card is one client the person holds a grant in, with the work that is active
-// there. Nothing else is on this page.
+// card is one client of the organization (every member sees all of them, ADR
+// 0019), with the work that is active there. Nothing else is on this page.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";

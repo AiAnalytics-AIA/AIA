@@ -11,7 +11,7 @@ chunks:
   - "[x] 5b.2 Confirm the cost of a run above a threshold, recorded"
   - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
   - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
-  - "[ ] 6. Retire the grants (tables, routes, UI) after one deploy without them"
+  - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
 ---
 # Two roles, human-with-AI gates
 
@@ -254,6 +254,61 @@ refuses them). The mechanism it will use is the one that exists: `approve` then 
 recorded in the same ledger. Until then no route serves a client-facing report, so there is nothing
 to gate.
 
+### Chunk 6 plan (2026-10-05; the owner approved starting it on 2026-10-03)
+
+**Condition met.** Chunk 3 (no grant is read) merged in #105 and has been on `develop` through several
+green deploys since (the latest dispatched 2026-10-03 21:10 UTC). Nothing has read a grant row since.
+
+**A correction to the chunk line above.** It says to drop "the per-level `allow_self_approval`
+columns" too. That contradicts ADR 0019 decision 3: *"The setting stays (organization, client,
+study) so a client that demands independent review can have it back"*, and 5a relies on it (a
+person's knowledge write files an ordinary proposal where self-approval is explicitly off). Those
+columns are kept; only the grants go.
+
+What goes, all of it written to and none of it read since chunk 3:
+
+- `ScopeResolver.grant_client_access`, `grant_study_access`, `revoke_client_access`;
+- `POST /clients/{client_id}/grants` and `POST /studies/{study_id}/grants` (the web client stopped
+  calling them in chunk 4);
+- the self-grant a new client gave its creator (`workspace.py`) and the develop seed's grants;
+- the tables `client_grants` and `study_grants` (`ClientGrantRow`, `StudyGrantRow`), in one
+  migration. Its downgrade recreates them empty: the rows are not restored, and nothing reads them.
+  What they recorded is kept where it always also was, the `access_audit` rows (`CLIENT_GRANT`,
+  `STUDY_GRANT`, `CLIENT_SELF_GRANT`, `CLIENT_REVOKE`), which stay readable in Settings → Audit.
+
+Tests that exercised granting are removed with it; tests that used grants to set up a world drop
+those calls (membership already gives the access). No test of a rule that still holds is removed.
+
+### Chunk 6 landed (2026-10-05, branch `feature/retire-grants` from `develop` @ `70ff89d`)
+
+- Code: the three grant methods are gone from `application/scope.py`; `ClientGrant`, `StudyGrant`
+  and `effective_role` from `domain/scope.py` (`effective_role` was kept by chunk 3 only "until
+  the grants are retired"); `ClientGrantRow`, `StudyGrantRow` from `infrastructure/tables.py`; the
+  two `/grants` routes and `GrantRequest` from `routers/scope.py`; the creator's self-grant from
+  `workspace.py` `start_client`; the seed's grants from `application/develop_seed.py`.
+- Migration `20261005_d8e2f4a6b1c3` (down `c5d7e9f1a2b4`). PostgreSQL 16: one head; upgrade from
+  base to head; `alembic check` clean; downgrade to `c5d7e9f1a2b4` recreates both tables, and their
+  `pg_dump -s` is identical to the same tables built by the original migrations (columns, CHECK,
+  PK, FKs, indexes); downgrade to base and upgrade again clean.
+- Tests removed because their subject was the granting itself: in `test_scope_isolation.py`
+  `test_admin_self_grant_works_and_is_audited`, `test_study_grant_is_authoritative_when_present`
+  (`effective_role`), `test_study_grant_cannot_narrow_a_researcher`,
+  `test_a_study_grant_adds_nothing_because_membership_is_the_access`,
+  `test_a_researcher_can_staff_their_own_study`, `test_a_plain_researcher_can_staff_a_study`,
+  `test_regression_a_study_grant_never_removes_access_a_client_grant_gives`,
+  `test_self_grant_records_previous_and_new_access`,
+  `test_granting_someone_else_is_not_recorded_as_a_self_grant`; and the worker test's one line
+  that a worker could not grant (the rest of that test stays).
+- Tests rewritten to say the same rule without a grant:
+  `test_a_new_member_reads_the_clients_knowledge_like_any_member` (was "…with only a study
+  grant…"), `test_a_new_member_may_do_everything_for_the_client` (`test_client_scope.py`),
+  `test_any_member_sees_the_whole_client_and_its_knowledge` (`test_client_api.py`),
+  `test_the_access_audit_lists_entries_with_their_payload` (now audits a study started in a
+  client, which writes a payload, instead of a grant).
+- Setup-only grant calls dropped from the four `conftest.py` files, `test_seed_and_smoke.py` and
+  `test_deep_research_journey.py`; every isolation test (cross-organization 404, archived client,
+  the worker's permissions, forged scope) stays.
+
 ### 5b.2 plan (2026-10-03, owner's decision: the threshold is per study, set before the run)
 
 The owner's answer to "what is the threshold and where is it set": **per study, at the beginning of
@@ -412,3 +467,7 @@ For the docs PR after merge:
   superseded (the "Superseded in part by" lines go in those two ADRs' headers, in the docs PR,
   because they are shared index material).
 - `AGENTS.md`: nothing expected.
+- Chunk 6: `CLAUDE.md` §2 map, `scope_repository.py` line: "(grant tables remain, unread, until
+  ADR 0019 chunk 6 retires them)" becomes "(the grant tables are dropped, ADR 0019 chunk 6)";
+  `docs/architecture/adr/0004-client-study-isolation.md` and the ADR index: grants no longer exist
+  in the schema, the audit rows of past grants remain.

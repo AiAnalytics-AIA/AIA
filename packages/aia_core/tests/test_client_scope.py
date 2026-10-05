@@ -189,23 +189,16 @@ def test_a_person_with_no_grant_starts_work_for_the_client_too(scoped: Any, sess
     assert [a.actor_id for a in audit] == [scoped.users["outsider"]]
 
 
-def test_a_study_grant_changes_nothing_about_what_a_member_may_do_for_the_client(
+def test_a_new_member_may_do_everything_for_the_client(
     scoped: Any,
 ) -> None:
+    """ADR 0019: a member added a moment ago needs nothing granted to work for a client."""
     member = scoped.scope_repo.add_member(scoped.admin_context, email="guest2@art-chain.io")
-    before = scoped.resolver.client_context(
+    ctx = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )
-    lead = scoped.resolver.study_context(
-        scoped.principal(scoped.users["lead"]), study_id=scoped.studies["primary"].study_id
-    )
-    scoped.resolver.grant_study_access(lead, user_id=member.user_id, role=ScopeRole.RESEARCHER)
-    after = scoped.resolver.client_context(
-        scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
-    )
-    assert after.permissions == before.permissions == frozenset(ClientPermission)
-    assert after.study_ids == before.study_ids
+    assert ctx.permissions == frozenset(ClientPermission)
     study = scoped.scope_repo.create_study_in_client(
-        after, slug="x", name="x", kind=StudyKind.RESEARCH
+        ctx, slug="x", name="x", kind=StudyKind.RESEARCH
     )
     assert study.client_id == scoped.clients["primary"].client_id

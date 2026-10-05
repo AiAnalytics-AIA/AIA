@@ -59,7 +59,7 @@ from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolOutcome
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
 from aia_core.domain.knowledge import KnowledgeKind
 from aia_core.domain.residency import DataClass
-from aia_core.domain.scope import ScopeRole, StudyContext, StudyStatus
+from aia_core.domain.scope import StudyContext, StudyStatus
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.model_adapters.transport import (
@@ -345,15 +345,8 @@ def research(sessions: sessionmaker[Session]) -> ResearchWorld:
             budget_usd=25.0,
         )
         users = {}
-        for label, client_id, role in (
-            ("lead", client.client_id, ScopeRole.RESEARCHER),
-            ("reviewer", client.client_id, ScopeRole.RESEARCHER),
-            ("other", other.client_id, ScopeRole.RESEARCHER),
-        ):
+        for label in ("lead", "reviewer", "other"):
             member = repo.add_member(admin, email=f"{label}@art-chain.io")
-            resolver.grant_client_access(
-                admin, client_id=client_id, user_id=member.user_id, role=role
-            )
             users[label] = member.user_id
         session.flush()
         for user, study_id in (

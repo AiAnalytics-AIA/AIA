@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-from aia_core.domain.scope import OrganizationContext, ScopeRole, StudyContext, StudyStatus
+from aia_core.domain.scope import OrganizationContext, StudyContext, StudyStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -125,9 +125,6 @@ def world(sessions: sessionmaker[Session]) -> World:
             admin, client_id=client.client_id, slug="s", name="S", budget_usd=25.0
         )
         lead = scope_repo.add_member(admin, email="lead@art-chain.io")
-        resolver.grant_client_access(
-            admin, client_id=client.client_id, user_id=lead.user_id, role=ScopeRole.RESEARCHER
-        )
         session.flush()
         scope = resolver.study_context(
             AuthenticatedPrincipal(user_id=lead.user_id, organization_id=org.organization_id),

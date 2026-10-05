@@ -1,14 +1,14 @@
-"""Clients, studies, membership and access grants.
+"""Clients, studies, membership, budgets and self-approval.
 
 Two distinct authorisation levels are in play here and the split is deliberate:
 
-* **Administrative** routes take an ``OrganizationContext``. They manage clients,
-  studies and grants. They never return research content.
-* **Study** routes take a ``StudyContext``, which requires a grant.
+* **Administrative** routes take an ``OrganizationContext``. They manage members and
+  clients. They never return research content.
+* **Study** routes take a ``StudyContext``, issued only by ``ScopeResolver``.
 
-Listing clients needs only organization membership, because a client list is
-names and slugs -- administrative metadata, not research. Listing a client's
-*studies* is restricted to the studies the caller actually holds a grant on.
+Membership of the organization is the access (ADR 0019): every active member may open
+every client and study of it. There are no client or study grants; the tables that held
+them were dropped (plan chunk 6). The organization is the boundary.
 """
 
 from __future__ import annotations
@@ -145,15 +145,6 @@ class StudySpendConfirmRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     limit_usd: float | None = Field(ge=0, le=1_000_000)
-
-
-class GrantRequest(BaseModel):
-    """Grant a user a role."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    user_id: str = Field(max_length=64)
-    role: Literal["VIEWER", "REVIEWER", "RESEARCHER", "LEAD"]
 
 
 class MemberRequest(BaseModel):
@@ -300,7 +291,7 @@ def list_clients(
 ) -> list[ClientResponse]:
     """List clients in the organization.
 
-    Names and slugs only. Reading a client's studies still requires a grant.
+    Names and slugs only.
     """
     counts = repo.client_study_counts(admin)
     return [
@@ -350,35 +341,6 @@ def create_client(
     )
 
 
-@router.post(
-    "/clients/{client_id}/grants",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Grant a user access to a client",
-)
-def grant_client_access(
-    client_id: Annotated[str, Path(max_length=64, pattern=r"^CLI-[0-9a-f]{1,32}$")],
-    body: GrantRequest,
-    admin: OrganizationDep,
-    resolver: ResolverDep,
-) -> Response:
-    """Grant a client-level role, applying to all that client's studies.
-
-    An administrator granting themselves access is recorded under a distinct
-    audit action, so break-glass access is visible afterwards.
-    """
-    try:
-        resolver.grant_client_access(
-            admin, client_id=client_id, user_id=body.user_id, role=ScopeRole.from_stored(body.role)
-        )
-    except ScopeDenied as exc:
-        if exc.reason == "insufficient_role":
-            raise _forbidden(exc) from exc
-        raise HTTPException(
-            status_code=404, detail={"code": "not_found", "message": "No such client."}
-        ) from exc
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
 @router.put(
     "/clients/{client_id}/status",
     response_model=ClientResponse,
@@ -392,8 +354,8 @@ def set_client_status(
 ) -> ClientResponse:
     """Mark a client ACTIVE, DORMANT or ARCHIVED. Requires organization administration.
 
-    Archiving hides the client from the default list; it deletes nothing and
-    revokes no grant. The change is written to the access audit.
+    Archiving hides the client and its studies from every listing; it deletes nothing.
+    The change is written to the access audit.
     """
     try:
         client = repo.set_client_status(
@@ -433,8 +395,9 @@ def list_studies(
 ) -> list[StudyResponse]:
     """List the studies the caller may access.
 
-    Built from the caller's grants rather than filtered from the table, so a
-    forgotten predicate yields an empty list rather than another client's work.
+    Built from the ids ``ScopeResolver`` says the caller may open (every study of the
+    organization whose client is not archived) rather than filtered from the table, so a
+    forgotten predicate yields an empty list rather than another organization's work.
     """
     accessible = resolver.accessible_studies(principal, client_id=client_id)
     studies = repo.list_studies(
@@ -557,31 +520,6 @@ def set_study_spend_confirm(
     return _study_response(study, role=scope.role.value, include_costs=True)
 
 
-@router.post(
-    "/studies/{study_id}/grants",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Grant a user access to a study",
-)
-def grant_study_access(
-    body: GrantRequest,
-    scope: Annotated[Any, Depends(require_permission(Permission.MANAGE_STUDY_ACCESS))],
-    resolver: ResolverDep,
-) -> Response:
-    """Grant a study-level role.
-
-    A study grant is authoritative over a client grant in both directions: it can
-    bring someone in for a single study, or restrict a client lead on a sensitive
-    one.
-    """
-    try:
-        resolver.grant_study_access(
-            scope, user_id=body.user_id, role=ScopeRole.from_stored(body.role)
-        )
-    except ScopeDenied as exc:
-        raise _forbidden(exc) from exc
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
 # --------------------------------------------------------------------------- #
 # Self-approval
 # --------------------------------------------------------------------------- #
@@ -655,7 +593,7 @@ def add_member(
 ) -> MemberResponse:
     """Add a user to the organization.
 
-    Membership alone grants no access to client data; a grant is still required.
+    Membership is the access (ADR 0019): the new member can open every client and study.
     """
     try:
         repo.add_member(
@@ -685,10 +623,10 @@ def access_audit(
     resolver: ResolverDep,
     limit: Annotated[int, Query(ge=1, le=1000)] = 200,
 ) -> list[AuditEntryResponse]:
-    """Return recent grants, revocations and denials.
+    """Return recent access events: past grants and revocations, denials and setting changes.
 
-    Security-relevant: an administrator granting themselves access to a client is
-    legitimate but must be reviewable afterwards.
+    Security-relevant: the history of who was given access before ADR 0019 (the grant
+    rows themselves are gone), and every budget, limit, status and self-approval change.
     """
     try:
         return [AuditEntryResponse(**e) for e in resolver.audit_trail(admin, limit=limit)]

@@ -551,52 +551,6 @@ class StudyRow(Base):
     )
 
 
-class ClientGrantRow(Base):
-    """A user's role on a client, applying to all of that client's studies."""
-
-    __tablename__ = "client_grants"
-
-    client_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    role: Mapped[str] = mapped_column(String(32), nullable=False)
-    granted_by: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
-    )
-
-    __table_args__ = (
-        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
-        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
-        CheckConstraint(
-            "role in ('VIEWER','REVIEWER','RESEARCHER','LEAD')", name="client_grant_role_known"
-        ),
-        Index("ix_client_grants_user", "user_id"),
-    )
-
-
-class StudyGrantRow(Base):
-    """A user's role on one study. Authoritative over a client grant."""
-
-    __tablename__ = "study_grants"
-
-    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    role: Mapped[str] = mapped_column(String(32), nullable=False)
-    granted_by: Mapped[str | None] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
-    )
-
-    __table_args__ = (
-        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
-        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
-        CheckConstraint(
-            "role in ('VIEWER','REVIEWER','RESEARCHER','LEAD')", name="study_grant_role_known"
-        ),
-        Index("ix_study_grants_user", "user_id"),
-    )
-
-
 class AccessAuditRow(Base):
     """Append-only record of access grants, revocations and denials.
 

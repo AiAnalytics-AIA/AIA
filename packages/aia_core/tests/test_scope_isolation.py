@@ -8,8 +8,8 @@ bug.
 Since ADR 0019 there is one scope role, the Researcher, who holds every
 permission: the tests that once told VIEWER, REVIEWER, RESEARCHER and LEAD apart
 now assert that they no longer differ. What still separates people is access
-itself (a grant, the organization, an active account, a client that is not
-archived) and the worker's narrower ``WORKER_PERMISSIONS``.
+itself (membership of the organization, an active account, a client that is not
+archived; there are no grants) and the worker's narrower ``WORKER_PERMISSIONS``.
 
 Two properties are asserted repeatedly and deliberately:
 
@@ -45,12 +45,11 @@ from aia_core.domain.scope import (
     StudyContext,
     StudyStatus,
     client_permissions_for,
-    effective_role,
     permissions_for,
 )
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import ApprovalDecisionRow, StudyGrantRow
+from aia_core.infrastructure.tables import ApprovalDecisionRow
 
 
 @pytest.fixture
@@ -100,20 +99,8 @@ def world(scope_repo: ScopeRepository, resolver: ScopeResolver) -> dict[str, Any
     reviewer = scope_repo.add_member(admin, email="reviewer@art-chain.io")
     outsider = scope_repo.add_member(admin, email="outsider@art-chain.io")
 
-    # The researcher and the reviewer work for Acme only. Since ADR 0019 both hold
-    # the same Researcher role; the reviewer label is kept so the tests still read.
-    resolver.grant_client_access(
-        admin,
-        client_id=acme.client_id,
-        user_id=researcher.user_id,
-        role=ScopeRole.RESEARCHER,
-    )
-    resolver.grant_client_access(
-        admin,
-        client_id=acme.client_id,
-        user_id=reviewer.user_id,
-        role=ScopeRole.RESEARCHER,
-    )
+    # Since ADR 0019 the researcher and the reviewer hold the same Researcher role and
+    # reach both clients by membership; the reviewer label is kept so the tests still read.
 
     def principal(user_id: str, req: str = "req-1") -> AuthenticatedPrincipal:
         return AuthenticatedPrincipal(
@@ -275,31 +262,6 @@ def test_the_admin_is_a_researcher_and_reaches_every_study(
     assert scope.permissions == frozenset(Permission)
 
 
-def test_admin_self_grant_works_and_is_audited(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """Break-glass access is possible but visible.
-
-    Someone has to be able to start work on a new client. The self-grant is
-    recorded under its own action so it is distinguishable from ordinary
-    provisioning when the log is reviewed.
-    """
-    admin = world["admin"]
-    resolver.grant_client_access(
-        admin,
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
-
-    scope = resolver.study_context(world["admin_principal"], study_id=world["acme_study"].study_id)
-    assert scope.role is ScopeRole.RESEARCHER
-
-    actions = [e["action"] for e in resolver.audit_trail(admin)]
-    assert "CLIENT_SELF_GRANT" in actions
-    assert "CLIENT_GRANT" in actions  # the researcher grant from setup
-
-
 def test_archived_client_denies_access(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
@@ -408,95 +370,14 @@ def test_reaching_a_study_without_a_grant_is_no_longer_a_denial_to_audit(
 # --------------------------------------------------------------------------- #
 
 
-def test_study_grant_is_authoritative_when_present() -> None:
-    """A study grant still wins over a client grant, and no grant means no access.
-
-    ADR 0019 left one role, so the precedence can no longer change what a person
-    may do; it remains the rule until the grants are retired. What stays true:
-    a study grant is used when present (it can bring someone in with no client
-    grant), the client grant covers the client's studies otherwise, and with
-    neither there is no role at all.
-    """
-    researcher = ScopeRole.RESEARCHER
-    assert effective_role(client_role=researcher, study_role=researcher) is researcher
-    assert effective_role(client_role=None, study_role=researcher) is researcher
-    assert effective_role(client_role=researcher, study_role=None) is researcher
-    assert effective_role(client_role=None, study_role=None) is None
-
-
-def test_study_grant_cannot_narrow_a_researcher(
-    resolver: ScopeResolver, session: Session, world: dict[str, Any]
-) -> None:
-    """A study grant no longer restricts anyone: a Researcher holds every permission.
-
-    ADR 0019. Before it, a study grant could narrow a client-level grant to VIEWER
-    on one sensitive study. Now the same grant leaves the person's permissions
-    exactly as they were, and a grant row written before the ADR with a retired
-    role is read as Researcher rather than as a restriction.
-    """
-    principal = world["principal"](world["researcher"])
-    before = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert before.role is ScopeRole.RESEARCHER
-
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
-    owner_scope = resolver.study_context(
-        world["admin_principal"], study_id=world["acme_study"].study_id
-    )
-    resolver.grant_study_access(owner_scope, user_id=world["researcher"], role=ScopeRole.RESEARCHER)
-
-    after = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert after.role is ScopeRole.RESEARCHER
-    assert after.permissions == before.permissions == frozenset(Permission)
-    assert after.has(Permission.EDIT_STUDY)
-
-    # A study grant stored before ADR 0019 as VIEWER is not a restriction either.
-    stored = session.get(StudyGrantRow, (world["acme_study"].study_id, world["researcher"]))
-    assert stored is not None
-    stored.role = "VIEWER"
-    session.flush()
-    legacy = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert legacy.role is ScopeRole.RESEARCHER
-    assert legacy.has(Permission.EDIT_STUDY)
-
-
-def test_a_study_grant_adds_nothing_because_membership_is_the_access(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """A study grant no longer brings anyone in: they are in already (ADR 0019)."""
-    principal = world["principal"](world["outsider"])
-    everything = sorted([world["acme_study"].study_id, world["globex_study"].study_id])
-    assert resolver.accessible_studies(principal) == everything
-
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["globex"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
-    owner_scope = resolver.study_context(
-        world["admin_principal"], study_id=world["globex_study"].study_id
-    )
-    resolver.grant_study_access(owner_scope, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
-
-    # Nothing narrowed and nothing widened: the same two studies, the same role.
-    assert resolver.accessible_studies(principal) == everything
-    scope = resolver.study_context(principal, study_id=world["globex_study"].study_id)
-    assert scope.role is ScopeRole.RESEARCHER
-
-
-def test_every_granted_member_holds_every_permission(
+def test_every_member_holds_every_permission(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
     """The reviewer label no longer limits anyone (ADR 0019).
 
     The test this replaces held that a reviewer could approve but not edit, so
-    that nobody approved what they had edited. A person who holds a grant now
-    holds all of it: editing, running, accepting a gate and signing off.
+    that nobody approved what they had edited. A member now holds all of it:
+    editing, running, accepting a gate and signing off.
     """
     scope = resolver.study_context(
         world["principal"](world["reviewer"]), study_id=world["acme_study"].study_id
@@ -535,10 +416,10 @@ def test_researcher_can_work_and_accept_their_own_work(
 def test_required_permission_is_checked_at_resolution(
     resolver: ScopeResolver, world: dict[str, Any]
 ) -> None:
-    """Resolution can demand a permission up front; a member holding the grant gets it.
+    """Resolution can demand a permission up front; a member gets it.
 
     Since ADR 0019 every permission is held, so demanding one succeeds for every
-    member, with or without a grant, and records neither PERMISSION_DENIED nor
+    member, and records neither PERMISSION_DENIED nor
     ACCESS_DENIED.
     """
     principal = world["principal"](world["reviewer"])
@@ -552,7 +433,7 @@ def test_required_permission_is_checked_at_resolution(
     actions = [e["action"] for e in resolver.audit_trail(world["admin"])]
     assert "PERMISSION_DENIED" not in actions
 
-    # A member with no grant at all holds every permission too, so demanding one succeeds.
+    # A member who never touched the client holds every permission too.
     outsider = world["principal"](world["outsider"])
     scope = resolver.study_context(
         outsider, study_id=world["acme_study"].study_id, require=Permission.EDIT_STUDY
@@ -646,8 +527,6 @@ def test_a_worker_scope_cannot_accept_a_gate_or_change_the_budget(
 
     with pytest.raises(ScopeDenied):
         scope_repo.set_study_budget(worker, 9999.0)
-    with pytest.raises(ScopeDenied):
-        resolver.grant_study_access(worker, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
     worker.require(Permission.EDIT_STUDY)
 
 
@@ -670,12 +549,6 @@ def test_projects_are_invisible_across_clients(
     project, _ = acme_repo.create(title="Acme confidential", content={"goal": "secret"})
 
     # Give the owner access to Globex only, and try to reach the Acme project.
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["globex"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
     globex_scope = resolver.study_context(
         world["admin_principal"], study_id=world["globex_study"].study_id
     )
@@ -742,7 +615,7 @@ def test_project_rows_carry_client_and_study(
 def test_viewer_label_can_create_and_edit_a_project(
     resolver: ScopeResolver, session: Session, world: dict[str, Any]
 ) -> None:
-    """A member holding a grant can write; there is no read-only role (ADR 0019).
+    """Any member can write; there is no read-only role (ADR 0019).
 
     Replaces "a viewer cannot create or edit a project". The repository still
     enforces ``EDIT_STUDY`` itself, not only the API; the next test keeps that
@@ -787,7 +660,7 @@ def test_repository_enforces_edit_permission_on_the_scope_it_is_given(
 def test_a_second_member_can_read_and_edit_anothers_project(
     resolver: ScopeResolver, session: Session, world: dict[str, Any]
 ) -> None:
-    """Read and write are both open to any member with a grant (ADR 0019).
+    """Read and write are both open to any member (ADR 0019).
 
     Replaces "a reviewer can read projects they cannot edit".
     """
@@ -814,12 +687,6 @@ def test_closed_study_accepts_no_new_work(
     world: dict[str, Any],
 ) -> None:
     """A delivered study is frozen: new work would alter what a client was shown."""
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
     lead_scope = resolver.study_context(
         world["admin_principal"], study_id=world["acme_study"].study_id
     )
@@ -853,51 +720,6 @@ def test_only_admins_can_create_clients_and_studies(
         scope_repo.create_study(member_ctx, client_id=world["acme"].client_id, slug="x", name="X")
 
 
-def test_a_researcher_can_staff_their_own_study(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """MANAGE_STUDY_ACCESS is a Researcher's, so no organization administration is needed."""
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-    )
-    scope = resolver.study_context(world["admin_principal"], study_id=world["acme_study"].study_id)
-
-    resolver.grant_study_access(scope, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
-
-    outsider_scope = resolver.study_context(
-        world["principal"](world["outsider"]), study_id=world["acme_study"].study_id
-    )
-    assert outsider_scope.role is ScopeRole.RESEARCHER
-
-
-def test_a_plain_researcher_can_staff_a_study(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """Granting access is no longer lead authority (ADR 0019); the grant is audited.
-
-    Replaces "a researcher cannot staff a study". Only the worker's narrower
-    context is refused (see the worker test above).
-    """
-    scope = resolver.study_context(
-        world["principal"](world["researcher"]), study_id=world["acme_study"].study_id
-    )
-    resolver.grant_study_access(scope, user_id=world["outsider"], role=ScopeRole.RESEARCHER)
-
-    assert (
-        resolver.study_context(
-            world["principal"](world["outsider"]), study_id=world["acme_study"].study_id
-        ).role
-        is ScopeRole.RESEARCHER
-    )
-    grants = [e for e in resolver.audit_trail(world["admin"]) if e["action"] == "STUDY_GRANT"]
-    assert grants
-    assert grants[0]["actor_id"] == world["researcher"]
-    assert grants[0]["subject_user_id"] == world["outsider"]
-
-
 def test_budget_changes_are_a_researchers_and_are_audited(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
@@ -918,7 +740,7 @@ def test_budget_changes_are_a_researchers_and_are_audited(
     assert entries and "750.0" in entries[0]["reason"]
     assert entries[0]["actor_id"] == world["researcher"]
 
-    # Any member may, grant or no grant (ADR 0019); the audit entry is what is left.
+    # Any member may (ADR 0019); the audit entry is what is left.
     other = resolver.study_context(
         world["principal"](world["outsider"]), study_id=world["acme_study"].study_id
     )
@@ -1123,50 +945,6 @@ def test_slug_normalises_case_and_whitespace() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_regression_a_study_grant_never_removes_access_a_client_grant_gives(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """**Specificity precedence, kept when the roles collapsed (ADR 0019).**
-
-        study grant
-           overrides client grant
-              overrides no access
-
-    Before ADR 0019 a study grant could restrict a client LEAD to VIEWER on one
-    sensitive study, and the test asserted that the restriction beat the broader
-    grant (never ``max(role)``). With one role there is nothing to narrow to, so
-    a study grant on someone who already works for the client leaves everything
-    they could do, on that study and on the client's other studies. The
-    precedence itself is still asserted on ``effective_role`` above.
-    """
-    admin = world["admin"]
-    acme = world["acme"]
-    researcher = world["researcher"]
-
-    resolver.grant_client_access(
-        admin, client_id=acme.client_id, user_id=researcher, role=ScopeRole.RESEARCHER
-    )
-    principal = world["principal"](researcher)
-
-    broad = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert broad.role is ScopeRole.RESEARCHER
-    assert broad.has(Permission.EDIT_STUDY)
-
-    resolver.grant_client_access(
-        admin, client_id=acme.client_id, user_id=world["owner_id"], role=ScopeRole.RESEARCHER
-    )
-    owner_scope = resolver.study_context(
-        world["admin_principal"], study_id=world["acme_study"].study_id
-    )
-    resolver.grant_study_access(owner_scope, user_id=researcher, role=ScopeRole.RESEARCHER)
-
-    after = resolver.study_context(principal, study_id=world["acme_study"].study_id)
-    assert after.role is ScopeRole.RESEARCHER
-    assert after.permissions == broad.permissions == frozenset(Permission)
-    assert after.has(Permission.SIGN_OFF_DELIVERABLE)
-    assert after.has(Permission.MANAGE_STUDY_ACCESS)
-
-
 def test_regression_a_study_created_later_is_reachable_without_anyone_granting_it(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
@@ -1188,70 +966,3 @@ def test_regression_a_study_created_later_is_reachable_without_anyone_granting_i
     )
     assert second.study_id in resolver.accessible_studies(principal)
     assert world["acme_study"].study_id in resolver.accessible_studies(principal)
-
-
-def test_self_grant_records_previous_and_new_access(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """A self-grant carries a full before/after record.
-
-    This is the one case where administrative authority and confidential research
-    access meet in the same person, so the audit entry must answer what was
-    taken, by whom, from what, and why -- readable years later without
-    reconstructing the roles of the day. ADR 0019: with one role the second grant
-    is a re-grant (RESEARCHER to RESEARCHER), but it is still recorded with what
-    the first one left.
-    """
-    admin = world["admin"]
-    resolver.grant_client_access(
-        admin,
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-        reason="starting engagement kickoff",
-    )
-    # Grant themselves again, which is the case the before/after record exists for.
-    resolver.grant_client_access(
-        admin,
-        client_id=world["acme"].client_id,
-        user_id=world["owner_id"],
-        role=ScopeRole.RESEARCHER,
-        reason="taking over as study lead",
-    )
-
-    entries = [e for e in resolver.audit_trail(admin) if e["action"] == "CLIENT_SELF_GRANT"]
-    assert len(entries) == 2
-
-    first = entries[1]["payload"]
-    assert first["previous_access"] is None
-    assert first["new_access"] == "RESEARCHER"
-    assert first["reason"] == "starting engagement kickoff"
-
-    regrant = entries[0]
-    payload = regrant["payload"]
-    assert payload["actor_user_id"] == world["owner_id"]
-    assert payload["subject_user_id"] == world["owner_id"]
-    assert payload["client_id"] == world["acme"].client_id
-    assert payload["previous_access"] == "RESEARCHER"
-    assert payload["new_access"] == "RESEARCHER"
-    assert payload["self_grant"] is True
-    assert payload["reason"] == "taking over as study lead"
-    assert regrant["created_at"] is not None
-
-
-def test_granting_someone_else_is_not_recorded_as_a_self_grant(
-    resolver: ScopeResolver, world: dict[str, Any]
-) -> None:
-    """Ordinary provisioning must stay distinguishable from break-glass access."""
-    resolver.grant_client_access(
-        world["admin"],
-        client_id=world["acme"].client_id,
-        user_id=world["outsider"],
-        role=ScopeRole.RESEARCHER,
-    )
-    actions = [e["action"] for e in resolver.audit_trail(world["admin"])]
-    assert "CLIENT_GRANT" in actions
-    self_grants = [
-        e for e in resolver.audit_trail(world["admin"]) if e["action"] == "CLIENT_SELF_GRANT"
-    ]
-    assert self_grants == []

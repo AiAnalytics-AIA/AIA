@@ -73,7 +73,7 @@ def _not_found(code: str, what: str) -> HTTPException:
 def _denied(exc: ScopeDenied) -> HTTPException:
     """A role or study-state refusal on a study the caller demonstrably holds is 403.
 
-    Anything else -- an unknown study, a missing grant -- stays 404, exactly as
+    Anything else -- an unknown study, another organization's -- stays 404, exactly as
     `dependencies.get_study_context` renders it.
     """
     if exc.reason in ("insufficient_role", "study_closed"):

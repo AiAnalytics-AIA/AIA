@@ -46,8 +46,8 @@ against a project but are never authoritative.
 
 **Scope.** Client and Study are hard isolation boundaries. Every client-derived
 object resolves to a client and a study, and scope is injected from authenticated
-context -- never from a request body or a model-generated argument. A resource the
-caller has no grant on returns 404, not 403.
+context -- never from a request body or a model-generated argument. A resource
+outside the caller's organization returns 404, not 403.
 
 **Authentication vs authorization.** A token proves identity only. Roles, client
 access and study access are AIA's own decision, answered from PostgreSQL, so a

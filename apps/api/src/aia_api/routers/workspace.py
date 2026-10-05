@@ -36,7 +36,6 @@ from aia_core.domain.scope import (
     ClientPermission,
     Permission,
     ScopeDenied,
-    ScopeRole,
     SeparationOfDutiesViolation,
     Study,
     StudyKind,
@@ -559,21 +558,13 @@ def start_client(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
 ) -> ClientWorkspace:
-    """Create a client and grant its creator access to it, in one transaction.
+    """Create a client and open its workspace.
 
-    Organization administration is required, as for ``POST /clients``. The grant
-    is the ordinary self-grant ADR 0004 allows and audits as ``CLIENT_SELF_GRANT``:
-    without it the creator could not open the client they just made.
+    Organization administration is required, as for ``POST /clients``. Membership is the
+    access (ADR 0019), so the creator, like every member, can open it at once.
     """
     try:
         client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
-        resolver.grant_client_access(
-            admin,
-            client_id=client.client_id,
-            user_id=principal.user_id,
-            role=ScopeRole.RESEARCHER,
-            reason="created the client from the directory",
-        )
     except ScopeDenied as exc:
         raise _forbidden(
             exc.reason, "Starting a client needs an organization owner or admin."
@@ -587,11 +578,7 @@ def start_client(
 def my_clients(
     principal: PrincipalDep, resolver: ResolverDep, repo: ScopeRepositoryDep
 ) -> list[ClientCard]:
-    """The clients the caller holds a grant in: a client grant, or a study grant within it.
-
-    Organization owners and admins are not silently included (ADR 0004); an
-    administrator who needs a client grants themselves access, and that is audited.
-    """
+    """The organization's clients the caller may open: every one that is not archived (ADR 0019)."""
     cards: list[ClientCard] = []
     for client_id in resolver.accessible_clients(principal):
         scope = _client_scope(principal, resolver, client_id)
@@ -664,7 +651,7 @@ def start_study(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
 ) -> WorkspaceStudy:
-    """Needs a client-level RESEARCHER or LEAD role (``CREATE_STUDY``)."""
+    """Any member of the organization (``CREATE_STUDY``; ADR 0019)."""
     scope = _client_scope(principal, resolver, client_id)
     try:
         study = repo.create_study_in_client(
@@ -688,8 +675,8 @@ def client_overview(
 ) -> ClientOverview:
     """Active work, recent outputs, the state of the client's knowledge, pending approvals.
 
-    Each study's outputs are read under that study's own scope, so a study grant
-    that narrows access narrows what appears here too.
+    Each study's outputs are read under that study's own scope, never under the
+    client's alone.
     """
     scope = _client_scope(principal, resolver, client_id)
     studies = repo.studies_in_client(scope, include_archived=True)

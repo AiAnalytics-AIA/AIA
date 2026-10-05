@@ -64,10 +64,9 @@ def test_an_administrator_starts_a_client_and_every_member_can_open_it(
         c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()
     }
     audit = owner.get(f"{API}/access-audit").json()
-    assert any(
-        a["action"] == "CLIENT_SELF_GRANT" and a["client_id"] == made.json()["client_id"]
-        for a in audit
-    )
+    # Starting a client is audited as its creation; no self-grant is written (ADR 0019).
+    mine = [a["action"] for a in audit if a["client_id"] == made.json()["client_id"]]
+    assert "CLIENT_CREATED" in mine and "CLIENT_SELF_GRANT" not in mine
     # Starting a client is still an administrator's act (ADR 0019 keeps it with the Admin).
     assert lead.post(f"{API}/workspace/clients", json={"name": "Nope"}).status_code == 403
     # The new client is the organization's: every member opens it, no grant needed.
@@ -291,22 +290,15 @@ def test_a_study_proposes_and_consumes_but_never_writes_client_knowledge(
     assert here.status_code == 200 and here.json()["client_id"] == world.client_id()
 
 
-def test_a_study_grant_changes_nothing_a_member_sees_the_whole_client_and_its_knowledge(
-    lead: TestClient, outsider: TestClient, world: Any
+def test_any_member_sees_the_whole_client_and_its_knowledge(
+    outsider: TestClient, world: Any
 ) -> None:
     """ADR 0019: the study-only grantee, who saw one study and no knowledge, is gone."""
     client = f"{API}/clients/{world.client_id()}"
-    before = [s["study_id"] for s in outsider.get(f"{client}/studies").json()]
-    granted = lead.post(
-        f"{API}/studies/{world.study_id()}/grants",
-        json={"user_id": world.users["outsider"], "role": "RESEARCHER"},
-    )
-    assert granted.status_code == 204
     ws = outsider.get(client)
     assert ws.status_code == 200 and ws.json()["your_role"] == "RESEARCHER"
-    after = [s["study_id"] for s in outsider.get(f"{client}/studies").json()]
-    assert sorted(after) == sorted(before)
-    assert len(after) == 2  # the client's two studies, granted or not
+    studies = [s["study_id"] for s in outsider.get(f"{client}/studies").json()]
+    assert len(studies) == 2  # the client's two studies, with nothing granted
     assert outsider.get(f"{client}/knowledge").status_code == 200
     assert outsider.get(f"{client}/overview").json()["knowledge"] is not None
 

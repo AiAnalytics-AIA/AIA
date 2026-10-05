@@ -26,7 +26,6 @@ from sqlalchemy.orm import Session
 from ..domain.scope import (
     WORKER_PERMISSIONS,
     ClientContext,
-    ClientGrant,
     ClientPermission,
     ClientStatus,
     OrganizationContext,
@@ -36,7 +35,6 @@ from ..domain.scope import (
     ScopeGrant,
     ScopeRole,
     StudyContext,
-    StudyGrant,
     StudyStatus,
     client_permissions_for,
     permissions_for,
@@ -45,13 +43,11 @@ from ..domain.scope import (
 from ..domain.workflow import AttemptStatus
 from ..infrastructure.tables import (
     AccessAuditRow,
-    ClientGrantRow,
     ClientRow,
     OrganizationMemberRow,
     OrganizationRow,
     StepAttemptRow,
     StepRunRow,
-    StudyGrantRow,
     StudyRow,
     UserRow,
     WorkflowRunRow,
@@ -466,174 +462,7 @@ class ScopeResolver:
             stmt = stmt.where(StudyRow.client_id == client_id)
         return sorted(set(self._session.scalars(stmt).all()))
 
-    # ------------------------------------------------------------- mutations --
-
-    def grant_client_access(
-        self,
-        admin: OrganizationContext,
-        *,
-        client_id: str,
-        user_id: str,
-        role: ScopeRole,
-        reason: str = "",
-    ) -> ClientGrant:
-        """Grant a user a role on a client. Requires organization administration.
-
-        An administrator granting **themselves** access is legitimate -- someone
-        has to be able to start work on a new client -- but it is recorded with a
-        distinct action so the break-glass case is visible in the audit log rather
-        than indistinguishable from ordinary provisioning.
-        """
-        admin.require_administer()
-
-        client = self._session.scalar(
-            select(ClientRow).where(
-                ClientRow.client_id == client_id,
-                ClientRow.organization_id == admin.organization_id,
-            )
-        )
-        if client is None:
-            raise ScopeDenied("not found", reason="unknown_client")
-
-        existing = self._session.scalar(
-            select(ClientGrantRow).where(
-                ClientGrantRow.client_id == client_id,
-                ClientGrantRow.user_id == user_id,
-            )
-        )
-        previous_access = existing.role if existing is not None else None
-
-        if existing is not None:
-            existing.role = role.value
-            existing.granted_by = admin.actor_id
-        else:
-            self._session.add(
-                ClientGrantRow(
-                    client_id=client_id,
-                    user_id=user_id,
-                    role=role.value,
-                    granted_by=admin.actor_id,
-                )
-            )
-
-        # A self-grant is legitimate -- someone has to be able to start work on a
-        # new client -- but it is the one case where administrative authority and
-        # confidential research access meet in the same person. It gets its own
-        # action and a full before/after record so a reviewer can see exactly what
-        # was taken, by whom, and why.
-        is_self_grant = user_id == admin.actor_id
-        self._session.add(
-            AccessAuditRow(
-                organization_id=admin.organization_id,
-                client_id=client_id,
-                subject_user_id=user_id,
-                actor_id=admin.actor_id,
-                action="CLIENT_SELF_GRANT" if is_self_grant else "CLIENT_GRANT",
-                role=role.value,
-                reason=reason or ("self_grant" if is_self_grant else "granted_by_admin"),
-                request_id=admin.request_id,
-                payload={
-                    "actor_user_id": admin.actor_id,
-                    "client_id": client_id,
-                    "subject_user_id": user_id,
-                    "previous_access": previous_access,
-                    "new_access": role.value,
-                    "self_grant": is_self_grant,
-                    "reason": reason or None,
-                    "request_id": admin.request_id,
-                },
-            )
-        )
-        self._session.flush()
-        return ClientGrant(client_id=client_id, user_id=user_id, role=role)
-
-    def grant_study_access(
-        self,
-        granter: StudyContext,
-        *,
-        user_id: str,
-        role: ScopeRole,
-        reason: str = "",
-    ) -> StudyGrant:
-        """Grant a user a role on the study in scope.
-
-        Requires ``MANAGE_STUDY_ACCESS``, so a study LEAD can staff their own
-        study without organization administration.
-        """
-        granter.require(Permission.MANAGE_STUDY_ACCESS)
-
-        existing = self._session.scalar(
-            select(StudyGrantRow).where(
-                StudyGrantRow.study_id == granter.study_id,
-                StudyGrantRow.user_id == user_id,
-            )
-        )
-        previous_access = existing.role if existing is not None else None
-
-        if existing is not None:
-            existing.role = role.value
-            existing.granted_by = granter.actor_id
-        else:
-            self._session.add(
-                StudyGrantRow(
-                    study_id=granter.study_id,
-                    user_id=user_id,
-                    role=role.value,
-                    granted_by=granter.actor_id,
-                )
-            )
-
-        self._session.add(
-            AccessAuditRow(
-                organization_id=granter.organization_id,
-                client_id=granter.client_id,
-                study_id=granter.study_id,
-                subject_user_id=user_id,
-                actor_id=granter.actor_id,
-                action="STUDY_GRANT",
-                role=role.value,
-                reason=reason or "granted_by_study_lead",
-                request_id=granter.request_id,
-                payload={
-                    "actor_user_id": granter.actor_id,
-                    "client_id": granter.client_id,
-                    "study_id": granter.study_id,
-                    "subject_user_id": user_id,
-                    "previous_access": previous_access,
-                    "new_access": role.value,
-                    "restricts_client_grant": True,
-                    "reason": reason or None,
-                    "request_id": granter.request_id,
-                },
-            )
-        )
-        self._session.flush()
-        return StudyGrant(study_id=granter.study_id, user_id=user_id, role=role)
-
-    def revoke_client_access(
-        self, admin: OrganizationContext, *, client_id: str, user_id: str
-    ) -> None:
-        """Remove a user's client grant."""
-        admin.require_administer()
-        row = self._session.scalar(
-            select(ClientGrantRow).where(
-                ClientGrantRow.client_id == client_id,
-                ClientGrantRow.user_id == user_id,
-            )
-        )
-        if row is not None:
-            self._session.delete(row)
-        self._session.add(
-            AccessAuditRow(
-                organization_id=admin.organization_id,
-                client_id=client_id,
-                subject_user_id=user_id,
-                actor_id=admin.actor_id,
-                action="CLIENT_REVOKE",
-                request_id=admin.request_id,
-            )
-        )
-        self._session.flush()
+    # ----------------------------------------------------------------- audit --
 
     def audit_trail(self, admin: OrganizationContext, *, limit: int = 200) -> list[dict[str, Any]]:
         """Return recent access audit entries for the organization."""
