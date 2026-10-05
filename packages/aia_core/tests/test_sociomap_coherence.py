@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from aia_core.domain.sociomap.coherence import alpha_cut, coherences, merge_classes
+from aia_core.domain.sociomap.coherence import (
+    COHERENCE_ALGORITHM,
+    alpha_cut,
+    coherences,
+    merge_classes,
+)
 from aia_core.domain.sociomap.fuzzy import FuzzyMatrix, FuzzyMatrixError, FuzzySource
 
 HELP = FuzzyMatrix.from_square(
@@ -31,6 +36,32 @@ def test_the_help_example_is_reproduced_exactly() -> None:
     assert tree.written() == "(C, (D, (A, B)0.5)0.4)0.1"
     assert tree.level == 0.1
     assert tree.members == ("C", "D", "A", "B")
+
+
+def test_the_tree_carries_its_matrix_algorithm_and_the_rules_that_shaped_it() -> None:
+    tree = coherences(HELP)
+    assert tree.algorithm == COHERENCE_ALGORITHM
+    assert tree.matrix_fingerprint == HELP.fingerprint()
+    assert tree.element_ids == HELP.element_ids
+    # The help's matrix ties (A, B) with (B, D) at 0.5; the inferred rule broke it.
+    assert tree.rules == ("QED-F1", "SOMECS-C1", "SOMECS-C1a")
+    [tie] = tree.ties
+    assert tie.level == 0.5
+    assert tie.candidates == ((("A",), ("B",)), (("B",), ("D",)))
+    assert tie.chosen == (("A",), ("B",))
+    assert tie.candidates_overlap  # B in both: another order puts B with D instead
+    assert tree.flattened_levels == ()
+
+
+def test_reordering_a_tied_matrix_changes_membership_and_both_trees_say_a_tie_decided() -> None:
+    base, reordered = coherences(HELP), coherences(HELP.permuted([1, 3, 0, 2]))
+    assert set(map(frozenset, alpha_cut(base, 0.5))) != set(
+        map(frozenset, alpha_cut(reordered, 0.5))
+    )
+    for tree in (base, reordered):
+        assert "SOMECS-C1a" in tree.rules and tree.ties[0].candidates_overlap
+    assert reordered.ties[0].chosen == (("B",), ("D",))
+    assert base.matrix_fingerprint != reordered.matrix_fingerprint  # a different input order
 
 
 @pytest.mark.parametrize(
@@ -75,7 +106,10 @@ def test_a_class_at_one_level_is_written_as_one_group() -> None:
         FuzzySource.ENTERED,
         ("QED-F1",),
     )
-    assert coherences(triangle).written() == "(D, (A, B, C)0.5)0.1"
+    tree = coherences(triangle)
+    assert tree.written() == "(D, (A, B, C)0.5)0.1"
+    assert tree.flattened_levels == (0.5,)
+    assert tree.rules == ("QED-F1", "SOMECS-C1", "SOMECS-C1a", "SOMECS-C1b")
 
 
 def test_two_elements_and_the_order_of_equal_groups() -> None:
@@ -95,6 +129,21 @@ def test_two_elements_and_the_order_of_equal_groups() -> None:
         ("QED-F1",),
     )
     assert coherences(two_pairs).written() == "((A, B)0.9, (C, D)0.8)0.1"
+    disjoint_tie = FuzzyMatrix.from_square(
+        "ABCD",
+        [
+            [None, 0.9, 0.1, 0.1],
+            [0.9, None, 0.1, 0.1],
+            [0.1, 0.1, None, 0.9],
+            [0.1, 0.1, 0.9, None],
+        ],
+        FuzzySource.ENTERED,
+        ("QED-F1",),
+    )
+    tree = coherences(disjoint_tie)
+    assert tree.written() == "((A, B)0.9, (C, D)0.9)0.1"
+    [tie] = tree.ties
+    assert not tie.candidates_overlap  # (A, B) and (C, D): either order, the same classes
 
 
 def test_merging_needs_a_partition_of_the_elements() -> None:
@@ -122,6 +171,7 @@ def test_without_ties_the_grouping_ignores_element_order() -> None:
         ("QED-F1",),
     )
     base = coherences(no_ties)
+    assert base.ties == () and "SOMECS-C1a" not in base.rules
     for order in ([4, 3, 2, 1, 0], [2, 0, 4, 1, 3], [1, 4, 0, 3, 2]):
         shuffled = coherences(no_ties.permuted(order))
         for alpha in (0.9, 0.8, 0.6, 0.5, 0.3, 0.1):

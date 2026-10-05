@@ -17,7 +17,12 @@ from aia_core.domain.sociomap.fuzzy import (
     rts_scale_answers,
     somecs_transform_storm,
 )
-from aia_core.domain.sociomap.heights import column_averages, object_average_answers, row_averages
+from aia_core.domain.sociomap.heights import (
+    HeightKind,
+    column_averages,
+    object_average_answers,
+    row_averages,
+)
 from aia_core.domain.sociomap.models import RatingsMatrix
 
 TEAM = ("Anna", "Tomáš", "Karel", "Marie", "Bára", "David", "Honza")
@@ -38,8 +43,9 @@ def on_scale(h: float) -> float:
 
 def test_certification_table_1_averages() -> None:
     m = rts_people_matrix(TEAM, TAB_1, (1, 5))
-    received = [on_scale(h) for h in column_averages(m)]
-    given = [on_scale(h) for h in row_averages(m)]
+    received = [on_scale(h) for h in column_averages(m).values]
+    given = [on_scale(h) for h in row_averages(m).values]
+    assert list(column_averages(m).on_scale(1, 5)) == pytest.approx(received)
     assert received[:3] == pytest.approx([16 / 6, 15 / 6, 16 / 6])  # printed 2.66, 2.5, 2.66
     assert [int(x * 100) / 100 for x in received[:3]] == [2.66, 2.5, 2.66]  # the print truncates
     assert given[:3] == pytest.approx([20 / 6, 17 / 6, 2.0])  # printed 3.33, 2.83, 2
@@ -51,7 +57,7 @@ def test_object_average_answers_rts_only_complete() -> None:
         object_ids=("X", "Y", "Z"),
         values=((1, 10, 4), (4, 10, 7), (7, 1, 10)),
     )
-    assert object_average_answers(rts_scale_answers(answers, (1, 10))) == pytest.approx(
+    assert object_average_answers(rts_scale_answers(answers, (1, 10))).values == pytest.approx(
         (1 / 3, 2 / 3, 2 / 3)
     )
     gap = answers.model_copy(update={"values": ((1, 10, 4), (4, None, 7), (7, 1, 10))})
@@ -62,3 +68,24 @@ def test_object_average_answers_rts_only_complete() -> None:
     )
     with pytest.raises(MethodologyUndetermined, match="M1"):
         object_average_answers(somecs)
+
+
+def test_heights_carry_their_kind_rules_and_input() -> None:
+    m = rts_people_matrix(TEAM, TAB_1, (1, 5))
+    received, given = column_averages(m), row_averages(m)
+    assert (received.kind, given.kind) == (HeightKind.COLUMN_AVERAGE, HeightKind.ROW_AVERAGE)
+    assert received.rules == ("RTS-P1", "RTS-N1", "QED-W1")
+    assert given.rules == ("RTS-P1", "RTS-N1", "QED-W2")
+    assert received.element_ids == TEAM and received.input_fingerprint == m.fingerprint()
+    answers = RatingsMatrix(
+        respondent_ids=("p0", "p1", "p2"),
+        object_ids=("X", "Y", "Z"),
+        values=((1, 10, 4), (4, 10, 7), (7, 1, 10)),
+    )
+    objects = object_average_answers(rts_scale_answers(answers, (1, 10)))
+    assert objects.kind is HeightKind.OBJECT_AVERAGE_ANSWER
+    assert objects.rules == ("RTS-N1", "RTS-W3") and objects.element_ids == ("X", "Y", "Z")
+    other = object_average_answers(
+        rts_scale_answers(answers.model_copy(update={"values": ((2, 10, 4),) * 3}), (1, 10))
+    )
+    assert other.input_fingerprint != objects.input_fingerprint

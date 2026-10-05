@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import ast
 import importlib
+import inspect
 import json
 from pathlib import Path
 
 import pytest
 
-from aia_core.domain.sociomap.coherence import merge_classes
+from aia_core.domain.sociomap import coherence, fuzzy, heights, hmodel
+from aia_core.domain.sociomap.coherence import coherences, merge_classes
 from aia_core.domain.sociomap.fuzzy import (
     FuzzyMatrix,
     FuzzySource,
@@ -30,6 +32,7 @@ from aia_core.domain.sociomap.fuzzy import (
     somecs_transform_storm,
     weighted_mean_fuzzy,
 )
+from aia_core.domain.sociomap.heights import column_averages, object_average_answers, row_averages
 from aia_core.domain.sociomap.hmodel import hmodel_accuracy
 from aia_core.domain.sociomap.models import RatingsMatrix
 
@@ -93,7 +96,8 @@ def test_validating_tests_exist() -> None:
             assert name in names, f"{rule['id']}: {validation['test']} does not exist"
 
 
-def _outputs() -> list[tuple[str, ...]]:
+def _outputs() -> dict[str, tuple[str, ...]]:
+    """Every public function that produces a result, with the rule ids its result records."""
     answers = RatingsMatrix(
         respondent_ids=("p0", "p1", "p2"),
         object_ids=("X", "Y", "Z"),
@@ -103,26 +107,54 @@ def _outputs() -> list[tuple[str, ...]]:
     people = rts_people_matrix("ABC", [[0, 3, 1], [2, 0, 3], [1, 2, 0]], (1, 3))
     entered = FuzzyMatrix.from_square("AB", [[0, 0.3], [0.6, 0]], FuzzySource.ENTERED, ("QED-F1",))
     correlations = rts_object_correlations(scaled)
-    return [
-        people.rules,
-        scaled.rules,
-        correlations.rules,
-        rts_fuzzy_from_correlations(correlations).rules,
-        somecs_transform_storm(
+    return {
+        "rts_people_matrix": people.rules,
+        "rts_scale_answers": scaled.rules,
+        "rts_object_correlations": correlations.rules,
+        "rts_fuzzy_from_correlations": rts_fuzzy_from_correlations(correlations).rules,
+        "somecs_transform_storm": somecs_transform_storm(
             answers, StormTransform.SOMECS_WITHIN_ROW, StormMissingPolicy.KEEP_EMPTY
         ).rules,
-        somecs_transform_storm(
+        "somecs_transform_storm (database, zero fill)": somecs_transform_storm(
             answers, StormTransform.SOMECS_WITHIN_DATABASE, StormMissingPolicy.SOMECS_ZERO
         ).rules,
-        weighted_mean_fuzzy([entered, entered], [1, 1]).mean.rules,
-        legacy_fuzzy_from_relation_1_10("AB", [[0, 2], [3, 0]]).rules,
-        merge_classes(people, (("A", "B"), ("C",))).rules,
-        hmodel_accuracy(people, [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]).rules,
-    ]
+        "weighted_mean_fuzzy": weighted_mean_fuzzy([entered, entered], [1, 1]).mean.rules,
+        "legacy_fuzzy_from_relation_1_10": legacy_fuzzy_from_relation_1_10(
+            "AB", [[0, 2], [3, 0]]
+        ).rules,
+        "coherences": coherences(people).rules,
+        "merge_classes": merge_classes(people, (("A", "B"), ("C",))).rules,
+        "column_averages": column_averages(people).rules,
+        "row_averages": row_averages(people).rules,
+        "object_average_answers": object_average_answers(scaled).rules,
+        "hmodel_accuracy": hmodel_accuracy(people, [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]).rules,
+    }
 
 
-@pytest.mark.parametrize("rules", _outputs())
-def test_every_rule_id_on_an_output_is_in_the_register(rules: tuple[str, ...]) -> None:
-    assert rules, "an output names the rules that made it"
+# Public functions whose result is not a methodological output, each with the reason.
+NOT_OUTPUTS = {
+    "alpha_cut": "a view of a CoherenceTree, which carries the provenance",
+    "spearman": "arithmetic used by hmodel_accuracy, which records the rules",
+    "average_ranks": "arithmetic used by spearman",
+}
+
+
+def test_every_public_result_is_covered_by_the_provenance_check() -> None:
+    public = {
+        name
+        for module in (fuzzy, coherence, heights, hmodel)
+        for name in module.__all__
+        if inspect.isfunction(getattr(module, name))
+    }
+    covered = {name.split(" ")[0] for name in _outputs()}
+    assert public - set(NOT_OUTPUTS) == covered
+    assert set(NOT_OUTPUTS) <= public, "an exemption names a function that no longer exists"
+
+
+@pytest.mark.parametrize(("producer", "rules"), list(_outputs().items()))
+def test_every_rule_id_on_an_output_is_in_the_register(
+    producer: str, rules: tuple[str, ...]
+) -> None:
+    assert rules, f"{producer}: an output names the rules that made it"
     unknown = [r for r in rules if r not in RULES]
     assert not unknown, f"not in the register: {unknown}"

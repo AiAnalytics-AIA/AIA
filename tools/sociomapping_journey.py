@@ -26,7 +26,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[1]
 STUDY = REPO / "packages/aia_core/tests/fixtures/sociomapping_reference/study.json"
 
-from aia_core.domain.sociomap.coherence import coherences  # noqa: E402
+from aia_core.domain.sociomap.coherence import CoherenceTree, coherences  # noqa: E402
 from aia_core.domain.sociomap.fuzzy import (  # noqa: E402
     FuzzyMatrix,
     rts_fuzzy_from_correlations,
@@ -35,6 +35,7 @@ from aia_core.domain.sociomap.fuzzy import (  # noqa: E402
     rts_scale_answers,
 )
 from aia_core.domain.sociomap.heights import (  # noqa: E402
+    HeightVector,
     column_averages,
     object_average_answers,
     row_averages,
@@ -89,6 +90,34 @@ def _matrix(m: FuzzyMatrix) -> dict[str, Any]:
     }
 
 
+def _coherences(tree: CoherenceTree) -> dict[str, Any]:
+    return {
+        "written": tree.written(),
+        "algorithm": tree.algorithm,
+        "matrix_fingerprint": tree.matrix_fingerprint,
+        "rules": list(tree.rules),
+        "ties": [
+            {
+                "level": t.level,
+                "candidates": [[list(a), list(b)] for a, b in t.candidates],
+                "chosen": [list(t.chosen[0]), list(t.chosen[1])],
+                "candidates_overlap": t.candidates_overlap,
+            }
+            for t in tree.ties
+        ],
+        "flattened_levels": list(tree.flattened_levels),
+    }
+
+
+def _heights(h: HeightVector, low: float, high: float) -> dict[str, Any]:
+    return {
+        "kind": h.kind.value,
+        "on_scale": [round(v, 6) for v in h.on_scale(low, high)],
+        "rules": list(h.rules),
+        "input_fingerprint": h.input_fingerprint,
+    }
+
+
 def run(study: dict[str, Any]) -> dict[str, Any]:
     """Every intermediate value of the journey, stage by stage."""
     people = study["people"]
@@ -99,15 +128,11 @@ def run(study: dict[str, Any]) -> dict[str, Any]:
         tree = coherences(m)
         out["people"][key] = {
             "fuzzy_matrix": _matrix(m),
-            "heights_on_scale": {
-                "received (column average, QED-W1)": [
-                    round(low + (high - low) * h, 6) for h in column_averages(m)
-                ],
-                "given (row average, QED-W2)": [
-                    round(low + (high - low) * h, 6) for h in row_averages(m)
-                ],
+            "heights": {
+                "received": _heights(column_averages(m), low, high),
+                "given": _heights(row_averages(m), low, high),
             },
-            "coherences": tree.written(),
+            "coherences": _coherences(tree),
         }
     objects = study["objects"]
     answers = RatingsMatrix(
@@ -115,10 +140,10 @@ def run(study: dict[str, Any]) -> dict[str, Any]:
         object_ids=tuple(objects["ids"]),
         values=tuple(tuple(row) for row in objects["ratings"]),
     )
-    scaled = rts_scale_answers(answers, tuple(objects["scale"]))  # type: ignore[arg-type]
+    o_low, o_high = objects["scale"]
+    scaled = rts_scale_answers(answers, (o_low, o_high))
     signed = rts_object_correlations(scaled)
     relation = rts_fuzzy_from_correlations(signed)
-    o_low, o_high = objects["scale"]
     out["objects"] = {
         "scaled_answers": [[round(v or 0.0, 6) for v in row] for row in scaled.values],
         "signed_correlations": [
@@ -127,10 +152,8 @@ def run(study: dict[str, Any]) -> dict[str, Any]:
         "support": signed.support,
         "negative_pairs": [list(p) for p in signed.negative_pairs()],
         "relation_matrix": _matrix(relation),
-        "average_answer_on_scale (RTS-W3)": [
-            round(o_low + (o_high - o_low) * h, 6) for h in object_average_answers(scaled)
-        ],
-        "coherences": coherences(relation).written(),
+        "average_answer": _heights(object_average_answers(scaled), o_low, o_high),
+        "coherences": _coherences(coherences(relation)),
     }
     out["pending"] = PENDING
     return out
@@ -148,12 +171,12 @@ def main(argv: list[str] | None = None) -> int:
     for key, part in result["people"].items():
         print(
             f"people/{key}: fuzzy {len(part['fuzzy_matrix']['elements'])}x"
-            f"{len(part['fuzzy_matrix']['elements'])}, coherences {part['coherences']}"
+            f"{len(part['fuzzy_matrix']['elements'])}, coherences {part['coherences']['written']}"
         )
     o = result["objects"]
     print(
         f"objects: support {o['support']}, negative pairs {len(o['negative_pairs'])}, "
-        f"coherences {o['coherences']}"
+        f"coherences {o['coherences']['written']}"
     )
     for p in result["pending"]:
         print(f"pending: {p['stage']} -- blocked by {', '.join(p['blocked_by'])}")

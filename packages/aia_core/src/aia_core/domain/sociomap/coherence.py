@@ -27,6 +27,13 @@ equals the one whose first element comes first in the matrix. Two nested groups 
 same level are one class at that cut, so they are written as one group (SOMECS-C1b,
 proposed: the help has no such case).
 
+Every result is a :class:`CoherenceTree`: the tree with the algorithm's name, the source
+matrix's fingerprint and the rule ids that actually shaped it. SOMECS-C1a appears only when
+a tie was decided, and each decision is kept (:class:`TieDecision`) with the pairs that
+were level and the one taken; SOMECS-C1b appears only when two groups at one level were
+written as one. A reader can therefore tell a grouping fixed by the data from one an
+inferred or proposed rule decided.
+
 Not here: the "HM correction" that trades H-Model accuracy for keeping coherent groups
 close (§ HM Korekce); it belongs to the H-Model (plan chunk 6b).
 """
@@ -38,8 +45,13 @@ from dataclasses import dataclass
 
 from .fuzzy import FuzzyMatrix, FuzzyMatrixError, FuzzySource
 
+COHERENCE_ALGORITHM = "aia_coherence_complete_linkage_v1"
+
 __all__ = [
+    "COHERENCE_ALGORITHM",
     "Coherence",
+    "CoherenceTree",
+    "TieDecision",
     "alpha_cut",
     "coherences",
     "merge_classes",
@@ -76,7 +88,48 @@ class Coherence:
         return "(" + ", ".join(child.written() for child in self.children) + f"){self.level:g}"
 
 
-def coherences(matrix: FuzzyMatrix) -> Coherence:
+@dataclass(frozen=True)
+class TieDecision:
+    """One merge where more than one pair of groups shared the highest level (SOMECS-C1a).
+
+    ``candidates`` are the tied pairs, each written as the members of its two groups;
+    ``chosen`` is the pair merged: the first in element order. When candidates share a
+    group (``candidates_overlap``), another order could have put different elements together
+    at this level; when they do not, every order gives the same classes.
+    """
+
+    level: float
+    candidates: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...]
+    chosen: tuple[tuple[str, ...], tuple[str, ...]]
+    candidates_overlap: bool
+
+
+@dataclass(frozen=True)
+class CoherenceTree:
+    """The coherence tree of one fuzzy matrix, with what made it."""
+
+    root: Coherence
+    element_ids: tuple[str, ...]
+    algorithm: str
+    matrix_fingerprint: str
+    matrix_source: FuzzySource
+    rules: tuple[str, ...]
+    ties: tuple[TieDecision, ...]
+    flattened_levels: tuple[float, ...]  # levels where groups were written as one (SOMECS-C1b)
+
+    @property
+    def members(self) -> tuple[str, ...]:
+        return self.root.members
+
+    @property
+    def level(self) -> float | None:
+        return self.root.level
+
+    def written(self) -> str:
+        return self.root.written()
+
+
+def coherences(matrix: FuzzyMatrix) -> CoherenceTree:
     """The full coherence tree of a fuzzy matrix (complete linkage on mutual relations)."""
     ids = matrix.element_ids
     mutual = [
@@ -90,23 +143,46 @@ def coherences(matrix: FuzzyMatrix) -> Coherence:
         (Coherence(element=e, children=(), level=None, first_index=i, size=1), (i,))
         for i, e in enumerate(ids)
     ]
+    ties: list[TieDecision] = []
+    flattened: list[float] = []
     while len(groups) > 1:
         best: tuple[int, int] | None = None
         best_level = 0.0
+        level_of: dict[tuple[int, int], float] = {}
         for a in range(len(groups)):
             for b in range(a + 1, len(groups)):
                 level = min(_cell(mutual, i, j) for i in groups[a][1] for j in groups[b][1])
+                level_of[(a, b)] = level
                 if best is None or level > best_level:
                     best, best_level = (a, b), level
         assert best is not None
+        tied = [pair for pair, level in level_of.items() if level == best_level]
+        if len(tied) > 1:
+            ties.append(_tie(groups, tied, best, best_level))
         a, b = best
         node = _join(groups[a][0], groups[b][0], best_level)
+        if best_level in (groups[a][0].level, groups[b][0].level):
+            flattened.append(best_level)
         merged = (node, groups[a][1] + groups[b][1])
         groups = [*groups[:a], merged, *groups[a + 1 : b], *groups[b + 1 :]]
-    return groups[0][0]
+    rules = [*matrix.rules, "SOMECS-C1"]
+    if ties:
+        rules.append("SOMECS-C1a")
+    if flattened:
+        rules.append("SOMECS-C1b")
+    return CoherenceTree(
+        root=groups[0][0],
+        element_ids=ids,
+        algorithm=COHERENCE_ALGORITHM,
+        matrix_fingerprint=matrix.fingerprint(),
+        matrix_source=matrix.source,
+        rules=tuple(rules),
+        ties=tuple(ties),
+        flattened_levels=tuple(flattened),
+    )
 
 
-def alpha_cut(tree: Coherence, alpha: float) -> tuple[tuple[str, ...], ...]:
+def alpha_cut(tree: CoherenceTree, alpha: float) -> tuple[tuple[str, ...], ...]:
     """The classes at one alpha-cut: the largest groups whose level is at least ``alpha``.
 
     An element in no such group is a class of its own. Classes are ordered by their
@@ -121,8 +197,8 @@ def alpha_cut(tree: Coherence, alpha: float) -> tuple[tuple[str, ...], ...]:
             for child in node.children:
                 visit(child)
 
-    visit(tree)
-    order = _element_order(tree)
+    visit(tree.root)
+    order = _element_order(tree.root)
     return tuple(
         tuple(sorted(node.members, key=order.__getitem__))
         for node in sorted(found, key=lambda n: n.first_index)
@@ -159,6 +235,24 @@ def _cell(mutual: list[list[float | None]], i: int, j: int) -> float:
     value = mutual[i][j]
     assert value is not None  # i != j: members of two distinct groups
     return value
+
+
+def _tie(
+    groups: list[tuple[Coherence, tuple[int, ...]]],
+    tied: list[tuple[int, int]],
+    chosen: tuple[int, int],
+    level: float,
+) -> TieDecision:
+    def pair(p: tuple[int, int]) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        return groups[p[0]][0].members, groups[p[1]][0].members
+
+    used = [g for p in tied for g in p]
+    return TieDecision(
+        level=level,
+        candidates=tuple(pair(p) for p in tied),
+        chosen=pair(chosen),
+        candidates_overlap=len(used) != len(set(used)),
+    )
 
 
 def _join(a: Coherence, b: Coherence, level: float) -> Coherence:

@@ -197,9 +197,14 @@
      "kind": "OWN_TEST",
      "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_scaling_columns_keeps_r_but_row_normalisation_changes_it",
      "what": "order of normalisation and correlation"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_every_constant_column_is_undefined_on_every_scale_and_size",
+     "what": "a column of equal answers has no correlation on every scale 1-2..1-11 at 2..15 respondents; equality is decided on the answers, not on a rounded mean"
     }
    ],
-   "uncertainty": "'Correlation' is not named; Pearson reproduces the example to two decimals, Spearman does not (0.95, 0.32, 0.00; tested). Behaviour on incomplete answers is not documented because RTS requires every answer.",
+   "uncertainty": "'Correlation' is not named; Pearson reproduces the example to two decimals, Spearman does not (0.95, 0.32, 0.00; tested). Behaviour on incomplete answers is not documented because RTS requires every answer. A constant column has no correlation; that is arithmetic, not a documented RTS rule.",
    "resolve_by": null,
    "question": "M5"
   },
@@ -466,9 +471,14 @@
      "kind": "OWN_TEST",
      "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_without_ties_the_grouping_ignores_element_order",
      "what": "order matters only through ties"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_reordering_a_tied_matrix_changes_membership_and_both_trees_say_a_tie_decided",
+     "what": "a tie can change membership; every tree records each tie it decided and lists SOMECS-C1a only then"
     }
    ],
-   "uncertainty": "One tie in one example; other rules (e.g. largest second relation) could also choose (A,B).",
+   "uncertainty": "One tie in one example; other rules (e.g. largest second relation) could also choose (A,B). Because a tie can change which elements group together, each output records the ties this rule decided (CoherenceTree.ties).",
    "resolve_by": "As SOMECS-C1.",
    "question": null
   },
@@ -747,8 +757,8 @@
    "applies_to": "H-Model fitting",
    "implementation": null,
    "validation": [],
-   "uncertainty": "SOMECS's fitting objective and optimiser are not documented. What is known is how fit is reported (SOMECS-H3) and read (QED-H2), not how a layout is searched for. Under AIA's evaluator SOMECS's fig. 22 layout scores 0.786 (0.783-0.793 across the screenshot's rounding), a provisional comparison score; classical MDS (0.661) and the best of 20 nonmetric MDS runs (0.743) are baselines of the configurations tested (tools/somecs_estimation_experiment.py). The gap is consistent with an objective closer to rank agreement, and equally with more starts, another optimiser, manual adjustment or a different evaluator; one layout of one matrix cannot identify an algorithm. AIA's h_model_candidate_v1 is an experimental AIA candidate, not SOMECS's method. See docs/architecture/sociomapping-hmodel.md \u00a7 4.",
-   "resolve_by": "SOMECS's objective: exports E1/E5 or the method owner (plan M2) can narrow it; none is expected to identify it uniquely. AIA's candidate: build and evaluate per docs/architecture/sociomapping-hmodel.md \u00a7 4 -- provisional comparison on fig. 22 with its rounding band, MDS baselines, perfect fit only on planted data constructed to admit it, many independent matrices (asymmetric and tied included) fixed in advance.",
+   "uncertainty": "SOMECS's fitting objective and optimiser are not documented. What is known is how fit is reported (SOMECS-H3) and read (QED-H2), not how a layout is searched for. Under AIA's evaluator SOMECS's fig. 22 layout scores 0.786 (0.783-0.793 across the screenshot's rounding), a provisional comparison score; classical MDS (0.661) and the best of 20 nonmetric MDS runs (0.743) are baselines of the configurations tested (tools/somecs_estimation_experiment.py). The gap is consistent with an objective closer to rank agreement, and equally with more starts, another optimiser, manual adjustment or a different evaluator; one layout of one matrix cannot identify an algorithm. AIA's h_model_candidate_v1 is an experimental AIA candidate, not SOMECS's method. See docs/architecture/sociomapping-hmodel.md § 4.",
+   "resolve_by": "SOMECS's objective: exports E1/E5 or the method owner (plan M2) can narrow it; none is expected to identify it uniquely. AIA's candidate: build and evaluate per docs/architecture/sociomapping-hmodel.md § 4 -- provisional comparison on fig. 22 with its rounding band, MDS baselines, perfect fit only on planted data constructed to admit it, many independent matrices (asymmetric and tied included) fixed in advance.",
    "question": "M2"
   },
   {

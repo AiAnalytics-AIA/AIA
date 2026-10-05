@@ -36,10 +36,18 @@ def test_the_reference_study_runs_through_every_built_stage() -> None:
     assert current["fuzzy_matrix"]["rules"] == ["RTS-P1", "RTS-N1"]
     assert not current["fuzzy_matrix"]["symmetric"]
     # Hand arithmetic from the raw 1-5 ratings: Alena received 5, 3, 2, 1, 3 -> 2.8.
-    assert current["heights_on_scale"]["received (column average, QED-W1)"][0] == pytest.approx(2.8)
+    received, given = current["heights"]["received"], current["heights"]["given"]
+    assert received["on_scale"][0] == pytest.approx(2.8)
     # Filip gave everyone 3 -> 3.0.
-    assert current["heights_on_scale"]["given (row average, QED-W2)"][5] == pytest.approx(3.0)
-    assert current["coherences"] == "((Cyril, (Alena, Boris)1)0.5, (Filip, (Dana, Emil)1)0.5)0"
+    assert given["on_scale"][5] == pytest.approx(3.0)
+    assert received["rules"] == ["RTS-P1", "RTS-N1", "QED-W1"]
+    assert received["input_fingerprint"] == current["fuzzy_matrix"]["fingerprint"]
+    tree = current["coherences"]
+    assert tree["written"] == "((Cyril, (Alena, Boris)1)0.5, (Filip, (Dana, Emil)1)0.5)0"
+    assert tree["matrix_fingerprint"] == current["fuzzy_matrix"]["fingerprint"]
+    assert tree["algorithm"] == "aia_coherence_complete_linkage_v1"
+    # The team's ratings tie: the inferred tie rule decided merges, and the output says so.
+    assert "SOMECS-C1a" in tree["rules"] and tree["ties"]
 
     objects = result["objects"]
     assert objects["support"] == 12 and objects["negative_pairs"] == []
@@ -49,10 +57,14 @@ def test_the_reference_study_runs_through_every_built_stage() -> None:
         _pearson(altair, borealis), abs=1e-6
     )
     assert objects["relation_matrix"]["rules"] == ["RTS-N1", "RTS-O1", "RTS-O2"]
-    assert objects["average_answer_on_scale (RTS-W3)"][0] == pytest.approx(sum(altair) / 12)
-    assert objects["coherences"] == (
+    assert objects["average_answer"]["on_scale"][0] == pytest.approx(sum(altair) / 12)
+    assert objects["average_answer"]["rules"] == ["RTS-N1", "RTS-W3"]
+    assert objects["coherences"]["written"] == (
         "((Cirrus, Delta)0.839652, (Borealis, (Altair, Echo)0.933413)0.889569)0.749596"
     )
+    # Correlations are continuous: no tie, no flattening, so neither rule is claimed.
+    assert objects["coherences"]["rules"] == ["RTS-N1", "RTS-O1", "RTS-O2", "SOMECS-C1"]
+    assert objects["coherences"]["ties"] == []
 
 
 def test_unbuilt_stages_say_what_blocks_them() -> None:
