@@ -37,6 +37,7 @@ __all__ = [
     "parse_duration_seconds",
     "plausible_instant",
     "plausible_wait",
+    "refuse_thinking",
     "render_transcript",
     "resolve_secret",
     "token_count",
@@ -260,6 +261,19 @@ class StaticCredentials:
 
     def secret(self, reference: str) -> str:
         return self.secrets[reference]
+
+
+def refuse_thinking(adapter: str) -> ProviderError:
+    """An adapter that does not send extended thinking refuses a request asking for it.
+
+    Unsent, and permanent: dropping the setting would answer a different request
+    than the one priced, fingerprinted and recorded.
+    """
+    return ProviderError(
+        f"the {adapter} adapter does not send extended thinking",
+        kind=ProviderErrorKind.OTHER,
+        delivery=Delivery.NOT_SENT,
+    )
 
 
 def resolve_secret(credentials: CredentialSource, reference: str) -> str:

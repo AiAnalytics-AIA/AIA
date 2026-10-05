@@ -9,6 +9,7 @@ from typing import Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
+from aia_core.domain.ai_contracts import check_thinking_budget
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
@@ -52,6 +53,13 @@ class DeepResearchConfig:
     fictional_client_ids: frozenset[str]
     provider: Provider = Provider.AWS_BEDROCK
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Extended thinking for every agent request, within ``max_output_tokens`` (so the
+    #: reservation, sized on that limit, covers it); ``None`` sends no thinking.
+    thinking_budget_tokens: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.thinking_budget_tokens is not None:
+            check_thinking_budget(self.thinking_budget_tokens, self.max_output_tokens)
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,11 +79,15 @@ class DeepResearchRuntime:
             policy_version=self.config.policy_version,
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
             web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
+            thinking_budget_tokens=self.config.thinking_budget_tokens,
         )
 
     def versions(self) -> dict[str, str]:
-        """Every rule and prompt version a run's result depends on, recorded on the plan."""
-        return {
+        """Every rule and prompt version a run's result depends on, recorded on the plan.
+
+        The thinking budget only when set, so a plan recorded without it still matches.
+        """
+        versions = {
             "harness": HARNESS_VERSION,
             "prompt": PROMPT_VERSION,
             "grounding": GROUNDING_VERSION,
@@ -85,6 +97,9 @@ class DeepResearchRuntime:
             "policy": self.config.policy_version,
             "preset_status": PRESET_STATUS,
         }
+        if self.config.thinking_budget_tokens is not None:
+            versions["thinking_budget_tokens"] = str(self.config.thinking_budget_tokens)
+        return versions
 
 
 # --------------------------------------------------------------------------- #
