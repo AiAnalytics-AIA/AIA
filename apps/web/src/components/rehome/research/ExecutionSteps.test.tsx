@@ -155,6 +155,14 @@ describe("Run", () => {
     expect(screen.getByText("n = 450.")).toBeTruthy();
     expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();
     expect(screen.getByText(/Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie/)).toBeTruthy();
+    // Studio v3: "Co spustíte" names each step with a way back to it, and a check that does
+    // not pass links to the step that fixes it (the audience warning, to Audience).
+    expect(screen.getByText("Co spustíte")).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: "Upravit" }).map((a) => a.getAttribute("href"))).toEqual(
+      (["brief", "plan", "questionnaire", "audience", "persona"] as const).map((s) => stagePath(s)),
+    );
+    expect(screen.getByRole("link", { name: "Opravit →" }).getAttribute("href")).toBe(stagePath("audience"));
+    expect(screen.getByRole("button", { name: t("research.exec.start") }).getAttribute("data-ai-action")).toBe("true");
 
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
@@ -345,13 +353,18 @@ describe("Run: what a run can cost (5b.2)", () => {
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const form = await screen.findByRole("form", { name: t("research.exec.cost.limit") });
+    // Studio v3: the limit is a switch with an amount, saved on Enter (or on leaving the field).
+    const toggle = within(form).getByRole("switch", { name: t("research.exec.cost.switch") });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    fireEvent.click(toggle);
     fireEvent.change(within(form).getByLabelText(t("research.exec.cost.limitAmount")), { target: { value: "150" } });
-    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.cost.save") }));
+    fireEvent.submit(form);
     await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(1));
     expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[0].body).toEqual({ limit_usd: 150 });
     // The checks are read again, so the page now says Start will ask.
     expect(await screen.findByText(t("research.exec.cost.willAsk"))).toBeTruthy();
-    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.cost.clear") }));
+    // Switching it off clears the limit.
+    fireEvent.click(within(form).getByRole("switch", { name: t("research.exec.cost.switch") }));
     await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(2));
     expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[1].body).toEqual({ limit_usd: null });
   });

@@ -7,6 +7,7 @@
 // produced. Nothing here decides a number; everything here says where a number
 // came from -- and when it came from the fictional dataset, that it is fiction.
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 
@@ -44,7 +45,11 @@ import {
   type ResultTable,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { projectVariants, selectedVariant } from "@/research/plan";
+import { withApproval } from "@/research/persona";
+import type { StepKey } from "@/research/steps";
+import { ActionDock, Switch } from "../step";
+import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
 
@@ -69,7 +74,7 @@ function Card({ title, children, tone, region }: { title?: string; children: Rea
         ? "border-status-you-ink/40 bg-status-you-wash"
         : "border-border bg-surface-raised";
   return (
-    <section aria-label={region ? title : undefined} className={`rounded-md border p-5 ${frame}`}>
+    <section aria-label={region ? title : undefined} className={`rounded-card border p-5 ${frame}`}>
       {title ? <h2 className="mb-2 text-base font-semibold">{title}</h2> : null}
       {children}
     </section>
@@ -131,6 +136,12 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   const typed = amount.trim() === "" ? Number.NaN : Number(amount);
   const remaining = num(study?.remaining_usd);
   const budget = num(study?.budget_usd);
+  // The switch is on while a limit is stored, or while the person is typing one.
+  const [asking, setAsking] = useState(limit !== null);
+  useEffect(() => setAsking(limit !== null), [limit]);
+  const commit = () => {
+    if (Number.isFinite(typed) && typed >= 0 && typed !== limit) void save(typed);
+  };
   return (
     <Card title={t("research.exec.cost.title")} region>
       {ceiling !== null ? (
@@ -140,6 +151,7 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
             {tv("research.exec.cost.basis", { requests: readiness.fieldwork_requests, calls: readiness.analysis_calls })}
           </p>
           <p className="text-xs text-ink-muted">{t("research.exec.cost.bound")}</p>
+          <CostBar ceiling={ceiling} limit={limit} asks={readiness.confirmation_required} />
         </>
       ) : (
         <p className="text-sm">{t(`research.exec.cost.unknown.${readiness.cost_ceiling_unknown ?? "sample_size_missing"}`)}</p>
@@ -152,29 +164,118 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
       <p className="mt-2 text-sm">
         {limit === null ? t("research.exec.cost.limitNone") : tv("research.exec.cost.limitSet", { limit: limit.toFixed(2) })}
       </p>
-      {readiness.confirmation_required ? <p className="text-sm font-medium">{t("research.exec.cost.willAsk")}</p> : null}
+      {readiness.confirmation_required ? <p className="text-sm font-medium text-status-you-ink">{t("research.exec.cost.willAsk")}</p> : null}
       {limit !== null && ceiling === null ? (
         <p role="alert" className="text-sm text-status-fault">{t("research.exec.cost.unknownBlocks")}</p>
       ) : null}
       {canEdit ? (
+        // The limit is saved when the amount is left or Enter is pressed; switching it off clears it.
         <form
           aria-label={t("research.exec.cost.limit")}
-          className="mt-3 flex flex-wrap items-end gap-3"
+          className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3"
           onSubmit={(e) => {
             e.preventDefault();
-            if (Number.isFinite(typed) && typed >= 0) void save(typed);
+            commit();
           }}
         >
-          <Field label={t("research.exec.cost.limitAmount")} className="w-56">
-            <TextInput type="number" inputMode="decimal" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </Field>
-          <Button type="submit" disabled={saving || !Number.isFinite(typed) || typed < 0}>{t("research.exec.cost.save")}</Button>
-          {limit !== null ? (
-            <Button variant="quiet" disabled={saving} onClick={() => void save(null)}>{t("research.exec.cost.clear")}</Button>
+          <Switch
+            checked={asking}
+            disabled={saving}
+            label={t("research.exec.cost.switch")}
+            onChange={(on) => {
+              setAsking(on);
+              if (!on && limit !== null) void save(null);
+              if (!on) setAmount("");
+            }}
+          />
+          {asking ? (
+            <span className="inline-flex items-center gap-2">
+              <input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                aria-label={t("research.exec.cost.limitAmount")}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                onBlur={commit}
+                className="min-h-9 w-28 rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+              />
+              <span className="text-sm text-ink-muted">USD</span>
+            </span>
           ) : null}
+          {saving ? <span className="text-xs text-ink-muted">{t("research.exec.cost.saving")}</span> : null}
         </form>
       ) : null}
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
+    </Card>
+  );
+}
+
+/** The run's ceiling against the study's limit: amber when Start will ask first; the limit as a mark. */
+function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | null; asks: boolean }) {
+  const scale = Math.max(ceiling, limit ?? 0) * 1.4 || 1;
+  const pct = (x: number) => `${Math.min(100, (x / scale) * 100)}%`;
+  return (
+    <div className="mt-3">
+      <div aria-hidden="true" className="relative h-2.5 rounded-sm bg-surface-sunken">
+        <div className={`h-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} style={{ width: pct(ceiling) }} />
+        {limit !== null ? <i className="absolute -top-1 block h-[18px] w-0.5 bg-ink" style={{ left: pct(limit) }} /> : null}
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
+          {tv("research.exec.cost.legendCeiling", { ceiling: usd(ceiling) })}
+        </span>
+        {limit !== null ? (
+          <span className="inline-flex items-center gap-1.5">
+            <i aria-hidden="true" className="block h-2.5 w-0.5 bg-ink" />
+            {tv("research.exec.cost.legendLimit", { limit: usd(limit) })}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Where a failing readiness check is fixed: the sample on Dimenze, the audience on Audience, the rest on Dotazník. */
+export function fixStep(checkId: string): StepKey {
+  if (/sample|^n$/.test(checkId)) return "persona";
+  if (/audience/.test(checkId)) return "audience";
+  return "questionnaire";
+}
+
+/** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
+function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
+  const { state, stepHref } = useResearch();
+  const p = state.project;
+  const variant = projectVariants(state).find((v) => v.id === selectedVariant(p));
+  const clip = (x: unknown) => {
+    const v = String(x || "").trim();
+    return v.length > 140 ? `${v.slice(0, 139)}…` : v;
+  };
+  const rows: [StepKey, string][] = [
+    ["brief", clip(p.goal) || "—"],
+    ["plan", clip(variant?.title || state.analysis?.problem_summary) || "—"],
+    ["questionnaire", tv("research.exec.counts", { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects, n: readiness.n ?? "—" })],
+    ["audience", clip(p.audience?.description || p.audience?.dataset_name) || "—"],
+    ["persona", tv("research.exec.receiptDims", { d: withApproval(p).approved.length, n: readiness.n ?? "—" })],
+  ];
+  return (
+    <Card title={tv("research.exec.revision", { revision })}>
+      <p className="text-[13px] text-ink-muted">{t("research.exec.revisionHelp")}</p>
+      <h3 className="mt-3 text-[13px] font-semibold">{t("research.exec.receiptTitle")}</h3>
+      <dl className="mt-1.5 divide-y divide-border rounded-control border border-border">
+        {rows.map(([k, v]) => (
+          <div key={k} className="grid grid-cols-[8rem_1fr_auto] items-baseline gap-3 px-3 py-2 text-sm">
+            <dt className="text-ink-muted">{t(`aia.stages.${k}`)}</dt>
+            <dd className="min-w-0">{v}</dd>
+            <dd>
+              <Link href={stepHref(k)} className="text-xs text-signal no-underline hover:underline">{t("research.exec.edit")}</Link>
+            </dd>
+          </div>
+        ))}
+      </dl>
     </Card>
   );
 }
@@ -272,7 +373,7 @@ export function RunStep() {
     prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
 
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
+    <div className="flex max-w-4xl flex-col gap-4">
       {prepared.kind === "loading" ? <p className="text-sm text-ink-muted">{t("research.exec.preparing")}</p> : null}
       {prepared.kind === "failed" ? (
         <Card title={t("research.exec.readinessFailed")} tone="fault">
@@ -282,23 +383,18 @@ export function RunStep() {
       {prepared.kind === "none" ? <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card> : null}
       {prepared.kind === "ready" ? (
         <>
-          <Card title={tv("research.exec.revision", { revision: prepared.revision })}>
-            <p className="text-sm text-ink-muted">{t("research.exec.revisionHelp")}</p>
-            <p className="mt-2 text-sm">
-              {tv("research.exec.counts", {
-                questions: prepared.readiness.questions,
-                batteries: prepared.readiness.batteries,
-                objects: prepared.readiness.objects,
-                n: prepared.readiness.n ?? "—",
-              })}
-            </p>
-          </Card>
+          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
               {prepared.readiness.checks.map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
                   <Chip tone={c.status === "FAIL" ? "fault" : c.status === "WARN" ? "you" : "done"}>{c.status}</Chip>
-                  <span>{c.message}</span>
+                  <span className="flex-1">{c.message}</span>
+                  {c.status !== "PASS" ? (
+                    <Link href={stepHref(fixStep(c.id))} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                      {t("research.exec.fix")}
+                    </Link>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -310,16 +406,33 @@ export function RunStep() {
           ) : (
             <SyntheticBanner />
           )}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" onClick={start} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked}>
-              {starting ? t("research.exec.starting") : t("research.exec.start")}
-            </Button>
-            {!frame.canEdit ? <span className="text-sm text-ink-muted">{t("research.exec.readOnly")}</span> : null}
-          </div>
           {startError ? <p role="alert" className="text-sm text-status-fault">{startError}</p> : null}
         </>
       ) : null}
       <RunList runs={runs} />
+      <ActionDock
+        back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
+        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked}
+        note={
+          !frame.canEdit
+            ? t("research.exec.readOnly")
+            : prepared.kind !== "ready"
+              ? null
+              : !prepared.readiness.ready
+                ? t("research.exec.dockNotReady")
+                : blocked
+                  ? t("research.exec.dockBlocked")
+                  : prepared.readiness.confirmation_required
+                    ? t("research.exec.dockAsk")
+                    : t("research.exec.dockReady")
+        }
+      >
+        {prepared.kind === "ready" ? (
+          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked}>
+            {starting ? t("research.exec.starting") : t("research.exec.start")}
+          </AiButton>
+        ) : null}
+      </ActionDock>
     </div>
   );
 }
