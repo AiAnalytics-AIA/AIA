@@ -762,6 +762,61 @@
    "question": "M2"
   },
   {
+   "id": "AIA-H9",
+   "title": "Experimental H-Model candidate aia_hmodel_candidate_v1",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "maximise acc = Spearman over defined ordered pairs of (v_rs, -d_rs) (aia_hmodel_accuracy_v1); per start: Pearson-on-ranks gradient ascent, then the better of {exact local search, ordinal stress with strictly increasing isotonic targets then exact local search}, with hinge repair of discordant pairs; starts: classical MDS on rank dissimilarities (also refined raw) plus seeded random; best final accuracy, ties to the earliest; frame: centred, principal axes, third moment >= 0, scaled into 0.05-0.95",
+   "applies_to": "Any DeclaredRelations (fuzzy 0-1 or signed correlations); uses relations only through their order; elements with no defined relation are listed unplaced",
+   "implementation": "aia_core.domain.sociomap.hmodel_candidate:fit_hmodel_candidate",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly",
+     "what": "accuracy 1 where a planted construction guarantees it"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_random_matrices_never_end_below_the_classical_mds_baseline",
+     "what": "never below its classical MDS start"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_signed_correlations_need_no_conversion_any_monotone_one_gives_the_same_map",
+     "what": "order-only: identical maps under monotone conversions"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_asymmetric_planted_relations_expose_pooled_versus_per_point",
+     "what": "pooled accuracy and per-point order conflict on asymmetric data"
+    }
+   ],
+   "uncertainty": "An AIA proposal, not SOMECS's method: SOMECS's objective is unknown (AIA-H8). On SOMECS Input fig. 22 it reaches 0.859 against SOMECS's displayed 0.786 (a provisional comparison under AIA's evaluator, not a target). For asymmetric relations, maximising the pooled accuracy can lower per-point fits that a layout respecting each row's order (QED-H2) would keep at 1 (tested): which criterion governs is the method owner's question (plan M2).",
+   "resolve_by": "Method owner: is the H-Model's goal the pooled rank agreement SOMECS reports, or each point's own order (QED-H2)? Exports E1/E5 compare SOMECS's layouts with the candidate's.",
+   "question": "M2"
+  },
+  {
+   "id": "AIA-D1",
+   "title": "Declared relationship matrix: values as measured, order only",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "DeclaredRelations: n x n, diagonal None, undefined pairs named with their reason, scale fuzzy_0_1 or signed_correlation; nothing clipped, shifted or imputed",
+   "applies_to": "Input to the H-Model; an H-Model uses relations only through their order, so a signed correlation needs no conversion to [0, 1] to be laid out",
+   "implementation": "aia_core.domain.sociomap.declared:declared_from_correlations",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_declared.py::test_correlations_stay_signed_and_undefined_pairs_keep_their_reason",
+     "what": "signed values and undefined pairs carried unchanged"
+    }
+   ],
+   "uncertainty": "That a layout needs only the order of relations follows from the rank-based accuracy (SOMECS-H3, inferred). Anything that reads magnitudes -- coherence levels, a 0-1 relation shown to a reader -- still needs M12 for negative correlations and refuses without it.",
+   "resolve_by": "As SOMECS-H3 and M12.",
+   "question": "M12"
+  },
+  {
    "id": "QED-W1",
    "title": "Height = column average (received)",
    "product": "QED",

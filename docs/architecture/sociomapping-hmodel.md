@@ -1,9 +1,11 @@
 # The H-Model: what is reported, what is fitted, what is significant
 
-**Status (2026-10-04):** the reported accuracy is implemented
-(`aia_core.domain.sociomap.hmodel.hmodel_accuracy`). SOMECS's fitting objective is **unknown**.
-This document proposes an **experimental AIA candidate** optimiser and a significance procedure;
-neither is built, and neither is presented as SOMECS's method. Rule ids refer to the evidence
+**Status (2026-10-05):** the reported accuracy is implemented
+(`aia_core.domain.sociomap.hmodel.hmodel_accuracy`, evaluator `aia_hmodel_accuracy_v1`), and so
+is the **experimental AIA candidate** optimiser (`hmodel_candidate.fit_hmodel_candidate`,
+method `aia_hmodel_candidate_v1`, register AIA-H9). SOMECS's fitting objective is **unknown**;
+the candidate is not presented as SOMECS's method. The significance procedure (§ 5) is proposed,
+not built. Rule ids refer to the evidence
 register `docs/migration/sociomapping-evidence-register.json`; questions M* to
 `.planning/plans/sociomapping-engine.md`. Each statement says whether it is documented,
 reproduced, inferred or proposed.
@@ -90,47 +92,66 @@ different optimiser of a stress-like objective, manual adjustment before the scr
 evaluator that differs from ours. Other MDS variants or transforms could score differently. One
 layout of one matrix cannot identify an algorithm.
 
-**The experimental AIA candidate, `h_model_candidate_v1`.** AIA's own proposal, labelled
-experimental in code and on every artifact; it makes no claim of equivalence with SOMECS.
+**The experimental AIA candidate, `aia_hmodel_candidate_v1` (built).** AIA's own method,
+labelled `EXPERIMENTAL_AIA` on every result; it makes no claim of equivalence with SOMECS. Its
+input is a *declared relationship matrix* (`declared.py`, AIA-D1): values as measured, undefined
+pairs named, on `fuzzy_0_1` or `signed_correlation`. Because both the evaluator and every phase
+use relations only through their order, a signed correlation is laid out without conversion,
+and any strictly increasing conversion gives the identical map (tested).
 
-1. *Smooth phase.* Maximise `r(L, -D)`, the Pearson correlation between the fixed average ranks
-   `L` of the relations and the negated distances over all ordered pairs, each point's terms
-   multiplied by its importance weight `w_r` (help p. 56; default 1, recorded). Differentiable in
-   the coordinates and invariant to the same transforms as the accuracy.
-2. *Exact phase.* Local search on the reported accuracy: move one point at a time to the trial
-   position (a fixed, seeded set) that raises the accuracy most; stop when none does. Locked
-   points (help p. 55) never move.
+*Objective.* Maximise the reported accuracy (§ 2) over the defined ordered pairs; all points
+weigh the same. *Search*, from each start, over elements in a canonical order (sorted ids):
 
-*Starts and selection* (after SOMECS-H6): classical MDS on `1 - (M + M^T) / 2` plus `K` seeded
-random starts, seeds recorded; keep the highest reported accuracy, ties to the earliest start;
-every start's accuracy stored, so the spread of local optima is visible. *Gauge and frame*:
-centre, rotate onto principal axes, reflect to a positive third moment, scale to the 0-1 display
-frame (SOMECS-H7); the accuracy is unaffected.
+1. *Smooth*: gradient ascent on `r(L, -D)`, the Pearson correlation of the relations' fixed
+   average ranks and the negated distances.
+2. Two branches, the better kept: *direct* (straight to 3) and *ordinal* (Kruskal-style ordinal
+   stress with isotonic targets made strictly increasing by a small gap, then 3). The classical
+   MDS start also refines its raw start, so the result never ends below that baseline.
+3. *Exact*: one-point-at-a-time local search on the accuracy itself, 16 directions, halving
+   step to 1e-6; between rounds a *repair* step on the pairs still out of order.
+
+Why both branches, measured while building: on planted symmetric data (n = 10 and 20, three
+seeds each) the direct branch alone stalled one or two pairs short of 1 (0.99987-0.99999); the
+ordinal branch with plain isotonic targets let a violating pair settle into a tie; with strictly
+increasing targets every planted case reached exactly 1. On fig. 22 the direct branch from the
+classical MDS start reaches the higher accuracy (0.859 vs 0.841).
+
+*Starts and selection* (after SOMECS-H6): classical MDS on a rank dissimilarity plus 4 seeded
+random starts (`random.Random(seed + k)`, seed 20261005); highest accuracy wins, ties to the
+earliest; every start's accuracies are stored. *Frame*: centre, principal axes, third moment
+>= 0 per axis, scaled into 0.05-0.95 (SOMECS-H7); the accuracy is unchanged. *Cost*, measured
+in this container: n = 10 about 1.5 s, n = 20 about 15-20 s (pure Python; a worker step).
+
+*Unplaced elements.* An element with no defined relation (a constant answer column) is not
+placed and is listed with its reason; its pairs are not observations of the rest.
 
 **Acceptance for the candidate** -- criteria on AIA's own terms, none of them a test of
-equivalence with SOMECS:
+equivalence with SOMECS, and where each stands (`test_sociomapping_hmodel_candidate.py`):
 
-- **Provisional comparison on fig. 22.** Report the candidate's accuracy beside SOMECS's 0.786
-  with the rounding band 0.783-0.793. Above or below the band is a finding to explain, not a
-  pass or a fail.
-- **Baselines.** On every evaluation matrix, report classical MDS and nonmetric MDS in the stated
-  configurations. The candidate optimises the evaluator directly, so scoring below the best
-  tested baseline on a matrix is a defect in the candidate.
-- **Perfect fit only where it is guaranteed.** Accuracy 1.0 is required only on planted data
-  constructed so that a layout with accuracy exactly 1 exists under this evaluator: a symmetric
-  matrix whose relations are one strictly decreasing function of the distances between planted
-  points with no tied distances. For asymmetric planted data (row-specific decreasing
-  functions), the overall accuracy cannot generally reach 1; there, every *per-point* fit must
-  be 1.0.
-- **Many independent matrices, fixed in advance.** The candidate's parameters are fixed before it
-  is scored on an evaluation set that includes: random symmetric matrices at n = 5, 10 and 20
-  with several seeds; random asymmetric matrices; matrices with ties (1-5 people ratings, e.g.
-  certification Tab. 1 and R1's team); R1's object matrix; and fig. 22 as one member, not the
-  target.
-- **Repeatability versus reproducibility.** Identical input and seeds give identical output on the
-  tested environments (the development container and CI): tested. The computation is a fixed
-  sequence of IEEE-754 operations in pure Python, so identical output elsewhere is *expected*, but
-  it is claimed only for hosts it has been run on.
+- **Provisional comparison on fig. 22.** The candidate reaches **0.859** beside SOMECS's 0.786
+  (rounding band 0.783-0.793). It is *above* the band. That is a finding to explain, not a pass:
+  the candidate optimises this evaluator directly and SOMECS's objective is unknown; SOMECS may
+  optimise something else, stop earlier, or start differently.
+- **Baselines.** Classical MDS on a rank dissimilarity is the candidate's first start and is
+  reported on every result (fig. 22: 0.627); the candidate never ends below it (structural,
+  tested on six random matrices). Nonmetric MDS (scikit-learn) is measured only by
+  `tools/somecs_estimation_experiment.py`; it is not a repository dependency.
+- **Perfect fit only where it is guaranteed.** Met: accuracy exactly 1.0 on planted symmetric
+  data, one strictly decreasing function of planted distances, no tied distances (n = 5-10 in
+  the suite; n = 20 measured while building).
+- **Asymmetric planted data -- the criterion first written here was wrong.** With each row a
+  different decreasing function, the planted layout has every per-point fit 1 (QED-H2) but a
+  *lower pooled accuracy* than other layouts (n = 6-10: planted 0.60-0.87, candidate 0.78-0.92).
+  A layout maximising the pooled accuracy (SOMECS-H3) therefore need not keep each point's own
+  order, and the candidate does not (tested). Which criterion governs an asymmetric H-Model is
+  the method owner's question (plan M2). The research integration lays out object correlations,
+  which are symmetric, so it is not affected.
+- **Many independent matrices.** Planted symmetric (6 cases), asymmetric planted, random
+  symmetric and asymmetric (6), tied 1-5 people ratings (certification Tab. 1), signed object
+  correlations with negative pairs and a constant column, and fig. 22 as one member.
+- **Repeatability versus reproducibility.** Identical input and parameters give an identical
+  result in this container (tested); identical output on other hosts is expected (pure Python,
+  fixed order) but claimed only where run.
 
 **Still open after the build.** SOMECS's objective and optimiser; how it weights points; the "HM
 correction" that trades accuracy for keeping coherent groups close (help p. 36; plan chunk 6b).

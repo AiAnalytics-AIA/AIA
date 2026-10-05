@@ -17,8 +17,9 @@ from pathlib import Path
 
 import pytest
 
-from aia_core.domain.sociomap import coherence, fuzzy, heights, hmodel
+from aia_core.domain.sociomap import coherence, declared, fuzzy, heights, hmodel, hmodel_candidate
 from aia_core.domain.sociomap.coherence import coherences, merge_classes
+from aia_core.domain.sociomap.declared import declared_from_correlations, declared_from_fuzzy
 from aia_core.domain.sociomap.fuzzy import (
     FuzzyMatrix,
     FuzzySource,
@@ -34,6 +35,7 @@ from aia_core.domain.sociomap.fuzzy import (
 )
 from aia_core.domain.sociomap.heights import column_averages, object_average_answers, row_averages
 from aia_core.domain.sociomap.hmodel import hmodel_accuracy
+from aia_core.domain.sociomap.hmodel_candidate import CandidateParameters, fit_hmodel_candidate
 from aia_core.domain.sociomap.models import RatingsMatrix
 
 REPO = Path(__file__).resolve().parents[3]
@@ -128,6 +130,11 @@ def _outputs() -> dict[str, tuple[str, ...]]:
         "row_averages": row_averages(people).rules,
         "object_average_answers": object_average_answers(scaled).rules,
         "hmodel_accuracy": hmodel_accuracy(people, [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)]).rules,
+        "declared_from_correlations": declared_from_correlations(correlations).rules,
+        "declared_from_fuzzy": declared_from_fuzzy(people).rules,
+        "fit_hmodel_candidate": fit_hmodel_candidate(
+            declared_from_fuzzy(people), CandidateParameters(random_starts=0)
+        ).rules,
     }
 
 
@@ -142,7 +149,7 @@ NOT_OUTPUTS = {
 def test_every_public_result_is_covered_by_the_provenance_check() -> None:
     public = {
         name
-        for module in (fuzzy, coherence, heights, hmodel)
+        for module in (fuzzy, coherence, heights, hmodel, declared, hmodel_candidate)
         for name in module.__all__
         if inspect.isfunction(getattr(module, name))
     }

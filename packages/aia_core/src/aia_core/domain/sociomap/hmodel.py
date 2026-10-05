@@ -28,6 +28,13 @@ Definitions (``docs/architecture/sociomapping-hmodel.md`` § 2 gives the reasoni
   relations to the others against its distances to them. ``None`` for a constant row.
 * **Overall vs per-point.** The overall accuracy is *not* the mean of the per-point
   values; both are reported, and ``mean_per_point`` is labelled as what it is.
+* **Undefined relations.** A :class:`~aia_core.domain.sociomap.declared.DeclaredRelations`
+  may hold pairs with no relation (a constant answer column has no correlation). Such a pair
+  is not an observation: it is counted in ``undefined_pairs`` and enters neither the
+  overall nor the per-point correlation. It is never scored as neutral.
+
+The evaluator's version is :data:`EVALUATOR_VERSION`; anything that reports an accuracy
+records it, so a change of definition cannot pass for the same number.
 
 Inferred, not documented (register SOMECS-H3): that "the" Spearman is over all off-diagonal
 cells rather than averaged per row; that ties take average ranks. SOMECS's own estimation
@@ -44,10 +51,12 @@ from typing import Self
 
 from pydantic import model_validator
 
+from .declared import DeclaredRelations
 from .fuzzy import FuzzyMatrix, FuzzyMatrixError
 from .models import _Frozen
 
 __all__ = [
+    "EVALUATOR_VERSION",
     "HModelAccuracy",
     "average_ranks",
     "hmodel_accuracy",
@@ -55,6 +64,10 @@ __all__ = [
 ]
 
 _ACCURACY_RULES = ("SOMECS-H3", "AIA-H4")
+
+#: The accuracy as defined above: Spearman over defined ordered pairs of (relation, -distance),
+#: average ranks, per-point by row. Bump on any change of definition.
+EVALUATOR_VERSION = "aia_hmodel_accuracy_v1"
 
 
 class HModelAccuracy(_Frozen):
@@ -64,6 +77,8 @@ class HModelAccuracy(_Frozen):
     accuracy: float | None
     accuracy_undefined: str | None
     ordered_pairs: int
+    undefined_pairs: int = 0
+    evaluator: str = EVALUATOR_VERSION
     per_point: tuple[float | None, ...]
     per_point_undefined: tuple[str | None, ...]
     mean_per_point: float | None
@@ -114,9 +129,9 @@ def spearman(x: Sequence[float], y: Sequence[float]) -> float | None:
 
 
 def hmodel_accuracy(
-    matrix: FuzzyMatrix, positions: Sequence[tuple[float, float]]
+    matrix: FuzzyMatrix | DeclaredRelations, positions: Sequence[tuple[float, float]]
 ) -> HModelAccuracy:
-    """Score a layout against a fuzzy matrix as defined in the module docstring."""
+    """Score a layout against a relation matrix as defined in the module docstring."""
     n = matrix.size
     if len(positions) != n:
         raise FuzzyMatrixError(f"{len(positions)} positions for {n} elements")
@@ -130,12 +145,20 @@ def hmodel_accuracy(
         points.append((x, y))
     distance = [[math.dist(points[r], points[s]) for s in range(n)] for r in range(n)]
 
+    def relation(r: int, s: int) -> float | None:
+        return matrix.values[r][s]
+
     relations: list[float] = []
     closeness: list[float] = []
+    undefined = 0
     for r in range(n):
         for s in range(n):
             if r != s:
-                relations.append(matrix.relation(r, s))
+                value = relation(r, s)
+                if value is None:
+                    undefined += 1
+                    continue
+                relations.append(value)
                 closeness.append(-distance[r][s])
     accuracy = spearman(relations, closeness)
     accuracy_undefined = None
@@ -145,8 +168,8 @@ def hmodel_accuracy(
     per_point: list[float | None] = []
     reasons: list[str | None] = []
     for r in range(n):
-        others = [s for s in range(n) if s != r]
-        row = [matrix.relation(r, s) for s in others]
+        others = [s for s in range(n) if s != r and relation(r, s) is not None]
+        row = [v for s in others if (v := relation(r, s)) is not None]
         near = [-distance[r][s] for s in others]
         value = spearman(row, near)
         per_point.append(value)
@@ -157,6 +180,7 @@ def hmodel_accuracy(
         accuracy=accuracy,
         accuracy_undefined=accuracy_undefined,
         ordered_pairs=len(relations),
+        undefined_pairs=undefined,
         per_point=tuple(per_point),
         per_point_undefined=tuple(reasons),
         mean_per_point=sum(defined) / len(defined) if defined else None,
