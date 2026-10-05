@@ -1121,7 +1121,8 @@ class ApprovalDecisionRow(Base):
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
     study_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    # What was decided on: a workflow gate or an artifact sign-off.
+    # What was decided on: a workflow gate, an artifact sign-off, a budget lift, a spend
+    # confirmation, or the accept of an AI proposal (subject_id = the agent job's run id).
     subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
@@ -1153,7 +1154,7 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         CheckConstraint(
-            "subject_type in ('gate','artifact','budget','spend')",
+            "subject_type in ('gate','artifact','budget','spend','ai_proposal')",
             name="approval_subject_type_known",
         ),
         CheckConstraint(

@@ -573,7 +573,14 @@ class ResearchAgentJobs:
     def accept(
         self, run_id: str, *, store: ArtifactStore, expected_revision_id: str
     ) -> tuple[DesignRevision, bool]:
+        """A person applies what the agent job proposed: a new Design Revision, and its record.
+
+        ADR 0019 gate 1. Needs ``APPROVE_GATE`` beside ``EDIT_STUDY``: the worker's scope holds
+        the second and not the first (decision 6), so only a person accepts. The accept is
+        written to the approval ledger in the same transaction as the revision (plan 5b.3).
+        """
         self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
         run = self.get(run_id)
         if expected_revision_id != run["metadata"]["design_revision_id"]:
@@ -589,8 +596,21 @@ class ResearchAgentJobs:
         }
         if action not in stages:
             raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")
-        return StudyDesignRepository(self.session, self.scope).submit_if_current(
+        designs = StudyDesignRepository(self.session, self.scope)
+        revision, created = designs.submit_if_current(
             content=result["result"]["project"],
             source_stage=stages[action],
             expected_revision_id=expected_revision_id,
         )
+        project_id = designs.project_id()
+        assert project_id is not None  # submit_if_current has just written to it
+        WorkflowRepository(self.session, self.scope).record_ai_proposal_acceptance(
+            run_id,
+            action=action.value,
+            revision_id=revision.revision_id,
+            project_id=project_id,
+            project_revision=revision.revision,
+            created=created,
+            artifact_id=str(run["steps"][0]["output"]["artifact_id"]),
+        )
+        return revision, created

@@ -818,10 +818,10 @@ def test_a_worker_cannot_set_the_spend_confirm_limit(
         scope_repo.set_study_spend_confirm(worker, None)
 
 
-def test_the_approval_ledger_admits_a_spend_confirmation(
+def test_the_approval_ledger_admits_a_spend_confirmation_and_an_ai_proposal_accept(
     session: Session, world: dict[str, Any]
 ) -> None:
-    """The ledger names what it can hold; a spend confirmation is one of them (5b.2)."""
+    """The ledger names what it can hold: a spend confirmation (5b.2), an AI accept (5b.3)."""
     study = world["acme_study"]
 
     def row(subject_type: str) -> ApprovalDecisionRow:
@@ -836,6 +836,7 @@ def test_the_approval_ledger_admits_a_spend_confirmation(
         )
 
     session.add(row("spend"))
+    session.add(row("ai_proposal"))
     session.flush()  # the study is real, so only the subject type could refuse this
     session.add(row("unheard-of"))
     with pytest.raises(IntegrityError, match="approval_subject_type_known"):
