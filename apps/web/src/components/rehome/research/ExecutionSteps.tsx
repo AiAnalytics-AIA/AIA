@@ -66,7 +66,7 @@ function confirmationAsked(e: unknown): { ceiling: number; limit: number } | nul
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
-function Card({ title, children, tone, region }: { title?: string; children: ReactNode; tone?: "notice" | "fault"; region?: boolean }) {
+function Card({ id, title, children, tone, region }: { id?: string; title?: string; children: ReactNode; tone?: "notice" | "fault"; region?: boolean }) {
   const frame =
     tone === "fault"
       ? "border-status-fault/40 bg-status-fault-wash"
@@ -74,7 +74,7 @@ function Card({ title, children, tone, region }: { title?: string; children: Rea
         ? "border-status-you-ink/40 bg-status-you-wash"
         : "border-border bg-surface-raised";
   return (
-    <section aria-label={region ? title : undefined} className={`rounded-card border p-5 ${frame}`}>
+    <section id={id} aria-label={region ? title : undefined} className={`scroll-mt-60 rounded-card border p-5 ${frame}`}>
       {title ? <h2 className="mb-2 text-base font-semibold">{title}</h2> : null}
       {children}
     </section>
@@ -728,16 +728,18 @@ function Table({ table }: { table: ResultTable }) {
           <thead>
             <tr className="text-left text-xs text-ink-muted">
               <th className="py-1 font-medium"> </th>
-              <th className="py-1 font-medium">{t("research.exec.results.value")}</th>
-              <th className="py-1 font-medium">{t("research.exec.results.interval")}</th>
+              <th className="py-1 font-medium"><span className="sr-only">{t("research.exec.results.bar")}</span></th>
+              <th className="whitespace-nowrap py-1 font-medium">{t("research.exec.results.value")}</th>
+              <th className="whitespace-nowrap py-1 font-medium">{t("research.exec.results.interval")}</th>
             </tr>
           </thead>
           <tbody>
             {table.rows.map((r) => (
               <tr key={r.label} className="border-t border-border">
                 <td className="py-1 pr-3">{r.label}</td>
-                <td className="py-1 pr-3 tabular-nums">{r.value ?? "—"}</td>
-                <td className="py-1 tabular-nums text-ink-muted">{r.interval ?? "—"}</td>
+                <td className="w-[40%] min-w-20 py-1 pr-3">{r.bar ? <IntervalBar bar={r.bar} /> : null}</td>
+                <td className="whitespace-nowrap py-1 pr-3 tabular-nums">{r.value ?? "—"}</td>
+                <td className="whitespace-nowrap py-1 tabular-nums text-ink-muted">{r.interval ?? "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -749,6 +751,37 @@ function Table({ table }: { table: ResultTable }) {
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/** A share on 0–100 %: its 95 % interval as a band, the value as a tick. */
+function IntervalBar({ bar }: { bar: NonNullable<ResultTable["rows"][number]["bar"]> }) {
+  const pc = (v: number) => `${Math.max(0, Math.min(100, v))}%`;
+  return (
+    <span aria-hidden="true" className="relative block h-3.5 rounded-sm bg-surface-sunken">
+      {bar.low !== null && bar.high !== null ? (
+        <i className="absolute inset-y-0 block rounded-sm bg-signal/25" style={{ left: pc(bar.low), width: pc(bar.high - bar.low) }} />
+      ) : null}
+      <i className="absolute -inset-y-0.5 block w-[3px] -translate-x-1/2 rounded-sm bg-signal" style={{ left: pc(bar.value) }} />
+    </span>
+  );
+}
+
+/** Jump chips over the results that this run has. */
+function ResultChips({ items }: { items: [string, string][] }) {
+  return (
+    <nav aria-label={t("research.exec.results.jumpLabel")} className="flex flex-wrap gap-1.5">
+      {items.map(([id, label]) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" })}
+          className="inline-flex items-center whitespace-nowrap rounded-pill border border-border bg-surface-raised px-3 py-1 text-[13px] leading-5 hover:border-border-strong hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -773,16 +806,27 @@ export function ResultsStep() {
       </div>
     );
   }
+  const showMap = Boolean(sociomap && sociomap.state !== "hidden");
+  const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
+  const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
+  const chips: [string, string][] = [
+    ["res-aggregate", t("research.exec.results.aggregate")],
+    ...(showMap ? ([["res-sociomap", t("research.exec.results.sociomap")]] as [string, string][]) : []),
+    ...(showMapping ? ([["res-sociomapping", t("research.exec.results.sociomapping")]] as [string, string][]) : []),
+    ...(showAnalysis ? ([["res-analysis", t("research.exec.results.jumpAnalysis")]] as [string, string][]) : []),
+    ["res-report", t("research.exec.results.jumpReport")],
+  ];
   return (
     <div className="flex max-w-4xl flex-col gap-4">
+      <ResultChips items={chips} />
       {isSynthetic(run) ? <SyntheticBanner /> : null}
-      <Card title={t("research.exec.results.aggregate")}>
+      <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
         {aggregate?.state === "ready" ? <AggregateView artifact={aggregate.value} run={run} /> : null}
         {aggregate?.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{aggregate.message}</p> : null}
         {aggregate?.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
       </Card>
       {sociomap && sociomap.state !== "hidden" ? (
-        <Card title={t("research.exec.results.sociomap")} tone="notice">
+        <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
           <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
@@ -790,7 +834,7 @@ export function ResultsStep() {
         </Card>
       ) : null}
       {sociomapping && sociomapping.state !== "hidden" ? (
-        <Card title={t("research.exec.results.sociomapping")} tone="notice">
+        <Card id="res-sociomapping" title={t("research.exec.results.sociomapping")} tone="notice">
           {sociomapping.state === "ready" ? (
             <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={frame.canEdit} />
           ) : null}
@@ -798,8 +842,8 @@ export function ResultsStep() {
           {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
         </Card>
       ) : null}
-      {run.steps.some((step) => step.kind === "research_analysis") ? <AnalysisResults key={run.run_id} run={run} /> : null}
-      {report}
+      {showAnalysis ? <div id="res-analysis" className="scroll-mt-60"><AnalysisResults key={run.run_id} run={run} /></div> : null}
+      <div id="res-report" className="scroll-mt-60">{report}</div>
     </div>
   );
 }
