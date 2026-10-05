@@ -1,0 +1,1124 @@
+{
+ "schema_version": 1,
+ "description": "Every mathematical rule of the Sociomapping engine: where it comes from, what it says, where it is built, how it is checked and what is still unknown. A test reads this file (test_sociomapping_evidence_register.py).",
+ "labels": {
+  "DOCUMENTED": "stated in a source",
+  "REPRODUCED_FROM_EXAMPLE": "a worked example in a source is reproduced by the implementation",
+  "INFERRED": "a source states the rule in part; the rest is read from its examples or screens",
+  "PROPOSED": "AIA's choice where no source speaks",
+  "OPEN": "needed and not yet determined; nothing implements it"
+ },
+ "validation_kinds": {
+  "SOURCE_EXAMPLE": "reproduces numbers a source prints",
+  "SOURCE_STATEMENT": "checks a behaviour a source states in words",
+  "OWN_TEST": "tests AIA's implementation only; not evidence about the original method"
+ },
+ "documents": {
+  "SOMECS_HELP": {
+   "title": "Somecs - Software - Help (CZ)",
+   "pages": 80,
+   "product": "SOMECS"
+  },
+  "SOMECS_INPUT": {
+   "title": "SOMECS Input -- SOMECS SW brief tutorial (EN)",
+   "pages": 21,
+   "product": "SOMECS"
+  },
+  "SOMECS_TS": {
+   "title": "Somecs - Time Series - tutorial (EN)",
+   "pages": 9,
+   "product": "SOMECS"
+  },
+  "CERT": {
+   "title": "Certifikační materiál pro interní facilitátory (CZ)",
+   "pages": 75,
+   "product": "QED"
+  },
+  "RTS_DESIGNS": {
+   "title": "RTS designs doc (EN)",
+   "pages": 40,
+   "product": "RTS"
+  },
+  "RTS_DESIGN_DESC": {
+   "title": "Sociomapping -- Design Description (EN)",
+   "pages": 15,
+   "product": "RTS"
+  },
+  "CRTS_SPEC": {
+   "title": "Specifikace programu -- Příloha Licenční smlouvy k Cloud RTS (CZ)",
+   "pages": 54,
+   "product": "RTS"
+  },
+  "STEP_BY_STEP": {
+   "title": "Sociomapování krok za krokem (CZ)",
+   "pages": 34,
+   "product": "QED"
+  },
+  "RESEARCH_2010": {
+   "title": "Research and academic activities on Sociomapping (EN, 2010)",
+   "pages": 7,
+   "product": "QED"
+  },
+  "AIA_EXPORT": {
+   "title": "AIA Sociomapping Mathematics, Statistics and Processing Export (EN, 2026-10-03)",
+   "pages": null,
+   "product": "LEGACY_AIA"
+  }
+ },
+ "rules": [
+  {
+   "id": "QED-F1",
+   "title": "The fuzzy matrix",
+   "product": "QED",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 7,
+     "section": "Slovníček pojmů > Fuzzy Matice",
+     "states": "Square matrix over n elements; row R, column S = relation of R to S; the higher, the closer; need not be symmetric."
+    },
+    {
+     "document": "CERT",
+     "page": 9,
+     "section": "1.1.1 Vytvoření matice dat",
+     "states": "Rows = how each member rated the others, columns = how each was rated; diagonal left empty; asymmetric."
+    }
+   ],
+   "formula": "M in [0,1]^(n x n), M_rs = relation of r to s, diagonal undefined",
+   "applies_to": "every Sociomap input",
+   "implementation": "aia_core.domain.sociomap.fuzzy:FuzzyMatrix",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_a_fuzzy_matrix_is_square_complete_and_on_zero_one",
+     "what": "contract: shape, range, completeness, diagonal"
+    }
+   ],
+   "uncertainty": "None for the definition. Completeness off the diagonal is AIA's rule (A4); SOMECS fills empty STORM fields with 0 instead (SOMECS-D1).",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "RTS-P1",
+   "title": "People question = square relation matrix",
+   "product": "RTS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "RTS_DESIGNS",
+     "page": 18,
+     "section": "Matrix types",
+     "states": "A people question results in a square matrix of mutual relations; diagonal excluded and does not affect any aggregation."
+    },
+    {
+     "document": "CERT",
+     "page": 9,
+     "section": "1.1.1",
+     "states": "Anna rated Karel 3, Karel rated Anna 1 -- an asymmetric pair; David and Honza rated each other 4."
+    }
+   ],
+   "formula": "M_rs = normalised rating given by r to s",
+   "applies_to": "RTS people questions (single answer)",
+   "implementation": "aia_core.domain.sociomap.fuzzy:rts_people_matrix",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_rts_people_matrix_keeps_the_certification_tables_orientation",
+     "what": "row gave / column received, asymmetric pair and symmetric pair as the text states"
+    }
+   ],
+   "uncertainty": "Whether RTS stores the raw or the normalised rating in the matrix does not change any rank-based result.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "RTS-N1",
+   "title": "Answers normalised by the question's scale points",
+   "product": "RTS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "RTS_DESIGNS",
+     "page": 19,
+     "section": "Matrix types, footnote 5",
+     "states": "All answers are normalized so the answer matrices have values 0...1 no matter of the question scale. Only the scale values are normalized to 0..1, the whole matrix is not normalized to min..max."
+    },
+    {
+     "document": "SOMECS_INPUT",
+     "page": 6,
+     "section": "Figure 6, 6a",
+     "states": "Scale extremes per property are entered; default extremes come from the data, but the real minimum and maximum should be entered."
+    }
+   ],
+   "formula": "x' = (x - scale_low) / (scale_high - scale_low)",
+   "applies_to": "RTS answers on a declared scale",
+   "implementation": "aia_core.domain.sociomap.fuzzy:rts_scale_answers",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_rts_scale_is_the_scale_not_the_data_range",
+     "what": "scale endpoints, not data range; off-scale refused"
+    }
+   ],
+   "uncertainty": "That the map is linear between the scale's end values is inferred; a scale whose item values are not evenly spaced would make it matter.",
+   "resolve_by": "An RTS export of one object question with its scale items and the normalised answer matrix.",
+   "question": null
+  },
+  {
+   "id": "RTS-O1",
+   "title": "Object relations = Pearson correlation of answer columns",
+   "product": "RTS",
+   "label": "REPRODUCED_FROM_EXAMPLE",
+   "sources": [
+    {
+     "document": "RTS_DESIGNS",
+     "page": 18,
+     "section": "Matrix types",
+     "states": "For object questions the relation is calculated as a correlation between X and Y vectors of answered values given by people to objects X and Y."
+    },
+    {
+     "document": "RTS_DESIGNS",
+     "page": 19,
+     "section": "Matrix types, example",
+     "states": "Four people x three objects; correl(X,Y)=0.96, correl(X,Z)=0.44, correl(Y,Z)=0.23."
+    }
+   ],
+   "formula": "r_ab = sum_i (x_ia - mean_a)(x_ib - mean_b) / sqrt(sum_i (x_ia - mean_a)^2 sum_i (x_ib - mean_b)^2)",
+   "applies_to": "RTS object questions, complete answers, after RTS-N1",
+   "implementation": "aia_core.domain.sociomap.fuzzy:rts_object_correlations",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_object_correlations_reproduce_the_rts_example",
+     "what": "0.9562, 0.4447, 0.2304 round to the printed 0.96, 0.44, 0.23"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_scaling_columns_keeps_r_but_row_normalisation_changes_it",
+     "what": "order of normalisation and correlation"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_every_constant_column_is_undefined_on_every_scale_and_size",
+     "what": "a column of equal answers has no correlation on every scale 1-2..1-11 at 2..15 respondents; equality is decided on the answers, not on a rounded mean"
+    }
+   ],
+   "uncertainty": "'Correlation' is not named; Pearson reproduces the example to two decimals, Spearman does not (0.95, 0.32, 0.00; tested). Behaviour on incomplete answers is not documented because RTS requires every answer. A constant column has no correlation; that is arithmetic, not a documented RTS rule.",
+   "resolve_by": null,
+   "question": "M5"
+  },
+  {
+   "id": "RTS-O2",
+   "title": "Non-negative correlations enter the relation matrix unchanged",
+   "product": "RTS",
+   "label": "REPRODUCED_FROM_EXAMPLE",
+   "sources": [
+    {
+     "document": "RTS_DESIGNS",
+     "page": 19,
+     "section": "Matrix types, example",
+     "states": "The original answer matrix is by default converted to a relationship square matrix: 0.96 correl(X,Y), 0.44 correl(X,Z), 0.23 correl(Y,Z)."
+    }
+   ],
+   "formula": "M_ab = r_ab for r_ab >= 0",
+   "applies_to": "RTS object questions",
+   "implementation": "aia_core.domain.sociomap.fuzzy:rts_fuzzy_from_correlations",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_object_correlations_reproduce_the_rts_example",
+     "what": "the example's relation matrix holds the correlations as printed"
+    }
+   ],
+   "uncertainty": "The example has no negative correlation; RTS also says every matrix value is in 0-1 (p. 19). How a negative r is placed is unknown.",
+   "resolve_by": "An RTS export of an object question whose answers include a negatively correlated pair (two objects rated in opposite directions), with its relation matrix.",
+   "question": "M12"
+  },
+  {
+   "id": "SOMECS-D1",
+   "title": "An empty STORM field is filled with 0",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 14,
+     "section": "Data > Úvod",
+     "states": "For characteristics and object ratings every field must be filled; an unfilled field is replaced by 0."
+    }
+   ],
+   "formula": "x = 0 where empty",
+   "applies_to": "SOMECS STORM data",
+   "implementation": "aia_core.domain.sociomap.fuzzy:somecs_transform_storm",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_somecs_zero_fill_and_complete_data",
+     "what": "empty field becomes 0 before the transform"
+    }
+   ],
+   "uncertainty": "Scores an unknown answer as the lowest affinity (A4); offered only as a named policy, never a default.",
+   "resolve_by": null,
+   "question": "M5"
+  },
+  {
+   "id": "SOMECS-D2",
+   "title": "Within-row transform of STORM data",
+   "product": "SOMECS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 22,
+     "section": "Data > Vytvořit matici",
+     "states": "Normalising within one row transforms each subject's opinion onto 0-1; a subject who rated all objects equally gets 0.5 everywhere."
+    }
+   ],
+   "formula": "x'_ij = (x_ij - min_j x_ij) / (max_j x_ij - min_j x_ij); 0.5 for a constant row",
+   "applies_to": "SOMECS STORM data, complete",
+   "implementation": "aia_core.domain.sociomap.fuzzy:somecs_transform_storm",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_somecs_within_row_follows_the_help",
+     "what": "constant row gives 0.5 everywhere"
+    }
+   ],
+   "uncertainty": "Linear min-max form inferred ('transformed onto 0-1'). What consumes the transformed data -- how SOMECS builds the n x n fuzzy matrix from it -- is undocumented.",
+   "resolve_by": "A SOMECS .smp project built from a 3-subject x 3-object STORM table with 'normovat v rámci jednoho řádku', exported with its fuzzy matrix.",
+   "question": "M1"
+  },
+  {
+   "id": "SOMECS-D3",
+   "title": "Within-database transform of STORM data",
+   "product": "SOMECS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 22,
+     "section": "Data > Vytvořit matici",
+     "states": "The highest value in the database becomes 1 and the lowest 0; each subject's spectrum is kept."
+    }
+   ],
+   "formula": "x'_ij = (x_ij - min x) / (max x - min x)",
+   "applies_to": "SOMECS STORM data, complete",
+   "implementation": "aia_core.domain.sociomap.fuzzy:somecs_transform_storm",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_somecs_within_database_and_refusals",
+     "what": "highest to 1, lowest to 0"
+    }
+   ],
+   "uncertainty": "Linear between the endpoints inferred; a database of equal values undocumented (refused).",
+   "resolve_by": "As SOMECS-D2, with 'normovat v rámci celé databáze'.",
+   "question": "M1"
+  },
+  {
+   "id": "SOMECS-D4",
+   "title": "Cardinal to ordinal (ranks) within a row",
+   "product": "SOMECS",
+   "label": "OPEN",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 22,
+     "section": "Data > Vytvořit matici",
+     "states": "Each subject's opinions are converted to an order (ranks)."
+    }
+   ],
+   "formula": null,
+   "applies_to": "SOMECS STORM data",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Rank direction, ties and the scale of the ranks are not stated.",
+   "resolve_by": "As SOMECS-D2, with 'převést kardinální hodnoty na ordinální', on a row with a tie.",
+   "question": "M1"
+  },
+  {
+   "id": "SOMECS-A1",
+   "title": "Aggregated matrix = weighted mean of compatible matrices",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 31,
+     "section": "Matice > Nová Agregovaná matice",
+     "states": "Compatible = same number, names and order of elements; the aggregated matrix is a weighted mean of the partial matrices; weight 0 % leaves a matrix out."
+    }
+   ],
+   "formula": "A = sum_k w_k M_k / sum_k w_k",
+   "applies_to": "compatible fuzzy matrices",
+   "implementation": "aia_core.domain.sociomap.fuzzy:weighted_mean_fuzzy",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_weighted_mean_keeps_inputs_weights_and_the_unperformed_check",
+     "what": "weighted mean, unequal weights, zero weight, provenance kept"
+    }
+   ],
+   "uncertainty": "Implemented as a weighted mean only: SOMECS gates it by SOMECS-A2, which is not applied, and the result says so.",
+   "resolve_by": null,
+   "question": "M11"
+  },
+  {
+   "id": "SOMECS-A2",
+   "title": "Discrepancy threshold for aggregation",
+   "product": "SOMECS",
+   "label": "OPEN",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 12,
+     "section": "Slovníček pojmů > Práh diskrepance",
+     "states": "A number 0-1: 0 = matrices must be identical to aggregate, 1 = any matrices may be aggregated."
+    },
+    {
+     "document": "SOMECS_HELP",
+     "page": 32,
+     "section": "Matice > Nová Agregovaná matice",
+     "states": "The threshold sets the tolerance of similarity of matrices."
+    }
+   ],
+   "formula": null,
+   "applies_to": "aggregation",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The measure of discrepancy (max cell difference, mean, rank-based) is not stated.",
+   "resolve_by": "Two 3 x 3 matrices differing in one cell by 0.3: try aggregating at thresholds 0.2 and 0.4 in SOMECS and record which succeeds; repeat with the difference spread over three cells.",
+   "question": "M11"
+  },
+  {
+   "id": "LEGACY-R1",
+   "title": "AIA's 1-10 relation scale mapped back to [0,1]",
+   "product": "LEGACY_AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "AIA_EXPORT",
+     "page": null,
+     "section": "Object relationships and metrics",
+     "states": "Signed correlation transformed to the common 1 to 10 relationship scale; 0-1 similarity coerced as 1 + 9x (F1)."
+    }
+   ],
+   "formula": "M = (R - 1) / 9",
+   "applies_to": "legacy AIA relation matrices only",
+   "implementation": "aia_core.domain.sociomap.fuzzy:legacy_fuzzy_from_relation_1_10",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_fuzzy.py::test_legacy_1_10_bridge_inverts_f1",
+     "what": "exact inverse of F1's similarity branch"
+    }
+   ],
+   "uncertainty": "A bridge for AIA's own artifacts; not an RTS or SOMECS rule, and not to be used for new studies.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "SOMECS-C1",
+   "title": "Coherences: alpha-cut grouping",
+   "product": "SOMECS",
+   "label": "REPRODUCED_FROM_EXAMPLE",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 11,
+     "section": "Slovníček pojmů > Soudržnosti",
+     "states": "Choose the group whose lowest mutual relation is the highest; merge; toward the rest keep the lowest original relations; repeat. Example 4 x 4 gives (C, (D, (A, B)0,5)0,4)0,1."
+    }
+   ],
+   "formula": "level(G,H) = min_{g in G, h in H} min(M_gh, M_hg); merge the pair with the highest level",
+   "applies_to": "any fuzzy matrix",
+   "implementation": "aia_core.domain.sociomap.coherence:coherences",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_the_help_example_is_reproduced_exactly",
+     "what": "(C, (D, (A, B)0.5)0.4)0.1"
+    }
+   ],
+   "uncertainty": "One worked example.",
+   "resolve_by": "SOMECS 'Alfa řezy' (Info tab) for a 6 x 6 matrix with a three-way tie.",
+   "question": null
+  },
+  {
+   "id": "SOMECS-C1a",
+   "title": "Coherence ties: first pair in element order",
+   "product": "SOMECS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 11,
+     "section": "Soudržnosti example",
+     "states": "(A,B) and (B,D) both have lowest mutual relation 0.5; the help merges (A,B)."
+    }
+   ],
+   "formula": "among equal levels, the first pair (a < b) in element order",
+   "applies_to": "coherences",
+   "implementation": "aia_core.domain.sociomap.coherence:coherences",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_the_help_example_is_reproduced_exactly",
+     "what": "the help's tie resolves as (A, B)"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_without_ties_the_grouping_ignores_element_order",
+     "what": "order matters only through ties"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_reordering_a_tied_matrix_changes_membership_and_both_trees_say_a_tie_decided",
+     "what": "a tie can change membership; every tree records each tie it decided and lists SOMECS-C1a only then"
+    }
+   ],
+   "uncertainty": "One tie in one example; other rules (e.g. largest second relation) could also choose (A,B). Because a tie can change which elements group together, each output records the ties this rule decided (CoherenceTree.ties).",
+   "resolve_by": "As SOMECS-C1.",
+   "question": null
+  },
+  {
+   "id": "SOMECS-C1b",
+   "title": "Equal-level groups written as one group",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "(A, B, C)x when nested merges share level x",
+   "applies_to": "coherences",
+   "implementation": "aia_core.domain.sociomap.coherence:coherences",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_a_class_at_one_level_is_written_as_one_group",
+     "what": "flattening"
+    }
+   ],
+   "uncertainty": "The help says groups are 'usually two'; whether SOMECS writes three-way groups is unknown.",
+   "resolve_by": "As SOMECS-C1.",
+   "question": null
+  },
+  {
+   "id": "SOMECS-C2",
+   "title": "Zoom: merged elements keep the lowest relation",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 11,
+     "section": "Soudržnosti",
+     "states": "The merged elements keep toward the remaining elements the lowest of the original relations."
+    },
+    {
+     "document": "SOMECS_HELP",
+     "page": 26,
+     "section": "Matice > Zoomování",
+     "states": "Large matrices are reduced to about ten elements by merging close elements."
+    }
+   ],
+   "formula": "M'_GH = min_{g in G, h in H} M_gh (direction kept)",
+   "applies_to": "coherence classes",
+   "implementation": "aia_core.domain.sociomap.coherence:merge_classes",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_coherence.py::test_zooming_keeps_each_directions_lowest_relation",
+     "what": "directional minimum"
+    }
+   ],
+   "uncertainty": "Direction-preserving, and the minimum between two merged groups, are AIA's reading.",
+   "resolve_by": "As SOMECS-C1, via 'Dupl vybrané'.",
+   "question": null
+  },
+  {
+   "id": "SOMECS-H1",
+   "title": "H-Model: distances follow the fuzzy matrix, asymmetry kept",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 53,
+     "section": "H-Model > Úvod",
+     "states": "Points are placed so their distances in the plane correspond to the distances in the fuzzy matrix while keeping the asymmetry."
+    },
+    {
+     "document": "SOMECS_HELP",
+     "page": 10,
+     "section": "Slovníček > H-Model",
+     "states": "Elements with a high mutual relation are close; asymmetry: C is nearest to B but B is nearest to A."
+    }
+   ],
+   "formula": "qualitative",
+   "applies_to": "any fuzzy matrix",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Qualitative; the objective is not given (AIA-H8).",
+   "resolve_by": null,
+   "question": "M2"
+  },
+  {
+   "id": "QED-H2",
+   "title": "Row-conditional order criterion",
+   "product": "QED",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "CERT",
+     "page": 12,
+     "section": "1.3.2 Pořadí subjektů",
+     "states": "Points are placed, as far as possible, so that the distances from one point to the others follow the order of that person's ratings: the highest-rated nearest, the lowest-rated farthest; not always fully possible."
+    },
+    {
+     "document": "STEP_BY_STEP",
+     "page": 19,
+     "section": "7.3.5 Připomenutí -- jak číst v mapě (also p. 9, 6.5)",
+     "states": "The order of distances is key, not the actual distance."
+    }
+   ],
+   "formula": "for each r: rank of d_rs should follow the reversed rank of M_rs over s != r",
+   "applies_to": "any fuzzy matrix",
+   "implementation": "aia_core.domain.sociomap.hmodel:hmodel_accuracy",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_constant_row_has_no_per_point_fit",
+     "what": "per-point fit is this criterion, scored"
+    }
+   ],
+   "uncertainty": "States the criterion, not how rows are combined or optimised.",
+   "resolve_by": null,
+   "question": "M2"
+  },
+  {
+   "id": "SOMECS-H3",
+   "title": "H-Model accuracy = Spearman between distances and the fuzzy matrix",
+   "product": "SOMECS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 53,
+     "section": "H-Model",
+     "states": "Accuracy is measured as Spearman's rank correlation between the matrix of Euclidean distances and the fuzzy matrix; shown as a percentage."
+    },
+    {
+     "document": "SOMECS_INPUT",
+     "page": 21,
+     "section": "Figure 22",
+     "states": "One generated 10 x 10 matrix, its 2-D coordinates and a list of Spearman coefficients (0.732-0.850)."
+    }
+   ],
+   "formula": "acc = Spearman over ordered pairs r != s of (M_rs, -d_rs), average ranks",
+   "applies_to": "any fuzzy matrix and 2-D layout",
+   "implementation": "aia_core.domain.sociomap.hmodel:hmodel_accuracy",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_somecs_fig22_layout_scores_as_somecs_lists_it",
+     "what": "0.786 on SOMECS's own coordinates (rounding band 0.783-0.793) and SOMECS lists 0.785; the mean per-row alternative gives 0.723, below every listed value"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_symmetric_matrix_ordered_equals_unordered_pairs",
+     "what": "ordered and unordered pairs agree for symmetric matrices"
+    }
+   ],
+   "uncertainty": "Which list entry belongs to the displayed matrix is not shown (the list is scrolled to its top at 0.074 %), so the match is consistent, not conclusive. Sign shown positive; ties undocumented.",
+   "resolve_by": "Run 'Matrix Model Estimation' for n = 10 to completion and save its CSV (SOMECS Input p. 21): per-matrix Spearman values with their coordinates settle the definition exactly. Or export the H-Model positions and the displayed accuracy of the help's drinks example.",
+   "question": "M2"
+  },
+  {
+   "id": "AIA-H4",
+   "title": "Per-point fit = the point's own row Spearman",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 56,
+     "section": "H-Model > Nastavení",
+     "states": "The lower colour scale of each point shows how well its placement corresponds to the fuzzy matrix."
+    },
+    {
+     "document": "CERT",
+     "page": 12,
+     "section": "1.3.2",
+     "states": "The row-conditional order criterion (QED-H2)."
+    }
+   ],
+   "formula": "fit_r = Spearman over s != r of (M_rs, -d_rs); None for a constant row; mean_per_point reported separately from the overall accuracy",
+   "applies_to": "any fuzzy matrix and layout",
+   "implementation": "aia_core.domain.sociomap.hmodel:hmodel_accuracy",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_constant_row_has_no_per_point_fit",
+     "what": "undefined, with a reason"
+    }
+   ],
+   "uncertainty": "SOMECS's per-point measure is shown only as a colour bar.",
+   "resolve_by": "Export SOMECS 'Info o pozicích' and read the per-point bars for the drinks example.",
+   "question": "M2"
+  },
+  {
+   "id": "SOMECS-H5",
+   "title": "Estimation null: random symmetric matrices, each projected",
+   "product": "SOMECS",
+   "label": "INFERRED",
+   "sources": [
+    {
+     "document": "SOMECS_INPUT",
+     "page": 20,
+     "section": "Calculating the HModel Density Function",
+     "states": "A module calculates the distribution of Spearman's rank correlation coefficient."
+    },
+    {
+     "document": "SOMECS_INPUT",
+     "page": 21,
+     "section": "Figure 22",
+     "states": "Generated matrices of n dimensions (n = 10, symmetrical); each projected into 2-D; the probability distribution of the correlation between reduced-space distances and source data; CSV export."
+    }
+   ],
+   "formula": "for k = 1..K: G_k random symmetric n x n; fit an H-Model to G_k; record acc_k; report the distribution of acc_k",
+   "applies_to": "significance of an H-Model accuracy for n elements",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The generator's distribution (uniform on (0,1) suggested by the values, diagonal 1) and whether the null is matched to the observed matrix are not stated. Each generated matrix is refitted.",
+   "resolve_by": "The module's CSV for n = 10 and K >= 200.",
+   "question": "M15"
+  },
+  {
+   "id": "SOMECS-H6",
+   "title": "The best of several layouts is kept",
+   "product": "QED",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "CERT",
+     "page": 11,
+     "section": "1.2.1",
+     "states": "Of the possible placements the one that most corresponds to the original data matrix is chosen."
+    },
+    {
+     "document": "SOMECS_HELP",
+     "page": 54,
+     "section": "H-Model > Iterovat",
+     "states": "Each press finds a new placement that best corresponds; pressing again may give another one that corresponds too."
+    }
+   ],
+   "formula": "argmax over candidate layouts of the reported accuracy",
+   "applies_to": "H-Model fitting",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Number and kind of candidates unknown; AIA records its seeds.",
+   "resolve_by": null,
+   "question": "M2"
+  },
+  {
+   "id": "SOMECS-H7",
+   "title": "Positions on a 0-1 frame",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 57,
+     "section": "H-Model > Info o pozicích",
+     "states": "Positions in 0-1: (0,0) top left, (1,1) bottom right; a third column gives each point's weight 0-1."
+    },
+    {
+     "document": "SOMECS_INPUT",
+     "page": 21,
+     "section": "Figure 22",
+     "states": "Coordinates in reduced dimensions include 1.124, outside 0-1."
+    }
+   ],
+   "formula": "display frame [0,1]^2",
+   "applies_to": "layout output",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The estimation module's coordinates exceed 1, so the frame applies to display, not necessarily to fitting. Accuracy is invariant to it.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "AIA-H8",
+   "title": "H-Model fitting objective",
+   "product": "AIA",
+   "label": "OPEN",
+   "sources": [],
+   "formula": null,
+   "applies_to": "H-Model fitting",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "SOMECS's fitting objective and optimiser are not documented. What is known is how fit is reported (SOMECS-H3) and read (QED-H2), not how a layout is searched for. Under AIA's evaluator SOMECS's fig. 22 layout scores 0.786 (0.783-0.793 across the screenshot's rounding), a provisional comparison score; classical MDS (0.661) and the best of 20 nonmetric MDS runs (0.743) are baselines of the configurations tested (tools/somecs_estimation_experiment.py). The gap is consistent with an objective closer to rank agreement, and equally with more starts, another optimiser, manual adjustment or a different evaluator; one layout of one matrix cannot identify an algorithm. AIA's h_model_candidate_v1 is an experimental AIA candidate, not SOMECS's method. See docs/architecture/sociomapping-hmodel.md § 4.",
+   "resolve_by": "SOMECS's objective: exports E1/E5 or the method owner (plan M2) can narrow it; none is expected to identify it uniquely. AIA's candidate: build and evaluate per docs/architecture/sociomapping-hmodel.md § 4 -- provisional comparison on fig. 22 with its rounding band, MDS baselines, perfect fit only on planted data constructed to admit it, many independent matrices (asymmetric and tied included) fixed in advance.",
+   "question": "M2"
+  },
+  {
+   "id": "AIA-H9",
+   "title": "Experimental H-Model candidate aia_hmodel_candidate_v1",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "maximise acc = Spearman over defined ordered pairs of (v_rs, -d_rs) (aia_hmodel_accuracy_v1); per start: Pearson-on-ranks gradient ascent, then the better of {exact local search, ordinal stress with strictly increasing isotonic targets then exact local search}, with hinge repair of discordant pairs; starts: classical MDS on rank dissimilarities (also refined raw) plus seeded random; best final accuracy, ties to the earliest; frame: centred, principal axes, third moment >= 0, scaled into 0.05-0.95",
+   "applies_to": "Any DeclaredRelations (fuzzy 0-1 or signed correlations); uses relations only through their order; elements with no defined relation are listed unplaced",
+   "implementation": "aia_core.domain.sociomap.hmodel_candidate:fit_hmodel_candidate",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly",
+     "what": "accuracy 1 where a planted construction guarantees it"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_random_matrices_never_end_below_the_classical_mds_baseline",
+     "what": "never below its classical MDS start"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_signed_correlations_need_no_conversion_any_monotone_one_gives_the_same_map",
+     "what": "order-only: identical maps under monotone conversions"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_asymmetric_planted_relations_expose_pooled_versus_per_point",
+     "what": "pooled accuracy and per-point order conflict on asymmetric data"
+    }
+   ],
+   "uncertainty": "An AIA proposal, not SOMECS's method: SOMECS's objective is unknown (AIA-H8). On SOMECS Input fig. 22 it reaches 0.859 against SOMECS's displayed 0.786 (a provisional comparison under AIA's evaluator, not a target). For asymmetric relations, maximising the pooled accuracy can lower per-point fits that a layout respecting each row's order (QED-H2) would keep at 1 (tested): which criterion governs is the method owner's question (plan M2).",
+   "resolve_by": "Method owner: is the H-Model's goal the pooled rank agreement SOMECS reports, or each point's own order (QED-H2)? Exports E1/E5 compare SOMECS's layouts with the candidate's.",
+   "question": "M2"
+  },
+  {
+   "id": "AIA-D1",
+   "title": "Declared relationship matrix: values as measured, order only",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "DeclaredRelations: n x n, diagonal None, undefined pairs named with their reason, scale fuzzy_0_1 or signed_correlation; nothing clipped, shifted or imputed",
+   "applies_to": "Input to the H-Model; an H-Model uses relations only through their order, so a signed correlation needs no conversion to [0, 1] to be laid out",
+   "implementation": "aia_core.domain.sociomap.declared:declared_from_correlations",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_declared.py::test_correlations_stay_signed_and_undefined_pairs_keep_their_reason",
+     "what": "signed values and undefined pairs carried unchanged"
+    }
+   ],
+   "uncertainty": "That a layout needs only the order of relations follows from the rank-based accuracy (SOMECS-H3, inferred). Anything that reads magnitudes -- coherence levels, a 0-1 relation shown to a reader -- still needs M12 for negative correlations and refuses without it.",
+   "resolve_by": "As SOMECS-H3 and M12.",
+   "question": "M12"
+  },
+  {
+   "id": "AIA-D2",
+   "title": "Complete respondents only, the rest counted",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "a respondent enters a set's relations and heights only if they answered every object of the set; the excluded are counted overall and per object",
+   "applies_to": "research_sociomapping: RTS object correlations (RTS-O1) and average answers (RTS-W3) over fieldwork data that may have unanswered objects",
+   "implementation": "aia_core.domain.research_sociomapping:battery_sociomapping",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomapping.py::test_difficult_answers_are_kept_named_and_explained",
+     "what": "two skipped answers: 6 of 8 respondents kept, per-object counts recorded"
+    }
+   ],
+   "uncertainty": "RTS requires every answer, so it never meets the case; SOMECS fills an empty field with 0 (SOMECS-D1), which AIA does not do. Pairwise deletion would use more data but let each correlation rest on different respondents. The choice is AIA's and is recorded on every result.",
+   "resolve_by": "Method owner: complete respondents, pairwise, or another policy (M5).",
+   "question": "M5"
+  },
+  {
+   "id": "QED-W1",
+   "title": "Height = column average (received)",
+   "product": "QED",
+   "label": "REPRODUCED_FROM_EXAMPLE",
+   "sources": [
+    {
+     "document": "CERT",
+     "page": 10,
+     "section": "1.1.2 (1) Sloupcové průměry",
+     "states": "Anna received 2, 1, 3, 5, 2, 3: sum 16 / 6 = 2.66; used most often as height."
+    },
+    {
+     "document": "RTS_DESIGNS",
+     "page": 14,
+     "section": "source_height",
+     "states": "current.column.average"
+    }
+   ],
+   "formula": "h_s = mean_{r != s} M_rs",
+   "applies_to": "people questions",
+   "implementation": "aia_core.domain.sociomap.heights:column_averages",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_heights.py::test_certification_table_1_averages",
+     "what": "2.67 (printed 2.66), 2.5, 2.67 on the 1-5 scale"
+    }
+   ],
+   "uncertainty": "The printed 2.66 for 16/6 = 2.667 is truncated, not rounded; display rounding is not specified.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "QED-W2",
+   "title": "Height = row average (given)",
+   "product": "QED",
+   "label": "REPRODUCED_FROM_EXAMPLE",
+   "sources": [
+    {
+     "document": "CERT",
+     "page": 10,
+     "section": "1.1.2 (2) Řádkové průměry",
+     "states": "Anna gave 2, 3, 3, 4, 4, 4: sum 20 / 6 = 3.33."
+    }
+   ],
+   "formula": "h_r = mean_{s != r} M_rs",
+   "applies_to": "people questions",
+   "implementation": "aia_core.domain.sociomap.heights:row_averages",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_heights.py::test_certification_table_1_averages",
+     "what": "3.33, 2.83, 2 on the 1-5 scale"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "RTS-W3",
+   "title": "Object height = average answer",
+   "product": "RTS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "RTS_DESIGNS",
+     "page": 17,
+     "section": "Aggregations",
+     "states": "matrix.storm.average: value of the average answer from people to objects."
+    },
+    {
+     "document": "RTS_DESIGNS",
+     "page": 22,
+     "section": "Dictionary",
+     "states": "subcaption_map_obj: Height = average score."
+    }
+   ],
+   "formula": "h_j = mean_i x'_ij",
+   "applies_to": "RTS object questions, complete",
+   "implementation": "aia_core.domain.sociomap.heights:object_average_answers",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_heights.py::test_object_average_answers_rts_only_complete",
+     "what": "mean of RTS-scaled answers; refusals"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "QED-W4",
+   "title": "Effectiveness = quality weighted by importance",
+   "product": "QED",
+   "label": "OPEN",
+   "sources": [
+    {
+     "document": "CERT",
+     "page": 17,
+     "section": "1.5 Jak se vypočítává efektivita",
+     "states": "A table of effectiveness values (0-1) for five quality x five importance levels; 'the real formula is a rather complex equation'; ask QED."
+    },
+    {
+     "document": "RTS_DESIGNS",
+     "page": 18,
+     "section": "Functions",
+     "states": "EFFECT(quality, importance) creates an effectivity matrix."
+    }
+   ],
+   "formula": null,
+   "applies_to": "effectiveness designs",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Formula unpublished; the 5 x 5 table is a reference example to reproduce once it is known.",
+   "resolve_by": "QED supplies the EFFECT equation; the 25 table values become its fixture.",
+   "question": "M13"
+  },
+  {
+   "id": "RTS-V1",
+   "title": "Height rescale for display",
+   "product": "RTS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "CRTS_SPEC",
+     "page": 28,
+     "section": "Ovládání vizualizace",
+     "states": "No Rescale: the questionnaire's scale range; Rescale This: this map's minimum to maximum; Rescale All: across all maps in the slider."
+    },
+    {
+     "document": "RTS_DESIGNS",
+     "page": 12,
+     "section": "visual_normalize",
+     "states": "none / each (each item to 0-1) / range (all displayed items together)."
+    }
+   ],
+   "formula": "none: [scale_low, scale_high]; each: [min h, max h]; range: [min over maps, max over maps]",
+   "applies_to": "display of heights",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "RTS-L1",
+   "title": "Product minimums and limits (not statistical adequacy)",
+   "product": "RTS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "CRTS_SPEC",
+     "page": 54,
+     "section": "Spodní limity",
+     "states": "2 completed questionnaires to visualise; 3 people and 3 objects to start a project."
+    },
+    {
+     "document": "RTS_DESIGN_DESC",
+     "page": 3,
+     "section": "Limits and remarks",
+     "states": "At most 30 people or objects on a map; about 20 recommended; the more people, the harder to interpret."
+    }
+   ],
+   "formula": "display: questionnaires >= 2; launch: people >= 3, objects >= 3; map size <= 30",
+   "applies_to": "RTS product",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "These say when RTS renders, not when a result is meaningful; see AIA-S1.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "AIA-S1",
+   "title": "Statistical adequacy policy",
+   "product": "AIA",
+   "label": "OPEN",
+   "sources": [],
+   "formula": null,
+   "applies_to": "every client-facing map, height and region test",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "No source defines how much support makes a correlation, a map or a region difference meaningful. Support is recorded on every result; adequacy is decided separately.",
+   "resolve_by": "A policy decision with the method owner (e.g. minimum respondents per object question, minimum accuracy above the SOMECS-H5 null).",
+   "question": "M14"
+  },
+  {
+   "id": "SOMECS-T1",
+   "title": "Region tests: t for continuous, chi-square for discrete characteristics",
+   "product": "SOMECS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 78,
+     "section": "Mapy > Testování",
+     "states": "Region A vs complement or A vs B; p-value per characteristic; chi-square for discrete values, t-test for continuous; a low p need not mean a large difference."
+    }
+   ],
+   "formula": "t-test / chi-square per characteristic",
+   "applies_to": "STORM and WIND maps",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Which t-test (pooled or Welch) and the chi-square's table construction are not stated.",
+   "resolve_by": "A SOMECS region test on the drinks example with its p-values exported.",
+   "question": "M8"
+  },
+  {
+   "id": "RTS-A1",
+   "title": "Arrows",
+   "product": "RTS",
+   "label": "DOCUMENTED",
+   "sources": [
+    {
+     "document": "RTS_DESIGN_DESC",
+     "page": 4,
+     "section": "Communication and knowledge",
+     "states": "A single arrow when desired - current >= 2; a double arrow when both people want more."
+    },
+    {
+     "document": "RTS_DESIGN_DESC",
+     "page": 5,
+     "section": "Communication effectiveness",
+     "states": "A double arrow when at least one person rates quality 1 or 2 on 1-5."
+    },
+    {
+     "document": "RTS_DESIGN_DESC",
+     "page": 13,
+     "section": "Values",
+     "states": "An arrow between objects with a significant negative correlation."
+    }
+   ],
+   "formula": "boolean matrices over the normalised questions",
+   "applies_to": "RTS designs",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The significance test and level for negative object correlations are not stated.",
+   "resolve_by": null,
+   "question": "M12"
+  },
+  {
+   "id": "SOMECS-M1",
+   "title": "STORM placement of subjects",
+   "product": "SOMECS",
+   "label": "OPEN",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 7,
+     "section": "Slovníček > STORM Mapa",
+     "states": "Each subject is placed where its attitude to the objects is best captured: fans near their favourite, the undecided between objects, those preferring none at the edges or corners."
+    }
+   ],
+   "formula": null,
+   "applies_to": "STORM maps",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The placement rule is not given. RTS does not place respondents.",
+   "resolve_by": "SOMECS STORM map of the help's drinks data with subject positions exported.",
+   "question": "M3"
+  },
+  {
+   "id": "SOMECS-M2",
+   "title": "WIND map: heights interpolated by weighted inverse distance",
+   "product": "SOMECS",
+   "label": "OPEN",
+   "sources": [
+    {
+     "document": "SOMECS_HELP",
+     "page": 8,
+     "section": "Slovníček > WIND Mapa",
+     "states": "Weighted INverse Distance: objects placed as in the STORM map; the mass between them shows object height."
+    }
+   ],
+   "formula": null,
+   "applies_to": "WIND maps",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Exponent, radius and grid not given.",
+   "resolve_by": "SOMECS WIND map image of a 3-element matrix with heights 0, 0.5, 1 at known positions; read the colours along a line.",
+   "question": "M4"
+  }
+ ]
+}

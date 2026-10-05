@@ -295,6 +295,12 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
             elif isinstance(block, SociomapFigure):
                 if not (block.alt.strip() and block.source.strip()):
                     add(ProblemCode.FIGURE_INCOMPLETE, "a map has a source and alt text", where)
+                if (block.stress_1 is None) == (block.fit_caption is None):
+                    add(
+                        ProblemCode.FIGURE_INCOMPLETE,
+                        "a map states its fit: a stress or a fit caption, exactly one",
+                        where,
+                    )
                 if client and block.methodology_status != MethodologyStatus.CLIENT_FACING.value:
                     add(
                         ProblemCode.SOCIOMAP_NOT_APPROVED,

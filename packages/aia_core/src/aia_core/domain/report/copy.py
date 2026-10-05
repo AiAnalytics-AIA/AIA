@@ -103,6 +103,9 @@ CS: Final[dict[str, str]] = {
     "support_INDICATIVE": "orientační",
     "stress": "stres 1",
     "sociomap_internal": "interní: metodika Sociomapy není schválena pro klienta",
+    "sociomap_experimental": (
+        "experimentální metoda AIA, nikoli ověřená rekonstrukce SOMECS; jen pro interní použití"
+    ),
     "audit": "Audit",
     "audit_key": "Položka",
     "no_value": "\u2013",

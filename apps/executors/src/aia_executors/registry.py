@@ -29,6 +29,7 @@ from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
+from .sociomapping_report import sociomapping_report_registry
 
 __all__ = ["build_registry", "registry_for"]
 
@@ -53,6 +54,7 @@ def registry_for(
         **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **report_registry(store=store, build=build),
+        **sociomapping_report_registry(store=store, build=build),
         **research_registry(store=store, build=build, ai_runtime=ai_runtime),
     }
 

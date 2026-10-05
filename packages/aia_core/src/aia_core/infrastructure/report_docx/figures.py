@@ -71,8 +71,17 @@ def render_sociomap(ctx: RenderContext, container: Container, block: SociomapFig
     if ctx.client:
         require_client_facing({"methodology_status": block.methodology_status})
     number = ctx.outline.item_numbers[ctx.position]
-    stress = f"{t('stress')} = {numbers.number(round(block.stress_1, 3), 3)}"
+    if block.fit_caption is not None:
+        stress = block.fit_caption
+    else:
+        assert block.stress_1 is not None  # validation: exactly one of the two
+        stress = f"{t('stress')} = {numbers.number(round(block.stress_1, 3), 3)}"
     approved = block.methodology_status == MethodologyStatus.CLIENT_FACING.value
+    note = (
+        t("sociomap_experimental")
+        if block.methodology_status == "EXPERIMENTAL_AIA"
+        else t("sociomap_internal")
+    )
     caption(
         ctx,
         container,
@@ -82,7 +91,7 @@ def render_sociomap(ctx: RenderContext, container: Container, block: SociomapFig
         anchor=block.id,
         base_ref=None,
         grade=None,
-        extra=stress if approved else f"{stress}; {t('sociomap_internal')}",
+        extra=stress if approved else f"{stress}; {note}",
     )
     with Image.open(BytesIO(block.image_png)) as im:
         px_w, px_h = im.size

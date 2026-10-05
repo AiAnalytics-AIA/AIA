@@ -19,10 +19,11 @@ from aia_core.application.report import (
 )
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
-from aia_core.infrastructure.tables import ProjectRow, StudyRow
+from aia_core.infrastructure.tables import ProjectArtifactRow, ProjectRow, StudyRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
@@ -369,6 +370,111 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     damaged = researcher.get(f"{url}/download")
     assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
     assert artifact_status(report_id) == "CORRUPT"
+
+
+def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """Plan sociomapping-engine I3: the switch adds two steps; the result and its draft are
+    read through the run, researchers only, and an artifact that does not say it is
+    experimental is refused rather than served."""
+    revision = submit(researcher, world).json()["revision_id"]
+    plain = start(researcher, world, revision).json()
+    assert [s["node_key"] for s in plain["steps"]][-1] == "sociomap"
+    assert (
+        researcher.get(f"{_runs(world)}/{plain['run_id']}/sociomapping/report").json()["state"]
+        == "NOT_IN_RUN"
+    )
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"sociomapping_experimental_enabled": True}
+    )
+    run = start(researcher, world, revision).json()
+    run_id = run["run_id"]
+    assert run_id != plain["run_id"]  # a different graph is a different run
+    assert [s["node_key"] for s in run["steps"]][-2:] == ["sociomapping", "sociomapping_report"]
+    url = f"{_runs(world)}/{run_id}/sociomapping/report"
+    status = researcher.get(url).json()
+    assert status["method_status"] == "EXPERIMENTAL_AIA" and status["internal_only"] is True
+    assert researcher.get(f"{url}/download").status_code == 404
+
+    document = b"PK\x03\x04sociomapping-draft-test"
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        research = research_artifacts(session, scope, app.state.artifact_store)
+        ids: dict[str, str] = {}
+        while (work := workflow.claim_next(worker_id="sociomapping-fixture")) is not None:
+            output: dict[str, Any] = {}
+            if work.node_key == "sociomapping":
+                artifact, _ = research.put_json(
+                    payload={"kind": "research_sociomapping", "sociomapping": {"batteries": []}},
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="ANALYSIS",
+                    artifact_type="research_sociomapping",
+                    input_fingerprint="sociomapping-route-test",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={"run_id": run_id, "method_status": "EXPERIMENTAL_AIA"},
+                )
+                ids["result"] = artifact.artifact_id
+                output = {"artifact_id": artifact.artifact_id}
+            if work.node_key == "sociomapping_report":
+                artifact, _ = research.put(
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="REPORT",
+                    artifact_type=SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
+                    data=document,
+                    content_type=INTERNAL_REPORT_MEDIA_TYPE,
+                    input_fingerprint="sociomapping-report-route-test",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={
+                        "run_id": run_id,
+                        "report_kind": "internal",
+                        "review_state": "DRAFT_UNAPPROVED",
+                        "method_status": "EXPERIMENTAL_AIA",
+                        "client_facing": False,
+                        "synthetic": True,
+                    },
+                )
+                ids["report"] = artifact.artifact_id
+                output = {"artifact_id": artifact.artifact_id}
+            workflow.complete_attempt(
+                work.attempt_id, worker_id="sociomapping-fixture", output=output
+            )
+        session.commit()
+
+    result = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{ids['result']}")
+    assert result.status_code == 200, result.text
+    assert result.json()["payload"]["kind"] == "research_sociomapping"
+    listed = researcher.get(url).json()
+    assert listed["state"] == "READY" and listed["artifact_id"] == ids["report"]
+    assert listed["review_state"] == "DRAFT_UNAPPROVED" and listed["synthetic"] is True
+    downloaded = researcher.get(f"{url}/download")
+    assert downloaded.status_code == 200 and downloaded.content == document
+    assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
+    assert "sociomapping-experimental-draft.docx" in downloaded.headers["content-disposition"]
+    assert outsider.get(f"{url}/download").status_code == 200  # ADR 0019: any member
+    other = f"{_runs(world, 'other_client')}/{run_id}/sociomapping/report"
+    assert other_client_lead.get(f"{other}/download").status_code == 404
+
+    # A draft whose metadata stopped saying it is experimental is not served.
+    with factory() as session:
+        row = session.get(ProjectArtifactRow, ids["report"])
+        assert row is not None
+        row.artifact_metadata = {**row.artifact_metadata, "client_facing": True}
+        session.commit()
+    refused = researcher.get(f"{url}/download")
+    assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
 
 
 def test_starting_needs_a_revision_of_this_study_not_a_grant(

@@ -46,6 +46,7 @@ import {
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { SociomappingView } from "./SociomappingView";
 
 const POLL_MS = 2000;
 const usd = (n: number) => `${n.toFixed(2)} USD`;
@@ -640,8 +641,10 @@ function Table({ table }: { table: ResultTable }) {
 
 export function ResultsStep() {
   const [run] = useRun();
+  const frame = useFrame();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
+  const sociomapping = useArtifact(run, "sociomapping");
   const report = run?.steps.some((step) => step.kind === "research_report")
     ? <InternalReport key={run.run_id} run={run} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
@@ -671,6 +674,15 @@ export function ResultsStep() {
           <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
+        </Card>
+      ) : null}
+      {sociomapping && sociomapping.state !== "hidden" ? (
+        <Card title={t("research.exec.results.sociomapping")} tone="notice">
+          {sociomapping.state === "ready" ? (
+            <SociomappingView artifact={sociomapping.value} run={run} studyId={frame.studyId} canEdit={frame.canEdit} />
+          ) : null}
+          {sociomapping.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
+          {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
         </Card>
       ) : null}
       {run.steps.some((step) => step.kind === "research_analysis") ? <AnalysisResults key={run.run_id} run={run} /> : null}

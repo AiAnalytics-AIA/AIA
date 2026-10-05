@@ -292,16 +292,19 @@ class Figure:
 class SociomapFigure:
     """A Sociomap image. Rendered only through ``require_client_facing`` (fails closed).
 
-    ``image_png`` is the rendered map; the stress it reports is printed with it.
+    ``image_png`` is the rendered map; the fit it reports is printed with it: the engine's
+    stress (``stress_1``) or, for a method whose fit is not a stress, ``fit_caption`` --
+    written by code from the stored diagnostics. Exactly one is given.
     """
 
     id: str
     title: str
     image_png: bytes
     methodology_status: str
-    stress_1: float
+    stress_1: float | None
     source: str
     alt: str
+    fit_caption: str | None = None
 
 
 # ---------------------------------------------------------------------- furniture

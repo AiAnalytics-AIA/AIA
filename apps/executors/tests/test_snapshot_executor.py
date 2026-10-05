@@ -16,6 +16,8 @@ from aia_core.domain.workflow_templates import (
     REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
+    SOCIOMAPPING_REPORT_STEP_KIND,
+    SOCIOMAPPING_STEP_KIND,
     UnknownWorkflowType,
     steps_for_workflow,
 )
@@ -32,7 +34,9 @@ from aia_worker.worker import Worker
 from sqlalchemy.orm import Session, sessionmaker
 
 # Every research step has an executor (ADR 0016).
-PRODUCTION_RESEARCH_KINDS = list(RESEARCH_KINDS.values())
+# The research steps, then the experimental Sociomapping step (in the graph only when a run
+# was started with it, but always registered, like the AI steps).
+PRODUCTION_RESEARCH_KINDS = [*RESEARCH_KINDS.values(), SOCIOMAPPING_STEP_KIND]
 
 
 def _start(world: Any, **kwargs: Any) -> str:
@@ -79,6 +83,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
         REPORT_STEP_KIND,
+        SOCIOMAPPING_REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
@@ -207,5 +212,6 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         *DEEP_RESEARCH_KINDS.values(),
         KIND,
         REPORT_STEP_KIND,
+        SOCIOMAPPING_REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
     ]

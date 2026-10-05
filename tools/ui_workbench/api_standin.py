@@ -56,6 +56,9 @@ def build(
         storage_backend="filesystem",
         storage_root=str(artifacts or db.parent / "artifacts"),
         research_fieldwork_source=fieldwork,
+        # The experimental Sociomapping (plan sociomapping-engine I1-I5) runs here: no model,
+        # fictional fieldwork, and every result marked EXPERIMENTAL_AIA.
+        sociomapping_experimental_enabled=True,
     )
     app = create_app(settings)
     return app, Base, seed_develop, Session

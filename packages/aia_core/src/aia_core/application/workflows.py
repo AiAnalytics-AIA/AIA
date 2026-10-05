@@ -56,6 +56,7 @@ def start_workflow(
     step_inputs: dict[str, dict[str, Any]] | None = None,
     owner: str | None = None,
     analysis_enabled: bool = False,
+    sociomapping_enabled: bool = False,
 ) -> StartedRun:
     """Create a run of ``workflow_type`` against a revision of the project.
 
@@ -79,7 +80,10 @@ def start_workflow(
     revision = project.current_revision if revision is None else revision
     content = projects.content(project_id, revision)
     steps = steps_for_workflow(
-        workflow_type, project_type=project.project_type, analysis_enabled=analysis_enabled
+        workflow_type,
+        project_type=project.project_type,
+        analysis_enabled=analysis_enabled,
+        sociomapping_enabled=sociomapping_enabled,
     )
 
     # The step's input fingerprint is the content it will describe, so a re-run
