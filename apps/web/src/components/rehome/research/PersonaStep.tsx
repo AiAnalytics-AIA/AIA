@@ -1,6 +1,8 @@
 "use client";
 
-// 5. Dimenze, rebuilt (research-flow-rehome.md, chunk 6): the classic
+// 5. Dimenze, rebuilt (research-flow-rehome.md, chunk 6) and drawn as Studio v3
+// (studio-v3.md, chunk 7: grouped checklists, the selection and the sample beside
+// them, the dock): the classic
 // renderPersona reassignment (:979) under its 1793 wrapper -- the fixed base,
 // the dimension catalogue, a dimension request, the sample, and the model's
 // proposed new dimensions. What each control does to the project is
@@ -14,7 +16,7 @@
 // licensed panel, its Data Library): the screen says they are not in AIA.
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { workspace } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
@@ -53,12 +55,11 @@ import {
   withApproval,
 } from "@/research/persona";
 import { Icon } from "../icons";
-import { Button, Chip, Field, TextInput } from "../ui";
+import { ActionDock, StepSection } from "../step";
+import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
-const CARD = "rounded-md border border-border bg-surface-raised p-5";
-const EYEBROW = "font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -143,163 +144,250 @@ export function PersonaStep() {
     router.push(stepHref("run"));
   };
 
+  const visible = entries.filter((d) => matchesDimensionSearch(d, query));
+  const recommendedRows = visible.filter((d) => suggested.has(d.id));
+  const catalogRows = visible.filter((d) => !suggested.has(d.id));
+  const toggle = (id: string) => apply(chosen.has(id) ? removeDimension(store.get().project, id) : addDimension(store.get().project, id));
+  const n = Number(p.n) || r.n;
+
   return (
-    <div className="flex max-w-6xl flex-col gap-4">
-      <section className={CARD} aria-labelledby="per-base">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <div className={EYEBROW}>{t("research.persona.baseTag")}</div>
-            <h2 id="per-base" className="mt-1 text-base font-semibold">{t("research.persona.baseTitle")}</h2>
+    <div className="flex max-w-[82.5rem] flex-wrap items-start gap-6">
+      <aside aria-label={t("research.persona.asideLabel")} className="sticky top-60 order-2 flex flex-[1_1_280px] flex-col gap-4">
+        <section aria-labelledby="per-chosen" className="rounded-card border border-border bg-surface-raised p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="per-chosen" className="text-sm font-semibold">{t("research.persona.chosenTitle")}</h2>
+            <span className="rounded-pill bg-signal-wash px-2 font-mono text-xs leading-5 text-signal">{approved.length}</span>
           </div>
-          <Chip tone="done">{t("research.persona.baseChip")}</Chip>
-        </div>
-        <p className="mt-2 text-sm leading-6 text-ink-muted">{t("research.persona.baseIntro")}</p>
-      </section>
-
-      {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
-
-      <section className={CARD} aria-labelledby="per-catalog">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <div className={EYEBROW}>{t("research.persona.catalogTag")}</div>
-            <h2 id="per-catalog" className="mt-1 text-base font-semibold">{t("research.persona.catalogTitle")}</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button small icon="assistant" disabled={step.busy} onClick={() => void suggest()}>{t("research.persona.suggest")}</Button>
-            <Button small variant="quiet" onClick={() => apply(autofill(store.get().project))}>{t("research.persona.autofill")}</Button>
-          </div>
-        </div>
-
-        <ul className="mt-3 flex flex-wrap gap-1.5" aria-label={t("research.persona.catalogTitle")}>
-          {approved.length ? (
-            approved.map((id) => (
-              <li key={id} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
-                {labels[id] || id}
-                <button
-                  type="button"
-                  aria-label={tv("research.persona.remove", { label: labels[id] || id })}
-                  onClick={() => apply(removeDimension(store.get().project, id))}
-                  className="rounded-sm px-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
-                >
-                  ×
-                </button>
-              </li>
-            ))
-          ) : (
-            <li className="text-xs text-ink-muted">{t("research.persona.noneSelected")}</li>
-          )}
-        </ul>
-
-        <div className="mt-3">
-          <TextInput aria-label={t("research.persona.searchLabel")} placeholder={t("research.persona.search")} value={query} onChange={(e) => setQuery(e.target.value)} />
-          <ul className="mt-2 grid gap-1 sm:grid-cols-2">
-            {entries.filter((d) => matchesDimensionSearch(d, query)).map((d) => {
-              const on = chosen.has(d.id);
-              return (
-                <li key={d.id}>
+          <ul className="mt-3 flex flex-col gap-1" aria-label={t("research.persona.catalogTitle")}>
+            <li className="flex items-center gap-2 rounded-control bg-surface-sunken px-2.5 py-1.5 text-[13px]">
+              <Icon name="pin" size={12} className="text-ink-faint" />
+              <span className="flex-1">{t("research.persona.baseRow")}</span>
+            </li>
+            {approved.length ? (
+              approved.map((id) => (
+                <li key={id} className="flex items-center gap-2 rounded-control border border-border px-2.5 py-1 text-[13px]">
+                  <span className="min-w-0 flex-1 truncate">{labels[id] || id}</span>
                   <button
                     type="button"
-                    aria-pressed={on}
-                    onClick={() => apply(on ? removeDimension(store.get().project, d.id) : addDimension(store.get().project, d.id))}
-                    className={`flex w-full items-center justify-between gap-2 rounded-sm border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash" : "border-border bg-surface hover:bg-surface-sunken"}`}
+                    aria-label={tv("research.persona.remove", { label: labels[id] || id })}
+                    onClick={() => apply(removeDimension(store.get().project, id))}
+                    className="rounded-sm px-1 text-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
-                    <span className="min-w-0">
-                      <b className="block text-sm">{d.label}</b>
-                      <small className="text-xs text-ink-muted">
-                        {d.source}
-                        {suggested.has(d.id) ? t("research.persona.recommended") : ""}
-                      </small>
-                    </span>
-                    <Chip tone={on ? "done" : "neutral"}>{on ? t("research.persona.selected") : t("research.persona.add")}</Chip>
+                    ×
                   </button>
                 </li>
-              );
-            })}
-          </ul>
-        </div>
-
-        <details className="mt-4 rounded-sm border border-border bg-surface p-3">
-          <summary className="cursor-pointer text-sm">
-            <b>{t("research.persona.customSummary")}</b> <span className="text-xs text-ink-muted">{t("research.persona.customSecondary")}</span>
-          </summary>
-          <div className="mt-3 flex flex-wrap items-end gap-2">
-            <Field label={t("research.persona.customLabel")} className="min-w-64 flex-1">
-              <TextInput value={custom} placeholder={t("research.persona.customPlaceholder")} onChange={(e) => setCustom(e.target.value)} />
-            </Field>
-            <Button disabled={requesting} onClick={() => void requestCustom()}>{t("research.persona.customAdd")}</Button>
-          </div>
-          <p className="mt-2 text-xs leading-5 text-ink-muted">{t("research.persona.customHelper")}</p>
-        </details>
-        {requestError ? (
-          <p role="alert" className="mt-3 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">
-            <b>{t("research.persona.requestFailedTitle")}</b> {requestError}
-          </p>
-        ) : null}
-        {requested.length ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
+              ))
+            ) : (
+              <li className="text-xs text-ink-muted">{t("research.persona.noneSelected")}</li>
+            )}
             {requested.map((label, i) => (
-              <Chip key={`${label}-${i}`} tone="you">{tv("research.persona.waiting", { label })}</Chip>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section className={CARD} aria-labelledby="per-sample">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <div className={EYEBROW}>{t("research.persona.sampleTag")}</div>
-            <h2 id="per-sample" className="mt-1 text-base font-semibold">{t("research.persona.sampleTitle")}</h2>
-          </div>
-          <Chip tone="done">{tv("research.persona.sampleChip", { n: r.n })}</Chip>
-        </div>
-        <p className="mt-2 text-sm text-ink-muted">{r.why}</p>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <SampleInput
-            key={Number(p.n) || r.n}
-            value={Number(p.n) || r.n}
-            onCommit={(raw) => {
-              const c = setSampleSize(store.get().project, raw);
-              apply(c);
-              return Number(c.project.n);
-            }}
-          />
-          <Button onClick={() => apply(applyRecommendedSample(store.get().project))}>{tv("research.persona.sampleUse", { n: r.n })}</Button>
-        </div>
-      </section>
-
-      {/* The 1793 society-factor card is drawn from 18.6.6's licensed panel: not in AIA. */}
-      <section className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-5" aria-labelledby="per-factors">
-        <div className={EYEBROW}>{t("research.persona.factorsTag")}</div>
-        <h2 id="per-factors" className="mt-1 text-base font-semibold">{t("research.persona.factorsNotInAiaTitle")}</h2>
-        <p className="mt-2 text-sm leading-6">{t("research.persona.factorsNotInAia")}</p>
-      </section>
-
-      {suggestion?.new_dimension_suggestions?.length ? (
-        <section className={CARD} aria-labelledby="per-new">
-          <h2 id="per-new" className="text-base font-semibold">{t("research.persona.newTitle")}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t("research.persona.newHelper")}</p>
-          <ul className="mt-3 flex flex-col gap-2">
-            {suggestion.new_dimension_suggestions.map((x, i) => (
-              <li key={`${x.label}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-border bg-surface p-3">
-                <div className="min-w-0">
-                  <b className="text-sm">{String(x.label ?? "")}</b>
-                  <div className="text-xs text-ink-muted">{tv("research.persona.newWhy", { why: String(x.why ?? ""), evidence: String(x.evidence_needed ?? "") })}</div>
-                  <div className="text-xs text-ink-muted">
-                    {tv("research.persona.newPredictors", { list: (x.suggested_predictors || []).join(", ") || t("research.persona.newPredictorsNone") })}
-                  </div>
-                </div>
-                <Button small disabled={requesting} onClick={() => requestSuggested(x)}>{t("research.persona.newRequest")}</Button>
+              <li key={`${label}-${i}`} className="rounded-control border border-dashed border-status-you-ink/50 bg-status-you-wash px-2.5 py-1 text-[13px] text-status-you-ink">
+                {tv("research.persona.waiting", { label })}
               </li>
             ))}
           </ul>
         </section>
-      ) : null}
 
-      <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
-        <Button variant="primary" onClick={toRun}>
-          {t("research.persona.next")}
-          <Icon name="next" size={14} />
-        </Button>
+        <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.persona.sampleChip", { n: r.n })}</span>
+          </div>
+          <div className="mt-3">
+            <SampleInput
+              key={n}
+              value={n}
+              onCommit={(raw) => {
+                const c = setSampleSize(store.get().project, raw);
+                apply(c);
+                return Number(c.project.n);
+              }}
+            />
+          </div>
+          <SampleSlider key={`s-${n}`} value={n} recommended={r.n} onCommit={(v) => apply(setSampleSize(store.get().project, String(v)))} />
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              aria-label={tv("research.persona.sampleUse", { n: r.n })}
+              aria-pressed={n === r.n}
+              onClick={() => apply(applyRecommendedSample(store.get().project))}
+              className={`${PRESET} ${n === r.n ? PRESET_ON : ""}`}
+            >
+              {tv("research.persona.presetRecommended", { n: r.n })}
+            </button>
+            {[400, 800, 1200].filter((x) => x !== r.n).map((x) => (
+              <button key={x} type="button" aria-pressed={n === x} onClick={() => apply(setSampleSize(store.get().project, String(x)))} className={`${PRESET} ${n === x ? PRESET_ON : ""}`}>
+                {x}
+              </button>
+            ))}
+          </div>
+          <p className={`mt-3 text-xs leading-[18px] ${n < r.n ? "text-status-you-ink" : "text-ink-muted"}`}>
+            {n < r.n ? tv("research.persona.sampleBelow", { n: r.n }) : r.why}
+          </p>
+        </section>
+      </aside>
+
+      <div className="order-1 flex min-w-0 flex-[999_1_520px] flex-col gap-4">
+        {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
+
+        <StepSection
+          n={1}
+          lead
+          title={t("research.persona.catalogTitle")}
+          hint={t("research.persona.baseIntro")}
+          aside={<AiButton small disabled={step.busy} onClick={() => void suggest()}>{t("research.persona.suggest")}</AiButton>}
+        >
+          <label className="flex items-center gap-2 rounded-control border border-border-strong bg-surface-raised px-2.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
+            <Icon name="search" size={14} className="text-ink-muted" />
+            <input
+              aria-label={t("research.persona.searchLabel")}
+              placeholder={t("research.persona.search")}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="min-h-[34px] min-w-0 flex-1 border-0 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+            />
+          </label>
+          {visible.length ? (
+            <>
+              {recommendedRows.length ? (
+                <DimensionGroup
+                  title={t("research.persona.groupRecommended")}
+                  action={<Button small variant="quiet" onClick={() => apply(autofill(store.get().project))}>{t("research.persona.autofill")}</Button>}
+                  rows={recommendedRows}
+                  chosen={chosen}
+                  suggested={suggested}
+                  onToggle={toggle}
+                />
+              ) : null}
+              {catalogRows.length ? <DimensionGroup title={t("research.persona.groupCatalog")} rows={catalogRows} chosen={chosen} suggested={suggested} onToggle={toggle} /> : null}
+            </>
+          ) : (
+            <p className="mt-3 text-sm text-ink-muted">{t("research.persona.noMatch")}</p>
+          )}
+        </StepSection>
+
+        {suggestion?.new_dimension_suggestions?.length ? (
+          <section className="rounded-card border border-border border-l-[3px] border-l-signal bg-surface-raised p-5" aria-labelledby="per-new">
+            <h2 id="per-new" className="text-base font-semibold">{t("research.persona.newTitle")}</h2>
+            <p className="mt-1 text-[13px] text-ink-muted">{t("research.persona.newHelper")}</p>
+            <ul className="mt-3 flex flex-col gap-2">
+              {suggestion.new_dimension_suggestions.map((x, i) => (
+                <li key={`${x.label}-${i}`} className="flex flex-wrap items-center justify-between gap-2 rounded-control border border-border bg-surface p-3">
+                  <div className="min-w-0">
+                    <b className="text-sm">{String(x.label ?? "")}</b>
+                    <div className="text-xs text-ink-muted">{tv("research.persona.newWhy", { why: String(x.why ?? ""), evidence: String(x.evidence_needed ?? "") })}</div>
+                    <div className="text-xs text-ink-muted">
+                      {tv("research.persona.newPredictors", { list: (x.suggested_predictors || []).join(", ") || t("research.persona.newPredictorsNone") })}
+                    </div>
+                  </div>
+                  <Button small className="!rounded-control" disabled={requesting} onClick={() => requestSuggested(x)}>{t("research.persona.newRequest")}</Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        <StepSection n={2} optional title={t("research.persona.customSummary")} hint={t("research.persona.customHelper")}>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label={t("research.persona.customLabel")} className="min-w-64 flex-1">
+              <TextInput className="w-full !rounded-control" value={custom} placeholder={t("research.persona.customPlaceholder")} onChange={(e) => setCustom(e.target.value)} />
+            </Field>
+            <Button className="!rounded-control" disabled={requesting} onClick={() => void requestCustom()}>{t("research.persona.customAdd")}</Button>
+          </div>
+          {requestError ? (
+            <p role="alert" className="mt-3 rounded-control border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">
+              <b>{t("research.persona.requestFailedTitle")}</b> {requestError}
+            </p>
+          ) : null}
+          {/* The 1793 society-factor card is drawn from 18.6.6's licensed panel: not in AIA. */}
+          <section className="mt-4 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3" aria-labelledby="per-factors">
+            <h3 id="per-factors" className="text-sm font-semibold">{t("research.persona.factorsNotInAiaTitle")}</h3>
+            <p className="mt-1 text-[13px] leading-5">{t("research.persona.factorsNotInAia")}</p>
+          </section>
+        </StepSection>
+
+        <ActionDock
+          back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
+          note={tv("research.persona.dockNote", { d: approved.length, n })}
+        >
+          <Button variant="primary" className="!rounded-control" onClick={toRun}>
+            {t("research.persona.next")}
+            <Icon name="next" size={14} />
+          </Button>
+        </ActionDock>
+      </div>
+    </div>
+  );
+}
+
+const PRESET = "rounded-pill border border-border bg-surface px-2.5 font-mono text-xs leading-6 text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
+const PRESET_ON = "!border-signal bg-signal-wash font-semibold text-signal";
+
+/** One group of the catalogue as a checklist: a row per dimension, toggled by a click. */
+function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {
+  title: string;
+  action?: ReactNode;
+  rows: { id: string; label: string; source: string }[];
+  chosen: Set<string>;
+  suggested: Set<string>;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="mt-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[13px] font-semibold">{title}</h3>
+        {action}
+      </div>
+      <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-control border border-border">
+        {rows.map((d) => {
+          const on = chosen.has(d.id);
+          return (
+            <li key={d.id}>
+              <button
+                type="button"
+                aria-pressed={on}
+                onClick={() => onToggle(d.id)}
+                className={`flex w-full items-center gap-3 px-3 py-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold" : "bg-surface-raised hover:bg-surface-sunken"}`}
+              >
+                <span aria-hidden="true" className={`inline-flex size-4 shrink-0 items-center justify-center rounded-sm border ${on ? "border-signal bg-signal text-on-signal" : "border-border-strong bg-surface-raised"}`}>
+                  {on ? <Icon name="done" size={12} /> : null}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm">{d.label}</span>
+                  <small className="block text-xs font-normal text-ink-muted">
+                    {d.source}
+                    {suggested.has(d.id) ? t("research.persona.recommended") : ""}
+                  </small>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** The sample as a slider (200–2 000, step 50) with the recommendation marked; it commits on release. */
+function SampleSlider({ value, recommended, onCommit }: { value: number; recommended: number; onCommit: (v: number) => void }) {
+  const [v, setV] = useState(Math.max(200, Math.min(2000, value)));
+  const pos = (x: number) => `${((Math.max(200, Math.min(2000, x)) - 200) / 1800) * 100}%`;
+  return (
+    <div className="mt-3">
+      <input
+        type="range"
+        min={200}
+        max={2000}
+        step={50}
+        value={v}
+        aria-label={t("research.persona.sampleSlider")}
+        onChange={(e) => setV(Number(e.target.value))}
+        onPointerUp={() => v !== value && onCommit(v)}
+        onKeyUp={() => v !== value && onCommit(v)}
+        className="w-full accent-signal"
+      />
+      <div aria-hidden="true" className="relative h-4 text-[10px] text-ink-faint">
+        <span className="absolute -translate-x-1/2 font-mono" style={{ left: pos(recommended) }}>▲ {recommended}</span>
       </div>
     </div>
   );
@@ -312,8 +400,9 @@ function SampleInput({ value, onCommit }: { value: number; onCommit: (raw: strin
     if (draft !== String(value)) setDraft(String(onCommit(draft)));
   };
   return (
-    <Field label={t("research.persona.sampleLabel")} className="w-48">
+    <Field label={t("research.persona.sampleLabel")} className="w-full">
       <TextInput
+        className="w-full !rounded-control"
         type="number"
         min={50}
         max={5000}

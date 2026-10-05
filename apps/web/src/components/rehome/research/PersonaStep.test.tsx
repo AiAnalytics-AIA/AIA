@@ -76,7 +76,8 @@ describe("Dimenze", () => {
   it("draws the fixed base, the recommended dimensions, and the catalogue with the client's own", async () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Sociodemografie a reprezentativní výběr" })).toBeTruthy();
+    // Studio v3: the fixed base is the first, pinned row of the selection.
+    expect(await screen.findByText("Sociodemografie · vždy zapnuto")).toBeTruthy();
     // No approval yet: the recommended set is drawn (OI-54).
     expect(screen.getByRole("button", { name: "Odebrat dimenzi Zdraví" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Odebrat dimenzi Média a informační chování" })).toBeTruthy();
@@ -85,8 +86,13 @@ describe("Dimenze", () => {
     expect(row.textContent).toContain("Znalosti klienta");
     expect(screen.queryByRole("button", { name: /Není dimenze/ })).toBeNull();
     expect(screen.getByRole("button", { name: /^Zdraví/ }).textContent).toContain("doporučeno pro tento projekt");
+    // Recommended dimensions and the catalogue are two groups of the checklist.
+    expect(screen.getByRole("heading", { name: "Doporučeno pro tento projekt" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Katalog systému" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Hledat dimenzi"), { target: { value: "znalosti" } });
     expect(screen.queryByRole("button", { name: /^Zdraví/ })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Hledat dimenzi"), { target: { value: "žádná taková" } });
+    expect(screen.getByText(/Hledání nic nenašlo/)).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Hledat dimenzi"), { target: { value: "AI" } });
     expect(screen.getByRole("button", { name: /Vztah k AI/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Další · kontrola" })).toBeTruthy();
@@ -182,6 +188,19 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
     expect((await screen.findByRole("alert")).textContent).toContain("does not permit proposing knowledge");
     expect(saves).toEqual([]);
+  });
+
+  it("the sample: a preset is the same change as typing it, and below the recommendation says so", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "800" }));
+    await savedWith("sample_n_1789");
+    expect(lastSave().content.n).toBe(800);
+    expect(screen.getByText(/^\d+ dimenzí · N=800$/)).toBeTruthy(); // the dock's note
+    const n = screen.getByLabelText("Počet respondentů") as HTMLInputElement;
+    fireEvent.change(n, { target: { value: "100" } });
+    fireEvent.blur(n);
+    expect(await screen.findByText(/Pod doporučeným N=300/)).toBeTruthy();
   });
 
   it("the sample: clamped when it is committed, and the recommendation", async () => {
