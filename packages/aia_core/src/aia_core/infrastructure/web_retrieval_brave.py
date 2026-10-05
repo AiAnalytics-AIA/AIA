@@ -19,10 +19,12 @@ runs, so every failure is a :class:`ToolCallFailed` stating its
 
 The subscription key is held as a *credential reference*
 (:class:`~aia_core.infrastructure.model_adapters.transport.CredentialSource`),
-resolved for each request, before anything is looked up or sent, and placed
-only in the ``X-Subscription-Token`` header handed to the transport. No message,
-repr or exception this module raises carries it: every failure message is a
-fixed sentence, never the text of an underlying exception.
+by default :data:`BRAVE_CREDENTIAL_REF`, which ``EnvironmentCredentials`` reads
+from ``AIA_DEEP_RESEARCH_BRAVE_API_KEY``. It is resolved for each request, before
+anything is looked up or sent, and placed only in the ``X-Subscription-Token``
+header handed to the transport. No message, repr or exception this module raises
+carries it: every failure message is a fixed sentence, never the text of an
+underlying exception.
 
 The transport, :class:`BraveHttpsTransport`, follows the pinned-IP pattern of
 ``web_retrieval_live.PinnedHttpsTransport``: it connects to the checked address,
@@ -62,6 +64,7 @@ from .web_retrieval import FetchedResponse, Resolver, SearchResponse, ToolCallFa
 
 __all__ = [
     "BRAVE_API_HOST",
+    "BRAVE_CREDENTIAL_REF",
     "BRAVE_ENDPOINT",
     "BRAVE_SEARCH_ID",
     "MAX_BRAVE_COUNT",
@@ -73,6 +76,8 @@ __all__ = [
 ]
 
 BRAVE_SEARCH_ID: Final = "brave-web-search-1"
+#: Where a deployment keeps the subscription key: the reference, never the key.
+BRAVE_CREDENTIAL_REF: Final = "env:AIA_DEEP_RESEARCH_BRAVE_API_KEY"
 BRAVE_API_HOST: Final = "api.search.brave.com"
 BRAVE_ENDPOINT: Final = f"https://{BRAVE_API_HOST}/res/v1/web/search"
 #: Brave's largest ``count`` for web results.
@@ -190,7 +195,7 @@ class BraveSearch:
         self,
         *,
         credentials: CredentialSource,
-        credential_ref: str,
+        credential_ref: str = BRAVE_CREDENTIAL_REF,
         resolver: Resolver,
         transport: BraveTransport,
         lang: str = "cs",
