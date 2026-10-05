@@ -737,6 +737,9 @@ them. (c) (b), but reassign rather than refuse, which needs a product rule for
 who inherits.
 
 **Status.** Open. A product/security decision, not an engineering one.
+**2026-10-05:** since ADR 0019 there are no client or study grants (dropped by #120), so the
+only re-check left to decide is that the triggerer is still active and still a member of the
+organization; and any Researcher, not only a LEAD, can cancel the run.
 
 ---
 
@@ -2882,3 +2885,84 @@ The data owner decides; nothing changes until then.
 
 **Status.** Open. It needs an answer before the cutover only if the host's dry run lists a
 closed Study.
+
+## OI-82 · Requirement · A Knowledge change an AI writes will need its own approval-ledger row
+
+**Claim.** ADR 0019 gate 1 records every accept of what the AI produced in the approval ledger.
+Today the only AI proposal is a research agent's design proposal, and its accept is recorded
+(`subject_type = 'ai_proposal'`, #123). No code path lets an AI author a Knowledge proposal, so
+`ClientKnowledgeRepository.decide` writes no such row, on purpose: every Knowledge proposal is a
+person's, and recording it as the AI's would stamp a guess.
+
+**Anchor.** `propose_from_study` has two callers, a person's route
+(`apps/api/src/aia_api/routers/workspace.py:1225 @ 0c42547`) and the develop seed
+(`packages/aia_core/src/aia_core/application/develop_seed.py:453 @ 0c42547`); no executor
+proposes Knowledge. The design accept's row: `WorkflowRepository.record_ai_proposal_acceptance`
+(`packages/aia_core/src/aia_core/infrastructure/workflow_repository.py @ b643a70`).
+
+**Reproduction.** Not a defect today: there is nothing to record.
+`grep -rn "propose_from_study\|\.propose(" --include=*.py packages apps` lists the callers.
+
+**Consequence.** None yet. The day an executor proposes Knowledge, its accepts will be missing
+from the ledger unless that change adds them.
+
+**Smallest fix.** In the change that first lets an AI propose Knowledge: mark the proposal as
+AI-authored, and make `decide` write one `ai_proposal` row for it, in the same transaction.
+
+**Test that would catch it.** The one #123 added for design accepts
+(`apps/executors/tests/test_research_agent_executor.py`
+› `test_worker_stores_proposal_and_review_creates_a_new_revision`), written for Knowledge.
+
+**Status.** Open, waiting on the first AI author of Knowledge. Plan
+`two-roles-human-ai-gates.md` § Findings.
+
+## OI-83 · Finding · `deploy.sh` replaces the services before it knows the new API is healthy, and does not roll back
+
+**Claim.** `deploy/develop/bin/deploy.sh` stops the running services and starts the new ones,
+then waits on `compose up --wait`. When the new API never becomes healthy, the deploy fails and
+leaves the site without an API; it does not restore the previous SHA.
+
+**Anchor.** `deploy/develop/bin/deploy.sh:91 @ 063a3cf`
+(`up -d --remove-orphans --wait --wait-timeout 180`, with nothing after a failure that restores
+the previous services); PR #122, Findings.
+
+**Reproduction.** Deploy runs from run 54 (2026-10-02 18:18 UTC, `dfd8612`, PR #108) to the
+merge of #122 (2026-10-05): each applied the migrations, then `aia-develop-api-1` never became
+healthy, and the API stayed down.
+
+**Consequence.** A configuration error that one container rejects becomes a site outage of
+several days: every later merge's deploy failed the same way, and nothing reached the host.
+
+**Smallest fix.** Roll back to the previous SHA when `up --wait` fails, and print the unhealthy
+container's logs into the deploy output.
+
+**Test that would catch it.** A deploy-script test with a stand-in API that never turns
+healthy: the previous services are running again afterwards and the logs are printed.
+
+**Status.** Open. Not fixed by #122, which fixed the cause of this outage only.
+
+## OI-84 · Finding, closed · The API and the worker held two copies of the fictional-material rule
+
+**Claim.** The API refused `AIA_AI_FICTIONAL_CLIENT_IDS` whenever `is_production`, which
+included `staging`; the worker refused it only when `AIA_ENV` was exactly `production`. The
+develop host ran as `staging` with fictional clients set, so the worker accepted the
+configuration and the API refused it.
+
+**Anchor.** `apps/api/src/aia_api/config.py:165-167, 233-237 @ 0c42547`;
+`apps/executors/src/aia_executors/ai_runtime.py:195 @ 0c42547`;
+`deploy/develop/docker-compose.yml:28 @ 0c42547` (`AIA_ENV: staging`).
+
+**Reproduction.** `Settings(env=staging, ai_fictional_client_ids="C1", ...).validate_for_production()`
+raises `AIA_AI_FICTIONAL_CLIENT_IDS is refused in production` at `056eca2`.
+
+**Consequence.** Every develop deploy from 2026-10-02 18:18 UTC failed its health check, while
+CI stayed green (OI-83 made it an outage).
+
+**Fix.** #122 (`3d315e0`): `aia_core.domain.deployment` holds the one rule
+(`fictional_material_problem`), both processes call it, and develop runs as `AIA_ENV=develop`.
+
+**Test that catches it.** `apps/executors/tests/test_develop_host_configuration.py` runs both
+startup checks against the real `deploy/develop/docker-compose.yml`; with the Compose file back
+on `staging`, the API check fails with the error the host hit.
+
+**Status.** Closed by #122.

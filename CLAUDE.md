@@ -75,8 +75,11 @@ apps/
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
-                            and native agent-jobs beneath each Study),
+                            readiness with the run's cost ceiling and the study's spend limit, and native
+                            agent-jobs beneath each Study), scope (PUT /studies/{id}/spend-confirm sets
+                            the limit; any member creates a client, its status stays the Admin's),
                             settings (the read-only settings document: every control and how it is set;
+                            the access group states membership_is_access and offers no grant;
                             ai_runtime, what powers AIA's model calls from code; ai_history, the
                             prototype's provider fields, readable and never offered)
     schemas/                Request/response models + the one error contract
@@ -199,6 +202,8 @@ packages/aia_core/src/aia_core/
     licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
     design.py               A Study's Design Revision: immutable content, provenance, the owner tag
     research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules
+    run_cost.py             The most a run can cost: its model requests x the reservation per request
+                            (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
@@ -221,6 +226,9 @@ packages/aia_core/src/aia_core/
                             every permission, ADR 0019) and WORKER_PERMISSIONS, an explicit set that
                             withholds every approval; StudyKind (RESEARCH / SIMULATION);
                             ClientContext + ClientPermission
+    deployment.py           AIA_ENV: local / test / develop / staging / production; what each allows
+                            (deployed guards, fictional material), the one fictional-material rule the
+                            API and the worker both ask
     workspace.py            A research Study's working content: ContentState (EMPTY … AWAITING_MIGRATION),
                             validation, lineage of content migrated from 18.6.6 (ADR 0018, OI-58)
     research_template.py    The research template a new study starts from (the unit's empty project)
@@ -276,7 +284,10 @@ packages/aia_core/src/aia_core/
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     workflows.py            start_workflow: a run from a template, idempotent per revision
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
-                            found only through the Study; research_artifacts, the ONLY reader
+                            found only through the Study; research_artifacts, the ONLY reader;
+                            start/retry ask when the run's cost ceiling reaches the study's spend
+                            limit, and record the yes (ADR 0019 gate 2); ResearchAgentJobs.accept: a
+                            person applies an agent's proposal (APPROVE_GATE), recorded (gate 1)
     deep_research.py        DeepResearchRuns: the request frozen at enqueue (knowledge via
                             for_study, client terms), start/get/runs/events/cancel/retry; the
                             bundle (seal verified) and its snapshots only through the run
@@ -309,8 +320,9 @@ packages/aia_core/src/aia_core/
     tables.py               SQLAlchemy tables
     db.py                   Engine and session factory
     repositories.py         ProjectRepository (owner= in its isolation predicate)
-    scope_repository.py     Organizations, clients, studies, budgets; studies in a client, by kind
-                            (grant tables remain, unread, until ADR 0019 chunk 6 retires them)
+    scope_repository.py     Organizations, clients, studies, budgets; studies in a client, by kind;
+                            set_study_spend_confirm (the study's spend limit, audited); any member
+                            creates a client (ADR 0019); the grant tables are dropped (chunk 6)
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016)
     study_workspace_repository.py  A Study's working content in its owned working project
@@ -331,7 +343,8 @@ packages/aia_core/src/aia_core/
                             the population binding each run records; WorkQueue --
                             the only cross-study surface (claim, recover, resume, refuse);
                             resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
-                            approval ledger (the worker's scope cannot)
+                            approval ledger (the worker's scope cannot); record_spend_confirmation and
+                            record_ai_proposal_acceptance (once per agent job): the same ledger
     population_repository.py  Population registry: versions, populations, history
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
@@ -500,7 +513,9 @@ exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The mod
 returns one respondent's probabilities; code answers facts and draws the answer.
 Panel-derived data reaches no model provider until OI-61 records a licence
 determination -- a gate of its own beside residency. The Sociomap is computed but
-`INTERNAL_ONLY` while D6 is open.
+`INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
+ceiling reaches it needs the person's confirmation, recorded in the approval ledger
+(ADR 0019 gate 2).
 
 **The population is resolved once per run.** Research and simulation code gets
 population data only from `PopulationRuntime.load_for_run`, which reads the

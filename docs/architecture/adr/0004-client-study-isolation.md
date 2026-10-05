@@ -1,6 +1,12 @@
 # ADR 0004 — Client and Study as hard isolation boundaries; scope is injected
 
-**Status:** Accepted. Implemented.
+**Status:** Accepted. Implemented. **Superseded in part** by
+[ADR 0019](0019-two-roles-and-human-ai-gates.md) (2026-10-01): the client's own access list
+(client and study grants, no implicit admin access, a study grant overriding a client grant, a
+reviewer who cannot edit) is gone, and every active member sees every client and study of the
+organization. Rules 1 and 2 stand: every client-derived object carries its client and study, and
+scope is injected, never supplied. The grant tables were dropped on 2026-10-05 (#120); the
+`access_audit` rows of past grants remain.
 **Date:** 2026-09-21
 
 ## Context

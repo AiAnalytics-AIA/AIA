@@ -10,6 +10,10 @@ and 2 (every client-derived object carries its client and study; scope is inject
 supplied), ADR 0008 (residency), ADR 0010 (the Bedrock route and what it is approved for), ADR
 0016 decision 5 (the licence gate) and ADR 0018 decision 3 (AIA's own gate: any active member).
 **Date:** 2026-10-01
+**Implemented** on develop, 2026-10-05 (#105–#123): one Researcher role, membership as the access,
+the grants retired, the budget lift, the spend confirmation and the record of every accept of an
+AI proposal. Gate 3 (client-facing release) waits for a client-facing report contract. **The
+owner, 2026-10-05:** a Researcher also creates clients (#121); a client's status stays the Admin's.
 **Plan:** [`.planning/plans/two-roles-human-ai-gates.md`](../../../.planning/plans/two-roles-human-ai-gates.md)
 
 ## Context

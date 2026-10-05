@@ -509,6 +509,21 @@ A CHECK on an append-only table also needs a `downgrade` that refuses while a ro
 kind exists, rather than deleting from the ledger or re-adding a constraint those rows break.
 `alembic check` after the upgrade is the proof that model and migration agree.
 
+**Two PRs that each add a revision on the same parent are green alone and red together.** A PR's
+CI runs on its merge with the base as it was then, so neither run sees the other's revision; the
+push to `develop` after the second merge is the first run with two heads, and `alembic upgrade
+head` refuses there (#109 and #110, both on `9d1f6b3a4c28`; fixed by #112). After a merge to
+`develop`, `alembic heads` must print exactly one. If it prints two, add a merge revision; never
+move a revision that a database may already have applied.
+
+```bash
+# WRONG -- edit 8c2f4a6d1b3e's down_revision to sit after b3e8f1a47c60: a database that already
+# ran it is now recorded as past a revision it never ran
+# RIGHT -- one empty revision with both parents; correct whichever one a database has
+alembic merge -m "merge the budget-lift and prompt-declaration heads" 8c2f4a6d1b3e b3e8f1a47c60
+alembic heads   # exactly one
+```
+
 ## mypy --strict
 
 **An untyped third party leaks `Any` straight through a declared return type.**
@@ -814,6 +829,24 @@ the raw string to the validator; it was not taken, so that `.env.example`,
 Compose and the validator all agree on one shape. Note that constructing
 `Settings(cors_origins="a,b")` in a test bypasses the environment decoding and
 *does* reach the validator, which is why a unit test does not catch this.
+
+**An environment rule written twice drifts, and only a deploy finds out.** The API refused
+`AIA_AI_FICTIONAL_CLIENT_IDS` whenever `is_production` (which included `staging`), the worker
+only when `AIA_ENV == "production"`; the develop host ran as `staging` with fictional clients
+set, so the worker accepted the configuration, the API refused it, CI stayed green and every
+develop deploy from 2026-10-02 failed its health check (#108; fixed by #122).
+
+```python
+# WRONG -- two copies of one rule, with different conditions
+if self.fictional_client_ids and self.env in (Environment.PRODUCTION, Environment.STAGING): ...
+if fictional and env.get("AIA_ENV") == "production": ...
+# RIGHT -- one function in aia_core.domain.deployment, called by both processes
+problem = fictional_material_problem(self.env, self.fictional_client_ids)
+```
+
+And test both startup checks against the deploy's own Compose environment
+(`apps/executors/tests/test_develop_host_configuration.py`): each process's own tests passing
+says nothing about the configuration the host hands them.
 
 ## GitHub Actions
 
@@ -1238,6 +1271,20 @@ const replace = vi.fn();
 vi.stubGlobal("location", { ...window.location, replace });
 render(<LoginPage />);
 await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
+```
+
+**A test that waits for one thing on screen and then counts a different request must await
+that request.** `send()` in `lib/api.ts` reads the token and `/config` before it calls `fetch`,
+so a request can lag the UI it belongs with. `ClientFirst.test.tsx` waited for a study's heading
+(another request) and then counted `GET .../workspace/content` at once; on a slow runner it
+found none (run 37120830987; fixed by #114).
+
+```ts
+// WRONG -- the heading came from the frame's request; the content request may not exist yet
+await screen.findByRole("heading", { level: 1, name: "3. Dotazník" });
+expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1);
+// RIGHT -- wait for the request the assertion is about
+await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/workspace/content")).toHaveLength(1));
 ```
 
 **Don't list the router in a load effect's dependencies.** A test's
