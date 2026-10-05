@@ -9,7 +9,8 @@ is pure:
 * :mod:`.tooling` -- the cost contract for search and fetch;
 * :mod:`.legacy` -- the 18.6.6 leakage screen and merge, ported exactly;
 * :mod:`.grounding` -- a quote must be in the source it cites;
-* :mod:`.sources` -- source classes and scores from declared tables;
+* :mod:`.sources` -- source classes, tiers and scores from declared tables;
+* :mod:`.reputation` -- the reputation register: publishers, names, hosts, tiers (proposed);
 * :mod:`.classification` -- a query's data class, inherited and never lowered;
 * :mod:`.web` -- what a fetch may reach, on every hop;
 * :mod:`.knowledge_access` -- Client Knowledge frozen at enqueue, retrieved by code;
