@@ -683,14 +683,14 @@ jobs:
 
       - name: End-to-end project lifecycle over HTTP
         run: |
-          # Every project route is study-scoped and every study needs a real
-          # grant, so an end-to-end HTTP smoke test needs a provisioned world.
+          # Every project route is study-scoped and a study belongs to an
+          # organization the caller is a member of (ADR 0019: membership is the
+          # access), so an end-to-end HTTP smoke test needs a provisioned world.
           # Provisioning runs through the same authorisation path production
           # uses -- there is no back door that skips it.
           eval "$(python - <<'PROVISION'
           import os
           from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-          from aia_core.domain.scope import ScopeRole
           from aia_core.infrastructure.db import create_app_engine, create_session_factory
           from aia_core.infrastructure.repositories import ProjectRepository
           from aia_core.infrastructure.scope_repository import ScopeRepository
@@ -711,14 +711,13 @@ jobs:
                   admin, client_id=client.client_id, slug="ci-study",
                   name="CI Study", budget_usd=10.0,
               )
-              resolver.grant_client_access(
-                  admin, client_id=client.client_id, user_id=owner.user_id,
-                  role=ScopeRole.RESEARCHER,
-              )
               s.commit()
               print(f"export STUDY_ID={study.study_id}")
           PROVISION
           )"
+          # A failure inside the substitution leaves STUDY_ID empty; stop here
+          # rather than at a 404 three requests later.
+          test -n "$STUDY_ID"
           echo "provisioned study $STUDY_ID"
 
           H='-H Content-Type:application/json -H X-AIA-Subject:ci@art-chain.io'
