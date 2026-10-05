@@ -18,7 +18,6 @@ from aia_core.domain.knowledge import KnowledgeKind, ProposalStatus
 from aia_core.domain.scope import (
     ClientContext,
     ScopeDenied,
-    ScopeRole,
     SeparationOfDutiesViolation,
 )
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -310,15 +309,12 @@ def test_a_study_consumes_its_own_clients_approved_knowledge_only(
     assert knowledge.for_study(scoped.scope(), kinds=[KnowledgeKind.TERM]) == []
 
 
-def test_a_member_with_only_a_study_grant_reads_the_clients_knowledge_like_any_member(
+def test_a_new_member_reads_the_clients_knowledge_like_any_member(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:
     """ADR 0019: the study-only grantee, who read none of it, is gone with the grants."""
     knowledge.add(client_scope(scoped, "lead"), kind=KnowledgeKind.FACT, title="Dealers: 134")
     member = scoped.scope_repo.add_member(scoped.admin_context, email="guest@art-chain.io")
-    scoped.resolver.grant_study_access(
-        scoped.scope(), user_id=member.user_id, role=ScopeRole.RESEARCHER
-    )
     ctx = scoped.resolver.client_context(
         scoped.principal(member.user_id), client_id=scoped.clients["primary"].client_id
     )

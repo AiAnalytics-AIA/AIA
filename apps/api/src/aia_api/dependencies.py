@@ -15,7 +15,7 @@ Two things this module deliberately does **not** do:
   clients and studies come from PostgreSQL, so a misconfigured identity pool
   cannot hand anyone access to a client.
 * **Let scope come from a request body.** ``study_id`` is a path parameter
-  resolved against the caller's grants. A body field -- or an AI tool argument --
+  resolved against the caller's membership. A body field -- or an AI tool argument --
   can never widen scope, because scope is not read from either.
 """
 

@@ -20,7 +20,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-from aia_core.domain.scope import ScopeRole, StudyContext
+from aia_core.domain.scope import StudyContext
 from aia_core.domain.workflow import StepDefinition
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.repositories import ProjectRepository
@@ -147,13 +147,7 @@ def study(sessions: sessionmaker[Session]) -> Study:
             admin, client_id=client.client_id, slug="s", name="S", budget_usd=100.0
         )
         lead = scope_repo.add_member(admin, email="lead@art-chain.io")
-        resolver.grant_client_access(
-            admin, client_id=client.client_id, user_id=lead.user_id, role=ScopeRole.RESEARCHER
-        )
         reviewer = scope_repo.add_member(admin, email="reviewer@art-chain.io")
-        resolver.grant_client_access(
-            admin, client_id=client.client_id, user_id=reviewer.user_id, role=ScopeRole.RESEARCHER
-        )
         session.flush()
         scope = resolver.study_context(
             AuthenticatedPrincipal(user_id=lead.user_id, organization_id=org.organization_id),

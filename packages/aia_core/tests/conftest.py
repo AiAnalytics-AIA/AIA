@@ -335,7 +335,6 @@ def build_scope_fixture(session: Any) -> ScopeFixture:
     them.
     """
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-    from aia_core.domain.scope import ScopeRole
     from aia_core.infrastructure.scope_repository import ScopeRepository
 
     scope_repo = ScopeRepository(session)
@@ -386,23 +385,11 @@ def build_scope_fixture(session: Any) -> ScopeFixture:
     for label in ("lead", "researcher", "reviewer", "viewer"):
         member = scope_repo.add_member(admin, email=f"{label}@art-chain.io")
         users[label] = member.user_id
-        resolver.grant_client_access(
-            admin,
-            client_id=primary_client.client_id,
-            user_id=member.user_id,
-            role=ScopeRole.RESEARCHER,
-        )
 
     # A lead on the other client, so cross-client tests have a real counterpart
     # rather than an unauthorised one.
     other_lead = scope_repo.add_member(admin, email="other-lead@art-chain.io")
     users["other_lead"] = other_lead.user_id
-    resolver.grant_client_access(
-        admin,
-        client_id=other_client.client_id,
-        user_id=other_lead.user_id,
-        role=ScopeRole.RESEARCHER,
-    )
 
     # Someone in the organization with no client grant at all.
     outsider = scope_repo.add_member(admin, email="outsider@art-chain.io")

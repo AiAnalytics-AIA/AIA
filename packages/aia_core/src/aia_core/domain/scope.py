@@ -39,7 +39,6 @@ __all__ = [
     "ApprovalIndependence",
     "Client",
     "ClientContext",
-    "ClientGrant",
     "ClientPermission",
     "ClientStatus",
     "Organization",
@@ -54,11 +53,9 @@ __all__ = [
     "Slug",
     "Study",
     "StudyContext",
-    "StudyGrant",
     "StudyKind",
     "StudyStatus",
     "client_permissions_for",
-    "effective_role",
     "new_client_id",
     "new_organization_id",
     "new_study_id",
@@ -214,23 +211,6 @@ WORKER_PERMISSIONS: Final[frozenset[Permission]] = frozenset(
 def permissions_for(role: ScopeRole) -> frozenset[Permission]:
     """Return the permissions a role confers."""
     return ROLE_PERMISSIONS[role]
-
-
-def effective_role(
-    *, client_role: ScopeRole | None, study_role: ScopeRole | None
-) -> ScopeRole | None:
-    """Resolve the role a user holds on a study.
-
-    A study-level grant is **authoritative** when present. With one role left
-    (ADR 0019) the choice no longer changes what a person may do; it remains the
-    rule until the grants are retired.
-
-    With no study grant, the client grant applies to every study of that client.
-    With neither, the user has no access and the study must be invisible to them.
-    """
-    if study_role is not None:
-        return study_role
-    return client_role
 
 
 class ClientPermission(StrEnum):
@@ -625,34 +605,6 @@ class OrganizationMembership(BaseModel):
         that still requires an explicit grant.
         """
         return self.role in (OrganizationRole.OWNER, OrganizationRole.ADMIN)
-
-
-class ClientGrant(BaseModel):
-    """A user's role on a client, applying to all of that client's studies."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    client_id: str
-    user_id: str
-    role: ScopeRole
-    granted_by: str | None = None
-    created_at: datetime | None = None
-
-
-class StudyGrant(BaseModel):
-    """A user's role on one study.
-
-    Authoritative over a client grant, in both directions: it can widen access for
-    someone brought in for a single study, and narrow it for a sensitive one.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    study_id: str
-    user_id: str
-    role: ScopeRole
-    granted_by: str | None = None
-    created_at: datetime | None = None
 
 
 # --------------------------------------------------------------------------- #

@@ -14,8 +14,8 @@ valid domain state to exercise the application, in two organizations:
 
 Everything is done by calling the repositories and the authorization layer
 exactly as the API does. There is no direct insert that skips an invariant, and
-no back door: each owner is provisioned as an organization OWNER and granted access
-to its clients, and everything else is done under contexts issued for them.
+no back door: each owner is provisioned as an organization OWNER, which is access to
+every client (ADR 0019), and everything else is done under contexts issued for them.
 
 **Idempotent.** Every object is found by a stable slug or title before it is
 created, so re-running changes nothing and reports the same ids. ``reset``
@@ -38,7 +38,6 @@ from aia_core.domain.scope import (
     ClientStatus,
     OrganizationContext,
     OrganizationRole,
-    ScopeRole,
     StudyContext,
     StudyKind,
     StudyStatus,
@@ -305,15 +304,6 @@ def seed_develop(session: Session, *, owner_email: str) -> SeedResult:
         )
     created["client"] = SEED_CLIENT_SLUG not in clients
 
-    # A client grant covers every study under it, including ones seeded later.
-    resolver.grant_client_access(
-        smoke_admin,
-        client_id=client.client_id,
-        user_id=smoke_owner_id,
-        role=ScopeRole.RESEARCHER,
-        reason="seed",
-    )
-
     study_row = session.scalar(
         select(StudyRow).where(
             StudyRow.client_id == client.client_id, StudyRow.slug == SEED_STUDY_SLUG
@@ -397,7 +387,7 @@ def _seed_workspaces(
     (a second Researcher on the client) approves, so every item has a revision and
     provenance like any other. Returns slug -> client id, and whether anything
     was new. A client a person has archived is left as they left it: nothing is
-    granted or seeded into it.
+    seeded into it.
     """
     knowledge = ClientKnowledgeRepository(session)
     owner = AuthenticatedPrincipal(user_id=owner_id, organization_id=organization_id)
@@ -425,20 +415,6 @@ def _seed_workspaces(
             # seeding into it failed every later deploy (OI-80, deploy run 40);
             # leaving it alone is the seed respecting that decision, not undoing it.
             continue
-        resolver.grant_client_access(
-            admin,
-            client_id=client.client_id,
-            user_id=owner_id,
-            role=ScopeRole.RESEARCHER,
-            reason="seed",
-        )
-        resolver.grant_client_access(
-            admin,
-            client_id=client.client_id,
-            user_id=curator_id,
-            role=ScopeRole.RESEARCHER,
-            reason="seed",
-        )
         ctx = resolver.client_context(owner, client_id=client.client_id)
         studies = {s.slug: s for s in scope_repo.studies_in_client(ctx)}
         for study_slug, name, kind, status in spec["studies"]:

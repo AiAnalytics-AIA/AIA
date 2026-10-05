@@ -281,13 +281,6 @@ def test_an_archived_synthetic_client_in_the_operator_organization_does_not_stop
             old = repo.create_client(
                 admin, slug=SEED_CLIENT_SLUG, name="Synthetic client (develop)"
             )
-            resolver.grant_client_access(
-                admin,
-                client_id=old.client_id,
-                user_id=seeded.owner_user_id,
-                role=ScopeRole.RESEARCHER,
-                reason="seed before OI-80",
-            )
         repo.set_client_status(admin, client_id=old.client_id, status=ClientStatus.ARCHIVED)
         session.commit()
 

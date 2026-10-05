@@ -19,7 +19,6 @@ from typing import Any
 
 import pytest
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
-from aia_core.domain.scope import ScopeRole
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.tables import Base, ProjectArtifactRow
@@ -131,21 +130,9 @@ def world(app: FastAPI) -> World:
         for label in ("lead", "researcher", "reviewer", "viewer"):
             member = scope_repo.add_member(admin, email=f"{label}@art-chain.io")
             users[label] = member.user_id
-            resolver.grant_client_access(
-                admin,
-                client_id=primary.client_id,
-                user_id=member.user_id,
-                role=ScopeRole.RESEARCHER,
-            )
 
         other_lead = scope_repo.add_member(admin, email="other-lead@art-chain.io")
         users["other_lead"] = other_lead.user_id
-        resolver.grant_client_access(
-            admin,
-            client_id=other.client_id,
-            user_id=other_lead.user_id,
-            role=ScopeRole.RESEARCHER,
-        )
 
         # A member of the organization holding no client grant at all.
         outsider = scope_repo.add_member(admin, email="outsider@art-chain.io")

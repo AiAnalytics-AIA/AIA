@@ -12,12 +12,12 @@ API = "/api/v1"
 def test_the_access_audit_lists_entries_with_their_payload(
     owner: TestClient, lead: TestClient, world: Any
 ) -> None:
-    # A grant writes a before/after payload; the audit exists to show it later.
-    granted = lead.post(
-        f"{API}/studies/{world.study_id()}/grants",
-        json={"user_id": world.users["outsider"], "role": "VIEWER"},
+    # Starting a study in a client records what was started; the audit shows it later.
+    started = lead.post(
+        f"{API}/clients/{world.client_id()}/studies",
+        json={"name": "Audited study", "kind": "RESEARCH"},
     )
-    assert granted.status_code == 204
+    assert started.status_code == 201, started.text
     response = owner.get(f"{API}/access-audit")
     assert response.status_code == 200, response.text
     entries = response.json()
