@@ -153,6 +153,10 @@ class PoliteTransport(Protocol):
         """Why ``url`` would be refused by what the transport already knows; sends nothing."""
         ...
 
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` lines of a robots.txt already held for ``host``; sends nothing."""
+        ...
+
 
 class Resolver(Protocol):
     def resolve(self, host: str) -> tuple[str, ...]:
@@ -381,6 +385,16 @@ class WebFetcher:
         """
         if isinstance(self._transport, PoliteTransport):
             return self._transport.known_refusal(url)
+        return None
+
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` lines of ``host``'s robots.txt, if the transport already holds it.
+
+        None when it is not known (not read yet, or a transport that reads no
+        robots.txt). Sends nothing.
+        """
+        if isinstance(self._transport, PoliteTransport):
+            return self._transport.known_sitemaps(host)
         return None
 
     def fetch(self, url: str) -> FetchedPage:

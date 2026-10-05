@@ -268,6 +268,14 @@ class RetrievalGate:
         fetch = self._refusal(self._retrieval.fetch_route, data_class=DataClass.CLASS_C_INTERNAL)
         return None if fetch is None else f"fetch_{fetch}"
 
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` URLs ``host``'s robots.txt declares, if this run already read it.
+
+        Sends nothing and journals nothing: the robots.txt was read as part of a
+        fetch this gate already journaled. None when it has not been read.
+        """
+        return self._retrieval.fetcher.known_sitemaps(host)
+
     def _refuse(
         self, route: ToolRoute, *, reason: str, data_class: DataClass, track_id: str, sent: str
     ) -> None:

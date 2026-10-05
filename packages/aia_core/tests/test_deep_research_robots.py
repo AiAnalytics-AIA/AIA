@@ -8,11 +8,13 @@ import pytest
 
 from aia_core.domain.deep_research.robots import (
     AGENT_TOKEN,
+    MAX_ROBOTS_SITEMAPS,
     ROBOTS_DISALLOWED,
     ROBOTS_UNAVAILABLE,
     RobotsPolicy,
     RobotsState,
     policy_for_response,
+    sitemap_lines,
 )
 
 HOST = "https://stats.example"
@@ -131,3 +133,35 @@ def test_a_file_is_read_up_to_its_cap() -> None:
     assert policy.state is RobotsState.RULES
     assert policy.refusal(HOST + "/a") == ROBOTS_DISALLOWED
     assert policy.refusal(HOST + "/b") is None  # beyond the cap, as RFC 9309 allows
+
+
+def test_sitemap_lines_are_kept_for_every_agent_in_order_and_deduplicated() -> None:
+    robots = (
+        "Sitemap: https://stats.example/sitemap-index.xml\n"
+        "User-agent: OtherBot\nDisallow: /\n"
+        "sitemap:https://stats.example/news.xml.gz # the news\n"
+        "Sitemap: https://stats.example/sitemap-index.xml\n"
+        "Sitemap: ftp://stats.example/old.xml\n"
+        "Sitemap: /relative.xml\n"
+        "Sitemap:\n"
+        "User-agent: *\nDisallow: /x\n"
+        "Sitemap: https://cdn.example/stats/sitemap.xml\n"
+    )
+    policy = RobotsPolicy.parse(robots)
+    assert policy.sitemaps == (
+        "https://stats.example/sitemap-index.xml",
+        "https://stats.example/news.xml.gz",
+        "https://cdn.example/stats/sitemap.xml",  # another host: the reader decides
+    )
+    assert sitemap_lines("Sitemap: https://a.example/" + "x" * 3000) == ()
+    many = "".join(f"Sitemap: https://a.example/s{i}.xml\n" for i in range(80))
+    assert len(sitemap_lines(many)) == MAX_ROBOTS_SITEMAPS
+
+
+def test_a_policy_not_read_from_a_file_declares_no_sitemaps() -> None:
+    assert policy_for_response(403, b"Sitemap: https://a.example/s.xml").sitemaps == ()
+    assert policy_for_response(503, b"Sitemap: https://a.example/s.xml").sitemaps == ()
+    assert policy_for_response(404, b"").sitemaps == ()
+    assert policy_for_response(200, b"Sitemap: https://a.example/s.xml").sitemaps == (
+        "https://a.example/s.xml",
+    )
