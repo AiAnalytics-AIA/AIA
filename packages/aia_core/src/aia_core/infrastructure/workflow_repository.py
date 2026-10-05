@@ -1881,6 +1881,75 @@ class WorkflowRepository:
         )
         self._session.flush()
 
+    def record_ai_proposal_acceptance(
+        self,
+        run_id: str,
+        *,
+        action: str,
+        revision_id: str,
+        project_id: str,
+        project_revision: int,
+        created: bool,
+        artifact_id: str,
+    ) -> bool:
+        """Write a person's accept of what an agent job proposed, once, in the approval ledger.
+
+        ADR 0019 gate 1 (plan 5b.3): "who accepted what the AI produced" is answered by the same
+        append-only ledger as every other decision. The row names the job (``subject_id``), what
+        it was asked to do (``gate_type``), who asked (``producer_user_id``, the job's starter),
+        who accepted and whether that was the same person, and in ``comment`` the Design Revision
+        the accept wrote, whether it was a new one, and the proposal artifact.
+
+        Needs ``APPROVE_GATE``, which the worker's scope does not hold (ADR 0019 decision 6).
+        Returns ``False`` and writes nothing when this job's accept is already recorded: an
+        unchanged proposal can be accepted again, and that is not a second decision. The caller
+        holds the Study row lock (``StudyDesignRepository.submit_if_current``), so two accepts
+        cannot both pass the check.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_id == run_id,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="ai_proposal",
+                subject_id=run_id,
+                run_id=run_id,
+                project_id=project_id,
+                project_revision=project_revision,
+                artifact_type="research_agent_proposal",
+                gate_type=action,
+                decision="accept",
+                comment=json.dumps(
+                    {
+                        "revision_id": revision_id,
+                        "revision_created": created,
+                        "artifact_id": artifact_id,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
     # ------------------------------------------------------------ cancellation --
 
     def request_cancel(self, run_id: str, *, reason: str = "") -> WorkflowRunStatus:

@@ -9,7 +9,7 @@ chunks:
   - "[ ] 5b. Gates (design proposed below, awaiting the owner): split into 5b.1 to 5b.4"
   - "[x] 5b.1 A person can lift a budget wait and the run goes on (today it is a dead end)"
   - "[x] 5b.2 Confirm the cost of a run above a threshold, recorded"
-  - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
+  - "[x] 5b.3 One ledger entry for every acceptance of an AI proposal"
   - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
   - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
@@ -338,6 +338,56 @@ needs no edit.
   settings case asserting 403 on `POST /clients` is removed (it asserted the retired rule); the
   web test offers the new client to a member.
 
+### 5b.3 plan (2026-10-05; the owner said "yes" to starting it)
+
+**Two corrections to the 5b.3 line in the design above, found reading `develop` @ `0c42547`:**
+
+1. **No AI writes a Knowledge proposal today.** `propose_from_study` has one caller, the route
+   `POST /studies/{study_id}/knowledge-proposals` (`apps/api/src/aia_api/routers/workspace.py:1225`),
+   which a person calls; `propose` (`client_knowledge_repository.py:327`) is a person's in the
+   client workspace, and the only other caller is the develop seed. No executor proposes Knowledge
+   (`grep -rn "propose_from_study\|\.propose(" --include=*.py packages apps`). Writing an
+   `ai_proposal` row on every `ClientKnowledgeRepository.decide` would label people's proposals as
+   the AI's (CLAUDE.md §8, never stamp a guess). So the Knowledge decision is left as it is; the
+   day an AI authors Knowledge, that path writes the row (recorded under Findings).
+2. **A worker's scope could accept an AI proposal.** `ResearchAgentJobs.accept` checks only
+   `EDIT_STUDY` (`application/research.py:576 @ 0c42547`), which `WORKER_PERMISSIONS` holds
+   (`domain/scope.py:202`). ADR 0019 decision 6: "The AI and the worker hold no gate authority",
+   and accepting an AI proposal is gate 1. Nothing calls `accept` with a worker's scope today; the
+   check is what keeps it so.
+
+**What this chunk does:**
+
+- `approval_decisions.subject_type` admits `'ai_proposal'` (one migration; the downgrade refuses
+  while such a row exists, as `c5d7e9f1a2b4` does for `'spend'`).
+- `WorkflowRepository.record_ai_proposal_acceptance(run_id, ...)`: one row per agent job —
+  `subject_id` = the job's run id, `gate_type` = the action, `producer_user_id` = who asked the AI,
+  the approver and `self_approved` from the same `observe_approval_independence`, and in `comment`
+  the Design Revision the accept wrote, whether it was new, and the proposal artifact. Needs
+  `APPROVE_GATE`. A second accept of the same job writes no second row (an identical proposal can
+  be accepted twice; the check runs under the Study row lock `submit_if_current` already holds).
+- `ResearchAgentJobs.accept` requires `APPROVE_GATE` as well and calls it in the same transaction
+  as the revision. A Researcher holds both permissions, so no person's behaviour changes.
+
+**Tests:** the accept writes one row naming the job, the revision and the people; a second accept
+of an unchanged proposal writes none; a worker's scope is refused with no revision and no row; the
+migration's downgrade refuses while an `ai_proposal` row exists (PostgreSQL).
+
+### 5b.3 landed (2026-10-05, branch `feature/ai-proposal-ledger` from `develop` @ `0c42547`)
+
+- Migration `20261005_e4b7c2d9f6a1` (down `d8e2f4a6b1c3`): the ledger CHECK admits `'ai_proposal'`.
+  PostgreSQL 16: one head; upgrade; `alembic check` clean; the downgrade refused with one seeded
+  `ai_proposal` row ("1 AI proposal accept(s) are in the approval ledger"), then ran once it was
+  gone; upgrade again clean.
+- `WorkflowRepository.record_ai_proposal_acceptance` and `ResearchAgentJobs.accept` as planned.
+- Tests (`apps/executors/tests/test_research_agent_executor.py`, through the real worker):
+  `test_worker_stores_proposal_and_review_creates_a_new_revision` now asserts the one row (job,
+  action, artifact type, producer = approver = the lead, `self_approved`, the revision and the
+  artifact in `comment`); `test_a_workers_scope_cannot_accept_an_ai_proposal`;
+  `test_the_same_jobs_accept_is_recorded_once`. Both new tests fail with the `APPROVE_GATE` check
+  and the once-only guard removed, and pass with them. The CHECK test in `test_scope_isolation.py`
+  admits `ai_proposal`.
+
 ### 5b.2 plan (2026-10-03, owner's decision: the threshold is per study, set before the run)
 
 The owner's answer to "what is the threshold and where is it set": **per study, at the beginning of
@@ -446,6 +496,15 @@ truncated). Right: wrap the full name in `op.f(...)` on both calls.
 
 ## Findings
 
+- **A Knowledge change an AI writes will need its own ledger row; none exists yet.** ADR 0019
+  decision 5 makes an AI-authored Knowledge change a proposal that a person accepts (gate 1), but no
+  code path lets an AI author one: `propose_from_study` is called only by a person's route
+  (`apps/api/src/aia_api/routers/workspace.py:1225 @ 0c42547`) and the develop seed. So
+  `ClientKnowledgeRepository.decide` writes no `ai_proposal` row, on purpose (5b.3 plan). The
+  executor that first proposes Knowledge must mark the proposal as AI-authored and make `decide`
+  write the row; the test is the one 5b.3 added for design accepts, for Knowledge. Not a defect
+  today: there is nothing to record.
+
 - **A source a person added still waited for approval, and could not be approved.** The client
   workspace's add went through `ClientKnowledgeRepository.propose`, so every source sat `PROPOSED` and
   stayed out of `for_study` until decided (`infrastructure/client_knowledge_repository.py`, `propose`/`_approved`
@@ -496,6 +555,11 @@ For the docs PR after merge:
   superseded (the "Superseded in part by" lines go in those two ADRs' headers, in the docs PR,
   because they are shared index material).
 - `AGENTS.md`: nothing expected.
+- 5b.3: `CLAUDE.md` §2 map, the `workflow_repository.py` line, after "resume_budget_wait: a person
+  lifts an AWAITING_BUDGET step, in the approval ledger (the worker's scope cannot)": add
+  "record_ai_proposal_acceptance: a person's accept of an agent job's proposal, once per job, in the
+  same ledger (ADR 0019 gate 1)". The plan's own 5b design line about Knowledge decisions is
+  corrected in the 5b.3 plan above.
 - Chunk 7: none. No shared document says who creates a client (`grep -i "creat.*client"` over
   `CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md` @ `056eca2`). It also restores ADR 0015's rule
   "Nothing in the client shell may depend on the caller being an owner or admin"

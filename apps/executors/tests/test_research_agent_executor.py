@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+import json
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -12,6 +14,7 @@ from aia_core.domain.design import DesignRejected
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import FIXED_PREFIX, ResearchAction, prompt_for
 from aia_core.domain.residency import DataClass
+from aia_core.domain.scope import WORKER_PERMISSIONS, ScopeDenied
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository
 from aia_core.infrastructure.model_adapters.transport import (
@@ -21,13 +24,14 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.prompt_repository import PromptRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_core.infrastructure.tables import PromptVersionRow
+from aia_core.infrastructure.tables import ApprovalDecisionRow, PromptVersionRow
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from aia_executors.registry import registry_for
 from aia_executors.research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 ANSWER = {
     "title": "Concept",
@@ -207,6 +211,77 @@ def test_worker_stores_proposal_and_review_creates_a_new_revision(
         with pytest.raises(DesignRejected):
             jobs.accept(run_id, store=store, expected_revision_id=baseline)
         session.commit()
+
+        # The accept is one row in the approval ledger (ADR 0019 gate 1, plan 5b.3).
+        rows = ledger(session, run_id)
+        assert len(rows) == 1
+        row = rows[0]
+        assert (row.decision, row.gate_type) == ("accept", ResearchAction.ANALYZE.value)
+        assert row.artifact_type == "research_agent_proposal"
+        assert row.producer_user_id == row.approver_user_id == world.lead_id
+        assert row.self_approved is True and row.project_revision == accepted.revision
+        assert json.loads(row.comment) == {
+            "revision_id": accepted.revision_id,
+            "revision_created": True,
+            "artifact_id": job["steps"][0]["output"]["artifact_id"],
+        }
+
+
+def ledger(session: Any, run_id: str) -> list[ApprovalDecisionRow]:
+    return list(
+        session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_type == "ai_proposal",
+                ApprovalDecisionRow.subject_id == run_id,
+            )
+        )
+    )
+
+
+def completed_job(world: Any, database_url: str, store: Any, build: Any) -> str:
+    run_id = start(world)
+    w = worker(world, database_url, store, build, RecordedBedrock())
+    assert w.run_once()
+    return run_id
+
+
+def test_a_workers_scope_cannot_accept_an_ai_proposal(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """ADR 0019 decision 6: the worker holds ``EDIT_STUDY`` but no gate authority."""
+    run_id = completed_job(world, database_url, store, build)
+    with world.sessions() as session:
+        person = world.lead_scope(session)
+        as_worker = dataclasses.replace(person, permissions=WORKER_PERMISSIONS)
+        baseline = ResearchAgentJobs(session, person).get(run_id)["metadata"]["design_revision_id"]
+        with pytest.raises(ScopeDenied) as exc:
+            ResearchAgentJobs(session, as_worker).accept(
+                run_id, store=store, expected_revision_id=baseline
+            )
+        assert exc.value.reason == "insufficient_role"
+        assert StudyDesignRepository(session, person).latest().revision_id == baseline
+        assert ledger(session, run_id) == []
+
+
+def test_the_same_jobs_accept_is_recorded_once(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """An unchanged proposal can be accepted again; that is not a second decision."""
+    run_id = completed_job(world, database_url, store, build)
+    with world.sessions() as session:
+        repo = WorkflowRepository(session, world.lead_scope(session))
+        fields = {
+            "action": ResearchAction.ANALYZE.value,
+            "revision_id": "REV-x",
+            "project_id": "PRJ-x",
+            "project_revision": 2,
+            "created": False,
+            "artifact_id": "ART-x",
+        }
+        assert repo.record_ai_proposal_acceptance(run_id, **fields) is True
+        assert repo.record_ai_proposal_acceptance(run_id, **fields) is False
+        session.commit()
+        assert len(ledger(session, run_id)) == 1
 
 
 @pytest.mark.parametrize("enabled,fictional", [(False, True), (True, False)])
