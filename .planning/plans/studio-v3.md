@@ -6,7 +6,7 @@ chunks:
   - "[x] 3. Step 1 · Zadání"
   - "[x] 4. Step 2 · Návrh"
   - "[x] 5. Step 3 · Dotazník"
-  - "[ ] 6. Step 4 · Audience"
+  - "[x] 6. Step 4 · Audience"
   - "[ ] 7. Step 5 · Dimenze"
   - "[ ] 8. Step 6 · Kontrola & spuštění"
   - "[ ] 9. Step 7 · Výsledky: jump chips and interval bars"
@@ -119,7 +119,19 @@ logic, not a redraw. They are shown read-only.
 **Not built:** reordering questions (↑ ↓; no move function exists) and
 "Nejdřív aktualizovat research" (not wired in the current screen).
 
-## Chunks 6–10
+## Chunk 6 — Audience
+
+One page instead of drill-down screens with back buttons: "Odkud mají respondenti
+pocházet?" (`setAudienceEntry`), then, with AI Analytics, "Která populace?"
+(`setAnalyticsChoice`), then, with ČR 18+, "Koho mají výsledky reprezentovat?"
+(`chooseAudience`), each as radio cards; a choice already made is not re-applied, as
+its classic tile was not on screen. The not-in-AIA notes, stored datasets and
+filters, the AI description (an AI action) and the discover fields sit under their
+question. The summary is an aside (Zdroj / Populace / Strategie, amber "nevybráno",
+the readable summary). The dock keeps `audienceReady`; the in-page "Audience mám →
+Persony" buttons, which had the same condition, are gone.
+
+## Chunks 7–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
