@@ -18,6 +18,7 @@ uses a Class C route, as develop has.
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -146,6 +147,10 @@ QS, OS = SubjectKind.QUESTION, SubjectKind.OBJECT
 # --------------------------------------------------------------------------- #
 
 
+#: What a thinking agent reasoned: it must never be stored anywhere.
+REASONING = "Úvaha agenta, která se nikam neukládá."
+
+
 class Signer:
     def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
         return {**dict(headers), "authorization": "AWS4-HMAC-SHA256 test"}
@@ -156,11 +161,16 @@ class RecordedAgents:
     """One recorded answer per agent, chosen by what the agent was shown.
 
     ``lose`` names roles whose next request gets no answer (the delivery unknown).
+    ``in_text`` names roles whose next answer comes as text, not through the tool.
+    ``thinking`` puts a reasoning block before every answer, as Claude does with
+    extended thinking on.
     """
 
     answers: dict[str, Any]
     requests: list[HttpRequest] = field(default_factory=list)
     lose: set[str] = field(default_factory=set)
+    in_text: set[str] = field(default_factory=set)
+    thinking: bool = False
 
     def roles(self) -> Counter[str]:
         return Counter(self._role(r) for r in self.requests)
@@ -179,17 +189,22 @@ class RecordedAgents:
         payload = json.loads(request.body["messages"][0]["content"][0]["text"])
         answer = getattr(self, f"_{role}")(payload)
         name = request.body["toolConfig"]["tools"][0]["toolSpec"]["name"]
+        content: list[dict[str, Any]] = []
+        if self.thinking:
+            content.append(
+                {"reasoningContent": {"reasoningText": {"text": REASONING, "signature": "c2ln"}}}
+            )
+        if role in self.in_text:
+            self.in_text.discard(role)
+            content.append({"text": json.dumps(answer, ensure_ascii=False)})
+        else:
+            content.append({"toolUse": {"toolUseId": "t", "name": name, "input": answer}})
         return HttpResponse(
             status=200,
             headers={"x-amzn-requestid": f"rec-{role}-{len(self.requests)}"},
             body={
-                "output": {
-                    "message": {
-                        "role": "assistant",
-                        "content": [{"toolUse": {"toolUseId": "t", "name": name, "input": answer}}],
-                    }
-                },
-                "stopReason": "tool_use",
+                "output": {"message": {"role": "assistant", "content": content}},
+                "stopReason": "tool_use" if "toolUse" in content[-1] else "end_turn",
                 "usage": {"inputTokens": 1000, "outputTokens": 200, "totalTokens": 1200},
             },
         )
@@ -427,6 +442,7 @@ def recorded(
     approved_for: str = TEST_ROUTE,
     policy: str | None = None,
     fixture: Path = WEB,
+    thinking: int | None = None,
 ) -> DeepResearchRuntime:
     settings = ai_settings(world.client_id if fictional else "", approved_for=approved_for)
     return recorded_runtime(
@@ -438,6 +454,7 @@ def recorded(
             reservation_usd=settings.research_reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
+            thinking_budget_tokens=thinking,
         ),
         fixture=fixture,
         env={"AIA_ENV": "test"},
@@ -784,6 +801,151 @@ def test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought(
     # The redirect to the metadata service was refused on its second hop.
     soy_web = tracks[tid(OS, SOY, WEB_)]
     assert soy_web.fetches == 2 and len(soy_web.snapshot_ids) == 1
+
+
+# --------------------------------------------------------------------------- #
+# Extended thinking (AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS)
+# --------------------------------------------------------------------------- #
+
+
+def _stored_text(world: ResearchWorld, run_id: str, store: InMemoryArtifactStore) -> str:
+    """Every artifact the store holds and every event of the run, as one text."""
+    with world.sessions() as session:
+        events = DeepResearchRuns(session, world.lead_scope(session)).events(run_id, limit=2000)
+    blobs = [store.get(key).decode("utf-8", "replace") for key in store.keys]
+    return "\n".join([*blobs, json.dumps(events, default=str, ensure_ascii=False)])
+
+
+def test_without_the_thinking_key_no_request_thinks_and_the_tool_is_forced(
+    pass_one: Journey,
+) -> None:
+    for request in pass_one.agents.requests:
+        assert "additionalModelRequestFields" not in request.body
+        name = request.body["toolConfig"]["tools"][0]["toolSpec"]["name"]
+        assert request.body["toolConfig"]["toolChoice"] == {"tool": {"name": name}}
+        assert len(request.body["system"]) == 1
+        assert "Answer only by calling the tool" not in request.body["system"][0]["text"]
+    assert "thinking_budget_tokens" not in pass_one.runtime.versions()
+
+
+def test_a_recorded_run_thinks_when_configured_and_keeps_none_of_the_reasoning(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS, thinking=True)
+    runtime = recorded(research, agents, thinking=2048)
+    run_id = start(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+    assert len(bundle.accepted) == 7  # what pass one accepts without thinking
+
+    assert agents.roles() == Counter(
+        planner=1, internal_investigator=3, web_investigator=4, verifier=4, synthesizer=1
+    )
+    for request in agents.requests:
+        body = request.body
+        assert body["additionalModelRequestFields"] == {
+            "thinking": {"type": "enabled", "budget_tokens": 2048}
+        }
+        assert body["inferenceConfig"] == {"maxTokens": 8192}  # no sampling setting
+        assert body["toolConfig"]["toolChoice"] == {"auto": {}}
+        name = body["toolConfig"]["tools"][0]["toolSpec"]["name"]
+        assert f"Answer only by calling the tool {name}" in body["system"][0]["text"]
+    assert runtime.versions()["thinking_budget_tokens"] == "2048"
+    assert REASONING not in _stored_text(research, run_id, store)
+
+
+def test_an_answer_in_text_with_thinking_on_is_one_counted_repair(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    approve_knowledge(research)
+    agents = RecordedAgents(ANSWERS, thinking=True, in_text={"planner"})
+    run_id = start(research)
+    assert (
+        drain(
+            worker(research, database_url, store, build, recorded(research, agents, thinking=2048))
+        )
+        == 6
+    )
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    # The planner answered in text, was told to use its tool, and did: two calls, one
+    # logical request, both billed.
+    assert agents.roles()["planner"] == 2
+    repair = agents.requests[1].body
+    assert repair["messages"][-1]["content"][0]["text"].startswith(
+        "Your previous answer did not satisfy the required output schema:\n"
+        "- answered in text, not through the output tool"
+    )
+    assert bundle.counts["model_requests"] == 13 and len(agents.requests) == 14
+    assert bundle.spend_usd["model_usd"] == pytest.approx(0.078 + 0.006)
+
+
+def test_a_thinking_pass_reuses_no_track_a_pass_without_thinking_researched(
+    pass_one: Journey, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    # The second pass of the reuse test above, which reuses six tracks without thinking.
+    world = pass_one.world
+    agents = RecordedAgents(ANSWERS, thinking=True)
+    run_id = start(world, DESIGN_2)
+    assert (
+        drain(worker(world, database_url, store, build, recorded(world, agents, thinking=2048)))
+        == 6
+    )
+    _run, bundle = read(world, run_id, store)
+    assert bundle.counts["tracks_reused"] == 0
+    assert not any(t.reused for t in bundle.tracks)
+
+
+@pytest.mark.parametrize(
+    ("value", "problem"),
+    [
+        ("lots", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS='lots' is not an integer"),
+        ("1.5", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS='1.5' is not an integer"),
+        ("1023", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS=1023 is below the smallest budget"),
+        ("-2048", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS=-2048 is below the smallest budget"),
+        ("8192", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS=8192 must be below"),
+    ],
+)
+def test_an_invalid_thinking_budget_stops_the_configuration_and_names_its_key(
+    research: ResearchWorld, value: str, problem: str
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=DEVELOP_ROUTE)
+    env = {"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": value}
+    with pytest.raises(AIRuntimeConfigError, match=re.escape(problem)):
+        deep_research_runtime(settings, env=env, transport=RecordedAgents(ANSWERS), signer=Signer())
+
+
+def test_the_thinking_budget_needs_deep_research_and_is_off_when_unset(
+    research: ResearchWorld,
+) -> None:
+    with pytest.raises(AIRuntimeConfigError, match="needs AIA_DEEP_RESEARCH_ENABLED"):
+        deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "2048"})
+    settings = ai_settings(research.client_id, approved_for=DEVELOP_ROUTE)
+    for env in (
+        {"AIA_DEEP_RESEARCH_ENABLED": "true"},
+        {"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": " "},
+    ):
+        runtime = deep_research_runtime(
+            settings, env=env, transport=RecordedAgents(ANSWERS), signer=Signer()
+        )
+        assert runtime is not None and runtime.config.thinking_budget_tokens is None
+        assert runtime.inputs().thinking_budget_tokens is None
+    runtime = deep_research_runtime(
+        settings,
+        env={
+            "AIA_DEEP_RESEARCH_ENABLED": "true",
+            "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "4096",
+        },
+        transport=RecordedAgents(ANSWERS),
+        signer=Signer(),
+    )
+    assert runtime is not None and runtime.config.thinking_budget_tokens == 4096
+    assert runtime.inputs().thinking_budget_tokens == 4096
+    # A composition built by hand is held to the same rule.
+    with pytest.raises(ValueError, match="below the output limit"):
+        recorded(research, RecordedAgents(ANSWERS), thinking=8192)
 
 
 # --------------------------------------------------------------------------- #

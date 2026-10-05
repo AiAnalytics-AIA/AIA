@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pytest
@@ -324,3 +326,34 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
     assert not next(
         g for g in blocked if g.object_key == obj.key and g.question_key == question.key
     ).covered
+
+
+#: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested, as
+#: origin/develop @ 757154e computed them before the thinking budget existed. A
+#: deliberate change to the harness, the rules or this file's design moves it (re-pin
+#: it then); a thinking budget left unset never may.
+FINGERPRINTS_WITHOUT_THINKING = "ebcebd817430c267256764a0fe0d2612d7dfba2007a7cb0dbc46f7919a583b50"
+
+
+def _thinking(budget: int | None) -> TrackInputs:
+    return TrackInputs(
+        policy_version=INPUTS.policy_version,
+        prompt_versions=INPUTS.prompt_versions,
+        web_retrieval=INPUTS.web_retrieval,
+        thinking_budget_tokens=budget,
+    )
+
+
+def test_without_a_thinking_budget_every_fingerprint_is_the_one_it_was() -> None:
+    fingerprints = _fingerprints(_request(DESIGN), _thinking(None))
+    digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
+    assert digest == FINGERPRINTS_WITHOUT_THINKING
+    assert fingerprints == _fingerprints(_request(DESIGN))
+
+
+def test_a_thinking_budget_is_part_of_every_track_and_its_size_matters() -> None:
+    base = _fingerprints(_request(DESIGN))
+    thinking = _fingerprints(_request(DESIGN), _thinking(2048))
+    more = _fingerprints(_request(DESIGN), _thinking(4096))
+    assert all(thinking[t] != fp for t, fp in base.items())
+    assert all(more[t] != fp for t, fp in thinking.items())
