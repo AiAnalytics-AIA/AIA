@@ -1,4 +1,4 @@
-"""The cost contract for non-model tools: web search and fetch (plan decision I-6).
+"""The cost contract for non-model tools: web search, fetch and dataset queries (I-6).
 
 A search or a page fetch through a provider can cost money exactly as a model
 call does, so it gets the same bracket a model call has in
@@ -60,6 +60,9 @@ def new_tool_event_id() -> str:
 class ToolKind(StrEnum):
     WEB_SEARCH = "web_search"
     WEB_FETCH = "web_fetch"
+    #: One query to a public dataset connector (DataStat, NKOD …): its text is the
+    #: dataset id and filters, classified like a search query (plan § 5.3).
+    DATASET_QUERY = "dataset_query"
 
 
 class ToolOutcome(StrEnum):

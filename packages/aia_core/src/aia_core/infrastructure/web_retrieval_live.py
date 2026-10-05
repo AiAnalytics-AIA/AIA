@@ -1,5 +1,7 @@
 """Bounded public Wikipedia retrieval with a checked-IP HTTPS transport.
 
+:class:`HostPinnedHttpsTransport` is the transport, scoped to one host; the dataset
+connectors (``dataset_connectors``) use it for their own hosts.
 Search is fixed to Czech Wikipedia's public article namespace. Fetches connect to
 the exact globally routable IP checked by ``WebFetcher`` while TLS verifies the
 original host. Neither path follows redirects, retries, uses a proxy, or sends
@@ -33,7 +35,7 @@ from .web_retrieval import (
     extract_page,
 )
 
-__all__ = ["PinnedHttpsTransport", "SystemResolver", "WikipediaSearch"]
+__all__ = ["HostPinnedHttpsTransport", "PinnedHttpsTransport", "SystemResolver", "WikipediaSearch"]
 
 SEARCH_ID: Final = "wikipedia-cs-search-1"
 SEARCH_HOST: Final = "cs.wikipedia.org"
@@ -53,15 +55,38 @@ class SystemResolver:
         return tuple(dict.fromkeys(str(answer[4][0]) for answer in answers))
 
 
-class PinnedHttpsTransport:
-    """One HTTPS request to the checked IP, with the URL host as TLS authority."""
+class HostPinnedHttpsTransport:
+    """One HTTPS request to the checked IP of one allowed host, the host as TLS authority.
 
-    def __init__(self, *, connect_timeout_s: float = 8.0, read_timeout_s: float = 20.0) -> None:
+    Scoped to a single host fixed at construction: a URL on any other host is refused
+    before a connection is opened. No proxy (the pool connects to the address itself),
+    no redirect followed, no retry, no cookie or credential, an identity encoding only,
+    and the body read to ``max_bytes`` and no further. Error messages are fixed text:
+    a provider's or a library's message can carry the request URL, and the URL
+    carries the query.
+    """
+
+    def __init__(
+        self,
+        *,
+        host: str,
+        accept: str,
+        connect_timeout_s: float = 8.0,
+        read_timeout_s: float = 20.0,
+    ) -> None:
         import urllib3
 
+        if check_url(f"https://{host}/") != host:
+            raise ValueError("a pinned transport is scoped to one plain host name")
         self._urllib3 = urllib3
+        self._host = host
+        self._accept = accept
         self._connect_timeout_s = connect_timeout_s
         self._read_timeout_s = read_timeout_s
+
+    @property
+    def host(self) -> str:
+        return self._host
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -69,10 +94,8 @@ class PinnedHttpsTransport:
 
     def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
         host = check_url(url)
-        if host != SEARCH_HOST:
-            raise FetchRefused(
-                "this public route only fetches Czech Wikipedia", reason="host_scope"
-            )
+        if host != self._host:
+            raise FetchRefused(f"this route only fetches {self._host}", reason="host_scope")
         check_address(address)
         parts = urlsplit(url)
         if parts.scheme != "https":
@@ -98,7 +121,7 @@ class PinnedHttpsTransport:
                 headers={
                     "Host": host,
                     "User-Agent": USER_AGENT,
-                    "Accept": "text/html, text/plain, application/json",
+                    "Accept": self._accept,
                     "Accept-Encoding": "identity",
                 },
                 timeout=u.Timeout(connect=self._connect_timeout_s, read=self._read_timeout_s),
@@ -132,19 +155,37 @@ class PinnedHttpsTransport:
             raise
         except (u.exceptions.ConnectTimeoutError, u.exceptions.NewConnectionError) as exc:
             raise ToolCallFailed(
-                str(exc), reason="connect_failed", delivery=Delivery.NOT_SENT
+                "the connection was not established",
+                reason="connect_failed",
+                delivery=Delivery.NOT_SENT,
             ) from exc
         except u.exceptions.SSLError as exc:
             delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
-            raise ToolCallFailed(str(exc), reason="tls_failed", delivery=delivery) from exc
+            raise ToolCallFailed(
+                "the TLS session failed", reason="tls_failed", delivery=delivery
+            ) from exc
         except u.exceptions.HTTPError as exc:
             raise ToolCallFailed(
-                str(exc), reason="transport_failed", delivery=Delivery.UNKNOWN
+                "the request failed after it was sent",
+                reason="transport_failed",
+                delivery=Delivery.UNKNOWN,
             ) from exc
         finally:
             if response is not None:
                 response.release_conn()
             pool.close()
+
+
+class PinnedHttpsTransport(HostPinnedHttpsTransport):
+    """The pinned transport scoped to Czech Wikipedia, the public route's one host."""
+
+    def __init__(self, *, connect_timeout_s: float = 8.0, read_timeout_s: float = 20.0) -> None:
+        super().__init__(
+            host=SEARCH_HOST,
+            accept="text/html, text/plain, application/json",
+            connect_timeout_s=connect_timeout_s,
+            read_timeout_s=read_timeout_s,
+        )
 
 
 class WikipediaSearch:

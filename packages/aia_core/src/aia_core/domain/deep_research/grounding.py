@@ -11,6 +11,11 @@ ADR 0017 decision 4, plan decision I-5. Three checks, in order, each determinist
 3. **Every number in the claim is in the quote** (``number_not_in_quote``): a
    claim may paraphrase its quote, never add a figure to it.
 
+A table cell (plan § 8.2) is grounded by :func:`ground_cell`: the quote must be
+exactly that cell's line in the table's rendering -- its row and column labels,
+period, unit, value and status -- so a value read off a neighbouring cell, or a
+prefix of a longer value, does not ground.
+
 Separately, :func:`detect_instructions` names the prompt-injection patterns in a
 source's text. A source that carries instructions is kept for provenance, and its
 findings are quarantined (``source_contains_instructions``): text is data, and a
@@ -28,17 +33,20 @@ from dataclasses import dataclass
 from typing import Final
 
 from ..analysis.draft import numbers_in, uncovered_numbers
-from .contracts import QuarantineReason
+from .contracts import QuarantineReason, SourceSnapshot
+from .datasets import DatasetCell
 
 __all__ = [
     "GROUNDING_VERSION",
     "INSTRUCTION_PATTERNS",
     "MAX_QUOTE_CHARS",
     "MIN_QUOTE_CHARS",
+    "CellGrounding",
     "GroundableSource",
     "Grounding",
     "detect_instructions",
     "ground",
+    "ground_cell",
     "locate_quote",
     "normalise_text",
 ]
@@ -203,3 +211,72 @@ def ground(
             "the source contains instructions: " + ", ".join(source.instructions_detected),
         )
     return Grounding(span, None, "")
+
+
+@dataclass(frozen=True, slots=True)
+class CellGrounding:
+    """The verdict on a quote of one table cell: the cell and its span, or why not."""
+
+    cell: DatasetCell | None
+    span: tuple[int, int] | None
+    failure: QuarantineReason | None
+    detail: str
+
+    @property
+    def grounded(self) -> bool:
+        return self.failure is None
+
+
+def ground_cell(*, snapshot: SourceSnapshot, locator: str, quote: str) -> CellGrounding:
+    """Check that ``quote`` is the cell at ``locator`` of a dataset snapshot, exactly.
+
+    The quote is the cell's line with or without its ``[locator]`` prefix, compared
+    after :func:`normalise_text`. A quote that is another cell's line names that
+    cell in the detail; a quote that is part of a line (a value cut short, a label
+    dropped) is not a cell. The source's instruction flags apply as for any quote.
+    """
+    table = snapshot.dataset
+    if table is None:
+        return CellGrounding(
+            None,
+            None,
+            QuarantineReason.UNGROUNDED_EXCERPT,
+            f"{snapshot.snapshot_id} is not a table; a cell is cited only in a dataset snapshot",
+        )
+    cell = table.cell(locator)
+    if cell is None:
+        return CellGrounding(
+            None,
+            None,
+            QuarantineReason.UNGROUNDED_EXCERPT,
+            f"{locator!r} is not a cell of {table.dataset_id}",
+        )
+    needle = normalise_text(quote)
+    if needle not in (normalise_text(cell.line()), normalise_text(cell.text())):
+        other = next(
+            (
+                c.locator
+                for c in table.cells()
+                if needle in (normalise_text(c.line()), normalise_text(c.text()))
+            ),
+            None,
+        )
+        detail = (
+            f"the quote is the cell {other}, not {locator}"
+            if other is not None
+            else f"the quote is not the cell {locator} as the table states it"
+        )
+        return CellGrounding(cell, None, QuarantineReason.UNGROUNDED_EXCERPT, detail)
+    span = locate_quote(snapshot.text, cell.line())
+    if span is None:  # the validator makes the text the rendering; this cannot happen
+        return CellGrounding(
+            cell, None, QuarantineReason.UNGROUNDED_EXCERPT, "the cell is not in the snapshot text"
+        )
+    if snapshot.instructions_detected:
+        return CellGrounding(
+            cell,
+            span,
+            QuarantineReason.SOURCE_CONTAINS_INSTRUCTIONS,
+            "the source contains instructions: " + ", ".join(snapshot.instructions_detected),
+        )
+    return CellGrounding(cell, span, None, "")

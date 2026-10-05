@@ -22,10 +22,19 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from ..ai_contracts import canonical_json
 from ..residency import DataClass
+from .datasets import DATASET_MEDIA_TYPE, DatasetResult
 
 __all__ = [
     "HARNESS_VERSION",
@@ -291,6 +300,29 @@ class SourceSnapshot(_Closed):
     request_id: str | None
     retrieval_mode: RetrievalMode
     instructions_detected: tuple[str, ...]
+    #: A dataset connector's answer, when the source is a table (plan § 8.2): ``text``
+    #: is then its rendering, and a cell is cited by its locator. ``None`` for a page.
+    #: Absent from the serialised form when ``None``, so every page snapshot stored
+    #: before tables existed has the same bytes and the same hash it had.
+    dataset: DatasetResult | None = None
+
+    @model_validator(mode="after")
+    def _dataset_is_its_text(self) -> SourceSnapshot:
+        if self.dataset is not None:
+            if self.text != self.dataset.render():
+                raise ValueError("a dataset snapshot's text is its table's rendering")
+            if self.content_type != DATASET_MEDIA_TYPE or self.truncated:
+                raise ValueError("a dataset snapshot is a whole table, of the table's type")
+        elif self.content_type == DATASET_MEDIA_TYPE:
+            raise ValueError("a snapshot of the table type carries its table")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_dataset(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.dataset is None and isinstance(data, dict):
+            data.pop("dataset", None)
+        return data
 
 
 # --------------------------------------------------------------------------- #

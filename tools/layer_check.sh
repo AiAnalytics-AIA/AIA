@@ -264,11 +264,12 @@ forbid "no deployment runs the workbench composition" \
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
 # API or the worker, and named by no deployment.
-RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web'
+# The recorded dataset connector is the same kind of double, beside the connectors.
+RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web|RecordedDatasetConnector'
 forbid "recorded web retrieval is defined only beside the web adapters" \
   "$RECORDED_WEB" \
   "$CORE/infrastructure" \
-  web_retrieval.py
+  web_retrieval.py dataset_connectors.py
 forbid "application code never names recorded web retrieval" \
   "$RECORDED_WEB" \
   "$CORE/application"
