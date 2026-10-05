@@ -62,3 +62,16 @@ export function Icon({ name, size = 16, className = "" }: { name: IconName; size
     </svg>
   );
 }
+
+/**
+ * The AI glyph (Studio v3): two four-point stars, filled. It marks every control
+ * that starts an AI worker job, and nothing else.
+ */
+export function Sparkle({ size = 16, className = "" }: { size?: number; className?: string }) {
+  return (
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 16 16" fill="currentColor" className={`shrink-0 ${className}`}>
+      <path d="M7 1.5l1.25 3.6L11.8 6.4 8.25 7.7 7 11.3 5.75 7.7 2.2 6.4l3.55-1.3z" />
+      <path d="M12.2 9.6l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z" />
+    </svg>
+  );
+}

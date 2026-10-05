@@ -26,6 +26,7 @@ export function SimulationFrame({ studyId }: { studyId: string }) {
       ]}
       eyebrow={t("aia.kind.SIMULATION")}
       title={name || t("aia.simulation.frameTitle")}
+      client={{ id: client.client_id, name: client.name }}
     >
       <Loaded res={res} retry={retry}>
         {(w) =>

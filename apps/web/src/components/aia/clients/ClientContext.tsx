@@ -96,6 +96,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
       crumbs={[{ label: t("aia.navClients"), href: appRoutes.clients() }, { label: client.name, href: appRoutes.client(client.client_id) }, ...crumbs]}
       title={client.name}
       sub={sub}
+      client={{ id: client.client_id, name: client.name }}
       action={actions ?? defaultActions}
       tabs={AREAS.map((a) => ({ key: a, label: t(`aia.client.tabs.${a}`), href: appRoutes.area(client.client_id, a), active: a === area }))}
     >

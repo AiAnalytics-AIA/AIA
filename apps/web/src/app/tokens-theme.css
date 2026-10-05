@@ -20,6 +20,12 @@
   --color-signal-edge: var(--signal-edge);
   --color-on-signal: var(--on-signal);
   --color-focus-ring: var(--focus-ring);
+  --color-ai: var(--ai);
+  --color-ai-strong: var(--ai-strong);
+  --color-ai-wash: var(--ai-wash);
+  --color-ai-edge: var(--ai-edge);
+  --color-ai-ink: var(--ai-ink);
+  --color-on-ai: var(--on-ai);
   --color-status-running: var(--status-running);
   --color-status-running-wash: var(--status-running-wash);
   --color-status-you: var(--status-you);
@@ -65,6 +71,24 @@
   --color-client-5: var(--client-5);
   --color-client-6: var(--client-6);
   --color-on-client: var(--on-client);
+  --color-shell: var(--shell);
+  --color-shell-ink: var(--shell-ink);
+  --color-shell-strong: var(--shell-strong);
+  --color-shell-item: var(--shell-item);
+  --color-shell-muted: var(--shell-muted);
+  --color-shell-faint: var(--shell-faint);
+  --color-shell-avatar: var(--shell-avatar);
+  --color-shell-avatar-ink: var(--shell-avatar-ink);
+  --color-hue-blue: var(--hue-blue);
+  --color-hue-teal: var(--hue-teal);
+  --color-hue-orange: var(--hue-orange);
+  --color-hue-violet: var(--hue-violet);
+  --color-hue-green: var(--hue-green);
+  --color-hue-slate: var(--hue-slate);
+  --color-shell-hue-blue: var(--shell-hue-blue);
+  --color-shell-hue-green: var(--shell-hue-green);
+  --color-shell-hue-violet: var(--shell-hue-violet);
+  --color-shell-hue-slate: var(--shell-hue-slate);
   --color-doc-paper: var(--doc-paper);
   --color-doc-ink: var(--doc-ink);
   --color-doc-muted: var(--doc-muted);
@@ -87,4 +111,8 @@
   --radius-0: 0px;
   --radius-sm: 2px;
   --radius-md: 4px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-panel: 10px;
+  --radius-pill: 999px;
 }

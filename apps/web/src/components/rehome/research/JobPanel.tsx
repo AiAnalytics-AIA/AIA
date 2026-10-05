@@ -3,14 +3,15 @@
 // One AI step while it runs: what the unit reports and nothing it does not --
 // the phase, real elapsed time, the heartbeat, the provider, the cost it can
 // state (design brief §4.3). Cancel arms after five seconds, as the classic
-// progress() does, and asks first.
+// progress() does, and asks first. The "AI úloha" badge (Studio v3) ties it to the
+// AI action that started it.
 
 import { useEffect, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { CANCEL_ARM_MS, type JobUpdate } from "@/research/jobs";
 import { Button } from "../ui";
-import { Icon } from "../icons";
+import { Icon, Sparkle } from "../icons";
 
 export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: string) => void }) {
   const [armed, setArmed] = useState(false);
@@ -37,7 +38,11 @@ export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: 
         <div className="flex items-start gap-3">
           <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />
           <div className="min-w-0 flex-1">
-            <h2 id="job-title" className="text-base font-semibold">{job.title}</h2>
+            <span className="inline-flex items-center gap-1 rounded-pill bg-ai-wash px-2 py-px text-[11px] font-semibold leading-[18px] text-ai-ink">
+              <Sparkle size={11} />
+              {t("research.aiJob")}
+            </span>
+            <h2 id="job-title" className="mt-1 text-base font-semibold">{job.title}</h2>
             <p aria-live="polite" className="mt-1 text-sm text-ink">{job.phase}</p>
             {job.paused ? <p className="mt-2 rounded-sm border border-status-world/35 bg-status-world-wash px-2 py-1 text-xs text-status-world">{job.paused}</p> : null}
           </div>

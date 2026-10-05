@@ -3,6 +3,11 @@ export const cs = {
   // interface's: Clients first, then one client's work, then one study.
   aia: {
     product: "AI Analytics",
+    productSub: "Research Studio",
+    workspaceLabel: "Pracovní prostor",
+    changeClient: "Změnit klienta ›",
+    account: "Účet a nastavení",
+    backToClient: "Zpět na klienta",
     mainNav: "Hlavní navigace",
     breadcrumbs: "Kde jste",
     navClients: "Klienti",
@@ -640,6 +645,8 @@ export const cs = {
       crumbResearch: "Výzkumy",
       crumbSimulations: "Simulace",
       stagesLabel: "Fáze výzkumu",
+      stepOf: "Krok {n} ze {total}",
+      phases: { design: "Návrh výzkumu", sample: "Vzorek", run: "Běh a výsledky" },
       bindFailed: "Rozpracovaný obsah se nepodařilo přiřadit k výzkumu: {message}",
       readOnly: "Tento výzkum můžete jen číst.",
     },
@@ -692,6 +699,15 @@ export const cs = {
     jobStillWorking: "AI stále pracuje · průběh a heartbeat vidíte přímo v okně.",
     jobOverHardStop: "AI překročila orientační serverový čas, ale job neruším. Stav vlastní backend; zrušení je pouze na vás.",
     openSettings: "Otevřít Nastavení",
+    // Studio v3: one look and one title for every control that starts an AI job.
+    aiActionTitle: "Spustí AI úlohu na pozadí · platí se z rozpočtu studie",
+    aiJob: "AI úloha",
+    aiHelp: "AI pomoc",
+    aiHelpLabel: "AI pomoc s výzkumem",
+    aiCritique: "AI zkontroluje návrh",
+    aiCopilot: "Zeptat se na návrh",
+    aiMemory: "Zeptat se na klientské znalosti",
+    aiSaved: "Uložené návrhy AI",
     brief: {
       quickStart: "RYCHLÝ START",
       whatSolve: "Co řešíte?",

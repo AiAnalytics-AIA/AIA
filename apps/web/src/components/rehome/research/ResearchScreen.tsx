@@ -16,11 +16,12 @@ import { type ReactNode, createContext, useCallback, useContext, useEffect, useM
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
 import type { Template } from "@/research/model";
-import { type StepKey, stepEyebrow } from "@/research/steps";
+import { RAIL_STEPS, type StepKey, stepEyebrow } from "@/research/steps";
 import { ResearchStore, loadResearch, newResearch } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AskDialog, Button, Toast } from "../ui";
+import { type Ask, AiButton, AskDialog, Button, Toast } from "../ui";
+import { Sparkle } from "../icons";
 import { JobPanel } from "./JobPanel";
 import { ResearchRail } from "./ResearchRail";
 import { SaveIndicator } from "./SaveIndicator";
@@ -31,6 +32,21 @@ import { researchAgents, type ResearchAgentAction } from "@/lib/api";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { STEP_SCREENS } from "./steps";
+
+// The "AI pomoc" bar (Studio v3) offers an action only where it helps: the plan can be
+// reviewed from Návrh to Kontrola (2–6), asked about while it is designed (2–5), and the
+// client's knowledge on every step. Each action, its handler and its dialog are unchanged.
+const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
+  { action: "critique_design", label: "research.aiCritique", title: "Kontrola návrhu", rail: [2, 3, 4, 5, 6] },
+  { action: "design_copilot", label: "research.aiCopilot", title: "Pomoc s návrhem", rail: [2, 3, 4, 5] },
+  { action: "answer_memory", label: "research.aiMemory", title: "Klientské znalosti", rail: "all" },
+];
+
+export function aiHelpFor(step: StepKey) {
+  // Průběh is Kontrola & spuštění's run, drawn on its rail entry.
+  const n = RAIL_STEPS.findIndex((s) => s.key === (step === "progress" ? "run" : step)) + 1;
+  return AI_HELP.filter((a) => a.rail === "all" || a.rail.includes(n));
+}
 
 type Loaded =
   | { kind: "loading" }
@@ -97,16 +113,18 @@ function StageChrome({ frame, step, status, children }: { frame: StudyFrame; ste
       ]}
       title={t(`research.steps.${step}.0`)}
       sub={t(`research.steps.${step}.1`)}
+      client={{ id: frame.clientId, name: frame.clientName }}
+      back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={
         eyebrow.total ? (
-          <span className="inline-flex items-center gap-2">
+          <>
             {eyebrow.text}
             <span aria-hidden="true" className="inline-flex gap-0.5">
               {Array.from({ length: eyebrow.total }, (_, i) => (
                 <i key={i} className={`block h-0.5 w-4 ${i < eyebrow.done ? "bg-signal" : "bg-border"}`} />
               ))}
             </span>
-          </span>
+          </>
         ) : (
           t("aia.kind.RESEARCH")
         )
@@ -233,20 +251,24 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     catch (e) { setToast(message(e)); }
   };
   const Screen = STEP_SCREENS[step];
+  const aiHelp = aiHelpFor(step);
 
   return (
     <ResearchContext.Provider value={value}>
       <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
         {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
         {Screen ? <Screen /> : <StepPlaceholder step={step} />}
-        {frame.canEdit ? <section className="mt-6 flex flex-wrap gap-2 border-t border-border pt-4" aria-label="AI pomoc s výzkumem">
-          <Button disabled={agents.busy} onClick={() => void askAgent("critique_design", "Kontrola návrhu")}>AI zkontroluje návrh</Button>
-          <Button disabled={agents.busy} onClick={() => void askAgent("design_copilot", "Pomoc s návrhem")}>Zeptat se na návrh</Button>
-          <Button disabled={agents.busy} onClick={() => void askAgent("answer_memory", "Klientské znalosti")}>Zeptat se na klientské znalosti</Button>
+        {frame.canEdit && aiHelp.length ? <section className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-4" aria-label={t("research.aiHelpLabel")}>
+          <span className="mr-1 inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-ai-ink"><Sparkle size={13} />{t("research.aiHelp")}</span>
+          {aiHelp.map((h) => (
+            <AiButton key={h.action} small disabled={agents.busy} onClick={() => void askAgent(h.action, h.title)}>{t(h.label)}</AiButton>
+          ))}
         </section> : null}
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
-      {agents.recent.some((j) => j.status === "COMPLETED") ? <section className="my-4 rounded-md border border-border p-4"><h2 className="font-semibold">Uložené návrhy AI</h2>
-        {agents.recent.filter((j) => j.status === "COMPLETED").slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+      {agents.recent.some((j) => j.status === "COMPLETED") ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
+        <div className="flex flex-wrap gap-2">
+          {agents.recent.filter((j) => j.status === "COMPLETED").slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+        </div>
       </section> : null}
       </StageChrome>
       {job ? <JobPanel job={job} onCancel={onCancel} /> : null}

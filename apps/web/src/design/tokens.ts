@@ -3,28 +3,28 @@
 /** Resolved colour values per theme, for JavaScript consumers (charts, canvas). CSS uses the custom properties. */
 export const colors = {
   "surface": {
-    "light": "#f9f6f2",
-    "dark": "#0f1215"
+    "light": "#eef0f4",
+    "dark": "#0d1015"
   },
   "surface-raised": {
-    "light": "#fefcf9",
-    "dark": "#171a1e"
+    "light": "#ffffff",
+    "dark": "#151a21"
   },
   "surface-sunken": {
-    "light": "#f1eee9",
-    "dark": "#090b0f"
+    "light": "#e5e8ee",
+    "dark": "#0a0c10"
   },
   "surface-overlay": {
-    "light": "#fefdfb",
-    "dark": "#1d2125"
+    "light": "#ffffff",
+    "dark": "#1b212a"
   },
   "border": {
-    "light": "#dad7d2",
-    "dark": "#2f3338"
+    "light": "#dde1e8",
+    "dark": "#252c36"
   },
   "border-strong": {
-    "light": "#7b8187",
-    "dark": "#70757c"
+    "light": "#7d8490",
+    "dark": "#6d7684"
   },
   "ink": {
     "light": "#151a20",
@@ -47,44 +47,68 @@ export const colors = {
     "dark": "#0f1215"
   },
   "signal": {
-    "light": "#006b9f",
-    "dark": "#6ac5e8"
+    "light": "#3557e0",
+    "dark": "#8aa2ff"
   },
   "signal-wash": {
-    "light": "#d7edfb",
-    "dark": "#123144"
+    "light": "#e8edfd",
+    "dark": "#1a2242"
   },
   "signal-hover": {
-    "light": "#005a86",
-    "dark": "#8fd3ee"
+    "light": "#2843b8",
+    "dark": "#a9bbff"
   },
   "signal-wash-strong": {
-    "light": "#cde8f8",
-    "dark": "#183d55"
+    "light": "#d8e2fb",
+    "dark": "#222c55"
   },
   "signal-tint": {
-    "light": "#eef6fb",
-    "dark": "#152530"
+    "light": "#f3f6fe",
+    "dark": "#131a30"
   },
   "signal-edge": {
-    "light": "#9ccbe8",
-    "dark": "#2e5f7c"
+    "light": "#b9c7f6",
+    "dark": "#35457d"
   },
   "on-signal": {
-    "light": "#fefcf9",
-    "dark": "#090b0f"
+    "light": "#ffffff",
+    "dark": "#0a0c10"
   },
   "focus-ring": {
-    "light": "#006b9f",
-    "dark": "#6ac5e8"
+    "light": "#3557e0",
+    "dark": "#8aa2ff"
+  },
+  "ai": {
+    "light": "#a3319a",
+    "dark": "#e07ad6"
+  },
+  "ai-strong": {
+    "light": "#862680",
+    "dark": "#f09ae7"
+  },
+  "ai-wash": {
+    "light": "#f7ecf6",
+    "dark": "#31273a"
+  },
+  "ai-edge": {
+    "light": "#d6a2d2",
+    "dark": "#7a4a7c"
+  },
+  "ai-ink": {
+    "light": "#8a2783",
+    "dark": "#f0a6e8"
+  },
+  "on-ai": {
+    "light": "#ffffff",
+    "dark": "#1a0b18"
   },
   "status-running": {
-    "light": "#006b9f",
-    "dark": "#6ac5e8"
+    "light": "#3557e0",
+    "dark": "#8aa2ff"
   },
   "status-running-wash": {
-    "light": "#d7edfb",
-    "dark": "#132e3f"
+    "light": "#e8edfd",
+    "dark": "#18203c"
   },
   "status-you": {
     "light": "#f5ae39",
@@ -258,6 +282,78 @@ export const colors = {
     "light": "#fefcf9",
     "dark": "#090b0f"
   },
+  "shell": {
+    "light": "#11151b",
+    "dark": "#11151b"
+  },
+  "shell-ink": {
+    "light": "#e8e6e1",
+    "dark": "#e8e6e1"
+  },
+  "shell-strong": {
+    "light": "#ffffff",
+    "dark": "#ffffff"
+  },
+  "shell-item": {
+    "light": "#b9bcc3",
+    "dark": "#b9bcc3"
+  },
+  "shell-muted": {
+    "light": "#8b8f97",
+    "dark": "#8b8f97"
+  },
+  "shell-faint": {
+    "light": "#7a7e87",
+    "dark": "#7a7e87"
+  },
+  "shell-avatar": {
+    "light": "#2a3140",
+    "dark": "#2a3140"
+  },
+  "shell-avatar-ink": {
+    "light": "#cfd6e4",
+    "dark": "#cfd6e4"
+  },
+  "hue-blue": {
+    "light": "#3557e0",
+    "dark": "#3557e0"
+  },
+  "hue-teal": {
+    "light": "#0f8a8a",
+    "dark": "#0f8a8a"
+  },
+  "hue-orange": {
+    "light": "#c26a1d",
+    "dark": "#c26a1d"
+  },
+  "hue-violet": {
+    "light": "#7a4fd6",
+    "dark": "#7a4fd6"
+  },
+  "hue-green": {
+    "light": "#1d9a6c",
+    "dark": "#1d9a6c"
+  },
+  "hue-slate": {
+    "light": "#5b6472",
+    "dark": "#5b6472"
+  },
+  "shell-hue-blue": {
+    "light": "#8aa2ff",
+    "dark": "#8aa2ff"
+  },
+  "shell-hue-green": {
+    "light": "#5fd1a5",
+    "dark": "#5fd1a5"
+  },
+  "shell-hue-violet": {
+    "light": "#b49aff",
+    "dark": "#b49aff"
+  },
+  "shell-hue-slate": {
+    "light": "#a9b0bb",
+    "dark": "#a9b0bb"
+  },
   "doc-paper": {
     "light": "#fffdfa",
     "dark": "#fffdfa"
@@ -303,8 +399,8 @@ export const colors = {
     "dark": "#ece9e4"
   },
   "budget-reserved": {
-    "light": "#006b9f",
-    "dark": "#6ac5e8"
+    "light": "#3557e0",
+    "dark": "#8aa2ff"
   },
   "budget-uncertain": {
     "light": "#b52524",
@@ -315,8 +411,8 @@ export const colors = {
     "dark": "#ece9e4"
   },
   "selection": {
-    "light": "#d7edfb",
-    "dark": "#123144"
+    "light": "#e8edfd",
+    "dark": "#1a2242"
   }
 } as const;
 
@@ -340,6 +436,10 @@ export const scalars = {
   "radius-0": "0px",
   "radius-sm": "2px",
   "radius-md": "4px",
+  "radius-control": "6px",
+  "radius-card": "8px",
+  "radius-panel": "10px",
+  "radius-pill": "999px",
   "stroke-hairline": "1px",
   "stroke-mark": "1.5px",
   "stroke-emphasis": "2px",
