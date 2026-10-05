@@ -529,6 +529,11 @@ export const research = {
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
   downloadReport: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
+  sociomappingReport: (studyId: string, runId: string) =>
+    request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/sociomapping/report`),
+  downloadSociomappingReport: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/sociomapping/report/download`),
 };
 
 export type DeepResearchRun = {
