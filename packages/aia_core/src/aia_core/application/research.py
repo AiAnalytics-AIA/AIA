@@ -128,6 +128,7 @@ class ResearchRuns:
         fieldwork_source: FieldworkSource,
         retry_of: str | None = None,
         analysis_enabled: bool = False,
+        sociomapping_enabled: bool = False,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
 
@@ -149,6 +150,8 @@ class ResearchRuns:
         key = f"{RESEARCH}:{revision.revision_id}"
         if analysis_enabled:
             key += ":analysis"
+        if sociomapping_enabled:
+            key += ":sociomapping"
         if retry_of:
             key += f":retry:{retry_of}"
         return start_workflow(
@@ -163,6 +166,7 @@ class ResearchRuns:
                 "design_revision": revision.revision,
                 "fieldwork_source": fieldwork_source.value,
                 "analysis_enabled": analysis_enabled,
+                **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             step_inputs={
@@ -172,6 +176,7 @@ class ResearchRuns:
             },
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
+            sociomapping_enabled=sociomapping_enabled,
         )
 
     def retry(self, run_id: str, *, fieldwork_source: FieldworkSource) -> StartedRun:
@@ -184,6 +189,7 @@ class ResearchRuns:
             fieldwork_source=fieldwork_source,
             retry_of=run_id,
             analysis_enabled=bool(run["metadata"].get("analysis_enabled", False)),
+            sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

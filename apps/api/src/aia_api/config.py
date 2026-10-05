@@ -89,6 +89,10 @@ class Settings(BaseSettings):
     # workbench, refused in every deployed environment by validate_for_production().
     research_fieldwork_source: FieldworkSource = FieldworkSource.AI_RUNTIME
     ai_analysis_enabled: bool = False
+    # The experimental Sociomapping (AIA's H-Model candidate) and its internal draft report,
+    # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
+    # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
+    sociomapping_experimental_enabled: bool = False
 
     # The clients whose studies an administrator may run a *draft* prompt on (ADR 0020). The
     # same variable the worker reads (``AIA_AI_FICTIONAL_CLIENT_IDS``), read here so the API

@@ -39,9 +39,11 @@ from aia_core.domain.research_design import (
     compile_design,
 )
 from aia_core.domain.research_sociomap import SOCIOMAP_VERSION, research_sociomaps
+from aia_core.domain.research_sociomapping import SOCIOMAPPING_VERSION, research_sociomappings
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
+from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
-from aia_core.domain.workflow_templates import RESEARCH_KINDS
+from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
 from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore
@@ -64,12 +66,14 @@ __all__ = [
     "FieldworkExecutor",
     "PreflightExecutor",
     "SociomapExecutor",
+    "SociomappingExecutor",
     "research_registry",
     "upstream_artifact",
 ]
 
 AGGREGATE: Final = "research_aggregate"
 SOCIOMAP: Final = "research_sociomap"
+SOCIOMAPPING: Final = "research_sociomapping"
 SPECIFICATION: Final = "research_specification"
 READINESS: Final = "research_readiness"
 FIELDWORK_DATASET: Final = "research_fieldwork_dataset"
@@ -479,6 +483,83 @@ class SociomapExecutor(_Step):
         )
 
 
+class SociomappingExecutor(_Step):
+    """Each tracked set's experimental Sociomapping (plan sociomapping-engine I1).
+
+    Declared relations, the experimental AIA H-Model, heights and coherences, with every
+    fingerprint, version, parameter and rule id. ``EXPERIMENTAL_AIA`` and never client-facing.
+    """
+
+    def __init__(
+        self,
+        *,
+        store: ArtifactStore,
+        build: BuildIdentity,
+        parameters: CandidateParameters | None = None,
+    ) -> None:
+        super().__init__(store=store, build=build)
+        self._parameters = parameters or CandidateParameters()
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            dataset_id = upstream_artifact(workflow, step, "run")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            if dataset_id is None:
+                return _missing_upstream("run")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            dataset = _read_dataset(repo, dataset_id)
+            dataset_sha = repo.get(dataset_id).sha256
+        try:
+            validate_dataset(spec, dataset)
+        except InvalidDataset as exc:
+            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
+        context.progress("Sociomapping: vztahy a experimentální H-Model se počítají")
+        result = research_sociomappings(spec, dataset, self._parameters)
+        result["inputs"] = {
+            "specification_artifact_id": spec_id,
+            "specification_fingerprint": spec.fingerprint(),
+            "dataset_artifact_id": dataset_id,
+            "dataset_sha256": dataset_sha,
+        }
+        context.checkpoint()
+        origin = result["data_origin"]
+        with context.transaction() as (session, _workflow):
+            artifact, created = self._put(
+                _artifacts(session, context, self._store),
+                step,
+                payload={"kind": SOCIOMAPPING, "sociomapping": result},
+                artifact_type=SOCIOMAPPING,
+                input_fingerprint=fingerprint(
+                    {
+                        "dataset": dataset_sha,
+                        "sociomapping": SOCIOMAPPING_VERSION,
+                        "method": CANDIDATE_METHOD,
+                        "parameters": self._parameters.model_dump(mode="json"),
+                        "spec": spec.fingerprint(),
+                    }
+                ),
+                depends_on=[spec_id, dataset_id],
+                metadata={
+                    "data_origin": origin,
+                    "method_status": result["method_status"],
+                    "client_facing": False,
+                },
+            )
+        context.progress("Sociomapping spočten (experimentální)", artifact_id=artifact.artifact_id)
+        return _produced(
+            step,
+            artifact,
+            created,
+            SOCIOMAPPING,
+            data_origin=origin,
+            method_status=result["method_status"],
+        )
+
+
 def research_registry(
     *,
     store: ArtifactStore,
@@ -496,4 +577,5 @@ def research_registry(
         ),
         RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
         RESEARCH_KINDS["sociomap"]: SociomapExecutor(store=store, build=build),
+        SOCIOMAPPING_STEP_KIND: SociomappingExecutor(store=store, build=build),
     }

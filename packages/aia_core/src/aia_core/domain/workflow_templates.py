@@ -35,6 +35,8 @@ __all__ = [
     "REPORT_STEP_KIND",
     "RESEARCH",
     "RESEARCH_KINDS",
+    "SOCIOMAPPING_REPORT_STEP_KIND",
+    "SOCIOMAPPING_STEP_KIND",
     "WORKFLOW_TYPES",
     "UnknownWorkflowType",
     "steps_for_workflow",
@@ -47,6 +49,10 @@ DEVELOP_SNAPSHOT: Final = "develop_snapshot"
 RESEARCH: Final = "research"
 RESEARCH_AGENT: Final = "research_agent"
 REPORT_STEP_KIND: Final = "research_report"
+#: The experimental Sociomapping and its internal draft report (plan sociomapping-engine I1, I2):
+#: in a run's graph only when the run was started with them.
+SOCIOMAPPING_STEP_KIND: Final = "research_sociomapping"
+SOCIOMAPPING_REPORT_STEP_KIND: Final = "research_sociomapping_report"
 
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
 WORKFLOW_TYPES: Final[frozenset[str]] = frozenset({DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT})
@@ -78,7 +84,11 @@ class UnknownWorkflowType(LookupError):
 
 
 def steps_for_workflow(
-    workflow_type: str, *, project_type: ProjectType, analysis_enabled: bool = False
+    workflow_type: str,
+    *,
+    project_type: ProjectType,
+    analysis_enabled: bool = False,
+    sociomapping_enabled: bool = False,
 ) -> list[StepDefinition]:
     """Return the step graph for ``workflow_type`` against a project of ``project_type``.
 
@@ -132,6 +142,27 @@ def steps_for_workflow(
                     depends_on=tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
                     stage_type="REPORT",
                     artifact_target="research_internal_docx",
+                    max_attempts=3,
+                )
+            )
+        if sociomapping_enabled:
+            steps.append(
+                StepDefinition(
+                    node_key="sociomapping",
+                    kind=SOCIOMAPPING_STEP_KIND,
+                    depends_on=("run",),
+                    stage_type="ANALYSIS",
+                    artifact_target="research_sociomapping",
+                    max_attempts=3,
+                )
+            )
+            steps.append(
+                StepDefinition(
+                    node_key="sociomapping_report",
+                    kind=SOCIOMAPPING_REPORT_STEP_KIND,
+                    depends_on=("sociomapping",),
+                    stage_type="REPORT",
+                    artifact_target="research_sociomapping_docx",
                     max_attempts=3,
                 )
             )

@@ -464,6 +464,7 @@ def start_run(
             design_revision_id=body.design_revision_id,
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
+            sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
