@@ -21,6 +21,8 @@ is pure:
 * :mod:`.bundle` -- the sealed evidence bundle;
 * :mod:`.steps` -- what each step of a run stores, and the gate each refusal names;
 * :mod:`.quarantine` -- what leaves the bundle for respondents, design and analysis.
+* :mod:`.filters` -- the funnel's Filter stage: exact and near duplicates, language,
+  relevance (defined, not wired).
 
 Pure: stdlib and Pydantic only.
 """
