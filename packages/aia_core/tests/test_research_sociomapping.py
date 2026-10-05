@@ -225,3 +225,18 @@ def test_a_design_without_a_tracked_set_has_none_and_says_so() -> None:
     assert result["batteries"] == [] and "mapa nevznikla" in result["note"]
     assert result["method_status"] == "EXPERIMENTAL_AIA" and result["client_facing"] is False
 
+
+def test_the_web_fixture_is_what_the_builder_stores_today() -> None:
+    # The Results page is tested against apps/web/src/lib/fixtures/sociomapping.json; it is
+    # written by tools/sociomapping_web_fixture.py from this builder, never by hand.
+    import importlib.util
+
+    repo = Path(__file__).resolve().parents[3]
+    spec = importlib.util.spec_from_file_location(
+        "web_fixture", repo / "tools/sociomapping_web_fixture.py"
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    stored = (repo / "apps/web/src/lib/fixtures/sociomapping.json").read_text("utf-8")
+    assert stored == module.render(), "run python tools/sociomapping_web_fixture.py"

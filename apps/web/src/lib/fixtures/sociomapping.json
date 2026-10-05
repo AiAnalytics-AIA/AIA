@@ -1,0 +1,372 @@
+{
+ "kind": "research_sociomapping",
+ "sociomapping": {
+  "batteries": [
+   {
+    "battery_id": "fiktivni_znacky",
+    "coherences": {
+     "available": false,
+     "reason": "'altair' and 'echo' have no correlation (every answer equal for echo)"
+    },
+    "family": "značky",
+    "fuzzy": {
+     "available": false,
+     "reason": "'altair' and 'echo' have no correlation (every answer equal for echo)"
+    },
+    "heights": {
+     "input_fingerprint": "8aa23d73a0eff41f5ea0aaaa2b92b46265cc7b742c8126a683d8ee7d4d57a7ec",
+     "kind": "object_average_answer",
+     "on_scale": [
+      5.5,
+      5.625,
+      5.5,
+      5.0,
+      6.0
+     ],
+     "rules": [
+      "RTS-N1",
+      "RTS-W3"
+     ],
+     "values": [
+      0.5,
+      0.5138888888888888,
+      0.5,
+      0.4444444444444444,
+      0.5555555555555556
+     ]
+    },
+    "layout": {
+     "accuracy": {
+      "evaluator": "aia_hmodel_accuracy_v1",
+      "mean_per_point": 1.0,
+      "ordered_pairs": 12,
+      "overall": 1.0,
+      "overall_undefined": null,
+      "per_point": [
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ],
+      "per_point_undefined": [
+       null,
+       null,
+       null,
+       null
+      ],
+      "undefined_pairs": 0
+     },
+     "baseline_classical_mds": 0.9428571428571428,
+     "chosen_start": 0,
+     "element_ids": [
+      "altair",
+      "borealis",
+      "cirrus",
+      "delta"
+     ],
+     "frame": "centred; principal axes; third moment >= 0 per axis; uniform scale into 0.05-0.95",
+     "positions": [
+      [
+       0.22400763869638746,
+       0.5203177191067699
+      ],
+      [
+       0.49203579394608227,
+       0.7165977482541461
+      ],
+      [
+       0.3339565673575303,
+       0.3150381634714491
+      ],
+      [
+       0.95,
+       0.4480463691676348
+      ]
+     ],
+     "relations_fingerprint": "77380a2c8f56d94543200f3c20b9a06d217eae88550a95a80c89a12d7bf77683",
+     "rules": [
+      "RTS-N1",
+      "RTS-O1",
+      "SOMECS-H3",
+      "AIA-H4",
+      "AIA-H8",
+      "AIA-H9",
+      "SOMECS-H6",
+      "SOMECS-H7"
+     ],
+     "starts": [
+      {
+       "branch": "direct",
+       "direct_accuracy": 1.0,
+       "final_accuracy": 1.0,
+       "label": "classical_mds_on_ranks",
+       "ordinal_accuracy": 1.0,
+       "ordinal_stress": 0.0,
+       "smooth_correlation": 1.0,
+       "start_accuracy": 0.9428571428571428,
+       "start_refined_accuracy": 1.0,
+       "sweeps": 55
+      },
+      {
+       "branch": "direct",
+       "direct_accuracy": 1.0,
+       "final_accuracy": 1.0,
+       "label": "random_0",
+       "ordinal_accuracy": 1.0,
+       "ordinal_stress": 0.0,
+       "smooth_correlation": 1.0,
+       "start_accuracy": -0.2571428571428571,
+       "start_refined_accuracy": null,
+       "sweeps": 36
+      }
+     ],
+     "unplaced": [
+      {
+       "element_id": "echo",
+       "reason": "no defined relation: every answer equal for echo"
+      }
+     ]
+    },
+    "limitations": [
+     {
+      "code": "EXPERIMENTAL_METHOD",
+      "detail": "The layout is AIA's experimental H-Model candidate; SOMECS's fitting objective is not documented, and nothing here is a verified reconstruction of it.",
+      "question": "M2"
+     },
+     {
+      "code": "NO_RESPONDENT_PLACEMENT",
+      "detail": "Respondents are not placed on the map: SOMECS's STORM placement is not documented.",
+      "question": "M3"
+     },
+     {
+      "code": "NO_HEIGHT_SURFACE",
+      "detail": "Heights are shown at the objects only; no surface is interpolated between them (SOMECS's WIND interpolation is not documented).",
+      "question": "M4"
+     },
+     {
+      "code": "UNWEIGHTED",
+      "detail": "Relations and heights are unweighted: no source weights a Sociomap.",
+      "question": "M7"
+     },
+     {
+      "code": "ADEQUACY_NOT_ASSESSED",
+      "detail": "Whether the support is enough for these correlations or this map to mean something is not assessed; a computable statistic is not an adequate one.",
+      "question": "M14"
+     },
+     {
+      "code": "NO_SIGNIFICANCE",
+      "detail": "The fit is not tested against random matrices of the same size.",
+      "question": "M15"
+     },
+     {
+      "code": "COMPLETE_RESPONDENTS_ONLY",
+      "detail": "2 of 10 respondents did not answer every object and are not in the relations or heights.",
+      "question": "M5"
+     },
+     {
+      "code": "NEGATIVE_CORRELATIONS_KEPT",
+      "detail": "3 object pair(s) correlate negatively. They are kept signed and laid out by their order; no 0-1 relation matrix or coherence levels exist for this set while RTS's handling of a negative correlation is open.",
+      "question": "M12"
+     },
+     {
+      "code": "UNPLACED_OBJECTS",
+      "detail": "Not on the map: echo (no defined relation: every answer equal for echo)",
+      "question": null
+     }
+    ],
+    "objects": [
+     {
+      "id": "altair",
+      "label": "Altair"
+     },
+     {
+      "id": "borealis",
+      "label": "Borealis"
+     },
+     {
+      "id": "cirrus",
+      "label": "Cirrus"
+     },
+     {
+      "id": "delta",
+      "label": "Delta"
+     },
+     {
+      "id": "echo",
+      "label": "Echo"
+     }
+    ],
+    "rating_scale": [
+     1,
+     10
+    ],
+    "reason": null,
+    "relations": {
+     "answers_fingerprint": "8aa23d73a0eff41f5ea0aaaa2b92b46265cc7b742c8126a683d8ee7d4d57a7ec",
+     "fingerprint": "77380a2c8f56d94543200f3c20b9a06d217eae88550a95a80c89a12d7bf77683",
+     "matrix": [
+      [
+       null,
+       0.9504366117494704,
+       0.9523809523809523,
+       -0.9960238411119947,
+       null
+      ],
+      [
+       0.9504366117494704,
+       null,
+       0.884889259215024,
+       -0.9505747283189417,
+       null
+      ],
+      [
+       0.9523809523809523,
+       0.884889259215024,
+       null,
+       -0.9561828874675149,
+       null
+      ],
+      [
+       -0.9960238411119947,
+       -0.9505747283189417,
+       -0.9561828874675149,
+       null,
+       null
+      ],
+      [
+       null,
+       null,
+       null,
+       null,
+       null
+      ]
+     ],
+     "negative_pairs": [
+      [
+       "altair",
+       "delta",
+       -0.9960238411119947
+      ],
+      [
+       "borealis",
+       "delta",
+       -0.9505747283189417
+      ],
+      [
+       "cirrus",
+       "delta",
+       -0.9561828874675149
+      ]
+     ],
+     "rules": [
+      "RTS-N1",
+      "RTS-O1"
+     ],
+     "scale": "signed_correlation",
+     "support": 8,
+     "undefined": [
+      [
+       "altair",
+       "echo",
+       "every answer equal for echo"
+      ],
+      [
+       "echo",
+       "altair",
+       "every answer equal for echo"
+      ],
+      [
+       "borealis",
+       "echo",
+       "every answer equal for echo"
+      ],
+      [
+       "echo",
+       "borealis",
+       "every answer equal for echo"
+      ],
+      [
+       "cirrus",
+       "echo",
+       "every answer equal for echo"
+      ],
+      [
+       "echo",
+       "cirrus",
+       "every answer equal for echo"
+      ],
+      [
+       "delta",
+       "echo",
+       "every answer equal for echo"
+      ],
+      [
+       "echo",
+       "delta",
+       "every answer equal for echo"
+      ]
+     ]
+    },
+    "rules": [
+     "RTS-N1",
+     "RTS-O1",
+     "SOMECS-H3",
+     "AIA-H4",
+     "AIA-H8",
+     "AIA-H9",
+     "SOMECS-H6",
+     "SOMECS-H7",
+     "RTS-W3",
+     "AIA-D2",
+     "AIA-D1"
+    ],
+    "scale_labels": [
+     "vůbec",
+     "velmi"
+    ],
+    "status": "MAPPED",
+    "support": {
+     "exclusion_reason": "did not answer every object of the set (RTS collects every answer; AIA keeps only complete respondents and counts the rest)",
+     "exclusion_rule": "AIA-D2",
+     "missing_by_object": {
+      "altair": 0,
+      "borealis": 1,
+      "cirrus": 1,
+      "delta": 0,
+      "echo": 0
+     },
+     "respondents_complete": 8,
+     "respondents_excluded": 2,
+     "respondents_total": 10,
+     "weighting": "UNWEIGHTED",
+     "weights_not_applied": "no source weights a Sociomap (M7)"
+    },
+    "title": "Fiktivní značky"
+   }
+  ],
+  "client_facing": false,
+  "data_origin": "SYNTHETIC_FIXTURE",
+  "method": {
+   "description": "experimental AIA H-Model candidate; not a verified reconstruction of SOMECS",
+   "evaluator": "aia_hmodel_accuracy_v1",
+   "name": "aia_hmodel_candidate_v1",
+   "parameters": {
+    "directions": 16,
+    "exact_max_sweeps": 400,
+    "initial_step": 0.25,
+    "min_step": 1e-06,
+    "ordinal_gap": 0.05,
+    "ordinal_iterations": 300,
+    "random_starts": 1,
+    "repair_rounds": 30,
+    "seed": 20261005,
+    "smooth_iterations": 150
+   },
+   "status": "EXPERIMENTAL_AIA"
+  },
+  "method_status": "EXPERIMENTAL_AIA",
+  "note": null,
+  "sociomapping_version": "aia-research-sociomapping-1",
+  "synthetic_data": true
+ }
+}
