@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -10,6 +10,9 @@ import { PROBLEM_TYPES, briefFingerprint, defaultsMerge } from "@/research/model
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
+
+/** The step's one analysis action, in its dock (Studio v3). */
+const NEXT = /Vytvořit návrh s AI/;
 
 // Native jobs need more than vitest's 5 s under CI load (test-native-agents.ts).
 vi.setConfig({ testTimeout: NATIVE_TEST_TIMEOUT_MS });
@@ -75,14 +78,17 @@ describe("Zadání", () => {
   it("draws the classic blocks, and the next step waits for a goal", async () => {
     unitStub({ title: "Nový výzkum" });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Co řešíte?" })).toBeTruthy();
-    for (const [, label] of PROBLEM_TYPES) expect(screen.getByRole("button", { name: new RegExp(label.replace(/[/()]/g, ".")) })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Přílohy a odkazy" })).toBeTruthy();
-    expect(screen.getByText("Další kontext")).toBeTruthy();
-    expect(screen.getByText("Zatím bez příloh.")).toBeTruthy();
+    // Studio v3: four numbered sections, the readiness panel beside them.
+    expect(await screen.findByRole("heading", { name: "Co potřebujete zjistit a rozhodnout?" })).toBeTruthy();
+    const types = screen.getByRole("group", { name: "Typ problému" });
+    for (const [, label] of PROBLEM_TYPES) expect(within(types).getByRole("button", { name: new RegExp(label.replace(/[/()]/g, ".")) })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /^Podklady/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /^Kontext, který zpřesní návrh/ })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("0 %");
     // The empty project's title shows as an empty field, as in the classic screen.
     expect((screen.getByPlaceholderText("Např. Nové balení produktu") as HTMLInputElement).value).toBe("");
-    expect((screen.getByRole("button", { name: /Další · vytvořit návrh/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Napište cíl, nebo co přesně zkoumáme")).toBeTruthy();
   });
 
   it("a problem type is a toggle that fills an empty goal with its default", async () => {
@@ -93,9 +99,9 @@ describe("Zadání", () => {
     // The tile can be on screen before the store's subscription effect has run;
     // a click then renders when it subscribes, not synchronously (AGENTS.md § Next.js / TypeScript).
     await screen.findByRole("button", { name: /Nový produkt \/ koncept/, pressed: true }, { timeout: 5_000 });
-    const goal = screen.getByPlaceholderText(/Co chcete zjistit/) as HTMLTextAreaElement;
+    const goal = screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement;
     expect(goal.value).toBe(PROBLEM_TYPES[1][3]);
-    expect((screen.getByRole("button", { name: /Další · vytvořit návrh/ }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(tile);
     expect(tile.getAttribute("aria-pressed")).toBe("false");
     expect(screen.getByText("Změny se uloží za chvíli")).toBeTruthy();
@@ -111,8 +117,8 @@ describe("Zadání", () => {
     fireEvent.change(url, { target: { value: "https://example.test/a" } });
     fireEvent.click(screen.getByRole("button", { name: "Přidat webový odkaz" }));
     expect(screen.getAllByText("https://example.test/a").length).toBe(2);
-    fireEvent.click(screen.getByRole("button", { name: "Odebrat" }));
-    expect(screen.getByText("Zatím bez příloh.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat https://example.test/a" }));
+    expect(screen.queryByText("https://example.test/a")).toBeNull();
   });
 
   const record = (b: unknown, n = 1) => ({
@@ -182,7 +188,7 @@ describe("Zadání", () => {
   it("runs the analysis as a job, keeps the person's brief, and goes on to the plan", async () => {
     unitStub({ goal: "Zjistit zájem o nový nápoj" });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     await approveProposal();
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")), { timeout: 4000 });
     expect(posted(AGENTS_PATH)[0].body).toMatchObject({ action: "analyze_brief", design_revision_id: "REV-A" });
@@ -190,7 +196,7 @@ describe("Zadání", () => {
     expect(posted("/api/providers/claude-code/status")).toEqual([]);
     expect(posted(DESIGN_PATH)[0].body).toMatchObject({ content: { briefing: { goal: "Zjistit zájem o nový nápoj" } } });
     // The merged project is saved with the classic reason once the debounce runs.
-    expect((screen.getByPlaceholderText(/Co chcete zjistit/) as HTMLTextAreaElement).value).toBe("Zjistit zájem o nový nápoj");
+    expect((screen.getByLabelText("Cíl výzkumu") as HTMLTextAreaElement).value).toBe("Zjistit zájem o nový nápoj");
   });
 
   it("requests a frozen native context even when legacy brief signatures match", async () => {
@@ -198,7 +204,7 @@ describe("Zadání", () => {
     const sig = briefFingerprint(defaultsMerge(project, TEMPLATE));
     unitStub(project, {}, { objectives: ["A"], _brief_signature: sig });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     await approveProposal();
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("plan")));
     expect(posted("/api/research/analyze")).toEqual([]);
@@ -208,7 +214,7 @@ describe("Zadání", () => {
   it("explains the unavailable design capability without obsolete connection settings", async () => {
     unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Další · vytvořit návrh/ }));
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();
     expect(screen.queryByRole("link", { name: /Otevřít Nastavení/ })).toBeNull();
     expect(posted("/api/research/analyze")).toEqual([]);
@@ -218,7 +224,7 @@ describe("Zadání", () => {
   it("shows the native failure and keeps the saved brief", async () => {
     unitStub({ goal: "Cíl" }, { "native/job": () => ({ status: "RECOVERY_REQUIRED", is_terminal: false, needs_attention: true, steps: [{ error_message: "MODEL_TIMEOUT: nic se nevrátilo" }], run_id: "RUN-A" }) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI doplní a navrhne výzkum" }));
+    fireEvent.click(await screen.findByRole("button", { name: NEXT }));
     expect(await screen.findByText("AI analýza se nedokončila", {}, { timeout: 4000 })).toBeTruthy();
     expect(screen.getByText("Zadání zůstalo uložené.")).toBeTruthy();
     expect(screen.getByText("MODEL_TIMEOUT: nic se nevrátilo")).toBeTruthy();
@@ -226,11 +232,51 @@ describe("Zadání", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("refuses an empty brief with the classic message", async () => {
+  it("does not start the analysis of an empty brief, and says what is missing", async () => {
+    // Studio v3 keeps one analysis action, in the dock, under the classic button's
+    // condition (canAnalyse); the duplicate that let an empty brief be refused is gone.
     unitStub({});
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "AI doplní a navrhne výzkum" }));
-    expect(await screen.findByText("Nejdřív popište zadání výzkumu.")).toBeTruthy();
-    expect(posted("/api/providers/claude-code/status")).toEqual([]);
+    const next = (await screen.findByRole("button", { name: NEXT })) as HTMLButtonElement;
+    expect(next.disabled).toBe(true);
+    expect(next.getAttribute("data-ai-action")).toBe("true");
+    fireEvent.click(next);
+    expect(screen.getByText("Napište cíl, nebo co přesně zkoumáme")).toBeTruthy();
+    expect(posted(AGENTS_PATH)).toEqual([]);
+  });
+
+  it("starts the goal with a sentence, and suggests a title from it", async () => {
+    unitStub({});
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Chceme zjistit, jak…" }));
+    const goal = (await screen.findByDisplayValue("Chceme zjistit, jak", { exact: false })) as HTMLTextAreaElement;
+    fireEvent.change(goal, { target: { value: "Chceme zjistit, jak lidé vnímají novou kampaň banky. Výsledek použijeme." } });
+    expect(await screen.findAllByText("72 znaků")).toHaveLength(2); // the counter and the readiness row
+    fireEvent.click(screen.getByRole("button", { name: "Navrhnout z cíle" }));
+    expect(await screen.findByDisplayValue("Lidé vnímají novou kampaň banky")).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("25 %");
+  });
+
+  it("opens a context field from its chip, and × empties it and closes it", async () => {
+    unitStub({ briefing: { situation: "Konkurence zlevňuje" } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    // A field with a value is open; the others wait as chips.
+    expect(((await screen.findByLabelText("Situace / trh")) as HTMLTextAreaElement).value).toBe("Konkurence zlevňuje");
+    fireEvent.click(screen.getByRole("button", { name: "Omezení" }));
+    const limits = screen.getByLabelText("Omezení") as HTMLTextAreaElement;
+    expect(limits.getAttribute("placeholder")).toMatch(/^Např\./);
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat pole Situace / trh" }));
+    await waitFor(() => expect(screen.queryByLabelText("Situace / trh")).toBeNull());
+    expect(screen.getByRole("button", { name: "Situace / trh" })).toBeTruthy();
+    await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""), { timeout: 4000 });
+  });
+
+  it("takes dropped files the way it takes picked ones", async () => {
+    unitStub({}, { [ATTACH_PATH]: (b) => record(b) });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const zone = await screen.findByRole("button", { name: "Přidat soubory z počítače" });
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
+    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
   });
 });

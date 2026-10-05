@@ -2,8 +2,8 @@
 status: in-progress
 chunks:
   - "[x] 1. Tokens, sparkle, AiButton; the shell: sidebar, header, client tabs, stage rail, AI pomoc bar, job panel badge"
-  - "[ ] 2. Shared step pieces: StepSection, ActionDock, RadioCard, Switch, ChipInput, InlineConfirm, Segmented"
-  - "[ ] 3. Step 1 · Zadání"
+  - "[x] 2. Shared step pieces: StepSection, ActionDock, RadioCard, Switch, ChipInput, InlineConfirm, Segmented"
+  - "[x] 3. Step 1 · Zadání"
   - "[ ] 4. Step 2 · Návrh"
   - "[ ] 5. Step 3 · Dotazník"
   - "[ ] 6. Step 4 · Audience"
@@ -52,7 +52,25 @@ every API call, permission, state transition, AI job, validation rule and copy s
 Not taken from the prototype: the overview KPI tiles (no endpoint gives "Rozpočet
 zbývá" per client) and the tab count badges (ClientWorkspace carries no counts).
 
-## Chunks 2–10
+## Chunks 2–3 — the shared step pieces and Zadání
+
+- `components/rehome/step.tsx`: `StepSection` (numbered card, body indented to the
+  title), `ActionDock` (sticky: back, the readiness note, the primary action),
+  `RadioCard`, `Switch`, `Segmented`, `ChipInput`, `InlineConfirm`; tested in
+  `step.test.tsx`. Only `StepSection` and `ActionDock` are used yet.
+- `BriefStep`: the goal (sentence starters, a character count, "Navrhnout z cíle",
+  which derives a title in the browser and writes the same field as typing), the
+  problem types as pills, Podklady (a drop zone that uploads like the picker, the
+  link field, kind badges), the context fields opened one at a time (× empties the
+  field), the "Připravenost zadání" panel, and the analysis as the primary AI action
+  in the dock.
+- The dock's action keeps the classic condition, `canAnalyse` (a goal, or a
+  description of what is studied). The handoff wrote "a goal or a problem type";
+  the code wins. The duplicate analysis button inside the form is gone, so an
+  empty brief is no longer refused with "Nejdřív popište zadání výzkumu." after a
+  click: the action is disabled and the dock says what is missing.
+
+## Chunks 4–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
