@@ -37,11 +37,13 @@ federated to Google Workspace, **ECR**, **SSM** (Run Command, Parameter Store),
 **Bedrock** (instance-role access scoped to one pinned EU model; the adapter is a
 separate change, ADR 0010).
 
-The application runs with **`AIA_ENV=staging`**, which `Settings.is_production`
-treats as production: SQLite refused, debug refused, wildcard CORS refused,
-Cognito required with complete configuration, header identity unconstructible.
-The environment is operationally called `develop`; the application's environment
-value is what selects the guards, and the guards are the point.
+The application runs with **`AIA_ENV=develop`** (since 2026-10-05; `staging` before).
+`develop` is a deployed environment to the code (`DeploymentEnvironment.is_deployed`),
+so the guards are the same as production's: SQLite refused, debug refused, wildcard
+CORS refused, Cognito required with complete configuration, header identity
+unconstructible. It is also the one deployed environment where fictional material is
+allowed (`allows_fictional_material`), because develop always hosts the seed's
+fictional clients; `staging` and `production` refuse them.
 
 ### Why EC2 and not Lightsail
 
@@ -105,8 +107,8 @@ Every arrow is deployment work: the same images, the same environment variables,
 - Backups are `pg_dump` to an EU S3 bucket with lifecycle expiry, plus daily EBS
   snapshots. The restore procedure is in the runbook and is exercised on demand.
 - CI's `startup-smoke` proves the processes boot; the deploy's `smoke.sh` proves
-  the **deployed configuration**: staging guards active, header identity rejected,
-  PostgreSQL unreachable from outside, worker executing, S3 round trip, deployed
+  the **deployed configuration**: deployed-environment guards active (`AIA_ENV=develop`),
+  header identity rejected, PostgreSQL unreachable from outside, worker executing, S3 round trip, deployed
   SHA visible.
 
 ## Revisit when

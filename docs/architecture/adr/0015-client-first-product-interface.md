@@ -19,7 +19,11 @@ decision 5 (a study's working content is AIA's, and bound content comes over by 
 migration, decisions 1 and 2); decision 8's classic project store under *Nastavení* (removed,
 decision 4); and the consequence that `/app` is open to owners and admins only (AIA's own
 gate, decision 3). 18.6.6 is a reference and the parity oracle only -- never a fallback.
-Decisions 1–3, 6 and 7 stand.
+**Superseded in part by [ADR 0019](0019-two-roles-and-human-ai-gates.md)** (2026-10-01):
+decision 6 (a client-level grant is needed to start a study: any member starts one) and
+decision 7's approval rules (a person other than the proposer approves; Knowledge management
+needs a client-level grant: a person's change writes a new revision directly, and only what the
+AI wrote waits for a person's accept). Decisions 1–3 stand, and 6 and 7 otherwise.
 **Date:** 2026-09-24
 
 ## Context

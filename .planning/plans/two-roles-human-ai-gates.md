@@ -546,7 +546,8 @@ truncated). Right: wrap the full name in `op.f(...)` on both calls.
 
 ## Doc follow-up
 
-For the docs PR after merge:
+For the docs PR after merge. **Applied** by `chore/docs-follow-up-two-roles` (2026-10-05), with
+the follow-ups of #112, #113, #114, #117 and #122; findings filed as OI-82 to OI-84.
 
 - `CLAUDE.md` §2 map: `domain/scope.py` line (roles), the Client Knowledge paragraph ("a person
   other than the proposer approves"), the `ScopeResolver` description (grants).
