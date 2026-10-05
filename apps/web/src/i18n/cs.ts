@@ -38,9 +38,7 @@ export const cs = {
       new: "Nový klient",
       newTitle: "Nový klient",
       newName: "Název klienta",
-      empty: "Zatím nepracujete pro žádného klienta.",
-      emptyAdmin: "Založte prvního klienta; budete jeho vedoucím.",
-      emptyMember: "Požádejte správce organizace, aby vám klienta zpřístupnil.",
+      empty: "V organizaci zatím není žádný klient. Založte prvního; uvidí ho každý člen organizace.",
       yourRole: "Vaše role: {role}",
       noActive: "Žádná rozpracovaná práce",
     },
@@ -187,7 +185,7 @@ export const cs = {
       signedInAs: "Přihlášen jako {email}",
       orgRole: "Role v organizaci: {role}",
       accessNote:
-        "AIA otevře každý aktivní člen organizace. Které klienty a studie v ní uvidí, rozhoduje přístup, který mu ke klientovi nebo ke studii udělí správce.",
+        "AIA otevře každý aktivní člen organizace a vidí v ní všechny klienty a studie organizace. Přístup ke klientovi ani ke studii se neuděluje.",
       aiDesignPending: "Návrh AI se uloží jako návrh ke kontrole. Změny použijete až po potvrzení.",
       prompts: {
         adminOnly: "Systémové prompty vidí a upravuje jen vlastník nebo správce organizace.",
@@ -347,7 +345,7 @@ export const cs = {
         sending: "Odesílám…",
         control: { API: "API", DEPLOYMENT: "Nasazení", CODE: "Kód", INVARIANT: "Invariant" },
         controlHelp: {
-          API: "Mění správce živě, přes auditovanou cestu API.",
+          API: "Mění se živě, přes auditovanou cestu API; kdo smí, určuje oprávnění.",
           DEPLOYMENT: "Proměnná prostředí, čtená a validovaná při startu procesu.",
           CODE: "Verzovaná konstanta; mění se revidovanou změnou kódu.",
           INVARIANT: "Odmítnutí produktu. Nelze nastavit.",
@@ -370,7 +368,7 @@ export const cs = {
           },
           access: {
             title: "Členové a přístup",
-            intro: "Každý aktivní člen organizace je výzkumník a vidí všechny klienty a studie organizace. Správce k tomu spravuje členy, klienty a nastavení systému.",
+            intro: "Každý aktivní člen organizace je výzkumník, vidí všechny klienty a studie organizace a může založit klienta. Správce k tomu spravuje členy, stav klientů a nastavení systému.",
           },
           studies: {
             title: "Studie a rozpočty",
@@ -409,7 +407,7 @@ export const cs = {
             intro:
               "Instrukce, které AIA posílá modelu v jednotlivých krocích. Upravený text se uloží jako nová verze a poběží, až ji zapnete. Kód kolem instrukce (pravidla, výstupní formát, kontroly) upravit nelze a každý výsledek si pamatuje, s jakým promptem vznikl. Upravuje jen vlastník nebo správce; každá změna je auditovaná.",
           },
-          roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím. Správce k tomu spravuje členy, klienty a nastavení systému. API kontroluje oprávnění, nikdy role." },
+          roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím a zakládá klienty. Správce k tomu spravuje členy, stav klientů a nastavení systému. API kontroluje oprávnění, nikdy role." },
           audit: { title: "Audit přístupu", intro: "Posledních 50 udělení, odebrání, odmítnutí a změn nastavení." },
           invariants: {
             title: "Invarianty",
@@ -1235,7 +1233,7 @@ export const cs = {
     studies: "Studie",
     studiesIntro:
       "Studie, ke kterým máte přístup. Oprávnění rozhoduje AIA (PostgreSQL), nikoli token.",
-    noStudies: "Žádné studie. Požádejte správce o přístup, nebo spusťte seed vývojového prostředí.",
+    noStudies: "Žádné studie. Založte klienta a v něm studii, nebo spusťte seed vývojového prostředí.",
     projects: "Projekty",
     noProjects: "Zatím žádné projekty.",
     newProject: "Nový projekt",

@@ -58,10 +58,8 @@ function Card({ c }: { c: ClientCard }) {
 export function ClientDirectory() {
   const router = useRouter();
   const [clients, retry] = useResource(() => workspace.clients(), []);
-  const [me] = useResource(() => workspace.me(), []);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const mayAdminister = me.state === "ready" && me.data.may_administer;
 
   const newClient = () =>
     setAsk({
@@ -81,7 +79,7 @@ export function ClientDirectory() {
     <AppShell
       title={t("aia.clients.title")}
       sub={t("aia.clients.sub")}
-      action={mayAdminister ? <Button variant="primary" icon="plus" onClick={newClient}>{t("aia.clients.new")}</Button> : null}
+      action={<Button variant="primary" icon="plus" onClick={newClient}>{t("aia.clients.new")}</Button>}
     >
       {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
       <Loaded res={clients} retry={retry}>
@@ -94,7 +92,7 @@ export function ClientDirectory() {
             </ul>
           ) : (
             <Empty>
-              {t("aia.clients.empty")} {mayAdminister ? t("aia.clients.emptyAdmin") : t("aia.clients.emptyMember")}
+              {t("aia.clients.empty")}
             </Empty>
           )
         }

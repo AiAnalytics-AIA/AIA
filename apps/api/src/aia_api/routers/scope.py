@@ -320,11 +320,9 @@ def create_client(
     repo: ScopeRepositoryDep,
     response: Response,
 ) -> ClientResponse:
-    """Create a client. Requires organization administration."""
+    """Create a client. Any member of the organization may (ADR 0019)."""
     try:
         client = repo.create_client(admin, slug=body.slug, name=body.name, reference=body.reference)
-    except ScopeDenied as exc:
-        raise _forbidden(exc) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=422, detail={"code": "invalid_client", "message": str(exc)}

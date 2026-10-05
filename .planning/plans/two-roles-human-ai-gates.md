@@ -12,6 +12,7 @@ chunks:
   - "[ ] 5b.3 One ledger entry for every acceptance of an AI proposal"
   - "[ ] 5b.4 Client-facing release (blocked: the client-facing report contract does not exist)"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
+  - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
 ---
 # Two roles, human-with-AI gates
 
@@ -309,6 +310,34 @@ those calls (membership already gives the access). No test of a rule that still 
   `test_deep_research_journey.py`; every isolation test (cross-organization 404, archived client,
   the worker's permissions, forged scope) stays.
 
+### Chunk 7: any Researcher starts a client (2026-10-05, branch `feature/researchers-create-clients` from `develop` @ `056eca2`)
+
+**The owner's decision, in conversation, 2026-10-05:** "yes researchers are able to create clients".
+It answers the question this plan carried since chunk 4 (creating a client was Admin-only).
+ADR 0019 already allows it: Admin is "everything a Researcher holds, plus the system settings and
+user administration" (`docs/architecture/adr/0019-two-roles-and-human-ai-gates.md:35`), and a
+client is neither. The Admin-only rule was a reading recorded in a test comment ("ADR 0019 keeps
+it with the Admin", `apps/api/tests/test_client_api.py:70 @ 056eca2`), not the ADR; the ADR
+needs no edit.
+
+- `ScopeRepository.create_client` no longer calls `require_administer`; the context it takes
+  exists only for an active member, and `CLIENT_CREATED` names the actor.
+- `POST /clients` and `POST /workspace/clients` lose their 403 branch.
+- The client directory offers "Nový klient" to every member; its empty state no longer says
+  "budete jeho vedoucím" (a retired role) or "ask an admin to give you access" (ADR 0019).
+- Unchanged, still the Admin's: a client's status (`set_client_status`, archive included), and
+  the organization-level `create_study` (`POST /studies`). A member starts a study in a client
+  workspace, as before.
+- Stale access sentences fixed on the way: the settings account note, the roles intro, the
+  `/studies` empty state and the API-control help ("Mění správce" — budgets are a Researcher's).
+- Tests: `test_only_admins_can_create_clients_and_studies` is replaced by
+  `test_a_researcher_creates_a_client_every_member_opens_it_and_the_creation_is_audited` and
+  `test_a_clients_status_and_the_organization_level_study_route_stay_with_administration`; the
+  API test now has the researcher start the client; new
+  `test_a_researcher_creates_a_client_by_the_api_but_its_status_stays_with_administration`; the
+  settings case asserting 403 on `POST /clients` is removed (it asserted the retired rule); the
+  web test offers the new client to a member.
+
 ### 5b.2 plan (2026-10-03, owner's decision: the threshold is per study, set before the run)
 
 The owner's answer to "what is the threshold and where is it set": **per study, at the beginning of
@@ -467,6 +496,11 @@ For the docs PR after merge:
   superseded (the "Superseded in part by" lines go in those two ADRs' headers, in the docs PR,
   because they are shared index material).
 - `AGENTS.md`: nothing expected.
+- Chunk 7: none. No shared document says who creates a client (`grep -i "creat.*client"` over
+  `CLAUDE.md`, `ARCHITECTURE.md`, `AGENTS.md` @ `056eca2`). It also restores ADR 0015's rule
+  "Nothing in the client shell may depend on the caller being an owner or admin"
+  (`docs/architecture/adr/0015-client-first-product-interface.md:167`), which the Admin-only
+  "Nový klient" button broke.
 - Chunk 6: `CLAUDE.md` §2 map, `scope_repository.py` line: "(grant tables remain, unread, until
   ADR 0019 chunk 6 retires them)" becomes "(the grant tables are dropped, ADR 0019 chunk 6)";
   `docs/architecture/adr/0004-client-study-isolation.md` and the ADR index: grants no longer exist

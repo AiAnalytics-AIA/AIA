@@ -705,15 +705,47 @@ def test_closed_study_accepts_no_new_work(
 # --------------------------------------------------------------------------- #
 
 
-def test_only_admins_can_create_clients_and_studies(
+def test_a_researcher_creates_a_client_every_member_opens_it_and_the_creation_is_audited(
     resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
 ) -> None:
-    """A plain member cannot provision clients."""
+    """Creating a client is research work, not administration (ADR 0019; the owner, 2026-10-05).
+
+    Replaces "only admins can create clients and studies". The client is the organization's
+    at once: another member opens it with nothing granted, and the audit names who made it.
+    """
     member_ctx = resolver.organization_context(world["principal"](world["researcher"]))
     assert member_ctx.organization_role is OrganizationRole.MEMBER
 
+    client = scope_repo.create_client(member_ctx, slug="initech", name="Initech")
+    assert client.organization_id == world["org"].organization_id
+
+    other = resolver.client_context(
+        world["principal"](world["outsider"]), client_id=client.client_id
+    )
+    assert other.permissions == frozenset(ClientPermission)
+
+    created = [
+        e
+        for e in resolver.audit_trail(world["admin"])
+        if e["action"] == "CLIENT_CREATED" and e["client_id"] == client.client_id
+    ]
+    assert len(created) == 1 and created[0]["actor_id"] == world["researcher"]
+
+
+def test_a_clients_status_and_the_organization_level_study_route_stay_with_administration(
+    resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """What the owner's decision left with the Admin: archiving a client, and ``create_study``.
+
+    A member starts a study inside a client workspace (``create_study_in_client``); the
+    organization-level route is the administrators' provisioning path and is unchanged.
+    """
+    member_ctx = resolver.organization_context(world["principal"](world["researcher"]))
+
     with pytest.raises(ScopeDenied) as exc:
-        scope_repo.create_client(member_ctx, slug="rogue", name="Rogue")
+        scope_repo.set_client_status(
+            member_ctx, client_id=world["acme"].client_id, status=ClientStatus.ARCHIVED
+        )
     assert exc.value.reason == "insufficient_role"
 
     with pytest.raises(ScopeDenied):

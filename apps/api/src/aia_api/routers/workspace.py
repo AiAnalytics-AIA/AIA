@@ -527,7 +527,7 @@ class Me(BaseModel):
 
 
 class ClientStart(BaseModel):
-    """A new client, as an administrator starts one from the directory."""
+    """A new client, as a researcher starts one from the directory."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -560,15 +560,10 @@ def start_client(
 ) -> ClientWorkspace:
     """Create a client and open its workspace.
 
-    Organization administration is required, as for ``POST /clients``. Membership is the
-    access (ADR 0019), so the creator, like every member, can open it at once.
+    Any member of the organization may, as for ``POST /clients`` (ADR 0019). Membership is
+    the access, so the creator, like every member, can open it at once.
     """
-    try:
-        client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
-    except ScopeDenied as exc:
-        raise _forbidden(
-            exc.reason, "Starting a client needs an organization owner or admin."
-        ) from exc
+    client = repo.create_client(admin, slug=_slug(body.name), name=body.name.strip())
     return _workspace(_client_scope(principal, resolver, client.client_id), repo)
 
 

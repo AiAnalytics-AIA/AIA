@@ -51,27 +51,40 @@ def test_the_directory_lists_every_client_to_every_member(
     assert primary["active_count"] == 2
 
 
-def test_an_administrator_starts_a_client_and_every_member_can_open_it(
-    owner: TestClient, lead: TestClient, world: Any
+def test_a_researcher_starts_a_client_and_every_member_can_open_it(
+    owner: TestClient, lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
+    """Starting a client needs no administration (ADR 0019; the owner, 2026-10-05)."""
     me = owner.get(f"{API}/workspace/me").json()
     assert me["may_administer"] is True and me["organization_role"] == "OWNER"
     assert lead.get(f"{API}/workspace/me").json()["may_administer"] is False
-    made = owner.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
+    made = lead.post(f"{API}/workspace/clients", json={"name": "Nový klient s. r. o."})
     assert made.status_code == 201 and made.json()["your_role"] == "RESEARCHER"
     assert made.json()["slug"].startswith("novy-klient-s-r-o-")
     assert made.json()["client_id"] in {
         c["client_id"] for c in owner.get(f"{API}/workspace/clients").json()
     }
     audit = owner.get(f"{API}/access-audit").json()
-    # Starting a client is audited as its creation; no self-grant is written (ADR 0019).
-    mine = [a["action"] for a in audit if a["client_id"] == made.json()["client_id"]]
-    assert "CLIENT_CREATED" in mine and "CLIENT_SELF_GRANT" not in mine
-    # Starting a client is still an administrator's act (ADR 0019 keeps it with the Admin).
-    assert lead.post(f"{API}/workspace/clients", json={"name": "Nope"}).status_code == 403
+    # Starting a client is audited as its creation, with the researcher who started it;
+    # no self-grant is written (ADR 0019).
+    mine = [a for a in audit if a["client_id"] == made.json()["client_id"]]
+    assert [a["action"] for a in mine] == ["CLIENT_CREATED"]
+    assert mine[0]["actor_id"] == world.users["lead"]
     # The new client is the organization's: every member opens it, no grant needed.
-    opened = lead.get(f"{API}/clients/{made.json()['client_id']}")
+    opened = outsider.get(f"{API}/clients/{made.json()['client_id']}")
     assert opened.status_code == 200 and opened.json()["your_role"] == "RESEARCHER"
+
+
+def test_a_researcher_creates_a_client_by_the_api_but_its_status_stays_with_administration(
+    owner: TestClient, lead: TestClient
+) -> None:
+    """``POST /clients`` is open to any member; ``PUT /clients/{id}/status`` is not."""
+    made = lead.post(f"{API}/clients", json={"slug": "lead-made", "name": "Lead made"})
+    assert made.status_code == 201, made.text
+    client_id = made.json()["client_id"]
+    archive = {"status": "ARCHIVED"}
+    assert lead.put(f"{API}/clients/{client_id}/status", json=archive).status_code == 403
+    assert owner.put(f"{API}/clients/{client_id}/status", json=archive).status_code == 200
 
 
 def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(

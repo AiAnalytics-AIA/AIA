@@ -269,8 +269,13 @@ class ScopeRepository:
     def create_client(
         self, admin: OrganizationContext, *, slug: str, name: str, reference: str = ""
     ) -> Client:
-        """Create a client."""
-        admin.require_administer()
+        """Create a client: any member of the organization may (ADR 0019).
+
+        A client is research work, not system administration, so it needs no OWNER or
+        ADMIN role (the owner's decision, 2026-10-05). The context exists only for an
+        active member of the organization; the creation is audited with its actor.
+        Changing a client's status stays with administration (:meth:`set_client_status`).
+        """
         client = Client(
             client_id=new_client_id(),
             organization_id=admin.organization_id,
