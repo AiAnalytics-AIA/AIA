@@ -29,6 +29,7 @@ from aia_core.application.research import (
     ResearchStepNotFound,
     research_artifacts,
 )
+from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.research_agents import ResearchAction
@@ -76,8 +77,16 @@ _NEVER_INLINED = frozenset({"research_fieldwork_dataset"})
 # INTERNAL_ONLY while PROGRESS D6 is open (ADR 0016 decision 6): whoever may edit
 # the Study may inspect it. Since ADR 0019 that is every member who has the Study;
 # the marker, not the role, is what keeps it out of a client-facing report.
+# The experimental Sociomapping and its draft (plan sociomapping-engine I1-I3) likewise:
+# EXPERIMENTAL_AIA and never client-facing.
 _RESEARCHERS_ONLY = frozenset(
-    {"research_sociomap", "research_analysis_module", INTERNAL_REPORT_ARTIFACT_TYPE}
+    {
+        "research_sociomap",
+        "research_analysis_module",
+        INTERNAL_REPORT_ARTIFACT_TYPE,
+        "research_sociomapping",
+        SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
+    }
 )
 
 
@@ -774,7 +783,13 @@ def run_analysis(
 
 
 def _report_for_run(
-    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+    run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    *,
+    node_key: str = "report",
+    artifact_type: str = INTERNAL_REPORT_ARTIFACT_TYPE,
 ) -> tuple[dict[str, Any] | None, Artifact | None]:
     """Find only the report recorded by this Study's own research run."""
     try:
@@ -786,7 +801,7 @@ def _report_for_run(
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
 
-    step = next((s for s in run["steps"] if s["node_key"] == "report"), None)
+    step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
     if step is None or step["status"] is not StepRunStatus.SUCCEEDED:
         return step, None
     artifact_id = (step.get("output") or {}).get("artifact_id")
@@ -797,7 +812,7 @@ def _report_for_run(
     except ArtifactNotFound as exc:
         raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
     if (
-        artifact.artifact_type != INTERNAL_REPORT_ARTIFACT_TYPE
+        artifact.artifact_type != artifact_type
         or artifact.content_type != INTERNAL_REPORT_MEDIA_TYPE
         or artifact.stage_type != "REPORT"
         or artifact.status is not ArtifactStatus.VALID
@@ -859,6 +874,84 @@ def download_run_report(
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     filename = f"AIA-{scope.study_id}-internal-draft.docx"
+    return Response(
+        content=data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
+# The experimental Sociomapping's internal draft, read only through the run that produced it.
+
+
+def _sociomapping_report(
+    run_id: str, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> tuple[dict[str, Any] | None, Artifact | None]:
+    step, artifact = _report_for_run(
+        run_id,
+        scope,
+        session,
+        store,
+        node_key="sociomapping_report",
+        artifact_type=SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
+    )
+    if artifact is not None and (
+        artifact.metadata.get("method_status") != "EXPERIMENTAL_AIA"
+        or artifact.metadata.get("client_facing") is not False
+    ):
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    return step, artifact
+
+
+@router.get(
+    "/research/runs/{run_id}/sociomapping/report",
+    response_model=dict[str, Any],
+    summary="Status and provenance of a run's experimental Sociomapping draft",
+)
+def run_sociomapping_report(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    step, artifact = _sociomapping_report(run_id, scope, session, store)
+    base = {"run_id": run_id, "internal_only": True, "method_status": "EXPERIMENTAL_AIA"}
+    if step is None:
+        return {**base, "state": "NOT_IN_RUN"}
+    if artifact is None:
+        attempts = step.get("attempts") or []
+        error = (attempts[-1].get("error") or {}) if attempts else {}
+        return {**base, "state": step["status"].value, "reason": error.get("reason")}
+    return {
+        **base,
+        "state": "READY",
+        "review_state": "APPROVED_INTERNAL" if artifact.is_approved else "DRAFT_UNAPPROVED",
+        "artifact_id": artifact.artifact_id,
+        "sha256": artifact.sha256,
+        "size_bytes": artifact.size_bytes,
+        "synthetic": bool(artifact.metadata.get("synthetic")),
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/sociomapping/report/download",
+    summary="Download the run's experimental Sociomapping DOCX draft (internal)",
+)
+def download_sociomapping_report(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> Response:
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    _step, artifact = _sociomapping_report(run_id, scope, session, store)
+    if artifact is None:
+        raise _not_found("report")
+    try:
+        data = research_artifacts(session, scope, store).read(artifact.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    filename = f"AIA-{scope.study_id}-sociomapping-experimental-draft.docx"
     return Response(
         content=data,
         media_type=INTERNAL_REPORT_MEDIA_TYPE,
