@@ -456,6 +456,8 @@ class QuarantineReason(StrEnum):
     #: The claim gives a number a unit, scale, period, population, denominator or
     #: place its quote's context in the source does not (``measures.py``).
     MEASURE_NOT_IN_SOURCE = "measure_not_in_source"
+    #: An agent-directed finding states a number with no measure for it (plan § 8.1).
+    MEASURE_MISSING = "measure_missing"
 
 
 class QuarantinedEvidence(_Closed):
