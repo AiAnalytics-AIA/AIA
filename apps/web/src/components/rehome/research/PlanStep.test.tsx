@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DESIGN_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { briefFingerprint, defaultsMerge } from "@/research/model";
-import { CONFIRM_REMOVE_SET, PROMPT_COMMENT, PROMPT_SET_OBJECTS, PROMPT_SET_TITLE } from "@/research/plan";
 import { ResearchScreen } from "./ResearchScreen";
 import { workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -57,16 +56,6 @@ const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === pat
 /** Every test here also proves the screen reached nothing of the 18.6.6 unit (ADR 0018). */
 const unitCalls = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.url !== "/config").map((c) => c.url);
 
-/** The rebuilt dialog, answered as a person would. */
-async function answerDialog(question: string, value: string | null) {
-  const dialog = await screen.findByText(question);
-  const form = dialog.closest("form") as HTMLFormElement;
-  if (value === null) return fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
-  const input = within(form).queryByRole("textbox");
-  if (input) fireEvent.change(input, { target: { value } });
-  fireEvent.submit(form);
-}
-
 beforeEach(() => {
   push.mockReset();
   HTMLDialogElement.prototype.showModal = function () {
@@ -87,50 +76,74 @@ describe("Návrh", () => {
     unitStub(null);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     expect(await screen.findByText("Zatím není návrh")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Zadání" }));
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít zadání" }));
     expect(push).toHaveBeenCalledWith(stagePath("brief"));
-    expect(screen.queryByText("KOMENTÁŘE K NÁVRHU")).toBeNull();
+    expect(screen.queryByRole("region", { name: /Označte text a přidejte komentář/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Přeskočit na dotazník" }));
+    expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
   });
 
   it("draws the analysis, its sets with the question preview, the follow-ups and the comments", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Jak jsem zadání pochopil" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Zkontrolujte, jak AI pochopila zadání" })).toBeTruthy();
     expect(screen.getByText("Jde o test nového konceptu.")).toBeTruthy();
     expect(screen.getByText("Mírnější varianta vyhraje")).toBeTruthy();
     expect(screen.getByText("Jak vás oslovuje Jemná?")).toBeTruthy();
-    expect(screen.getByText("2 položek")).toBeTruthy();
+    // Two items: under the 4–15 a set is measured with, and the dock says so.
+    expect(screen.getByText("2 / 4–15")).toBeTruthy();
+    expect(screen.getByText(/má 2 položek, potřebuje 4–15/)).toBeTruthy();
     expect(screen.getByText("Jen MHD?")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Zpracovat komentáře" }) as HTMLButtonElement).disabled).toBe(true);
+    const process = screen.getByRole("button", { name: "Zpracovat komentáře" }) as HTMLButtonElement;
+    expect(process.disabled).toBe(true);
+    expect(process.getAttribute("data-ai-action")).toBe("true");
     // The recommended variant is the chosen one until another is applied.
-    expect(screen.getByRole("button", { name: /Varianty a cena/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("radio", { name: /Varianty a cena/ }).getAttribute("aria-checked")).toBe("true");
+    // Jump chips over the sections.
+    const jump = screen.getByRole("navigation", { name: "Oddíly návrhu" });
+    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
   });
 
   it("applies a design variant to the project", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: /Jen varianty/ }));
-    expect(screen.getByRole("button", { name: /Jen varianty/ }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(await screen.findByRole("radio", { name: /Jen varianty/ }));
+    expect(screen.getByRole("radio", { name: /Jen varianty/ }).getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText("Použit návrh: Jen varianty")).toBeTruthy();
     expect(screen.getByText("Porovnat varianty")).toBeTruthy();
   });
 
-  it("adds a set through the classic prompts, removes an object, and removes a set only when confirmed", async () => {
+  it("adds, renames and fills a set in place, removes an object, and removes a set only when confirmed", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const names = () => screen.getAllByLabelText("Název sady").map((x) => (x as HTMLInputElement).value);
     fireEvent.click(await screen.findByRole("button", { name: "Přidat sadu" }));
-    await answerDialog(PROMPT_SET_TITLE, "Kraje");
-    await answerDialog(PROMPT_SET_OBJECTS, "Praha, Brno");
-    expect(await screen.findByRole("heading", { name: "Kraje" })).toBeTruthy();
+    const title = screen.getByPlaceholderText("Např. Značky, Regiony, Argumenty…");
+    fireEvent.change(title, { target: { value: "Kraje" } });
+    fireEvent.click(screen.getByRole("button", { name: "Založit sadu" }));
+    await waitFor(() => expect(names()).toContain("Kraje"));
     expect(screen.getByText("Geografické kategorie")).toBeTruthy();
+    // Items are typed into the set's chip input, through addPlanObject.
+    const items = screen.getAllByLabelText("Přidat položku a Enter")[1];
+    for (const v of ["Praha", "Brno"]) {
+      fireEvent.change(items, { target: { value: v } });
+      fireEvent.keyDown(items, { key: "Enter" });
+    }
+    expect(await screen.findByRole("button", { name: "Odebrat Brno" })).toBeTruthy();
+    // Renamed in place, through renamePlanSet, when the field is left.
+    const kraje = screen.getAllByLabelText("Název sady")[1];
+    fireEvent.change(kraje, { target: { value: "Regiony" } });
+    fireEvent.blur(kraje);
+    await waitFor(() => expect(names()).toContain("Regiony"));
     fireEvent.click(screen.getByRole("button", { name: "Odebrat Jemná" }));
     expect(screen.queryByText("Jak vás oslovuje Jemná?")).toBeNull();
+    // Removal is confirmed on the card: "Ponechat" keeps it.
     fireEvent.click(screen.getAllByRole("button", { name: "Odstranit sadu" })[1]);
-    await answerDialog(CONFIRM_REMOVE_SET, null);
-    expect(screen.getByRole("heading", { name: "Kraje" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect(names()).toContain("Regiony");
     fireEvent.click(screen.getAllByRole("button", { name: "Odstranit sadu" })[1]);
-    await answerDialog(CONFIRM_REMOVE_SET, "");
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Kraje" })).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Odstranit" }));
+    await waitFor(() => expect(names()).not.toContain("Regiony"));
   });
 
   it("answers the follow-up questions into the brief and analyses it again", async () => {
@@ -138,12 +151,13 @@ describe("Návrh", () => {
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     expect((await screen.findByRole("alert")).textContent).toBe("Napište odpovědi.");
-    fireEvent.change(screen.getByPlaceholderText("Odpovězte jen na relevantní body…"), { target: { value: "Ano, jen MHD." } });
+    fireEvent.change(screen.getByLabelText("Odpověď na otázku 1"), { target: { value: "Ano, jen MHD." } });
+    expect(screen.getByText("1 z 1 zodpovězeno")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Doplnit a aktualizovat návrh" }));
     await approveProposal();
     expect(await screen.findByText("Nové shrnutí.", {}, { timeout: 4000 })).toBeTruthy();
     const [analyze] = posted(DESIGN_PATH);
-    expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nAno, jen MHD.");
+    expect(((analyze.body?.content as { briefing: { what_is_known: string } }).briefing).what_is_known).toBe("Víme A.\n\nDoplnění k analýze:\nJen MHD?\nAno, jen MHD.");
     expect(push).not.toHaveBeenCalled();
   });
 
@@ -160,7 +174,10 @@ describe("Návrh", () => {
     window.getSelection()!.addRange(range);
     fireEvent.mouseUp(text.parentElement!);
     fireEvent.click(await screen.findByRole("button", { name: "Přidat komentář" }));
-    await answerDialog(PROMPT_COMMENT, "Není to test.");
+    // The comment is typed on its row, not in a prompt; Enter keeps it.
+    const draft = await screen.findByLabelText("Co změnit? Enter uloží komentář");
+    fireEvent.change(draft, { target: { value: "Není to test." } });
+    fireEvent.keyDown(draft, { key: "Enter" });
     expect(await screen.findByText("Není to test.")).toBeTruthy();
     expect(screen.getByText("„Jde o test“")).toBeTruthy();
 
