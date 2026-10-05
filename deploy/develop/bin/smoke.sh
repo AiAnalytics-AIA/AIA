@@ -126,8 +126,8 @@ else fail "api: /health is ok" "$health"; fi
 api_sha="$(printf '%s' "$health" | json 'd["build"]["sha"] or ""' 2>/dev/null || true)"
 if [ "$api_sha" = "$SHA" ]; then pass "api: /health reports build $SHA"
 else fail "api: /health reports the deployed SHA" "got '${api_sha}'"; fi
-if [ "$(printf '%s' "$health" | json 'd["env"]' 2>/dev/null)" = "staging" ]; then pass "api: runs with AIA_ENV=staging (deployed-environment guards active)"
-else fail "api: runs with AIA_ENV=staging" "$health"; fi
+if [ "$(printf '%s' "$health" | json 'd["env"]' 2>/dev/null)" = "develop" ]; then pass "api: runs with AIA_ENV=develop (deployed-environment guards active)"
+else fail "api: runs with AIA_ENV=develop" "$health"; fi
 
 ready="$(curl -sS --max-time 10 "$BASE/api/v1/ready" || true)"
 if [ "$(printf '%s' "$ready" | json 'd["checks"]["database"]' 2>/dev/null)" = "ok" ]; then pass "api: /ready confirms PostgreSQL"

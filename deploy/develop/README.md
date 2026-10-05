@@ -8,9 +8,13 @@ Infrastructure: [`infra/develop/`](../../infra/develop/). Plan and audit:
 [`.planning/plans/done/develop-deployment.md`](../../.planning/plans/done/develop-deployment.md).
 Live at <https://aia-develop.art-chain.io/> since 2026-09-23.
 
-The application runs with **`AIA_ENV=staging`**. That is deliberate: `staging`
-is a deployed environment to the code, so every guard is active — Cognito only,
-S3 only, no debug, no wildcard CORS, no header identity, a known build SHA.
+The application runs with **`AIA_ENV=develop`**. `develop` is a deployed
+environment to the code, so every guard is active — Cognito only, S3 only, no
+debug, no wildcard CORS, no header identity, a known build SHA, no fixture
+fieldwork. It is also the one deployed environment that hosts fictional data:
+`aia_ai_fictional_client_ids` is accepted here and refused in `staging` and
+`production` (`aia_core.domain.deployment`). Until 2026-10-05 it ran as
+`staging`, which refused those clients once the API checked them (PR #108).
 
 ```
 feature/* ──PR──▶ develop ──CI green──▶ deploy-develop.yml ──▶ https://aia-develop.art-chain.io/

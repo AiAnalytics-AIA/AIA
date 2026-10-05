@@ -25,7 +25,9 @@
 name: aia-develop
 
 x-app-env: &app-env
-  AIA_ENV: staging
+  # develop: a deployed environment (every guard: Cognito, S3, build SHA) that always hosts
+  # fictional data, which staging and production refuse (aia_core.domain.deployment).
+  AIA_ENV: develop
   AIA_LOG_FORMAT: json
   AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
   AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
