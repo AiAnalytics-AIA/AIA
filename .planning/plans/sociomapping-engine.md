@@ -9,7 +9,7 @@ chunks:
   - "[x] 1b. Review corrections: products kept apart, every contract validated, signed correlations kept, weighted mean with provenance"
   - "[ ] 1c. Fuzzy gaps as their exports land: SOMECS STORM to matrix and ordinal (E2), negative correlations (E3), discrepancy (E4)"
   - "[x] 2a. H-Model reported accuracy: definition, per-point fit, invariances; SOMECS fig. 22 reproduced"
-  - "[ ] 2b. Experimental AIA H-Model candidate h_model_candidate_v1, evaluated per sociomapping-hmodel.md section 4 (not SOMECS equivalence)"
+  - "[x] 2b. Experimental AIA H-Model candidate aia_hmodel_candidate_v1, evaluated per sociomapping-hmodel.md section 4 (not SOMECS equivalence)"
   - "[ ] 2c. H-Model significance: SOMECS and matched nulls, each refitted; p and quantiles (E1 settles the generator)"
   - "[ ] 3. STORM placement of respondents (E6)"
   - "[x] 4a. Height vectors: column, row and object averages (certification Tab. 1 reproduced)"
@@ -17,6 +17,11 @@ chunks:
   - "[x] 6a. Coherences and zoom, reproducing the SOMECS help's worked example"
   - "[ ] 6b. HM correction inside the H-Model"
   - "[ ] J1. Reference study R1 end to end: inputs, fuzzy, H-Model, heights/WIND, 3D, report (first three run today)"
+  - "[ ] I1. Research step research_sociomapping behind AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: declared matrix, candidate layout, heights, coherences, provenance"
+  - "[ ] I2. Internal draft DOCX of the experimental map: method, fit, provenance, limitations (research_sociomapping_docx)"
+  - "[ ] I3. API: the artifact through the run (researchers only) and the report's status and download"
+  - "[ ] I4. Results page: 3D and top view, rotation, zoom, legend, object details, fit diagnostics, method, download"
+  - "[ ] I5. Workbench journey on fictional data: run -> map -> report, screenshots, the report opened"
   - "[ ] 7. Spec v3, preset sociomapping-somecs-1, engine and research adapter wiring, artifact v3, ledgers"
   - "[ ] 8. Regions and statistics (E8, M8)"
   - "[ ] 9. Overlays as view layers: arrows (RTS rules), shortest path, combine maps, coherence contours"
@@ -166,6 +171,40 @@ identifies SOMECS's fitting objective; that needs the method owner (M2, O).
 ## Chunks
 
 Detailed chunk notes. Everything listed under a chunk as "needs" is a row above.
+
+### Integration I1-I5: one usable journey with the experimental method (2026-10-05)
+
+Goal, set by the user for one night: research run -> declared relationship matrix -> H-Model
+layout -> map exploration on the existing Results page -> downloadable AIA report with method,
+fit, provenance and limitations. A small integration that works, not the roadmap.
+
+Shape (checked against develop @ `70ff89d` and PR 116 @ `7c1e012`, unmerged):
+
+- **Beside the existing Sociomap, not instead of it.** The `sociomap` step (legacy relations,
+  `aia-sociomap-1`, INTERNAL_ONLY) is untouched, and so is every stored artifact. A new step
+  `sociomapping` (kind `research_sociomapping`, stage ANALYSIS, after `run`) and a report step
+  `sociomapping_report` (kind `research_sociomapping_report`, stage REPORT) are added to the
+  research graph only when the API's `AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED` is on when the run
+  starts; the flag is stored on the run (as `analysis_enabled` is), so a retry keeps the graph
+  and old runs never change shape. Off by default; on in the workbench.
+- **Declared relationship matrix** per tracked battery: RTS object correlations (RTS-N1,
+  RTS-O1), signed, undefined pairs named (AIA-D1). Respondents with any unanswered object of
+  the battery are excluded and counted (RTS collects complete data; the exclusion is AIA's,
+  labelled, M5). Unweighted: no source weights a Sociomap (M7); the population weights the
+  old step uses are recorded as not applied.
+- **Layout**: `aia_hmodel_candidate_v1` (AIA-H9), EXPERIMENTAL_AIA. Constant objects are listed
+  unplaced. **Heights**: each object's average answer on the battery's scale (RTS-W3). No STORM
+  placement of respondents (M3) and no WIND surface (M4): the view shows points at their
+  heights, not an interpolated terrain. **Coherences** only when every correlation is defined
+  and non-negative (RTS-O2); otherwise the M12 reason, with the negative pairs.
+- **Status never upgrades itself.** `method_status = EXPERIMENTAL_AIA`, `client_facing = false`
+  on the artifact and the report; nothing in code can set them otherwise.
+- **Report**: rendered by the report step in the worker (the API never executes steps), an
+  INTERNAL draft through the existing `DocxRenderer`; fit diagnostics printed as properties of
+  the computation (as `SociomapFigure` prints stress), never as admitted survey evidence.
+- **UI**: renders the stored artifact only. PR 116's SVG renderer is coupled to its own
+  `aia-native-workspace-1` payload and unmerged, so this view is its own small SVG component;
+  converging the two is a follow-up once PR 116 lands.
 
 - **0c / 0d.** Collect E1-E9 and the owner decisions; each lands as a fixture under
   `packages/aia_core/tests/fixtures/sociomapping_sources/` with a register entry upgraded from
