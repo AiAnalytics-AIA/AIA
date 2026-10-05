@@ -17,8 +17,6 @@ from datetime import UTC, datetime
 from types import MappingProxyType
 
 import pytest
-from openpyxl import Workbook
-from pypdf import PdfWriter
 
 from aia_core.domain.deep_research import documents, web
 from aia_core.domain.deep_research.contracts import QuarantineReason, RetrievalMode, SourceSnapshot
@@ -38,6 +36,10 @@ from aia_core.infrastructure.web_retrieval import (
     RecordedResolver,
     WebFetcher,
 )
+
+# The `documents` extra; the parity jobs collect every module without it.
+Workbook = pytest.importorskip("openpyxl").Workbook
+PdfWriter = pytest.importorskip("pypdf").PdfWriter
 
 NOW = datetime(2026, 10, 5, 9, 0, tzinfo=UTC)
 PUBLIC = "93.184.215.14"
