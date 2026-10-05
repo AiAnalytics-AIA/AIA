@@ -9,7 +9,7 @@ chunks:
   - "[x] 6. Step 4 · Audience"
   - "[x] 7. Step 5 · Dimenze"
   - "[x] 8. Step 6 · Kontrola & spuštění"
-  - "[ ] 9. Step 7 · Výsledky: jump chips and interval bars"
+  - "[x] 9. Step 7 · Výsledky: jump chips and interval bars"
   - "[ ] 10. Znalosti: remove the \"Odkud znalosti pocházejí\" strip"
 ---
 # Studio v3 — the shell redesign and the research flow's UX
@@ -162,7 +162,16 @@ recommendation. The handoff's fixed "800 doporučeno" is the computed
   the dock says why it is disabled. Progress, the budget lift and the run list are
   unchanged apart from the card radius.
 
-## Chunks 9–10
+## Chunk 9 — Výsledky
+
+Jump chips over the sections the run has (Agregace, Sociomapa, Sociomapping, AI
+analýza, Report). Each share row (a choice's share, a scale's top-two-box) gets a
+bar cell: the 95 % interval as a translucent signal band and the value as a tick, on
+0–100 %. A scale's mean gets no bar: the result does not say the scale's range, and
+drawing a 1–5 mean on 0–10 would mislead. A suppressed row has no number, so no bar
+(`ResultRow.bar` is absent). Values and intervals do not wrap.
+
+## Chunk 10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.

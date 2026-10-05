@@ -1246,6 +1246,10 @@ export const cs = {
       noResults: "Výsledky zatím nejsou.",
       noResultsParked: "Výsledky nevzniknou, dokud běh čeká u sběru dat.",
       results: {
+        bar: "Hodnota a 95% interval",
+        jumpLabel: "Oddíly výsledků",
+        jumpAnalysis: "AI analýza",
+        jumpReport: "Report",
         aggregate: "Agregace",
         analysis: "AI analýza",
         analysisInternal: "Interní analýza. Každý výrok je znovu ověřen vůči uloženým datům.",

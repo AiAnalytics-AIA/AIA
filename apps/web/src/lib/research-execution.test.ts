@@ -37,7 +37,8 @@ describe("research execution", () => {
     expect(hidden.rows).toEqual([{ label: "A", value: null, interval: null }]);
     expect(supportNote(hidden)).toMatch(/Potlačeno: jen 19/);
     const shown = resultTable("t1", { typ: "multi", support_status: "INDICATIVE", ...base, n_unique_layer_donors: 40, celkem_pct: { A: 55.2 }, intervaly_95: { A: { low: 40, high: 70 } } });
-    expect(shown.rows).toEqual([{ label: "A", value: "55,2 %", interval: "40,0–70,0" }]);
+    // A shown share carries its bar (Studio v3); the suppressed one above has none.
+    expect(shown.rows).toEqual([{ label: "A", value: "55,2 %", interval: "40,0–70,0", bar: { value: 55.2, low: 40, high: 70 } }]);
     expect(supportNote(shown)).toMatch(/Indikativní/);
   });
 

@@ -100,7 +100,12 @@ export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
 // ---- aggregate tables ------------------------------------------------------
 
 export type SupportStatus = "REPORTABLE" | "INDICATIVE" | "SUPPRESS";
-export type ResultRow = { label: string; value: string | null; interval: string | null };
+/**
+ * One result row. `bar` is the share and its 95 % interval as percentages, for the
+ * row's bar (Studio v3): only a share has a known scale (0–100), and a suppressed
+ * row has none, as it has no number.
+ */
+export type ResultRow = { label: string; value: string | null; interval: string | null; bar?: { value: number; low: number | null; high: number | null } };
 export type ResultTable = {
   id: string;
   typ: string;
@@ -135,7 +140,13 @@ export function resultTable(id: string, result: QuestionResult): ResultTable {
     const pct = (result.celkem_pct ?? {}) as Record<string, number>;
     const intervals = (result.intervaly_95 ?? {}) as Record<string, Interval>;
     for (const [label, value] of Object.entries(pct)) {
-      rows.push({ label, value: hide(`${num(value, 1)} %`), interval: hide(range(intervals[label], 1)) });
+      const iv = intervals[label];
+      rows.push({
+        label,
+        value: hide(`${num(value, 1)} %`),
+        interval: hide(range(iv, 1)),
+        ...(suppressed || typeof value !== "number" ? {} : { bar: { value, low: iv?.low ?? null, high: iv?.high ?? null } }),
+      });
     }
   } else if (result.typ === "skala") {
     const mean = result.prumer as number | null;
@@ -145,10 +156,12 @@ export function resultTable(id: string, result: QuestionResult): ResultTable {
       interval: hide(range(result.prumer_interval_95 as Interval, 2)),
     });
     const top = result.top2box_pct as number | null;
+    const topIv = result.top2box_interval_95 as Interval;
     rows.push({
       label: t("research.exec.results.top2"),
       value: hide(top === null || top === undefined ? null : `${num(top, 1)} %`),
-      interval: hide(range(result.top2box_interval_95 as Interval, 1)),
+      interval: hide(range(topIv, 1)),
+      ...(suppressed || typeof top !== "number" ? {} : { bar: { value: top, low: topIv?.low ?? null, high: topIv?.high ?? null } }),
     });
   }
   return {
