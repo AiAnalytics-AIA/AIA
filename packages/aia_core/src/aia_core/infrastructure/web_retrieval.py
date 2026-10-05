@@ -11,7 +11,8 @@ to retry, reroute or substitute:
   the address checks of ``domain.deep_research.web`` pass for the URL and for every
   address its host resolves to, **on every redirect hop**; then the size and type
   caps; then HTML to text, normalised, and a content-addressed
-  :class:`~aia_core.domain.deep_research.contracts.SourceSnapshot`. A live
+  :class:`~aia_core.domain.deep_research.contracts.SourceSnapshot` that keeps the
+  page's outbound and ``alternate`` links as data (never followed here). A live
   transport must connect to the address that was checked (DNS rebinding).
 
 Recorded doubles are test doubles (the model adapters keep theirs beside the
@@ -33,15 +34,19 @@ from datetime import UTC, date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Final, Protocol
-from urllib.parse import urljoin
+from urllib.parse import urldefrag, urljoin
 
 from ..domain.ai_contracts import Delivery
-from ..domain.deep_research.contracts import RetrievalMode, SourceSnapshot
+from ..domain.deep_research.contracts import RetrievalMode, SnapshotLink, SourceSnapshot
 from ..domain.deep_research.grounding import detect_instructions, normalise_text
 from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.web import (
+    MAX_ALTERNATE_LINKS,
     MAX_BODY_BYTES,
+    MAX_LINK_TEXT_CHARS,
+    MAX_LINK_URL_CHARS,
     MAX_REDIRECTS,
+    MAX_SNAPSHOT_LINKS,
     MAX_TEXT_CHARS,
     FetchRefused,
     SearchHit,
@@ -63,6 +68,7 @@ __all__ = [
     "SearchResponse",
     "ToolCallFailed",
     "WebFetcher",
+    "extract_links",
     "extract_page",
     "load_recorded_web",
 ]
@@ -166,21 +172,40 @@ _ISO_DATE: Final = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
 
 
 class _Extractor(HTMLParser):
-    """Visible text, the title and the page's own publication date, from HTML."""
+    """Visible text, the title, the page's own publication date and its links, from HTML."""
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
         self.title_parts: list[str] = []
         self.dates: list[str] = []
+        #: (href, anchor text parts) per ``<a href>``, in document order.
+        self.anchors: list[tuple[str, list[str]]] = []
+        #: (href, declared type, title) per ``<link rel="alternate">``.
+        self.alternates: list[tuple[str, str, str]] = []
+        self.base_href: str | None = None
         self._skip = 0
         self._in_title = False
+        self._anchor: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {k.lower(): (v or "") for k, v in attrs}
         if tag in _SKIP:
             self._skip += 1
-        elif tag == "title":
+        elif self._skip:
+            pass
+        elif tag == "a" and values.get("href"):
+            self._anchor = []
+            self.anchors.append((values["href"], self._anchor))
+        elif tag == "base" and values.get("href") and self.base_href is None:
+            self.base_href = values["href"]
+        elif tag == "link" and values.get("href"):
+            rel = set(values.get("rel", "").lower().split())
+            if "alternate" in rel and "stylesheet" not in rel:
+                self.alternates.append(
+                    (values["href"], values.get("type", ""), values.get("title", ""))
+                )
+        if tag == "title":
             self._in_title = True
         elif tag == "meta":
             name = values.get("property") or values.get("name") or values.get("itemprop") or ""
@@ -196,6 +221,8 @@ class _Extractor(HTMLParser):
             self._skip -= 1
         elif tag == "title":
             self._in_title = False
+        elif tag == "a":
+            self._anchor = None
         if tag in _BLOCK:
             self.parts.append("\n")
 
@@ -206,6 +233,8 @@ class _Extractor(HTMLParser):
             self.title_parts.append(data)
         else:
             self.parts.append(data)
+            if self._anchor is not None:
+                self._anchor.append(data)
 
 
 def _first_date(candidates: Sequence[str]) -> date | None:
@@ -219,15 +248,85 @@ def _first_date(candidates: Sequence[str]) -> date | None:
     return None
 
 
+def _parse(body: str) -> _Extractor:
+    parser = _Extractor()
+    parser.feed(body)
+    parser.close()
+    return parser
+
+
 def extract_page(body: str, media_type: str) -> tuple[str, str, date | None]:
     """(title, normalised visible text, the page's own publication date or None)."""
     if media_type == "text/plain":
         return "", normalise_text(body), None
-    parser = _Extractor()
-    parser.feed(body)
-    parser.close()
+    parser = _parse(body)
     title = normalise_text("".join(parser.title_parts))
     return title, normalise_text("".join(parser.parts)), _first_date(parser.dates)
+
+
+_HREF_NOISE: Final = re.compile(r"[\t\n\r]")
+
+
+def _absolute(base: str, href: str) -> str | None:
+    """``href`` made absolute against ``base``, without its fragment, or None if unusable."""
+    # Browsers strip whitespace around an href and drop tabs and newlines inside it.
+    href = _HREF_NOISE.sub("", href.strip())
+    if not href or href.startswith("#"):
+        return None
+    try:
+        url = urldefrag(urljoin(base, href)).url
+        check_url(url)
+    except (ValueError, FetchRefused):
+        return None
+    return url if len(url) <= MAX_LINK_URL_CHARS else None
+
+
+def _links(parser: _Extractor, page_url: str) -> tuple[SnapshotLink, ...]:
+    base = page_url
+    if parser.base_href is not None:
+        declared = _absolute(page_url, parser.base_href)
+        if declared is not None:
+            base = declared
+    anchors: dict[str, str] = {}
+    for href, parts in parser.anchors:
+        url = _absolute(base, href)
+        if url is None:
+            continue
+        text = normalise_text("".join(parts))[:MAX_LINK_TEXT_CHARS]
+        if url in anchors:
+            # The first anchor with words names the link; an image link says nothing.
+            anchors[url] = anchors[url] or text
+        elif len(anchors) < MAX_SNAPSHOT_LINKS:
+            anchors[url] = text
+    alternates: dict[str, tuple[str, str]] = {}
+    for href, media_type, title in parser.alternates:
+        url = _absolute(base, href)
+        if url is None or url in alternates or len(alternates) >= MAX_ALTERNATE_LINKS:
+            continue
+        alternates[url] = (
+            normalise_text(media_type).lower()[:100],
+            normalise_text(title)[:MAX_LINK_TEXT_CHARS],
+        )
+    kept = [SnapshotLink(kind="anchor", url=u, text=t) for u, t in anchors.items()]
+    kept.extend(
+        SnapshotLink(kind="alternate", url=u, text=t, media_type=m or None)
+        for u, (m, t) in alternates.items()
+    )
+    return tuple(kept)
+
+
+def extract_links(body: str, page_url: str) -> tuple[SnapshotLink, ...]:
+    """An HTML page's links: absolute, fetchable, no fragment, deduplicated and capped.
+
+    ``<a href>`` targets (at most :data:`MAX_SNAPSHOT_LINKS`, with their anchor
+    text) then ``<link rel="alternate">`` targets (at most
+    :data:`MAX_ALTERNATE_LINKS`, with their declared type), resolved against the
+    page's ``<base href>`` when it declares a usable one. A link that fails
+    ``check_url`` (another scheme, a port, credentials, an internal name, a private
+    address) is dropped, as is one longer than :data:`MAX_LINK_URL_CHARS`. Nothing
+    here opens a link.
+    """
+    return _links(_parse(body), page_url)
 
 
 def _charset(content_type: str) -> str:
@@ -297,10 +396,16 @@ class WebFetcher:
             raise FetchRefused(
                 f"the page is larger than {MAX_BODY_BYTES} bytes", reason="body_too_large"
             )
-        title, text, published = extract_page(
-            response.body.decode(_charset(headers.get("content-type", "")), errors="replace"),
-            media,
-        )
+        decoded = response.body.decode(_charset(headers.get("content-type", "")), errors="replace")
+        links: tuple[SnapshotLink, ...] = ()
+        if media == "text/plain":
+            title, text, published = extract_page(decoded, media)
+        else:
+            parser = _parse(decoded)
+            title = normalise_text("".join(parser.title_parts))
+            text = normalise_text("".join(parser.parts))
+            published = _first_date(parser.dates)
+            links = _links(parser, current)
         kept = text[:MAX_TEXT_CHARS]
         text_sha = hashlib.sha256(kept.encode("utf-8")).hexdigest()
         snapshot = SourceSnapshot(
@@ -322,6 +427,7 @@ class WebFetcher:
             request_id=response.provider_request_id,
             retrieval_mode=self.retrieval_mode,
             instructions_detected=detect_instructions(kept),
+            links=links,
         )
         return FetchedPage(snapshot=snapshot, published=published)
 
