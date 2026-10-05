@@ -8,7 +8,7 @@ chunks:
   - "[x] 5. Step 3 · Dotazník"
   - "[x] 6. Step 4 · Audience"
   - "[x] 7. Step 5 · Dimenze"
-  - "[ ] 8. Step 6 · Kontrola & spuštění"
+  - "[x] 8. Step 6 · Kontrola & spuštění"
   - "[ ] 9. Step 7 · Výsledky: jump chips and interval bars"
   - "[ ] 10. Znalosti: remove the \"Odkud znalosti pocházejí\" strip"
 ---
@@ -145,7 +145,24 @@ rows) and the sample: the number field (`setSampleSize`, 50–5 000), a slider
 recommendation. The handoff's fixed "800 doporučeno" is the computed
 `recommendedSample` here. The dock says "n dimenzí · N=…".
 
-## Chunks 8–10
+## Chunk 8 — Kontrola & spuštění
+
+- "Co spustíte" on the revision card: Zadání (the goal), Návrh (the chosen variant
+  or the problem summary), Dotazník (the readiness counts), Audience (its
+  description or dataset), Dimenze (approved count and N), each with "Upravit".
+  Read from the working content the revision was submitted from and from the
+  readiness, not fixtures.
+- Each check that does not pass links "Opravit →" to the step that fixes it
+  (`fixStep`: sample → Dimenze, audience → Audience, the rest → Dotazník).
+- The cost card draws the ceiling as a bar on a scale of max(ceiling, limit) × 1.4,
+  amber when Start will ask, the limit as a mark. The limit is a switch with an
+  amount, saved on Enter or on leaving the field; switching it off clears it (same
+  `setSpendConfirm`).
+- "Spustit výzkum" is the primary AI action in the dock, under the same conditions;
+  the dock says why it is disabled. Progress, the budget lift and the run list are
+  unchanged apart from the card radius.
+
+## Chunks 9–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
