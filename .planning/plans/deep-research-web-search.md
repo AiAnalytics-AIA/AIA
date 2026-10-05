@@ -7,14 +7,15 @@ chunks:
   - "[ ] 3. The API key as a credential reference (D8, for this route)"
   - "[ ] 4. Public-web fetch: any public host, robots.txt, user agent, links kept, run snapshot cache"
   - "[ ] 5. Documents as sources: PDF, XLSX and CSV, read in parts, grounded by page, sheet and cell"
-  - "[ ] 6. The agent-directed investigator: action contract, loop, refs, refusals, transcript"
+  - "[ ] 5a. Thinking between results: structured output without a forced tool choice"
+  - "[ ] 6. The agent-directed investigator: parallel actions per turn, loop, refs, refusals, transcript"
   - "[ ] 7. Leads and recovery: citation chase, result annotations, search feedback"
-  - "[ ] 8. The research director: gap board, conflicts, new tracks, budget moved between tracks"
+  - "[ ] 8. The lead researcher: effort scaling, delegation contract, waves, gaps, conflicts, budget"
   - "[ ] 9. Official-data retrieval: Czech open-data catalogue and statistics office (verify first)"
   - "[ ] 10. Budgets, presets and the run's cost ceiling"
   - "[ ] 11. Composition, switches and dated prices"
   - "[ ] 12. Czech source table (DR-5 input)"
-  - "[ ] 13. Quality evaluation on real search: three arms"
+  - "[ ] 13. Quality evaluation on real search: three arms, rubric judge and human grade"
   - "[ ] 14. Develop activation and one live fictional acceptance"
   - "[ ] 15. Scale sign-off: the funnel, the boundaries, the Exhaustive budget, quotas"
   - "[ ] 16. Fan-out: parallel investigators, per-host politeness, model concurrency limits"
@@ -62,6 +63,31 @@ read from the code @ `b2d43f7`:
 
 The data owner's instruction (2026-10-05): **the best results; open it up.**
 
+## The architecture: modelled on Anthropic's multi-agent Research system
+
+The owner's instruction (2026-10-05): *research so wide and precise; mimic Claude's own deep
+research.* Anthropic has published how its Research feature works
+([How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system)).
+Its measured findings, and what AIA takes from each:
+
+| Their finding | AIA's design |
+|---|---|
+| An orchestrator-worker pattern: a **lead researcher** plans with extended thinking, saves the plan to memory, and spawns subagents, each with its own context window; multi-agent beat single-agent by 90.2 % on their internal eval | The planner and the director become one **lead researcher** (chunk 8). Its plan is an artifact of the run (the memory that survives a long run and a retry). Each subagent is a track with its own context. |
+| **Effort scaling**: a simple fact gets 1 agent and 3–10 tool calls; a comparison 2–4 subagents with 10–15 calls each; complex research more than 10 subagents with clearly divided responsibilities | The lead classifies each subject's complexity and sizes it by those rules, inside the preset's ceiling. Code enforces the caps, so "50 subagents for a simple query" (their early failure) cannot happen. |
+| **Delegation is the hard part**: vague task descriptions made subagents duplicate each other | `SubagentTask`, a closed contract: objective, the output wanted, sources and tools to prefer, explicit boundaries ("not prices: another subagent has them"), budget. Code refuses a wave whose tasks overlap by subject and measure. |
+| **Two levels of parallelism**: the lead starts 3–5 subagents at once; each subagent runs 3+ tool calls at once; research time fell by up to 90 % | Waves of 3–5 tracks per subject in parallel (chunk 16 adds the worker fan-out). An investigator turn returns **up to 5 actions** (`search`, `open`, `read`, `chase`), which code checks one by one and sends concurrently. |
+| **Start wide, then narrow**: short broad queries first, then focus | Prompt heuristic for every investigator, and the lead's first wave is broad by design. |
+| **Interleaved thinking**: subagents think after each tool result to judge quality, find gaps and refine the next query | Investigators reason between turns about what they read. This needs the model's thinking on, which Claude does not allow with a forced tool choice, and AIA's Bedrock adapter forces one for structured output (`model_adapters/bedrock.py:199-209` @ `b2d43f7`) and sends no thinking setting today. Chunk 5a moves structured output off the forced tool. |
+| **Condensed returns**: subagents return the important tokens, not everything they read | A track returns its grounded findings, gaps and a short summary to the lead; pages and transcripts stay in artifacts. |
+| **Citations by a dedicated agent** | AIA is stricter: code grounds every quote in a captured snapshot; a model never attaches a citation. |
+| **What explains quality**: token usage (80 % of variance), number of tool calls and model choice; multi-agent research uses about 15× the tokens of chat | The budget is the quality lever, so presets are budgets; the lead runs on the strongest model the EU route offers (a policy entry, chunk 8), investigators on a strong model, triage on a light one. The cost estimates already assume this multiple. |
+| **Their failure modes**: endless searches for sources that do not exist; SEO content farms chosen over authoritative sources; serial execution | The stop rule (saturation, allowance) ends a hopeless track; the source table, result annotations and the source-class score push authoritative hosts; fan-out is parallel. |
+| **Evaluation**: start small (about 20 queries) at once; an LLM judge on a rubric of factual accuracy, citation accuracy, completeness, source quality and tool efficiency; plus human review | Chunk 13 starts with 20 fictional questions, judged on that rubric by a separate model (its own policy entry) and graded blind by a researcher; chunk 24 repeats it at scale. |
+
+What AIA keeps that Claude's Research does not have to: code sends every request (classified,
+journaled, reserved), every quote is grounded in AIA's own snapshot, and nothing non-public is
+touched. Those are the price of research a client pays for and can audit.
+
 ## The design: agent-directed, code-gated
 
 Agents get the freedom that makes research good: they decide what to search next, which result
@@ -103,7 +129,8 @@ tracks):
 
 ```text
 evidence: [ProposedEvidence]          # as today; grounded by code against S<n> snapshots
-next: one of
+summary: str                          # what this turn learned, for the lead (condensed return)
+next: up to 5 of, sent concurrently
   search  {query, purpose}            # a new query in Czech or English
   open    {ref: R<n> | L<n>, purpose} # a result or a link from a captured source
   read    {ref: S<n>, part}           # another part of a long captured document
@@ -164,7 +191,7 @@ code sending every call. Together they are what separates a researcher from a se
 **2. Filling gaps.**
 
 - **Structured gaps.** `finish` and every turn may record `{need, why, tried}`, not free text.
-- **The research director** (a new agent role, one governed request between rounds of tracks).
+- **The lead researcher** (chunk 8; it also plans the run, between waves of tracks).
   It reads every track's findings, gaps and **conflicts** (two accepted sources disagreeing on the
   same measure) and proposes, within the run's budget:
   - a new track for an unanswered gap or a sub-question the plan missed;
@@ -173,7 +200,7 @@ code sending every call. Together they are what separates a researcher from a se
     not (budget moved, never added beyond the run's ceiling);
   - routing a finding from one track to another track's gap instead of searching for it again.
   Code checks every proposal: a new track's sub-question is classified like a query and inherits
-  the Class C digest only; at most 2 director rounds (Standard) or 3 (Deep).
+  the Class C digest only; at most 2 lead rounds (Standard) or 3 (Deep).
 
 **3. Better result choice.**
 
@@ -198,7 +225,7 @@ code sending every call. Together they are what separates a researcher from a se
 - **Duplicates refused**, so rephrasing is real rephrasing.
 
 **What this costs, honestly.** Each addition widens what an injected page can try: a chase is
-steered only by a name, resolved by code against the source table; a director proposal is
+steered only by a name, resolved by code against the source table; a lead's proposal is
 classified like a query; every action still passes the gate and the refusal limit. The path a
 track takes is no longer reproducible, but its evidence is: every snapshot is content-addressed
 and the transcript records every step. And it costs more (below).
@@ -222,7 +249,7 @@ the change most likely to move a run from news articles to primary sources.
   measured:** a turn reads up to about 8,000 tokens of page text, about $0.04 at the develop
   policy's prices.
 
-  | Preset | Per track | Director | Estimate per run |
+  | Preset | Per track | Lead researcher | Estimate per run |
   |---|---|---|---|
   | Standard | 8 searches, 20 opens, 15 turns | 2 rounds, up to 2 new tracks | about $5–7 |
   | Deep | 15 searches, 40 opens, 30 turns | 3 rounds, up to 4 new tracks | about $12–18 |
@@ -352,13 +379,13 @@ returns a closed contract: relevant or not, to which sub-question, up to three c
 It cannot search, open or send anything. Proposed model: Claude Haiku 4.5 on Bedrock through its
 EU cross-region profile (`eu.anthropic.claude-haiku-4-5-20251001-v1:0`), bound to a new capability
 (`RESEARCH_TRIAGE`) by a second policy entry under ADR 0010. Investigators, verifiers, the
-director and the synthesizer stay on the strong model.
+lead researcher and the synthesizer stay on the strong model.
 
 ### Many agents, coordinated
 
-- **Hierarchy.** The research director (Part A) gains **subject leads**: one per subject of the
+- **Hierarchy.** The lead researcher (Part A) gains **subject leads**: one per subject of the
   plan (market size, prices, competitors, consumers, regulation, …). A lead owns its subject's
-  tracks, reads their findings and gaps, and reports to the director; the director moves budget
+  tracks, reads their findings and gaps, and reports to the lead researcher; the lead moves budget
   between subjects. Investigators run in parallel under the leads.
 - **Adversarial verifiers.** For every finding the run would publish, an independent verifier is
   told to disprove it: look for the primary source, a newer figure, a different denominator. A
@@ -390,7 +417,7 @@ The data owner's research has to be defensible to the client who pays for it, an
 | Preset | Agents | Pages read by a model | Estimate per run | Run time |
 |---|---|---|---|---|
 | Standard (Part A) | 8 tracks | ~150 | about $5–7 | minutes |
-| Deep (Part A) | 12 tracks + director | ~400 | about $12–18 | under an hour |
+| Deep (Part A) | 12 tracks + lead researcher | ~400 | about $12–18 | under an hour |
 | **Exhaustive (Part B)** | ~20–50 investigators, subject leads, verifiers | ~2,000 triaged, ~500 investigated | **about $60–100** | about 1–3 hours |
 
 The Exhaustive estimate: triage about 12M input tokens on the light model (about $12–15), 50
@@ -452,10 +479,23 @@ readable by section or page range; locators by page, or by sheet and cell; groun
 instruction screen on the extracted text. Tests: fictional PDF, XLSX and CSV fixtures, oversized
 and malformed files refused, a quote found on the right page, a number grounded to its cell.
 
+### 5a. Thinking between results
+
+Claude does not allow a forced tool choice with thinking on, and the Bedrock adapter gets
+structured output from a forced tool. Move the Deep Research agents' contracts to a form that
+keeps strict, schema-valid output with thinking on (tool choice `auto` with a strict schema and
+the instruction to answer through it, or the model's structured-output form where the route
+supports it), add the thinking setting to the adapter, and keep every other agent on its current
+form until each is migrated and tested. Thinking tokens are metered and reserved like any output.
+Recorded tests: a thinking turn's output validated exactly as before; a reply outside the schema
+is one counted repair, as today.
+
 ### 6. The agent-directed investigator
 
 The `InvestigatorTurn` contract and prompt (versioned; the old contract stays readable for
-stored runs) with `search`, `open`, `read` and `finish`; the loop in `investigate.py`; ref
+stored runs) with `search`, `open`, `read` and `finish`, up to 5 actions per turn sent
+concurrently through the gate, and a condensed summary for the lead; the "start wide, then
+narrow" heuristic; the loop in `investigate.py`; ref
 resolution; URL classification; refusal feedback and `STOP_REFUSALS`; the transcript artifact.
 Recorded tests, with fictional pages: a lead followed from a news page to the PDF it links; a
 gap searched; a page instructing the agent to search a client's name, refused three times and
@@ -470,15 +510,19 @@ language; a weak search kept out of the saturation window. Recorded tests: "podl
 `site:czso.cz` search; an unknown publisher becomes a classified plain search; a syndicated copy
 collapses to the one already held; an all-held result list is said so and the next query differs.
 
-### 8. The research director
+### 8. The lead researcher
 
-A new agent role and closed contract (`DirectorProposal`: new tracks, resolve tracks, allowance
-moves, routed findings) run between rounds of tracks as one governed request; conflict detection
-by code (same subject, measure and period, different values) handed to it; every proposal checked
-by code against the classifier, the run's ceiling and the round limit; new tracks with their own
-fingerprints. Recorded tests: a gap becomes a track that answers it; a conflict becomes a resolve
-track that finds the primary source; budget moved from a starved track to a productive one, the
-run's total unchanged; a proposal over the ceiling refused.
+One agent role replaces the planner and the director: plans with thinking, writes the plan to a
+run artifact, classifies each subject's complexity and sizes it by the effort-scaling rules,
+delegates waves of 3–5 tracks per subject through `SubagentTask` (objective, output wanted,
+sources to prefer, boundaries, budget), reads their condensed returns, and re-plans: new tracks
+for gaps, resolve tracks for conflicts (found by code: same subject, measure and period, different
+values), budget moved from starved tracks to productive ones, findings routed to another track's
+gap. Code checks every task (classified, no overlap with another task's subject and measure,
+within the ceiling and the round limit). The lead runs on the strongest model the EU route
+offers, bound by its own policy entry. Recorded tests: a simple subject gets one track and a
+complex one many; overlapping tasks refused; a gap becomes a track that answers it; a conflict
+becomes a resolve track that finds the primary source; budget moved, the run's total unchanged.
 
 ### 9. Official-data retrieval (verify first)
 
@@ -490,8 +534,8 @@ remains the way in.
 
 ### 10. Budgets, presets and the run's cost ceiling
 
-The Standard and Deep presets in `DepthPreset` (searches, opens, turns per track; director rounds
-and new tracks per run); the turn and director reservations; the search price in
+The Standard and Deep presets in `DepthPreset` (searches, opens, turns per track; lead rounds
+and new tracks per run); the turn and lead reservations; the search price in
 `run_cost_ceiling`; tests that a study's spend limit asks before a run that could pass it, and
 that moving budget between tracks never raises the run's ceiling.
 
@@ -500,7 +544,7 @@ that moving budget between tracks never raises the run's ceiling.
 - `AIA_DEEP_RESEARCH_WEB_SEARCH`: `off` (default) or `brave`; needs `AIA_DEEP_RESEARCH_ENABLED`,
   the key, `AIA_DEEP_RESEARCH_SEARCH_USD_PER_CALL` and `AIA_DEEP_RESEARCH_SEARCH_PRICE_DATE`.
 - `AIA_DEEP_RESEARCH_AGENT_DIRECTED`: `off` (planned queries, as today) or `on`.
-- `AIA_DEEP_RESEARCH_DIRECTOR`: `off` or `on` (needs agent-directed).
+- `AIA_DEEP_RESEARCH_LEAD`: `off` or `on` (needs agent-directed).
 - Route: `ProviderRoute(route_id="brave-web-search", zone=US, eu_processing_approved=False,
   approved_for={CLASS_C_INTERNAL})`.
 - Anything missing or invalid stops the worker at start, naming the key. Settings shows each as
@@ -515,11 +559,14 @@ chase resolves; approved by the data owner; off until approved.
 
 ### 13. Quality evaluation on real search
 
-On develop, a fixed set of 5 fictional-client research questions, each run three ways: planned
-queries (today), agent-directed, agent-directed with the director. Record per run: accepted
+On develop, a fixed set of 20 fictional-client research questions (simple facts, comparisons and
+complex questions, as in effort scaling), each run three ways: planned
+queries (today), agent-directed, agent-directed with the lead researcher. Record per run: accepted
 findings, the share from primary sources (official, regulator, the publisher of the number),
 numbers grounded to a table cell, conflicts found and resolved, quarantined by reason, searches,
-opens, turns, money per accepted finding, and a researcher's blind grade of the three briefs. The
+opens, turns, money per accepted finding; a rubric score from a separate judge model (factual
+accuracy, citation accuracy, completeness, source quality, tool efficiency); and a researcher's
+blind grade of the three briefs. The
 owner sets presets and defaults from these numbers; each step up becomes a default only if it
 wins.
 
@@ -574,7 +621,7 @@ nothing and that its candidate quotes are grounded before an investigator sees t
 
 ### 22. Leads, adversarial verifiers, triangulation
 
-Subject leads between the director and the tracks; the adversarial verification step; publisher
+Subject leads between the lead researcher and the tracks; the adversarial verification step; publisher
 independence after near-duplicate collapse; recorded tests for a syndicated press release (one
 publisher, not two) and a claim disproved by a newer primary figure.
 
@@ -624,7 +671,8 @@ For the docs PR after chunk 0 merges:
   Class B open (candidate: Linkup under an EU agreement)."
 - ADR 0017 amendment (after the owner's sign-off): "Web investigators choose their next search,
   the result to open, the link or named source to follow and the document part to read, by ref;
-  a research director adds tracks for gaps and conflicts and moves budget between tracks within the
+  a lead researcher plans the run, sizes it by effort-scaling rules, delegates waves of parallel
+  tracks through a closed task contract, adds tracks for gaps and conflicts and moves budget between tracks within the
   run's ceiling; code classifies, sends and journals every call, and grounds every finding in the
   track's own snapshots. Sources include PDF, XLSX and CSV."
 - `CLAUDE.md` § 2: `web_retrieval.py` and `deep_research_runtime.py` entries corrected to name the
