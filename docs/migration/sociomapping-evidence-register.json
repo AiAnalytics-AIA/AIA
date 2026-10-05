@@ -817,6 +817,26 @@
    "question": "M12"
   },
   {
+   "id": "AIA-D2",
+   "title": "Complete respondents only, the rest counted",
+   "product": "AIA",
+   "label": "PROPOSED",
+   "sources": [],
+   "formula": "a respondent enters a set's relations and heights only if they answered every object of the set; the excluded are counted overall and per object",
+   "applies_to": "research_sociomapping: RTS object correlations (RTS-O1) and average answers (RTS-W3) over fieldwork data that may have unanswered objects",
+   "implementation": "aia_core.domain.research_sociomapping:battery_sociomapping",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomapping.py::test_difficult_answers_are_kept_named_and_explained",
+     "what": "two skipped answers: 6 of 8 respondents kept, per-object counts recorded"
+    }
+   ],
+   "uncertainty": "RTS requires every answer, so it never meets the case; SOMECS fills an empty field with 0 (SOMECS-D1), which AIA does not do. Pairwise deletion would use more data but let each correlation rest on different respondents. The choice is AIA's and is recorded on every result.",
+   "resolve_by": "Method owner: complete respondents, pairwise, or another policy (M5).",
+   "question": "M5"
+  },
+  {
    "id": "QED-W1",
    "title": "Height = column average (received)",
    "product": "QED",
