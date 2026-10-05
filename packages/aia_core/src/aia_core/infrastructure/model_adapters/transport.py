@@ -254,9 +254,12 @@ class CredentialSource(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class StaticCredentials:
-    """A fixed mapping of references to secrets. For tests and local runs."""
+    """A fixed mapping of references to secrets. For tests and local runs.
 
-    secrets: Mapping[str, str]
+    The secrets stay out of the repr, so an adapter holding this can be printed.
+    """
+
+    secrets: Mapping[str, str] = field(repr=False)
 
     def secret(self, reference: str) -> str:
         return self.secrets[reference]
