@@ -48,6 +48,8 @@ __all__ = [
     "DatasetResponse",
     "HostScopedClient",
     "RecordedDatasetConnector",
+    "build_result",
+    "contract_failure",
     "dataset_snapshot",
 ]
 
