@@ -24,6 +24,12 @@ refusal stays a refusal) is answered from it and journaled ``CACHED`` -- nothing
 dispatched, nothing reserved, nothing charged -- and :attr:`FetchOutcome.cached`
 says so.
 
+A fetch may be confined to hosts the caller names (a crawl stays on its host):
+a URL elsewhere is refused before dispatch, a redirect elsewhere before the hop
+is requested. A document read for what it lists rather than what it says (a
+sitemap) is fetched with :meth:`RetrievalGate.fetch_resource`: the same steps,
+bytes back, no snapshot, nothing cached.
+
 What a call is charged is decided here, once, and never in AIA's favour: a success or
 a failure the provider answered costs the route's price (a provider that answered has
 served the request); a failure that sent nothing costs nothing; an uncertain call and
@@ -43,7 +49,7 @@ import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, TypeVar
 
 from ..domain.ai_contracts import Delivery
 from ..domain.deep_research.classification import classify_query
@@ -64,12 +70,34 @@ from ..domain.deep_research.tooling import (
     new_tool_call_id,
     new_tool_event_id,
 )
-from ..domain.deep_research.web import FetchRefused, SearchHit, check_url
+from ..domain.deep_research.web import (
+    HOST_OUT_OF_SCOPE,
+    REDIRECT_OUT_OF_SCOPE,
+    FetchRefused,
+    SearchHit,
+    check_url,
+)
 from ..domain.residency import DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
-from ..infrastructure.web_retrieval import FetchedPage, SearchAdapter, ToolCallFailed, WebFetcher
+from ..infrastructure.web_retrieval import (
+    FetchedPage,
+    FetchedResource,
+    HostFilter,
+    SearchAdapter,
+    ToolCallFailed,
+    WebFetcher,
+)
 
-__all__ = ["FetchOutcome", "RetrievalGate", "RunSnapshotCache", "SearchOutcome", "WebRetrieval"]
+__all__ = [
+    "FetchOutcome",
+    "ResourceOutcome",
+    "RetrievalGate",
+    "RunSnapshotCache",
+    "SearchOutcome",
+    "WebRetrieval",
+]
+
+_Fetched = TypeVar("_Fetched", FetchedPage, FetchedResource)
 
 
 def _utcnow() -> datetime:
@@ -142,6 +170,17 @@ class FetchOutcome:
     uncertain: bool
     #: The page came from this run's snapshot cache: nothing was sent or charged.
     cached: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class ResourceOutcome:
+    """A document fetched for what it lists (a sitemap): bytes, never a snapshot."""
+
+    url: str
+    resource: FetchedResource | None
+    #: Why nothing was kept: a refusal before sending, or the failure after.
+    reason: str | None
+    uncertain: bool
 
 
 class RunSnapshotCache:
@@ -427,51 +466,41 @@ class RetrievalGate:
 
     # ----------------------------------------------------------------- fetch --
 
-    def fetch(self, url: str, *, track_id: str) -> FetchOutcome:
-        """One page a search returned: checked, authorised, reserved, journaled, fetched."""
-        route = self._retrieval.fetch_route
+    def _fetch_admission(
+        self, url: str, *, host_allowed: HostFilter | None
+    ) -> tuple[DataClass, str | None]:
+        """A URL's class, and why it may not be requested (address, scope, class, egress)."""
         cls = classify_query(
             url,
             context_class=DataClass.CLASS_C_INTERNAL,
             client_terms=self._terms,
             class_a_texts=self._class_a,
         ).data_class
-        reason: str | None
         try:
-            check_url(url)
+            host = check_url(url)
         except FetchRefused as exc:
-            reason = exc.reason
-        else:
-            reason = (
-                "class_a_url"
-                if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
-                else self._refusal(route, data_class=cls)
-            )
-        if reason is None and self._cache is not None:
-            hit = self._cache.get(url)
-            if hit is not None:
-                self._meter.outcome(
-                    self._event(
-                        route,
-                        call_id=new_tool_call_id(),
-                        outcome=ToolOutcome.CACHED,
-                        data_class=cls,
-                        track_id=track_id,
-                        sent=url,
-                        note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
-                    )
-                )
-                return FetchOutcome(url=url, page=hit, reason=None, uncertain=False, cached=True)
-        if reason is None:
-            # A robots.txt the transport already holds: refused before any dispatch.
-            reason = self._retrieval.fetcher.known_refusal(url)
-        if reason is not None:
-            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
-            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)
+            return cls, exc.reason
+        if host_allowed is not None and not host_allowed(host):
+            return cls, HOST_OUT_OF_SCOPE
+        if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            return cls, "class_a_url"
+        return cls, self._refusal(self._retrieval.fetch_route, data_class=cls)
 
+    def _fetch_call(
+        self,
+        url: str,
+        *,
+        cls: DataClass,
+        track_id: str,
+        call: Callable[[], _Fetched],
+        request_id: Callable[[_Fetched], str | None],
+        note: Callable[[_Fetched], str] = lambda _: "",
+    ) -> tuple[_Fetched | None, str | None, bool]:
+        """Reserve, journal, send, journal: (what came back, why not, uncertain)."""
+        route = self._retrieval.fetch_route
         call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
         try:
-            page = self._retrieval.fetcher.fetch(url)
+            result = call()
         except FetchRefused as exc:
             # Refused on a later hop or by the response itself; nothing kept. A hop
             # may already have been served, so it is charged as if it was.
@@ -488,7 +517,7 @@ class RetrievalGate:
                     note=exc.reason,
                 )
             )
-            return FetchOutcome(url=url, page=None, reason=exc.reason, uncertain=False)
+            return None, exc.reason, False
         except ToolCallFailed as exc:
             uncertain = self._close_failure(
                 route,
@@ -499,7 +528,7 @@ class RetrievalGate:
                 track_id=track_id,
                 sent=url,
             )
-            return FetchOutcome(url=url, page=None, reason=exc.reason, uncertain=uncertain)
+            return None, exc.reason, uncertain
         self._meter.outcome(
             self._event(
                 route,
@@ -510,9 +539,99 @@ class RetrievalGate:
                 sent=url,
                 reservation=reservation,
                 cost=route.price_usd_per_call,
-                provider_request_id=page.snapshot.request_id,
+                provider_request_id=request_id(result),
+                note=note(result),
             )
         )
+        return result, None, False
+
+    def fetch(
+        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+    ) -> FetchOutcome:
+        """One page: checked, authorised, reserved, journaled, fetched -- or refused.
+
+        ``host_allowed`` confines the fetch to the hosts it allows (a crawl's own
+        host): a URL elsewhere is refused before dispatch (``host_out_of_scope``),
+        a redirect elsewhere before the hop is requested (``redirect_out_of_scope``),
+        and a cached page whose final URL is elsewhere is refused, not served.
+        """
+        route = self._retrieval.fetch_route
+        cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        if reason is None and self._cache is not None:
+            hit = self._cache.get(url)
+            if hit is not None:
+                final_host = check_url(hit.snapshot.final_url)
+                if host_allowed is not None and not host_allowed(final_host):
+                    reason = REDIRECT_OUT_OF_SCOPE
+                else:
+                    self._meter.outcome(
+                        self._event(
+                            route,
+                            call_id=new_tool_call_id(),
+                            outcome=ToolOutcome.CACHED,
+                            data_class=cls,
+                            track_id=track_id,
+                            sent=url,
+                            note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
+                        )
+                    )
+                    return FetchOutcome(
+                        url=url, page=hit, reason=None, uncertain=False, cached=True
+                    )
+        if reason is None:
+            # A robots.txt the transport already holds: refused before any dispatch.
+            reason = self._retrieval.fetcher.known_refusal(url)
+        if reason is not None:
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
+            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)
+
+        fetcher = self._retrieval.fetcher
+        page, failure, uncertain = self._fetch_call(
+            url,
+            cls=cls,
+            track_id=track_id,
+            call=lambda: fetcher.fetch(url, host_allowed=host_allowed),
+            request_id=lambda fetched: fetched.snapshot.request_id,
+        )
+        if page is None:
+            return FetchOutcome(url=url, page=None, reason=failure, uncertain=uncertain)
         if self._cache is not None:
             self._cache.put(url, page)
         return FetchOutcome(url=url, page=page, reason=None, uncertain=False)
+
+    def fetch_resource(
+        self,
+        url: str,
+        *,
+        track_id: str,
+        media_types: frozenset[str],
+        max_bytes: int,
+        host_allowed: HostFilter | None = None,
+    ) -> ResourceOutcome:
+        """One document a crawl reads for what it lists (a sitemap), through the same gate.
+
+        Classified, scope- and egress-checked, robots-checked, reserved and
+        journaled exactly like :meth:`fetch` (its success notes ``resource
+        <media type>``); only what comes back differs: bytes of one of
+        ``media_types``, at most ``max_bytes``, and no snapshot -- a resource is
+        never evidence, and it is not put in the run's snapshot cache.
+        """
+        route = self._retrieval.fetch_route
+        cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        if reason is None:
+            reason = self._retrieval.fetcher.known_refusal(url)
+        if reason is not None:
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
+            return ResourceOutcome(url=url, resource=None, reason=reason, uncertain=False)
+        fetcher = self._retrieval.fetcher
+        resource, failure, uncertain = self._fetch_call(
+            url,
+            cls=cls,
+            track_id=track_id,
+            call=lambda: fetcher.fetch_resource(
+                url, media_types=media_types, max_bytes=max_bytes, host_allowed=host_allowed
+            ),
+            request_id=lambda fetched: fetched.request_id,
+            note=lambda fetched: f"resource {fetched.media_type}",
+        )
+        return ResourceOutcome(url=url, resource=resource, reason=failure, uncertain=uncertain)
