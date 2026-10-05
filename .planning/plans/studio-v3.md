@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. Shared step pieces: StepSection, ActionDock, RadioCard, Switch, ChipInput, InlineConfirm, Segmented"
   - "[x] 3. Step 1 · Zadání"
   - "[x] 4. Step 2 · Návrh"
-  - "[ ] 5. Step 3 · Dotazník"
+  - "[x] 5. Step 3 · Dotazník"
   - "[ ] 6. Step 4 · Audience"
   - "[ ] 7. Step 5 · Dimenze"
   - "[ ] 8. Step 6 · Kontrola & spuštění"
@@ -95,7 +95,31 @@ allows several questions per set. None of these has a write path today
 (`plan.ts` has no setter; a set has one `object_question`), so each would be new
 logic, not a redraw. They are shown read-only.
 
-## Chunks 5–10
+## Chunk 5 — Dotazník
+
+- The three path tiles (icon, description, when to use); once a path is chosen, a
+  "Způsob" segmented control (`setQuestionnairePath`) replaces "změnit způsob".
+- Upload as two numbered steps, the file as a drop zone (`importQuestionnaire`).
+- The editor in two columns: a sticky outline (B/Q/S rows, empty or invalid in
+  amber, click to scroll; "Rychle přidat" keeps the classic guided prompts and
+  `addGuidedQuestion`; "Nový blok", "Sledovaná sada" with its prompts and 4–15 rule)
+  and the main column with "Upravit / Náhled respondenta".
+- Blocks as panels with the name and purpose edited in place and removal confirmed
+  on the panel; questions with type pills (`changeQType`), the text, options as rows
+  applied when the list is left (`setQuestionOptions`, Enter adds a row), a drawn
+  scale with its ends and range (`setScaleLabel`, `setScaleEnd`).
+- Sets with the violet top edge, inline name, a 4–15 count, the purpose field, the
+  question with "+ {object}" and a warning when it is missing, objects as chips
+  (`updateObjects`, its under-four note shown on the card), the knowledge check as
+  a switch, price bands for a concept test.
+- The optimisation and Deep Research as AI actions; the dock's way on is enabled
+  when a regular question exists or the editor is open, as the two classic
+  buttons together were.
+
+**Not built:** reordering questions (↑ ↓; no move function exists) and
+"Nejdřív aktualizovat research" (not wired in the current screen).
+
+## Chunks 6–10
 
 Each step follows its v3 prototype file against its existing hooks, one chunk per
 PR, with the step's existing tests kept green and no API diff.
