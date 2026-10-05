@@ -290,6 +290,40 @@ def test_constant_object_has_no_correlation_and_is_named() -> None:
         rts_fuzzy_from_correlations(signed)
 
 
+@pytest.mark.parametrize(
+    ("value", "scale", "respondents"),
+    [
+        (2, (1, 10), 10),  # 1/9 ten times: the float mean is not 1/9; r came out 1.0
+        (2, (1, 11), 6),  # 1/10 six times: r came out exactly 1.0
+        (2, (1, 6), 3),
+        (5, (1, 7), 13),
+        (3, (0, 10), 7),
+    ],
+)
+def test_repeated_fractions_are_constant_not_perfectly_correlated(
+    value: int, scale: tuple[int, int], respondents: int
+) -> None:
+    constant = rts_scale_answers(ratings([(value, value, value)] * respondents), scale)
+    assert constant.values[0][0] not in {0.0, 0.5, 1.0}  # a fraction with no exact binary form
+    signed = rts_object_correlations(constant)
+    assert signed.r == ((None,) * 3,) * 3
+    assert [pair for *pair, _ in signed.undefined] == [["X", "Y"], ["X", "Z"], ["Y", "Z"]]
+    with pytest.raises(FuzzyMatrixError, match="no correlation"):
+        rts_fuzzy_from_correlations(signed)
+
+
+def test_every_constant_column_is_undefined_on_every_scale_and_size() -> None:
+    # Every value of every scale 1-2 .. 1-11, at 2..15 respondents, beside a varying column:
+    # the constant column's pairs are undefined and the varying pair is untouched.
+    for high in range(2, 12):
+        for value in range(1, high + 1):
+            for n in range(2, 16):
+                rows = [(value, 1 + i % high, 1 + (i * 7) % high) for i in range(n)]
+                signed = rts_object_correlations(rts_scale_answers(ratings(rows), (1, high)))
+                assert signed.r[0][1] is None and signed.r[0][2] is None, (high, value, n)
+                assert [p[:2] for p in signed.undefined][:2] == [("X", "Y"), ("X", "Z")]
+
+
 def test_correlations_need_rts_scaled_complete_answers() -> None:
     gap = _rts(((0.8, None, 0.8), (0.5, 0.7, 0.3), (0.5, 0.6, 0.9)))  # type: ignore[arg-type]
     with pytest.raises(MethodologyUndetermined, match="M5"):

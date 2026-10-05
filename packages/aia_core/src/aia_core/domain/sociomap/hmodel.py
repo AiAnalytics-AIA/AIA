@@ -103,15 +103,13 @@ def spearman(x: Sequence[float], y: Sequence[float]) -> float | None:
     """Spearman's rho with average ranks; ``None`` when either side has no variation."""
     if len(x) != len(y):
         raise ValueError("Spearman needs paired values")
-    if len(x) < 2:
-        return None
+    if len(x) < 2 or len(set(x)) == 1 or len(set(y)) == 1:
+        return None  # no variation, decided on the values, not on a rounded sum
     rx, ry = average_ranks(x), average_ranks(y)
-    mx, my = sum(rx) / len(rx), sum(ry) / len(ry)
-    sxx = sum((a - mx) ** 2 for a in rx)
-    syy = sum((b - my) ** 2 for b in ry)
-    if sxx == 0.0 or syy == 0.0:
-        return None
-    sxy = sum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True))
+    mx, my = math.fsum(rx) / len(rx), math.fsum(ry) / len(ry)
+    sxx = math.fsum((a - mx) ** 2 for a in rx)
+    syy = math.fsum((b - my) ** 2 for b in ry)
+    sxy = math.fsum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True))
     return max(-1.0, min(1.0, sxy / math.sqrt(sxx * syy)))
 
 

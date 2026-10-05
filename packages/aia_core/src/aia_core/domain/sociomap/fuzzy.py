@@ -478,8 +478,11 @@ def rts_object_correlations(answers: NormalisedStorm) -> ObjectCorrelations:
 
     Only RTS-scaled answers are accepted: a SOMECS row transform before correlating is
     undocumented and changes r. Every answer is required (M5). An object whose answers are
-    all equal has no correlation with anything: its pairs are ``None`` and named. Rounding
-    that lands ``|r|`` a hair above 1 is pulled back to 1.
+    all equal has no correlation with anything: its pairs are ``None`` and named. Equality
+    is decided on the answers themselves, before any arithmetic: the floating-point mean of
+    a repeated fraction such as 1/9 need not equal it, and centring on that mean leaves
+    residues near 1e-17 whose correlation with another such column is +-1, not undefined.
+    Sums use ``math.fsum``. Rounding that lands ``|r|`` a hair above 1 is pulled back to 1.
     """
     if answers.transform is not StormTransform.RTS_SCALE:
         raise MethodologyUndetermined(
@@ -500,11 +503,14 @@ def rts_object_correlations(answers: NormalisedStorm) -> ObjectCorrelations:
     norms: list[float] = []
     for j in range(n_objects):
         column = [_cast_float(answers.values[i][j]) for i in range(n_subjects)]
-        mean = sum(column) / n_subjects
+        if len(set(column)) == 1:
+            centred.append(None)
+            norms.append(0.0)
+            continue
+        mean = math.fsum(column) / n_subjects
         deviations = [x - mean for x in column]
-        norm = math.sqrt(sum(d * d for d in deviations))
-        centred.append(deviations if norm > 0.0 else None)
-        norms.append(norm)
+        centred.append(deviations)
+        norms.append(math.sqrt(math.fsum(d * d for d in deviations)))
     rows: list[list[float | None]] = [[None] * n_objects for _ in range(n_objects)]
     undefined: list[tuple[str, str, str]] = []
     ids = answers.object_ids
@@ -515,7 +521,7 @@ def rts_object_correlations(answers: NormalisedStorm) -> ObjectCorrelations:
                 constant = [ids[k] for k, c in ((a, ca), (b, cb)) if c is None]
                 undefined.append((ids[a], ids[b], "every answer equal for " + ", ".join(constant)))
                 continue
-            dot = sum(x * y for x, y in zip(ca, cb, strict=True))
+            dot = math.fsum(x * y for x, y in zip(ca, cb, strict=True))
             r = max(-1.0, min(1.0, dot / (norms[a] * norms[b])))
             rows[a][b] = rows[b][a] = r
     return ObjectCorrelations(
