@@ -83,6 +83,8 @@ export type Study = {
   budget_usd: number | null;
   spent_usd: number | null;
   remaining_usd: number | null;
+  /** The cost at or above which starting a run asks for confirmation; `null`: it never asks. */
+  spend_confirm_usd?: number | null;
 };
 
 export type Project = {
@@ -426,6 +428,15 @@ export type Readiness = {
   n: number | null;
   /** The deployment's: `ai_runtime` stops at fieldwork until the AI runtime exists. */
   fieldwork_source: string;
+  /** The most the run can cost: an upper bound, not a forecast. `null` when it cannot be worked out. */
+  cost_ceiling_usd: number | null;
+  /** Why the ceiling is unknown; never shown as a zero. */
+  cost_ceiling_unknown: string | null;
+  fieldwork_requests: number;
+  analysis_calls: number;
+  /** The study's limit, and whether starting this run will ask for confirmation against it. */
+  spend_confirm_usd: number | null;
+  confirmation_required: boolean;
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
@@ -506,15 +517,29 @@ export const research = {
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
-  start: (studyId: string, revisionId: string) =>
-    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, { design_revision_id: revisionId }),
+  /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
+    request<ResearchRun>(
+      "POST",
+      `${studyPath(studyId)}/research/runs`,
+      confirmCostUsd === undefined
+        ? { design_revision_id: revisionId }
+        : { design_revision_id: revisionId, confirm_cost_usd: confirmCostUsd },
+    ),
+  /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
+  setSpendConfirm: (studyId: string, limitUsd: number | null) =>
+    request<Study>("PUT", `${studyPath(studyId)}/spend-confirm`, { limit_usd: limitUsd }),
   runs: (studyId: string) =>
     request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
   run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
-  retry: (studyId: string, runId: string) =>
-    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`),
+  retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
+    request<ResearchRun>(
+      "POST",
+      `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
+      confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
+    ),
   /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */
   liftBudget: (studyId: string, runId: string, nodeKey: string, budgetUsd: number, note: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/steps/${enc(nodeKey)}/budget`, {

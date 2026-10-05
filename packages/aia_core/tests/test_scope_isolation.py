@@ -27,6 +27,7 @@ import dataclasses
 from typing import Any
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
@@ -49,7 +50,7 @@ from aia_core.domain.scope import (
 )
 from aia_core.infrastructure.repositories import ProjectNotFound, ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
-from aia_core.infrastructure.tables import StudyGrantRow
+from aia_core.infrastructure.tables import ApprovalDecisionRow, StudyGrantRow
 
 
 @pytest.fixture
@@ -923,6 +924,68 @@ def test_budget_changes_are_a_researchers_and_are_audited(
     )
     assert other.has(Permission.MANAGE_STUDY_BUDGET)
     assert scope_repo.set_study_budget(other, 800.0).budget_usd == 800.0
+
+
+def test_the_spend_confirm_limit_is_set_audited_and_can_be_cleared(
+    resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """The limit above which a run's start asks for confirmation (5b.2) belongs to a study."""
+    scope = resolver.study_context(
+        world["principal"](world["researcher"]), study_id=world["acme_study"].study_id
+    )
+    assert scope_repo.get_study(scope).spend_confirm_usd is None  # off until someone sets it
+
+    assert scope_repo.set_study_spend_confirm(scope, 40.0).spend_confirm_usd == 40.0
+    assert scope_repo.get_study(scope).spend_confirm_usd == 40.0
+    assert scope_repo.set_study_spend_confirm(scope, None).spend_confirm_usd is None
+    assert scope_repo.get_study(scope).spend_confirm_usd is None
+
+    entries = [
+        e
+        for e in resolver.audit_trail(world["admin"])
+        if e["action"] == "STUDY_SPEND_CONFIRM_CHANGED"
+    ]
+    assert [e["reason"] for e in entries][:2] == ["40.0 -> None", "None -> 40.0"]
+    assert {e["actor_id"] for e in entries} == {world["researcher"]}
+
+    with pytest.raises(ValueError):
+        scope_repo.set_study_spend_confirm(scope, -1.0)
+
+
+def test_a_worker_cannot_set_the_spend_confirm_limit(
+    resolver: ScopeResolver, scope_repo: ScopeRepository, world: dict[str, Any]
+) -> None:
+    """A step running the study's work must not be able to switch off the ask before it spends."""
+    person = resolver.study_context(
+        world["principal"](world["researcher"]), study_id=world["acme_study"].study_id
+    )
+    worker = dataclasses.replace(person, permissions=WORKER_PERMISSIONS)
+    with pytest.raises(ScopeDenied):
+        scope_repo.set_study_spend_confirm(worker, None)
+
+
+def test_the_approval_ledger_admits_a_spend_confirmation(
+    session: Session, world: dict[str, Any]
+) -> None:
+    """The ledger names what it can hold; a spend confirmation is one of them (5b.2)."""
+    study = world["acme_study"]
+
+    def row(subject_type: str) -> ApprovalDecisionRow:
+        return ApprovalDecisionRow(
+            organization_id=study.organization_id,
+            client_id=study.client_id,
+            study_id=study.study_id,
+            subject_type=subject_type,
+            subject_id="RUN-a",
+            approver_user_id=world["researcher"],
+            decision="confirm",
+        )
+
+    session.add(row("spend"))
+    session.flush()  # the study is real, so only the subject type could refuse this
+    session.add(row("unheard-of"))
+    with pytest.raises(IntegrityError, match="approval_subject_type_known"):
+        session.flush()
 
 
 def test_study_listing_is_restricted_to_accessible_ids(

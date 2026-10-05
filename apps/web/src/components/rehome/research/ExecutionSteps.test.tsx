@@ -283,6 +283,110 @@ describe("Run", () => {
   });
 });
 
+describe("Run: what a run can cost (5b.2)", () => {
+  const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 500, spent_usd: 100, remaining_usd: 400, spend_confirm_usd: null };
+  const PRICED = { ...READY, cost_ceiling_usd: 225, cost_ceiling_unknown: null, fieldwork_requests: 450, analysis_calls: 0, spend_confirm_usd: null, confirmation_required: false };
+  const RUNS = "/api/v1/studies/STU-1/research/runs";
+
+  it("shows the ceiling as an upper bound beside what is left of the budget", async () => {
+    api({ "GET /api/v1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const cost = await screen.findByRole("region", { name: t("research.exec.cost.title") });
+    expect(await within(cost).findByText(/225\.00 USD/)).toBeTruthy();
+    expect(within(cost).getByText(/450 dotazů/)).toBeTruthy();
+    expect(await within(cost).findByText(/400\.00 USD/)).toBeTruthy();
+    expect(within(cost).getByText(t("research.exec.cost.bound"))).toBeTruthy();
+  });
+
+  it("says a ceiling it cannot work out is unknown, never zero", async () => {
+    const unknown = { ...PRICED, cost_ceiling_usd: null, cost_ceiling_unknown: "fieldwork_reservation_missing" };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => unknown, "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const cost = await screen.findByRole("region", { name: t("research.exec.cost.title") });
+    expect(await within(cost).findByText(t("research.exec.cost.unknown.fieldwork_reservation_missing"))).toBeTruthy();
+    expect(within(cost).queryByText(/Běh může stát nejvýše/)).toBeNull(); // no figure at all, so no zero
+  });
+
+  it("asks before starting a run whose ceiling reaches the study's limit, and sends the yes", async () => {
+    const asks = { ...PRICED, spend_confirm_usd: 100, confirmation_required: true };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => asks, "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spend_confirm_usd: 100 }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/225\.00 USD/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
+
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
+    fireEvent.click(await screen.findByRole("button", { name: "OK" }));
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", confirm_cost_usd: 225 });
+  });
+
+  it("does not offer to start when a limit is set and the ceiling is unknown, and says why", async () => {
+    const blocked = { ...PRICED, cost_ceiling_usd: null, cost_ceiling_unknown: "fieldwork_reservation_missing", spend_confirm_usd: 100 };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => blocked, "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const startButton = (await screen.findByRole("button", { name: t("research.exec.start") })) as HTMLButtonElement;
+    expect(startButton.disabled).toBe(true);
+    expect(screen.getByText(t("research.exec.cost.unknownBlocks"))).toBeTruthy();
+  });
+
+  it("sets the study's limit, clears it, and reads the checks again", async () => {
+    let limit: number | null = null;
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...PRICED, spend_confirm_usd: limit, confirmation_required: limit !== null && 225 >= limit }),
+      "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spend_confirm_usd: limit }),
+      "PUT /api/v1/studies/STU-1/spend-confirm": (b) => {
+        limit = (b as { limit_usd: number | null }).limit_usd;
+        return { ...STUDY, spend_confirm_usd: limit };
+      },
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const form = await screen.findByRole("form", { name: t("research.exec.cost.limit") });
+    fireEvent.change(within(form).getByLabelText(t("research.exec.cost.limitAmount")), { target: { value: "150" } });
+    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.cost.save") }));
+    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(1));
+    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[0].body).toEqual({ limit_usd: 150 });
+    // The checks are read again, so the page now says Start will ask.
+    expect(await screen.findByText(t("research.exec.cost.willAsk"))).toBeTruthy();
+    fireEvent.click(within(form).getByRole("button", { name: t("research.exec.cost.clear") }));
+    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(2));
+    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[1].body).toEqual({ limit_usd: null });
+  });
+
+  it("offers no limit control to a reader", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    await screen.findByRole("region", { name: t("research.exec.cost.title") });
+    expect(screen.queryByRole("form", { name: t("research.exec.cost.limit") })).toBeNull();
+  });
+
+  it("asks again when a retry reaches the limit, and retries with the yes", async () => {
+    const cancelled = { ...PARKED, phase: "CANCELLED", status: "CANCELLED", is_terminal: true, retryable: true };
+    let asked = 0;
+    api({
+      ...listed(cancelled),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/retry": (b) => {
+        if (!(b as { confirm_cost_usd?: number } | null)?.confirm_cost_usd) {
+          asked += 1;
+          return new Response(JSON.stringify({ code: "cost_confirmation_required", message: "confirm", details: { ceiling_usd: 225, limit_usd: 100 } }), { status: 409 });
+        }
+        return run({ run_id: "RUN-2", retry_of: "RUN-1", phase: "QUEUED" });
+      },
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/225\.00 USD/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
+    expect(asked).toBe(1);
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry").map((c) => c.body)).toEqual([null, { confirm_cost_usd: 225 }]);
+  });
+});
+
 describe("Progress", () => {
   it("explains a run waiting for the AI runtime, step by step, without offering a retry", async () => {
     api(listed(PARKED));

@@ -580,6 +580,9 @@ class Study(BaseModel):
     # client. Enforcement happens before any paid provider call.
     budget_usd: float = 0.0
     spent_usd: float = 0.0
+    #: A run whose cost ceiling reaches this asks the person to confirm before it starts.
+    #: ``None``: it never asks.
+    spend_confirm_usd: float | None = None
 
     # Most specific level of the self-approval hierarchy. ``None`` inherits from
     # the client, then the organization, then the default of False.
@@ -589,9 +592,11 @@ class Study(BaseModel):
     modified_at: datetime | None = None
     delivered_at: datetime | None = None
 
-    @field_validator("budget_usd", "spent_usd")
+    @field_validator("budget_usd", "spent_usd", "spend_confirm_usd")
     @classmethod
-    def _non_negative(cls, v: float) -> float:
+    def _non_negative(cls, v: float | None) -> float | None:
+        if v is None:
+            return None
         if v < 0:
             raise ValueError("monetary amounts must not be negative")
         return float(v)

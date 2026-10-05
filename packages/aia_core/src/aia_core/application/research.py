@@ -33,6 +33,7 @@ from ..domain.research_agents import (
     snapshot_hash,
 )
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
+from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
@@ -47,16 +48,20 @@ from ..infrastructure.workflow_repository import (
     WorkflowNotFound,
     WorkflowRepository,
 )
+from .analysis import MAX_REPAIRS
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
     "BudgetNotRaised",
+    "CostCeilingUnknown",
+    "CostConfirmationRequired",
     "DesignNotReady",
     "ResearchAgentJobs",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
     "ResearchRuns",
     "ResearchStepNotFound",
+    "RunReservations",
     "research_artifacts",
 ]
 
@@ -106,6 +111,38 @@ class BudgetNotRaised(ValueError):
         self.current = current
 
 
+class CostConfirmationRequired(Exception):
+    """The run's cost ceiling reaches the study's limit and the person has not confirmed it."""
+
+    def __init__(self, *, ceiling_usd: float, limit_usd: float) -> None:
+        super().__init__(
+            f"a run that can cost up to {ceiling_usd:.2f} needs confirming "
+            f"(the study's limit is {limit_usd:.2f})"
+        )
+        self.ceiling_usd = ceiling_usd
+        self.limit_usd = limit_usd
+
+
+class CostCeilingUnknown(Exception):
+    """The study has a limit and the run's ceiling cannot be worked out: it is not let by."""
+
+    def __init__(self, reason: CeilingUnknown, *, limit_usd: float) -> None:
+        super().__init__(f"the run's cost ceiling is unknown ({reason.value})")
+        self.reason = reason
+        self.limit_usd = limit_usd
+
+
+@dataclass(frozen=True, slots=True)
+class RunReservations:
+    """What the worker reserves per model request, as the API reads it from the same settings.
+
+    ``None`` is not zero: the ceiling that needs a missing one is unknown.
+    """
+
+    fieldwork_usd: float | None
+    analysis_usd: float | None
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchRuns:
     """The research runs of the Study in scope. The caller owns the transaction."""
@@ -121,6 +158,29 @@ class ResearchRuns:
 
     # -- start ------------------------------------------------------------------
 
+    def spend_limit(self) -> float | None:
+        """The study's limit above which starting a run asks for confirmation; ``None``: never."""
+        return ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+
+    def cost_ceiling(
+        self,
+        spec: ResearchSpecification,
+        *,
+        fieldwork_source: FieldworkSource,
+        analysis_enabled: bool,
+        reservations: RunReservations | None,
+    ) -> RunCostCeiling:
+        """The most a run of ``spec`` can cost, from what the worker reserves per request."""
+        reserved = reservations or RunReservations(None, None)
+        return run_cost_ceiling(
+            spec,
+            fieldwork_source=fieldwork_source,
+            fieldwork_reservation_usd=reserved.fieldwork_usd,
+            analysis_enabled=analysis_enabled,
+            analysis_reservation_usd=reserved.analysis_usd,
+            analysis_calls_per_module=1 + MAX_REPAIRS,
+        )
+
     def start(
         self,
         *,
@@ -129,6 +189,8 @@ class ResearchRuns:
         retry_of: str | None = None,
         analysis_enabled: bool = False,
         sociomapping_enabled: bool = False,
+        reservations: RunReservations | None = None,
+        confirm_cost_usd: float | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
 
@@ -137,6 +199,14 @@ class ResearchRuns:
         ``RUN_WORKFLOW`` on an open Study. Raises
         :class:`~aia_core.infrastructure.study_design_repository.DesignRevisionNotFound`
         for a revision that is not this Study's.
+
+        When the study has a spend limit (``Study.spend_confirm_usd``) and this would create
+        a run, its cost ceiling is worked out here, never taken from the request. A ceiling
+        at or above the limit needs ``confirm_cost_usd`` to cover it
+        (:class:`CostConfirmationRequired` otherwise) and the yes is recorded in the approval
+        ledger with the run. A ceiling that cannot be worked out is not let by
+        (:class:`CostCeilingUnknown`). A start that finds its run already there spends
+        nothing and asks nothing.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
@@ -154,7 +224,24 @@ class ResearchRuns:
             key += ":sociomapping"
         if retry_of:
             key += f":retry:{retry_of}"
-        return start_workflow(
+        confirmation: tuple[float, float] | None = None
+        limit = self.spend_limit()
+        if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
+            assert _spec is not None  # a ready design compiles
+            ceiling = self.cost_ceiling(
+                _spec,
+                fieldwork_source=fieldwork_source,
+                analysis_enabled=analysis_enabled,
+                reservations=reservations,
+            )
+            if ceiling.total_usd is None:
+                assert ceiling.unknown is not None
+                raise CostCeilingUnknown(ceiling.unknown, limit_usd=limit)
+            if ceiling.total_usd >= limit:
+                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
+                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+                confirmation = (ceiling.total_usd, limit)
+        started = start_workflow(
             self.session,
             self.scope,
             project_id=project_id,
@@ -178,9 +265,29 @@ class ResearchRuns:
             analysis_enabled=analysis_enabled,
             sociomapping_enabled=sociomapping_enabled,
         )
+        if confirmation is not None and started.created:
+            assert confirm_cost_usd is not None
+            self._workflows().record_spend_confirmation(
+                started.run_id,
+                ceiling_usd=confirmation[0],
+                limit_usd=confirmation[1],
+                confirmed_usd=confirm_cost_usd,
+            )
+        return started
 
-    def retry(self, run_id: str, *, fieldwork_source: FieldworkSource) -> StartedRun:
-        """Start a failed or cancelled run again, as a new run linked to it."""
+    def retry(
+        self,
+        run_id: str,
+        *,
+        fieldwork_source: FieldworkSource,
+        reservations: RunReservations | None = None,
+        confirm_cost_usd: float | None = None,
+    ) -> StartedRun:
+        """Start a failed or cancelled run again, as a new run linked to it.
+
+        A retry spends again, so it asks again: the limit and the confirmation work as they do
+        for :meth:`start`.
+        """
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise ResearchRunNotRetryable(run["status"])
@@ -190,6 +297,8 @@ class ResearchRuns:
             retry_of=run_id,
             analysis_enabled=bool(run["metadata"].get("analysis_enabled", False)),
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
+            reservations=reservations,
+            confirm_cost_usd=confirm_cost_usd,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

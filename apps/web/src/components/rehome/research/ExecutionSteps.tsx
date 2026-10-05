@@ -21,6 +21,7 @@ import {
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
+  type Study,
   research,
 } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
@@ -48,10 +49,19 @@ import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
 
 const POLL_MS = 2000;
+const usd = (n: number) => `${n.toFixed(2)} USD`;
+const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+/** The server refused a start or retry because the study's limit asks first: the ceiling it worked out. */
+function confirmationAsked(e: unknown): { ceiling: number; limit: number } | null {
+  if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required") return null;
+  const { ceiling_usd, limit_usd } = e.details as { ceiling_usd?: unknown; limit_usd?: unknown };
+  return typeof ceiling_usd === "number" && typeof limit_usd === "number" ? { ceiling: ceiling_usd, limit: limit_usd } : null;
+}
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
-function Card({ title, children, tone }: { title?: string; children: ReactNode; tone?: "notice" | "fault" }) {
+function Card({ title, children, tone, region }: { title?: string; children: ReactNode; tone?: "notice" | "fault"; region?: boolean }) {
   const frame =
     tone === "fault"
       ? "border-status-fault/40 bg-status-fault-wash"
@@ -59,7 +69,7 @@ function Card({ title, children, tone }: { title?: string; children: ReactNode; 
         ? "border-status-you-ink/40 bg-status-you-wash"
         : "border-border bg-surface-raised";
   return (
-    <section className={`rounded-md border p-5 ${frame}`}>
+    <section aria-label={region ? title : undefined} className={`rounded-md border p-5 ${frame}`}>
       {title ? <h2 className="mb-2 text-base font-semibold">{title}</h2> : null}
       {children}
     </section>
@@ -80,8 +90,97 @@ function useFrame() {
 
 // ---------------------------------------------------------------- Run --------
 
+/**
+ * What starting this run can cost at most, beside what the study has left, and the study's limit
+ * above which Start asks first (plan 5b.2). The ceiling is the server's; the page only shows it,
+ * and an unknown one is said to be unknown, never drawn as zero.
+ */
+function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; canEdit: boolean; onLimitSaved: () => void }) {
+  const frame = useFrame();
+  const [study, setStudy] = useState<Study | null | undefined>(undefined);
+  const [amount, setAmount] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.study(frame.studyId).then(
+      (s) => live && setStudy(s),
+      () => live && setStudy(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, readiness]);
+  // An API that does not send a figure has not given one: read it as absent, never as zero.
+  const ceiling = num(readiness.cost_ceiling_usd);
+  const limit = num(readiness.spend_confirm_usd);
+  useEffect(() => setAmount(limit === null ? "" : String(limit)), [limit]);
+
+  const save = async (limit: number | null) => {
+    setSaving(true);
+    setError(null);
+    try {
+      await research.setSpendConfirm(frame.studyId, limit);
+      onLimitSaved();
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const typed = amount.trim() === "" ? Number.NaN : Number(amount);
+  const remaining = num(study?.remaining_usd);
+  const budget = num(study?.budget_usd);
+  return (
+    <Card title={t("research.exec.cost.title")} region>
+      {ceiling !== null ? (
+        <>
+          <p className="text-sm font-medium">{tv("research.exec.cost.ceiling", { ceiling: ceiling.toFixed(2) })}</p>
+          <p className="text-xs text-ink-muted">
+            {tv("research.exec.cost.basis", { requests: readiness.fieldwork_requests, calls: readiness.analysis_calls })}
+          </p>
+          <p className="text-xs text-ink-muted">{t("research.exec.cost.bound")}</p>
+        </>
+      ) : (
+        <p className="text-sm">{t(`research.exec.cost.unknown.${readiness.cost_ceiling_unknown ?? "sample_size_missing"}`)}</p>
+      )}
+      {study === undefined ? null : remaining !== null && budget !== null ? (
+        <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: usd(remaining), budget: usd(budget) })}</p>
+      ) : (
+        <p className="mt-2 text-sm text-ink-muted">{t("research.exec.cost.budgetUnknown")}</p>
+      )}
+      <p className="mt-2 text-sm">
+        {limit === null ? t("research.exec.cost.limitNone") : tv("research.exec.cost.limitSet", { limit: limit.toFixed(2) })}
+      </p>
+      {readiness.confirmation_required ? <p className="text-sm font-medium">{t("research.exec.cost.willAsk")}</p> : null}
+      {limit !== null && ceiling === null ? (
+        <p role="alert" className="text-sm text-status-fault">{t("research.exec.cost.unknownBlocks")}</p>
+      ) : null}
+      {canEdit ? (
+        <form
+          aria-label={t("research.exec.cost.limit")}
+          className="mt-3 flex flex-wrap items-end gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (Number.isFinite(typed) && typed >= 0) void save(typed);
+          }}
+        >
+          <Field label={t("research.exec.cost.limitAmount")} className="w-56">
+            <TextInput type="number" inputMode="decimal" min={0} step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </Field>
+          <Button type="submit" disabled={saving || !Number.isFinite(typed) || typed < 0}>{t("research.exec.cost.save")}</Button>
+          {limit !== null ? (
+            <Button variant="quiet" disabled={saving} onClick={() => void save(null)}>{t("research.exec.cost.clear")}</Button>
+          ) : null}
+        </form>
+      ) : null}
+      {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
+    </Card>
+  );
+}
+
 export function RunStep() {
-  const { store, stepHref } = useResearch();
+  const { store, stepHref, confirm } = useResearch();
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -129,18 +228,48 @@ export function RunStep() {
     };
   }, [frame.studyId, frame.canEdit, store]);
 
+  const rereadReadiness = async () => {
+    if (prepared.kind !== "ready") return;
+    try {
+      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id);
+      setPrepared({ ...prepared, readiness });
+    } catch (e) {
+      setStartError(message(e));
+    }
+  };
+
+  const ask = (ceiling: number, limit: number) =>
+    confirm(tv("research.exec.cost.confirm", { ceiling: usd(ceiling), limit: usd(limit) }));
+
   const start = async () => {
     if (prepared.kind !== "ready") return;
+    const { readiness } = prepared;
+    const ceiling = num(readiness.cost_ceiling_usd);
+    const limit = num(readiness.spend_confirm_usd);
+    let yes: number | undefined;
+    if (readiness.confirmation_required && ceiling !== null && limit !== null) {
+      if (!(await ask(ceiling, limit))) return;
+      yes = ceiling;
+    }
     setStarting(true);
     setStartError(null);
     try {
-      await research.start(frame.studyId, prepared.readiness.design_revision_id);
+      try {
+        await research.start(frame.studyId, readiness.design_revision_id, yes);
+      } catch (e) {
+        // The limit or the ceiling changed since the page read them: ask with the server's figure.
+        const asked = confirmationAsked(e);
+        if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling);
+      }
       router.push(stepHref("progress"));
     } catch (e) {
       setStartError(message(e));
       setStarting(false);
     }
   };
+  const blocked =
+    prepared.kind === "ready" && num(prepared.readiness.spend_confirm_usd) !== null && num(prepared.readiness.cost_ceiling_usd) === null;
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -175,13 +304,14 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
             <SyntheticBanner />
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" onClick={start} disabled={!prepared.readiness.ready || !frame.canEdit || starting}>
+            <Button variant="primary" onClick={start} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked}>
               {starting ? t("research.exec.starting") : t("research.exec.start")}
             </Button>
             {!frame.canEdit ? <span className="text-sm text-ink-muted">{t("research.exec.readOnly")}</span> : null}
@@ -405,7 +535,24 @@ export function ProgressStep() {
           </Button>
         ) : null}
         {frame.canEdit && run.retryable ? (
-          <Button variant="primary" disabled={busy} onClick={() => act(() => research.retry(frame.studyId, run.run_id))}>
+          <Button
+            variant="primary"
+            disabled={busy}
+            onClick={() =>
+              act(async () => {
+                try {
+                  return await research.retry(frame.studyId, run.run_id);
+                } catch (e) {
+                  // A retry is a new run, so the study's limit asks again.
+                  const asked = confirmationAsked(e);
+                  if (!asked) throw e;
+                  const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: usd(asked.ceiling), limit: usd(asked.limit) }));
+                  if (!yes) return run;
+                  return research.retry(frame.studyId, run.run_id, asked.ceiling);
+                }
+              })
+            }
+          >
             {t("research.exec.retry")}
           </Button>
         ) : null}

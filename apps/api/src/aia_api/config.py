@@ -101,6 +101,13 @@ class Settings(BaseSettings):
     # worker refuses it.
     ai_fictional_client_ids: str = ""
 
+    # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
+    # ``AIA_AI_ANALYSIS_RESERVATION_USD``), read here so the API can say what a run can cost at
+    # most before it starts (plan 5b.2). Unset is not zero: the ceiling is then unknown, and a
+    # study with a spend limit does not start a run whose ceiling is unknown.
+    ai_fieldwork_reservation_usd: float | None = None
+    ai_analysis_reservation_usd: float | None = None
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
@@ -114,6 +121,14 @@ class Settings(BaseSettings):
         """Refuse a malformed revision rather than record it (ARCHITECTURE.md A5)."""
         if isinstance(value, str):
             return parse_build_sha(value) or ""
+        return value
+
+    @field_validator("ai_fieldwork_reservation_usd", "ai_analysis_reservation_usd", mode="before")
+    @classmethod
+    def _blank_reservation_is_unset(cls, value: object) -> object:
+        """A Compose variable passed through empty means "not set", not a number that fails."""
+        if isinstance(value, str) and not value.strip():
+            return None
         return value
 
     @field_validator("cors_origins", mode="before")

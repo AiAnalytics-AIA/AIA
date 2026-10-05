@@ -402,6 +402,11 @@ def plan_respondent(spec: ResearchSpecification, persona: Persona) -> Respondent
                 continue
         asked.append(item)
 
+    return RespondentPlan(persona=persona, facts=facts, blocks=split_blocks(asked))
+
+
+def split_blocks(asked: Sequence[Item]) -> tuple[Block, ...]:
+    """The calls that ask these items: closed ones together up to a limit, each open one alone."""
     blocks: list[Block] = []
     closed: list[Item] = []
 
@@ -419,7 +424,16 @@ def plan_respondent(spec: ResearchSpecification, persona: Persona) -> Respondent
         if len(closed) == MAX_BLOCK_ITEMS:
             flush()
     flush()
-    return RespondentPlan(persona=persona, facts=facts, blocks=tuple(blocks))
+    return tuple(blocks)
+
+
+def max_blocks_per_respondent(spec: ResearchSpecification) -> int:
+    """The most calls one respondent can need: every item asked, none answered by code.
+
+    Which items code answers from a persona's facts differs by persona, and answering one only
+    removes it, so asking them all is an upper bound that holds for every persona.
+    """
+    return len(split_blocks(plan_items(spec)))
 
 
 # --------------------------------------------------------------------------- #

@@ -21,12 +21,15 @@ from aia_core.application.report import (
 )
 from aia_core.application.research import (
     BudgetNotRaised,
+    CostCeilingUnknown,
+    CostConfirmationRequired,
     DesignNotReady,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
     ResearchRuns,
     ResearchStepNotFound,
+    RunReservations,
     research_artifacts,
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
@@ -133,6 +136,17 @@ class RunStart(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
+    #: What the person confirms a run can cost at most. Only read when the study has a limit
+    #: the run's ceiling reaches; the server works the ceiling out and holds this to it.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+
+
+class RunRetry(BaseModel):
+    """A retry's confirmation, when the study's limit asks for one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 class ResearchStepResponse(BaseModel):
@@ -212,6 +226,47 @@ class ReadinessResponse(BaseModel):
     n: int | None
     #: The deployment's fieldwork source: ``ai_runtime`` parks until it exists.
     fieldwork_source: str
+    #: The most the run can cost: model requests times what the worker reserves for one. An
+    #: upper bound, not a forecast. ``None`` with a reason when it cannot be worked out: unknown
+    #: is never shown as zero.
+    cost_ceiling_usd: float | None = None
+    cost_ceiling_unknown: str | None = None
+    fieldwork_requests: int = 0
+    analysis_calls: int = 0
+    #: The study's limit, and whether this run's start will ask for confirmation against it.
+    spend_confirm_usd: float | None = None
+    confirmation_required: bool = False
+
+
+def _reservations(request: Request) -> RunReservations:
+    """What the worker reserves per request, as the deployment's settings carry it."""
+    settings = request.app.state.settings
+    return RunReservations(
+        fieldwork_usd=settings.ai_fieldwork_reservation_usd,
+        analysis_usd=settings.ai_analysis_reservation_usd,
+    )
+
+
+def _cost_refused(exc: CostConfirmationRequired | CostCeilingUnknown) -> HTTPException:
+    """409: the study's limit asks first (with the ceiling), or the ceiling cannot be worked out."""
+    if isinstance(exc, CostConfirmationRequired):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "cost_confirmation_required",
+                "message": "This run can cost up to the ceiling shown; confirm it to start.",
+                "details": {"ceiling_usd": exc.ceiling_usd, "limit_usd": exc.limit_usd},
+            },
+        )
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "cost_ceiling_unknown",
+            "message": "The study has a spend limit and this run's cost ceiling cannot be worked "
+            "out, so it is not started.",
+            "details": {"reason": exc.reason.value, "limit_usd": exc.limit_usd},
+        },
+    )
 
 
 def _not_ready(readiness: Any) -> HTTPException:
@@ -428,10 +483,23 @@ def readiness(
 
     The 18.6.6 technical preflight is not these checks and is not claimed.
     """
+    runs = ResearchRuns(session, scope)
     try:
-        spec, result = ResearchRuns(session, scope).readiness(design_revision_id)
+        spec, result = runs.readiness(design_revision_id)
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    settings = request.app.state.settings
+    ceiling = (
+        runs.cost_ceiling(
+            spec,
+            fieldwork_source=_fieldwork_source(request),
+            analysis_enabled=settings.ai_analysis_enabled,
+            reservations=_reservations(request),
+        )
+        if spec
+        else None
+    )
+    limit = runs.spend_limit()
     return ReadinessResponse(
         design_revision_id=design_revision_id,
         rules=result.rules,
@@ -445,6 +513,18 @@ def readiness(
         objects=sum(len(b.objects) for b in spec.batteries) if spec else 0,
         n=spec.n if spec else None,
         fieldwork_source=str(_fieldwork_source(request).value),
+        cost_ceiling_usd=ceiling.total_usd if ceiling else None,
+        cost_ceiling_unknown=ceiling.unknown.value if ceiling and ceiling.unknown else None,
+        fieldwork_requests=ceiling.fieldwork_requests if ceiling else 0,
+        analysis_calls=ceiling.analysis_calls if ceiling else 0,
+        spend_confirm_usd=limit,
+        # Unknown does not ask: it refuses at the start, so the page shows it differently.
+        confirmation_required=bool(
+            limit is not None
+            and ceiling
+            and ceiling.total_usd is not None
+            and ceiling.total_usd >= limit
+        ),
     )
 
 
@@ -474,6 +554,8 @@ def start_run(
             fieldwork_source=_fieldwork_source(request),
             analysis_enabled=request.app.state.settings.ai_analysis_enabled,
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
+            reservations=_reservations(request),
+            confirm_cost_usd=body.confirm_cost_usd,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -481,6 +563,8 @@ def start_run(
         raise _not_found("design_revision") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     return _started(runs, started, response)
 
 
@@ -621,7 +705,10 @@ def lift_budget_wait(
     summary="Start a failed or cancelled run again",
     responses={
         200: {"description": "This run was already retried: that retry"},
-        409: {"model": ErrorResponse, "description": "The run is not failed or cancelled"},
+        409: {
+            "model": ErrorResponse,
+            "description": "The run is not failed or cancelled, or the study's limit asks first",
+        },
     },
 )
 def retry_run(
@@ -630,17 +717,25 @@ def retry_run(
     scope: StudyScopeDep,
     session: SessionDep,
     response: Response,
+    body: RunRetry | None = None,
 ) -> ResearchRunResponse:
     """A new run over the same Design Revision, linked to the one it retries."""
     runs = ResearchRuns(session, scope)
     try:
-        started = runs.retry(run_id, fieldwork_source=_fieldwork_source(request))
+        started = runs.retry(
+            run_id,
+            fieldwork_source=_fieldwork_source(request),
+            reservations=_reservations(request),
+            confirm_cost_usd=body.confirm_cost_usd if body else None,
+        )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
     except DesignNotReady as exc:
         raise _not_ready(exc.readiness) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

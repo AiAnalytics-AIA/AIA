@@ -514,6 +514,8 @@ class StudyRow(Base):
     # as an independent figure.
     budget_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     spent_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    # The cost ceiling at or above which starting a run asks for confirmation. NULL: never asks.
+    spend_confirm_usd: Mapped[float | None] = mapped_column(Float)
 
     # Most specific level of the self-approval hierarchy; NULL inherits the
     # client's setting, then the organization's, then the default of false.
@@ -534,6 +536,10 @@ class StudyRow(Base):
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
         UniqueConstraint("client_id", "slug", name="study_slug_unique"),
         CheckConstraint("budget_usd >= 0", name="study_budget_non_negative"),
+        CheckConstraint(
+            "spend_confirm_usd is null or spend_confirm_usd >= 0",
+            name="study_spend_confirm_non_negative",
+        ),
         CheckConstraint("spent_usd >= 0", name="study_spent_non_negative"),
         CheckConstraint(
             "status in ('DRAFT','ACTIVE','IN_REVIEW','DELIVERED','ARCHIVED','CANCELLED')",
@@ -1193,7 +1199,8 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         CheckConstraint(
-            "subject_type in ('gate','artifact','budget')", name="approval_subject_type_known"
+            "subject_type in ('gate','artifact','budget','spend')",
+            name="approval_subject_type_known",
         ),
         CheckConstraint(
             "self_approval_source in ('default','organization','client','study')",
