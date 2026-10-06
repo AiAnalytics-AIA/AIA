@@ -458,6 +458,9 @@ class QuarantineReason(StrEnum):
     MEASURE_NOT_IN_SOURCE = "measure_not_in_source"
     #: An agent-directed finding states a number with no measure for it (plan § 8.1).
     MEASURE_MISSING = "measure_missing"
+    #: A newer figure of the same measure from the same publisher was captured and
+    #: verified (plan § 8.4; agent-directed mode, ``verification.py``).
+    SUPERSEDED = "superseded"
 
 
 class QuarantinedEvidence(_Closed):
