@@ -60,6 +60,7 @@ already dispatched is not sent again, and the ladder stops there
 
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from collections.abc import Callable, Iterator, Mapping, Sequence
@@ -70,6 +71,7 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
+from ..domain.ai_contracts import canonical_json
 from ..domain.deep_research.acquisition import (
     AGGREGATOR_HOSTS,
     LADDER_REQUEST_CAP,
@@ -203,6 +205,23 @@ class LadderConfig:
     crawls: tuple[str, ...] = ()
     hits_per_search: int = 8
     opens_per_search: int = 2
+
+    def identity(self) -> str:
+        """What a climb's result depends on beyond the gate's routes: the register's
+        version, the connectors and hosts the rungs ask, the crawls, the search sizes.
+        A short digest, part of an agent-directed track's fingerprint."""
+        material = canonical_json(
+            {
+                "register": self.register.version if self.register is not None else None,
+                "interfaces": sorted(self.interfaces.items()),
+                "aggregator_connectors": sorted(self.aggregator_connectors),
+                "aggregator_hosts": list(self.aggregator_hosts),
+                "crawls": list(self.crawls),
+                "hits_per_search": self.hits_per_search,
+                "opens_per_search": self.opens_per_search,
+            }
+        )
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
 @dataclass(frozen=True, slots=True)

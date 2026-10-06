@@ -992,3 +992,11 @@ def test_a_live_page_redirecting_to_an_archive_is_refused_at_the_hop(scoped: Any
     outcome = w.gate.fetch(moved, track_id="T1")
     assert outcome.page is None and outcome.reason == "redirect_out_of_scope"
     assert w.fetched() == [moved]
+
+
+def test_the_ladder_configuration_has_an_identity_that_moves_with_what_it_uses() -> None:
+    base = LadderConfig()
+    assert base.identity() == LadderConfig().identity()
+    assert LadderConfig(register=REGISTER).identity() != base.identity()
+    assert LadderConfig(crawls=(CRAWL,)).identity() != base.identity()
+    assert LadderConfig(opens_per_search=3).identity() != base.identity()

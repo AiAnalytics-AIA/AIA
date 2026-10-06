@@ -10,11 +10,14 @@ captured, and finishes. Nothing leaves the process.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from typing import Any
 
 import pytest
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.domain.deep_research.contracts import Channel, StopReason, SubjectKind, TrackStatus
+from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     TURNS,
@@ -193,3 +196,15 @@ def test_a_ladder_reaches_the_linked_table_and_names_what_it_could_not_reach(
     assert evidence["source_url"] == TABLE and evidence["track_id"] == track
     assert transcript["turns"][3]["grounded"] == [evidence["evidence_id"]]
     assert any("nedostupné: not_found" in g for g in result["gaps"])
+
+
+def test_a_set_ladder_configuration_is_part_of_a_track_s_inputs(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    runtime = directed(research, ScriptedInvestigator(ANSWERS))
+    # None set (every composition today): exactly the investigator's version.
+    assert runtime.inputs().investigator == INVESTIGATOR_VERSION
+    configured = dataclasses.replace(runtime, ladder=LadderConfig(crawls=("CC-MAIN-2024-10",)))
+    identity = LadderConfig(crawls=("CC-MAIN-2024-10",)).identity()
+    assert configured.inputs().investigator == f"{INVESTIGATOR_VERSION}/ladder-{identity}"
+    assert configured.versions()["investigator"] == configured.inputs().investigator
