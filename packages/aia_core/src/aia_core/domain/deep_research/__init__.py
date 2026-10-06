@@ -30,7 +30,9 @@ is pure:
 * :mod:`.verification` -- the independent verifier's verdicts decided by code,
   supersession, and the review an agent-directed verify step records.
 * :mod:`.truth_set` -- the accuracy truth set: public facts with known values, pinned by
-  hash and verified at the source before a run is scored against them.
+  hash and verified at the source before a run is scored against them;
+* :mod:`.accuracy` -- a run scored against a truth set: exact values, primary sources,
+  cell grounding, false acceptances and gaps, per preset, against the proposed targets.
 
 Pure: stdlib and Pydantic only.
 """
