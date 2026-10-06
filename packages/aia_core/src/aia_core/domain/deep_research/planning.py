@@ -52,6 +52,7 @@ from .contracts import (
 from .grounding import GROUNDING_VERSION
 
 __all__ = [
+    "AGENT_DIRECTED_FIELDS",
     "PRESETS",
     "PRESET_STATUS",
     "DepthPreset",
@@ -65,6 +66,7 @@ __all__ = [
     "check_plan_coverage",
     "coverage_grid",
     "extract_subjects",
+    "investigator_stop_reason",
     "preset",
     "screen_questions",
     "stop_reason",
@@ -92,6 +94,18 @@ class DepthPreset(BaseModel):
     max_fetches: int = Field(ge=0, le=5000)
     #: Evidence items one verification request judges.
     verify_batch: int = Field(ge=1, le=40)
+    #: The agent-directed mode's allowance per web track (chunk 9; proposed with the
+    #: presets, DR-5): investigator turns, searches sent, pages opened. The planned
+    #: mode never reads them, and no planned-mode fingerprint covers them
+    #: (:data:`AGENT_DIRECTED_FIELDS`). The defaults are QUICK's, for a plan stored
+    #: before they existed; every preset states its own.
+    max_turns: int = Field(default=6, ge=1, le=60)
+    max_searches: int = Field(default=4, ge=0, le=100)
+    max_opens: int = Field(default=8, ge=0, le=200)
+
+
+#: The preset fields only the agent-directed mode reads.
+AGENT_DIRECTED_FIELDS: Final = frozenset({"max_turns", "max_searches", "max_opens"})
 
 
 PRESETS: Final[dict[str, DepthPreset]] = {
@@ -109,6 +123,9 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=48,
             max_fetches=96,
             verify_batch=12,
+            max_turns=6,
+            max_searches=4,
+            max_opens=8,
         ),
         DepthPreset(
             name="STANDARD",
@@ -122,6 +139,9 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=240,
             max_fetches=720,
             verify_batch=12,
+            max_turns=15,
+            max_searches=8,
+            max_opens=20,
         ),
         DepthPreset(
             name="DEEP",
@@ -135,6 +155,9 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=1200,
             max_fetches=4800,
             verify_batch=12,
+            max_turns=30,
+            max_searches=15,
+            max_opens=40,
         ),
     )
 }
@@ -287,6 +310,10 @@ class TrackInputs:
     prompt_versions: Mapping[Channel, str]
     web_retrieval: Mapping[str, Any] | None
     thinking_budget_tokens: int | None = None
+    #: ``investigator.INVESTIGATOR_VERSION`` when web tracks are agent-directed (the
+    #: loop, its contract and prompt, the stated-measure rule); ``None`` in the planned
+    #: mode, which then fingerprints exactly as before the mode existed.
+    investigator: str | None = None
 
 
 def track_fingerprint(
@@ -309,7 +336,14 @@ def track_fingerprint(
         "harness": HARNESS_VERSION,
         "subject": [subject.key, subject.kind.value, normalise_label(subject.text)],
         "channel": channel.value,
-        "depth": depth.model_dump(mode="json"),
+        # The agent-directed allowances only for an agent-directed web track: every
+        # other track's fingerprint is what it was before they existed.
+        "depth": depth.model_dump(
+            mode="json",
+            exclude=None
+            if inputs.investigator is not None and channel is Channel.WEB
+            else set(AGENT_DIRECTED_FIELDS),
+        ),
         "brief": request.brief.fingerprint(),
         "policy": inputs.policy_version,
         "prompt": inputs.prompt_versions.get(channel, ""),
@@ -318,6 +352,10 @@ def track_fingerprint(
     if inputs.thinking_budget_tokens is not None:
         # Only when set: every fingerprint taken without thinking keeps its value.
         material["thinking"] = inputs.thinking_budget_tokens
+    if inputs.investigator is not None and channel is Channel.WEB:
+        # The mode and the versions of its rules -- never the queries the agent
+        # writes: they are the result, not an input.
+        material["investigator"] = inputs.investigator
     if channel is Channel.WEB:
         material["retrieval"] = dict(inputs.web_retrieval) if inputs.web_retrieval else None
     else:
@@ -420,23 +458,31 @@ class TrackAllowance:
     fetches: int
 
 
-def allocate(web_tracks: Sequence[str], depth: DepthPreset) -> dict[str, TrackAllowance]:
+def allocate(
+    web_tracks: Sequence[str], depth: DepthPreset, *, agent_directed: bool = False
+) -> dict[str, TrackAllowance]:
     """Split the run's search and fetch limits across its web tracks, deterministically.
 
     Each track gets at most what its preset allows one track, and an equal share of
     the run's limits; the remainder of a division goes to the earlier tracks. A
     track whose share is zero stops at once with ``budget_exhausted``: visible,
-    never skipped in silence.
+    never skipped in silence. An agent-directed track's own limits are the preset's
+    ``max_searches`` and ``max_opens`` (pages opened are its fetches); the planned
+    mode's are its queries and their pages.
     """
     n = len(web_tracks)
     if n == 0:
         return {}
     searches, extra_s = divmod(depth.max_search_calls, n)
     fetches, extra_f = divmod(depth.max_fetches, n)
-    per_track_fetches = depth.queries_per_web_track * depth.pages_per_query
+    if agent_directed:
+        per_track_searches, per_track_fetches = depth.max_searches, depth.max_opens
+    else:
+        per_track_searches = depth.queries_per_web_track
+        per_track_fetches = depth.queries_per_web_track * depth.pages_per_query
     return {
         t: TrackAllowance(
-            search_calls=min(depth.queries_per_web_track, searches + (1 if i < extra_s else 0)),
+            search_calls=min(per_track_searches, searches + (1 if i < extra_s else 0)),
             fetches=min(per_track_fetches, fetches + (1 if i < extra_f else 0)),
         )
         for i, t in enumerate(web_tracks)
@@ -467,6 +513,40 @@ def stop_reason(
         return StopReason.BUDGET_EXHAUSTED
     if queries_left <= 0:
         return StopReason.QUERIES_EXHAUSTED
+    return None
+
+
+def investigator_stop_reason(
+    *,
+    grounded: int,
+    new_by_turn: Sequence[int],
+    turns_used: int,
+    searches_left: int,
+    opens_left: int,
+    unread: bool,
+    depth: DepthPreset,
+) -> StopReason | None:
+    """Why an agent-directed track stops before its next turn, or ``None`` to go on.
+
+    :func:`stop_reason` for turns, in its order: the depth target; saturation --
+    no newly grounded evidence in the last ``saturation_window`` turns that read
+    new text (``new_by_turn`` holds only those, so a turn of weak or refused
+    searches does not count); then the allowance -- every turn used, or no search
+    and no open left with nothing captured and still unread (a last turn always
+    reads what the one before captured). The other ends are decided where they
+    happen: the agent's ``finish`` (``agent_finished``), an uncertain delivery
+    (``tool_outcome_uncertain``) and the same refusal reason three times
+    (``repeated_refusals``).
+    """
+    if grounded >= depth.evidence_target:
+        return StopReason.DEPTH_TARGET_MET
+    window = depth.saturation_window
+    if len(new_by_turn) >= window and not any(new_by_turn[-window:]):
+        return StopReason.SATURATED
+    if turns_used >= depth.max_turns:
+        return StopReason.BUDGET_EXHAUSTED
+    if searches_left <= 0 and opens_left <= 0 and not unread:
+        return StopReason.BUDGET_EXHAUSTED
     return None
 
 

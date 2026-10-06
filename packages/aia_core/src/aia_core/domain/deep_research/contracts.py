@@ -528,6 +528,10 @@ class StopReason(StrEnum):
     PLAN_INCOMPLETE = "plan_incomplete"
     #: The request for this track's model would not fit the model's context window.
     CONTEXT_TOO_LARGE = "context_too_large"
+    #: Agent-directed (chunk 9): the investigator finished the track itself.
+    AGENT_FINISHED = "agent_finished"
+    #: Agent-directed: the same refusal reason three times; nothing more is tried.
+    STOP_REFUSALS = "repeated_refusals"
 
 
 class CoverageCell(_Closed):
