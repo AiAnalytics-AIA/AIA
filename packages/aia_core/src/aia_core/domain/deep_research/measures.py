@@ -103,14 +103,19 @@ __all__ = [
     "CONTEXT_MAX_CHARS",
     "CONTEXT_SENTENCES",
     "MEASURES_VERSION",
+    "STATED_MEASURES_VERSION",
     "Attribute",
     "MeasureMismatch",
+    "StatedMeasureProblem",
     "StatedNumber",
     "Term",
     "check_measures",
+    "check_stated_measures",
     "claim_measures",
     "context_window",
     "fold",
+    "normalised_measure",
+    "render_measure",
     "stated_numbers",
 ]
 
@@ -934,3 +939,114 @@ def check_measures(claim: str, context: str) -> MeasureMismatch | None:
                     f"the quote's context in the source names {', '.join(sorted(places))}",
                 )
     return None
+
+
+# --------------------------------------------------------------------------- #
+# Stated measures: what an agent says a number means, checked the same way
+# --------------------------------------------------------------------------- #
+
+#: The stated-measure rule's version: what an agent-directed track's findings are
+#: checked by on top of ``GROUNDING_VERSION`` (plan § 8.1, chunk 9).
+STATED_MEASURES_VERSION: Final = f"aia-stated-measures-1/{MEASURES_VERSION}"
+
+_SCALE_WORDS: Final[Mapping[int, str]] = {
+    1: "",
+    1_000: "tis.",
+    1_000_000: "mil.",
+    1_000_000_000: "mld.",
+}
+_PER_WORDS: Final = ("na ", "za ", "per ", "/")
+
+
+def _written(value: float) -> str:
+    """A value as Czech prose writes it: a decimal comma, no exponent."""
+    if value == int(value) and abs(value) < 1e15:
+        return str(int(value))
+    return repr(value).replace(".", ",")
+
+
+def render_measure(measure: Measure) -> str | None:
+    """A stated measure as one Czech phrase the vocabulary reads, or None.
+
+    Value, scale word, unit, denominator ("na" + it), population, period, place, in
+    the order :func:`stated_numbers` attaches them. None when the scale is not one a
+    Czech text writes (1, tis., mil., mld.): such a measure cannot be checked.
+    """
+    scale = _SCALE_WORDS.get(measure.scale)
+    if scale is None:
+        return None
+    parts = [_written(measure.value), scale, measure.unit or ""]
+    if measure.denominator:
+        per = measure.denominator.strip()
+        parts.append(per if per.casefold().startswith(_PER_WORDS) else f"na {per}")
+    parts += [measure.population or "", measure.period or "", measure.geography or ""]
+    return " ".join(" ".join(p.split()) for p in parts if p.strip())
+
+
+@dataclass(frozen=True, slots=True)
+class StatedMeasureProblem:
+    """Why a finding's stated measures do not stand: missing, or mis-stated, in words."""
+
+    missing: bool
+    detail: str
+
+
+def _equal(a: float, b: float) -> bool:
+    return abs(a - b) <= 1e-9 * max(1.0, abs(a), abs(b))
+
+
+def check_stated_measures(
+    *, claim: str, quote: str, context: str, measures: Sequence[Measure]
+) -> StatedMeasureProblem | None:
+    """Whether an agent's measures cover its claim and say what the source says.
+
+    ``claim``, ``quote`` and ``context`` (the quote's window in the source) are
+    normalised text. In order, the first failure wins:
+
+    1. every number the claim states (not a period) has a measure of the same value
+       and scale -- a cited number without its measure is *missing*;
+    2. every measure's value is a number of the quote;
+    3. every measure, rendered as one phrase (:func:`render_measure`), passes
+       :func:`check_measures` against the context: the unit, scale, population,
+       denominator, period and place it states are the source's for that value.
+    """
+    for number in stated_numbers(claim):
+        if number.is_period:
+            continue
+        if not any(
+            _equal(m.value, number.value) and m.scale == number.scale_factor for m in measures
+        ):
+            return StatedMeasureProblem(
+                True, f"the claim states {_shown(number)} and no measure states it"
+            )
+    quoted = stated_numbers(quote)
+    for m in measures:
+        if not any(_equal(m.value, n.value) for n in quoted):
+            return StatedMeasureProblem(
+                False, f"a measure states {_written(m.value)}; the quote does not"
+            )
+        phrase = render_measure(m)
+        if phrase is None:
+            return StatedMeasureProblem(
+                False,
+                f"a measure gives {_written(m.value)} the scale {m.scale}, which no text writes",
+            )
+        mismatch = check_measures(phrase, context)
+        if mismatch is not None:
+            return StatedMeasureProblem(False, f"the measure {phrase!r}: {mismatch.detail}")
+    return None
+
+
+def normalised_measure(measure: Measure) -> Measure:
+    """A stated measure in the vocabulary's keys (``CZK``, ``HOUSEHOLDS``, ``Y2025``...).
+
+    What the vocabulary does not read stays ``None`` -- not stated, never a guess;
+    the name and the basis are the agent's, kept as given.
+    """
+    phrase = render_measure(measure)
+    read = claim_measures(phrase) if phrase is not None else ()
+    match = next(
+        (m for m in read if _equal(m.value, measure.value) and m.scale == measure.scale), None
+    )
+    base = match or Measure(value=measure.value, scale=measure.scale)
+    return base.model_copy(update={"measure_name": measure.measure_name, "basis": measure.basis})

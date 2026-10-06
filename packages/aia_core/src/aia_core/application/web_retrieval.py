@@ -126,7 +126,9 @@ from ..infrastructure.web_retrieval import (
     FetchedPage,
     FetchedResource,
     HostFilter,
+    LanguageSearch,
     SearchAdapter,
+    SearchResponse,
     ToolCallFailed,
     WebFetcher,
 )
@@ -137,12 +139,16 @@ __all__ = [
     "DatasetOutcome",
     "FetchOutcome",
     "IndexOutcome",
+    "PendingFetch",
+    "PendingSearch",
     "ResourceOutcome",
     "RetrievalGate",
     "RunSnapshotCache",
     "SearchOutcome",
     "WebRetrieval",
     "live_attempt",
+    "request_fingerprint",
+    "sent_search",
 ]
 
 _Fetched = TypeVar("_Fetched", FetchedPage, FetchedResource)
@@ -326,6 +332,8 @@ class SearchOutcome:
     record: QueryRecord
     hits: tuple[SearchHit, ...]
     uncertain: bool
+    #: SHA256 of what was journaled as sent; None when nothing was dispatched.
+    request_fingerprint: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -337,6 +345,88 @@ class FetchOutcome:
     uncertain: bool
     #: The page came from this run's snapshot cache: nothing was sent or charged.
     cached: bool = False
+    #: The class the URL was judged at, and the dispatched call (None when none was).
+    data_class: DataClass | None = None
+    call_id: str | None = None
+    request_fingerprint: str | None = None
+
+
+def request_fingerprint(sent: str) -> str:
+    """What the journal keeps of a sent query or URL: its SHA256, never the text."""
+    return _fingerprint(sent)
+
+
+def sent_search(query: str, lang: str | None) -> str:
+    """What a search sends, as journaled: the text, and its language when one is asked."""
+    return query if lang is None else f"{query}\n[lang={lang}]"
+
+
+@dataclass(slots=True)
+class PendingSearch:
+    """A search reserved and journaled ``DISPATCHED``, not yet sent.
+
+    :meth:`send` is the only part that may run off the step's thread: it calls the
+    adapter and keeps what came back, journaling nothing. The gate's
+    :meth:`RetrievalGate.finish_search` journals the outcome on the step's thread.
+    """
+
+    query: str
+    lang: str | None
+    max_results: int
+    track_id: str
+    data_class: DataClass
+    class_reasons: tuple[str, ...]
+    call_id: str
+    reservation: ToolReservation
+    adapter: SearchAdapter
+    response: SearchResponse | None = None
+    failure: ToolCallFailed | None = None
+    error: BaseException | None = None
+
+    @property
+    def sent(self) -> str:
+        return sent_search(self.query, self.lang)
+
+    def send(self) -> None:
+        try:
+            if self.lang is not None and isinstance(self.adapter, LanguageSearch):
+                self.response = self.adapter.search_in(
+                    self.query, lang=self.lang, max_results=self.max_results
+                )
+            else:
+                self.response = self.adapter.search(self.query, max_results=self.max_results)
+        except ToolCallFailed as exc:
+            self.failure = exc
+        except Exception as exc:  # re-raised by finish_search, on the step's thread
+            self.error = exc
+
+
+@dataclass(slots=True)
+class PendingFetch:
+    """A fetch reserved and journaled ``DISPATCHED``, not yet sent (see :class:`PendingSearch`)."""
+
+    url: str
+    track_id: str
+    data_class: DataClass
+    call_id: str
+    reservation: ToolReservation
+    fetcher: WebFetcher
+    #: The hosts this fetch is confined to, every redirect hop included (None: any).
+    host_allowed: HostFilter | None = None
+    page: FetchedPage | None = None
+    refused: FetchRefused | None = None
+    failure: ToolCallFailed | None = None
+    error: BaseException | None = None
+
+    def send(self) -> None:
+        try:
+            self.page = self.fetcher.fetch(self.url, host_allowed=self.host_allowed)
+        except FetchRefused as exc:
+            self.refused = exc
+        except ToolCallFailed as exc:
+            self.failure = exc
+        except Exception as exc:  # re-raised by finish_fetch, on the step's thread
+            self.error = exc
 
 
 @dataclass(frozen=True, slots=True)
@@ -399,10 +489,10 @@ class RetrievalGate:
         client_terms: Sequence[ClientTerm],
         class_a_texts: Sequence[str],
         clock: Callable[[], datetime] = _utcnow,
-        datasets: Sequence[DatasetAccess] = (),
-        archives: Sequence[DatasetAccess] = (),
         cache: RunSnapshotCache | None = None,
         archive: ArchiveRetrieval | None = None,
+        datasets: Sequence[DatasetAccess] = (),
+        archives: Sequence[DatasetAccess] = (),
     ) -> None:
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
@@ -414,6 +504,8 @@ class RetrievalGate:
         self._terms = tuple(client_terms)
         self._class_a = tuple(class_a_texts)
         self._clock = clock
+        self._cache = cache
+        self._archive = archive
         self._datasets = {d.connector.connector_id: d for d in datasets}
         self._archives = {a.connector.connector_id: a for a in archives}
         if len(self._datasets) != len(datasets) or len(self._archives) != len(archives):
@@ -427,8 +519,6 @@ class RetrievalGate:
         ):
             # Recorded tables beside live pages would be evidence of neither kind.
             raise ValueError("dataset routes are recorded or live as web retrieval is")
-        self._cache = cache
-        self._archive = archive
 
     # ---------------------------------------------------------------- shared --
 
@@ -570,12 +660,58 @@ class RetrievalGate:
         )
         return uncertain
 
+    def remember(self, url: str, page: FetchedPage) -> None:
+        """Hold a page this run captured in an earlier attempt (read back from its store).
+
+        A resumed step replays what its earlier attempt fetched without fetching it;
+        with this, a later action asking for the same URL is a cache hit, as it
+        would have been had the attempt not been interrupted. No cache: nothing.
+        Journals nothing: nothing was sent or answered.
+        """
+        if self._cache is not None:
+            self._cache.put(url, page)
+
     # ---------------------------------------------------------------- search --
 
     def search(
-        self, query: str, *, context_class: DataClass, track_id: str, max_results: int
+        self,
+        query: str,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        max_results: int,
+        lang: str | None = None,
     ) -> SearchOutcome:
         """One proposed query: classified, authorised, reserved, journaled, sent -- or refused."""
+        begun = self.begin_search(
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            max_results=max_results,
+            lang=lang,
+        )
+        if isinstance(begun, SearchOutcome):
+            return begun
+        begun.send()
+        return self.finish_search(begun)
+
+    def begin_search(
+        self,
+        query: str,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        max_results: int,
+        lang: str | None = None,
+    ) -> SearchOutcome | PendingSearch:
+        """Classify, authorise, reserve and journal ``DISPATCHED``; or refuse and journal that.
+
+        Sends nothing: a :class:`PendingSearch` is sent by its own :meth:`~PendingSearch.send`
+        and closed by :meth:`finish_search`. A caller may begin several, so that every
+        dispatch is on record before any of them leaves. ``lang`` asks a search adapter
+        that offers languages (:class:`LanguageSearch`) for one; it is journaled with
+        the query.
+        """
         route = self._retrieval.search_route
         classified = classify_query(
             query,
@@ -584,70 +720,85 @@ class RetrievalGate:
             class_a_texts=self._class_a,
         )
         cls = classified.data_class
-
-        def record(
-            decision: QueryDecision,
-            *,
-            refusal: str | None = None,
-            failure: str | None = None,
-            call_id: str | None = None,
-            hits: int = 0,
-        ) -> QueryRecord:
-            return QueryRecord(
-                text=query,
-                data_class=cls,
-                class_reasons=classified.reasons,
-                decision=decision,
-                refusal=refusal,
-                call_id=call_id,
-                hits=hits,
-                failure=failure,
-            )
-
+        sent = sent_search(query, lang)
         reason = (
             "class_a_query"
             if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
             else self._refusal(route, data_class=cls)
         )
         if reason is not None:
-            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=query)
-            return SearchOutcome(record(QueryDecision.REFUSED, refusal=reason), (), False)
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
+            record = QueryRecord(
+                text=query,
+                data_class=cls,
+                class_reasons=classified.reasons,
+                decision=QueryDecision.REFUSED,
+                refusal=reason,
+                call_id=None,
+                hits=0,
+            )
+            return SearchOutcome(record, (), False)
+        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        return PendingSearch(
+            query=query,
+            lang=lang,
+            max_results=max_results,
+            track_id=track_id,
+            data_class=cls,
+            class_reasons=classified.reasons,
+            call_id=call_id,
+            reservation=reservation,
+            adapter=self._retrieval.search,
+        )
 
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=query)
-        try:
-            response = self._retrieval.search.search(query, max_results=max_results)
-        except ToolCallFailed as exc:
+    def finish_search(self, pending: PendingSearch) -> SearchOutcome:
+        """Journal a sent search's outcome. An adapter's unexpected error is raised here."""
+        if pending.error is not None:
+            raise pending.error
+        route = self._retrieval.search_route
+        cls, call_id, sent = pending.data_class, pending.call_id, pending.sent
+
+        def record(*, failure: str | None = None, hits: int = 0) -> QueryRecord:
+            return QueryRecord(
+                text=pending.query,
+                data_class=cls,
+                class_reasons=pending.class_reasons,
+                decision=QueryDecision.SENT,
+                refusal=None,
+                call_id=call_id,
+                hits=hits,
+                failure=failure,
+            )
+
+        fingerprint = _fingerprint(sent)
+        if pending.failure is not None:
             uncertain = self._close_failure(
                 route,
-                exc,
+                pending.failure,
                 call_id=call_id,
-                reservation=reservation,
+                reservation=pending.reservation,
                 data_class=cls,
-                track_id=track_id,
-                sent=query,
+                track_id=pending.track_id,
+                sent=sent,
             )
-            return SearchOutcome(
-                record(QueryDecision.SENT, failure=exc.reason, call_id=call_id), (), uncertain
-            )
+            return SearchOutcome(record(failure=pending.failure.reason), (), uncertain, fingerprint)
+        response = pending.response
+        assert response is not None, "a pending search is finished only after it was sent"
         self._meter.outcome(
             self._event(
                 route,
                 call_id=call_id,
                 outcome=ToolOutcome.SUCCEEDED,
                 data_class=cls,
-                track_id=track_id,
-                sent=query,
-                reservation=reservation,
+                track_id=pending.track_id,
+                sent=sent,
+                reservation=pending.reservation,
                 cost=route.price_usd_per_call,
                 charged_credits=response.credits,
                 provider_request_id=response.provider_request_id,
             )
         )
-        return SearchOutcome(
-            record(QueryDecision.SENT, call_id=call_id, hits=len(response.hits)),
-            response.hits,
-            False,
-        )
+        return SearchOutcome(record(hits=len(response.hits)), response.hits, False, fingerprint)
 
     # ----------------------------------------------------------------- fetch --
 
@@ -671,6 +822,67 @@ class RetrievalGate:
             return cls, "class_a_url"
         return cls, self._refusal(self._retrieval.fetch_route, data_class=cls)
 
+    def _fetch_close(
+        self,
+        route: ToolRoute,
+        *,
+        call_id: str,
+        reservation: ToolReservation,
+        cls: DataClass,
+        track_id: str,
+        sent: str,
+        result: _Fetched | None,
+        refused: FetchRefused | None,
+        failure: ToolCallFailed | None,
+        request_id: Callable[[_Fetched], str | None],
+        note: Callable[[_Fetched], str] = lambda _: "",
+    ) -> tuple[_Fetched | None, str | None, bool]:
+        """Journal a dispatched fetch's outcome: (what came back, why not, uncertain)."""
+        if refused is not None:
+            # Refused on a later hop or by the response itself; nothing kept. A hop
+            # may already have been served, so it is charged as if it was.
+            self._meter.outcome(
+                self._event(
+                    route,
+                    call_id=call_id,
+                    outcome=ToolOutcome.FAILED,
+                    data_class=cls,
+                    track_id=track_id,
+                    sent=sent,
+                    reservation=reservation,
+                    cost=route.price_usd_per_call,
+                    note=refused.reason,
+                )
+            )
+            return None, refused.reason, False
+        if failure is not None:
+            uncertain = self._close_failure(
+                route,
+                failure,
+                call_id=call_id,
+                reservation=reservation,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+            )
+            return None, failure.reason, uncertain
+        assert result is not None, "a dispatched fetch is closed only after it was sent"
+        self._meter.outcome(
+            self._event(
+                route,
+                call_id=call_id,
+                outcome=ToolOutcome.SUCCEEDED,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+                reservation=reservation,
+                cost=route.price_usd_per_call,
+                provider_request_id=request_id(result),
+                note=note(result),
+            )
+        )
+        return result, None, False
+
     def _fetch_call(
         self,
         url: str,
@@ -689,51 +901,28 @@ class RetrievalGate:
         """
         route = route or self._retrieval.fetch_route
         call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
+        result: _Fetched | None = None
+        refused: FetchRefused | None = None
+        failure: ToolCallFailed | None = None
         try:
             result = call()
         except FetchRefused as exc:
-            # Refused on a later hop or by the response itself; nothing kept. A hop
-            # may already have been served, so it is charged as if it was.
-            self._meter.outcome(
-                self._event(
-                    route,
-                    call_id=call_id,
-                    outcome=ToolOutcome.FAILED,
-                    data_class=cls,
-                    track_id=track_id,
-                    sent=url,
-                    reservation=reservation,
-                    cost=route.price_usd_per_call,
-                    note=exc.reason,
-                )
-            )
-            return None, exc.reason, False
+            refused = exc
         except ToolCallFailed as exc:
-            uncertain = self._close_failure(
-                route,
-                exc,
-                call_id=call_id,
-                reservation=reservation,
-                data_class=cls,
-                track_id=track_id,
-                sent=url,
-            )
-            return None, exc.reason, uncertain
-        self._meter.outcome(
-            self._event(
-                route,
-                call_id=call_id,
-                outcome=ToolOutcome.SUCCEEDED,
-                data_class=cls,
-                track_id=track_id,
-                sent=url,
-                reservation=reservation,
-                cost=route.price_usd_per_call,
-                provider_request_id=request_id(result),
-                note=note(result),
-            )
+            failure = exc
+        return self._fetch_close(
+            route,
+            call_id=call_id,
+            reservation=reservation,
+            cls=cls,
+            track_id=track_id,
+            sent=url,
+            result=result,
+            refused=refused,
+            failure=failure,
+            request_id=request_id,
+            note=note,
         )
-        return result, None, False
 
     def fetch(
         self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
@@ -745,6 +934,18 @@ class RetrievalGate:
         a redirect elsewhere before the hop is requested (``redirect_out_of_scope``),
         and a cached page whose final URL is elsewhere is refused, not served.
         """
+        begun = self.begin_fetch(url, track_id=track_id, host_allowed=host_allowed)
+        if isinstance(begun, FetchOutcome):
+            return begun
+        begun.send()
+        return self.finish_fetch(begun)
+
+    def begin_fetch(
+        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+    ) -> FetchOutcome | PendingFetch:
+        """Check, classify (the whole URL: host, path and query), confine to
+        ``host_allowed``, authorise; answer from the run's cache; or reserve and
+        journal ``DISPATCHED``. Sends nothing (see :meth:`begin_search`)."""
         route = self._retrieval.fetch_route
         cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
         if reason is None and self._cache is not None:
@@ -766,171 +967,57 @@ class RetrievalGate:
                         )
                     )
                     return FetchOutcome(
-                        url=url, page=hit, reason=None, uncertain=False, cached=True
+                        url=url,
+                        page=hit,
+                        reason=None,
+                        uncertain=False,
+                        cached=True,
+                        data_class=cls,
                     )
         if reason is None:
             # A robots.txt the transport already holds: refused before any dispatch.
             reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
-            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)
-
-        fetcher = self._retrieval.fetcher
-        page, failure, uncertain = self._fetch_call(
-            url,
-            cls=cls,
+            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False, data_class=cls)
+        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
+        return PendingFetch(
+            url=url,
             track_id=track_id,
-            call=lambda: fetcher.fetch(url, host_allowed=host_allowed),
+            data_class=cls,
+            call_id=call_id,
+            reservation=reservation,
+            fetcher=self._retrieval.fetcher,
+            host_allowed=host_allowed,
+        )
+
+    def finish_fetch(self, pending: PendingFetch) -> FetchOutcome:
+        """Journal a sent fetch's outcome; cache a kept page. Unexpected errors raise here."""
+        if pending.error is not None:
+            raise pending.error
+        url, cls, call_id = pending.url, pending.data_class, pending.call_id
+        page, reason, uncertain = self._fetch_close(
+            self._retrieval.fetch_route,
+            call_id=call_id,
+            reservation=pending.reservation,
+            cls=cls,
+            track_id=pending.track_id,
+            sent=url,
+            result=pending.page,
+            refused=pending.refused,
+            failure=pending.failure,
             request_id=lambda fetched: fetched.snapshot.request_id,
         )
-        if page is None:
-            return FetchOutcome(url=url, page=None, reason=failure, uncertain=uncertain)
-        if self._cache is not None:
+        if page is not None and self._cache is not None:
             self._cache.put(url, page)
-        return FetchOutcome(url=url, page=page, reason=None, uncertain=False)
-
-    # --------------------------------------------------------------- dataset --
-
-    def dataset(
-        self, query: DatasetQuery, *, context_class: DataClass, track_id: str
-    ) -> DatasetOutcome:
-        """One dataset query: classified, authorised, reserved, journaled, asked -- or refused.
-
-        Class C only: a query the classifier raises (a client term, Class A overlap,
-        a client-derived context) is refused and never sent. A connector this gate
-        was not given is refused without a journal entry: there is no route to
-        journal it against, and nothing was proposed to one.
-        """
-        return self._ask(
-            self._datasets.get(query.connector_id),
-            query,
-            context_class=context_class,
-            track_id=track_id,
-            archive=False,
-            permit=None,
-        )
-
-    def archive(
-        self,
-        query: DatasetQuery,
-        *,
-        permit: ArchivePermit | None,
-        context_class: DataClass,
-        track_id: str,
-    ) -> DatasetOutcome:
-        """One archive lookup for ``query.dataset_id`` (a page URL), only with its permit.
-
-        As :meth:`dataset`, and first: the permit must be one ``decide_archive_use``
-        issued for this very URL, or the lookup is refused (``archive_not_permitted``)
-        and journaled, and nothing is sent.
-        """
-        return self._ask(
-            self._archives.get(query.connector_id),
-            query,
-            context_class=context_class,
-            track_id=track_id,
-            archive=True,
-            permit=permit,
-        )
-
-    def _ask(
-        self,
-        access: DatasetAccess | None,
-        query: DatasetQuery,
-        *,
-        context_class: DataClass,
-        track_id: str,
-        archive: bool,
-        permit: ArchivePermit | None,
-    ) -> DatasetOutcome:
-        """The path every connector call takes; an archive's needs its permit first."""
-        sent = query.text()
-        classified = classify_query(
-            sent,
-            context_class=context_class,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        )
-        cls = classified.data_class
-
-        def record(
-            decision: QueryDecision,
-            *,
-            refusal: str | None = None,
-            failure: str | None = None,
-            call_id: str | None = None,
-            hits: int = 0,
-        ) -> QueryRecord:
-            return QueryRecord(
-                text=sent,
-                data_class=cls,
-                class_reasons=classified.reasons,
-                decision=decision,
-                refusal=refusal,
-                call_id=call_id,
-                hits=hits,
-                failure=failure,
-            )
-
-        if access is None:
-            return DatasetOutcome(
-                record(QueryDecision.REFUSED, refusal="dataset_connector_unavailable"), None, False
-            )
-        route = access.route
-        reason: str | None
-        if archive and not (isinstance(permit, ArchivePermit) and permit.url == query.dataset_id):
-            reason = "archive_not_permitted"
-        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
-            reason = "class_a_query"
-        elif cls is not DataClass.CLASS_C_INTERNAL:
-            reason = "dataset_class_c_only"
-        else:
-            reason = self._refusal(route, data_class=cls)
-        if reason is not None:
-            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
-            return DatasetOutcome(record(QueryDecision.REFUSED, refusal=reason), None, False)
-
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
-        try:
-            response = access.connector.query(query)
-            if response.result.query != query:
-                raise ToolCallFailed(
-                    "the connector answered another query",
-                    reason="response_contract",
-                    delivery=Delivery.RESPONDED,
-                )
-            snapshot = dataset_snapshot(response, retrieval_mode=route.retrieval_mode)
-        except ToolCallFailed as exc:
-            uncertain = self._close_failure(
-                route,
-                exc,
-                call_id=call_id,
-                reservation=reservation,
-                data_class=cls,
-                track_id=track_id,
-                sent=sent,
-            )
-            return DatasetOutcome(
-                record(QueryDecision.SENT, failure=exc.reason, call_id=call_id), None, uncertain
-            )
-        self._meter.outcome(
-            self._event(
-                route,
-                call_id=call_id,
-                outcome=ToolOutcome.SUCCEEDED,
-                data_class=cls,
-                track_id=track_id,
-                sent=sent,
-                reservation=reservation,
-                cost=route.price_usd_per_call,
-                charged_credits=response.credits,
-                provider_request_id=response.provider_request_id,
-            )
-        )
-        return DatasetOutcome(
-            record(QueryDecision.SENT, call_id=call_id, hits=len(response.result.rows)),
-            snapshot,
-            False,
+        return FetchOutcome(
+            url=url,
+            page=page,
+            reason=reason,
+            uncertain=uncertain,
+            data_class=cls,
+            call_id=call_id,
+            request_fingerprint=_fingerprint(url),
         )
 
     def fetch_resource(
@@ -1111,3 +1198,147 @@ class RetrievalGate:
             route=route,
         )
         return FetchOutcome(url=row.url, page=page, reason=failure, uncertain=uncertain)
+
+    # --------------------------------------------------------------- dataset --
+
+    def dataset(
+        self, query: DatasetQuery, *, context_class: DataClass, track_id: str
+    ) -> DatasetOutcome:
+        """One dataset query: classified, authorised, reserved, journaled, asked -- or refused.
+
+        Class C only: a query the classifier raises (a client term, Class A overlap,
+        a client-derived context) is refused and never sent. A connector this gate
+        was not given is refused without a journal entry: there is no route to
+        journal it against, and nothing was proposed to one.
+        """
+        return self._ask(
+            self._datasets.get(query.connector_id),
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            archive=False,
+            permit=None,
+        )
+
+    def archive(
+        self,
+        query: DatasetQuery,
+        *,
+        permit: ArchivePermit | None,
+        context_class: DataClass,
+        track_id: str,
+    ) -> DatasetOutcome:
+        """One archive lookup for ``query.dataset_id`` (a page URL), only with its permit.
+
+        As :meth:`dataset`, and first: the permit must be one ``decide_archive_use``
+        issued for this very URL, or the lookup is refused (``archive_not_permitted``)
+        and journaled, and nothing is sent.
+        """
+        return self._ask(
+            self._archives.get(query.connector_id),
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            archive=True,
+            permit=permit,
+        )
+
+    def _ask(
+        self,
+        access: DatasetAccess | None,
+        query: DatasetQuery,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        archive: bool,
+        permit: ArchivePermit | None,
+    ) -> DatasetOutcome:
+        """The path every connector call takes; an archive's needs its permit first."""
+        sent = query.text()
+        classified = classify_query(
+            sent,
+            context_class=context_class,
+            client_terms=self._terms,
+            class_a_texts=self._class_a,
+        )
+        cls = classified.data_class
+
+        def record(
+            decision: QueryDecision,
+            *,
+            refusal: str | None = None,
+            failure: str | None = None,
+            call_id: str | None = None,
+            hits: int = 0,
+        ) -> QueryRecord:
+            return QueryRecord(
+                text=sent,
+                data_class=cls,
+                class_reasons=classified.reasons,
+                decision=decision,
+                refusal=refusal,
+                call_id=call_id,
+                hits=hits,
+                failure=failure,
+            )
+
+        if access is None:
+            return DatasetOutcome(
+                record(QueryDecision.REFUSED, refusal="dataset_connector_unavailable"), None, False
+            )
+        route = access.route
+        reason: str | None
+        if archive and not (isinstance(permit, ArchivePermit) and permit.url == query.dataset_id):
+            reason = "archive_not_permitted"
+        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            reason = "class_a_query"
+        elif cls is not DataClass.CLASS_C_INTERNAL:
+            reason = "dataset_class_c_only"
+        else:
+            reason = self._refusal(route, data_class=cls)
+        if reason is not None:
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
+            return DatasetOutcome(record(QueryDecision.REFUSED, refusal=reason), None, False)
+
+        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        try:
+            response = access.connector.query(query)
+            if response.result.query != query:
+                raise ToolCallFailed(
+                    "the connector answered another query",
+                    reason="response_contract",
+                    delivery=Delivery.RESPONDED,
+                )
+            snapshot = dataset_snapshot(response, retrieval_mode=route.retrieval_mode)
+        except ToolCallFailed as exc:
+            uncertain = self._close_failure(
+                route,
+                exc,
+                call_id=call_id,
+                reservation=reservation,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+            )
+            return DatasetOutcome(
+                record(QueryDecision.SENT, failure=exc.reason, call_id=call_id), None, uncertain
+            )
+        self._meter.outcome(
+            self._event(
+                route,
+                call_id=call_id,
+                outcome=ToolOutcome.SUCCEEDED,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+                reservation=reservation,
+                cost=route.price_usd_per_call,
+                charged_credits=response.credits,
+                provider_request_id=response.provider_request_id,
+            )
+        )
+        return DatasetOutcome(
+            record(QueryDecision.SENT, call_id=call_id, hits=len(response.result.rows)),
+            snapshot,
+            False,
+        )

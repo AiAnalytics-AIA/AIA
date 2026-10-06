@@ -205,8 +205,23 @@ class _Step:
         ``StepFailed`` (a failed or uncertain call), ``BudgetExceeded`` and every
         ``StopExecution`` propagate: the worker decides what the attempt becomes.
         """
+        request = self._request(
+            runtime, role, payload=payload, data_class=data_class, lineage=lineage
+        )
+        return self._send(caller, runtime, role, request, data_class=data_class)
+
+    @staticmethod
+    def _request(
+        runtime: DeepResearchRuntime,
+        role: AgentRole,
+        *,
+        payload: dict[str, Any],
+        data_class: DataClass,
+        lineage: DataLineage,
+    ) -> ModelRequest:
+        """One agent's request under the composition's policy, limits and thinking."""
         cfg = runtime.config
-        request = model_request(
+        return model_request(
             role,
             payload=payload,
             data_class=data_class,
@@ -215,6 +230,18 @@ class _Step:
             max_output_tokens=cfg.max_output_tokens,
             thinking_budget_tokens=cfg.thinking_budget_tokens,
         )
+
+    @staticmethod
+    def _send(
+        caller: StepModelCaller,
+        runtime: DeepResearchRuntime,
+        role: AgentRole,
+        request: ModelRequest,
+        *,
+        data_class: DataClass,
+    ) -> _Answer:
+        """Send a built request (see :meth:`_ask`), or say which gate refused it."""
+        cfg = runtime.config
         size = _too_large(request, cfg)
         if size is not None:
             return _Answer(

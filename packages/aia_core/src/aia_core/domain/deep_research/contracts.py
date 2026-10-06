@@ -590,6 +590,8 @@ class QuarantineReason(StrEnum):
     #: The claim gives a number a unit, scale, period, population, denominator or
     #: place its quote's context in the source does not (``measures.py``).
     MEASURE_NOT_IN_SOURCE = "measure_not_in_source"
+    #: An agent-directed finding states a number with no measure for it (plan § 8.1).
+    MEASURE_MISSING = "measure_missing"
 
 
 class QuarantinedEvidence(_Closed):
@@ -660,6 +662,10 @@ class StopReason(StrEnum):
     PLAN_INCOMPLETE = "plan_incomplete"
     #: The request for this track's model would not fit the model's context window.
     CONTEXT_TOO_LARGE = "context_too_large"
+    #: Agent-directed (chunk 9): the investigator finished the track itself.
+    AGENT_FINISHED = "agent_finished"
+    #: Agent-directed: the same refusal reason three times; nothing more is tried.
+    STOP_REFUSALS = "repeated_refusals"
 
 
 class CoverageCell(_Closed):
