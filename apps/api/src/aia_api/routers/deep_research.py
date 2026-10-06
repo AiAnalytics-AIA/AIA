@@ -1,5 +1,13 @@
 """Study-scoped durable Deep Research jobs and their sealed internal evidence.
 
+Every run says why it ran, what it researched and which immutable state it rests on
+(ADR 0021): ``purpose``, ``target`` and ``lineage`` on each run, and
+``GET …/runs/{run_id}/provenance`` for what a later consumer cites. A start that names no
+``purpose`` -- the deployed client's shape -- is a new ``DESIGN_RESEARCH`` run, recorded
+``purpose_source: LEGACY_DEFAULT``; only ``DESIGN_RESEARCH`` may be started here (the
+result-side start is the next slice). A run stored before ADR 0021 reads
+``integration_contract: legacy-unversioned`` with no purpose.
+
 A start or a retry on a Study with a spend limit asks first (ADR 0019 gate 2): the
 server works out the run's cost ceiling from the deployment's prices
 (:func:`deep_research_prices`) and answers 409 ``cost_confirmation_required`` with it,
@@ -19,11 +27,18 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
+    LineageChanged,
     NothingToResearch,
+    ResearchTargetInvalid,
+    ResearchTargetNotFound,
+    RunNotGoverned,
+    RunSpecCorrupt,
+    governed_record,
 )
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.contracts import Channel
+from aia_core.domain.deep_research.integration import LEGACY_UNVERSIONED, PurposeSource
 from aia_core.domain.deep_research.planning import UnknownPreset
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -57,6 +72,11 @@ class DeepResearchStart(BaseModel):
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
     preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
     channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
+    #: Why the run runs (ADR 0021). Omitted -- the deployed client's shape -- is
+    #: ``DESIGN_RESEARCH`` by the compatibility rule, recorded as such.
+    purpose: Literal["DESIGN_RESEARCH"] | None = None
+    #: A person's name for the run: shown, never part of its identity.
+    title: str | None = Field(default=None, max_length=200)
     #: What the person confirms the run can cost at most. Read only when the study has a
     #: limit the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
@@ -90,6 +110,15 @@ class DeepResearchRun(BaseModel):
     model_config = ConfigDict(extra="forbid")
     run_id: str
     study_id: str
+    #: ``aia-deep-research-run-spec-1``, or ``legacy-unversioned`` for a run stored before
+    #: ADR 0021: then ``purpose``, ``target``, ``lineage`` and the fingerprint are null.
+    integration_contract: str
+    purpose: str | None
+    purpose_source: str | None
+    target: dict[str, Any] | None
+    lineage: dict[str, Any] | None
+    run_spec_fingerprint: str | None
+    title: str | None
     design_revision_id: str
     preset: str
     channels: list[str]
@@ -169,11 +198,23 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise _refused(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
-    except (DeepResearchRunNotFound, DesignRevisionNotFound) as exc:
+    except (DeepResearchRunNotFound, DesignRevisionNotFound, ResearchTargetNotFound) as exc:
         raise _not_found() from exc
-    except (NothingToResearch, UnknownPreset) as exc:
+    except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
+        ) from exc
+    except LineageChanged as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "lineage_changed", "message": str(exc)}
+        ) from exc
+    except RunSpecCorrupt as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "run_spec_corrupt", "message": str(exc)}
+        ) from exc
+    except RunNotGoverned as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": "run_not_governed", "message": str(exc)}
         ) from exc
     except DeepResearchRunNotRetryable as exc:
         raise HTTPException(
@@ -192,9 +233,19 @@ def _response(
 ) -> DeepResearchRun:
     steps = run.get("steps") or []
     meta = run["metadata"]
+    record = governed_record(meta)
     return DeepResearchRun(
         run_id=run["run_id"],
         study_id=scope.study_id,
+        integration_contract=str(meta["integration_contract"])
+        if record is not None
+        else LEGACY_UNVERSIONED,
+        purpose=record.purpose.value if record is not None else None,
+        purpose_source=record.purpose_source.value if record is not None else None,
+        target=record.target.model_dump(mode="json") if record is not None else None,
+        lineage=record.lineage.model_dump(mode="json") if record is not None else None,
+        run_spec_fingerprint=record.run_spec_fingerprint if record is not None else None,
+        title=record.title if record is not None else None,
         design_revision_id=str(meta["design_revision_id"]),
         preset=str(meta["preset"]),
         channels=list(meta["channels"]),
@@ -246,6 +297,10 @@ def start(
             prices=deep_research_prices(settings),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd,
+            purpose_source=(
+                PurposeSource.EXPLICIT if body.purpose is not None else PurposeSource.LEGACY_DEFAULT
+            ),
+            title=body.title,
         )
         if not started.created:
             response.status_code = 200
@@ -291,6 +346,7 @@ def retry(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
     response: Response,
     body: DeepResearchRetry | None = None,
 ) -> DeepResearchRun:
@@ -302,6 +358,7 @@ def retry(
             prices=deep_research_prices(settings),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
+            store=store,
         )
         if not started.created:
             response.status_code = 200
@@ -343,6 +400,23 @@ def bundle(
     with _errors(session):
         scope.require(Permission.EDIT_STUDY)
         return DeepResearchRuns(session, scope).bundle(run_id, store=store).model_dump(mode="json")
+    raise AssertionError("unreachable")
+
+
+@router.get("/runs/{run_id}/provenance", response_model=dict[str, Any])
+def provenance(
+    run_id: RunId, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Purpose, target, lineage and the sealed bundle's identity (ADR 0021).
+
+    409 ``run_not_governed`` for a run stored before ADR 0021, ``bundle_not_ready`` while
+    nothing is published.
+    """
+    with _errors(session):
+        scope.require(Permission.EDIT_STUDY)
+        return (
+            DeepResearchRuns(session, scope).provenance(run_id, store=store).model_dump(mode="json")
+        )
     raise AssertionError("unreachable")
 
 

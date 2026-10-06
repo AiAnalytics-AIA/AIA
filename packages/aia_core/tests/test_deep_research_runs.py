@@ -9,6 +9,8 @@ here registers the workflow type.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -19,14 +21,27 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
     NothingToResearch,
+    ResearchTargetInvalid,
+    ResearchTargetNotFound,
+    RunNotGoverned,
+    RunSpecCorrupt,
+    governed_record,
 )
 from aia_core.application.research import ResearchRuns
 from aia_core.domain.deep_research.contracts import Channel, SubjectKind
+from aia_core.domain.deep_research.integration import (
+    RUN_SPEC_CONTRACT,
+    DesignLineage,
+    DesignRevisionTarget,
+    PurposeSource,
+    ResultQuestionTarget,
+)
 from aia_core.domain.deep_research.planning import UnknownPreset
 from aia_core.domain.deep_research.workflow import (
     DEEP_RESEARCH,
     DEEP_RESEARCH_KINDS,
     NODE_ORDER,
+    deep_research_steps,
 )
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.knowledge import KnowledgeKind
@@ -39,6 +54,7 @@ from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 DESIGN: dict[str, Any] = {
     "title": "Rostlinné nápoje",
@@ -166,7 +182,10 @@ def test_a_run_freezes_its_request_and_enqueues_the_six_steps(
 
 
 def test_the_type_is_not_registered_here() -> None:
-    """Job 6 registers ``deep_research`` with its executors; until then it is not a template."""
+    """``deep_research`` is created from the domain's own step graph, not a template.
+
+    Its executors are in the worker's default registry and its route in the API; the
+    type is still not a ``WORKFLOW_TYPES`` template (the service builds the graph)."""
     assert DEEP_RESEARCH not in WORKFLOW_TYPES
 
 
@@ -296,3 +315,135 @@ def test_a_failed_or_cancelled_run_is_retried_as_a_new_linked_run(runs: Any, des
     assert runs().retry(run_id).run_id == retried.run_id  # a double click is one retry
     # ADR 0019: a retry is not a second role's act; the former viewer's click is the same retry.
     assert runs(user="viewer").retry(run_id).run_id == retried.run_id
+
+
+# --------------------------------------------------------------------------- ADR 0021
+
+
+def _legacy_run(session: Any, scoped: Any, revision_id: str) -> str:
+    """A run as develop stored one before ADR 0021: its metadata and its key, verbatim."""
+
+    scope = scoped.scope()
+    fixture = Path(__file__).parent / "fixtures" / "deep_research_pre_step1"
+    metadata = json.loads((fixture / "run_metadata.json").read_text(encoding="utf-8"))
+    metadata["design_revision_id"] = revision_id
+    steps = deep_research_steps()
+    project_id = StudyDesignRepository(session, scope).project_id()
+    assert project_id is not None
+    return WorkflowRepository(session, scope).create_run(
+        project_id=project_id,
+        project_revision=1,
+        workflow_type=DEEP_RESEARCH,
+        steps=steps,
+        idempotency_key=f"{DEEP_RESEARCH}:{revision_id}:{metadata['request_fingerprint']}",
+        metadata=metadata,
+        fingerprints={s.node_key: metadata["request_fingerprint"] for s in steps},
+    )
+
+
+def test_a_governed_run_records_why_what_and_on_which_design(runs: Any, design: Any) -> None:
+    revision_id = design()
+    started = runs().start(
+        design_revision_id=revision_id,
+        preset_name="QUICK",
+        purpose_source=PurposeSource.LEGACY_DEFAULT,
+        title="Kontext trhu",
+    )
+    metadata = started.run["metadata"]
+    spec = runs().freeze_design(design_revision_id=revision_id, preset_name="QUICK")
+    assert metadata["integration_contract"] == RUN_SPEC_CONTRACT
+    assert metadata["purpose"] == "DESIGN_RESEARCH"
+    assert metadata["purpose_source"] == "LEGACY_DEFAULT"
+    assert metadata["run_spec_fingerprint"] == spec.fingerprint()
+    assert metadata["request_fingerprint"] == spec.engine_request_fingerprint()
+    record = governed_record(metadata)
+    assert record is not None
+    # The durable round trip: what is stored is the spec, exactly.
+    assert (record.purpose, record.target, record.lineage) == (
+        spec.purpose,
+        spec.target,
+        spec.lineage,
+    )
+    assert record.title == "Kontext trhu"
+    revision = runs()._designs().get(revision_id)
+    assert spec.lineage == DesignLineage(
+        kind="DESIGN",
+        design_revision_id=revision_id,
+        design_revision=revision.revision,
+        design_content_sha256=revision.content_sha256,
+    )
+    # The title is not identity: the same spec untitled is the same run.
+    again = runs().start(design_revision_id=revision_id, preset_name="QUICK")
+    assert not again.created and again.run_id == started.run_id
+
+
+def test_running_design_research_writes_no_design(runs: Any, design: Any) -> None:
+    """Advisory only: freezing and starting leaves the Study's revisions as they were."""
+    revision_id = design()
+    before = [r.revision_id for r in runs()._designs().revisions(limit=50)]
+    runs().start(design_revision_id=revision_id, preset_name="QUICK")
+    runs().freeze_design(design_revision_id=revision_id, preset_name="STANDARD")
+    assert [r.revision_id for r in runs()._designs().revisions(limit=50)] == before
+
+
+def test_a_run_stored_before_adr_0021_reads_honestly_and_is_not_rewritten(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    revision_id = design()
+    legacy = _legacy_run(session, scoped, revision_id)
+    run = runs().get(legacy)
+    assert governed_record(run["metadata"]) is None  # no purpose is made up for it
+    assert "purpose" not in run["metadata"]
+    assert [r["run_id"] for r in runs().runs()] == [legacy]
+    with pytest.raises(RunNotGoverned):
+        runs().provenance(legacy, store=InMemoryArtifactStore())
+    # A new start over the same revision is a new, governed run: the old key is not reused.
+    governed = runs().start(design_revision_id=revision_id, preset_name="QUICK")
+    assert governed.created and governed.run_id != legacy
+    assert runs().get(legacy)["metadata"] == run["metadata"]  # history untouched
+    # Its retry is a new Design Research run through the legacy rule, said so.
+    runs().cancel(legacy)
+    retried = runs().retry(legacy)
+    assert retried.run["metadata"]["purpose"] == "DESIGN_RESEARCH"
+    assert retried.run["metadata"]["purpose_source"] == "LEGACY_DEFAULT"
+    assert retried.run["metadata"]["retry_of"] == legacy
+
+
+def test_a_stored_spec_that_no_longer_hashes_is_refused(runs: Any, design: Any) -> None:
+    metadata = dict(runs().start(design_revision_id=design(), preset_name="QUICK").run["metadata"])
+    metadata["purpose"] = "INTERPRETATION_RESEARCH"
+    with pytest.raises(RunSpecCorrupt):
+        governed_record(metadata)
+    tampered = dict(runs().start(design_revision_id=design(), preset_name="QUICK").run["metadata"])
+    tampered["lineage"] = {**tampered["lineage"], "design_content_sha256": "0" * 64}
+    with pytest.raises(RunSpecCorrupt):
+        governed_record(tampered)
+
+
+def test_a_design_target_of_another_study_or_client_is_refused(runs: Any, design: Any) -> None:
+    with pytest.raises(DesignRevisionNotFound):
+        runs().freeze_design(design_revision_id=design(study="sibling"), preset_name="QUICK")
+    with pytest.raises(DesignRevisionNotFound):
+        runs().freeze_design(design_revision_id=design(study="other_client"), preset_name="QUICK")
+
+
+def test_interpretation_needs_a_result_of_this_study(runs: Any, design: Any) -> None:
+    store = InMemoryArtifactStore()
+    revision_id = design()
+    with pytest.raises(ResearchTargetInvalid):
+        runs().freeze_interpretation(
+            target=DesignRevisionTarget(kind="DESIGN_REVISION", design_revision_id=revision_id),
+            preset_name="QUICK",
+            store=store,
+        )
+    with pytest.raises(ResearchTargetNotFound):
+        runs().freeze_interpretation(
+            target=ResultQuestionTarget(
+                kind="RESULT_QUESTION",
+                research_run_id="RUN-0000000000000000",
+                aggregate_artifact_id="ART-0000000000000000",
+                question_id="q1",
+            ),
+            preset_name="QUICK",
+            store=store,
+        )

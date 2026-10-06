@@ -310,6 +310,22 @@ forbid "among the executors, only the recorded composition builds recorded web r
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# Deep Research has no authority over research truth (ADR 0021): it may propose a
+# design change for a person to accept and write its own evidence, never a Design
+# Revision, a Study's working content or a research run's deterministic artifacts.
+# Its code may read a revision and a run's results (``upstream_artifact``,
+# ``ResearchRuns.get``); it never names a writer: the design and workspace writers,
+# the research step executors and the research run's start, retry or cancel.
+DR_WRITES='\.submit\(|StudyWorkspaceRepository|\bresearch_registry|\b(Compile|Preflight|Fieldwork|Aggregate|Sociomap|Sociomapping|Analysis)Executor\b|ResearchRuns\([^)]*\)\.(start|retry|cancel|lift_budget)'
+forbid "Deep Research executors never write a design or a research run's results" \
+  "$DR_WRITES" \
+  "$EXECUTORS/deep_research"
+forbid "the Deep Research domain never writes a design or a research run's results" \
+  "$DR_WRITES" \
+  "$CORE/domain/deep_research"
+forbid "the Deep Research service never writes a design or a research run's results" \
+  "$DR_WRITES" \
+  "$CORE/application/deep_research.py"
 # The focused crawler (plan chunk 17) reaches the web only through the retrieval
 # gate it is given: classified, egress-checked, reserved, journaled, robots.txt and
 # pacing kept by the gate's transport. An import of infrastructure or of an HTTP

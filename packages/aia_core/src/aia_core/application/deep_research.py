@@ -15,10 +15,22 @@ runs are (ADR 0016): a run of another Study, or of another type, is
 :class:`DeepResearchRunNotFound`, whatever its id says. Its bundle and snapshots are
 read only through the run.
 
-**Not registered.** ``deep_research`` is not in ``WORKFLOW_TYPES`` and no API route
-calls this service; the run is created from the domain's own step graph, which a
-worker claims only if its registry has the kinds (``WorkQueue.claim(kinds=...)``).
-Registering the type, the executors and a route is the integrator's (Job 6).
+**Purpose, target and frozen lineage** (ADR 0021). A governed run is started from a
+:class:`~aia_core.domain.deep_research.integration.DeepResearchRunSpec`: *why*
+(``DESIGN_RESEARCH`` before the methodology freeze, ``INTERPRETATION_RESEARCH`` over
+results that exist), *what* (a typed target) and *which immutable state* (the Design
+Revision's hash; for interpretation every artifact of the producing research run the
+target rests on, pinned by id and SHA256). The spec is the run's identity and is stored
+with the run; the engine request inside it, and so every engine fingerprint, is the one
+this module froze before ADR 0021. :meth:`freeze_design` is the design-side freeze;
+:meth:`freeze_interpretation` the result-side one. A run stored before the contract
+reads as ``legacy-unversioned``: nothing is back-filled.
+
+**Registered and parked by default.** The API route (``routers/deep_research.py``) calls
+this service, and the worker's default registry holds the six executors; the worker
+composes a runtime only with ``AIA_DEEP_RESEARCH_ENABLED`` (off on develop), and a run
+parks without one. ``deep_research`` is not a ``WORKFLOW_TYPES`` template: the run is
+created from the domain's own step graph.
 
 **A study's spend limit asks first** (ADR 0019 gate 2, plan
 ``deep-research-web-search.md`` chunk 22), as a research run's start does: when the
@@ -36,6 +48,7 @@ from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from ..domain.deep_research.budgets import ResearchMode, track_counts
@@ -45,6 +58,32 @@ from ..domain.deep_research.contracts import (
     Channel,
     DeepResearchRequest,
     SourceSnapshot,
+    digest,
+)
+from ..domain.deep_research.integration import (
+    AGGREGATE_ARTIFACT,
+    DATASET_ARTIFACT,
+    LEGACY_UNVERSIONED,
+    RUN_SPEC_CONTRACT,
+    SPECIFICATION_ARTIFACT,
+    AnalysisModuleTarget,
+    ArtifactPin,
+    DeepResearchProvenance,
+    DeepResearchPurpose,
+    DeepResearchRunSpec,
+    DesignLineage,
+    DesignRevisionTarget,
+    FrozenLineage,
+    InterpretationLineage,
+    PurposeSource,
+    ResearchTargetRef,
+    ResultBatteryObjectTarget,
+    ResultQuestionTarget,
+    SociomapObjectTarget,
+    SociomapRelationshipTarget,
+    SociomapTarget,
+    run_spec_identity,
+    target_node,
 )
 from ..domain.deep_research.knowledge_access import client_terms, freeze_knowledge
 from ..domain.deep_research.planning import (
@@ -63,13 +102,20 @@ from ..domain.run_cost import (
     deep_research_cost_ceiling,
 )
 from ..domain.scope import Permission, StudyContext
-from ..domain.workflow import WorkflowRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
+from ..infrastructure.artifact_repository import ArtifactNotFound, ArtifactStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
-from .research import CostCeilingUnknown, CostConfirmationRequired, research_artifacts
+from .research import (
+    CostCeilingUnknown,
+    CostConfirmationRequired,
+    ResearchRunNotFound,
+    ResearchRuns,
+    research_artifacts,
+)
 from .workflows import StartedRun
 
 __all__ = [
@@ -77,7 +123,14 @@ __all__ = [
     "DeepResearchRunNotFound",
     "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
+    "GovernedRecord",
+    "LineageChanged",
     "NothingToResearch",
+    "ResearchTargetInvalid",
+    "ResearchTargetNotFound",
+    "RunNotGoverned",
+    "RunSpecCorrupt",
+    "governed_record",
 ]
 
 
@@ -95,6 +148,26 @@ class DeepResearchRunNotRetryable(Exception):
 
 class NothingToResearch(Exception):
     """The Design Revision holds no research question, goal or tracked object."""
+
+
+class ResearchTargetNotFound(LookupError):
+    """The target, or an artifact it rests on, is not this Study's (or does not exist)."""
+
+
+class ResearchTargetInvalid(ValueError):
+    """The target does not fit its purpose, or names something its artifact does not hold."""
+
+
+class LineageChanged(Exception):
+    """A retry would no longer rest on the exact artifacts its run was anchored to."""
+
+
+class RunSpecCorrupt(ValueError):
+    """A stored run spec no longer hashes to the fingerprint stored with it."""
+
+
+class RunNotGoverned(Exception):
+    """A run stored before ADR 0021: it has no purpose, target or lineage to cite."""
 
 
 class BundleNotReady(Exception):
@@ -187,6 +260,142 @@ class DeepResearchRuns:
             ),
         )
 
+    def freeze_design(
+        self,
+        *,
+        design_revision_id: str,
+        preset_name: str,
+        channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
+        title: str | None = None,
+    ) -> DeepResearchRunSpec:
+        """The ``DESIGN_RESEARCH`` spec over one Design Revision. Writes nothing.
+
+        The engine request is exactly :meth:`freeze`'s; the target is the revision and the
+        lineage its id, number and content hash. Running it changes no design: what it
+        finds can only become a proposal a person accepts into a new revision.
+        """
+        request = self.freeze(
+            design_revision_id=design_revision_id, preset_name=preset_name, channels=channels
+        )
+        revision = self._designs().get(request.design_revision_id)
+        return DeepResearchRunSpec(
+            contract_version=RUN_SPEC_CONTRACT,
+            purpose=DeepResearchPurpose.DESIGN_RESEARCH,
+            target=DesignRevisionTarget(
+                kind="DESIGN_REVISION", design_revision_id=revision.revision_id
+            ),
+            lineage=DesignLineage(
+                kind="DESIGN",
+                design_revision_id=revision.revision_id,
+                design_revision=revision.revision,
+                design_content_sha256=revision.content_sha256,
+            ),
+            engine_request=request,
+            title=title,
+        )
+
+    def freeze_interpretation(
+        self,
+        *,
+        target: ResearchTargetRef,
+        preset_name: str,
+        store: ArtifactStore,
+        channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
+        title: str | None = None,
+    ) -> DeepResearchRunSpec:
+        """The ``INTERPRETATION_RESEARCH`` spec over one result of this Study. Writes nothing.
+
+        The target's research run is found only through this Study
+        (:class:`~aia_core.application.research.ResearchRuns`); its ``compile``, ``run`` and
+        ``aggregate`` outputs and the target's own artifact are pinned by id and SHA256,
+        each read and verified now, and the target's entity must be in the artifact it
+        names. The engine request is frozen from the Design Revision that run executed.
+
+        Raises :class:`ResearchTargetInvalid` for a design target or an entity its
+        artifact does not hold, :class:`ResearchTargetNotFound` for a run or an artifact
+        that is not this Study's, or not the one the run produced, and lets the store's
+        ``IntegrityError`` / ``ObjectNotFound`` through for corrupt bytes (the caller
+        commits the ``CORRUPT`` mark, ``artifacts.md`` § Read protocol). Never the latest
+        result: exactly the artifact named, or nothing.
+        """
+        lineage = self._interpretation_lineage(target, store=store)
+        request = self.freeze(
+            design_revision_id=lineage.design.design_revision_id,
+            preset_name=preset_name,
+            channels=channels,
+        )
+        return DeepResearchRunSpec(
+            contract_version=RUN_SPEC_CONTRACT,
+            purpose=DeepResearchPurpose.INTERPRETATION_RESEARCH,
+            target=target,
+            lineage=lineage,
+            engine_request=request,
+            title=title,
+        )
+
+    def _interpretation_lineage(
+        self, target: ResearchTargetRef, *, store: ArtifactStore
+    ) -> InterpretationLineage:
+        node = target_node(target)
+        if node is None:
+            raise ResearchTargetInvalid("Interpretation Research targets a result, not a design")
+        target_key, target_artifact_id, target_type = node
+        assert not isinstance(target, DesignRevisionTarget)
+        try:
+            run = ResearchRuns(self.session, self.scope).get(target.research_run_id)
+        except ResearchRunNotFound as exc:
+            raise ResearchTargetNotFound(target.research_run_id) from exc
+        steps = {s["node_key"]: s for s in run["steps"]}
+        expected = {
+            "compile": SPECIFICATION_ARTIFACT,
+            "run": DATASET_ARTIFACT,
+            "aggregate": AGGREGATE_ARTIFACT,
+            target_key: target_type,
+        }
+        repo = research_artifacts(self.session, self.scope, store)
+        pins: list[ArtifactPin] = []
+        payloads: dict[str, Any] = {}
+        for node_key in sorted(expected):
+            step = steps.get(node_key)
+            output = (step or {}).get("output") or {}
+            artifact_id = output.get("artifact_id")
+            if step is None or step["status"] is not StepRunStatus.SUCCEEDED or not artifact_id:
+                raise ResearchTargetNotFound(f"the run produced no {node_key} result")
+            if node_key == target_key and artifact_id != target_artifact_id:
+                # The target names an artifact this run's step did not produce: never
+                # reinterpreted as the one it did, whatever is newer.
+                raise ResearchTargetNotFound(target_artifact_id)
+            try:
+                artifact = repo.get(str(artifact_id))
+            except ArtifactNotFound as exc:
+                raise ResearchTargetNotFound(str(artifact_id)) from exc
+            if artifact.artifact_type != expected[node_key]:
+                raise ResearchTargetInvalid(f"{artifact_id} is not a {expected[node_key]}")
+            if artifact.status is not ArtifactStatus.VALID:
+                raise ResearchTargetInvalid(f"{artifact_id} is {artifact.status.value}")
+            payloads[node_key] = repo.read_json(artifact.artifact_id)  # verified: SHA256
+            pins.append(
+                ArtifactPin(
+                    node_key=node_key,
+                    artifact_id=artifact.artifact_id,
+                    artifact_type=artifact.artifact_type,
+                    sha256=artifact.sha256,
+                )
+            )
+        _require_entity(target, payloads[target_key])
+        revision = self._designs().get(str(run["metadata"]["design_revision_id"]))
+        return InterpretationLineage(
+            kind="INTERPRETATION",
+            research_run_id=run["run_id"],
+            design=DesignLineage(
+                kind="DESIGN",
+                design_revision_id=revision.revision_id,
+                design_revision=revision.revision,
+                design_content_sha256=revision.content_sha256,
+            ),
+            artifacts=tuple(pins),
+        )
+
     def start(
         self,
         *,
@@ -197,13 +406,82 @@ class DeepResearchRuns:
         prices: DeepResearchPrices | None = None,
         modes: Collection[ResearchMode] = tuple(ResearchMode),
         confirm_cost_usd: float | None = None,
+        purpose_source: PurposeSource = PurposeSource.EXPLICIT,
+        title: str | None = None,
     ) -> StartedRun:
-        """Freeze a request over one Design Revision and enqueue a run of it.
+        """Start ``DESIGN_RESEARCH`` over one Design Revision (:meth:`freeze_design`).
 
-        Idempotent per request: the same revision, depth, channels, knowledge and
-        terms start one run, so a double submission gets the run that exists; an
-        approval in between is a different request and a new run. Needs
-        ``RUN_WORKFLOW`` on an open Study, checked before anything is read.
+        ``purpose_source`` records how the purpose was stated: the deployed start API
+        names none, and a new request through it is Design Research by ADR 0021's
+        compatibility rule (``LEGACY_DEFAULT``). It is recorded, never identity.
+        """
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        spec = self.freeze_design(
+            design_revision_id=design_revision_id,
+            preset_name=preset_name,
+            channels=channels,
+            title=title,
+        )
+        return self._enqueue(
+            spec,
+            purpose_source=purpose_source,
+            retry_of=retry_of,
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+
+    def start_interpretation(
+        self,
+        *,
+        target: ResearchTargetRef,
+        preset_name: str,
+        store: ArtifactStore,
+        channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
+        retry_of: str | None = None,
+        prices: DeepResearchPrices | None = None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+        confirm_cost_usd: float | None = None,
+        title: str | None = None,
+    ) -> StartedRun:
+        """Start ``INTERPRETATION_RESEARCH`` over one result (:meth:`freeze_interpretation`).
+
+        The foundation only (ADR 0021, Step 1): the engine request is the one frozen from
+        the producing run's Design Revision. Subjects written from the target, and the
+        route that starts this, are the next slice.
+        """
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        spec = self.freeze_interpretation(
+            target=target, preset_name=preset_name, store=store, channels=channels, title=title
+        )
+        return self._enqueue(
+            spec,
+            purpose_source=PurposeSource.EXPLICIT,
+            retry_of=retry_of,
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+
+    def _enqueue(
+        self,
+        spec: DeepResearchRunSpec,
+        *,
+        purpose_source: PurposeSource,
+        retry_of: str | None,
+        prices: DeepResearchPrices | None,
+        modes: Collection[ResearchMode],
+        confirm_cost_usd: float | None,
+    ) -> StartedRun:
+        """Enqueue a run of ``spec``, idempotently.
+
+        Idempotent per spec: the same purpose, target, lineage and engine request start
+        one run, so a double submission gets the run that exists; an approval in between
+        is a different engine request and a new run, and so is a different purpose or
+        target over the same request. Each step's fingerprint stays the engine request's,
+        so the engine's reuse across runs is unchanged.
 
         When the Study has a spend limit and this would create a run, the run's cost
         ceiling is worked out from ``prices`` (the deployment's, never the request's)
@@ -214,16 +492,13 @@ class DeepResearchRuns:
         :class:`~aia_core.application.research.CostCeilingUnknown`: not let by. A start
         that finds its run already there spends nothing and asks nothing.
         """
-        self.scope.require(Permission.RUN_WORKFLOW)
-        self.scope.require_open_study()
-        request = self.freeze(
-            design_revision_id=design_revision_id, preset_name=preset_name, channels=channels
-        )
+        request = spec.engine_request
         project_id = self._designs().project_id()
         assert project_id is not None  # a revision exists, so its design project does
         request_fingerprint = request.fingerprint()
+        spec_fingerprint = spec.fingerprint()
         steps = deep_research_steps()
-        key = f"{DEEP_RESEARCH}:{request.design_revision_id}:{request_fingerprint}"
+        key = f"{DEEP_RESEARCH}:spec:{spec_fingerprint}"
         if retry_of:
             key += f":retry:{retry_of}"
         workflows = self._workflows()
@@ -265,6 +540,15 @@ class DeepResearchRuns:
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
                 "preset_table": PRESET_TABLE_VERSION,
+                # ADR 0021: why, what and on which immutable state. The engine request
+                # itself is the plan step's input, below.
+                "integration_contract": spec.contract_version,
+                "purpose": spec.purpose.value,
+                "purpose_source": purpose_source.value,
+                "target": spec.target.model_dump(mode="json"),
+                "lineage": spec.lineage.model_dump(mode="json"),
+                "run_spec_fingerprint": spec_fingerprint,
+                **({"title": spec.title} if spec.title is not None else {}),
                 **(
                     {"cost_ceiling_usd": ceiling.total_usd, "cost_ceiling_mode": ceiling.mode.value}
                     if ceiling is not None
@@ -272,7 +556,7 @@ class DeepResearchRuns:
                 ),
                 **({"retry_of": retry_of} if retry_of else {}),
             },
-            # Each step's fingerprint is the request's: a re-run after a crash is
+            # Each step's fingerprint is the engine request's: a re-run after a crash is
             # the same work, and the artifacts it stored are found by their own.
             fingerprints={s.node_key: request_fingerprint for s in steps},
             step_inputs={"plan": {"request": request.model_dump(mode="json")}},
@@ -301,23 +585,58 @@ class DeepResearchRuns:
         prices: DeepResearchPrices | None = None,
         modes: Collection[ResearchMode] = tuple(ResearchMode),
         confirm_cost_usd: float | None = None,
+        store: ArtifactStore | None = None,
     ) -> StartedRun:
         """Start a failed or cancelled run again, as a new run linked to it.
 
-        Frozen afresh: what changed since -- an approval, a revoked item -- is in the
-        new request. What the earlier run stored is found by fingerprint, so a track,
-        a snapshot or a verification it completed is not bought again. A retry can
-        spend again, so it asks again: the limit and the confirmation work as they do
-        for :meth:`start`.
+        Frozen afresh, as before ADR 0021: what changed since -- an approval, a revoked
+        item -- is in the new engine request, and what the earlier run stored is found
+        by fingerprint, so a track, a snapshot or a verification it completed is not
+        bought again. The *target* is never re-chosen: a design run retries over its
+        revision, an interpretation run over the exact result it named, and if that
+        result's pinned artifacts no longer resolve to the same hashes the retry is
+        :class:`LineageChanged`, never a run over something newer. A run stored before
+        ADR 0021 retries as a new Design Research run through the legacy rule. A retry
+        can spend again, so it asks again, as :meth:`start` does.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise DeepResearchRunNotRetryable(run["status"])
         metadata = run["metadata"]
-        return self.start(
-            design_revision_id=str(metadata["design_revision_id"]),
+        channels = [Channel(c) for c in metadata["channels"]]
+        record = governed_record(metadata)
+        if record is None or record.purpose is DeepResearchPurpose.DESIGN_RESEARCH:
+            return self.start(
+                design_revision_id=str(metadata["design_revision_id"]),
+                preset_name=str(metadata["preset"]),
+                channels=channels,
+                retry_of=run_id,
+                prices=prices,
+                modes=modes,
+                confirm_cost_usd=confirm_cost_usd,
+                purpose_source=(
+                    PurposeSource.LEGACY_DEFAULT
+                    if record is None
+                    else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
+                ),
+                title=record.title if record is not None else None,
+            )
+        if store is None:
+            raise ValueError("an interpretation retry re-reads its pinned results: pass a store")
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        spec = self.freeze_interpretation(
+            target=record.target,
             preset_name=str(metadata["preset"]),
-            channels=[Channel(c) for c in metadata["channels"]],
+            store=store,
+            channels=channels,
+            title=record.title,
+        )
+        if spec.lineage != record.lineage:
+            raise LineageChanged("the result this run interpreted no longer reads as it did")
+        return self._enqueue(
+            spec,
+            purpose_source=PurposeSource.EXPLICIT,
             retry_of=run_id,
             prices=prices,
             modes=modes,
@@ -403,3 +722,159 @@ class DeepResearchRuns:
         if snapshot.snapshot_id != ref.snapshot_id or snapshot.text_sha256 != ref.text_sha256:
             raise BundleNotReady("the stored snapshot is not the one the bundle cites")
         return snapshot
+
+    # -- purpose, target and lineage (ADR 0021) ----------------------------------
+
+    def provenance(self, run_id: str, *, store: ArtifactStore) -> DeepResearchProvenance:
+        """What a governed run's evidence cites: purpose, target, lineage and the bundle.
+
+        The bundle is read and verified against its seal (:meth:`bundle`); the envelope
+        names it by its artifact id and the row's SHA256 beside the seal, and changes
+        nothing in it. The stored spec's fingerprint is recomputed from what is stored
+        and must match. A run stored before ADR 0021 is :class:`RunNotGoverned`.
+        """
+        run = self.get(run_id)
+        record = governed_record(run["metadata"])
+        if record is None:
+            raise RunNotGoverned(f"{run_id} was started before ADR 0021 ({LEGACY_UNVERSIONED})")
+        bundle = self.bundle(run_id, store=store)
+        publish = next(s for s in run["steps"] if s["node_key"] == "publish")
+        artifact_id = str((publish.get("output") or {})["artifact_id"])
+        artifact = research_artifacts(self.session, self.scope, store).get(artifact_id)
+        return DeepResearchProvenance(
+            contract_version=RUN_SPEC_CONTRACT,
+            run_id=run["run_id"],
+            purpose=record.purpose,
+            target=record.target,
+            lineage=record.lineage,
+            run_spec_fingerprint=record.run_spec_fingerprint,
+            engine_request_fingerprint=record.engine_request_fingerprint,
+            evidence_bundle_artifact_id=artifact.artifact_id,
+            evidence_bundle_artifact_sha256=artifact.sha256,
+            evidence_bundle_seal=bundle.sha256,
+        )
+
+    def resolve_lineage(
+        self, run_id: str, *, store: ArtifactStore
+    ) -> InterpretationLineage | DesignLineage:
+        """A governed run's lineage, re-resolved now: every pin read, verified and compared.
+
+        Design lineage: the revision still has the stored number and content hash.
+        Interpretation lineage: each pinned artifact is this Study's, ``VALID``, of the
+        pinned type, and its bytes still hash to the pinned SHA256. Any difference is
+        :class:`LineageChanged`; corrupt bytes raise from the store.
+        """
+        run = self.get(run_id)
+        record = governed_record(run["metadata"])
+        if record is None:
+            raise RunNotGoverned(f"{run_id} was started before ADR 0021 ({LEGACY_UNVERSIONED})")
+        lineage = record.lineage
+        design = lineage if isinstance(lineage, DesignLineage) else lineage.design
+        revision = self._designs().get(design.design_revision_id)
+        if (revision.revision, revision.content_sha256) != (
+            design.design_revision,
+            design.design_content_sha256,
+        ):
+            raise LineageChanged(f"{design.design_revision_id} no longer reads as pinned")
+        if isinstance(lineage, InterpretationLineage):
+            repo = research_artifacts(self.session, self.scope, store)
+            for pin in lineage.artifacts:
+                try:
+                    artifact = repo.get(pin.artifact_id)
+                except ArtifactNotFound as exc:
+                    raise LineageChanged(f"{pin.artifact_id} is gone") from exc
+                if (artifact.artifact_type, artifact.sha256, artifact.status) != (
+                    pin.artifact_type,
+                    pin.sha256,
+                    ArtifactStatus.VALID,
+                ):
+                    raise LineageChanged(f"{pin.artifact_id} is not the artifact pinned")
+                repo.read(pin.artifact_id)  # its bytes still hash to the pin
+        return lineage
+
+
+@dataclass(frozen=True, slots=True)
+class GovernedRecord:
+    """A governed run's purpose, target and lineage, as stored with the run."""
+
+    purpose: DeepResearchPurpose
+    purpose_source: PurposeSource
+    target: ResearchTargetRef
+    lineage: InterpretationLineage | DesignLineage
+    run_spec_fingerprint: str
+    engine_request_fingerprint: str
+    title: str | None
+
+
+def governed_record(metadata: dict[str, Any]) -> GovernedRecord | None:
+    """The stored purpose, target and lineage of a run; None for a run stored before them.
+
+    The stored run-spec fingerprint is recomputed from the stored parts and the engine
+    request's fingerprint; a mismatch is not quietly accepted (:class:`RunSpecCorrupt`).
+    """
+    if metadata.get("integration_contract") != RUN_SPEC_CONTRACT:
+        return None
+    spec = _StoredSpec.model_validate(
+        {
+            "purpose": metadata["purpose"],
+            "target": metadata["target"],
+            "lineage": metadata["lineage"],
+        }
+    )
+    engine = str(metadata["request_fingerprint"])
+    stored = str(metadata["run_spec_fingerprint"])
+    recomputed = digest(run_spec_identity(spec.purpose, spec.target, spec.lineage, engine))
+    if recomputed != stored:
+        raise RunSpecCorrupt("the stored run spec does not hash to its fingerprint")
+    title = metadata.get("title")
+    return GovernedRecord(
+        purpose=spec.purpose,
+        purpose_source=PurposeSource(str(metadata.get("purpose_source", "EXPLICIT"))),
+        target=spec.target,
+        lineage=spec.lineage,
+        run_spec_fingerprint=stored,
+        engine_request_fingerprint=engine,
+        title=str(title) if title is not None else None,
+    )
+
+
+class _StoredSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    purpose: DeepResearchPurpose
+    target: ResearchTargetRef
+    lineage: FrozenLineage
+
+
+def _require_entity(target: ResearchTargetRef, payload: Any) -> None:
+    """The target's entity is in the artifact it names, or the target is refused."""
+    try:
+        if isinstance(target, ResultQuestionTarget):
+            found = target.question_id in payload["aggregate"]["questions"]
+        elif isinstance(target, ResultBatteryObjectTarget):
+            battery = payload["aggregate"]["batteries"].get(target.battery_id)
+            found = battery is not None and target.object_id in battery["objects"]
+        elif isinstance(target, AnalysisModuleTarget):
+            found = payload["module_id"] == target.module_id.value
+        elif isinstance(target, SociomapTarget | SociomapObjectTarget | SociomapRelationshipTarget):
+            battery = next(
+                (
+                    b
+                    for b in payload["sociomap"]["batteries"]
+                    if b["battery_id"] == target.battery_id
+                ),
+                None,
+            )
+            objects = {o["id"] for o in battery["objects"]} if battery is not None else set()
+            if isinstance(target, SociomapObjectTarget):
+                found = target.object_id in objects
+            elif isinstance(target, SociomapRelationshipTarget):
+                found = {target.source_object_id, target.target_object_id} <= objects
+            else:
+                found = battery is not None
+        else:
+            found = False
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ResearchTargetInvalid("the artifact does not have the shape of its type") from exc
+    if not found:
+        raise ResearchTargetInvalid(f"{target.kind}: the artifact holds no such entity")

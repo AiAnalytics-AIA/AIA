@@ -93,3 +93,37 @@ def test_an_invalid_job_is_refused_before_enqueue_and_a_viewer_label_may_start(
     # A member who was never granted the study starts the same job: idempotent, so 200.
     again = outsider.post(_url(world), json={**base, "channels": ["WEB"]})
     assert again.status_code == 200 and again.json()["run_id"] == started.json()["run_id"]
+
+
+def test_a_run_says_why_what_and_on_which_design_and_the_old_shape_still_starts(
+    researcher: TestClient, world: Any
+) -> None:
+    """ADR 0021. The deployed client names no purpose: a new start through that shape is
+    Design Research, recorded as the compatibility default; naming it is the same run."""
+    revision = _revision(researcher, world)
+    legacy_shape = {"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]}
+    started = researcher.post(_url(world), json=legacy_shape)
+    assert started.status_code == 201, started.text
+    job = started.json()
+    assert job["integration_contract"] == "aia-deep-research-run-spec-1"
+    assert job["purpose"] == "DESIGN_RESEARCH" and job["purpose_source"] == "LEGACY_DEFAULT"
+    assert job["target"] == {"kind": "DESIGN_REVISION", "design_revision_id": revision}
+    assert job["lineage"]["kind"] == "DESIGN"
+    assert job["lineage"]["design_revision_id"] == revision
+    assert len(job["lineage"]["design_content_sha256"]) == 64
+    assert len(job["run_spec_fingerprint"]) == 64
+
+    named = researcher.post(
+        _url(world), json={**legacy_shape, "purpose": "DESIGN_RESEARCH", "title": "Kontext"}
+    )
+    assert named.status_code == 200 and named.json()["run_id"] == job["run_id"]
+
+    # The result-side start is not this route's yet; nothing else is a purpose.
+    for purpose in ("INTERPRETATION_RESEARCH", "ANYTHING"):
+        refused = researcher.post(_url(world), json={**legacy_shape, "purpose": purpose})
+        assert refused.status_code == 422, purpose
+
+    run_url = f"{_url(world)}/{job['run_id']}"
+    provenance = researcher.get(f"{run_url}/provenance")
+    assert provenance.status_code == 409
+    assert provenance.json()["code"] == "bundle_not_ready"
