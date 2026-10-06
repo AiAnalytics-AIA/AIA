@@ -60,6 +60,10 @@ def new_tool_event_id() -> str:
 class ToolKind(StrEnum):
     WEB_SEARCH = "web_search"
     WEB_FETCH = "web_fetch"
+    #: A query of a web archive's URL index (Common Crawl through Athena, plan chunk 18).
+    URL_INDEX_QUERY = "url_index_query"
+    #: One archived record read from a web archive by byte range (plan chunk 18).
+    ARCHIVE_FETCH = "archive_fetch"
 
 
 class ToolOutcome(StrEnum):

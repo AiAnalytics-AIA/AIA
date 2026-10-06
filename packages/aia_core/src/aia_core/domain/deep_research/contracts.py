@@ -37,6 +37,7 @@ from ..residency import DataClass
 __all__ = [
     "DOCUMENT_LAYOUT_VERSION",
     "HARNESS_VERSION",
+    "ArchivedCapture",
     "BriefDigest",
     "Channel",
     "ClientTerm",
@@ -359,6 +360,33 @@ class DocumentLayout(_Closed):
     sheets: tuple[DocumentSheet, ...] = ()
 
 
+class ArchivedCapture(_Closed):
+    """Where an archived copy came from: a dated capture, never the live page.
+
+    A snapshot carrying one was read from a web archive (plan chunk 18: a Common
+    Crawl WARC record fetched by byte range), not from the publisher's host. Its
+    ``captured_at`` is when the archive captured the page (``WARC-Date``); the
+    snapshot's ``retrieved_at`` is when AIA read the archive. Everything here is
+    what the archive says about the record, kept so the capture can be fetched
+    again byte for byte and shown as what it is.
+    """
+
+    archive: Literal["common_crawl"]
+    #: The crawl the record belongs to (``CC-MAIN-YYYY-WW``).
+    crawl: str = Field(pattern=r"^CC-MAIN-\d{4}-\d{2}$")
+    captured_at: datetime
+    #: The page's URL as the archive captured it (``WARC-Target-URI``).
+    target_uri: str = Field(min_length=1, max_length=2048)
+    warc_filename: str = Field(min_length=1, max_length=512)
+    warc_record_offset: int = Field(ge=0)
+    warc_record_length: int = Field(gt=0)
+    warc_record_id: str = Field(min_length=1, max_length=200)
+    #: ``WARC-Payload-Digest`` as recorded (``sha1:<base32>``), when the record has one.
+    payload_digest: str | None = Field(default=None, max_length=200)
+    #: ``WARC-Truncated`` as recorded: the archive kept only part of the payload.
+    payload_truncated: str | None = Field(default=None, max_length=100)
+
+
 class SourceSnapshot(_Closed):
     """A fetched page as stored: content-addressed, with how it was retrieved.
 
@@ -374,6 +402,12 @@ class SourceSnapshot(_Closed):
 
     ``document`` is the layout of a PDF, XLSX or CSV source (where each page or
     cell lies in ``text``); ``None`` for a page, and then omitted the same way.
+
+    ``archive`` is set when the text came from a web archive's capture
+    (:class:`ArchivedCapture`) rather than from the page's host; it is omitted
+    the same way when absent. An archived snapshot's id also names the record it
+    came from, so an archived copy and a live fetch of the same text are never
+    one snapshot.
     """
 
     snapshot_id: str = Field(pattern=r"^SNP-[0-9a-f]{24}$")
@@ -396,6 +430,8 @@ class SourceSnapshot(_Closed):
     instructions_detected: tuple[str, ...]
     links: tuple[SnapshotLink, ...] = ()
     document: DocumentLayout | None = None
+    #: Set only for a copy read from a web archive: the page was not fetched live.
+    archive: ArchivedCapture | None = None
 
     @model_serializer(mode="wrap")
     def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> Any:
@@ -405,6 +441,8 @@ class SourceSnapshot(_Closed):
                 data.pop("links", None)
             if self.document is None:
                 data.pop("document", None)
+            if self.archive is None:
+                data.pop("archive", None)
         return data
 
 
