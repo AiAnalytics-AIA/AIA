@@ -278,11 +278,15 @@ class TrackInputs:
     ``web_retrieval`` identifies the retrieval a web track would use -- route ids,
     recorded or live, adapter ids and prices -- or ``None`` when this composition
     has none; a recorded result is then never reused as a live one.
+
+    ``thinking_budget_tokens`` is the agents' extended-thinking budget, or ``None``
+    when they do not think; a result is reused only by a pass that thinks the same.
     """
 
     policy_version: str
     prompt_versions: Mapping[Channel, str]
     web_retrieval: Mapping[str, Any] | None
+    thinking_budget_tokens: int | None = None
 
 
 def track_fingerprint(
@@ -311,6 +315,9 @@ def track_fingerprint(
         "prompt": inputs.prompt_versions.get(channel, ""),
         "rules": [GROUNDING_VERSION, CLASSIFIER_VERSION],
     }
+    if inputs.thinking_budget_tokens is not None:
+        # Only when set: every fingerprint taken without thinking keeps its value.
+        material["thinking"] = inputs.thinking_budget_tokens
     if channel is Channel.WEB:
         material["retrieval"] = dict(inputs.web_retrieval) if inputs.web_retrieval else None
     else:
