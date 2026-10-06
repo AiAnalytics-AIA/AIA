@@ -1,0 +1,35 @@
+{
+  "version": "2.0",
+  "class": "dataset",
+  "label": "Fiktivní podíl domácností podle území",
+  "source": "FICTIONAL",
+  "updated": "2026-01-01",
+  "id": ["UKAZATEL", "UZEMI", "CASR"],
+  "size": [1, 2, 2],
+  "role": {"time": ["CASR"], "metric": ["UKAZATEL"], "geo": ["UZEMI"]},
+  "dimension": {
+    "UKAZATEL": {
+      "label": "Ukazatel",
+      "category": {
+        "index": ["FIK01"],
+        "label": {"FIK01": "Fiktivní podíl domácností"},
+        "unit": {"FIK01": {"label": "%", "decimals": 1}}
+      }
+    },
+    "UZEMI": {
+      "label": "Území",
+      "category": {
+        "index": {"CZ010": 0, "CZ020": 1},
+        "label": {"CZ010": "Fiktivní kraj Alfa", "CZ020": "Fiktivní kraj Beta"}
+      }
+    },
+    "CASR": {
+      "label": "Roky",
+      "category": {"index": ["2023", "2024"], "label": {"2023": "2023", "2024": "2024"}}
+    }
+  },
+  "value": [12.4, 13.10, 9.8, null],
+  "status": {"1": "p"},
+  "note": ["FICTIONAL: every label and value here is invented; the shape is JSON-stat 2.0 (json-stat.org/format), the format DataStat is recorded to answer in. No real DataStat answer has been captured yet."],
+  "extension": {"aia_fixture": "fictional"}
+}

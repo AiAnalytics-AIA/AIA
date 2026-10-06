@@ -1,0 +1,36 @@
+{
+  "head": {
+    "vars": ["title", "publisher", "distribution", "format", "mediaType", "downloadURL", "accessURL", "license"],
+    "link": ["urn:aia:fixture:FICTIONAL - every IRI, title and URL here is invented; the shape is W3C SPARQL 1.1 Query Results JSON. No real NKOD answer has been captured yet."]
+  },
+  "results": {
+    "bindings": [
+      {
+        "title": {"type": "literal", "xml:lang": "cs", "value": "Fiktivní počty návštěvníků"},
+        "publisher": {"type": "uri", "value": "https://rpp.example/ovm/00000001"},
+        "distribution": {"type": "uri", "value": "https://lkod.example/distribuce/1"},
+        "format": {"type": "uri", "value": "http://publications.europa.eu/resource/authority/file-type/CSV"},
+        "mediaType": {"type": "uri", "value": "http://www.iana.org/assignments/media-types/text/csv"},
+        "downloadURL": {"type": "uri", "value": "https://lkod.example/soubory/navstevnici.csv"},
+        "accessURL": {"type": "uri", "value": "https://lkod.example/soubory/navstevnici.csv"}
+      },
+      {
+        "title": {"type": "literal", "xml:lang": "en", "value": "Fictional visitor counts"},
+        "publisher": {"type": "uri", "value": "https://rpp.example/ovm/00000001"},
+        "distribution": {"type": "uri", "value": "https://lkod.example/distribuce/1"},
+        "format": {"type": "uri", "value": "http://publications.europa.eu/resource/authority/file-type/CSV"},
+        "mediaType": {"type": "uri", "value": "http://www.iana.org/assignments/media-types/text/csv"},
+        "downloadURL": {"type": "uri", "value": "https://lkod.example/soubory/navstevnici.csv"},
+        "accessURL": {"type": "uri", "value": "https://lkod.example/soubory/navstevnici.csv"}
+      },
+      {
+        "title": {"type": "literal", "xml:lang": "cs", "value": "Fiktivní počty návštěvníků"},
+        "publisher": {"type": "uri", "value": "https://rpp.example/ovm/00000001"},
+        "distribution": {"type": "uri", "value": "https://lkod.example/distribuce/2"},
+        "format": {"type": "uri", "value": "http://publications.europa.eu/resource/authority/file-type/JSON"},
+        "downloadURL": {"type": "uri", "value": "https://lkod.example/soubory/navstevnici.json"},
+        "license": {"type": "uri", "value": "https://creativecommons.org/licenses/by/4.0/"}
+      }
+    ]
+  }
+}

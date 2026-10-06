@@ -29,10 +29,12 @@ from pydantic import (
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
+    model_validator,
 )
 
 from ..ai_contracts import canonical_json
 from ..residency import DataClass
+from .datasets import DATASET_MEDIA_TYPE, DatasetResult
 
 __all__ = [
     "DOCUMENT_LAYOUT_VERSION",
@@ -432,6 +434,22 @@ class SourceSnapshot(_Closed):
     document: DocumentLayout | None = None
     #: Set only for a copy read from a web archive: the page was not fetched live.
     archive: ArchivedCapture | None = None
+    #: A dataset connector's answer, when the source is a table (plan § 8.2): ``text``
+    #: is then its rendering, and a cell is cited by its locator. ``None`` for a page.
+    #: Absent from the serialised form when ``None``, so every page snapshot stored
+    #: before tables existed has the same bytes and the same hash it had.
+    dataset: DatasetResult | None = None
+
+    @model_validator(mode="after")
+    def _dataset_is_its_text(self) -> SourceSnapshot:
+        if self.dataset is not None:
+            if self.text != self.dataset.render():
+                raise ValueError("a dataset snapshot's text is its table's rendering")
+            if self.content_type != DATASET_MEDIA_TYPE or self.truncated:
+                raise ValueError("a dataset snapshot is a whole table, of the table's type")
+        elif self.content_type == DATASET_MEDIA_TYPE:
+            raise ValueError("a snapshot of the table type carries its table")
+        return self
 
     @model_serializer(mode="wrap")
     def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> Any:
@@ -443,6 +461,8 @@ class SourceSnapshot(_Closed):
                 data.pop("document", None)
             if self.archive is None:
                 data.pop("archive", None)
+            if self.dataset is None:
+                data.pop("dataset", None)
         return data
 
 

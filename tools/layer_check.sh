@@ -266,11 +266,12 @@ forbid "no deployment runs the workbench composition" \
 # API or the worker, and named by no deployment. The Common Crawl doubles (plan
 # chunk 18: a recorded URL index, recorded archive ranges) are held to the same
 # rules, beside their own adapters in common_crawl.py.
-RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web|RecordedUrlIndex|RecordedArchiveTransport'
+# The recorded dataset connector is the same kind of double, beside the connectors.
+RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web|RecordedUrlIndex|RecordedArchiveTransport|RecordedDatasetConnector'
 forbid "recorded web retrieval is defined only beside the web adapters" \
   "$RECORDED_WEB" \
   "$CORE/infrastructure" \
-  web_retrieval.py common_crawl.py
+  web_retrieval.py common_crawl.py dataset_connectors.py
 forbid "application code never names recorded web retrieval" \
   "$RECORDED_WEB" \
   "$CORE/application"
