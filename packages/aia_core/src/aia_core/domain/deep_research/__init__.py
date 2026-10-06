@@ -29,6 +29,8 @@ is pure:
 * :mod:`.tracing` -- primary or secondary, traced, and the leads to primary sources;
 * :mod:`.verification` -- the independent verifier's verdicts decided by code,
   supersession, and the review an agent-directed verify step records.
+* :mod:`.confidence` -- a finding's confidence computed by code from versioned
+  weights (proposed), monotone in every input; no agent's rating is an input.
 
 Pure: stdlib and Pydantic only.
 """
