@@ -57,13 +57,24 @@ from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
 from aia_core.infrastructure.build_identity import BuildIdentity
-from aia_core.infrastructure.model_adapters import BedrockConverseAdapter, BedrockSigner
+from aia_core.infrastructure.model_adapters import (
+    BedrockConverseAdapter,
+    BedrockSigner,
+    ModelPinnedAdapter,
+    PinnedModels,
+)
 from aia_core.infrastructure.model_adapters.transport import HttpTransport
 from pydantic import TypeAdapter, ValidationError
 
 from .ai_fieldwork import AIFieldwork, AIFieldworkConfig
 
-__all__ = ["AIRuntimeConfigError", "AIRuntimeSettings", "build_ai_fieldwork", "build_gateway"]
+__all__ = [
+    "AIRuntimeConfigError",
+    "AIRuntimeSettings",
+    "LightModelSettings",
+    "build_ai_fieldwork",
+    "build_gateway",
+]
 
 _TRUE: Final = {"1", "true", "yes", "on"}
 _FALSE: Final = {"0", "false", "no", "off", ""}
@@ -118,6 +129,72 @@ def _positive_int(env: Mapping[str, str], key: str) -> int:
     if value <= 0:
         raise AIRuntimeConfigError(f"{key} must be positive")
     return value
+
+
+@dataclass(frozen=True, slots=True)
+class LightModelSettings:
+    """The light model beside the route's model, for ``RESEARCH_TRIAGE`` only. **Proposed.**
+
+    Plan ``deep-research-web-search.md`` § 5.2 and chunk 20: Deep Research's triage
+    readers judge many pages, each with a short answer, on a cheaper model than the
+    research agents. This is a second model on ADR 0010's route -- a second policy
+    entry under that ADR, pending the data owner's sign-off in chunk 1 -- held to the
+    rules of the route's own model: an EU cross-region inference profile pinned to a
+    version, its prices and limits stated, and no default for any of them.
+
+    No environment key builds one yet, and no deployment passes one: chunk 23 adds
+    the switch and its keys. Until then a gateway carries the light model only where
+    a caller hands this to :func:`build_gateway`.
+    """
+
+    model_id: str
+    input_usd_per_mtok: float
+    output_usd_per_mtok: float
+    max_output_tokens: int
+    context_window_tokens: int
+    cache_read_usd_per_mtok: float | None = None
+    cache_write_usd_per_mtok: float | None = None
+
+    def __post_init__(self) -> None:
+        model_id = self.model_id.strip()
+        if not model_id.startswith("eu.") or model_id.endswith("latest") or ":" not in model_id:
+            raise AIRuntimeConfigError(
+                f"the light model {self.model_id!r} must be an EU inference profile id "
+                "pinned to a version (eu.…:N), never a floating alias (ADR 0010)"
+            )
+        prices = {
+            "input_usd_per_mtok": self.input_usd_per_mtok,
+            "output_usd_per_mtok": self.output_usd_per_mtok,
+            "cache_read_usd_per_mtok": self.cache_read_usd_per_mtok,
+            "cache_write_usd_per_mtok": self.cache_write_usd_per_mtok,
+        }
+        for name, value in prices.items():
+            if value is None and name.startswith("cache_"):
+                continue
+            if value is None or not 0 <= value < float("inf"):
+                raise AIRuntimeConfigError(f"the light model's {name} must be a finite price")
+        if self.max_output_tokens <= 0 or self.context_window_tokens <= 0:
+            raise AIRuntimeConfigError("the light model's token limits must be positive")
+
+    def catalog_entry(self) -> dict[str, Any]:
+        """The light model's catalog entry: ``RESEARCH_TRIAGE`` and nothing else."""
+        pricing: dict[str, Any] = {
+            "input_usd_per_mtok": self.input_usd_per_mtok,
+            "output_usd_per_mtok": self.output_usd_per_mtok,
+        }
+        if self.cache_read_usd_per_mtok is not None:
+            pricing["cache_read_usd_per_mtok"] = self.cache_read_usd_per_mtok
+        if self.cache_write_usd_per_mtok is not None:
+            pricing["cache_write_usd_per_mtok"] = self.cache_write_usd_per_mtok
+        return {
+            "provider": Provider.AWS_BEDROCK.value,
+            "model": self.model_id,
+            "capabilities": [ModelCapability.RESEARCH_TRIAGE.value],
+            "max_output_tokens": self.max_output_tokens,
+            "context_window_tokens": self.context_window_tokens,
+            "pricing": pricing,
+            "supports_strict_schema": False,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,8 +357,17 @@ class AIRuntimeSettings:
                 )
         return settings
 
-    def model_document(self) -> dict[str, Any]:
-        """The catalog and policy document for ``parse_model_config`` (fails closed)."""
+    def model_document(self, light: LightModelSettings | None = None) -> dict[str, Any]:
+        """The catalog and policy document for ``parse_model_config`` (fails closed).
+
+        ``light`` adds the light model to the catalog and binds ``RESEARCH_TRIAGE`` to
+        it on this route. Without it nothing binds ``RESEARCH_TRIAGE``, and a triage
+        request is refused at resolution (``capability_not_configured``).
+        """
+        if light is not None and light.model_id == self.model_id:
+            raise AIRuntimeConfigError(
+                "the light model must be a different profile from AIA_BEDROCK_MODEL_ID"
+            )
         pricing: dict[str, Any] = {
             "input_usd_per_mtok": self.input_usd_per_mtok,
             "output_usd_per_mtok": self.output_usd_per_mtok,
@@ -300,25 +386,35 @@ class AIRuntimeSettings:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
             capabilities.append(ModelCapability.CRITIC)
+        models: list[dict[str, Any]] = [
+            {
+                "provider": Provider.AWS_BEDROCK.value,
+                "model": self.model_id,
+                # Only what runs today. ADR 0010 lets all generative capabilities
+                # resolve to this model; binding them waits for their agents.
+                "capabilities": [c.value for c in capabilities],
+                "max_output_tokens": self.max_output_tokens,
+                "context_window_tokens": self.context_window_tokens,
+                "pricing": pricing,
+                "supports_strict_schema": False,
+            }
+        ]
+        bindings: dict[str, Any] = {c.value: binding for c in capabilities}
+        if light is not None:
+            models.append(light.catalog_entry())
+            # The same route: a second policy entry under ADR 0010, never a second
+            # route borrowing approvals nobody gave it.
+            bindings[ModelCapability.RESEARCH_TRIAGE.value] = {
+                **binding,
+                "model": light.model_id,
+            }
         return {
-            "models": [
-                {
-                    "provider": Provider.AWS_BEDROCK.value,
-                    "model": self.model_id,
-                    # Only what runs today. ADR 0010 lets all generative capabilities
-                    # resolve to this model; binding them waits for their agents.
-                    "capabilities": [c.value for c in capabilities],
-                    "max_output_tokens": self.max_output_tokens,
-                    "context_window_tokens": self.context_window_tokens,
-                    "pricing": pricing,
-                    "supports_strict_schema": False,
-                }
-            ],
+            "models": models,
             "policies": [
                 {
                     "version": self.policy_version,
                     "allowed_providers": [Provider.AWS_BEDROCK.value],
-                    "bindings": {c.value: binding for c in capabilities},
+                    "bindings": bindings,
                 }
             ],
         }
@@ -339,10 +435,16 @@ class AIRuntimeSettings:
 def build_gateway(
     settings: AIRuntimeSettings,
     *,
+    light: LightModelSettings | None = None,
     transport: HttpTransport | None = None,
     signer: BedrockSigner | None = None,
 ) -> GovernedModelGateway:
-    """The one gateway, over one route, one adapter, the recorded licence determinations."""
+    """The one gateway, over one route, one adapter, the recorded licence determinations.
+
+    With ``light``, the route carries two pinned models, each through its own
+    single-model adapter (:class:`~aia_core.infrastructure.model_adapters.PinnedModels`);
+    without it, exactly what it built before the light model existed.
+    """
     if transport is None:
         from aia_core.infrastructure.model_adapters.live_transport import Urllib3Transport
 
@@ -351,15 +453,23 @@ def build_gateway(
         from aia_core.infrastructure.model_adapters.aws_signing import InstanceRoleSigner
 
         signer = InstanceRoleSigner(region=settings.region)
-    adapter = BedrockConverseAdapter(
-        transport=transport,
-        signer=signer,
-        region=settings.region,
-        model_id=settings.model_id,
-        timeout_s=settings.timeout_s,
-    )
+
+    def pinned(model_id: str) -> BedrockConverseAdapter:
+        return BedrockConverseAdapter(
+            transport=transport,
+            signer=signer,
+            region=settings.region,
+            model_id=model_id,
+            timeout_s=settings.timeout_s,
+        )
+
+    main = pinned(settings.model_id)
+    adapter: BedrockConverseAdapter | PinnedModels = main
+    if light is not None:
+        route_models: list[ModelPinnedAdapter] = [main, pinned(light.model_id)]
+        adapter = PinnedModels(route_models)
     return GovernedModelGateway(
-        registry=parse_model_config(settings.model_document()),
+        registry=parse_model_config(settings.model_document(light)),
         egress=EgressPolicy(routes=(settings.route(),)),
         licence=recorded_policy(),
         adapters={settings.route_id: adapter},

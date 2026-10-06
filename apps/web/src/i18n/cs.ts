@@ -613,6 +613,7 @@ export const cs = {
           CRITIC: "adversariální revize",
           SIMULATION: "simulace respondentů a světa",
           EMBEDDING: "vektorové embeddingy",
+          RESEARCH_TRIAGE: "třídění stránek levným modelem (Deep Research)",
         },
         residency: { classes: "Třídy dat" },
         dataClass: {
