@@ -307,12 +307,35 @@ forbid "only the archive policy issues an archive permit" \
   archive.py
 # The public dataset and archive connectors are registered by no composition until
 # the Deep Research composition chunk (plan chunk 23) records their routes and prices.
-DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector'
+DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
 for composition in "$API" "$WORKER" "$EXECUTORS" deploy; do
   forbid "no composition registers a dataset connector yet ($composition)" \
     "$DATASET_CONNECTORS" \
     "$composition"
 done
+# The recorded procurement notice source is the same kind of double, defined only
+# beside the procurement connector and refused everywhere the others are.
+RECORDED_NOTICES='RecordedNoticeSource'
+forbid "the recorded notice source is defined only beside the procurement connector" \
+  "$RECORDED_NOTICES" \
+  "$CORE/infrastructure" \
+  dataset_procurement.py
+forbid "application code never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$CORE/application"
+forbid "domain code never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$CORE/domain"
+forbid "no API code names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$API"
+forbid "the worker never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$WORKER"
+forbid "among the executors, only the recorded composition builds the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$EXECUTORS" \
+  deep_research_recorded.py
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \
