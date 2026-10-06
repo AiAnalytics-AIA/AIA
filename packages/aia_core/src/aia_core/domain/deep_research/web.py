@@ -38,6 +38,7 @@ __all__ = [
     "ALLOWED_CONTENT_TYPES",
     "CSV_MEDIA_TYPE",
     "DOCUMENT_MEDIA_TYPES",
+    "HOST_OUT_OF_SCOPE",
     "MAX_ALTERNATE_LINKS",
     "MAX_BODY_BYTES",
     "MAX_BODY_BYTES_BY_TYPE",
@@ -48,6 +49,7 @@ __all__ = [
     "MAX_SNAPSHOT_LINKS",
     "MAX_TEXT_CHARS",
     "PDF_MEDIA_TYPE",
+    "REDIRECT_OUT_OF_SCOPE",
     "XLSX_MEDIA_TYPE",
     "FetchRefused",
     "SearchHit",
@@ -97,6 +99,11 @@ MAX_ALTERNATE_LINKS: Final = 20
 MAX_LINK_TEXT_CHARS: Final = 200
 #: A longer link is dropped, never truncated: a cut URL names another resource.
 MAX_LINK_URL_CHARS: Final = 2048
+
+#: A ``FetchRefused`` reason: the caller confined the fetch to hosts this URL is not on.
+HOST_OUT_OF_SCOPE: Final = "host_out_of_scope"
+#: A ``FetchRefused`` reason: a redirect hop left the hosts the caller confined it to.
+REDIRECT_OUT_OF_SCOPE: Final = "redirect_out_of_scope"
 
 _ALLOWED_PORTS: Final = {"http": 80, "https": 443}
 _BLOCKED_NAMES: Final = frozenset(

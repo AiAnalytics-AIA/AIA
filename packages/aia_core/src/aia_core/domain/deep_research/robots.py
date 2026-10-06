@@ -36,6 +36,10 @@ of the two is kept:
    requests what either reading forbids. It is given each group's product token
    (``AIA-research/2.0`` becomes ``AIA-research``), which it would not match.
 
+A file's ``Sitemap:`` lines (RFC 9309 § 2.2.4: outside any group, for every
+agent) are kept on the policy as data -- at most :data:`MAX_ROBOTS_SITEMAPS`,
+each an absolute ``http(s)`` URL -- for a crawler to read; nothing here opens one.
+
 Pure: stdlib only.
 """
 
@@ -53,17 +57,23 @@ from urllib.robotparser import RobotFileParser
 __all__ = [
     "AGENT_TOKEN",
     "MAX_ROBOTS_BYTES",
+    "MAX_ROBOTS_SITEMAPS",
     "ROBOTS_DISALLOWED",
     "ROBOTS_UNAVAILABLE",
     "RobotsPolicy",
     "RobotsState",
     "policy_for_response",
+    "sitemap_lines",
 ]
 
 #: The product token AIA's user agent starts with and robots.txt groups are matched by.
 AGENT_TOKEN: Final = "AIA-research"
 #: RFC 9309 § 2.5: a crawler must parse at least 500 KiB; more is ignored.
 MAX_ROBOTS_BYTES: Final = 512_000
+#: ``Sitemap:`` lines kept from one robots.txt; later ones are ignored.
+MAX_ROBOTS_SITEMAPS: Final = 50
+#: A ``Sitemap:`` URL longer than this is ignored, never truncated.
+MAX_SITEMAP_URL_CHARS: Final = 2048
 #: A ``FetchRefused`` reason: the host's robots.txt forbids the URL.
 ROBOTS_DISALLOWED: Final = "robots_disallowed"
 #: A ``FetchRefused`` reason: the host's robots.txt could not be read, so nothing is.
@@ -163,6 +173,31 @@ def _groups(text: str) -> list[_Group]:
     return groups
 
 
+def sitemap_lines(text: str) -> tuple[str, ...]:
+    """The ``Sitemap:`` URLs a robots.txt declares, in order, deduplicated and capped.
+
+    Only absolute ``http``/``https`` URLs with a host are kept; the host is not
+    checked here (a sitemap may live on another host; the reader decides).
+    """
+    found: dict[str, None] = {}
+    for raw in text[:MAX_ROBOTS_BYTES].removeprefix("\ufeff").splitlines():
+        line = raw.strip()
+        if ":" not in line:
+            continue
+        key, value = (part.strip() for part in line.split(":", 1))
+        if key.lower() != "sitemap" or not value or len(value) > MAX_SITEMAP_URL_CHARS:
+            continue
+        # A comment may follow; a URL has no whitespace in it.
+        url = value.split()[0]
+        parts = urlsplit(url)
+        if parts.scheme.lower() not in {"http", "https"} or not parts.netloc:
+            continue
+        found.setdefault(url, None)
+        if len(found) >= MAX_ROBOTS_SITEMAPS:
+            break
+    return tuple(found)
+
+
 def _target(url: str) -> str:
     parts = urlsplit(url)
     return _normalise((parts.path or "/") + (f"?{parts.query}" if parts.query else ""))
@@ -178,6 +213,8 @@ class RobotsPolicy:
     crawl_delay_s: float | None = None
     #: Why the policy is what it is, for the journal ("http_503", "parsed", ...).
     detail: str = ""
+    #: The file's ``Sitemap:`` URLs (:func:`sitemap_lines`); data, never followed here.
+    sitemaps: tuple[str, ...] = ()
     _stdlib: RobotFileParser | None = field(default=None, compare=False, repr=False)
 
     @classmethod
@@ -212,6 +249,7 @@ class RobotsPolicy:
             rules=tuple(rule for g in chosen for rule in g.rules),
             crawl_delay_s=max(delays) if delays else None,
             detail="parsed",
+            sitemaps=sitemap_lines(text),
             _stdlib=stdlib,
         )
 

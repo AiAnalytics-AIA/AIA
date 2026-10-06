@@ -288,6 +288,13 @@ forbid "among the executors, only the recorded composition builds recorded web r
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# The focused crawler (plan chunk 17) reaches the web only through the retrieval
+# gate it is given: classified, egress-checked, reserved, journaled, robots.txt and
+# pacing kept by the gate's transport. An import of infrastructure or of an HTTP
+# client here would be a second path out that none of that sees.
+forbid "the site crawl imports no infrastructure and no HTTP client" \
+  '^\s*(from|import)\s+(\.\.infrastructure|aia_core\.infrastructure|urllib3|urllib\.request|http\.client|socket|ssl|httpx|requests)\b' \
+  "$CORE/application/site_crawl.py"
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \

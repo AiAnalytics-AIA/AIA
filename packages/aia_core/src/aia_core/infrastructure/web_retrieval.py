@@ -51,6 +51,7 @@ from ..domain.deep_research.grounding import detect_instructions, normalise_text
 from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.web import (
     DOCUMENT_MEDIA_TYPES,
+    HOST_OUT_OF_SCOPE,
     MAX_ALTERNATE_LINKS,
     MAX_FETCH_BYTES,
     MAX_LINK_TEXT_CHARS,
@@ -58,6 +59,7 @@ from ..domain.deep_research.web import (
     MAX_REDIRECTS,
     MAX_SNAPSHOT_LINKS,
     MAX_TEXT_CHARS,
+    REDIRECT_OUT_OF_SCOPE,
     FetchRefused,
     SearchHit,
     check_content_type,
@@ -70,7 +72,9 @@ from .document_text import read_web_document
 __all__ = [
     "FetchTransport",
     "FetchedPage",
+    "FetchedResource",
     "FetchedResponse",
+    "HostFilter",
     "PoliteTransport",
     "RecordedFetchTransport",
     "RecordedResolver",
@@ -166,6 +170,10 @@ class PoliteTransport(Protocol):
 
     def known_refusal(self, url: str) -> str | None:
         """Why ``url`` would be refused by what the transport already knows; sends nothing."""
+        ...
+
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` lines of a robots.txt already held for ``host``; sends nothing."""
         ...
 
 
@@ -375,6 +383,23 @@ class FetchedPage:
     published: date | None
 
 
+#: Which hosts a fetch may reach, by host name: the caller's confinement (a crawl's host).
+HostFilter = Callable[[str], bool]
+
+
+@dataclass(frozen=True, slots=True)
+class FetchedResource:
+    """A bounded document fetched for what it lists, not for what it says: never evidence."""
+
+    url: str
+    final_url: str
+    redirects: tuple[str, ...]
+    media_type: str
+    body: bytes
+    raw_sha256: str
+    request_id: str | None
+
+
 class WebFetcher:
     """Fetch one page under the address policy, following redirects by hand."""
 
@@ -406,15 +431,38 @@ class WebFetcher:
             return self._transport.known_refusal(url)
         return None
 
-    def fetch(self, url: str) -> FetchedPage:
-        """The page at ``url`` as a snapshot. Raises FetchRefused or ToolCallFailed."""
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` lines of ``host``'s robots.txt, if the transport already holds it.
+
+        None when it is not known (not read yet, or a transport that reads no
+        robots.txt). Sends nothing.
+        """
+        if isinstance(self._transport, PoliteTransport):
+            return self._transport.known_sitemaps(host)
+        return None
+
+    def _follow(
+        self, url: str, *, max_bytes: int, host_allowed: HostFilter | None
+    ) -> tuple[str, list[str], FetchedResponse]:
+        """GET ``url``, following redirects by hand: (final URL, hops, the 2xx answer).
+
+        Every hop's URL and addresses are checked before it is requested, and, with
+        ``host_allowed``, its host too: the first URL refused as
+        ``host_out_of_scope``, a later hop as ``redirect_out_of_scope`` -- in both
+        cases before anything is sent to that host.
+        """
         redirects: list[str] = []
         current = url
         while True:
             host = check_url(current)
+            if host_allowed is not None and not host_allowed(host):
+                raise FetchRefused(
+                    f"{host} is outside the hosts this fetch is confined to",
+                    reason=REDIRECT_OUT_OF_SCOPE if redirects else HOST_OUT_OF_SCOPE,
+                )
             addresses = self._resolver.resolve(host)
             check_resolution(host, addresses)
-            response = self._transport.get(current, address=addresses[0], max_bytes=MAX_FETCH_BYTES)
+            response = self._transport.get(current, address=addresses[0], max_bytes=max_bytes)
             if response.status in (301, 302, 303, 307, 308):
                 location = {k.lower(): v for k, v in response.headers.items()}.get("location")
                 if not location:
@@ -433,6 +481,57 @@ class WebFetcher:
                 reason=f"http_{response.status}",
                 delivery=Delivery.RESPONDED,
             )
+        return current, redirects, response
+
+    def fetch_resource(
+        self,
+        url: str,
+        *,
+        media_types: frozenset[str],
+        max_bytes: int,
+        host_allowed: HostFilter | None = None,
+    ) -> FetchedResource:
+        """A bounded document that is not evidence (a sitemap), as bytes. No snapshot.
+
+        The same address, redirect and host checks as :meth:`fetch`; the declared
+        media type must be one of ``media_types`` (``content_type``) and the body
+        at most ``max_bytes`` (``body_too_large``, never cut). Raises FetchRefused
+        or ToolCallFailed.
+        """
+        if max_bytes <= 0:
+            raise ValueError("max_bytes must be positive")
+        current, redirects, response = self._follow(
+            url, max_bytes=max_bytes, host_allowed=host_allowed
+        )
+        headers = {k.lower(): v for k, v in response.headers.items()}
+        media = headers.get("content-type", "").split(";", 1)[0].strip().lower()
+        if media not in media_types:
+            raise FetchRefused(
+                f"content type {media or '(none)'!r} is not kept", reason="content_type"
+            )
+        if response.truncated:
+            raise FetchRefused(
+                f"the document is larger than {max_bytes} bytes", reason="body_too_large"
+            )
+        return FetchedResource(
+            url=url,
+            final_url=current,
+            redirects=tuple(redirects),
+            media_type=media,
+            body=response.body,
+            raw_sha256=hashlib.sha256(response.body).hexdigest(),
+            request_id=response.provider_request_id,
+        )
+
+    def fetch(self, url: str, *, host_allowed: HostFilter | None = None) -> FetchedPage:
+        """The page at ``url`` as a snapshot. Raises FetchRefused or ToolCallFailed.
+
+        With ``host_allowed``, the URL and every redirect hop must be on a host it
+        allows (:meth:`_follow`).
+        """
+        current, redirects, response = self._follow(
+            url, max_bytes=MAX_FETCH_BYTES, host_allowed=host_allowed
+        )
         headers = {k.lower(): v for k, v in response.headers.items()}
         content_type = headers.get("content-type", "")
         media = check_content_type(content_type)
