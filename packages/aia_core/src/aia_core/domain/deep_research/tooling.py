@@ -1,4 +1,4 @@
-"""The cost contract for non-model tools: web search, fetch and dataset queries (I-6).
+"""The cost contract for non-model tools: web search, fetch, datasets and archives (I-6).
 
 A search or a page fetch through a provider can cost money exactly as a model
 call does, so it gets the same bracket a model call has in
@@ -67,6 +67,9 @@ class ToolKind(StrEnum):
     #: One query to a public dataset connector (DataStat, NKOD …): its text is the
     #: dataset id and filters, classified like a search query (plan § 5.3).
     DATASET_QUERY = "dataset_query"
+    #: One lookup of a URL's archived captures (Wayback CDX): asked only with an
+    #: archive permit, for a dead or moved page (plan § 5.3, § 7 rung 9).
+    ARCHIVE_LOOKUP = "archive_lookup"
 
 
 class ToolOutcome(StrEnum):
