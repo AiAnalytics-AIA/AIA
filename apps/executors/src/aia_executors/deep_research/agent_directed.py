@@ -21,7 +21,12 @@ Plan ``deep-research-web-search.md`` § 6, chunk 9; the mode is the composition'
    from the capture; a URL the run already captured is a cache hit that sends
    nothing. A search or fetch an earlier attempt dispatched for a turn it never
    recorded is not sent again (its answer is unknown): it counts against the
-   allowance and is reported.
+   allowance and is reported. A ``ladder`` (plan § 7, chunk 10) runs after the
+   turn's other actions are journaled, one at a time on the step's thread, through
+   the same gate: its requests count against the track's allowance and its own
+   per-lead cap, a capture that answers its lead becomes an ``S<n>``, and an
+   unreachable source is reported as an acquisition gap. It is skipped once any
+   call of the track is uncertain.
 5. **The record** (:class:`~aia_core.domain.deep_research.investigator.TurnRecord`):
    the answer, every action with code's decision, what was grounded. A retry
    replays recorded turns -- no model call, no tool call -- into the same state.
@@ -38,6 +43,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
+from aia_core.application.acquisition_ladder import LadderConfig, LadderLimits, ladder
 from aia_core.application.web_retrieval import (
     FetchOutcome,
     PendingFetch,
@@ -48,6 +54,7 @@ from aia_core.application.web_retrieval import (
     sent_search,
 )
 from aia_core.domain.analysis.harness import request_sha256
+from aia_core.domain.deep_research.acquisition import LadderStop
 from aia_core.domain.deep_research.agents import (
     MAX_ACTIONS_PER_TURN,
     AgentRole,
@@ -346,6 +353,9 @@ class AgentDirectedTrack:
         for action in record.actions:
             if action.request_fingerprint is not None and action.decision is ActionDecision.SENT:
                 self._unaccounted[action.request_fingerprint] -= 1
+            for attempt in action.ladder.attempts if action.ladder is not None else ():
+                if attempt.request_fingerprint is not None and attempt.call_id is not None:
+                    self._unaccounted[attempt.request_fingerprint] -= 1
         self._state.apply(record.actions, self._snapshot_map(record.actions))
         self._records.append(record)
         self._context.progress(
@@ -388,9 +398,13 @@ class AgentDirectedTrack:
         track_id = self._track.track_id
         done: dict[int, ActionRecord] = {}
         pending: list[tuple[PlannedAction, PendingSearch | PendingFetch]] = []
+        ladders: list[PlannedAction] = []
         for p in planned:
             if p.record is not None:
                 done[p.index] = p.record
+                continue
+            if p.lead is not None:
+                ladders.append(p)
                 continue
             if p.search is not None:
                 text, lang = p.search
@@ -439,7 +453,81 @@ class AgentDirectedTrack:
                 error = error or exc
         if error is not None:
             raise error
+        # Then each ladder, one at a time: its calls are sequential by nature.
+        for p in ladders:
+            done[p.index] = self._ladder(p, done)
         return [done[i] for i in sorted(done)]
+
+    def _ladder(self, p: PlannedAction, done: dict[int, ActionRecord]) -> ActionRecord:
+        """Climb the acquisition ladder for one lead; its record (and capture, if any)."""
+        assert p.lead is not None
+        track_id = self._track.track_id
+        fields: dict[str, Any] = {
+            "index": p.index,
+            "kind": "ladder",
+            "purpose": p.purpose,
+            "ref": p.ref,
+        }
+        if self._meter.uncertain(track_id) or any(
+            a.outcome is ActionOutcome.UNCERTAIN for a in done.values()
+        ):
+            # A call of this track may have been served unanswered: nothing more leaves.
+            return ActionRecord(decision=ActionDecision.SKIPPED, reason="track_uncertain", **fields)
+        this_turn = list(done.values())
+        searches_left = self._allowance.searches - self._state.searches_used
+        opens_left = self._allowance.opens - self._state.opens_used
+        for a in this_turn:
+            dispatched = a.decision is ActionDecision.SENT or a.reason == SKIP_EARLIER_ATTEMPT
+            searches_left -= (a.kind == "search" and dispatched) + (
+                a.ladder.searches if a.ladder is not None else 0
+            )
+            opens_left -= (a.kind == "open" and dispatched) + (
+                a.ladder.fetches if a.ladder is not None else 0
+            )
+        citing = None
+        if p.source is not None:
+            source = self._state.refs.source(p.source)
+            assert source is not None, "a ladder's source is an S<n> the track holds"
+            citing = self._stored[source.snapshot_id].snapshot
+
+        def may_send(sent: str) -> bool:
+            fingerprint = request_fingerprint(sent)
+            if self._unaccounted[fingerprint] > 0:
+                self._unaccounted[fingerprint] -= 1
+                return False
+            return True
+
+        result = ladder(
+            p.lead,
+            gate=self._gate,
+            track_id=track_id,
+            context_class=self._plan.design_class,
+            config=self._runtime.ladder or LadderConfig(),
+            limits=LadderLimits(searches=max(searches_left, 0), fetches=max(opens_left, 0)),
+            citing=citing,
+            may_send=may_send,
+        )
+        climb = result.record
+        fields["ladder"] = climb
+        if climb.stop is LadderStop.EARLIER_ATTEMPT:
+            return ActionRecord(
+                decision=ActionDecision.SKIPPED, reason=SKIP_EARLIER_ATTEMPT, **fields
+            )
+        if result.capture is not None:
+            snapshot, published = result.capture
+            ref = self._keep(FetchedPage(snapshot=snapshot, published=published))
+            fields["snapshot_id"] = ref.snapshot_id
+            fields["snapshot_artifact_id"] = ref.artifact_id
+        outcome = {
+            LadderStop.ACQUIRED: ActionOutcome.SUCCEEDED,
+            LadderStop.UNCERTAIN: ActionOutcome.UNCERTAIN,
+        }.get(climb.stop, ActionOutcome.FAILED)
+        return ActionRecord(
+            decision=ActionDecision.SENT,
+            outcome=outcome,
+            reason=climb.gap.reason.value if climb.gap is not None else None,
+            **fields,
+        )
 
     @staticmethod
     def _earlier(p: PlannedAction, **fields: Any) -> ActionRecord:
@@ -607,6 +695,12 @@ class AgentDirectedTrack:
         gaps = tuple(
             f"{g.need} -- {g.why} (zkoušeno: {g.tried})"
             for g in (finish.gaps if finish is not None else ())
+        ) + tuple(
+            f"{gap.need} -- nedostupné: {gap.reason.value}"
+            f" ({gap.publisher or 'vydavatel neuveden'}; {gap.title or 'bez názvu'})"
+            f" (zkoušeno: {', '.join(r.value for r in gap.rungs_tried)})"
+            for a in actions
+            if a.ladder is not None and (gap := a.ladder.gap) is not None
         )
         assert self._runtime.retrieval is not None
         record = transcript(

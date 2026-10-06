@@ -104,6 +104,7 @@ __all__ = [
     "FinishAction",
     "InvestigatorAction",
     "InvestigatorTurn",
+    "LadderAction",
     "OpenAction",
     "PlanProposal",
     "ProposedEvidence",
@@ -129,11 +130,13 @@ __all__ = [
 PROMPT_VERSION: Final = "1"
 
 #: The investigator's own prompt version: it is not one of the five above.
-INVESTIGATOR_PROMPT_VERSION: Final = "1"
+#: 2: the ``ladder`` action (plan chunk 10).
+INVESTIGATOR_PROMPT_VERSION: Final = "2"
 
 #: The investigator's output contract, :class:`InvestigatorTurn`. A new action kind
 #: is an additive change under a new version; a stored turn keeps its own.
-INVESTIGATOR_CONTRACT_VERSION: Final = "investigator-turn-1"
+#: 2: :class:`LadderAction` joins the union (plan chunk 10).
+INVESTIGATOR_CONTRACT_VERSION: Final = "investigator-turn-2"
 
 #: At most this many actions a turn; code sends the sendable ones concurrently.
 MAX_ACTIONS_PER_TURN: Final = 5
@@ -279,6 +282,29 @@ class ReadAction(_Closed):
     purpose: _Line
 
 
+class LadderAction(_Closed):
+    """Reach a source the track needs and has not reached, by every lawful public route.
+
+    Code climbs the acquisition ladder (plan § 7) for it: the source's links, its
+    other formats, its publisher's site and data, exact phrases, other editions, an
+    open copy of a paper, aggregators, an archived copy of a dead page. ``phrase`` is
+    text the source itself must contain (a table title, a document number, the figure
+    as printed); code stops only on a capture that holds it (or, without one, the
+    title). ``source`` is the ``S<n>`` that cites it; ``link`` an ``R<n>`` or ``L<n>``
+    believed to be it. Never a URL: code opens only what it stored.
+    """
+
+    kind: Literal["ladder"]
+    need: _Line
+    publisher: str | None = Field(max_length=200)
+    title: str | None = Field(max_length=300)
+    phrase: str | None = Field(max_length=200)
+    doi: str | None = Field(max_length=210)
+    source: _Ref | None
+    link: _Ref | None
+    purpose: _Line
+
+
 class FinishAction(_Closed):
     """End the track, naming what could not be established."""
 
@@ -288,11 +314,11 @@ class FinishAction(_Closed):
 
 #: Every action a turn may propose, told apart by ``kind``. A plain union (``anyOf``,
 #: no ``oneOf``/discriminator), so the schema stays strict-compatible. A later kind
-#: (``chase``, ``ladder``, ``dataset``) joins it under a new contract version.
-InvestigatorAction = SearchAction | OpenAction | ReadAction | FinishAction
+#: (``chase``, ``dataset``) joins it under a new contract version.
+InvestigatorAction = SearchAction | OpenAction | ReadAction | LadderAction | FinishAction
 
 #: The action kinds, as the model writes them, in the union's order.
-ACTION_KINDS: Final[tuple[str, ...]] = ("search", "open", "read", "finish")
+ACTION_KINDS: Final[tuple[str, ...]] = ("search", "open", "read", "ladder", "finish")
 
 
 class InvestigatorTurn(_Closed):
@@ -449,7 +475,14 @@ cesty) a přesná fráze (phrase); jazyk lang je {_quoted(SEARCH_LANGUAGES, last
 Operátory jako site: nebo filetype: do query nepiš. 'open' -- otevři výsledek nebo odkaz
 podle jeho ref (R<n> nebo L<n>); adresu URL nikdy nepiš, aplikace otevře jen to, co sama
 uložila. 'read' -- přečti část (part: číslo části od 1) zachyceného zdroje S<n>; nic se
-neposílá. 'finish' -- ukonči stopu a v gaps uveď, co se zjistit nepodařilo, proč a co jsi
+neposílá. 'ladder' -- potřebuješ-li konkrétní zdroj (tabulku, na kterou stránka odkazuje,
+zprávu za tiskovou zprávou, údaj od vydavatele), aplikace ho zkusí získat všemi zákonnými
+veřejnými cestami; uveď need, vydavatele (publisher), název (title), přesnou frázi, kterou
+zdroj musí obsahovat (phrase: název tabulky, číslo dokumentu, údaj tak, jak je vytištěn),
+DOI, zdroj S<n>, který ho cituje (source), a výsledek nebo odkaz R<n>/L<n>, je-li to on
+(link); co nevíš, je null. Zdroj za platební bránou, přihlášením nebo zakázaný v robots.txt
+aplikace neobchází: vrátí ho jako nedostupný.
+'finish' -- ukonči stopu a v gaps uveď, co se zjistit nepodařilo, proč a co jsi
 zkusil.
 Postup: začni zeširoka krátkými dotazy, potom zužuj. Dej přednost vydavateli čísla
 (statistický úřad, regulátor, autor studie) před tím, kdo ho jen opakuje: vede-li stránka na

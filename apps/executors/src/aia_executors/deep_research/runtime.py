@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
 
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.ai_contracts import check_thinking_budget
@@ -97,6 +98,10 @@ class DeepResearchRuntime:
     #: The weights an agent-directed brief's confidence is computed by (chunk 13; proposed
     #: until approved with the tiers). The planned mode never reads them.
     weights: ConfidenceWeights = CONFIDENCE_WEIGHTS_V1
+    #: What the agent-directed investigator's ``ladder`` may use beyond the gate (the
+    #: reputation register, Common Crawl's crawls). None: the ladder's defaults -- no
+    #: register, no crawl. Read only in the agent-directed mode.
+    ladder: LadderConfig | None = None
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
@@ -104,8 +109,15 @@ class DeepResearchRuntime:
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
             web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
             thinking_budget_tokens=self.config.thinking_budget_tokens,
-            investigator=INVESTIGATOR_VERSION if self.config.agent_directed else None,
+            investigator=self._investigator() if self.config.agent_directed else None,
         )
+
+    def _investigator(self) -> str:
+        """The investigator's version, and the ladder configuration's identity when one
+        is set (without one, exactly the version: no fingerprint moves)."""
+        if self.ladder is None:
+            return INVESTIGATOR_VERSION
+        return f"{INVESTIGATOR_VERSION}/ladder-{self.ladder.identity()}"
 
     def versions(self) -> dict[str, str]:
         """Every rule and prompt version a run's result depends on, recorded on the plan.
@@ -127,7 +139,7 @@ class DeepResearchRuntime:
         if self.config.agent_directed:
             # Only when on: the mode a run was planned in is the mode it investigates in,
             # the rules and register it is verified by, and the brief's rules and weights.
-            versions["investigator"] = INVESTIGATOR_VERSION
+            versions["investigator"] = self._investigator()
             versions["verification"] = VERIFICATION_RULES_VERSION
             versions["register"] = self.register.version if self.register is not None else "none"
             versions["brief"] = BRIEF_VERSION
