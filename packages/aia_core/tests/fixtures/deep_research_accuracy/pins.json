@@ -4,7 +4,7 @@
   "pins": [
     {
       "set_id": "fictional-fixture-1",
-      "sha256": "f995b05d23b2936e150a8223ec6033c0725ea3bb61c535093f7050e763732d3d",
+      "sha256": "0770585adaa8281833af303e2cdaf745258bf6b694a7b94a612e671925568acc",
       "path": "packages/aia_core/tests/fixtures/deep_research_accuracy/fictional_truth_set.json",
       "facts": 7,
       "fictional": true,

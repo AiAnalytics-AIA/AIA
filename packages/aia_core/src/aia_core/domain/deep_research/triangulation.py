@@ -268,6 +268,8 @@ _PERIODS: Final = (
     (re.compile(rf"^Y?({_YEAR})\s*-?\s*Q([1-4])$"), "quarter"),
     (re.compile(rf"^Y?({_YEAR})\s*-?\s*H([12])$"), "half"),
     (re.compile(rf"^Y?({_YEAR})-(0[1-9]|1[0-2])$"), "month"),
+    # A written date (measures' ``YYYY-MM-DD``, aia-measures-2) is placed in its month.
+    (re.compile(rf"^({_YEAR})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$"), "date"),
 )
 
 
@@ -276,7 +278,8 @@ def period_span(period: str | None) -> PeriodSpan | None:
 
     Reads the measure vocabulary's year keys (``Y2025``, ``Y2024/2025``) and the
     forms a source writes (``2025``, ``2024/25``, ``2025-Q2``, ``2025-H1``,
-    ``2025-03``). A season covers both its years. A quarter, half or month without
+    ``2025-03``) and a written date (``2025-12-31``), which covers its month. A season
+    covers both its years. A quarter, half or month without
     a year (``Q2``, ``M03``) cannot be placed and is ``None``: unknown, never a guess.
     """
     if period is None:

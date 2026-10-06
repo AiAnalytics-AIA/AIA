@@ -199,15 +199,13 @@ def test_the_country_is_not_its_capital() -> None:
 
 
 def test_a_bare_number_names_no_figure_and_answers_nothing() -> None:
-    # "k 31. 12." is read as two numbers; with no unit or population they answer nothing.
+    # "k 31. 12. 2091" is one period (aia-measures-2), not the numbers 31 and 12.
     fact = _fact(
         _run(_finding("pop-01", "Česko mělo k 31. 12. 2091 celkem 10 450 tis. obyvatel.")),
         "pop-01",
     )
-    day, month, count = fact.measures
-    assert (day.measure.value, month.measure.value) == (31.0, 12.0)
-    assert day.attributes["population"] is AttributeCheck.UNSTATED
-    assert not day.answers and not month.answers and not day.false_acceptance
+    (count,) = fact.measures
+    assert count.measure.period == "2091-12-31"
     assert count.answers and count.exact and fact.false_acceptances == ()
     no_unit = _finding("price-02", "Inflace v Česku v roce 2091 byla 4,1.")
     assert not _fact(_run(no_unit), "price-02").answered

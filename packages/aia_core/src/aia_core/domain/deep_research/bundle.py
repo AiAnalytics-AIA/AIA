@@ -17,10 +17,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
+from .brief import ResearchBrief
 from .contracts import (
     Channel,
     CoverageCell,
@@ -96,6 +97,16 @@ class SnapshotRef(_Closed):
 class SynthesisRecord(_Closed):
     artifact_id: str | None
     check: SynthesisCheck
+    #: The agent-directed brief (chunk 13). None in the planned mode, and then left out
+    #: of the stored form, so a bundle sealed before it existed seals exactly as it did.
+    brief: ResearchBrief | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_brief(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.brief is None and isinstance(data, dict):
+            data.pop("brief", None)
+        return data
 
 
 class EvidenceBundle(_Closed):

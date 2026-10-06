@@ -21,9 +21,13 @@ composition** (chunk 23 wires it, chunk 27 runs it live). Anchors are to commit 
    `WARC-Truncated`) and an id of its own; it is never put in the run's snapshot cache, so it never
    answers a live fetch.
 
-What it does not decide: *when* an archived copy may be used. Plan § 7 rung 9 allows it only for a
-dead or moved page, never for a page live behind a paywall; that rule belongs to the acquisition
-ladder (chunk 10), which calls these methods.
+*When* an archived copy may be used is `decide_archive_use`'s (`domain/deep_research/archive.py`):
+plan § 7 rung 9 allows it only for a dead, moved or changed page, never for a page live behind a
+paywall. Since chunk 10 the gate enforces it: `fetch_archived` takes a required `permit`, and
+`query_url_index` for one exact URL needs the permit for that URL; without it each is refused
+before dispatch (`archive_not_permitted`) and journaled. A query by host or domain (discovery)
+needs none. The acquisition ladder (`application/acquisition_ladder.py`) is the caller that
+obtains the permit, from its own live attempt of the page.
 
 ## Residency and classification
 
