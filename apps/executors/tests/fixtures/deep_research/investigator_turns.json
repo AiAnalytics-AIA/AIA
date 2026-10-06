@@ -1,0 +1,325 @@
+{
+ "Jak roste trh rostlinných nápojů v Česku?": [
+  {
+   "evidence": [],
+   "summary": "Hledám zdroje o trhu.",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "trh rostlinných nápojů",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    },
+    {
+     "kind": "search",
+     "query": "plant-based drinks Czech market",
+     "site": null,
+     "phrase": null,
+     "lang": "en",
+     "purpose": "najít zdroje"
+    },
+    {
+     "kind": "search",
+     "query": "spotřeba rostlinných nápojů",
+     "site": "stat-dr.example",
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "open",
+     "ref": "R1",
+     "purpose": "zpráva o trhu"
+    },
+    {
+     "kind": "open",
+     "ref": "R99",
+     "purpose": "neexistující výsledek"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "Zpráva odkazuje na tabulku úřadu.",
+   "leads": [
+    {
+     "need": "Tabulka spotřeby za rok 2025",
+     "publisher": "statistický úřad",
+     "why": "zpráva číslo jen opakuje"
+    }
+   ],
+   "next": [
+    {
+     "kind": "open",
+     "ref": "L1",
+     "purpose": "tabulka, ze které číslo pochází"
+    },
+    {
+     "kind": "open",
+     "ref": "R1",
+     "purpose": "znovu zpráva"
+    }
+   ]
+  },
+  {
+   "evidence": [
+    {
+     "source_id": "S2",
+     "quote": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+     "claim": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+     "measures": [
+      {
+       "value": 12.5,
+       "unit": "%",
+       "period": "2025",
+       "geography": "Česko"
+      },
+      {
+       "value": 41,
+       "scale": 1000000,
+       "unit": "litrů",
+       "period": "2025",
+       "geography": "Česko",
+       "measure_name": "spotřeba rostlinných nápojů",
+       "basis": "preliminary"
+      }
+     ]
+    },
+    {
+     "source_id": "S2",
+     "quote": "Rostlinné nápoje kupuje 45 % domácností v Česku.",
+     "claim": "Rostlinné nápoje kupuje 45 % domácností.",
+     "measures": [
+      {
+       "value": 45,
+       "unit": "%",
+       "population": "osob"
+      }
+     ]
+    },
+    {
+     "source_id": "S2",
+     "quote": "Rostlinné nápoje kupuje 45 % domácností v Česku.",
+     "claim": "Rostlinné nápoje kupuje v Česku 45 % domácností.",
+     "measures": []
+    }
+   ],
+   "summary": "Úřad uvádí spotřebu a podíl domácností.",
+   "leads": [],
+   "next": [
+    {
+     "kind": "read",
+     "ref": "S2",
+     "part": "2",
+     "purpose": "metodická poznámka"
+    },
+    {
+     "kind": "search",
+     "query": "metodika spotřeby rostlinných nápojů",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "Hotovo.",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "údaj za rok 2024 pro srovnání",
+       "why": "tabulka uvádí jen rok 2025",
+       "tried": "tabulka úřadu, metodika"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Proč lidé přecházejí na rostlinné nápoje?": [
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "důvody přechodu na rostlinné nápoje",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "open",
+     "ref": "R1",
+     "purpose": "přečíst stránku"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "Acme ovesný nápoj",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "Acme nápoje cena",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "Acme recenze",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "nikdy",
+       "why": "sem se nedojde",
+       "tried": "nic"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Ovesný nápoj": [
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "search",
+     "query": "ovesný nápoj spotřeba",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    },
+    {
+     "kind": "search",
+     "query": "ovesný nápoj ztracený",
+     "site": null,
+     "phrase": null,
+     "lang": "cs",
+     "purpose": "najít zdroje"
+    }
+   ]
+  },
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "nikdy",
+       "why": "sem se nedojde",
+       "tried": "nic"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Sójový nápoj": [
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "trh sójových nápojů",
+       "why": "nehledáno",
+       "tried": "nic"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "Mandlový nápoj": [
+  {
+   "evidence": [],
+   "summary": "Bez zdrojů.",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "cena mandlového nápoje",
+       "why": "žádný veřejný zdroj",
+       "tried": "nic, stopa je úzká"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

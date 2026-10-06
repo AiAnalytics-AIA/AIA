@@ -242,7 +242,9 @@ class PlanExecutor(_Step):
             violations=tuple(violations),
             allowances={
                 t: AllowanceRecord(search_calls=a.search_calls, fetches=a.fetches)
-                for t, a in allocate(web_ids, depth).items()
+                for t, a in allocate(
+                    web_ids, depth, agent_directed=runtime.config.agent_directed
+                ).items()
             },
             planner=planner,
         )

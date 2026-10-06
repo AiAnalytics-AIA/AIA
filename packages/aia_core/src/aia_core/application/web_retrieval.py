@@ -67,9 +67,26 @@ from ..domain.deep_research.tooling import (
 from ..domain.deep_research.web import FetchRefused, SearchHit, check_url
 from ..domain.residency import DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
-from ..infrastructure.web_retrieval import FetchedPage, SearchAdapter, ToolCallFailed, WebFetcher
+from ..infrastructure.web_retrieval import (
+    FetchedPage,
+    LanguageSearch,
+    SearchAdapter,
+    SearchResponse,
+    ToolCallFailed,
+    WebFetcher,
+)
 
-__all__ = ["FetchOutcome", "RetrievalGate", "RunSnapshotCache", "SearchOutcome", "WebRetrieval"]
+__all__ = [
+    "FetchOutcome",
+    "PendingFetch",
+    "PendingSearch",
+    "RetrievalGate",
+    "RunSnapshotCache",
+    "SearchOutcome",
+    "WebRetrieval",
+    "request_fingerprint",
+    "sent_search",
+]
 
 
 def _utcnow() -> datetime:
@@ -131,6 +148,8 @@ class SearchOutcome:
     record: QueryRecord
     hits: tuple[SearchHit, ...]
     uncertain: bool
+    #: SHA256 of what was journaled as sent; None when nothing was dispatched.
+    request_fingerprint: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,6 +161,86 @@ class FetchOutcome:
     uncertain: bool
     #: The page came from this run's snapshot cache: nothing was sent or charged.
     cached: bool = False
+    #: The class the URL was judged at, and the dispatched call (None when none was).
+    data_class: DataClass | None = None
+    call_id: str | None = None
+    request_fingerprint: str | None = None
+
+
+def request_fingerprint(sent: str) -> str:
+    """What the journal keeps of a sent query or URL: its SHA256, never the text."""
+    return _fingerprint(sent)
+
+
+def sent_search(query: str, lang: str | None) -> str:
+    """What a search sends, as journaled: the text, and its language when one is asked."""
+    return query if lang is None else f"{query}\n[lang={lang}]"
+
+
+@dataclass(slots=True)
+class PendingSearch:
+    """A search reserved and journaled ``DISPATCHED``, not yet sent.
+
+    :meth:`send` is the only part that may run off the step's thread: it calls the
+    adapter and keeps what came back, journaling nothing. The gate's
+    :meth:`RetrievalGate.finish_search` journals the outcome on the step's thread.
+    """
+
+    query: str
+    lang: str | None
+    max_results: int
+    track_id: str
+    data_class: DataClass
+    class_reasons: tuple[str, ...]
+    call_id: str
+    reservation: ToolReservation
+    adapter: SearchAdapter
+    response: SearchResponse | None = None
+    failure: ToolCallFailed | None = None
+    error: BaseException | None = None
+
+    @property
+    def sent(self) -> str:
+        return sent_search(self.query, self.lang)
+
+    def send(self) -> None:
+        try:
+            if self.lang is not None and isinstance(self.adapter, LanguageSearch):
+                self.response = self.adapter.search_in(
+                    self.query, lang=self.lang, max_results=self.max_results
+                )
+            else:
+                self.response = self.adapter.search(self.query, max_results=self.max_results)
+        except ToolCallFailed as exc:
+            self.failure = exc
+        except Exception as exc:  # re-raised by finish_search, on the step's thread
+            self.error = exc
+
+
+@dataclass(slots=True)
+class PendingFetch:
+    """A fetch reserved and journaled ``DISPATCHED``, not yet sent (see :class:`PendingSearch`)."""
+
+    url: str
+    track_id: str
+    data_class: DataClass
+    call_id: str
+    reservation: ToolReservation
+    fetcher: WebFetcher
+    page: FetchedPage | None = None
+    refused: FetchRefused | None = None
+    failure: ToolCallFailed | None = None
+    error: BaseException | None = None
+
+    def send(self) -> None:
+        try:
+            self.page = self.fetcher.fetch(self.url)
+        except FetchRefused as exc:
+            self.refused = exc
+        except ToolCallFailed as exc:
+            self.failure = exc
+        except Exception as exc:  # re-raised by finish_fetch, on the step's thread
+            self.error = exc
 
 
 class RunSnapshotCache:
@@ -338,12 +437,58 @@ class RetrievalGate:
         )
         return uncertain
 
+    def remember(self, url: str, page: FetchedPage) -> None:
+        """Hold a page this run captured in an earlier attempt (read back from its store).
+
+        A resumed step replays what its earlier attempt fetched without fetching it;
+        with this, a later action asking for the same URL is a cache hit, as it
+        would have been had the attempt not been interrupted. No cache: nothing.
+        Journals nothing: nothing was sent or answered.
+        """
+        if self._cache is not None:
+            self._cache.put(url, page)
+
     # ---------------------------------------------------------------- search --
 
     def search(
-        self, query: str, *, context_class: DataClass, track_id: str, max_results: int
+        self,
+        query: str,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        max_results: int,
+        lang: str | None = None,
     ) -> SearchOutcome:
         """One proposed query: classified, authorised, reserved, journaled, sent -- or refused."""
+        begun = self.begin_search(
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            max_results=max_results,
+            lang=lang,
+        )
+        if isinstance(begun, SearchOutcome):
+            return begun
+        begun.send()
+        return self.finish_search(begun)
+
+    def begin_search(
+        self,
+        query: str,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        max_results: int,
+        lang: str | None = None,
+    ) -> SearchOutcome | PendingSearch:
+        """Classify, authorise, reserve and journal ``DISPATCHED``; or refuse and journal that.
+
+        Sends nothing: a :class:`PendingSearch` is sent by its own :meth:`~PendingSearch.send`
+        and closed by :meth:`finish_search`. A caller may begin several, so that every
+        dispatch is on record before any of them leaves. ``lang`` asks a search adapter
+        that offers languages (:class:`LanguageSearch`) for one; it is journaled with
+        the query.
+        """
         route = self._retrieval.search_route
         classified = classify_query(
             query,
@@ -352,75 +497,100 @@ class RetrievalGate:
             class_a_texts=self._class_a,
         )
         cls = classified.data_class
-
-        def record(
-            decision: QueryDecision,
-            *,
-            refusal: str | None = None,
-            failure: str | None = None,
-            call_id: str | None = None,
-            hits: int = 0,
-        ) -> QueryRecord:
-            return QueryRecord(
-                text=query,
-                data_class=cls,
-                class_reasons=classified.reasons,
-                decision=decision,
-                refusal=refusal,
-                call_id=call_id,
-                hits=hits,
-                failure=failure,
-            )
-
+        sent = sent_search(query, lang)
         reason = (
             "class_a_query"
             if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
             else self._refusal(route, data_class=cls)
         )
         if reason is not None:
-            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=query)
-            return SearchOutcome(record(QueryDecision.REFUSED, refusal=reason), (), False)
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
+            record = QueryRecord(
+                text=query,
+                data_class=cls,
+                class_reasons=classified.reasons,
+                decision=QueryDecision.REFUSED,
+                refusal=reason,
+                call_id=None,
+                hits=0,
+            )
+            return SearchOutcome(record, (), False)
+        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        return PendingSearch(
+            query=query,
+            lang=lang,
+            max_results=max_results,
+            track_id=track_id,
+            data_class=cls,
+            class_reasons=classified.reasons,
+            call_id=call_id,
+            reservation=reservation,
+            adapter=self._retrieval.search,
+        )
 
-        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=query)
-        try:
-            response = self._retrieval.search.search(query, max_results=max_results)
-        except ToolCallFailed as exc:
+    def finish_search(self, pending: PendingSearch) -> SearchOutcome:
+        """Journal a sent search's outcome. An adapter's unexpected error is raised here."""
+        if pending.error is not None:
+            raise pending.error
+        route = self._retrieval.search_route
+        cls, call_id, sent = pending.data_class, pending.call_id, pending.sent
+
+        def record(*, failure: str | None = None, hits: int = 0) -> QueryRecord:
+            return QueryRecord(
+                text=pending.query,
+                data_class=cls,
+                class_reasons=pending.class_reasons,
+                decision=QueryDecision.SENT,
+                refusal=None,
+                call_id=call_id,
+                hits=hits,
+                failure=failure,
+            )
+
+        fingerprint = _fingerprint(sent)
+        if pending.failure is not None:
             uncertain = self._close_failure(
                 route,
-                exc,
+                pending.failure,
                 call_id=call_id,
-                reservation=reservation,
+                reservation=pending.reservation,
                 data_class=cls,
-                track_id=track_id,
-                sent=query,
+                track_id=pending.track_id,
+                sent=sent,
             )
-            return SearchOutcome(
-                record(QueryDecision.SENT, failure=exc.reason, call_id=call_id), (), uncertain
-            )
+            return SearchOutcome(record(failure=pending.failure.reason), (), uncertain, fingerprint)
+        response = pending.response
+        assert response is not None, "a pending search is finished only after it was sent"
         self._meter.outcome(
             self._event(
                 route,
                 call_id=call_id,
                 outcome=ToolOutcome.SUCCEEDED,
                 data_class=cls,
-                track_id=track_id,
-                sent=query,
-                reservation=reservation,
+                track_id=pending.track_id,
+                sent=sent,
+                reservation=pending.reservation,
                 cost=route.price_usd_per_call,
                 charged_credits=response.credits,
                 provider_request_id=response.provider_request_id,
             )
         )
-        return SearchOutcome(
-            record(QueryDecision.SENT, call_id=call_id, hits=len(response.hits)),
-            response.hits,
-            False,
-        )
+        return SearchOutcome(record(hits=len(response.hits)), response.hits, False, fingerprint)
 
     # ----------------------------------------------------------------- fetch --
 
     def fetch(self, url: str, *, track_id: str) -> FetchOutcome:
         """One page a search returned: checked, authorised, reserved, journaled, fetched."""
+        begun = self.begin_fetch(url, track_id=track_id)
+        if isinstance(begun, FetchOutcome):
+            return begun
+        begun.send()
+        return self.finish_fetch(begun)
+
+    def begin_fetch(self, url: str, *, track_id: str) -> FetchOutcome | PendingFetch:
+        """Check, classify (the whole URL: host, path and query), authorise; answer from the
+        run's cache; or reserve and journal ``DISPATCHED``. Sends nothing (see
+        :meth:`begin_search`)."""
         route = self._retrieval.fetch_route
         cls = classify_query(
             url,
@@ -453,18 +623,46 @@ class RetrievalGate:
                         note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
                     )
                 )
-                return FetchOutcome(url=url, page=hit, reason=None, uncertain=False, cached=True)
+                return FetchOutcome(
+                    url=url, page=hit, reason=None, uncertain=False, cached=True, data_class=cls
+                )
         if reason is None:
             # A robots.txt the transport already holds: refused before any dispatch.
             reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
-            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)
-
+            return FetchOutcome(url=url, page=None, reason=reason, uncertain=False, data_class=cls)
         call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=url)
-        try:
-            page = self._retrieval.fetcher.fetch(url)
-        except FetchRefused as exc:
+        return PendingFetch(
+            url=url,
+            track_id=track_id,
+            data_class=cls,
+            call_id=call_id,
+            reservation=reservation,
+            fetcher=self._retrieval.fetcher,
+        )
+
+    def finish_fetch(self, pending: PendingFetch) -> FetchOutcome:
+        """Journal a sent fetch's outcome; cache a kept page. Unexpected errors raise here."""
+        if pending.error is not None:
+            raise pending.error
+        route = self._retrieval.fetch_route
+        url, cls, call_id = pending.url, pending.data_class, pending.call_id
+        track_id, reservation = pending.track_id, pending.reservation
+        fingerprint = _fingerprint(url)
+
+        def done(page: FetchedPage | None, reason: str | None, uncertain: bool) -> FetchOutcome:
+            return FetchOutcome(
+                url=url,
+                page=page,
+                reason=reason,
+                uncertain=uncertain,
+                data_class=cls,
+                call_id=call_id,
+                request_fingerprint=fingerprint,
+            )
+
+        if pending.refused is not None:
             # Refused on a later hop or by the response itself; nothing kept. A hop
             # may already have been served, so it is charged as if it was.
             self._meter.outcome(
@@ -477,21 +675,23 @@ class RetrievalGate:
                     sent=url,
                     reservation=reservation,
                     cost=route.price_usd_per_call,
-                    note=exc.reason,
+                    note=pending.refused.reason,
                 )
             )
-            return FetchOutcome(url=url, page=None, reason=exc.reason, uncertain=False)
-        except ToolCallFailed as exc:
+            return done(None, pending.refused.reason, False)
+        if pending.failure is not None:
             uncertain = self._close_failure(
                 route,
-                exc,
+                pending.failure,
                 call_id=call_id,
                 reservation=reservation,
                 data_class=cls,
                 track_id=track_id,
                 sent=url,
             )
-            return FetchOutcome(url=url, page=None, reason=exc.reason, uncertain=uncertain)
+            return done(None, pending.failure.reason, uncertain)
+        page = pending.page
+        assert page is not None, "a pending fetch is finished only after it was sent"
         self._meter.outcome(
             self._event(
                 route,
@@ -507,4 +707,4 @@ class RetrievalGate:
         )
         if self._cache is not None:
             self._cache.put(url, page)
-        return FetchOutcome(url=url, page=page, reason=None, uncertain=False)
+        return done(page, None, False)
