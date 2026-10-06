@@ -51,6 +51,7 @@ from ..domain.ai_contracts import Delivery, canonical_json
 from ..domain.deep_research.contracts import RetrievalMode
 from ..domain.deep_research.datasets import DatasetQuery
 from ..domain.deep_research.grounding import normalise_text
+from ..domain.deep_research.tooling import ToolKind
 from .dataset_connectors import DatasetResponse, build_result, contract_failure
 from .web_retrieval import ToolCallFailed
 
@@ -168,6 +169,7 @@ class ProcurementNoticeConnector:
     """One notice per query, by its VVZ evidence number, its forms as rows."""
 
     connector_id: Final = PROCUREMENT_CONNECTOR_ID
+    tool_kind: Final = ToolKind.DATASET_QUERY
 
     def __init__(
         self,
