@@ -76,6 +76,7 @@ __all__ = [
     "FetchedResource",
     "FetchedResponse",
     "HostFilter",
+    "LanguageSearch",
     "PoliteTransport",
     "RecordedFetchTransport",
     "RecordedResolver",
@@ -135,6 +136,15 @@ class SearchAdapter(Protocol):
 
     def search(self, query: str, *, max_results: int) -> SearchResponse:
         """Run one query, or raise :class:`ToolCallFailed`."""
+        ...
+
+
+@runtime_checkable
+class LanguageSearch(Protocol):
+    """A search adapter that can be asked for results in one language (``cs``, ``en``)."""
+
+    def search_in(self, query: str, *, lang: str, max_results: int) -> SearchResponse:
+        """Run one query in ``lang``, or raise :class:`ToolCallFailed`."""
         ...
 
 
@@ -671,10 +681,17 @@ class RecordedSearch:
     adapter_id: str
     exchanges: Mapping[str, Mapping[str, Any]]
     calls: list[str] = field(default_factory=list)
+    #: The language each ``search_in`` call asked for, in call order.
+    languages: list[str] = field(default_factory=list)
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
         return RetrievalMode.RECORDED
+
+    def search_in(self, query: str, *, lang: str, max_results: int) -> SearchResponse:
+        """A recorded exchange is keyed by its query alone; the language is recorded."""
+        self.languages.append(lang)
+        return self.search(query, max_results=max_results)
 
     def search(self, query: str, *, max_results: int) -> SearchResponse:
         self.calls.append(query)

@@ -26,7 +26,12 @@ from aia_core.domain.ai_contracts import Delivery
 from aia_core.domain.deep_research.contracts import RetrievalMode
 from aia_core.domain.deep_research.web import FetchRefused
 from aia_core.infrastructure.model_adapters.transport import StaticCredentials
-from aia_core.infrastructure.web_retrieval import FetchedResponse, SearchAdapter, ToolCallFailed
+from aia_core.infrastructure.web_retrieval import (
+    FetchedResponse,
+    LanguageSearch,
+    SearchAdapter,
+    ToolCallFailed,
+)
 from aia_core.infrastructure.web_retrieval_brave import (
     BRAVE_API_HOST,
     BRAVE_SEARCH_ID,
@@ -214,6 +219,21 @@ def test_a_typed_query_carries_its_operators_language_and_freshness() -> None:
     assert params["q"] == query.q
     assert params["search_lang"] == "cs"
     assert params["freshness"] == "2024-01-01to2025-06-30"
+
+
+def test_a_language_search_asks_its_own_language_and_refuses_another() -> None:
+    transport = Transport(_json({"web": {"results": []}}))
+    adapter = _search(transport, lang="cs", freshness="py")
+    assert isinstance(adapter, LanguageSearch)
+    adapter.search_in('plant drinks "per capita" site:csu.gov.cz', lang="en", max_results=4)
+    params = _params(transport.calls[0])
+    assert params["q"] == 'plant drinks "per capita" site:csu.gov.cz'
+    assert (params["search_lang"], params["freshness"], params["count"]) == ("en", "py", "4")
+    for query, lang in (("káva", "de"), ("káva filetype:pdf", "cs")):
+        with pytest.raises(ToolCallFailed) as refused:
+            adapter.search_in(query, lang=lang, max_results=4)
+        assert refused.value.delivery is Delivery.NOT_SENT
+    assert len(transport.calls) == 1
 
 
 def test_a_phrase_alone_is_a_query() -> None:

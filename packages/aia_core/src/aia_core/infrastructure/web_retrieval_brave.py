@@ -234,6 +234,18 @@ class BraveSearch:
             max_results=max_results,
         )
 
+    def search_in(self, query: str, *, lang: str, max_results: int) -> SearchResponse:
+        """``LanguageSearch``: ``query`` is ``q`` (site and phrase already in it), in ``lang``."""
+        try:
+            _check_text(query)
+            if lang not in LANGUAGES:
+                raise ValueError(f"lang must be one of {sorted(LANGUAGES)}")
+        except ValueError as exc:
+            raise _not_sent(str(exc), "search_operator") from exc
+        return self._send(
+            " ".join(query.split()), lang=lang, freshness=self._freshness, max_results=max_results
+        )
+
     def search_query(self, query: BraveQuery, *, max_results: int) -> SearchResponse:
         """A typed query, with its own language and freshness."""
         return self._send(

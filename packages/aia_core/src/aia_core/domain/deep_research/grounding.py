@@ -16,6 +16,9 @@ ADR 0017 decision 4, plan decision I-5. Four checks, in order, each deterministi
    the source gives it (:mod:`.measures`). A household share is not a share of
    adults, "450" is not "450 tis.". The finding keeps its span: the quote is in
    the source; the claim misstates it.
+5. **Only for an agent that states its measures** (the agent-directed
+   investigator): every number of the claim has one (``measure_missing``), and
+   each says what the source says (``measure_not_in_source``).
 
 A table cell (plan § 8.2) is grounded by :func:`ground_cell`: the quote must be
 exactly that cell's line in the table's rendering -- its row and column labels,
@@ -34,14 +37,14 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final
 
 from ..analysis.draft import numbers_in, uncovered_numbers
-from .contracts import QuarantineReason, SourceSnapshot
+from .contracts import Measure, QuarantineReason, SourceSnapshot
 from .datasets import DatasetCell
-from .measures import MEASURES_VERSION, check_measures, context_window
+from .measures import MEASURES_VERSION, check_measures, check_stated_measures, context_window
 
 __all__ = [
     "GROUNDING_VERSION",
@@ -181,9 +184,22 @@ class Grounding:
 
 
 def ground(
-    *, source_ref: str, quote: str, claim: str, sources: Mapping[str, GroundableSource]
+    *,
+    source_ref: str,
+    quote: str,
+    claim: str,
+    sources: Mapping[str, GroundableSource],
+    measures: Sequence[Measure] | None = None,
 ) -> Grounding:
-    """Check one proposed finding against the sources its track holds."""
+    """Check one proposed finding against the sources its track holds.
+
+    ``measures`` is what the proposing agent says each number means (an
+    agent-directed turn states them; the planned mode's agents do not, and pass
+    ``None``, which changes nothing). Given, check 5 runs after the other four:
+    every number of the claim has a measure (``measure_missing``), and every
+    measure is the source's (``measure_not_in_source``), by
+    :func:`~.measures.check_stated_measures`.
+    """
     source = sources.get(source_ref)
     if source is None:
         return Grounding(
@@ -218,6 +234,17 @@ def ground(
     mismatch = check_measures(normalise_text(claim), haystack[lo:hi])
     if mismatch is not None:
         return Grounding(span, QuarantineReason.MEASURE_NOT_IN_SOURCE, mismatch.detail)
+    if measures is not None:
+        problem = check_stated_measures(
+            claim=normalise_text(claim), quote=needle, context=haystack[lo:hi], measures=measures
+        )
+        if problem is not None:
+            reason = (
+                QuarantineReason.MEASURE_MISSING
+                if problem.missing
+                else QuarantineReason.MEASURE_NOT_IN_SOURCE
+            )
+            return Grounding(span, reason, problem.detail)
     if source.instructions_detected:
         return Grounding(
             span,

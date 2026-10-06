@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -15,6 +16,7 @@ from aia_core.domain.deep_research.agents import PROMPT_VERSION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
 from aia_core.domain.deep_research.grounding import GROUNDING_VERSION
+from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
 from aia_core.domain.deep_research.sources import SourceTable
@@ -56,6 +58,10 @@ class DeepResearchConfig:
     #: Extended thinking for every agent request, within ``max_output_tokens`` (so the
     #: reservation, sized on that limit, covers it); ``None`` sends no thinking.
     thinking_budget_tokens: int | None = None
+    #: Web tracks run as the agent-directed investigator's turns (chunk 9) instead of
+    #: the planner's queries. Off: every request, fingerprint and count is the
+    #: planned mode's, exactly as before the mode existed.
+    agent_directed: bool = False
 
     def __post_init__(self) -> None:
         if self.thinking_budget_tokens is not None:
@@ -80,6 +86,7 @@ class DeepResearchRuntime:
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
             web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
             thinking_budget_tokens=self.config.thinking_budget_tokens,
+            investigator=INVESTIGATOR_VERSION if self.config.agent_directed else None,
         )
 
     def versions(self) -> dict[str, str]:
@@ -99,6 +106,9 @@ class DeepResearchRuntime:
         }
         if self.config.thinking_budget_tokens is not None:
             versions["thinking_budget_tokens"] = str(self.config.thinking_budget_tokens)
+        if self.config.agent_directed:
+            # Only when on: the mode a run was planned in is the mode it investigates in.
+            versions["investigator"] = INVESTIGATOR_VERSION
         return versions
 
 
@@ -156,6 +166,7 @@ class StepToolMeter:
         self._context = context
         self._ledger = InMemoryToolLedger(budget_usd=0.0)
         self._resumed = False
+        self._earlier: tuple[ToolUsageEvent, ...] = ()
 
     @classmethod
     def resuming(cls, context: StepContext, *, clock: Callable[[], datetime]) -> StepToolMeter:
@@ -167,10 +178,24 @@ class StepToolMeter:
         true for its track, which ends ``INCOMPLETE`` without sending anything.
         """
         meter = cls(context)
-        for closure in meter._ledger.adopt(_earlier_tool_entries(context), closed_at=clock()):
+        earlier = _earlier_tool_entries(context)
+        for closure in meter._ledger.adopt(earlier, closed_at=clock()):
             meter._journal(closure)
+        meter._earlier = tuple(earlier)
         meter._resumed = True
         return meter
+
+    def dispatched_earlier(self, track_id: str) -> Counter[str]:
+        """Request fingerprints an earlier attempt of this step dispatched for a track.
+
+        What a resumed step must not send again: it was sent, and what came back is
+        only known if the step recorded it.
+        """
+        return Counter(
+            e.request_fingerprint
+            for e in self._earlier
+            if e.track_id == track_id and e.outcome is ToolOutcome.DISPATCHED
+        )
 
     @property
     def charges_study_budget(self) -> bool:
