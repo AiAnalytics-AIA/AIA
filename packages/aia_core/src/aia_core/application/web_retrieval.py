@@ -103,6 +103,7 @@ from ..domain.deep_research.common_crawl import (
     AthenaPricing,
     IndexRow,
     IndexRowInvalid,
+    IndexTarget,
     UrlIndexQuery,
     archive_url,
     build_index_sql,
@@ -1146,7 +1147,12 @@ class RetrievalGate:
     # ---------------------------------------------------------- common crawl --
 
     def query_url_index(
-        self, query: UrlIndexQuery, *, context_class: DataClass, track_id: str
+        self,
+        query: UrlIndexQuery,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        permit: ArchivePermit | None = None,
     ) -> IndexOutcome:
         """One URL index query: written, classified, authorised, reserved, run, settled.
 
@@ -1157,6 +1163,11 @@ class RetrievalGate:
         query can cost) and is charged the bytes it scanned; an unknown scan is
         charged the reservation. Rows of another shape are refused whole, and the
         scan they cost is still charged.
+
+        A query for one exact URL asks where copies of that page are: it needs the
+        permit ``decide_archive_use`` issued for that URL, or it is refused
+        (``archive_not_permitted``) and journaled before anything else. A query by
+        host or domain (discovery) names no page and needs none.
         """
         archive = self._archive
         if archive is None:
@@ -1169,11 +1180,13 @@ class RetrievalGate:
             client_terms=self._terms,
             class_a_texts=self._class_a,
         ).data_class
-        reason = (
-            "class_a_query"
-            if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
-            else self._refusal(route, data_class=cls)
-        )
+        reason: str | None
+        if query.target is IndexTarget.URL and _permit_url(permit) != query.value:
+            reason = "archive_not_permitted"
+        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            reason = "class_a_query"
+        else:
+            reason = self._refusal(route, data_class=cls)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=statement)
             return IndexOutcome(statement, cls, (), reason, False)
@@ -1237,8 +1250,15 @@ class RetrievalGate:
         )
         return IndexOutcome(statement, cls, rows, None, False, scanned, cost)
 
-    def fetch_archived(self, row: IndexRow, *, track_id: str) -> FetchOutcome:
+    def fetch_archived(
+        self, row: IndexRow, *, track_id: str, permit: ArchivePermit | None
+    ) -> FetchOutcome:
         """The archived capture an index row names, by byte range -- or refused.
+
+        Only with the permit ``decide_archive_use`` issued for the page the row is a
+        capture of (``row.url``): without it the read is refused
+        (``archive_not_permitted``) and journaled, and nothing is sent. ``permit`` has
+        no default: every caller says what it holds.
 
         Classified (the WARC file's URL, from a public index), egress-checked over
         the archive route, reserved and journaled like a fetch; what was sent is
@@ -1263,6 +1283,8 @@ class RetrievalGate:
             reason = None if check_url(url) == ARCHIVE_HOST else HOST_OUT_OF_SCOPE
         except FetchRefused as exc:
             reason = exc.reason
+        if _permit_url(permit) != row.url:
+            reason = "archive_not_permitted"
         if reason is None:
             reason = (
                 "class_a_url"

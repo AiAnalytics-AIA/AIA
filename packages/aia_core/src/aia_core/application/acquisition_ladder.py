@@ -553,7 +553,7 @@ class Climb:
         statement = self.gate.index_statement(query)
         self._earlier("url_index", statement)
         outcome = self.gate.query_url_index(
-            query, context_class=self.context_class, track_id=self.track_id
+            query, context_class=self.context_class, track_id=self.track_id, permit=permit
         )
         self.fetches += 1
         self._record(
@@ -578,7 +578,7 @@ class Climb:
             self._skip("archived_fetch", sent, "track_allowance_spent")
             return None
         self._earlier("archived_fetch", sent)
-        outcome = self.gate.fetch_archived(row, track_id=self.track_id)
+        outcome = self.gate.fetch_archived(row, track_id=self.track_id, permit=permit)
         self.fetches += 1
         snapshot = outcome.page.snapshot if outcome.page is not None else None
         self._record(
