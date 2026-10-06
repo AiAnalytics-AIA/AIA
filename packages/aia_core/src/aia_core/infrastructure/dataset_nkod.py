@@ -35,6 +35,7 @@ from ..domain.ai_contracts import Delivery
 from ..domain.deep_research.contracts import RetrievalMode
 from ..domain.deep_research.datasets import DatasetQuery
 from ..domain.deep_research.grounding import normalise_text
+from ..domain.deep_research.tooling import ToolKind
 from ..domain.deep_research.web import FetchRefused, check_url
 from .dataset_connectors import DatasetResponse, HostScopedClient, build_result, contract_failure
 from .web_retrieval import FetchTransport, Resolver, ToolCallFailed
@@ -99,6 +100,7 @@ def _term(binding: Mapping[str, Any], var: str) -> tuple[str, str] | None:
 class NkodConnector:
     """One NKOD dataset record per query, over the catalogue's SPARQL endpoint."""
 
+    tool_kind: Final = ToolKind.DATASET_QUERY
     connector_id: Final = NKOD_CONNECTOR_ID
 
     def __init__(

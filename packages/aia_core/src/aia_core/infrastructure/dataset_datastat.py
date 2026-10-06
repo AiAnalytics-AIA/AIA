@@ -30,6 +30,7 @@ from urllib.parse import quote
 from ..domain.ai_contracts import Delivery
 from ..domain.deep_research.contracts import RetrievalMode
 from ..domain.deep_research.datasets import DatasetQuery
+from ..domain.deep_research.tooling import ToolKind
 from .dataset_connectors import DatasetResponse, HostScopedClient, build_result
 from .jsonstat import jsonstat_table
 from .web_retrieval import FetchTransport, Resolver, ToolCallFailed
@@ -50,6 +51,7 @@ _SELECTION: Final = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 class DataStatConnector:
     """One predefined DataStat selection per query, read as JSON-stat 2.0."""
 
+    tool_kind: Final = ToolKind.DATASET_QUERY
     connector_id: Final = DATASTAT_CONNECTOR_ID
 
     def __init__(

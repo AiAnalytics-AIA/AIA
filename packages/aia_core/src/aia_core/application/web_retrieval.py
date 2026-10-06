@@ -50,6 +50,13 @@ steps over its connector's own route: its text (the dataset id and its filters) 
 classified like a search query, and only a Class C query is sent -- a dataset
 interface is a public source, and nothing derived from a client is asked of it.
 
+An archive lookup (Wayback CDX, plan § 5.3 ``archive`` and § 7 rung 9) is a dataset
+query over the archive's own ``archive_lookup`` route, with one more condition before
+the four steps: an :class:`~aia_core.domain.deep_research.archive.ArchivePermit` for
+the same URL, which only ``decide_archive_use`` issues, from a live attempt that found
+the page dead, moved or changed. Without one it is refused and journaled; the archive
+is never a first choice and never a way round a paywall.
+
 What a call is charged is decided here, once, and never in AIA's favour: a success or
 a failure the provider answered costs the route's price (a provider that answered has
 served the request); a failure that sent nothing costs nothing; an uncertain call and
@@ -73,6 +80,7 @@ from typing import Any, TypeVar
 from uuid import uuid4
 
 from ..domain.ai_contracts import Delivery
+from ..domain.deep_research.archive import AccessBarrier, ArchivePermit, LiveAttempt
 from ..domain.deep_research.classification import classify_query
 from ..domain.deep_research.common_crawl import (
     ARCHIVE_HOST,
@@ -138,6 +146,7 @@ __all__ = [
     "RunSnapshotCache",
     "SearchOutcome",
     "WebRetrieval",
+    "live_attempt",
     "request_fingerprint",
     "sent_search",
 ]
@@ -271,14 +280,17 @@ class IndexOutcome:
 
 @dataclass(frozen=True, slots=True)
 class DatasetAccess:
-    """One dataset connector and the route it leaves AIA by."""
+    """One dataset connector (or archive index) and the route it leaves AIA by."""
 
     route: ToolRoute
     connector: DatasetConnector
 
     def __post_init__(self) -> None:
-        if self.route.tool is not ToolKind.DATASET_QUERY:
-            raise ValueError("a dataset route must be a dataset_query route")
+        if self.route.tool not in (ToolKind.DATASET_QUERY, ToolKind.ARCHIVE_LOOKUP):
+            raise ValueError("a connector's route is a dataset_query or archive_lookup route")
+        # The connector's class fixes what it is: an archive cannot be given as a dataset.
+        if self.connector.tool_kind is not self.route.tool:
+            raise ValueError("the connector is not of its route's tool kind")
         if self.connector.connector_id != self.route.adapter_id:
             raise ValueError("the connector is not the one its route names")
         # A connector states its own mode and cannot be configured out of it.
@@ -291,6 +303,28 @@ class DatasetOutcome:
     record: QueryRecord
     snapshot: SourceSnapshot | None
     uncertain: bool
+
+
+def live_attempt(outcome: FetchOutcome, *, barrier: AccessBarrier | None) -> LiveAttempt:
+    """What a live fetch found, for ``decide_archive_use``.
+
+    ``barrier`` is what the page's reader found between it and the text; it is
+    stated for a captured page (``UNKNOWN`` when nobody looked) and ignored for a
+    failed fetch.
+    """
+    if outcome.page is None:
+        return LiveAttempt(
+            url=outcome.url, failure=outcome.reason or "no_page", uncertain=outcome.uncertain
+        )
+    snapshot = outcome.page.snapshot
+    return LiveAttempt(
+        url=outcome.url,
+        failure=None,
+        uncertain=False,
+        final_url=snapshot.final_url,
+        text=snapshot.text,
+        barrier=barrier if barrier is not None else AccessBarrier.UNKNOWN,
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -458,6 +492,7 @@ class RetrievalGate:
         cache: RunSnapshotCache | None = None,
         archive: ArchiveRetrieval | None = None,
         datasets: Sequence[DatasetAccess] = (),
+        archives: Sequence[DatasetAccess] = (),
     ) -> None:
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
@@ -472,9 +507,16 @@ class RetrievalGate:
         self._cache = cache
         self._archive = archive
         self._datasets = {d.connector.connector_id: d for d in datasets}
-        if len(self._datasets) != len(datasets):
+        self._archives = {a.connector.connector_id: a for a in archives}
+        if len(self._datasets) != len(datasets) or len(self._archives) != len(archives):
             raise ValueError("each dataset connector at most once")
-        if any(d.route.retrieval_mode is not retrieval.retrieval_mode for d in datasets):
+        if any(d.route.tool is not ToolKind.DATASET_QUERY for d in datasets):
+            raise ValueError("a dataset is given on a dataset_query route")
+        if any(a.route.tool is not ToolKind.ARCHIVE_LOOKUP for a in archives):
+            raise ValueError("an archive is given on an archive_lookup route")
+        if any(
+            d.route.retrieval_mode is not retrieval.retrieval_mode for d in (*datasets, *archives)
+        ):
             # Recorded tables beside live pages would be evidence of neither kind.
             raise ValueError("dataset routes are recorded or live as web retrieval is")
 
@@ -1169,6 +1211,49 @@ class RetrievalGate:
         was not given is refused without a journal entry: there is no route to
         journal it against, and nothing was proposed to one.
         """
+        return self._ask(
+            self._datasets.get(query.connector_id),
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            archive=False,
+            permit=None,
+        )
+
+    def archive(
+        self,
+        query: DatasetQuery,
+        *,
+        permit: ArchivePermit | None,
+        context_class: DataClass,
+        track_id: str,
+    ) -> DatasetOutcome:
+        """One archive lookup for ``query.dataset_id`` (a page URL), only with its permit.
+
+        As :meth:`dataset`, and first: the permit must be one ``decide_archive_use``
+        issued for this very URL, or the lookup is refused (``archive_not_permitted``)
+        and journaled, and nothing is sent.
+        """
+        return self._ask(
+            self._archives.get(query.connector_id),
+            query,
+            context_class=context_class,
+            track_id=track_id,
+            archive=True,
+            permit=permit,
+        )
+
+    def _ask(
+        self,
+        access: DatasetAccess | None,
+        query: DatasetQuery,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        archive: bool,
+        permit: ArchivePermit | None,
+    ) -> DatasetOutcome:
+        """The path every connector call takes; an archive's needs its permit first."""
         sent = query.text()
         classified = classify_query(
             sent,
@@ -1197,14 +1282,15 @@ class RetrievalGate:
                 failure=failure,
             )
 
-        access = self._datasets.get(query.connector_id)
         if access is None:
             return DatasetOutcome(
                 record(QueryDecision.REFUSED, refusal="dataset_connector_unavailable"), None, False
             )
         route = access.route
         reason: str | None
-        if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+        if archive and not (isinstance(permit, ArchivePermit) and permit.url == query.dataset_id):
+            reason = "archive_not_permitted"
+        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
             reason = "class_a_query"
         elif cls is not DataClass.CLASS_C_INTERNAL:
             reason = "dataset_class_c_only"
