@@ -34,6 +34,8 @@ from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSIO
 from aia_core.domain.providers import Provider
 from aia_worker.executor import StepContext
 
+from ..ai_step import ModelConcurrency
+
 __all__ = ["DeepResearchConfig", "DeepResearchRuntime", "StepToolMeter"]
 
 
@@ -69,6 +71,11 @@ class DeepResearchConfig:
     #: sized by effort, tasks in waves, a re-plan after each wave. Needs
     #: ``agent_directed``; off, every request and fingerprint is chunk 9's.
     lead: bool = False
+    #: Tracks run in steps of their own, claimable by any worker (chunk 21): the
+    #: ``investigate`` step hands out every track that would make a call and joins
+    #: them. Off, one step researches every track, as before. Recorded nowhere: a
+    #: track's result, fingerprint and every artifact are the same either way.
+    fan_out: bool = False
 
     def __post_init__(self) -> None:
         if self.thinking_budget_tokens is not None:
@@ -92,6 +99,9 @@ class DeepResearchRuntime:
     #: ``None``: publishers are hosts, nothing is traced to a primary source. The planned
     #: mode never reads it.
     register: ReputationRegister | None = None
+    #: Model requests in flight across every worker on the route (chunk 21): every
+    #: agent request holds one slot. ``None``: unbounded here, as before fan-out.
+    model_slots: ModelConcurrency | None = None
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
@@ -150,7 +160,9 @@ def _earlier_tool_entries(context: StepContext) -> list[ToolUsageEvent]:
     since = 0
     with context.transaction() as (_session, workflow):
         while True:
-            page = workflow.events(step.run_id, since=since, limit=_EVENTS_PAGE)
+            page = workflow.events(
+                step.run_id, since=since, limit=_EVENTS_PAGE, step_id=step.step_id
+            )
             entries.extend(
                 ToolUsageEvent.model_validate(event["payload"])
                 for event in page

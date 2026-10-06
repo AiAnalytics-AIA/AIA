@@ -193,6 +193,7 @@ class _Step:
             runtime_version=self._build.sha or "",
             provider=runtime.config.provider,
             reservation_usd=runtime.config.reservation_usd,
+            limiter=runtime.model_slots,
         )
 
     def _ask(

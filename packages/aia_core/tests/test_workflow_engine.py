@@ -1546,6 +1546,44 @@ def test_events_are_ordered_and_resumable(engine_repo: WorkflowRepository, run: 
     assert all(e["event_id"] > midpoint for e in engine_repo.events(run, since=midpoint))
 
 
+def test_a_step_reads_its_own_events_without_the_run_s_others(
+    engine_repo: WorkflowRepository, run: str
+) -> None:
+    """A resumed step reads its own journal back; a run of many steps holds many journals."""
+    first = engine_repo.claim_next(worker_id="worker-1")
+    assert first is not None
+    engine_repo.record_progress(first.attempt_id, worker_id="worker-1", message="mine")
+    engine_repo.complete_attempt(first.attempt_id, worker_id="worker-1")
+    second = engine_repo.claim_next(worker_id="worker-1")
+    assert second is not None
+    engine_repo.record_progress(second.attempt_id, worker_id="worker-1", message="theirs")
+
+    mine = engine_repo.events(run, step_id=first.step_id)
+    assert {e["step_id"] for e in mine} == {first.step_id}
+    assert "mine" in [e["message"] for e in mine] and "theirs" not in [e["message"] for e in mine]
+    everything = engine_repo.events(run)
+    assert [e for e in everything if e["step_id"] == first.step_id] == mine
+
+
+def test_a_step_s_output_is_read_by_its_node_key_alone(
+    engine_repo: WorkflowRepository, run: str
+) -> None:
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    assert engine_repo.step_output(run, claimed.node_key) == {}
+    engine_repo.complete_attempt(
+        claimed.attempt_id, worker_id="worker-1", output={"artifact_id": "ART-0000000000000001"}
+    )
+    assert engine_repo.step_output(run, claimed.node_key) == {"artifact_id": "ART-0000000000000001"}
+    assert engine_repo.step_output(run, "no-such-node") is None
+
+
+def test_a_step_s_output_is_not_read_outside_scope(run: str, session: Session, scoped: Any) -> None:
+    other = WorkflowRepository(session, scoped.scope(user="other_lead", study="other_client"))
+    with pytest.raises(WorkflowNotFound):
+        other.step_output(run, "brief")
+
+
 def test_recovery_of_a_paid_call_is_logged_with_its_exposure(
     engine_repo: WorkflowRepository, run: str, session: Session
 ) -> None:

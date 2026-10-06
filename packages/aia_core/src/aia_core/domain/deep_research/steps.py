@@ -78,6 +78,7 @@ __all__ = [
     "SynthesisArtifact",
     "TrackEntry",
     "TrackResult",
+    "UrlCaptureRecord",
     "VerificationBatch",
     "VerifyRecord",
     "run_scoped",
@@ -206,6 +207,19 @@ class SnapshotArtifact(_Closed):
     snapshot: SourceSnapshot
     #: The page's own publication date, when it states one; scoring reads it.
     published: date | None
+
+
+class UrlCaptureRecord(_Closed):
+    """A URL this run captured, and the content address of what it returned (chunk 21).
+
+    Stored run-scoped by the URL's canonical form, so a track step of the same run asking
+    for the URL is answered from the snapshot and sends nothing (the run's snapshot
+    cache, held in the store when tracks run in steps of their own).
+    """
+
+    kind: Literal["deep_research_url_capture"]
+    url: str
+    snapshot_id: str
 
 
 class SourceFactsRecord(_Closed):

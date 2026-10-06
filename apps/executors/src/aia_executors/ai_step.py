@@ -30,11 +30,23 @@ No fallback policy is built here: a request carries none, so none can run.
 
 Long calls: ``invoke`` blocks this thread; the worker's heartbeat thread keeps the
 lease and carries cancellation meanwhile, and the next checkpoint acts on it.
+
+**Concurrency** (Deep Research fan-out, ``docs/architecture/deep-research-fan-out.md``
+section 4). Given a ``limiter`` -- the deployment's model slots for the route -- ``invoke``
+holds one slot around the whole logical request: the reservation, the call, its one
+schema repair, the settlement. The slot is taken *before* the reservation, so a request
+waiting for one holds no budget; the wait checkpoints, so a cancelled or stopping step
+stops waiting; and a wait that runs out is ``PROVIDER_CAPACITY`` -- nothing reserved,
+nothing sent -- which parks the step ``WAITING_CAPACITY`` without consuming an attempt.
+Without a limiter nothing changes.
 """
 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
+from contextlib import AbstractContextManager
+from typing import Protocol
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import (
@@ -48,9 +60,24 @@ from aia_core.domain.ai_contracts import (
 from aia_core.domain.ai_execution import ExecutionContext, ReservationView, recovery_inputs
 from aia_core.domain.ai_models import ModelResolution
 from aia_core.domain.providers import Provider
+from aia_core.domain.workflow import FailureClass
+from aia_core.infrastructure.fan_out_coordination import ModelSlotsBusy
 from aia_worker.executor import PaidCall, StepContext, StepFailed, StopExecution
 
-__all__ = ["StepCallJournal", "StepModelCaller"]
+__all__ = ["MODEL_CONCURRENCY_WAIT", "ModelConcurrency", "StepCallJournal", "StepModelCaller"]
+
+#: Why a request failed before anything was reserved: no model slot came free.
+MODEL_CONCURRENCY_WAIT = "model_concurrency_wait"
+
+
+class ModelConcurrency(Protocol):
+    """Model requests in flight, bounded across processes (``fan_out_coordination.ModelSlots``)."""
+
+    def hold(
+        self, *, holder_attempt_id: str, checkpoint: Callable[[], None]
+    ) -> AbstractContextManager[int]:
+        """Hold one slot for the block, or raise ``ModelSlotsBusy`` past the wait."""
+        ...
 
 
 class StepCallJournal:
@@ -96,6 +123,7 @@ class StepModelCaller:
         runtime_version: str,
         provider: Provider,
         reservation_usd: float,
+        limiter: ModelConcurrency | None = None,
     ) -> None:
         if reservation_usd <= 0:
             raise ValueError("a metered request needs a positive reservation")
@@ -104,6 +132,7 @@ class StepModelCaller:
         self._runtime_version = runtime_version or "unknown-build"
         self._provider = provider
         self._reservation_usd = reservation_usd
+        self._limiter = limiter
 
     def _stop_requested(self) -> bool:
         try:
@@ -139,8 +168,31 @@ class StepModelCaller:
 
         ``BudgetExceeded`` from the reservation and every ``StopExecution`` propagate
         untouched: the worker turns them into a budget park, an abandoned attempt, a
-        released attempt or a discarded result.
+        released attempt or a discarded result. With a limiter, the request first
+        waits for a model slot (see the module docstring).
         """
+        if self._limiter is None:
+            return self._invoke(request)
+        try:
+            slot = self._limiter.hold(
+                holder_attempt_id=self._context.step.attempt_id,
+                checkpoint=self._context.checkpoint,
+            )
+            with slot:
+                return self._invoke(request)
+        except ModelSlotsBusy as busy:
+            raise StepFailed(
+                FailureClass.PROVIDER_CAPACITY,
+                str(busy),
+                error={
+                    "reason": MODEL_CONCURRENCY_WAIT,
+                    "pool": busy.pool,
+                    "limit": busy.limit,
+                    "waited_s": round(busy.waited_s, 1),
+                },
+            ) from busy
+
+    def _invoke(self, request: ModelRequest) -> ModelResult:
         call = self._context.reserve(
             amount_usd=self._reservation_usd,
             provider=self._provider,

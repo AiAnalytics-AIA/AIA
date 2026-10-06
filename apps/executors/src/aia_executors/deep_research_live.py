@@ -12,7 +12,8 @@ from aia_core.domain.deep_research.contracts import RetrievalMode
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceClass, SourceTable
 from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
-from aia_core.infrastructure.web_retrieval import WebFetcher
+from aia_core.infrastructure.host_pacing import HostPacer, PacedTransport
+from aia_core.infrastructure.web_retrieval import FetchTransport, WebFetcher
 from aia_core.infrastructure.web_retrieval_live import (
     SEARCH_ID,
     PinnedHttpsTransport,
@@ -23,6 +24,9 @@ from aia_core.infrastructure.web_retrieval_live import (
 __all__ = ["wikipedia_retrieval"]
 
 _FETCH_ID = "pinned-public-https-1"
+#: The pace a shared pacer keeps for the route's one host: the public transport's
+#: minimum interval (chunk 5). Unpaced before fan-out: one process asked it serially.
+PACED_INTERVAL_S = 1.0
 
 
 def _route(tool: ToolKind) -> ToolRoute:
@@ -43,10 +47,16 @@ def _route(tool: ToolKind) -> ToolRoute:
     )
 
 
-def wikipedia_retrieval() -> tuple[WebRetrieval, SourceTable]:
-    """Build live, fee-free retrieval with a low-scoring provisional source class."""
+def wikipedia_retrieval(pacer: HostPacer | None = None) -> tuple[WebRetrieval, SourceTable]:
+    """Build live, fee-free retrieval with a low-scoring provisional source class.
+
+    ``pacer``: the deployment's shared host pacer (fan-out, chunk 21), which every
+    search and page request then waits for; ``None`` sends as before.
+    """
     resolver = SystemResolver()
-    transport = PinnedHttpsTransport()
+    transport: FetchTransport = PinnedHttpsTransport()
+    if pacer is not None:
+        transport = PacedTransport(transport, pacer=pacer, interval_s=PACED_INTERVAL_S)
     return (
         WebRetrieval(
             search_route=_route(ToolKind.WEB_SEARCH),

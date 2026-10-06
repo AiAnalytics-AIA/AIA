@@ -2510,6 +2510,20 @@ class WorkflowRepository:
             ],
         }
 
+    def step_output(self, run_id: str, node_key: str) -> dict[str, Any] | None:
+        """The recorded output of the run's ``node_key`` step; None when it has no such step.
+
+        One query, where :meth:`get_run` reads every step and its attempt history:
+        a step looking up an upstream step's artifact needs that one output only.
+        """
+        self._run(run_id)  # scope check: a run outside this study is not found
+        output = self._session.scalar(
+            select(StepRunRow.output_json).where(
+                StepRunRow.run_id == run_id, StepRunRow.node_key == node_key
+            )
+        )
+        return None if output is None else dict(output)
+
     def attempt_history(self, step_id: str) -> list[dict[str, Any]]:
         """Return every attempt for a step, oldest first.
 
@@ -2543,18 +2557,23 @@ class WorkflowRepository:
             for a in rows
         ]
 
-    def events(self, run_id: str, *, since: int = 0, limit: int = 500) -> list[dict[str, Any]]:
-        """Return run events after ``since``, in order.
+    def events(
+        self, run_id: str, *, since: int = 0, limit: int = 500, step_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return run events after ``since``, in order; only ``step_id``'s when given.
 
         Monotonic ids let a reconnecting client resume without gaps or duplicates.
+        A step reading its own journal back names itself: a run whose tracks run in
+        steps of their own holds every track's events, and reading them all on every
+        resume made each track's start cost grow with the run.
         """
         self._run(run_id)
+        filters = [WorkflowEventRow.run_id == run_id, WorkflowEventRow.event_id > int(since)]
+        if step_id is not None:
+            filters.append(WorkflowEventRow.step_id == step_id)
         rows = self._session.scalars(
             select(WorkflowEventRow)
-            .where(
-                WorkflowEventRow.run_id == run_id,
-                WorkflowEventRow.event_id > int(since),
-            )
+            .where(*filters)
             .order_by(WorkflowEventRow.event_id)
             .limit(max(1, min(int(limit), 2000)))
         ).all()

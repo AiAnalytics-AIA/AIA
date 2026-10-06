@@ -22,15 +22,18 @@ from __future__ import annotations
 
 from typing import Final
 
-from ..workflow import StepDefinition
+from ..workflow import StepDefinition, child_node_key
 
 __all__ = [
     "ARTIFACT_TYPES",
     "DEEP_RESEARCH",
     "DEEP_RESEARCH_KINDS",
     "DEEP_RESEARCH_STAGE",
+    "INVESTIGATE_TRACK_KIND",
     "NODE_ORDER",
+    "TRACK_STEP_PREFIX",
     "deep_research_steps",
+    "track_step_key",
 ]
 
 #: The workflow type a Deep Research run is created with.
@@ -70,7 +73,24 @@ ARTIFACT_TYPES: Final[dict[str, str]] = {
     # A lead-planned run (chunk 11): the lead's plan and each re-plan (this run's own).
     "lead_plan": "deep_research_lead_plan",
     "replan": "deep_research_lead_replan",
+    # Fan-out (chunk 21): a URL the run captured, by canonical URL, naming the
+    # snapshot's content address -- the run's cache across its track steps.
+    "url_capture": "deep_research_url_capture",
 }
+
+#: The kind of a track handed out to its own step by a fanned-out ``investigate``
+#: (chunk 21, ``docs/architecture/deep-research-fan-out.md``). Not a node of the
+#: graph: the join adds one per track it hands out, while the run executes.
+INVESTIGATE_TRACK_KIND: Final = "deep_research_investigate_track"
+
+#: The node-key prefix of a track's step: ``investigate/<track id>``.
+TRACK_STEP_PREFIX: Final = "investigate"
+
+
+def track_step_key(track_id: str) -> str:
+    """The node key of the step a track is handed out to: the same track, the same key."""
+    return child_node_key(TRACK_STEP_PREFIX, track_id)
+
 
 #: The artifact each step records as its output.
 _STEP_ARTIFACT: Final[dict[str, str]] = {

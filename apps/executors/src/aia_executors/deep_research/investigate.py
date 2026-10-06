@@ -1,4 +1,11 @@
-"""The ``investigate`` step: every track, reused or researched, grounded in what it captured."""
+"""The ``investigate`` step: every track, reused or researched, grounded in what it captured.
+
+With ``DeepResearchConfig.fan_out`` (chunk 21, ``docs/architecture/deep-research-fan-out.md``)
+the step is a join: every track that would make a call is handed out as a step of its own
+(:class:`InvestigateTrackExecutor`, any worker), the step waits, and it runs again to take
+what they stored. A lead-planned run's waves are handed out the same way, one wave at a
+time. Off, every track is researched here, one after another, as before.
+"""
 
 from __future__ import annotations
 
@@ -40,9 +47,12 @@ from aia_core.domain.deep_research.steps import (
     TrackResult,
     run_scoped,
 )
+from aia_core.domain.deep_research.workflow import track_step_key
 from aia_core.domain.licence import DataLineage
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository
 from aia_core.infrastructure.web_retrieval import FetchedPage
-from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
+from aia_worker.executor import ChildStep, Deferred, Failed, StepContext, StepInput, StepOutcome
+from pydantic import ValidationError
 
 from ..ai_step import StepModelCaller
 from ._findings import _blocked_result, _Findings
@@ -52,16 +62,18 @@ from ._shared import (
     _class_a_texts,
     _composition_changed,
     _detail,
+    _invalid,
     _lineage,
     _produced,
     _Step,
     _unconfigured,
 )
 from .agent_directed import AgentDirectedTrack
-from .lead import LeadTask, LeadWaves
+from .fan_out import StoredRunSnapshotCache, TrackStepPayload, track_child
+from .lead import LeadTask, LeadWaves, WaveHandedOut
 from .runtime import DeepResearchRuntime, StepToolMeter
 
-__all__ = ["InvestigateExecutor"]
+__all__ = ["InvestigateExecutor", "InvestigateTrackExecutor"]
 
 # --------------------------------------------------------------------------- #
 # investigate
@@ -86,13 +98,9 @@ class InvestigateExecutor(_Step):
         if isinstance(loaded, Failed):
             return loaded
         plan_id, plan = loaded
-        inputs = runtime.inputs()
-        if (
-            runtime.versions() != plan.versions
-            or (dict(inputs.web_retrieval) if inputs.web_retrieval is not None else None)
-            != plan.web_retrieval
-        ):
-            return _composition_changed("the composition's rules, policy or retrieval")
+        changed = _changed(runtime, plan)
+        if changed is not None:
+            return changed
         key = run_scoped(step.run_id, digest({"kind": "investigation", "plan": plan_id}))
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
@@ -102,22 +110,20 @@ class InvestigateExecutor(_Step):
                 return _produced(existing, reused=True)
 
         meter = StepToolMeter.resuming(context, clock=runtime.clock)
-        gate = (
-            RetrievalGate(
-                retrieval=runtime.retrieval,
-                scope=context.scope,
-                meter=meter,
-                client_terms=plan.request.client_terms,
-                class_a_texts=_class_a_texts(plan.request),
-                clock=runtime.clock,
-                # Agent-directed tracks share the run's captures: a URL any track of
-                # this attempt captured is answered from them and sends nothing. The
-                # planned mode has no cache, as before.
-                cache=RunSnapshotCache() if _agent_directed(plan) else None,
-            )
-            if runtime.retrieval is not None
-            else None
+        # Agent-directed tracks share the run's captures: a URL any track of this
+        # attempt captured is answered from them and sends nothing. The planned mode
+        # has no cache, as before.
+        gate = self._gate(
+            context,
+            runtime,
+            plan,
+            meter,
+            cache=RunSnapshotCache() if _agent_directed(plan) else None,
         )
+        if runtime.config.fan_out:
+            pending = self._unstored(step, context, plan, gate)
+            if pending:
+                return _hand_out(step, [(t, None) for t in pending])
         caller = self._caller(context, runtime)
         entries: list[TrackEntry] = []
         for track in plan.tracks:
@@ -126,17 +132,22 @@ class InvestigateExecutor(_Step):
         lead = None
         if plan.lead_plan_artifact_id is not None:
             # A lead-planned run: its tasks' tracks, wave by wave, after the plan's own.
-            lead_entries, lead = LeadWaves(
-                self,
-                step=step,
-                context=context,
-                runtime=runtime,
-                plan=plan,
-                lead_plan_id=plan.lead_plan_artifact_id,
-                gate=gate,
-                meter=meter,
-                caller=caller,
-            ).run()
+            try:
+                lead_entries, lead = LeadWaves(
+                    self,
+                    step=step,
+                    context=context,
+                    runtime=runtime,
+                    plan=plan,
+                    lead_plan_id=plan.lead_plan_artifact_id,
+                    gate=gate,
+                    meter=meter,
+                    caller=caller,
+                    fan_out=runtime.config.fan_out,
+                ).run()
+            except WaveHandedOut as wave:
+                # A wave's tracks are out in steps of their own: wait for them.
+                return _hand_out(step, wave.tracks)
             entries += lead_entries
         record = InvestigationRecord(
             kind="deep_research_investigation",
@@ -180,9 +191,7 @@ class InvestigateExecutor(_Step):
         mine = run_scoped(step.run_id, track.fingerprint)
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
-            found = self._find(repo, step, "track", track.fingerprint) or self._find(
-                repo, step, "track", mine
-            )
+            found = self._stored(repo, step, track)
             if found is not None:
                 repo.read(found.artifact_id)
                 return TrackEntry(
@@ -254,6 +263,76 @@ class InvestigateExecutor(_Step):
             quarantined=len(result.quarantined),
         )
         return TrackEntry(track_id=track.track_id, artifact_id=artifact.artifact_id, reused=False)
+
+    # -- fan-out ----------------------------------------------------------------
+
+    def _gate(
+        self,
+        context: StepContext,
+        runtime: DeepResearchRuntime,
+        plan: PlanRecord,
+        meter: StepToolMeter,
+        *,
+        cache: RunSnapshotCache | None,
+    ) -> RetrievalGate | None:
+        """The step's gate over the composition's retrieval; None when it has none."""
+        if runtime.retrieval is None:
+            return None
+        return RetrievalGate(
+            retrieval=runtime.retrieval,
+            scope=context.scope,
+            meter=meter,
+            client_terms=plan.request.client_terms,
+            class_a_texts=_class_a_texts(plan.request),
+            clock=runtime.clock,
+            cache=cache,
+        )
+
+    def _stored(
+        self, repo: ArtifactRepository, step: StepInput, track: ResearchTrack
+    ) -> Artifact | None:
+        """The track's stored result: by fingerprint (any run), else this run's own."""
+        return self._find(repo, step, "track", track.fingerprint) or self._find(
+            repo, step, "track", run_scoped(step.run_id, track.fingerprint)
+        )
+
+    def stored_track(self, step: StepInput, context: StepContext, track: ResearchTrack) -> bool:
+        """True when the track's result is stored (a reused, done or handed-out track)."""
+        with context.transaction() as (session, _workflow):
+            return self._stored(self._repo(session, context), step, track) is not None
+
+    @staticmethod
+    def researches(
+        plan: PlanRecord, track: ResearchTrack, gate: RetrievalGate | None, *, lead: bool = False
+    ) -> bool:
+        """Whether :meth:`_track` would research the track (and so may send something).
+
+        Exactly its branches: a blocked track, and a web track with no retrieval or no
+        plan, are recorded without a call -- inline, never handed out.
+        """
+        if lead:
+            return gate is not None
+        if plan.blocked_for(track.track_id) is not None:
+            return False
+        if track.channel is Channel.INTERNAL:
+            return True
+        return gate is not None and plan.planned_for(track.track_id) is not None
+
+    def _unstored(
+        self,
+        step: StepInput,
+        context: StepContext,
+        plan: PlanRecord,
+        gate: RetrievalGate | None,
+    ) -> list[ResearchTrack]:
+        """The plan's tracks that would be researched and are not stored yet, in plan order."""
+        with context.transaction() as (session, _workflow):
+            repo = self._repo(session, context)
+            return [
+                t
+                for t in plan.tracks
+                if self.researches(plan, t, gate) and self._stored(repo, step, t) is None
+            ]
 
     # -- internal ---------------------------------------------------------------
 
@@ -602,3 +681,101 @@ class InvestigateExecutor(_Step):
             titles={k: s.title for k, s in snaps.items()},
         )
         return len(grounded)
+
+
+def _changed(runtime: DeepResearchRuntime, plan: PlanRecord) -> Failed | None:
+    """Refuse a composition whose rules, policy or retrieval are not the plan's."""
+    inputs = runtime.inputs()
+    if (
+        runtime.versions() != plan.versions
+        or (dict(inputs.web_retrieval) if inputs.web_retrieval is not None else None)
+        != plan.web_retrieval
+    ):
+        return _composition_changed("the composition's rules, policy or retrieval")
+    return None
+
+
+def _hand_out(step: StepInput, tracks: Sequence[tuple[ResearchTrack, LeadTask | None]]) -> Deferred:
+    """Every track as a step of its own; this step waits for them (``Deferred``)."""
+    children: list[ChildStep] = [track_child(step, t, lead) for t, lead in tracks]
+    return Deferred(
+        children=tuple(children),
+        output={"handed_out": [t.track_id for t, _lead in tracks]},
+    )
+
+
+# --------------------------------------------------------------------------- #
+# A track's own step
+# --------------------------------------------------------------------------- #
+
+
+class InvestigateTrackExecutor(InvestigateExecutor):
+    """One track a fanned-out ``investigate`` handed out, researched in a step of its own.
+
+    The same research as the sequential step -- :meth:`InvestigateExecutor._track`, with
+    its own resumed tool meter, gate and model caller -- so the artifact it stores is the
+    one the join finds. Its input is re-checked first: the run's plan read through the
+    run, the composition the plan's, the track the plan's (or, for a lead task, a web
+    track of a subject of a lead-planned run), and the fingerprint and node key the ones
+    the track was handed out under. In agent-directed mode the run's snapshot cache is
+    the store's (:class:`~aia_executors.deep_research.fan_out.StoredRunSnapshotCache`),
+    so a URL another track step captured is not fetched again.
+    """
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        runtime = self._runtime
+        if runtime is None:
+            return _unconfigured()
+        loaded = self._plan(context, step)
+        if isinstance(loaded, Failed):
+            return loaded
+        _plan_id, plan = loaded
+        changed = _changed(runtime, plan)
+        if changed is not None:
+            return changed
+        try:
+            payload = TrackStepPayload.model_validate(step.payload)
+        except ValidationError as exc:
+            return _invalid("track_payload_invalid", f"the track's input does not validate: {exc}")
+        track = payload.track
+        if (
+            track.fingerprint != step.input_fingerprint
+            or track_step_key(track.track_id) != step.node_key
+        ):
+            return _invalid("request_altered", "the track is not the one this step was handed")
+        lead: LeadTask | None = None
+        if payload.lead is None:
+            if track not in plan.tracks:
+                return _invalid("track_not_planned", "the run's plan has no such track")
+        else:
+            if (
+                plan.lead_plan_artifact_id is None
+                or track.channel is not Channel.WEB
+                or track.subject.key not in {s.key for s in plan.subjects}
+                or payload.lead.planned.track_id != track.track_id
+            ):
+                return _invalid("track_not_planned", "the run's lead planned no such task")
+            lead = payload.lead.task()
+        meter = StepToolMeter.resuming(context, clock=runtime.clock)
+        gate = self._gate(
+            context,
+            runtime,
+            plan,
+            meter,
+            cache=StoredRunSnapshotCache(self, context, step) if _agent_directed(plan) else None,
+        )
+        entry = self._track(
+            step,
+            context,
+            runtime,
+            plan,
+            track,
+            gate,
+            meter,
+            self._caller(context, runtime),
+            lead=lead,
+        )
+        with context.transaction() as (session, _workflow):
+            artifact = self._repo(session, context).get(entry.artifact_id)
+        return _produced(artifact, reused=entry.reused, track_id=track.track_id)
