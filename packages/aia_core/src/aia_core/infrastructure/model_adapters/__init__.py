@@ -22,6 +22,7 @@ from .anthropic import AnthropicMessagesAdapter
 from .bedrock import BedrockConverseAdapter, BedrockSigner
 from .claude_code import ClaudeCodeCliAdapter
 from .openai import OpenAIChatAdapter
+from .pinned import ModelPinnedAdapter, PinnedModels
 from .transport import (
     CliResult,
     CliRunner,
@@ -48,7 +49,9 @@ __all__ = [
     "HttpRequest",
     "HttpResponse",
     "HttpTransport",
+    "ModelPinnedAdapter",
     "OpenAIChatAdapter",
+    "PinnedModels",
     "RecordedCliRunner",
     "RecordedTransport",
     "StaticCredentials",

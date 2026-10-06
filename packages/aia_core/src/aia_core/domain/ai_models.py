@@ -73,6 +73,11 @@ class ModelCapability(StrEnum):
     SIMULATION = "SIMULATION"
     #: Vector embedding for retrieval.
     EMBEDDING = "EMBEDDING"
+    #: Deep Research's triage reader: judge one page, propose a few quotes. High
+    #: volume, short answers, no tools -- the light model's capability (plan
+    #: ``deep-research-web-search.md`` chunk 20; its policy entry is proposed until
+    #: chunk 1's sign-off).
+    RESEARCH_TRIAGE = "RESEARCH_TRIAGE"
 
 
 class ModelConfigError(ValueError):
