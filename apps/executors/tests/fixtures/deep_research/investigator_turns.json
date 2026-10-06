@@ -284,6 +284,25 @@
    ]
   }
  ],
+ "Sójový nápoj": [
+  {
+   "evidence": [],
+   "summary": "",
+   "leads": [],
+   "next": [
+    {
+     "kind": "finish",
+     "gaps": [
+      {
+       "need": "trh sójových nápojů",
+       "why": "nehledáno",
+       "tried": "nic"
+      }
+     ]
+    }
+   ]
+  }
+ ],
  "Mandlový nápoj": [
   {
    "evidence": [],

@@ -8,7 +8,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from aia_core.domain.ai_contracts import canonical_json
-from aia_core.domain.deep_research.agents import InvestigatorTurn
+from aia_core.domain.deep_research.agents import AgentRole, InvestigatorTurn
 from aia_core.domain.deep_research.contracts import (
     BriefDigest,
     Channel,
@@ -19,7 +19,9 @@ from aia_core.domain.deep_research.contracts import (
     RetrievalMode,
     SnapshotLink,
     SourceSnapshot,
+    StopReason,
     SubjectKind,
+    TrackStatus,
     subject_key,
     track_id,
 )
@@ -38,9 +40,13 @@ from aia_core.domain.deep_research.investigator import (
     SearchFeedback,
     TrackRefs,
     TrackState,
+    Transcript,
+    TurnRecord,
     parse_ref,
     plan_actions,
+    transcript,
     turn_input,
+    turns_without_new_evidence,
 )
 from aia_core.domain.deep_research.measures import (
     check_stated_measures,
@@ -48,6 +54,7 @@ from aia_core.domain.deep_research.measures import (
     render_measure,
 )
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceClass, SourceTier
+from aia_core.domain.deep_research.steps import CallRecord
 from aia_core.domain.residency import DataClass
 
 TABLE = SOURCE_TABLE_V1.extended(
@@ -482,3 +489,71 @@ def test_the_stated_check_needs_the_value_in_the_quote() -> None:
         claim="Trh vzrostl.", quote=QUOTE, context=SOURCE, measures=[measure(value=12.0)]
     )
     assert problem is not None and not problem.missing
+
+
+# --------------------------------------------------------------------------- #
+# Turn records and the transcript
+# --------------------------------------------------------------------------- #
+
+CALL = CallRecord(
+    role=AgentRole.INVESTIGATOR,
+    agent_id="aia.deep_research.investigator",
+    prompt_version="1",
+    call_id="call-1",
+    provider_request_id=None,
+    model="m",
+    route_id="r",
+    policy_version="p",
+    data_class=DataClass.CLASS_C_INTERNAL,
+    cost_usd=0.012,
+)
+
+
+def record(n: int, actions: tuple[ActionRecord, ...], *, replayed: bool = False) -> TurnRecord:
+    return TurnRecord(
+        kind="deep_research_turn",
+        track_id=TRACK.track_id,
+        turn=n,
+        request_sha256="0" * 64,
+        call=CALL,
+        answer_replayed=replayed,
+        output=turn(),
+        actions=actions,
+        grounded=("EV-0000000000000001",) if n == 2 else (),
+        quarantined=(),
+        fresh=n == 2,
+    )
+
+
+def test_the_transcript_is_counted_from_its_turns_and_built_the_same_twice() -> None:
+    state = state_with_news()
+    turns = [record(1, state.turns[0]), record(2, state.turns[1], replayed=True)]
+
+    def build() -> Transcript:
+        return transcript(
+            run_id="RUN-1",
+            track_id=TRACK.track_id,
+            status=TrackStatus.COMPLETED,
+            stop_reason=StopReason.AGENT_FINISHED,
+            detail="",
+            turns=turns,
+            refs=state.refs,
+            tool_cost_usd=0.0,
+        )
+
+    built = build()
+    assert canonical_json(built.model_dump(mode="json")) == canonical_json(
+        build().model_dump(mode="json")
+    )
+    assert built.version == INVESTIGATOR_VERSION and built.model_cost_usd == 0.024
+    assert built.counts["turns"] == 2 and built.counts["turns_replayed_answer"] == 1
+    assert (built.counts["sent"], built.counts["searches"], built.counts["opens"]) == (2, 1, 1)
+    assert built.counts["grounded"] == 1
+    assert [r.ref for r in built.results] == ["R1", "R2"] and built.sources[0].ref == "S1"
+    assert Transcript.model_validate(built.model_dump(mode="json")) == built
+
+
+def test_turns_without_new_evidence_counts_the_latest_dry_turns() -> None:
+    assert turns_without_new_evidence([]) == 0
+    assert turns_without_new_evidence([2, 0, 0]) == 2
+    assert turns_without_new_evidence([0, 1]) == 0

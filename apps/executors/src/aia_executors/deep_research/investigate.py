@@ -213,7 +213,10 @@ class InvestigateExecutor(_Step):
                 payload=result,
                 kind="track",
                 key=key,
-                depends_on=[s.artifact_id for s in result.snapshots],
+                depends_on=[
+                    *(s.artifact_id for s in result.snapshots),
+                    *([result.transcript_artifact_id] if result.transcript_artifact_id else []),
+                ],
             )
         context.progress(
             "deep_research_track",

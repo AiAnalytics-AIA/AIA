@@ -27,7 +27,7 @@ from datetime import date
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from ..residency import DataClass
 from .agents import AgentRole
@@ -231,6 +231,18 @@ class TrackResult(_Closed):
     credits: int = Field(ge=0)
     model_cost_usd: float = Field(ge=0.0)
     tool_cost_usd: float = Field(ge=0.0)
+    #: An agent-directed track's transcript artifact (``deep_research_transcript``):
+    #: every turn, action and decision. None for a planned-mode track, and then left
+    #: out of the stored form, so a track stored before it existed reads, dumps and
+    #: hashes exactly as it did.
+    transcript_artifact_id: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_transcript(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.transcript_artifact_id is None and isinstance(data, dict):
+            data.pop("transcript_artifact_id", None)
+        return data
 
 
 class TrackEntry(_Closed):

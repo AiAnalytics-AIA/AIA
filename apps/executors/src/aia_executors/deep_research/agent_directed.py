@@ -81,6 +81,7 @@ from aia_core.domain.deep_research.investigator import (
     TurnAnswer,
     TurnRecord,
     plan_actions,
+    transcript,
     turn_input,
     turns_without_new_evidence,
 )
@@ -594,6 +595,31 @@ class AgentDirectedTrack:
             for g in (finish.gaps if finish is not None else ())
         )
         assert self._runtime.retrieval is not None
+        record = transcript(
+            run_id=self._step.run_id,
+            track_id=track_id,
+            status=status,
+            stop_reason=stop,
+            detail=detail,
+            turns=self._records,
+            refs=self._state.refs,
+            tool_cost_usd=tool_cost,
+        )
+        # Keyed like the track's result: reusable with it when it completed, else this
+        # run's own. A reused track brings the transcript of the run that researched it.
+        material = digest(["investigator_transcript", self._track.fingerprint])
+        key = (
+            material if status is TrackStatus.COMPLETED else run_scoped(self._step.run_id, material)
+        )
+        with self._context.transaction() as (session, _workflow):
+            artifact, _created = self._executor._put(
+                self._executor._repo(session, self._context),
+                self._step,
+                payload=record,
+                kind="transcript",
+                key=key,
+                depends_on=[s.artifact_id for s in self._state.refs.sources],
+            )
         return TrackResult(
             kind="deep_research_track",
             run_id=self._step.run_id,
@@ -625,4 +651,5 @@ class AgentDirectedTrack:
             credits=charged,
             model_cost_usd=sum(c.cost_usd for c in self._calls),
             tool_cost_usd=tool_cost,
+            transcript_artifact_id=artifact.artifact_id,
         )

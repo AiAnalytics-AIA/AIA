@@ -58,7 +58,7 @@ from .agents import (
     ReadAction,
     SearchAction,
 )
-from .contracts import BriefDigest, ResearchTrack, SourceSnapshot
+from .contracts import BriefDigest, ResearchTrack, SourceSnapshot, StopReason, TrackStatus
 from .filters import FilterCandidate, exact_duplicate_clusters, near_duplicate_clusters
 from .grounding import detect_instructions
 from .legacy import canonical_url
@@ -91,6 +91,7 @@ __all__ = [
     "SourceRef",
     "TrackRefs",
     "TrackState",
+    "Transcript",
     "TurnAnswer",
     "TurnRecord",
     "parse_ref",
@@ -99,6 +100,7 @@ __all__ = [
     "plan_actions",
     "render_search",
     "search_feedback",
+    "transcript",
     "turn_input",
     "turns_without_new_evidence",
 ]
@@ -1038,3 +1040,70 @@ class TurnRecord(_Closed):
     quarantined: tuple[str, ...]
     #: Whether the turn read text it had not read before (saturation counts only these).
     fresh: bool
+
+
+class Transcript(_Closed):
+    """An agent-directed track as it ran: every turn, action and decision, every ref.
+
+    Stored beside the track's result and keyed like it (by the track's fingerprint
+    when it completed, else for this run alone), so a reused track brings its
+    transcript. Built from the turn records only: the same turns, the same bytes.
+    """
+
+    kind: Literal["deep_research_transcript"]
+    run_id: str
+    track_id: str
+    version: str
+    status: TrackStatus
+    stop_reason: StopReason
+    detail: str = Field(max_length=2000)
+    turns: tuple[TurnRecord, ...]
+    results: tuple[ResultRef, ...]
+    sources: tuple[SourceRef, ...]
+    links: tuple[LinkRef, ...]
+    #: Per decision, and in all: turns, actions, grounded and quarantined findings.
+    counts: dict[str, int]
+    model_cost_usd: float = Field(ge=0.0)
+    tool_cost_usd: float = Field(ge=0.0)
+
+
+def transcript(
+    *,
+    run_id: str,
+    track_id: str,
+    status: TrackStatus,
+    stop_reason: StopReason,
+    detail: str,
+    turns: Sequence[TurnRecord],
+    refs: TrackRefs,
+    tool_cost_usd: float,
+) -> Transcript:
+    """The transcript of a track's turns, counted from them."""
+    actions = [a for t in turns for a in t.actions]
+    counts = {
+        "turns": len(turns),
+        "turns_replayed_answer": sum(1 for t in turns if t.answer_replayed),
+        "actions": len(actions),
+        **{d.value: sum(1 for a in actions if a.decision is d) for d in ActionDecision},
+        "searches": sum(1 for a in actions if a.kind == "search"),
+        "opens": sum(1 for a in actions if a.kind == "open"),
+        "reads": sum(1 for a in actions if a.kind == "read"),
+        "grounded": sum(len(t.grounded) for t in turns),
+        "quarantined": sum(len(t.quarantined) for t in turns),
+    }
+    return Transcript(
+        kind="deep_research_transcript",
+        run_id=run_id,
+        track_id=track_id,
+        version=INVESTIGATOR_VERSION,
+        status=status,
+        stop_reason=stop_reason,
+        detail=detail[:2000],
+        turns=tuple(turns),
+        results=tuple(refs.results),
+        sources=tuple(refs.sources),
+        links=tuple(refs.links),
+        counts=counts,
+        model_cost_usd=round(sum(t.call.cost_usd for t in turns), 6),
+        tool_cost_usd=round(tool_cost_usd, 6),
+    )

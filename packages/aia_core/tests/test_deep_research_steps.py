@@ -266,3 +266,13 @@ def test_the_step_records_are_closed_and_source_facts_round_trip() -> None:
     with pytest.raises(ValidationError):
         PlanRecord.model_validate({**_plan().model_dump(mode="json"), "unexpected": 1})
     assert PlanRecord.model_validate(_plan().model_dump(mode="json")) == _plan()
+
+
+def test_a_track_without_a_transcript_stores_exactly_as_before() -> None:
+    planned = _result(Channel.WEB, calls=())
+    assert "transcript_artifact_id" not in planned.model_dump(mode="json")
+    directed = planned.model_copy(update={"transcript_artifact_id": "ART-1"})
+    dumped = directed.model_dump(mode="json")
+    assert dumped["transcript_artifact_id"] == "ART-1"
+    assert TrackResult.model_validate(dumped) == directed
+    assert TrackResult.model_validate(planned.model_dump(mode="json")) == planned

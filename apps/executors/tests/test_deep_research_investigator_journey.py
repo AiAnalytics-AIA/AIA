@@ -36,6 +36,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import canonical_json
 from aia_core.domain.deep_research.contracts import (
     Channel,
@@ -62,9 +63,11 @@ from test_deep_research_journey import (  # type: ignore[import-not-found]
     ALMOND,
     ANSWERS,
     DESIGN,
+    DESIGN_2,
     OATS,
     Q1,
     Q2,
+    SOY,
     TEST_ROUTE,
     Journey,
     RecordedAgents,
@@ -161,11 +164,11 @@ def directed(
     )
 
 
-def start_web(world: ResearchWorld) -> str:
+def start_web(world: ResearchWorld, content: dict[str, Any] = DESIGN) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit(
-            content=DESIGN, source_stage="brief"
+            content=content, source_stage="brief"
         )
         run = DeepResearchRuns(session, scope).start(
             design_revision_id=revision.revision_id, preset_name="STANDARD", channels=(W,)
@@ -553,6 +556,116 @@ def directed_run_searches(runtime: DeepResearchRuntime) -> int:
 
 
 # --------------------------------------------------------------------------- #
+# The transcript, and a later pass
+# --------------------------------------------------------------------------- #
+
+
+def stored(world: ResearchWorld, store: InMemoryArtifactStore, artifact_id: str) -> Any:
+    with world.sessions() as session:
+        return research_artifacts(session, world.lead_scope(session), store).read_json(artifact_id)
+
+
+def track_result(
+    world: ResearchWorld, store: InMemoryArtifactStore, run_id: str, track: str
+) -> dict[str, Any]:
+    _run, bundle = read(world, run_id, store)
+    entry = {t.track_id: t for t in bundle.tracks}[track]
+    result: dict[str, Any] = stored(world, store, entry.artifact_id)
+    return result
+
+
+def test_every_turn_action_and_decision_is_in_the_track_s_transcript(
+    directed_run: Directed, store: InMemoryArtifactStore
+) -> None:
+    world, run_id = directed_run.world, directed_run.run_id
+    result = track_result(world, store, run_id, tid(QS, Q1, W))
+    transcript = stored(world, store, result["transcript_artifact_id"])
+    assert transcript["kind"] == "deep_research_transcript"
+    assert transcript["version"] == INVESTIGATOR_VERSION
+    assert (transcript["status"], transcript["stop_reason"]) == ("COMPLETED", "agent_finished")
+    assert [t["turn"] for t in transcript["turns"]] == [1, 2, 3, 4, 5]
+    decisions = [
+        [(a["kind"], a["decision"], a.get("reason")) for a in t["actions"]]
+        for t in transcript["turns"]
+    ]
+    assert decisions == [
+        [("search", "sent", None)] * 3,
+        [("open", "sent", None), ("open", "refused", "unknown_ref")],
+        [("open", "sent", None), ("open", "cached", None)],
+        [("read", "served_locally", None), ("search", "sent", None)],
+        [("finish", "finished", None)],
+    ]
+    purposes = [a["purpose"] for a in transcript["turns"][2]["actions"]]
+    assert purposes == ["tabulka, ze které číslo pochází", "znovu zpráva"]
+    assert [r["ref"] for r in transcript["results"]] == ["R1", "R2", "R3", "R4"]
+    assert [(s["ref"], s["host"], s["tier"]) for s in transcript["sources"]] == [
+        ("S1", "zpravy-dr.example", "T4"),
+        ("S2", "stat-dr.example", "T1"),
+    ]
+    assert [link["ref"] for link in transcript["links"]] == ["L1"]
+    assert transcript["counts"] == {
+        "turns": 5,
+        "turns_replayed_answer": 0,
+        "actions": 10,
+        "sent": 6,
+        "cached": 1,
+        "served_locally": 1,
+        "refused": 1,
+        "skipped": 0,
+        "finished": 1,
+        "searches": 4,
+        "opens": 4,
+        "reads": 1,
+        "grounded": 1,
+        "quarantined": 2,
+    }
+    assert transcript["turns"][3]["grounded"] == [e["evidence_id"] for e in result["evidence"]]
+
+
+def test_a_later_pass_reuses_completed_tracks_with_their_transcripts_at_no_cost(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    agents = ScriptedInvestigator(ANSWERS)
+    runtime = directed(research, agents)
+    w = worker(research, database_url, store, build, runtime)
+    first = start_web(research)
+    assert drain(w) == 6
+    before = len(agents.requests)
+    searched = len(directed_run_search(runtime).calls)
+    second = start_web(research, DESIGN_2)
+    assert drain(w) == 6
+    _run, bundle = read(research, second, store)
+    tracks = {t.track_id: t for t in bundle.tracks}
+    assert {k for k, t in tracks.items() if t.reused} == {
+        tid(QS, Q1, W),
+        tid(QS, Q2, W),
+        tid(OS, ALMOND, W),
+    }
+    # The same stored result and the same transcript, bought by the first run.
+    for track in (tid(QS, Q1, W), tid(QS, Q2, W)):
+        assert (
+            track_result(research, store, second, track)["transcript_artifact_id"]
+            == track_result(research, store, first, track)["transcript_artifact_id"]
+        )
+    # Bought now: the plan, the new object's one turn and the oats track again (it was
+    # INCOMPLETE, never reused), and the review of what is new.
+    bought = Counter(RecordedAgents._role(r) for r in agents.requests[before:])
+    assert bought["investigator"] == 2 and bought["planner"] == 1
+    assert agents.turns_of(SOY) == [1]
+    assert len(directed_run_search(runtime).calls) == searched + 2  # the oats track's two
+    assert bundle.counts["tracks_reused"] == 3
+
+
+def directed_run_search(runtime: DeepResearchRuntime) -> RecordedSearch:
+    retrieval = runtime.retrieval
+    assert retrieval is not None and isinstance(retrieval.search, RecordedSearch)
+    return retrieval.search
+
+
+# --------------------------------------------------------------------------- #
 # Mode off: the planned journey, byte for byte
 # --------------------------------------------------------------------------- #
 
@@ -569,6 +682,7 @@ PLANNED_TOOL_JOURNAL = "6ee0ced884929d5e127b81601bcedfcd64f439813477bb780242845a
 
 def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
     pass_one: Journey,  # noqa: F811
+    store: InMemoryArtifactStore,
 ) -> None:
     requests = pass_one.agents.requests
     web = [r.body for r in requests if RecordedAgents._role(r) in {"planner", "web_investigator"}]
@@ -587,6 +701,9 @@ def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
     assert "investigator" not in pass_one.runtime.versions()
     assert pass_one.runtime.inputs().investigator is None
     assert pass_one.agents.roles()["investigator"] == 0
+    # No planned track has a transcript, nor a key for one in its stored form.
+    blobs = [store.get(key).decode("utf-8") for key in store.keys]
+    assert not any('"transcript_artifact_id"' in b or "deep_research_turn" in b for b in blobs)
     assert (
         deep_research_package.DeepResearchConfig.__dataclass_fields__["agent_directed"].default
         is False
