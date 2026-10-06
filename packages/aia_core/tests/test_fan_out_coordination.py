@@ -170,7 +170,10 @@ def test_a_host_held_by_another_request_is_waited_for(
     sqlite_sessions: sessionmaker[Session],
 ) -> None:
     fake = FakeTime()
-    holder, waiter = _pacer(sqlite_sessions, fake), _pacer(sqlite_sessions, fake, poll_s=0.25)
+    holder, waiter = (
+        _pacer(sqlite_sessions, fake),
+        _pacer(sqlite_sessions, fake, poll_s=0.25, max_poll_s=1.0),
+    )
     turn = holder.turn("stats.example", 1.0)
     turn.__enter__()  # in flight in "another process"
     calls = 0
@@ -187,8 +190,8 @@ def test_a_host_held_by_another_request_is_waited_for(
     with waiter.turn("stats.example", 1.0):
         started = fake.monotonic()
 
-    assert fake.slept[:4] == [0.25] * 4, "polled while the host was in flight"
-    assert started == pytest.approx(2.0), "then its interval after the holder's end"
+    assert fake.slept[:4] == [0.25, 0.5, 1.0, 1.0], "polled, backing off, while in flight"
+    assert started == pytest.approx(3.75), "then its interval after the holder's end"
 
 
 def test_a_turn_that_would_come_too_late_is_refused_before_anything_is_sent(
@@ -209,7 +212,7 @@ def test_a_dead_holder_lapses_after_its_hold(sqlite_sessions: sessionmaker[Sessi
     fake = FakeTime()
     dead, live = (
         _pacer(sqlite_sessions, fake, hold_s=20.0),
-        _pacer(sqlite_sessions, fake, poll_s=5.0),
+        _pacer(sqlite_sessions, fake, poll_s=5.0, max_poll_s=5.0),
     )
     # Its process dies in flight: never released. (Held in a name: a dropped context
     # manager is closed by the garbage collector, which would release it.)
@@ -275,6 +278,21 @@ def test_at_most_limit_slots_are_held_and_a_release_frees_one(
     with slots.hold(holder_attempt_id=c) as third:
         assert third == 0
     assert slots.in_flight() == 0
+
+
+def test_a_waiter_backs_off_and_never_sleeps_past_its_bound(
+    sqlite_sessions: sessionmaker[Session], scope_builder: Any
+) -> None:
+    a, b = _attempts(sqlite_sessions, scope_builder, 2)
+    fake = FakeTime()
+    slots = _slots(sqlite_sessions, fake, limit=1, max_wait_s=3.0, poll_s=0.25, max_poll_s=1.0)
+    with (
+        slots.hold(holder_attempt_id=a),
+        pytest.raises(ModelSlotsBusy),
+        slots.hold(holder_attempt_id=b),
+    ):
+        pass
+    assert fake.slept == [0.25, 0.5, 1.0, 1.0, 0.25]
 
 
 def test_a_slot_expires_with_its_holder_attempts_lease(

@@ -14,10 +14,11 @@ never across a network call:
   with the lease of the attempt that took it.
 
 Both are correct on either engine through conditional ``UPDATE`` statements checked by
-their row counts (``AGENTS.md`` § SQLAlchemy: the condition is in the statement); on
-PostgreSQL the reads also lock (``FOR UPDATE``), so concurrent takers queue on the row
-instead of racing it. SQLite is single-writer: there the same statements serialise,
-which is what the offline path needs and all it can prove.
+their row counts (``AGENTS.md`` § SQLAlchemy: the condition is in the statement). A host's
+turn also locks its one row on PostgreSQL (``FOR UPDATE``), so takers of one host queue on
+it; a slot is taken by the conditional ``UPDATE`` alone, so takers of one pool queue only
+on the row they both want, for one short commit. SQLite is single-writer: there the same
+statements serialise, which is what the offline path needs and all it can prove.
 
 Instants come from the injected UTC clock of each process, not the database's: the
 interval a host is owed is measured where the request is sent. On develop every
@@ -101,9 +102,11 @@ class SharedHostPacer:
     A turn: take the host (a short transaction), send outside any transaction, release
     it with ``next_allowed_at = end + interval`` (another). While another request holds
     the host, or its interval has not passed, the taker sleeps -- the exact remainder of
-    an interval, ``poll_s`` while a request is in flight -- and refuses before sending
-    once the wait would pass ``max_wait_s``. Keyed by host alone: a crawl delay is owed
-    by AIA's user agent, which every run shares.
+    an interval; while a request is in flight, ``poll_s`` doubling up to ``max_poll_s``
+    (a request's end is not known in advance, and a waiter asking every few milliseconds
+    for the length of a slow page would be most of the database's load) -- and refuses
+    before sending once the wait would pass ``max_wait_s``. Keyed by host alone: a crawl
+    delay is owed by AIA's user agent, which every run shares.
     """
 
     def __init__(
@@ -113,16 +116,21 @@ class SharedHostPacer:
         max_wait_s: float = HOST_MAX_WAIT_SECONDS,
         hold_s: float = HOST_HOLD_SECONDS,
         poll_s: float = 0.05,
+        max_poll_s: float = 0.5,
         clock: Callable[[], datetime] = _utcnow,
         monotonic: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
-        if max_wait_s < 0 or hold_s <= 0 or poll_s <= 0:
-            raise ValueError("a host's wait is not negative and its hold and poll are positive")
+        if max_wait_s < 0 or hold_s <= 0 or not 0 < poll_s <= max_poll_s:
+            raise ValueError(
+                "a host's wait is not negative, its hold positive, its poll positive and "
+                "no longer than its longest poll"
+            )
         self._sessions = sessions
         self._max_wait_s = max_wait_s
         self._hold = timedelta(seconds=hold_s)
         self._poll_s = poll_s
+        self._max_poll_s = max_poll_s
         self._clock = clock
         self._monotonic = monotonic
         self._sleep = sleep
@@ -135,9 +143,14 @@ class SharedHostPacer:
             raise ValueError("a host's interval is not negative")
         token = uuid.uuid4().hex
         started = self._monotonic()
+        polls = 0
         while True:
             wait = self._take(host, token)
-            if wait <= 0:
+            if wait is None:
+                # In flight elsewhere: its end is unknown, so poll, backing off.
+                wait = min(self._poll_s * 2**polls, self._max_poll_s)
+                polls += 1
+            elif wait <= 0:
                 break
             if self._monotonic() - started + wait > self._max_wait_s:
                 raise FetchRefused(
@@ -150,8 +163,9 @@ class SharedHostPacer:
         finally:
             self._release(host, token, interval_s)
 
-    def _take(self, host: str, token: str) -> float:
-        """Take ``host`` for ``token`` (0.0), or the seconds to wait before asking again."""
+    def _take(self, host: str, token: str) -> float | None:
+        """Take ``host`` for ``token`` (0.0); the seconds left of its interval; or None
+        while another request holds it (how long is unknown)."""
         with self._sessions() as session:
             now = self._clock()
             self._maybe_prune(session, now)
@@ -169,7 +183,7 @@ class SharedHostPacer:
             held_until = as_utc(row.held_until)
             if row.holder_token is not None and held_until is not None and held_until > now:
                 session.rollback()
-                return self._poll_s
+                return None
             next_allowed = as_utc(row.next_allowed_at)
             if next_allowed is not None and next_allowed > now:
                 session.rollback()
@@ -188,7 +202,7 @@ class SharedHostPacer:
             )
             if _rowcount(taken) != 1:
                 session.rollback()
-                return self._poll_s
+                return None
             session.commit()
             return 0.0
 
@@ -268,6 +282,7 @@ class ModelSlots:
         limit: int,
         max_wait_s: float = MODEL_SLOT_MAX_WAIT_SECONDS,
         poll_s: float = 0.05,
+        max_poll_s: float = 1.0,
         clock: Callable[[], datetime] = _utcnow,
         monotonic: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
@@ -276,13 +291,17 @@ class ModelSlots:
             raise ValueError("a pool is named, in at most 128 characters")
         if not 1 <= limit <= 256:
             raise ValueError("a model concurrency limit is between 1 and 256")
-        if max_wait_s < 0 or poll_s <= 0:
-            raise ValueError("a slot's wait is not negative and its poll is positive")
+        if max_wait_s < 0 or not 0 < poll_s <= max_poll_s:
+            raise ValueError(
+                "a slot's wait is not negative and its poll positive and no longer than "
+                "its longest poll"
+            )
         self._sessions = sessions
         self.pool = pool
         self.limit = limit
         self._max_wait_s = max_wait_s
         self._poll_s = poll_s
+        self._max_poll_s = max_poll_s
         self._clock = clock
         self._monotonic = monotonic
         self._sleep = sleep
@@ -297,16 +316,21 @@ class ModelSlots:
 
         Waits, calling ``checkpoint`` between polls (a stopping or cancelled step stops
         here, holding nothing), and raises :class:`ModelSlotsBusy` past ``max_wait_s``.
+        The poll doubles from ``poll_s`` up to ``max_poll_s``: a model request lasts
+        seconds, and a waiter asking every few milliseconds for that long was most of
+        the database's load while the pool was full.
         """
         token = uuid.uuid4().hex
         started = self._monotonic()
+        polls = 0
         held = self._acquire(holder_attempt_id, token)
         while held is None:
             checkpoint()
             waited = self._monotonic() - started
             if waited >= self._max_wait_s:
                 raise ModelSlotsBusy(self.pool, self.limit, waited)
-            self._sleep(self._poll_s)
+            self._sleep(min(self._poll_s * 2**polls, self._max_poll_s, self._max_wait_s - waited))
+            polls += 1
             held = self._acquire(holder_attempt_id, token)
         try:
             yield held.slot
@@ -367,8 +391,12 @@ class ModelSlots:
                 .order_by(ModelConcurrencySlotRow.slot)
                 .execution_options(populate_existing=True)
             )
-            if _is_postgres(session):
-                query = query.with_for_update(skip_locked=True)
+            # Read unlocked; the conditional UPDATE below is the claim. Locking the scan
+            # (FOR UPDATE SKIP LOCKED) made one taker hold every slot row of the pool for
+            # its transaction, so every other taker found none and slept a poll: four
+            # workers spent more time waiting for the scan than for a slot. Two takers
+            # updating one row now queue on it for one short commit, and the second's
+            # WHERE, re-evaluated against the committed row, moves it to the next slot.
             rows = session.scalars(query).all()
             live = self._live(
                 session,
