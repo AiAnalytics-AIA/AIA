@@ -8,6 +8,8 @@ of its own; executors do, through :mod:`aia_worker.executor`.
 
 from .executor import (
     CancellationRequested,
+    ChildStep,
+    Deferred,
     ExecutorRegistry,
     Failed,
     GateDecision,
@@ -29,6 +31,8 @@ from .worker import AttemptResult, Worker
 __all__ = [
     "AttemptResult",
     "CancellationRequested",
+    "ChildStep",
+    "Deferred",
     "ExecutorRegistry",
     "Failed",
     "GateDecision",

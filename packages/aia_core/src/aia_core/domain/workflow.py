@@ -23,6 +23,7 @@ describing the validated prototype engine.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -34,6 +35,7 @@ __all__ = [
     "DEFAULT_LEASE_SECONDS",
     "DEFAULT_MAX_ATTEMPTS",
     "DEFAULT_QUOTA_FALLBACK_SECONDS",
+    "MAX_NODE_KEY_LENGTH",
     "RUNTIME_UNAVAILABLE_REASON",
     "AttemptStatus",
     "FailureClass",
@@ -44,7 +46,9 @@ __all__ = [
     "StepRunStatus",
     "WorkflowRunStatus",
     "apply_cancellation",
+    "child_node_key",
     "classify_failure",
+    "decide_deferral",
     "decide_recovery",
     "decide_release",
     "derive_run_status",
@@ -247,6 +251,9 @@ class AttemptStatus(StrEnum):
     FAILED = "FAILED"
     EXPIRED = "EXPIRED"
     ABANDONED = "ABANDONED"
+    #: The attempt handed its work to child steps and ended; the step waits for
+    #: them (``BLOCKED``) and runs again, as a new attempt, once they succeed.
+    DEFERRED = "DEFERRED"
 
     @property
     def is_terminal(self) -> bool:
@@ -265,6 +272,7 @@ _TERMINAL_ATTEMPT_STATUSES: Final = frozenset(
         AttemptStatus.FAILED,
         AttemptStatus.EXPIRED,
         AttemptStatus.ABANDONED,
+        AttemptStatus.DEFERRED,
     }
 )
 
@@ -495,6 +503,9 @@ class RecoveryAction(StrEnum):
     # The run was cancelled while the attempt was in flight; whatever the attempt
     # would otherwise have become, the step is cancelled. See `apply_cancellation`.
     CANCEL = "CANCEL"
+    # The attempt handed its work to child steps; the step waits for them.
+    # See `decide_deferral`.
+    DEFER = "DEFER"
 
 
 @dataclass(frozen=True, slots=True)
@@ -675,6 +686,58 @@ def decide_release(
         reason="released_by_worker",
         consumes_attempt=False,
     )
+
+
+def decide_deferral(
+    *, paid_call_dispatched: bool, paid_call_outcome_known: bool
+) -> RecoveryDecision:
+    """Decide what happens when an attempt hands its work to child steps.
+
+    The step waits, ``BLOCKED`` on its children, and runs again as a new attempt
+    once every child has succeeded (``release_ready_steps``). Waiting is not a
+    failure of the work, so the attempt does **not** count against
+    ``max_attempts``: a join that waits once per wave would otherwise exhaust its
+    retries on a run that never failed.
+
+    The one exception is the invariant :func:`decide_recovery` protects. An
+    attempt that defers with a paid call dispatched and its outcome unknown is,
+    for billing, indistinguishable from one that crashed at that moment, so it is
+    ``RECOVERY_REQUIRED`` with uncertain exposure -- and no child is started.
+    """
+    if paid_call_dispatched and not paid_call_outcome_known:
+        return RecoveryDecision(
+            action=RecoveryAction.RECOVERY_REQUIRED,
+            step_status=StepRunStatus.RECOVERY_REQUIRED,
+            reason="paid_external_call_side_effect_uncertain",
+            settle_reservation_as_uncertain=True,
+        )
+    return RecoveryDecision(
+        action=RecoveryAction.DEFER,
+        step_status=StepRunStatus.BLOCKED,
+        reason="waiting_for_child_steps",
+        consumes_attempt=False,
+    )
+
+
+#: The longest node key a step may have (``step_runs.node_key``).
+MAX_NODE_KEY_LENGTH: Final = 64
+
+
+def child_node_key(prefix: str, name: str) -> str:
+    """A child step's node key: ``<prefix>/<name>``, unique and within the column.
+
+    The same ``(prefix, name)`` is always the same key, so a step that hands the
+    same work out again names the same child. A name too long to fit is cut and
+    suffixed with 16 hex of its SHA256, so two long names never collide.
+    """
+    if not prefix or "/" in prefix:
+        raise ValueError("a child key prefix is a plain node key")
+    key = f"{prefix}/{name}"
+    if len(key) <= MAX_NODE_KEY_LENGTH:
+        return key
+    tail = hashlib.sha256(name.encode()).hexdigest()[:16]
+    head = key[: MAX_NODE_KEY_LENGTH - len(tail) - 1]
+    return f"{head}~{tail}"
 
 
 def apply_cancellation(decision: RecoveryDecision, *, cancel_requested: bool) -> RecoveryDecision:

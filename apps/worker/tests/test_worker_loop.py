@@ -161,6 +161,49 @@ def test_a_retried_completion_after_a_lost_ack_charges_once(
         assert len(succeeded) == 1
 
 
+def test_a_deferring_step_hands_out_children_and_completes_after_them(
+    study: Any, make_worker: MakeWorker, tmp_path: Path
+) -> None:
+    """``Deferred``: children added and claimed by any worker; the step runs again after."""
+    ledger = tmp_path / "ledger.jsonl"
+    run_id = study.create_run(
+        {"ledger": str(ledger), "defer": [{"ledger": str(ledger)}, {"ledger": str(ledger)}]}
+    )
+    worker = make_worker()
+
+    first = worker.run_once()
+    assert first is not None and first.ending == "deferred"
+    assert first.step_status is StepRunStatus.BLOCKED
+    endings = [r.ending for r in iter(worker.run_once, None)]
+
+    assert endings == ["completed", "completed", "completed"]
+    run = study.run(run_id)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    steps = {s["node_key"]: s for s in run["steps"]}
+    assert set(steps) == {"s0", "s0/0", "s0/1"}
+    assert [a["status"] for a in steps["s0"]["attempts"]] == [
+        AttemptStatus.DEFERRED,
+        AttemptStatus.SUCCEEDED,
+    ]
+    assert steps["s0"]["attempts_consumed"] == 1, "the wait was not a failure"
+    events = _ledger(ledger)
+    children = [e for e in events if e["step_id"] != steps["s0"]["step_id"]]
+    assert sorted(e["event"] for e in children) == ["end", "end", "start", "start"]
+
+
+def test_a_step_that_defers_on_every_wave_never_exhausts_its_retries(
+    study: Any, make_worker: MakeWorker
+) -> None:
+    """Five waves on a step allowed three attempts: waiting is not failing."""
+    run_id = study.create_run({"defer": [{}], "defer_attempts": 5})
+    worker = make_worker()
+
+    endings = [r.ending for r in iter(worker.run_once, None)]
+
+    assert endings.count("deferred") == 5
+    assert study.run(run_id)["status"] is WorkflowRunStatus.COMPLETED
+
+
 # --------------------------------------------------------------------------- #
 # Failure
 # --------------------------------------------------------------------------- #

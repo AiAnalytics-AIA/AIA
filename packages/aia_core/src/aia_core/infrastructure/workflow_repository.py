@@ -55,12 +55,14 @@ from ..domain.workflow import (
     AttemptStatus,
     FailureClass,
     InteractionMode,
+    RecoveryAction,
     RecoveryDecision,
     ReservationStatus,
     StepDefinition,
     StepRunStatus,
     WorkflowRunStatus,
     apply_cancellation,
+    decide_deferral,
     decide_recovery,
     decide_release,
     derive_run_status,
@@ -1545,6 +1547,152 @@ class WorkflowRepository:
             quota_reset_at=quota_reset_at,
         )
         return self._apply_recovery(step, attempt, decision, reservation_id=reservation_id)
+
+    def defer_attempt(
+        self,
+        attempt_id: str,
+        *,
+        worker_id: str,
+        children: Sequence[StepDefinition],
+        child_inputs: dict[str, dict[str, Any]] | None = None,
+        child_fingerprints: dict[str, str] | None = None,
+        output: dict[str, Any] | None = None,
+    ) -> StepRunStatus:
+        """End an attempt that handed its work to child steps; the step waits for them.
+
+        In one unit of work: each child is added to the run (``RUNNABLE``, at the
+        parent's priority, after every existing step) unless a step with its node key
+        already exists -- the same work handed out again names the same child -- and
+        the parent depends on every child; the attempt ends ``DEFERRED`` and its open
+        holds are closed by the one closing rule; the parent becomes ``BLOCKED`` and
+        is released, as a new attempt, by :meth:`release_ready_steps` when every
+        child has succeeded (at once, when they all already have). The attempt does
+        not count against ``max_attempts`` (:func:`decide_deferral`).
+
+        A child that fails stalls the parent, and the run reads ``FAILED`` or
+        ``RECOVERY_REQUIRED`` from it, exactly as a failed upstream step would. A
+        cancellation that arrived meanwhile cancels the parent and adds no child; a
+        paid call in flight with no known outcome makes the parent
+        ``RECOVERY_REQUIRED`` and adds no child either.
+
+        Lease-fenced like :meth:`complete_attempt`.
+        """
+        definitions = list(children)
+        if not definitions:
+            raise ValueError("a deferral names at least one child step")
+        keys = [d.node_key for d in definitions]
+        if len(set(keys)) != len(keys):
+            raise ValueError("a deferral names each child once")
+        if any(d.depends_on for d in definitions):
+            raise ValueError("a child depends on nothing but its parent's progress")
+
+        attempt = self._held_attempt(attempt_id, worker_id=worker_id)
+        step = self._step(attempt.step_id)
+        self._lock_run_for(step)
+        existing = {
+            row.node_key: row
+            for row in self._session.scalars(
+                select(StepRunRow).where(StepRunRow.run_id == step.run_id)
+            ).all()
+        }
+        if step.node_key in keys:
+            raise ValueError("a step cannot be its own child")
+        clash = sorted(
+            d.node_key
+            for d in definitions
+            if d.node_key in existing and existing[d.node_key].kind != d.kind
+        )
+        if clash:
+            raise ValueError(f"node keys already name other steps of this run: {clash}")
+
+        attempt.status = AttemptStatus.DEFERRED.value
+        attempt.finished_at = utcnow()
+        attempt.lease_until = None
+        attempt.output_json = output or {}
+
+        decision = apply_cancellation(
+            decide_deferral(
+                paid_call_dispatched=attempt.paid_call_dispatched,
+                paid_call_outcome_known=self._paid_call_outcome_known(attempt),
+            ),
+            cancel_requested=step.cancel_requested,
+        )
+        exposure = self._close_open_reservations(attempt, reason=decision.reason)
+        if not decision.consumes_attempt and step.attempts_consumed > 0:
+            step.attempts_consumed -= 1
+
+        added: list[str] = []
+        if decision.action is RecoveryAction.DEFER:
+            ordinal = max((s.ordinal for s in existing.values()), default=0)
+            depends = set(
+                self._session.scalars(
+                    select(StepDependencyRow.depends_on_step_id).where(
+                        StepDependencyRow.step_id == step.step_id
+                    )
+                ).all()
+            )
+            for definition in definitions:
+                child = existing.get(definition.node_key)
+                if child is None:
+                    ordinal += 1
+                    child = StepRunRow(
+                        step_id=new_step_id(),
+                        run_id=step.run_id,
+                        node_key=definition.node_key,
+                        kind=definition.kind,
+                        status=StepRunStatus.RUNNABLE.value,
+                        ordinal=ordinal,
+                        priority=step.priority,
+                        stage_type=definition.stage_type,
+                        artifact_target=definition.artifact_target,
+                        interaction_mode=definition.interaction_mode.value,
+                        input_fingerprint=(child_fingerprints or {}).get(definition.node_key, ""),
+                        max_attempts=definition.max_attempts,
+                        input_json=(child_inputs or {}).get(definition.node_key, {}),
+                    )
+                    self._session.add(child)
+                    self._session.flush()
+                    added.append(definition.node_key)
+                if child.step_id not in depends:
+                    self._session.add(
+                        StepDependencyRow(step_id=step.step_id, depends_on_step_id=child.step_id)
+                    )
+                    depends.add(child.step_id)
+
+        step.status = decision.step_status.value
+        step.waiting_reason = None
+        step.runnable_after = None
+        step.updated_at = utcnow()
+        if decision.step_status.is_terminal:
+            step.finished_at = utcnow()
+
+        payload: dict[str, Any] = {
+            "action": decision.action.value,
+            "reason": decision.reason,
+            "attempt_number": attempt.attempt_number,
+            "children": len(definitions),
+            "added": len(added),
+        }
+        if exposure:
+            payload["conservative_cost_exposure_usd"] = exposure
+        self._event(
+            step.run_id,
+            event_type="STEP_DEFERRED",
+            message=f"{step.node_key}: {decision.reason}",
+            payload=payload,
+            step_id=step.step_id,
+            attempt_id=attempt.attempt_id,
+            level="WARN" if decision.needs_human else "INFO",
+        )
+        self._session.flush()
+        if decision.action is RecoveryAction.DEFER:
+            # Children that already succeeded (the same work handed out again)
+            # release the parent at once.
+            self.release_ready_steps(step.run_id)
+        self._refresh_run(step.run_id)
+        self._session.flush()
+        self._session.refresh(step)
+        return StepRunStatus(step.status)
 
     def _apply_recovery(
         self,

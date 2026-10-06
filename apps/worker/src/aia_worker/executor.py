@@ -45,6 +45,8 @@ from sqlalchemy.orm import Session
 __all__ = [
     "BudgetExceeded",
     "CancellationRequested",
+    "ChildStep",
+    "Deferred",
     "ExecutorRegistry",
     "Failed",
     "GateDecision",
@@ -168,7 +170,49 @@ class NeedsApproval:
     gate_type: str = "approval"
 
 
-StepOutcome = Succeeded | Failed | NeedsApproval
+@dataclass(frozen=True, slots=True)
+class ChildStep:
+    """One unit of work a step hands out: a step of the same run, claimable by any worker.
+
+    ``node_key`` names it within the run; the same key handed out again is the same
+    child (it is not added twice). ``payload`` becomes its :attr:`StepInput.payload`
+    and ``input_fingerprint`` its fingerprint. A child depends on nothing: it is
+    claimable at once, by any worker whose registry has its ``kind``.
+    """
+
+    node_key: str
+    kind: str
+    payload: Mapping[str, Any] = field(default_factory=dict)
+    input_fingerprint: str = ""
+    stage_type: str = ""
+    artifact_target: str = ""
+    max_attempts: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class Deferred:
+    """Hand the step's work to child steps and wait for them.
+
+    The worker adds the children to the run and ends the attempt; the step waits
+    (``BLOCKED``) until every child has succeeded, then runs again as a new attempt
+    -- which finds what the children stored and carries on. The wait does not count
+    against ``max_attempts``. A child that fails stalls the step, as a failed
+    upstream step would. Return it only with every paid call settled: a call in
+    flight makes the step ``RECOVERY_REQUIRED`` instead, and starts no child.
+    """
+
+    children: tuple[ChildStep, ...]
+    output: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        keys = [c.node_key for c in self.children]
+        if not keys:
+            raise ValueError("a deferral hands out at least one child step")
+        if len(set(keys)) != len(keys):
+            raise ValueError("a deferral names each child once")
+
+
+StepOutcome = Succeeded | Failed | NeedsApproval | Deferred
 
 
 class StepFailed(Exception):

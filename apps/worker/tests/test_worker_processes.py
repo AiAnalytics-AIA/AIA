@@ -204,6 +204,48 @@ def test_three_processes_share_one_queue_without_double_execution_or_charge(
     assert _open_reservations(sessions) == 0
 
 
+def test_children_of_a_deferred_step_run_across_processes_once_each(
+    study: Any,
+    spawn: Callable[[str], WorkerProcess],
+    sessions: sessionmaker[Session],
+    tmp_path: Path,
+) -> None:
+    """A join hands out twelve paid children; three processes share them; it then completes."""
+    ledger = tmp_path / "ledger.jsonl"
+    children = 12
+    run_id = study.create_run(
+        {
+            "ledger": str(ledger),
+            "defer": [
+                {"ledger": str(ledger), "work_seconds": 0.2, "paid": {"reserve": 1.0, "cost": 0.25}}
+                for _ in range(children)
+            ],
+        }
+    )
+    workers = [spawn(f"proc-{i}") for i in range(3)]
+
+    _wait_for(
+        lambda: study.run(run_id)["status"] is WorkflowRunStatus.COMPLETED,
+        what="the join to complete after its children",
+    )
+    _stop(*workers)
+
+    run = study.run(run_id)
+    join = next(s for s in run["steps"] if s["node_key"] == "s0")
+    events = _ledger(ledger)
+    child_starts = Counter(
+        e["step_id"] for e in events if e["event"] == "start" and e["step_id"] != join["step_id"]
+    )
+    assert len(child_starts) == children and set(child_starts.values()) == {1}
+    assert len({e["pid"] for e in events}) >= 2, "the children were actually shared"
+    assert [a["status"] for a in join["attempts"]] == [
+        AttemptStatus.DEFERRED,
+        AttemptStatus.SUCCEEDED,
+    ]
+    assert study.budget()["spent_usd"] == pytest.approx(children * 0.25)
+    assert _open_reservations(sessions) == 0
+
+
 # --------------------------------------------------------------------------- #
 # Termination
 # --------------------------------------------------------------------------- #
