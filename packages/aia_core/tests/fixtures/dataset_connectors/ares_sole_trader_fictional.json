@@ -1,0 +1,9 @@
+{
+  "ico": "99999021",
+  "obchodniJmeno": "Vendelín Smyšlený",
+  "sidlo": {"kodStatu": "CZ", "nazevObce": "Fiktivov", "textovaAdresa": "Domácí 3, 999 04 Fiktivov", "psc": 99904},
+  "pravniForma": "101",
+  "datumVzniku": "2019-01-07",
+  "czNace": ["43320"],
+  "_fixture": "FICTIONAL: an invented sole trader (a natural person doing business). The connector must refuse it whole."
+}

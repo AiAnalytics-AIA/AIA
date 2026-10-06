@@ -1,0 +1,53 @@
+{
+  "_fixture": "FICTIONAL: every number, name, address and contact here is invented. Records use the field names of the ISVZ open-data VZ element as recorded (unverified) in docs/architecture/deep-research-connectors.md; the person and contact fields are planted to prove that nothing outside the allowlist is stored. No real ISVZ, VVZ or NEN answer has been captured.",
+  "Z2025-999001": {
+    "source_url": "https://isvz.example/opendata/Z2025-999001",
+    "request_id": "isvz-fikt-1",
+    "records": [
+      {
+        "IDZakazky": "FIKT-1",
+        "EvidencniCisloVZnaVVZ": "Z2025-999001",
+        "CisloFormulareNaVVZ": "F2025-999101",
+        "DruhFormulare": "F02",
+        "TypFormulare": "řádný",
+        "PlatnyFormular": "1",
+        "DatumUverejneni": "2025-03-04",
+        "ZadavatelUredniNazev": "Fiktivní město Alfa",
+        "ZadavatelICO": "99999030",
+        "ZadavatelKontaktniOsoba": "Mgr. Ludmila Smyšlená",
+        "ZadavatelEmail": "ludmila.smyslena@alfa.example",
+        "ZadavatelTelefon": "+420 999 123 456",
+        "NazevVZ": "Dodávka mléčných výrobků pro fiktivní školní jídelny",
+        "StrucnyPopisVZ": "Dotazy zasílejte paní Ludmile Smyšlené, ludmila.smyslena@alfa.example.",
+        "DruhVZ": "Dodávky",
+        "DruhRizeni": "Otevřené řízení",
+        "CPVhlavni": "15500000-3",
+        "OdhadovanaHodnotaVZbezDPH": "4 500 000,00",
+        "OdhadovanaHodnotaVZmena": "CZK",
+        "LhutaProDoruceniNabidek": "2025-04-15T10:00:00",
+        "OteviraniNabidekOpravneneOsobyDalsiInfo": "Otevírání se zúčastní Ing. Bořivoj Vymyšlený"
+      },
+      {
+        "IDZakazky": "FIKT-1",
+        "EvidencniCisloVZnaVVZ": "Z2025-999001",
+        "CisloFormulareNaVVZ": "F2025-999202",
+        "DruhFormulare": "F03",
+        "PlatnyFormular": "1",
+        "DatumUverejneni": "2025-06-20",
+        "ZadavatelUredniNazev": "Fiktivní město Alfa",
+        "ZadavatelICO": "99999030",
+        "ZadavatelKontaktniOsoba": "Mgr. Ludmila Smyšlená",
+        "NazevVZ": "Dodávka mléčných výrobků pro fiktivní školní jídelny (info: podatelna@alfa.example, 999 765 432)",
+        "DruhVZ": "Dodávky",
+        "DruhRizeni": "Otevřené řízení",
+        "CPVhlavni": "15500000-3",
+        "CelkovaKonecnaHodnotaVZ": "4 120 500,00",
+        "CelkovaKonecnaHodnotaVZmena": "CZK",
+        "DodavatelICO": "99999021",
+        "DodavatelNazev": "Vendelín Smyšlený",
+        "DodavatelPostovniAdresa": "Domácí 3",
+        "DodavatelObec": "Fiktivov"
+      }
+    ]
+  }
+}

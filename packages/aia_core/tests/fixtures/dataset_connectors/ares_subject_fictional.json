@@ -1,0 +1,56 @@
+{
+  "ico": "99999013",
+  "obchodniJmeno": "Fiktivní Mlékárna Alfa s.r.o.",
+  "sidlo": {
+    "kodStatu": "CZ",
+    "nazevStatu": "Česká republika",
+    "nazevKraje": "Fiktivní kraj",
+    "nazevObce": "Fiktivov",
+    "nazevUlice": "Smyšlená",
+    "cisloDomovni": 101,
+    "psc": 99901,
+    "textovaAdresa": "Smyšlená 101, 999 01 Fiktivov"
+  },
+  "pravniForma": "112",
+  "financniUrad": "999",
+  "datumVzniku": "2011-03-14",
+  "datumAktualizace": "2026-09-30",
+  "dic": "CZ99999013",
+  "czNace": ["10510", "46330"],
+  "adresaDorucovaci": {
+    "radekAdresy1": "k rukám Bohumila Fiktivního",
+    "radekAdresy2": "Vymyšlená 7",
+    "radekAdresy3": "999 02 Fiktivov"
+  },
+  "seznamRegistraci": {
+    "stavZdrojeVr": "AKTIVNI",
+    "stavZdrojeRes": "AKTIVNI",
+    "stavZdrojeDph": "AKTIVNI",
+    "stavZdrojeRzp": "AKTIVNI"
+  },
+  "dalsiUdaje": [
+    {"datovyZdroj": "vr", "spisovaZnacka": "C 99999/FIKT", "pravniForma": "112"}
+  ],
+  "statutarniOrgany": [
+    {
+      "nazevOrganu": "Jednatel",
+      "clenoveOrganu": [
+        {
+          "fyzickaOsoba": {
+            "jmeno": "Kvido",
+            "prijmeni": "Smyšlenka",
+            "titulPredJmenem": "Ing.",
+            "datumNarozeni": "1971-05-02",
+            "adresa": {"textovaAdresa": "Snová 12, 999 03 Fiktivov"}
+          },
+          "funkce": "jednatel"
+        }
+      ]
+    }
+  ],
+  "spolecnici": [
+    {"osoba": {"jmeno": "Radmila", "prijmeni": "Vymyšlená", "datumNarozeni": "1969-11-20"}, "podil": "100 %"}
+  ],
+  "angazovaneOsoby": ["Kvido Smyšlenka", "Radmila Vymyšlená", "Bohumil Fiktivní"],
+  "_fixture": "FICTIONAL: every name, number and address here is invented. The legal-entity fields follow the ARES field names recorded (unverified) in docs/architecture/deep-research-connectors.md; the person fields are planted, in invented shapes, to prove that nothing outside the allowlist is stored."
+}
