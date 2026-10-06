@@ -289,6 +289,21 @@ forbid "among the executors, only the recorded composition builds recorded web r
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# An archived copy is for a dead or moved page only (plan deep-research-web-search
+# § 7 rung 9): the gate asks the archive only with a permit, and only the archive
+# policy issues one. Nothing else may construct it.
+forbid "only the archive policy issues an archive permit" \
+  'ArchivePermit\(' \
+  packages/aia_core/src \
+  archive.py
+# The public dataset and archive connectors are registered by no composition until
+# the Deep Research composition chunk (plan chunk 23) records their routes and prices.
+DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector'
+for composition in "$API" "$WORKER" "$EXECUTORS" deploy; do
+  forbid "no composition registers a dataset connector yet ($composition)" \
+    "$DATASET_CONNECTORS" \
+    "$composition"
+done
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \
