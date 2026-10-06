@@ -191,6 +191,10 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState<{ ok: boolean; text: string; savedVersion?: number } | null>(null);
+  // The version this editor just saved, as the server returned it. Its "Zapnout" button shows
+  // at once, before the detail has been read again, so what is said about that version (its
+  // declaration, its text) is read from here until the detail lists it.
+  const [justSaved, setJustSaved] = useState<PromptVersion | null>(null);
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const [testing, setTesting] = useState<number | null>(null);
   const [compare, setCompare] = useState<{ a: string; b: string }>({
@@ -243,6 +247,7 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
       setReference(saved.text);
       setBasedOn(saved.label);
       setNote("");
+      setJustSaved(saved);
       setAnswer({ ok: true, text: tv(`${P}.editor.saved`, { label: saved.label }), savedVersion: saved.version_number });
       reload();
     } catch (e) {
@@ -252,8 +257,10 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
     }
   }
 
+  const versionOf = (versionNumber: number): PromptVersion | undefined =>
+    detail.versions.find((v) => v.version_number === versionNumber) ?? (justSaved?.version_number === versionNumber ? justSaved : undefined);
   const textOf = (versionNumber: number | null) =>
-    versionNumber === null ? detail.baseline_text : (detail.versions.find((v) => v.version_number === versionNumber)?.text ?? "");
+    versionNumber === null ? detail.baseline_text : (versionOf(versionNumber)?.text ?? "");
 
   const options = [
     { key: "baseline", label: t(`${P}.baselineName`), text: detail.baseline_text },
@@ -349,6 +356,7 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
               key={`${activating.version}`}
               detail={detail}
               version={activating.version}
+              record={activating.version === null ? undefined : versionOf(activating.version)}
               label={activating.version === null ? t(`${P}.baselineName`) : `e${activating.version}`}
               dirty={dirty}
               onCancel={() => setActivating(null)}
@@ -455,8 +463,8 @@ function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
 
 // ---------------------------------------------------------------- activation
 
-function Activation({ detail, version, label, dirty, onCancel, onDone, textOf }: {
-  detail: PromptSlotDetail; version: number | null; label: string; dirty: boolean;
+function Activation({ detail, version, record, label, dirty, onCancel, onDone, textOf }: {
+  detail: PromptSlotDetail; version: number | null; record: PromptVersion | undefined; label: string; dirty: boolean;
   onCancel: () => void; onDone: (label: string, text: string) => void; textOf: (version: number | null) => string;
 }) {
   const router = useRouter();
@@ -465,7 +473,7 @@ function Activation({ detail, version, label, dirty, onCancel, onDone, textOf }:
   const [error, setError] = useState<string | null>(null);
   // Only a version saved before declarations existed waits for an operator: every other edit
   // carries its author's declaration, which classifies it.
-  const undeclared = version !== null && !detail.versions.find((v) => v.version_number === version)?.declared_class;
+  const undeclared = version !== null && !record?.declared_class;
   async function go() {
     setBusy(true);
     setError(null);

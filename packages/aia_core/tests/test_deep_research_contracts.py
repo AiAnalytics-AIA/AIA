@@ -17,11 +17,14 @@ from aia_core.domain.deep_research.contracts import (
     EvidenceType,
     FrozenKnowledge,
     KnowledgeSource,
+    Measure,
+    MeasureBasis,
     RecommendedUse,
     ResearchSubject,
     RetrievalMode,
     SourceKind,
     SubjectKind,
+    digest,
     evidence_id,
     subject_key,
     track_id,
@@ -172,6 +175,89 @@ def test_evidence_records_the_agents_quality_within_bounds_only() -> None:
     assert EvidenceItem.model_validate(fields).agent_source_quality == 0.4
     with pytest.raises(ValidationError):
         EvidenceItem.model_validate({**fields, "agent_source_quality": 1.5})
+
+
+def _household_item(**extra: object) -> EvidenceItem:
+    return EvidenceItem.model_validate(
+        {
+            "evidence_id": "EV-0123456789abcdef",
+            "track_id": "DRT-W-q-0123456789ab",
+            "subject_key": "q-0123456789ab",
+            "channel": Channel.WEB,
+            "source_kind": SourceKind.WEB_PAGE,
+            "source_ref": "SNP-0123456789abcdef01234567",
+            "source_url": "https://stat.example/rostlinne-napoje-2025",
+            "source_title": "Spotřeba rostlinných nápojů 2025",
+            "claim": "Rostlinné nápoje kupuje 45 % domácností.",
+            "quote": "Rostlinné nápoje kupuje 45 % domácností.",
+            "quote_span": (120, 160),
+            "evidence_type": EvidenceType.OFFICIAL_REPORT,
+            "source_date": "2025-06-30",
+            "geography": "CZ",
+            "population": "domácnosti",
+            "topics": ("trh",),
+            "data_class": DataClass.CLASS_C_INTERNAL,
+            "agent_outcome_overlap": False,
+            "agent_recommended_use": RecommendedUse.CONTEXT_ONLY,
+            "agent_source_quality": 0.8,
+            **extra,
+        }
+    )
+
+
+#: The digest of :func:`_household_item`'s stored form, computed on ``develop`` at
+#: 757154e, before ``EvidenceItem`` had measures. A sealed bundle re-dumps its items
+#: to verify itself (``bundle.DeepResearchBundle.verify``): if this changes, every
+#: bundle stored before measures existed stops verifying.
+_DIGEST_BEFORE_MEASURES = "aede70c741fcbffe0a6a0e90e3d26ba918aa7e208c008257791596c6ce4851a4"
+
+
+def test_an_item_without_measures_stores_and_digests_exactly_as_before_measures() -> None:
+    item = _household_item()
+    stored = item.model_dump(mode="json")
+    assert "measures" not in stored
+    assert digest(stored) == _DIGEST_BEFORE_MEASURES
+    # A stored item (no "measures" key) reads back and re-dumps to the same bytes.
+    again = EvidenceItem.model_validate(stored)
+    assert again.measures == ()
+    assert again.model_dump(mode="json") == stored
+    assert EvidenceItem.model_validate_json(item.model_dump_json()) == item
+
+
+def test_an_item_with_measures_keeps_them_and_refuses_a_malformed_one() -> None:
+    measure = Measure(
+        value=45,
+        unit="%",
+        period="Y2025",
+        geography="CZ",
+        population="HOUSEHOLDS",
+        basis=MeasureBasis.ACTUAL,
+    )
+    item = _household_item(measures=(measure,))
+    stored = item.model_dump(mode="json")
+    assert stored["measures"] == [
+        {
+            "value": 45.0,
+            "unit": "%",
+            "scale": 1,
+            "period": "Y2025",
+            "geography": "CZ",
+            "population": "HOUSEHOLDS",
+            "denominator": None,
+            "measure_name": None,
+            "basis": "actual",
+        }
+    ]
+    assert digest(stored) != _DIGEST_BEFORE_MEASURES
+    assert EvidenceItem.model_validate(stored) == item
+    # Not stated is None, never a default; a scale is a positive multiplier.
+    assert Measure(value=3).model_dump()["population"] is None
+    with pytest.raises(ValidationError):
+        Measure(value=3, scale=0)
+    with pytest.raises(ValidationError):
+        Measure(value=math.inf)
+    with pytest.raises(ValidationError):
+        Measure.model_validate({"value": 3, "confidence": 0.9})
 
 
 # --------------------------------------------------------------------------- the graph

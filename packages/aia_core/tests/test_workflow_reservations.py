@@ -126,7 +126,9 @@ def test_cancelling_with_a_call_in_flight_records_uncertain_exposure(
     gone is shown as spent.
     """
     reservation_id = _reserve(engine_repo, claimed, 3.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
     engine_repo.request_cancel(run)
 
     engine_repo.abandon_attempt(claimed.attempt_id, worker_id="worker-1")
@@ -150,9 +152,14 @@ def test_regression_known_spend_is_charged_when_the_attempt_then_fails(
     handed back to the budget as available.
     """
     reservation_id = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
     engine_repo.mark_paid_call_outcome_known(
-        claimed.attempt_id, worker_id="worker-1", actual_cost_usd=1.80
+        claimed.attempt_id,
+        worker_id="worker-1",
+        reservation_id=reservation_id,
+        actual_cost_usd=1.80,
     )
 
     decision = engine_repo.fail_attempt(
@@ -174,10 +181,12 @@ def test_known_spend_is_charged_when_the_lease_lapses(
     engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
 ) -> None:
     """The same rule on the recovery path: a known cost is a cost."""
-    _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    hold = _reserve(engine_repo, claimed, 2.0)
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+    )
     engine_repo.mark_paid_call_outcome_known(
-        claimed.attempt_id, worker_id="worker-1", actual_cost_usd=1.25
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold, actual_cost_usd=1.25
     )
     attempt = session.get(StepAttemptRow, claimed.attempt_id)
     assert attempt is not None
@@ -216,7 +225,9 @@ def test_completion_with_an_unsettled_dispatched_call_is_charged_as_uncertain(
     than released. Scoring unknown as good is the anti-pattern this avoids.
     """
     reservation_id = _reserve(engine_repo, claimed, 2.5)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
 
     engine_repo.complete_attempt(claimed.attempt_id, worker_id="worker-1", output={"ok": 1})
 
@@ -239,9 +250,11 @@ def test_a_legacy_settle_at_completion_is_not_charged_twice(
 ) -> None:
     """Outcome recorded, then the same cost passed to completion with the id."""
     reservation_id = _reserve(engine_repo, claimed, 5.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
     engine_repo.mark_paid_call_outcome_known(
-        claimed.attempt_id, worker_id="worker-1", actual_cost_usd=3.0
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id, actual_cost_usd=3.0
     )
 
     engine_repo.complete_attempt(
@@ -265,14 +278,18 @@ def test_each_call_is_charged_when_its_outcome_is_known(
 ) -> None:
     """Two calls in one attempt, each settled at its real cost as it returns."""
     first = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first
+    )
     engine_repo.settle_paid_call(
         claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.5
     )
     assert _position(engine_repo)["spent_usd"] == pytest.approx(1.5), "charged at once"
 
     second = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=second
+    )
     engine_repo.settle_paid_call(
         claimed.attempt_id, worker_id="worker-1", reservation_id=second, actual_cost_usd=1.0
     )
@@ -294,12 +311,16 @@ def test_a_settled_call_survives_a_later_crash_without_being_over_charged(
     its reserved ceiling.
     """
     first = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first
+    )
     engine_repo.settle_paid_call(
         claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.0
     )
     second = _reserve(engine_repo, claimed, 3.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=second
+    )
     attempt = session.get(StepAttemptRow, claimed.attempt_id)
     assert attempt is not None
     attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
@@ -320,7 +341,9 @@ def test_settling_a_call_twice_charges_once(
 ) -> None:
     """A retried settle after a lost acknowledgement."""
     reservation_id = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
     for _ in range(2):
         engine_repo.settle_paid_call(
             claimed.attempt_id,
@@ -337,7 +360,9 @@ def test_a_call_rejected_before_billing_settles_at_zero(
 ) -> None:
     """The provider refused it; the outcome is known and nothing was billed."""
     reservation_id = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
     engine_repo.settle_paid_call(
         claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id, actual_cost_usd=0
     )
@@ -389,7 +414,9 @@ def test_a_worker_that_lost_its_lease_cannot_meter_against_it(
     with pytest.raises(LeaseLost):
         _reserve(engine_repo, claimed, 1.0)
     with pytest.raises(LeaseLost):
-        engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+        engine_repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+        )
     with pytest.raises(LeaseLost):
         engine_repo.settle_paid_call(
             claimed.attempt_id,
@@ -398,7 +425,9 @@ def test_a_worker_that_lost_its_lease_cannot_meter_against_it(
             actual_cost_usd=1.0,
         )
     with pytest.raises(LeaseLost):
-        engine_repo.mark_paid_call_outcome_known(claimed.attempt_id, worker_id="worker-1")
+        engine_repo.mark_paid_call_outcome_known(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+        )
 
     open_holds = session.scalars(
         select(BudgetReservationRow).where(
@@ -419,7 +448,9 @@ def test_a_park_with_a_call_in_flight_still_records_the_exposure(
     question this leaves open.
     """
     reservation_id = _reserve(engine_repo, claimed, 2.0)
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=reservation_id
+    )
 
     decision = engine_repo.fail_attempt(
         claimed.attempt_id, worker_id="worker-1", failure=FailureClass.QUOTA
@@ -428,3 +459,205 @@ def test_a_park_with_a_call_in_flight_still_records_the_exposure(
     assert decision.action is RecoveryAction.PARK_PROVIDER
     assert _reservation(session, reservation_id).status == ReservationStatus.SETTLED_UNCERTAIN.value
     assert _position(engine_repo)["spent_usd"] == pytest.approx(2.0)
+
+
+# --------------------------------------------------------------------------- #
+# Concurrent calls in one attempt: each call's outcome is its own question
+# --------------------------------------------------------------------------- #
+
+
+def _two_calls_in_flight(engine_repo: WorkflowRepository, claimed: ClaimedWork) -> tuple[str, str]:
+    """Two holds reserved, both calls dispatched, neither answered yet."""
+    first = _reserve(engine_repo, claimed, 2.0)
+    second = _reserve(engine_repo, claimed, 3.0)
+    for hold in (first, second):
+        engine_repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+        )
+    return first, second
+
+
+def _lapse(session: Session, attempt_id: str) -> None:
+    attempt = session.get(StepAttemptRow, attempt_id)
+    assert attempt is not None
+    attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)
+    session.flush()
+
+
+def test_regression_settling_one_concurrent_call_does_not_answer_the_other(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """Two calls in flight at once; the first is settled; the worker dies.
+
+    Before, the attempt kept one outcome flag and the first settle set it, so the
+    lapsed lease was retried (``expired_lease_idempotent_or_subscription``) with
+    the second call possibly billed, and the second hold was *released*: a call
+    that may have cost $3 recorded as costing nothing, and run again.
+    """
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.0
+    )
+    _lapse(session, claimed.attempt_id)
+
+    decisions = engine_repo.recover_expired_attempts()
+
+    assert decisions[0].action is RecoveryAction.RECOVERY_REQUIRED
+    assert _reservation(session, first).status == ReservationStatus.SETTLED.value
+    assert _reservation(session, first).settled_amount_usd == pytest.approx(1.0)
+    uncertain = _reservation(session, second)
+    assert uncertain.status == ReservationStatus.SETTLED_UNCERTAIN.value
+    assert uncertain.settled_amount_usd == pytest.approx(3.0), "charged at its ceiling"
+    position = _position(engine_repo)
+    assert position["spent_usd"] == pytest.approx(4.0)
+    assert position["uncertain_usd"] == pytest.approx(3.0)
+
+
+def test_both_concurrent_calls_settled_is_safe_to_retry(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """Every call answered: nothing may have been billed unseen, so a lapse retries."""
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+    for hold, cost in ((second, 2.5), (first, 1.0)):
+        engine_repo.settle_paid_call(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=hold, actual_cost_usd=cost
+        )
+    _lapse(session, claimed.attempt_id)
+
+    decisions = engine_repo.recover_expired_attempts()
+
+    assert decisions[0].action is RecoveryAction.RETRY
+    assert _position(engine_repo)["spent_usd"] == pytest.approx(3.5)
+    assert _position(engine_repo)["uncertain_usd"] == pytest.approx(0.0)
+
+
+def test_concurrent_calls_with_none_settled_are_recovery_required(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """Neither answered: unchanged from one call in flight."""
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+    _lapse(session, claimed.attempt_id)
+
+    decisions = engine_repo.recover_expired_attempts()
+
+    assert decisions[0].action is RecoveryAction.RECOVERY_REQUIRED
+    for hold in (first, second):
+        assert _reservation(session, hold).status == ReservationStatus.SETTLED_UNCERTAIN.value
+
+
+def test_a_known_outcome_on_one_hold_leaves_the_other_call_open(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """The call journal's path (outcome recorded, charged at the end) keeps the same rule."""
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+    engine_repo.mark_paid_call_outcome_known(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.25
+    )
+
+    decision = engine_repo.fail_attempt(
+        claimed.attempt_id, worker_id="worker-1", failure=FailureClass.TRANSPORT
+    )
+
+    assert decision.action is RecoveryAction.RECOVERY_REQUIRED
+    assert _reservation(session, second).status == ReservationStatus.SETTLED_UNCERTAIN.value
+
+
+def test_releasing_with_one_of_two_calls_answered_is_recovery_required(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork
+) -> None:
+    """A clean shutdown is no different: the unanswered call may be billed."""
+    first, _ = _two_calls_in_flight(engine_repo, claimed)
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.0
+    )
+
+    decision = engine_repo.release_attempt(claimed.attempt_id, worker_id="worker-1")
+
+    assert decision.action is RecoveryAction.RECOVERY_REQUIRED
+
+
+def test_completing_with_one_of_two_calls_unanswered_charges_it_as_uncertain(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """The closing rule asks the holds, not the flag the first settle set."""
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.0
+    )
+
+    engine_repo.complete_attempt(claimed.attempt_id, worker_id="worker-1", output={"ok": 1})
+
+    assert _reservation(session, second).status == ReservationStatus.SETTLED_UNCERTAIN.value
+    assert _position(engine_repo)["spent_usd"] == pytest.approx(4.0)
+
+
+def test_the_attempts_outcome_flag_records_what_the_holds_say(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """The attempt row's flag, read by history and views, stays false until the last answer."""
+    first, second = _two_calls_in_flight(engine_repo, claimed)
+
+    def known() -> bool:
+        attempt = session.get(StepAttemptRow, claimed.attempt_id)
+        assert attempt is not None
+        session.refresh(attempt)
+        return attempt.paid_call_outcome_known
+
+    assert not known()
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=first, actual_cost_usd=1.0
+    )
+    assert not known(), "the second call is still in flight"
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=second, actual_cost_usd=1.0
+    )
+    assert known()
+
+
+def test_a_retried_dispatch_mark_after_a_lost_acknowledgement_is_one_call(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """The mark is idempotent per hold: written twice, one settle answers it."""
+    hold = _reserve(engine_repo, claimed, 2.0)
+    for _ in range(2):
+        engine_repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+        )
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold, actual_cost_usd=1.0
+    )
+    _lapse(session, claimed.attempt_id)
+
+    assert engine_repo.recover_expired_attempts()[0].action is RecoveryAction.RETRY
+
+
+def test_a_call_cannot_be_dispatched_against_a_closed_hold(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork, session: Session
+) -> None:
+    """A settled hold has no budget left behind it; the dispatch is refused before sending."""
+    from aia_core.infrastructure.workflow_repository import ReservationClosed
+
+    hold = _reserve(engine_repo, claimed, 2.0)
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+    )
+    engine_repo.settle_paid_call(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold, actual_cost_usd=1.0
+    )
+
+    with pytest.raises(ReservationClosed):
+        engine_repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+        )
+    assert not _reservation(session, hold).paid_call_in_flight
+
+
+def test_a_call_cannot_be_dispatched_against_another_attempts_hold(
+    engine_repo: WorkflowRepository, claimed: ClaimedWork
+) -> None:
+    from aia_core.infrastructure.workflow_repository import WorkflowNotFound
+
+    with pytest.raises(WorkflowNotFound):
+        engine_repo.mark_paid_call_dispatched(
+            claimed.attempt_id, worker_id="worker-1", reservation_id="RSV-not-this-attempts"
+        )

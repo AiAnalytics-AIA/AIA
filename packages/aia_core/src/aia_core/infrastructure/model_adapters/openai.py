@@ -50,6 +50,7 @@ from .transport import (
     TransportFailure,
     parse_duration_seconds,
     plausible_wait,
+    refuse_thinking,
     resolve_secret,
     token_count,
 )
@@ -127,6 +128,8 @@ class OpenAIChatAdapter:
         )
 
     async def send(self, request: AdapterRequest) -> AdapterResponse:
+        if request.thinking_budget_tokens is not None:
+            raise refuse_thinking("OpenAI Chat")
         secret = resolve_secret(self._credentials, self._credential_ref)
         http_request = self.build_request(request, secret=secret)
         try:

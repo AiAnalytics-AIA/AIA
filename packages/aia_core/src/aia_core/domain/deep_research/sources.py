@@ -17,6 +17,14 @@ The numbers are a **proposal** for the methodology owner, like the depth presets
 (DR-5): they are data, so changing them changes the version and every fingerprint
 that used them, and nothing else.
 
+Every class also has a **tier** (plan ``deep-research-web-search`` § 8.7): T1 official
+statistics and government, T2 peer-reviewed and academic, T3 industry, T4 media, T5
+preprints and anything unidentified, and EXCLUDED for forums and social platforms.
+The tier is an annotation beside the score; it changes no score and no decision
+here. An unknown host is ``UNKNOWN`` and so T5 -- never above it. Approved Client
+Knowledge is not a publisher at all: its tier is its own, ``CLIENT_KNOWLEDGE``, so
+no consumer can rank it against a host by accident.
+
 Pure: stdlib only.
 """
 
@@ -36,9 +44,15 @@ __all__ = [
     "SourceClass",
     "SourceScore",
     "SourceTable",
+    "SourceTier",
     "host_geography",
+    "is_excluded",
+    "is_excluded_url",
     "score_knowledge_source",
     "score_web_source",
+    "tier_of",
+    "web_tier",
+    "worse_tier",
 ]
 
 SOURCE_TABLE_VERSION: Final = "aia-source-table-1"
@@ -59,6 +73,62 @@ class SourceClass(StrEnum):
     #: Approved by a person into the client's knowledge (ADR 0015).
     CLIENT_KNOWLEDGE = "CLIENT_KNOWLEDGE"
     UNKNOWN = "UNKNOWN"
+
+
+class SourceTier(StrEnum):
+    """Where a source's publisher stands (plan § 8.7). T1 is the most authoritative."""
+
+    T1 = "T1"
+    T2 = "T2"
+    T3 = "T3"
+    T4 = "T4"
+    T5 = "T5"
+    #: Forums and social platforms: quarantined, whatever they say.
+    EXCLUDED = "EXCLUDED"
+    #: Approved by a person into the client's knowledge: no publisher to rank.
+    CLIENT_KNOWLEDGE = "CLIENT_KNOWLEDGE"
+
+
+#: The web tiers from best to worst. CLIENT_KNOWLEDGE is deliberately absent.
+_WEB_TIER_ORDER: Final[tuple[SourceTier, ...]] = (
+    SourceTier.T1,
+    SourceTier.T2,
+    SourceTier.T3,
+    SourceTier.T4,
+    SourceTier.T5,
+    SourceTier.EXCLUDED,
+)
+
+
+def tier_of(cls: SourceClass) -> SourceTier:
+    """The tier a source class stands at. Exhaustive: a new class must choose one."""
+    match cls:
+        case SourceClass.OFFICIAL_STATISTICS | SourceClass.GOVERNMENT_OR_REGULATOR:
+            return SourceTier.T1
+        case SourceClass.PEER_REVIEWED | SourceClass.ACADEMIC_INSTITUTION:
+            return SourceTier.T2
+        case SourceClass.INDUSTRY_RESEARCH:
+            return SourceTier.T3
+        case SourceClass.MEDIA:
+            return SourceTier.T4
+        case SourceClass.PREPRINT | SourceClass.UNKNOWN:
+            return SourceTier.T5
+        case SourceClass.FORUM_OR_SOCIAL:
+            return SourceTier.EXCLUDED
+        case SourceClass.CLIENT_KNOWLEDGE:
+            return SourceTier.CLIENT_KNOWLEDGE
+
+
+def worse_tier(a: SourceTier, b: SourceTier) -> SourceTier:
+    """The lower-standing of two web tiers. Client Knowledge is not ranked against hosts."""
+    if SourceTier.CLIENT_KNOWLEDGE in (a, b):
+        raise ValueError("Client Knowledge has no web tier to compare")
+    return max(a, b, key=_WEB_TIER_ORDER.index)
+
+
+def is_excluded(cls: SourceClass) -> bool:
+    """Whether a class is excluded outright. Its base score is under the threshold too."""
+    return tier_of(cls) is SourceTier.EXCLUDED
 
 
 _BASE_SCORES: Final[dict[SourceClass, float]] = {
@@ -133,6 +203,19 @@ class SourceTable:
 
 def _host_matches(host: str, rule: str) -> bool:
     return host == rule or host.endswith("." + rule)
+
+
+def web_tier(url: str, table: SourceTable) -> SourceTier:
+    """The tier of a fetched page from its host's declared class; unknown hosts are T5."""
+    tier = tier_of(table.classify(url))
+    if tier is SourceTier.CLIENT_KNOWLEDGE:
+        raise ValueError(f"source table {table.version} classes a web page as Client Knowledge")
+    return tier
+
+
+def is_excluded_url(url: str, table: SourceTable) -> bool:
+    """Whether the page at ``url`` is excluded (a forum or social platform) by ``table``."""
+    return is_excluded(table.classify(url))
 
 
 def host_geography(url: str) -> str:
