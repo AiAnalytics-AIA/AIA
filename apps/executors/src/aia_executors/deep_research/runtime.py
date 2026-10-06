@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
 
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.ai_contracts import check_thinking_budget
@@ -79,6 +80,10 @@ class DeepResearchRuntime:
     source_table: SourceTable
     #: The journal's clock: when a tool call was made (a snapshot keeps its own time).
     clock: Callable[[], datetime] = _utcnow
+    #: What the agent-directed investigator's ``ladder`` may use beyond the gate (the
+    #: reputation register, Common Crawl's crawls). None: the ladder's defaults -- no
+    #: register, no crawl. Read only in the agent-directed mode.
+    ladder: LadderConfig | None = None
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(

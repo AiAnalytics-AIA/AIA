@@ -637,6 +637,9 @@ def test_every_turn_action_and_decision_is_in_the_track_s_transcript(
         "searches": 4,
         "opens": 4,
         "reads": 1,
+        "ladders": 0,
+        "acquired": 0,
+        "acquisition_gaps": 0,
         "grounded": 1,
         "quarantined": 2,
     }
