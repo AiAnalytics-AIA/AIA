@@ -37,7 +37,12 @@ from typing import Any, Final, Protocol, runtime_checkable
 from urllib.parse import urldefrag, urljoin
 
 from ..domain.ai_contracts import Delivery
-from ..domain.deep_research.contracts import RetrievalMode, SnapshotLink, SourceSnapshot
+from ..domain.deep_research.contracts import (
+    ArchivedCapture,
+    RetrievalMode,
+    SnapshotLink,
+    SourceSnapshot,
+)
 from ..domain.deep_research.grounding import detect_instructions, normalise_text
 from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.web import (
@@ -76,6 +81,7 @@ __all__ = [
     "extract_links",
     "extract_page",
     "load_recorded_web",
+    "page_snapshot",
 ]
 
 
@@ -377,6 +383,81 @@ class FetchedResource:
     request_id: str | None
 
 
+def page_snapshot(
+    *,
+    url: str,
+    final_url: str,
+    redirects: tuple[str, ...],
+    http_status: int,
+    content_type: str,
+    body: bytes,
+    request_id: str | None,
+    adapter_id: str,
+    retrieval_mode: RetrievalMode,
+    retrieved_at: datetime,
+    archive: ArchivedCapture | None = None,
+) -> FetchedPage:
+    """An HTML or text body as a snapshot: the one path every captured page takes.
+
+    ``content_type`` is the declared header (its media type must be one
+    ``check_content_type`` keeps, its charset decodes the body). A live fetch and
+    an archived record both come through here, so their text, title, date and
+    links are read by the same rules. An ``archive`` capture is stamped on the
+    snapshot, and its id is derived from the record as well as the text: an
+    archived copy is never the same snapshot as a live page with the same words.
+    """
+    media = check_content_type(content_type)
+    decoded = body.decode(_charset(content_type), errors="replace")
+    links: tuple[SnapshotLink, ...] = ()
+    if media == "text/plain":
+        title, text, published = extract_page(decoded, media)
+    else:
+        parser = _parse(decoded)
+        title = normalise_text("".join(parser.title_parts))
+        text = normalise_text("".join(parser.parts))
+        published = _first_date(parser.dates)
+        links = _links(parser, final_url)
+    kept = text[:MAX_TEXT_CHARS]
+    text_sha = hashlib.sha256(kept.encode("utf-8")).hexdigest()
+    address = text_sha
+    if archive is not None:
+        address = hashlib.sha256(
+            "\n".join(
+                (
+                    "archive",
+                    archive.archive,
+                    archive.warc_filename,
+                    str(archive.warc_record_offset),
+                    str(archive.warc_record_length),
+                    text_sha,
+                )
+            ).encode("utf-8")
+        ).hexdigest()
+    snapshot = SourceSnapshot(
+        snapshot_id="SNP-" + address[:24],
+        url=url,
+        canonical_url=canonical_url(final_url) or final_url,
+        final_url=final_url,
+        redirects=redirects,
+        title=title[:500],
+        retrieved_at=retrieved_at,
+        http_status=http_status,
+        content_type=media,
+        raw_sha256=hashlib.sha256(body).hexdigest(),
+        raw_bytes=len(body),
+        text=kept,
+        text_sha256=text_sha,
+        truncated=len(text) > MAX_TEXT_CHARS,
+        adapter=adapter_id,
+        request_id=request_id,
+        retrieval_mode=retrieval_mode,
+        instructions_detected=detect_instructions(kept),
+        links=links,
+        archive=archive,
+    )
+    return FetchedPage(snapshot=snapshot, published=published)
+
+
 class WebFetcher:
     """Fetch one page under the address policy, following redirects by hand."""
 
@@ -510,45 +591,23 @@ class WebFetcher:
             url, max_bytes=MAX_BODY_BYTES, host_allowed=host_allowed
         )
         headers = {k.lower(): v for k, v in response.headers.items()}
-        media = check_content_type(headers.get("content-type", ""))
+        check_content_type(headers.get("content-type", ""))
         if response.truncated:
             raise FetchRefused(
                 f"the page is larger than {MAX_BODY_BYTES} bytes", reason="body_too_large"
             )
-        decoded = response.body.decode(_charset(headers.get("content-type", "")), errors="replace")
-        links: tuple[SnapshotLink, ...] = ()
-        if media == "text/plain":
-            title, text, published = extract_page(decoded, media)
-        else:
-            parser = _parse(decoded)
-            title = normalise_text("".join(parser.title_parts))
-            text = normalise_text("".join(parser.parts))
-            published = _first_date(parser.dates)
-            links = _links(parser, current)
-        kept = text[:MAX_TEXT_CHARS]
-        text_sha = hashlib.sha256(kept.encode("utf-8")).hexdigest()
-        snapshot = SourceSnapshot(
-            snapshot_id="SNP-" + text_sha[:24],
+        return page_snapshot(
             url=url,
-            canonical_url=canonical_url(current) or current,
             final_url=current,
             redirects=tuple(redirects),
-            title=title[:500],
-            retrieved_at=self._clock(),
             http_status=response.status,
-            content_type=media,
-            raw_sha256=hashlib.sha256(response.body).hexdigest(),
-            raw_bytes=len(response.body),
-            text=kept,
-            text_sha256=text_sha,
-            truncated=len(text) > MAX_TEXT_CHARS,
-            adapter=self.adapter_id,
+            content_type=headers.get("content-type", ""),
+            body=response.body,
             request_id=response.provider_request_id,
+            adapter_id=self.adapter_id,
             retrieval_mode=self.retrieval_mode,
-            instructions_detected=detect_instructions(kept),
-            links=links,
+            retrieved_at=self._clock(),
         )
-        return FetchedPage(snapshot=snapshot, published=published)
 
 
 # --------------------------------------------------------------------------- #
