@@ -116,3 +116,96 @@ Each item is a check to make first-hand, recorded here with its date and the pag
    the NKOD connector reads it (a new column, a new query version).
 6. Record the price of each route (expected zero) and its ADR 0008 route facts (zone, retention)
    in the plan's § 13.
+
+## 5. ARES, the register of economic subjects (chunk 16)
+
+ARES (Administrativní registr ekonomických subjektů) is the Ministry of Finance's register that
+gathers a subject's public facts from the source registers (public register, RES, trade
+licences, VAT …), by IČO.
+
+**Method, 2026-10-06.** `ares.gov.cz`, `mf.gov.cz` and `www.mfcr.cz` were refused by the egress
+proxy, so nothing of the Ministry's own could be read first-hand. The facts below come from a web
+search tool's excerpts and from third-party clients on GitHub, read as raw files (bytes, not a
+model's reading). Nothing here is VERIFIED.
+
+| Fact | Status | Source (all 2026-10-06) |
+|---|---|---|
+| REST base `https://ares.gov.cz/ekonomicke-subjekty-v-be/rest`; one subject is `GET /ekonomicke-subjekty/{ico}`; the answer is `application/json` | UNVERIFIED (third party: a PHP client generated from ARES's OpenAPI document; a search excerpt names the same base, and another client's changelog records dropping a wrong `/v3` suffix) | [github.com/JanBukva/ares-gov-cz-swagger](https://github.com/JanBukva/ares-gov-cz-swagger) `README.md`, `lib/Api/EkonomickeSubjektyApi.php`; [vzeman/ares-mcp-server](https://github.com/vzeman/ares-mcp-server) (search excerpt) |
+| The OpenAPI document is at `…/rest/v3/api-docs` | UNVERIFIED (search excerpt) | as above |
+| The subject's JSON field names: `ico`, `obchodniJmeno`, `sidlo`, `pravniForma` (a code of the `PravniForma` list), `financniUrad`, `datumVzniku`, `datumZaniku`, `datumAktualizace`, `dic`, `czNace` (a list), `adresaDorucovaci`, `seznamRegistraci` (`stavZdrojeVr`, `stavZdrojeRes`, `stavZdrojeDph`, …), `primarniZdroj`, `dalsiUdaje`, `icoId`, `subRegistrSzr`, `dicSkDph` | UNVERIFIED (third party: the generated client's `attributeMap`) | `lib/Model/EkonomickySubjekt.php`, `lib/Model/EkonomickySubjektZaklad.php` in the repository above |
+| The seat (`sidlo`, model `Adresa`): `kodStatu`, `nazevStatu`, `nazevKraje`, `nazevObce`, `nazevUlice`, `cisloDomovni`, `psc` (an integer), `textovaAdresa`, … | UNVERIFIED (as above) | `lib/Model/Adresa.php` |
+| Separate endpoints per source register (`/ekonomicke-subjekty-vr/{ico}` for the public register, `-res`, `-rzp`, …); the public-register record carries persons (statutory bodies, members) | UNVERIFIED (as above: model names `AngazovanaOsoba…`, `AngazmaFyzickaOsobaVr`) | `README.md` of the repository above |
+| Terms: anyone may use the services who keeps to the operating conditions; the Ministry may restrict or block a user who sends more than 500 requests a minute, repeatedly malformed requests, or many simultaneous requests | UNVERIFIED (search excerpt) | [mf.gov.cz/cs/ministerstvo/informacni-systemy/ares](https://mf.gov.cz/cs/ministerstvo/informacni-systemy/ares) |
+| Licence of the data (open data or other) | Not found | none |
+| Legal-form codes recorded as legal persons ("právnická osoba") in the ROS code list: 111 v.o.s., 112 s.r.o., 113 k.s., 121 a.s., 205 družstvo, 325 organizační složka státu, 331 příspěvková organizace zřízená ÚSC, 801 obec; code 100 is a natural person ("podnikající fyzická osoba tuzemská") | UNVERIFIED (search excerpts of the code list) | [ROS code list (szrcr.cz)](https://www.szrcr.cz/images/dokumenty/ROS/Ciselnik%20pravnich%20forem.pdf), [ČSÚ 2022 list](https://csu.gov.cz/docs/107516/0395cbd0-ee10-3bab-ecd6-8de0df13ff55/ciselnik_pravnich_norem_ros_2022.pdf) |
+
+**What chunk 16 built on it** (`packages/aia_core/src/aia_core/infrastructure/dataset_ares.py`,
+unregistered): `AresConnector`, connector id `ares-subject-1`, one `GET
+/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/{ico}` to `ares.gov.cz` only. The dataset id
+is the IČO, checked (eight digits, mod-11 check digit) before anything is sent; no filter, no
+period; `application/json` only, 512 KB cap. The table is one row (`subjekt`, labelled `IČO
+<ico>`) of an **allowlist** of legal-entity fields: IČO, business name, legal-form code, dates of
+establishment, dissolution and update, DIČ, CZ-NACE codes, the seat's text address, municipality,
+postcode, region and country code, and the subject's state in the public register, RES and the
+VAT register. Licence `None`. The fixtures (`…/fixtures/dataset_connectors/ares_*_fictional.json`)
+are fictional; **no real ARES answer has been captured.**
+
+## 6. Public procurement: ISVZ, VVZ and NEN (chunk 16)
+
+**Method, 2026-10-06.** `isvz.nipez.cz`, `www.isvz.cz`, `nen.nipez.cz`, `vvz.nipez.cz` and
+`podpora.nipez.cz` were refused by the egress proxy. The facts come from a web search tool's
+excerpts and from one third-party reader of the ISVZ open data on GitHub (raw files). Nothing
+here is VERIFIED.
+
+| Fact | Status | Source (all 2026-10-06) |
+|---|---|---|
+| ISVZ publishes open data on public contracts at `https://isvz.nipez.cz/opendata`; from February 2024 the "new" open data are JSON, with a documentation of the structure per category (public contract, dynamic purchasing system, design contest …) | UNVERIFIED (search excerpt) | [isvz.nipez.cz … nova-open-data-dokumentace-json-formatu](https://isvz.nipez.cz/centrum-podpory/napoveda/webovy-portal-isvz/open-data/nova-open-data-dokumentace-json-formatu) |
+| Earlier open data (ZZVZ 2016–2024, VVZ 2006–2016, e-marketplaces) were yearly gzip-served XML files under `https://isvz.nipez.cz/sites/default/files/content/opendata-predchozi/` (e.g. `ODZZVZ/{year}.xml`), with one `VZ` element per form whose children include `EvidencniCisloVZnaVVZ`, `CisloFormulareNaVVZ`, `DruhFormulare`, `PlatnyFormular`, `DatumUverejneni`, `ZadavatelUredniNazev`, `ZadavatelICO`, `NazevVZ`, `DruhVZ`, `DruhRizeni`, `CPVhlavni`, `OdhadovanaHodnotaVZbezDPH`, `OdhadovanaHodnotaVZmena`, `CelkovaKonecnaHodnotaVZ`, `CelkovaKonecnaHodnotaVZmena`, `LhutaProDoruceniNabidek`, and personal ones: `ZadavatelKontaktniOsoba`, `ZadavatelEmail`, `ZadavatelTelefon`, `OteviraniNabidekOpravneneOsobyDalsiInfo`; suppliers (`DodavatelICO`, `DodavatelNazev`, their address) in a separate `Dodavatele` element | UNVERIFIED (third party: `kokes/od`, `data/zakazky/main.py` and `mapping.json`) | [github.com/kokes/od](https://github.com/kokes/od) |
+| Whether the 2024+ JSON open data use the same names | Not found | none |
+| A contract's evidence number on the VVZ has the form `Z{yyyy}-{nnnnnn}` | UNVERIFIED (search excerpt of the VVZ interface methodology) | [cms.vvz.nipez.cz, Metodika pro připojování elektronických nástrojů](https://cms.vvz.nipez.cz/wp-content/uploads/2023/03/Priloha-c.-4-Metodika-pro-pripojovani-elektronickych-nastroju-na-rozhrani-VVZ_v1_1_final.pdf) |
+| NEN numbers a procedure `N006/{yy}/V{nnnnnnnn}` (N: NEN, 006: its identifier, V: public contract); its public detail pages carry the number with dashes, `nen.nipez.cz/…/detail-zakazky/N006-23-V00006611` | UNVERIFIED (search excerpt; URLs seen in search results) | [nen.nipez.cz](https://nen.nipez.cz/en/verejne-zakazky) |
+| NEN has a public API documented at `podpora.nipez.cz/…/verejne-api-systemu-nen`; the VVZ form interface is on SwaggerHub (`sne/vvzxml-formulare`) with hosts `api.vvz.nipez.cz` and `ref.api.vvz.nipez.cz`; the Register of Public Contracts has Swagger documents in its reference and test environments. Whether any offers an anonymous read of one notice is not established | UNVERIFIED (search excerpts) | as above |
+| Licence and rate limits of any of these | Not found | none |
+
+**What chunk 16 built on it**
+(`packages/aia_core/src/aia_core/infrastructure/dataset_procurement.py`, unregistered):
+`ProcurementNoticeConnector`, connector id `isvz-notice-1`. The dataset id is the VVZ evidence
+number (`Z{yyyy}-{nnnnnn}`, else never asked; a NEN number is refused, since no record field
+linking it is known). Records come through a `NoticeSource` seam, and **no live source exists**,
+because no per-notice read interface could be established; the only source is
+`RecordedNoticeSource`, a test double that `layer_check` keeps out of every composition. The table
+is one row per form (key: the form number), labelled `<evidence number> formulář <form>`, of an
+**allowlist** read under the ISVZ field names above; every record must carry the evidence number
+asked for. Values as published, as text; a JSON float, an amount or a date in another form, or an
+IČO with letters is refused. Licence `None`. The fixture
+(`…/fixtures/dataset_connectors/procurement_notice_fictional.json`) is fictional; **no real
+answer has been captured.**
+
+## 7. Personal data in the register and procurement connectors (plan § 4)
+
+| Decision | Where |
+|---|---|
+| Fields are read from an **allowlist**; nothing outside it is read, copied, rendered or stored. A field the provider adds later is ignored, never stored | `ARES_FIELDS`, `ARES_SEAT_FIELDS`, `ARES_REGISTRATION_FIELDS`; `NOTICE_FIELDS` |
+| The raw answer is kept only as its SHA256 and byte length | `DatasetResponse`, `SourceSnapshot.raw_sha256` |
+| **A sole trader (OSVČ) is refused whole.** An ARES subject is read only when its legal-form code is in `LEGAL_ENTITY_FORMS` (codes recorded as legal persons); any other code, none, or one not yet recorded is `not_a_legal_entity` (delivery `RESPONDED`, so journaled as answered), with fixed text that carries nothing of the answer. A legal form missing from the list costs a refused query; a natural person's form on it would store a person's name, so the list stays short until the code list is read first-hand | `dataset_ares.py` |
+| A legal entity's business name and registered seat are stored: they are the entity's own public identity, even when the name contains a person's name (e.g. "Novák s.r.o.") | `dataset_ares.py` |
+| ARES persons (statutory bodies, members, partners) and the delivery address are never read; the public-register endpoint that carries the persons is not used | `dataset_ares.py` |
+| Procurement: the contact person, e-mail and telephone, the persons at the opening of tenders, the free-text description and every supplier field are never read (a supplier can be a sole trader) | `NOTICE_FIELDS` |
+| Procurement: in the two free-text fields read (authority name, contract title), e-mail addresses and telephone numbers are replaced by `[osobní údaj odstraněn]`, and a note says so. A nine-digit run in a title is redacted as if it were a phone number | `dataset_procurement.py` |
+| A query's text (an IČO, an evidence number) is journaled like any query, so the IČO of a refused sole trader stays in the tool journal | `RetrievalGate.dataset` |
+
+## 8. Before a composition names the ARES or procurement connector (chunk 23)
+
+1. Read ARES's developer page and OpenAPI document first-hand; record the subject endpoint, its
+   content type, its field names and its error shape (an unknown IČO), and capture one real
+   answer for a public company as a fixture beside the fictional ones.
+2. Read the Ministry of Finance's ARES terms (request limits, conditions, any licence) and record
+   them; size chunk 21's per-host politeness below the stated limit.
+3. Read the ROS legal-form code list first-hand; confirm that each code in `LEGAL_ENTITY_FORMS`
+   is a legal person, and decide which further legal-person forms to add, each one checked.
+4. Read the ISVZ open-data documentation and NEN's public API documentation; decide which offers
+   an anonymous read of one notice; record its endpoint, shape and terms; write the live
+   `NoticeSource` against a captured real answer, and check the record field names.
+5. Decide whether a NEN system number is accepted, once a field linking it to the VVZ evidence
+   number (or a NEN-native source) is established.
+6. Record each route's price (expected zero) and its ADR 0008 route facts in the plan's § 13.
