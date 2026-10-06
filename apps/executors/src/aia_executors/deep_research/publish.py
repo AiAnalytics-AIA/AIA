@@ -325,6 +325,7 @@ class PublishExecutor(_Step):
                 synthesis_reused=self._reused(synthesis_artifact, step),
                 accepted=len(verify.accepted),
                 quarantined=len(verify.quarantined),
+                lead_calls=investigation.lead.calls if investigation.lead is not None else (),
             )
             bundle = seal_bundle(
                 request=plan.request,
