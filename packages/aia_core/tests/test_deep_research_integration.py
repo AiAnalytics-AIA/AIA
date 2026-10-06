@@ -393,3 +393,18 @@ def test_the_engine_cannot_be_made_to_write_research_truth() -> None:
     assert all(t.startswith("deep_research_") for t in ARTIFACT_TYPES.values())
     with pytest.raises(MethodologyBoundaryViolation, match="research_sociomap"):
         require_engine_writes_are_sidecars([*ARTIFACT_TYPES.values(), "research_sociomap"])
+
+
+def test_interpretation_may_read_a_sociomap_but_never_write_it(
+    request_: DeepResearchRequest,
+) -> None:
+    """The direction of the Sociomap invariant (ADR 0021 decision 6): Interpretation Research
+    may read the frozen canonical Sociomap; Deep Research and external evidence are never
+    inputs to the canonical Sociomap calculation."""
+    spec = _interpretation(request_)  # a Sociomap object, pinned by id and SHA256: a read
+    assert isinstance(spec.target, SociomapObjectTarget)
+    pin = spec.lineage.pin("sociomap") if isinstance(spec.lineage, InterpretationLineage) else None
+    assert pin is not None and pin.artifact_type == "research_sociomap"
+    for artifact_type in ("research_sociomap", "research_sociomapping"):
+        with pytest.raises(MethodologyBoundaryViolation, match="never rewrites"):
+            require_may_write(DeepResearchPurpose.INTERPRETATION_RESEARCH, artifact_type)

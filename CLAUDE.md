@@ -576,7 +576,7 @@ workers behind `AIA_DEEP_RESEARCH_FAN_OUT` (off by default), which needs
 **Deep Research serves two checkpoints, never research truth** (ADR 0021). `DESIGN_RESEARCH`
 runs before the methodology freeze and may only *propose*; a person turns a proposal into a new
 Design Revision. `INTERPRETATION_RESEARCH` runs over immutable results and has no mutation
-authority over respondent data, aggregates, analysis or the canonical Sociomap. Every new run
+authority over respondent data, aggregates, analysis or the canonical Sociomap. Interpretation Research may read the frozen canonical Sociomap. Deep Research and external evidence are never inputs to the canonical Sociomap calculation. Every new run
 carries its purpose, a typed target and a frozen lineage (exact artifacts, by SHA256) in an
 envelope around the unchanged engine request and sealed bundle; a pre-ADR run reads
 `legacy-unversioned`. The engine (retrieval, ladder, investigators, lead, fan-out, recovery,

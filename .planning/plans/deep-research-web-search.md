@@ -63,13 +63,17 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 → 23 backend: composition, switches, prices; per-kind reservations FIRST
 → 29 Design Research integration                (proposals → gate 1 → a new revision)
 → 30 Interpretation Research integration        (target-written subjects, the result-side start)
-→ 31 Sociomap Research Lens                      (sidecar; the canonical map is never an input)
+→ 31 Sociomap Research Lens                      (a sidecar; see the invariant below)
 → 32 report evidence graph                       (POPULATION/RESPONDENT, DETERMINISTIC, SOCIOMAP,
                                                   DEEP_RESEARCH, CLIENT_KNOWLEDGE)
 → 24 operator surface, for both purposes         (not a generic Deep Research screen)
 → 25/26 accuracy and quality evaluation          (design and interpretation use cases)
 → 27 live activation                             (last; needs chunk 1's sign-offs)
 ```
+
+The Sociomap invariant, with its actors named so it cannot be inverted: **Interpretation Research may read the frozen canonical Sociomap. Deep Research and external evidence are never inputs to the canonical Sociomap calculation.**
+The Lens (31) is a sidecar beside the frozen map; an externally enriched map would be a separate,
+derived artifact.
 
 Chunk 23 is split: its backend (real route composition, switches, dated prices, **per-kind
 reservations** — today every call reserves the full research reservation, so a run's ceiling sits

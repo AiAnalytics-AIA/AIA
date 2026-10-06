@@ -119,18 +119,26 @@ Deep Research is a governed evidence service used at two checkpoints, not an eig
    back-filled. The deployed start shape, which names no purpose, starts a *new* `DESIGN_RESEARCH`
    run and records `purpose_source: LEGACY_DEFAULT` — a compatibility rule for new requests only.
 
-6. **The canonical Sociomap is never an input of Deep Research.**
+6. **Deep Research is never an input to the canonical Sociomap calculation.** Interpretation
+   Research may read the frozen canonical Sociomap. Deep Research and external evidence are never
+   inputs to the canonical Sociomap calculation.
 
    ```
    Canonical Sociomap = approved frozen study evidence + approved deterministic Sociomap methodology
    ```
 
-   Post-result Deep Research may later attach a **Research Lens** — an annotation sidecar holding a
-   target ref, Deep Research provenance, corroboration, contradictions, benchmarks, hypotheses,
-   gaps and source evidence — beside the canonical map's geometry, objects, relationships, segments
-   and metrics. It never feeds the computation. A map that incorporates external research
-   mathematically would be a different, derived artifact with its own methodology, version, lineage
-   and label; it never mutates the canonical one. The Lens is not built here.
+   The direction matters: reading the map is allowed; writing to it, or into its computation, never
+   is. `INTERPRETATION_RESEARCH` may read an exact frozen canonical Sociomap and target a battery,
+   one of its objects or a pair of them (`SOCIOMAP`, `SOCIOMAP_OBJECT`, `SOCIOMAP_RELATIONSHIP`),
+   pinned by artifact id and SHA256, as context and evidence. What it produces is a **Research
+   Lens** — an annotation sidecar holding the target ref, Deep Research provenance, corroboration,
+   contradictions, benchmarks, hypotheses, gaps and source evidence — beside the canonical map's
+   geometry, objects, relationships, segments and metrics, and it never feeds back into canonical
+   coordinates, geometry, relationships, segmentation or deterministic findings
+   (`research_sociomap*` is in `DETERMINISTIC_ARTIFACT_TYPES`, which no purpose may write). A map
+   that incorporates external research mathematically would be a different, derived artifact with
+   its own methodology, version, lineage and label; it never mutates the canonical one. The Lens is
+   not built here.
 
 7. **The engine boundary is frozen.** After PR #166 these are a stable boundary: acquisition;
    search, fetch, document and dataset machinery; the investigators; the lead researcher; fan-out;

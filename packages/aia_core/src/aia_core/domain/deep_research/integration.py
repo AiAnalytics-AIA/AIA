@@ -34,6 +34,11 @@ Interpretation Research may only produce evidence about a result. The engine's o
 artifact types are checked disjoint from the deterministic ones when this module is
 imported, so an engine change that wrote one would not load.
 
+**The Sociomap's direction.** Interpretation Research may read the frozen canonical Sociomap.
+Deep Research and external evidence are never inputs to the canonical Sociomap calculation. A
+Sociomap target is a read-only reference into the frozen map, pinned by id and SHA256; and
+``research_sociomap*`` is in :data:`DETERMINISTIC_ARTIFACT_TYPES`, which no purpose may write.
+
 Only identifiers that exist are targets. There is no segment target (no segment
 identifier exists: ``research_aggregate.py`` has no segment tables), no Sociomap region
 (none exist), and no analysis finding id (findings carry none). Each is added when the
