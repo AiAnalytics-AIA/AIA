@@ -45,6 +45,11 @@ is requested. A document read for what it lists rather than what it says (a
 sitemap) is fetched with :meth:`RetrievalGate.fetch_resource`: the same steps,
 bytes back, no snapshot, nothing cached.
 
+A dataset query (plan ``deep-research-web-search.md`` § 5.3) passes the same four
+steps over its connector's own route: its text (the dataset id and its filters) is
+classified like a search query, and only a Class C query is sent -- a dataset
+interface is a public source, and nothing derived from a client is asked of it.
+
 What a call is charged is decided here, once, and never in AIA's favour: a success or
 a failure the provider answered costs the route's price (a provider that answered has
 served the request); a failure that sent nothing costs nothing; an uncertain call and
@@ -84,7 +89,9 @@ from ..domain.deep_research.contracts import (
     QueryDecision,
     QueryRecord,
     RetrievalMode,
+    SourceSnapshot,
 )
+from ..domain.deep_research.datasets import DatasetQuery
 from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.tooling import (
     ToolKind,
@@ -106,6 +113,7 @@ from ..domain.deep_research.web import (
 from ..domain.residency import DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
 from ..infrastructure.common_crawl import ArchiveFetcher, IndexQueryFailed, UrlIndex
+from ..infrastructure.dataset_connectors import DatasetConnector, dataset_snapshot
 from ..infrastructure.web_retrieval import (
     FetchedPage,
     FetchedResource,
@@ -119,6 +127,8 @@ from ..infrastructure.web_retrieval import (
 
 __all__ = [
     "ArchiveRetrieval",
+    "DatasetAccess",
+    "DatasetOutcome",
     "FetchOutcome",
     "IndexOutcome",
     "PendingFetch",
@@ -257,6 +267,30 @@ class IndexOutcome:
     #: Bytes Athena reported scanned; None when unknown or nothing was sent.
     data_scanned_bytes: int | None = None
     cost_usd: float = 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetAccess:
+    """One dataset connector and the route it leaves AIA by."""
+
+    route: ToolRoute
+    connector: DatasetConnector
+
+    def __post_init__(self) -> None:
+        if self.route.tool is not ToolKind.DATASET_QUERY:
+            raise ValueError("a dataset route must be a dataset_query route")
+        if self.connector.connector_id != self.route.adapter_id:
+            raise ValueError("the connector is not the one its route names")
+        # A connector states its own mode and cannot be configured out of it.
+        if self.connector.retrieval_mode is not self.route.retrieval_mode:
+            raise ValueError("the connector's retrieval mode is not its route's")
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetOutcome:
+    record: QueryRecord
+    snapshot: SourceSnapshot | None
+    uncertain: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -423,6 +457,7 @@ class RetrievalGate:
         clock: Callable[[], datetime] = _utcnow,
         cache: RunSnapshotCache | None = None,
         archive: ArchiveRetrieval | None = None,
+        datasets: Sequence[DatasetAccess] = (),
     ) -> None:
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
@@ -436,6 +471,12 @@ class RetrievalGate:
         self._clock = clock
         self._cache = cache
         self._archive = archive
+        self._datasets = {d.connector.connector_id: d for d in datasets}
+        if len(self._datasets) != len(datasets):
+            raise ValueError("each dataset connector at most once")
+        if any(d.route.retrieval_mode is not retrieval.retrieval_mode for d in datasets):
+            # Recorded tables beside live pages would be evidence of neither kind.
+            raise ValueError("dataset routes are recorded or live as web retrieval is")
 
     # ---------------------------------------------------------------- shared --
 
@@ -1115,3 +1156,103 @@ class RetrievalGate:
             route=route,
         )
         return FetchOutcome(url=row.url, page=page, reason=failure, uncertain=uncertain)
+
+    # --------------------------------------------------------------- dataset --
+
+    def dataset(
+        self, query: DatasetQuery, *, context_class: DataClass, track_id: str
+    ) -> DatasetOutcome:
+        """One dataset query: classified, authorised, reserved, journaled, asked -- or refused.
+
+        Class C only: a query the classifier raises (a client term, Class A overlap,
+        a client-derived context) is refused and never sent. A connector this gate
+        was not given is refused without a journal entry: there is no route to
+        journal it against, and nothing was proposed to one.
+        """
+        sent = query.text()
+        classified = classify_query(
+            sent,
+            context_class=context_class,
+            client_terms=self._terms,
+            class_a_texts=self._class_a,
+        )
+        cls = classified.data_class
+
+        def record(
+            decision: QueryDecision,
+            *,
+            refusal: str | None = None,
+            failure: str | None = None,
+            call_id: str | None = None,
+            hits: int = 0,
+        ) -> QueryRecord:
+            return QueryRecord(
+                text=sent,
+                data_class=cls,
+                class_reasons=classified.reasons,
+                decision=decision,
+                refusal=refusal,
+                call_id=call_id,
+                hits=hits,
+                failure=failure,
+            )
+
+        access = self._datasets.get(query.connector_id)
+        if access is None:
+            return DatasetOutcome(
+                record(QueryDecision.REFUSED, refusal="dataset_connector_unavailable"), None, False
+            )
+        route = access.route
+        reason: str | None
+        if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            reason = "class_a_query"
+        elif cls is not DataClass.CLASS_C_INTERNAL:
+            reason = "dataset_class_c_only"
+        else:
+            reason = self._refusal(route, data_class=cls)
+        if reason is not None:
+            self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=sent)
+            return DatasetOutcome(record(QueryDecision.REFUSED, refusal=reason), None, False)
+
+        call_id, reservation = self._open(route, data_class=cls, track_id=track_id, sent=sent)
+        try:
+            response = access.connector.query(query)
+            if response.result.query != query:
+                raise ToolCallFailed(
+                    "the connector answered another query",
+                    reason="response_contract",
+                    delivery=Delivery.RESPONDED,
+                )
+            snapshot = dataset_snapshot(response, retrieval_mode=route.retrieval_mode)
+        except ToolCallFailed as exc:
+            uncertain = self._close_failure(
+                route,
+                exc,
+                call_id=call_id,
+                reservation=reservation,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+            )
+            return DatasetOutcome(
+                record(QueryDecision.SENT, failure=exc.reason, call_id=call_id), None, uncertain
+            )
+        self._meter.outcome(
+            self._event(
+                route,
+                call_id=call_id,
+                outcome=ToolOutcome.SUCCEEDED,
+                data_class=cls,
+                track_id=track_id,
+                sent=sent,
+                reservation=reservation,
+                cost=route.price_usd_per_call,
+                charged_credits=response.credits,
+                provider_request_id=response.provider_request_id,
+            )
+        )
+        return DatasetOutcome(
+            record(QueryDecision.SENT, call_id=call_id, hits=len(response.result.rows)),
+            snapshot,
+            False,
+        )
