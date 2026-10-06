@@ -244,6 +244,12 @@ again, frozen afresh; nothing stored is bought twice.
 | synthesize | the synthesizer once, when anything was accepted | `SynthesisArtifact` (the checked brief) | what it was shown (any later run) |
 | publish | -- | `deep_research_bundle`: `{"bundle": EvidenceBundle}` | this run |
 
+With `AIA_DEEP_RESEARCH_FAN_OUT` on, `investigate` is a join: every track that would make a call
+is handed out to a step of its own (`deep_research_investigate_track`, any worker) and the step
+runs again to take what they stored; hosts are paced and model requests bounded across worker
+processes. Nothing it finds or stores differs. See
+[deep-research-fan-out.md](deep-research-fan-out.md).
+
 The shapes are `domain/deep_research/steps.py`. `tally` counts what the run did and spent from
 them -- a reused unit costs it nothing -- into the bundle's `counts` (tracks, reused, researched,
 blocked, incomplete, beyond the limit, model requests, searches, fetches, refused queries,
