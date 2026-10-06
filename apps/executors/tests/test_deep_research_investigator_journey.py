@@ -402,6 +402,26 @@ def test_a_finished_track_names_its_gaps(
     assert directed_run.agents.turns_of(ALMOND) == [1]
 
 
+def test_a_turn_that_proposes_nothing_ends_its_track(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    quiet = {**TURNS, ALMOND: [{"evidence": [], "summary": "", "leads": [], "next": []}]}
+    agents = ScriptedInvestigator(ANSWERS, turns=quiet)
+    run_id = start_web(research)
+    assert drain(worker(research, database_url, store, build, directed(research, agents))) == 6
+    _run, bundle = read(research, run_id, store)
+    almond = {t.track_id: t for t in bundle.tracks}[tid(OS, ALMOND, W)]
+    assert (almond.status, almond.stop_reason) == (
+        TrackStatus.COMPLETED,
+        StopReason.AGENT_FINISHED,
+    )
+    assert almond.detail == "the turn proposed no action"
+    assert agents.turns_of(ALMOND) == [1]
+
+
 def test_the_mode_is_recorded_and_a_changed_mode_is_refused_mid_run(
     research: ResearchWorld,  # noqa: F811
     database_url: str,

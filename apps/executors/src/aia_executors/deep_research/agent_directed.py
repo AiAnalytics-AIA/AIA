@@ -199,6 +199,11 @@ class AgentDirectedTrack:
             if self._state.finished:
                 stop = StopReason.AGENT_FINISHED
                 break
+            if not last:
+                # Nothing proposed and nothing new to read: the next turn would be
+                # asked the same thing again. The agent is done, without saying so.
+                stop, detail = StopReason.AGENT_FINISHED, "the turn proposed no action"
+                break
             reason = self._state.repeated_refusal()
             if reason is not None:
                 stop = StopReason.STOP_REFUSALS
