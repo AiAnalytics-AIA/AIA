@@ -125,13 +125,14 @@ def test_the_queue_recovers_across_studies_and_charges_each_its_own_exposure(
         assert work is not None
         context = scoped.resolver.execution_context(attempt_id=work.attempt_id, worker_id="w")
         repo = WorkflowRepository(session, context)
-        repo.reserve_budget(
+        hold = repo.reserve_budget(
             attempt_id=work.attempt_id,
             worker_id="w",
             amount_usd=amount,
             provider=Provider.ANTHROPIC,
         )
-        repo.mark_paid_call_dispatched(work.attempt_id, worker_id="w")
+        assert hold is not None
+        repo.mark_paid_call_dispatched(work.attempt_id, worker_id="w", reservation_id=hold)
         attempt = session.get(StepAttemptRow, work.attempt_id)
         assert attempt is not None
         attempt.lease_until = datetime.now(UTC) - timedelta(minutes=5)

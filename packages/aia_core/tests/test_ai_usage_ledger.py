@@ -365,6 +365,24 @@ def test_journal_refuses_another_attempts_entries(
         journal.record_outcome(foreign)
 
 
+def test_journal_refuses_a_metered_dispatch_with_no_hold(
+    attempt: Attempt, model_registry: ModelRegistry
+) -> None:
+    """The dispatch mark names the hold its call is charged to; without one there is
+    no hold for recovery to charge, so the dispatch is refused before it is marked."""
+    result = attempt.invoke(Adapter([OK]), model_registry)
+    holdless = dataclasses.replace(
+        result.usage_events[0],
+        event_id="EVT-holdless",
+        call_id="CALL-holdless",
+        reservation_id=None,
+    )
+    before = len(attempt.usage.events(attempt_id=attempt.attempt_id))
+    with pytest.raises(ValueError, match="carries no reservation"):
+        attempt.journal().record_dispatch(holdless)
+    assert len(attempt.usage.events(attempt_id=attempt.attempt_id)) == before
+
+
 def test_journal_requires_one_scope(attempt: Attempt, scoped: Any) -> None:
     other = AIUsageRepository(attempt.session, scoped.scope(user="lead", study="primary"))
     with pytest.raises(ValueError, match="share one scope"):

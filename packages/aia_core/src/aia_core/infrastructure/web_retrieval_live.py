@@ -472,9 +472,19 @@ class WikipediaSearch:
                 reason="search_bounds",
                 delivery=Delivery.NOT_SENT,
             )
-        host = check_url(SEARCH_ENDPOINT)
-        addresses = self._resolver.resolve(host)
-        check_resolution(host, addresses)
+        # The adapter contract is ToolCallFailed: the gate has already journaled this
+        # call as dispatched, and a FetchRefused would escape it with the call open
+        # and its reservation held. Every refusal here happens before a byte is sent.
+        try:
+            host = check_url(SEARCH_ENDPOINT)
+            addresses = self._resolver.resolve(host)
+            check_resolution(host, addresses)
+        except FetchRefused as exc:
+            raise ToolCallFailed(
+                "the Wikipedia search host was refused before sending",
+                reason=exc.reason,
+                delivery=Delivery.NOT_SENT,
+            ) from exc
         params = urlencode(
             {
                 "action": "query",
@@ -488,9 +498,17 @@ class WikipediaSearch:
                 "maxlag": "5",
             }
         )
-        response = self._transport.get(
-            f"{SEARCH_ENDPOINT}?{params}", address=addresses[0], max_bytes=MAX_SEARCH_BYTES
-        )
+        try:
+            response = self._transport.get(
+                f"{SEARCH_ENDPOINT}?{params}", address=addresses[0], max_bytes=MAX_SEARCH_BYTES
+            )
+        except FetchRefused as exc:
+            # The transport refuses a URL or address only before it connects.
+            raise ToolCallFailed(
+                "the Wikipedia search request was refused before sending",
+                reason=exc.reason,
+                delivery=Delivery.NOT_SENT,
+            ) from exc
         if response.truncated:
             raise ToolCallFailed(
                 "search response too large", reason="search_body", delivery=Delivery.RESPONDED

@@ -369,6 +369,30 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[1].body).toEqual({ limit_usd: null });
   });
 
+  it("keeps the switch on and the amount typed when they are set the moment the form appears", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
+    // A MutationObserver runs in the microtask right after React commits the form, before
+    // React's passive effects run (a later task): the window in which a person's first click
+    // was once overwritten by the mount's "no limit". The amount is typed in the same window.
+    let acted = false;
+    const observer = new MutationObserver(() => {
+      const toggle = document.querySelector<HTMLElement>(`[role="switch"][aria-checked="false"]`);
+      if (acted || !toggle) return;
+      acted = true;
+      fireEvent.click(toggle);
+      const amount = screen.queryByLabelText(t("research.exec.cost.limitAmount"));
+      if (amount) fireEvent.change(amount, { target: { value: "150" } });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    onTestFinished(() => observer.disconnect());
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await waitFor(() => expect(acted).toBe(true));
+    const form = await screen.findByRole("form", { name: t("research.exec.cost.limit") });
+    await screen.findByText(/Z rozpočtu studie zbývá/); // the study's budget arrived: the card's effects have run
+    expect(within(form).getByRole("switch", { name: t("research.exec.cost.switch") }).getAttribute("aria-checked")).toBe("true");
+    expect((within(form).getByLabelText(t("research.exec.cost.limitAmount")) as HTMLInputElement).value).toBe("150");
+  });
+
   it("offers no limit control to a reader", async () => {
     api({ "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
     render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);

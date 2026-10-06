@@ -100,6 +100,9 @@ class SearchResponse:
     provider_request_id: str | None
     #: The provider's own unit of charge for this call (a search credit).
     credits: int
+    #: Results the provider returned that failed the URL policy and were dropped
+    #: before they became hits. A journal can count them; they are never fetched.
+    dropped: int = 0
 
 
 class SearchAdapter(Protocol):
