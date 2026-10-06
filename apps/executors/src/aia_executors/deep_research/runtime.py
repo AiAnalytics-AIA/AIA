@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Final
 
@@ -15,6 +15,7 @@ from aia_core.domain.ai_contracts import check_thinking_budget
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
 from aia_core.domain.deep_research.brief import BRIEF_VERSION
+from aia_core.domain.deep_research.budgets import CallKind
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1, ConfidenceWeights
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
@@ -24,6 +25,7 @@ from aia_core.domain.deep_research.lead import LEAD_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
 from aia_core.domain.deep_research.reputation import ReputationRegister
+from aia_core.domain.deep_research.request_limits import KindBudget, ModelPrices, kind_budgets
 from aia_core.domain.deep_research.sources import SourceTable
 from aia_core.domain.deep_research.tooling import (
     TOOL_EVENT_KINDS,
@@ -53,13 +55,18 @@ def _utcnow() -> datetime:
 
 @dataclass(frozen=True, slots=True)
 class DeepResearchConfig:
-    """The model side of a composition: policy, limits, the reservation per request."""
+    """The model side of a composition: policy, limits, each kind's reservation.
+
+    ``max_output_tokens`` is the research output limit and ``context_window_tokens`` the
+    model's window; ``prices`` are the route's. Each kind of request's window, output limit
+    and reservation (the primary call and its one schema repair) are derived from them
+    (``domain/deep_research/request_limits.py``): :meth:`budget`.
+    """
 
     policy_version: str
     max_output_tokens: int
     context_window_tokens: int
-    #: Held per logical request; covers the primary call and one schema repair.
-    reservation_usd: float
+    prices: ModelPrices
     fictional_client_ids: frozenset[str]
     provider: Provider = Provider.AWS_BEDROCK
     material_approvals: tuple[MaterialApproval, ...] = ()
@@ -79,12 +86,32 @@ class DeepResearchConfig:
     #: them. Off, one step researches every track, as before. Recorded nowhere: a
     #: track's result, fingerprint and every artifact are the same either way.
     fan_out: bool = False
+    _budgets: dict[CallKind, KindBudget] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if self.thinking_budget_tokens is not None:
             check_thinking_budget(self.thinking_budget_tokens, self.max_output_tokens)
         if self.lead and not self.agent_directed:
             raise ValueError("the lead researcher plans agent-directed tracks only")
+        object.__setattr__(
+            self,
+            "_budgets",
+            kind_budgets(
+                self.prices,
+                context_window_tokens=self.context_window_tokens,
+                max_output_tokens=self.max_output_tokens,
+                thinking_budget_tokens=self.thinking_budget_tokens,
+            ),
+        )
+
+    def budget(self, kind: CallKind) -> KindBudget:
+        """What a request of ``kind`` may read, write and reserve in this composition."""
+        return self._budgets[kind]
+
+    @property
+    def largest_reservation_usd(self) -> float:
+        """The most any one request reserves: what a caller holds when not told otherwise."""
+        return max(b.reservation_usd for b in self._budgets.values())
 
 
 @dataclass(frozen=True, slots=True)

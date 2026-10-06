@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. This plan: per-kind request limits, derived reservations, measured before code"
   - "[x] 2. Domain: the request-limit table, role to kind, kind budgets derived from the model's prices"
-  - "[ ] 3. Executors: every request carries its kind's output limit, window and reservation"
+  - "[x] 3. Executors: every request carries its kind's output limit, window and reservation"
   - "[ ] 4. API: the ceiling priced from the same keys, per kind"
   - "[ ] 5. Measurements, findings and doc follow-up"
 ---

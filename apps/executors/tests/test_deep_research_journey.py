@@ -32,6 +32,7 @@ from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.ai_contracts import Delivery
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
+from aia_core.domain.deep_research.agents import AgentRole
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import (
     Channel,
@@ -55,6 +56,7 @@ from aia_core.domain.deep_research.quarantine import (
     require_live_evidence,
     respondent_context,
 )
+from aia_core.domain.deep_research.request_limits import ModelPrices, kind_of
 from aia_core.domain.deep_research.synthesis import SynthesisStatus
 from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolOutcome
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
@@ -461,7 +463,7 @@ def recorded(
             policy_version=policy or settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             thinking_budget_tokens=thinking,
@@ -858,10 +860,23 @@ def test_a_recorded_run_thinks_when_configured_and_keeps_none_of_the_reasoning(
         assert body["additionalModelRequestFields"] == {
             "thinking": {"type": "enabled", "budget_tokens": 2048}
         }
-        assert body["inferenceConfig"] == {"maxTokens": 8192}  # no sampling setting
+        # No sampling setting; each kind's answer limit with the thinking budget on top,
+        # never beyond the research limit (request_limits).
+        kind = kind_of(AgentRole(RecordedAgents._role(request)))
+        assert body["inferenceConfig"] == {"maxTokens": runtime.config.budget(kind).output_tokens}
         assert body["toolConfig"]["toolChoice"] == {"auto": {}}
         name = body["toolConfig"]["tools"][0]["toolSpec"]["name"]
         assert f"Answer only by calling the tool {name}" in body["system"][0]["text"]
+    # The research limit for the few, the answer limit and the thinking for the many.
+    assert {
+        RecordedAgents._role(r): r.body["inferenceConfig"]["maxTokens"] for r in agents.requests
+    } == {
+        "planner": 8192,
+        "internal_investigator": 6144 + 2048,
+        "web_investigator": 6144 + 2048,
+        "verifier": 4096 + 2048,
+        "synthesizer": 8192,
+    }
     assert runtime.versions()["thinking_budget_tokens"] == "2048"
     assert REASONING not in _stored_text(research, run_id, store)
 
@@ -1054,7 +1069,7 @@ def test_the_recorded_composition_refuses_outside_local_and_test(
                     policy_version="p",
                     max_output_tokens=1,
                     context_window_tokens=1,
-                    reservation_usd=1.0,
+                    prices=ModelPrices(3.0, 15.0),
                     fictional_client_ids=frozenset(),
                 ),
                 fixture=WEB,

@@ -6,6 +6,10 @@ worker loop sent over the three recorded journeys -- the planned mode (``pass_on
 both channels), the agent-directed mode (``directed_run``, STANDARD) and the lead
 (``led_run``, STANDARD, with a re-plan and a budget move) -- counted from the requests that
 reached the recorded model route and the tool journal.
+
+The same journeys hold each request to its kind (``request_limits``, chunk 23): every model
+request reserved exactly its kind's amount, and every call the gateway sent -- the primary
+and any repair -- had a ceiling that fit that request's reservation.
 """
 
 from __future__ import annotations
@@ -14,10 +18,15 @@ from collections import Counter
 from typing import Any
 
 from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.domain.deep_research.agents import AgentRole
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode, call_bounds, track_counts
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.planning import preset
+from aia_core.domain.deep_research.request_limits import kind_of
 from aia_core.domain.deep_research.tooling import ToolOutcome
+from aia_core.infrastructure.tables import AIUsageEventRow, BudgetReservationRow
+from aia_executors.deep_research import DeepResearchRuntime
+from sqlalchemy import select
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     Directed,
     directed_run,  # noqa: F401  (a fixture)
@@ -101,3 +110,74 @@ def test_the_lead_journey_stays_within_its_bounds(led_run: Led) -> None:  # noqa
     calls = sent(led_run.world, led_run.run_id, led_run.agents)
     assert calls[CallKind.LEAD] >= 2  # the plan and a re-plan
     assert_within(calls, bounds_of(led_run.world, led_run.run_id, ResearchMode.LEAD))
+
+
+def held_by_kind(
+    world: ResearchWorld, run_id: str, runtime: DeepResearchRuntime
+) -> tuple[Counter[CallKind], int]:
+    """Each model request's reservation checked against its kind's, and every call's ceiling
+    against that reservation: the requests counted by kind, and the calls made."""
+    prefix = "aia.deep_research."
+    held: Counter[CallKind] = Counter()
+    with world.sessions() as session:
+        holds = session.scalars(
+            select(BudgetReservationRow).where(
+                BudgetReservationRow.run_id == run_id,
+                BudgetReservationRow.reason.startswith(prefix),
+            )
+        ).all()
+        ceilings: dict[str, dict[str, float]] = {}
+        for event in session.scalars(
+            select(AIUsageEventRow).where(AIUsageEventRow.run_id == run_id)
+        ).all():
+            if event.reservation_id is not None:
+                calls_of = ceilings.setdefault(event.reservation_id, {})
+                calls_of[event.call_id] = max(calls_of.get(event.call_id, 0.0), event.ceiling_usd)
+    for hold in holds:
+        kind = kind_of(AgentRole(hold.reason.removeprefix(prefix).split(":")[0]))
+        assert hold.amount_usd == runtime.config.budget(kind).reservation_usd, hold.reason
+        calls = list(ceilings.get(hold.reservation_id, {}).values())
+        assert calls, hold.reason
+        assert all(0 < c <= hold.amount_usd for c in calls), (hold.reason, calls)
+        held[kind] += 1
+    return held, sum(len(c) for c in ceilings.values())
+
+
+def assert_held(
+    world: ResearchWorld, run_id: str, runtime: DeepResearchRuntime, agents: RecordedAgents
+) -> set[CallKind]:
+    held, calls = held_by_kind(world, run_id, runtime)
+    # Every call that reached the route was made under one of these holds (a repair
+    # under its request's), and each hold is one request.
+    assert calls == len(agents.requests)
+    assert 0 < sum(held.values()) <= calls
+    return set(held)
+
+
+def test_the_planned_journey_reserves_each_kinds_amount(pass_one: Journey) -> None:  # noqa: F811
+    kinds = assert_held(pass_one.world, pass_one.run_id, pass_one.runtime, pass_one.agents)
+    assert kinds == {
+        CallKind.PLANNER,
+        CallKind.INVESTIGATOR,
+        CallKind.INTERNAL_INVESTIGATOR,
+        CallKind.VERIFIER,
+        CallKind.SYNTHESIZER,
+    }
+    config = pass_one.runtime.config
+    whole = config.budget(CallKind.SYNTHESIZER).reservation_usd
+    assert config.budget(CallKind.INVESTIGATOR).reservation_usd < whole
+    assert config.budget(CallKind.VERIFIER).reservation_usd < whole
+
+
+def test_the_agent_directed_journey_reserves_each_kinds_amount(
+    directed_run: Directed,  # noqa: F811
+) -> None:
+    kinds = assert_held(
+        directed_run.world, directed_run.run_id, directed_run.runtime, directed_run.agents
+    )
+    assert {CallKind.INVESTIGATOR, CallKind.VERIFIER, CallKind.SYNTHESIZER} <= kinds
+
+
+def test_the_lead_journey_reserves_each_kinds_amount(led_run: Led) -> None:  # noqa: F811
+    kinds = assert_held(led_run.world, led_run.run_id, led_run.runtime, led_run.agents)
+    assert {CallKind.LEAD, CallKind.INVESTIGATOR} <= kinds

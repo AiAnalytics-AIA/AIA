@@ -52,6 +52,7 @@ from typing import Any, Final
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.ai_models import ModelCapability, parse_model_config
+from aia_core.domain.deep_research.request_limits import ModelPrices, reservation_usd
 from aia_core.domain.deployment import fictional_material_problem, parse_environment
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
@@ -342,24 +343,25 @@ class AIRuntimeSettings:
         if settings.research_agents_enabled:
             if settings.research_max_output_tokens > settings.max_output_tokens:
                 raise AIRuntimeConfigError("research output limit exceeds the model limit")
-            prices = [
-                settings.input_usd_per_mtok,
-                settings.cache_write_usd_per_mtok or 0,
-                settings.cache_read_usd_per_mtok or 0,
-            ]
-            worst = (
-                2
-                * (
-                    settings.context_window_tokens * max(prices)
-                    + settings.research_max_output_tokens * settings.output_usd_per_mtok
-                )
-                / 1_000_000
+            worst = reservation_usd(
+                settings.model_prices(),
+                window_tokens=settings.context_window_tokens,
+                output_tokens=settings.research_max_output_tokens,
             )
             if settings.research_reservation_usd < worst:
                 raise AIRuntimeConfigError(
                     "research reservation must cover two calls at the model ceilings"
                 )
         return settings
+
+    def model_prices(self) -> ModelPrices:
+        """The route's model prices, as each Deep Research kind's reservation is derived."""
+        return ModelPrices(
+            input_usd_per_mtok=self.input_usd_per_mtok,
+            output_usd_per_mtok=self.output_usd_per_mtok,
+            cache_read_usd_per_mtok=self.cache_read_usd_per_mtok,
+            cache_write_usd_per_mtok=self.cache_write_usd_per_mtok,
+        )
 
     def model_document(self, light: LightModelSettings | None = None) -> dict[str, Any]:
         """The catalog and policy document for ``parse_model_config`` (fails closed).

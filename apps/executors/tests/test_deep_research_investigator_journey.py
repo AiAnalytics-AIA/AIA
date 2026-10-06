@@ -254,7 +254,7 @@ def directed(
             policy_version=settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             agent_directed=agent_directed,
@@ -850,7 +850,9 @@ def test_the_switch_is_off_unless_set_and_on_records_the_mode(
 #: investigators' request bodies exactly; every request with the random knowledge
 #: item ids and the evidence ids taken from them masked; and the tool journal as
 #: (tool, outcome, request fingerprint). Computed on that commit by this file's
-#: digests; the mode off must reproduce them.
+#: digests; the mode off must reproduce them. Each body's output limit is set back to
+#: that commit's 8,192 before hashing: since per-kind request limits
+#: (``request_limits``) it is its kind's, asserted exactly beside the digests.
 PLANNED_WEB_REQUESTS = "1017ad3dc20c686bd75ef42060f29c88bcd2b2e480cf684617600890e5c37bf1"
 PLANNED_ALL_REQUESTS = "513c447086654ec5bc2982bbf1111fb290c54f588d5cffc2f453a18cfb3d5fc9"
 PLANNED_TOOL_JOURNAL = "6ee0ced884929d5e127b81601bcedfcd64f439813477bb780242845a39aac605"
@@ -861,12 +863,23 @@ def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
     store: InMemoryArtifactStore,
 ) -> None:
     requests = pass_one.agents.requests
-    web = [r.body for r in requests if RecordedAgents._role(r) in {"planner", "web_investigator"}]
+    # The one field that moved since a6338c3: each kind's own output limit.
+    assert {RecordedAgents._role(r): r.body["inferenceConfig"] for r in requests} == {
+        "planner": {"maxTokens": 8192},
+        "internal_investigator": {"maxTokens": 6144},
+        "web_investigator": {"maxTokens": 6144},
+        "verifier": {"maxTokens": 4096},
+        "synthesizer": {"maxTokens": 8192},
+    }
+    bodies = [{**r.body, "inferenceConfig": {"maxTokens": 8192}} for r in requests]
+    web = [
+        b
+        for r, b in zip(requests, bodies, strict=True)
+        if RecordedAgents._role(r) in {"planner", "web_investigator"}
+    ]
     assert len(web) == 5
     assert hashlib.sha256(canonical_json(web).encode()).hexdigest() == PLANNED_WEB_REQUESTS
-    masked = re.sub(
-        r"(KNW-[0-9a-f]+@|EV-[0-9a-f]{16})", "ID", canonical_json([r.body for r in requests])
-    )
+    masked = re.sub(r"(KNW-[0-9a-f]+@|EV-[0-9a-f]{16})", "ID", canonical_json(bodies))
     assert hashlib.sha256(masked.encode()).hexdigest() == PLANNED_ALL_REQUESTS
     journal = [
         (e["payload"]["tool"], e["payload"]["outcome"], e["payload"]["request_fingerprint"])
