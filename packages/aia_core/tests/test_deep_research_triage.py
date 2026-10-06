@@ -772,3 +772,95 @@ def test_the_failure_class_of_a_refusal_is_configuration_not_a_retry(scope: Any)
         MeteredCaller(gateway, scope).preflight(request)
     assert refused.value.failure is FailureClass.MISSING_CONFIGURATION
     assert not refused.value.paid_call_dispatched
+
+
+# --------------------------------------------------------------------------- #
+# The deployment's model slots (fan-out, chunk 21)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def slot_pool(tmp_path: Path, scope_builder: Any) -> Any:
+    """A pool of model slots on a database of its own, and a live attempt to hold them."""
+    from aia_core.domain.workflow import StepDefinition
+    from aia_core.infrastructure.db import create_app_engine, create_session_factory
+    from aia_core.infrastructure.fan_out_coordination import ModelSlots
+    from aia_core.infrastructure.repositories import ProjectRepository
+    from aia_core.infrastructure.tables import Base
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    engine = create_app_engine(f"sqlite+pysqlite:///{tmp_path / 'slots.db'}")
+    Base.metadata.create_all(engine)
+    sessions = create_session_factory(engine)
+    with sessions() as session:
+        scope = scope_builder(session).scope(user="lead", study="primary")
+        project, _ = ProjectRepository(session, scope).create(title="Triage host")
+        repo = WorkflowRepository(session, scope)
+        repo.create_run(
+            project_id=project.project_id,
+            project_revision=1,
+            workflow_type="triage",
+            steps=[StepDefinition(node_key="triage", kind="triage")],
+            idempotency_key="triage",
+        )
+        work = repo.claim_next(worker_id="w", lease_seconds=300)
+        assert work is not None
+        session.commit()
+    try:
+        yield (
+            lambda limit, **kw: ModelSlots(sessions, pool="bedrock:triage", limit=limit, **kw),
+            work.attempt_id,
+        )
+    finally:
+        engine.dispose()
+
+
+def test_a_burst_is_bounded_by_the_deployment_s_slots_as_well_as_its_own(
+    scope: Any, slot_pool: Any
+) -> None:
+    make, attempt = slot_pool
+    slots = make(2)
+    limiter = runner_module.CombinedLimiter(
+        SemaphoreLimiter(4), runner_module.SharedSlotLimiter(slots, holder_attempt_id=attempt)
+    )
+    transport = RecordedTriage()
+
+    run = _run(MeteredCaller(_gateway(transport), scope), limiter=limiter)
+
+    plain = _run(MeteredCaller(_gateway(RecordedTriage()), scope))
+    assert [o.status for o in run.outcomes] == [o.status for o in plain.outcomes]
+    assert not run.stopped
+    assert 1 <= transport.max_in_flight <= 2, "never more than the deployment's slots"
+    assert slots.in_flight() == 0, "every slot given back"
+
+
+def test_the_run_s_own_bound_holds_in_front_of_the_shared_slots(scope: Any, slot_pool: Any) -> None:
+    make, attempt = slot_pool
+    limiter = runner_module.CombinedLimiter(
+        SemaphoreLimiter(1), runner_module.SharedSlotLimiter(make(3), holder_attempt_id=attempt)
+    )
+    transport = RecordedTriage()
+    _run(MeteredCaller(_gateway(transport), scope), limiter=limiter)
+    assert transport.max_in_flight == 1
+
+
+def test_no_slot_in_time_sends_nothing_and_says_so(scope: Any, slot_pool: Any) -> None:
+    from aia_core.infrastructure.fan_out_coordination import ModelSlotsBusy
+
+    make, attempt = slot_pool
+    slots = make(1, max_wait_s=0.0)
+    taken = slots.hold(holder_attempt_id=attempt)
+    taken.__enter__()  # another request of the deployment holds the only slot
+    transport = RecordedTriage()
+    with pytest.raises(ModelSlotsBusy):
+        _run(
+            MeteredCaller(_gateway(transport), scope),
+            limiter=runner_module.SharedSlotLimiter(slots, holder_attempt_id=attempt),
+        )
+    assert transport.requests == []
+    taken.__exit__(None, None, None)
+
+
+def test_a_combined_limiter_combines_at_least_one() -> None:
+    with pytest.raises(ValueError, match="at least one"):
+        runner_module.CombinedLimiter()
