@@ -2966,3 +2966,27 @@ startup checks against the real `deploy/develop/docker-compose.yml`; with the Co
 on `staging`, the API check fails with the error the host hit.
 
 **Status.** Closed by #122.
+
+## OI-85 · Finding · Deep Research grounding accepts a number whose population the claim changed
+
+**Claim.** `ground` checks that a claim's numbers occur in its quote, not that the claim keeps
+their unit, period, geography or population, so a claim restating a household share as a share
+of adults is accepted.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/deep_research/grounding.py:190-192 @ b2d43f7`.
+
+**Reproduction.** `ground(source_ref="S1", quote="kupuje rostlinné nápoje 45 % domácností",
+claim="Rostlinné nápoje kupuje 45 % všech dospělých lidí v Česku.", sources={"S1":
+GroundableSource("S1", "Podle průzkumu kupuje rostlinné nápoje 45 % domácností v Česku.",
+False)})` returns `Grounding(span=(15, 54), failure=None)` (2026-10-05).
+
+**Consequence.** A brief can state a figure about households as one about adults; only the
+verifier's `overstated` verdict stands in the way, and nothing requires it to notice.
+
+**Fix.** Chunk 7 of [deep-research-web-search.md](plans/deep-research-web-search.md): attribute
+checks against the quote's context and a `MEASURE_NOT_IN_SOURCE` quarantine.
+
+**Test that would have caught it.** This reproduction as a grounding unit test (chunk 7's first).
+
+**Status.** Open.
+

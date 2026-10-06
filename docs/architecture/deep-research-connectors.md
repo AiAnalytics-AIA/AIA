@@ -1,8 +1,8 @@
 # Deep Research dataset connectors: terms, interfaces and limits
 
 Plan: [`.planning/plans/deep-research-web-search.md`](../../.planning/plans/deep-research-web-search.md)
-§ 5.3 (the `dataset` tool), § 7 rung 4, § 8.2, chunk 14 ("each connector chunk starts with its
-recorded terms, interface and limits"). Companion to [deep-research.md](deep-research.md).
+§ 5.3 (the `dataset` and `archive` tools), § 7 rungs 4, 7 and 9, § 8.2, chunks 14, 15 and 16
+("each connector chunk starts with its recorded terms, interface and limits"). Companion to [deep-research.md](deep-research.md).
 
 This file records what is known about each public data interface a connector reads, **with
 where each fact came from and on what date**, before any connector is registered (chunk 23).
@@ -23,6 +23,17 @@ none of their pages could be read first-hand. What is recorded below came from a
 `github.com/datagov-cz`, the Digital and Information Agency's (DIA) own repositories. The web
 fetch tool returns a model's reading of a page, not its bytes; where a URL is quoted from such a
 reading it is marked so.
+
+**Method, 2026-10-06 (chunk 15).** Outbound fetches to `ec.europa.eu`, `api.openalex.org`,
+`docs.openalex.org` and `web.archive.org` were refused by the network egress proxy (`CONNECT`
+403); no live answer of any of the three interfaces was seen. Two operators publish their
+documentation's source on GitHub, and those files were read **as bytes** (`curl` of
+`raw.githubusercontent.com`, not the web fetch tool's reading): the Internet Archive's
+`internetarchive/wayback` repository (`wayback-cdx-server/README.md`, branch `master`) and
+OurResearch's `ourresearch/openalex-docs` repository (branch `main`; its GitBook markup matches
+the published `docs.openalex.org`). Facts read there are VERIFIED with the file named. Nothing
+of Eurostat's own documentation could be read first-hand: its facts are search excerpts or a
+third party's, and UNVERIFIED.
 
 ## 1. ČSÚ DataStat
 
@@ -81,43 +92,132 @@ refused, not cut). The result's `licence` is `None`. The fixture
 (`…/fixtures/dataset_connectors/nkod_dataset_fictional.json`) is fictional; **no real NKOD
 answer has been captured.**
 
-## 3. The shared contract (both connectors, and every later one)
+## 3. Eurostat (API Statistics)
 
-- `domain/deep_research/datasets.py`: `DatasetQuery` (connector, dataset id, filters by
-  category code, period) and `DatasetResult` (a table: title, publisher, licence or `None`,
-  source URL, columns and rows with labels, units and periods, values as published text).
-  Rendering `aia-dataset-table-1`: one line per cell, `[<dataset>!<row>/<column>] <row label> |
-  <column label> | period <p> | unit <u> = <value>[ | status <s>]`. Refused, never truncated,
-  over 5,000 cells or 200,000 characters.
-- `SourceSnapshot.dataset`: the table beside its rendering (the snapshot's text). Omitted from
-  the serialised form when absent, so page snapshots keep their bytes and hashes.
-- `grounding.ground_cell`: a quote is exactly one cell's line, or it does not ground.
-- `ToolKind.DATASET_QUERY`; `RetrievalGate.dataset`: classified like a search (the query text is
-  the dataset id, filters and period), **Class C only**, egress, metering, journaled around the
-  call.
-- `infrastructure/dataset_connectors.py`: `DatasetConnector` (raises only `ToolCallFailed` with
-  a `Delivery`), `HostScopedClient` (one host, checked addresses, no redirect, byte cap,
-  declared type, fixed error text), `RecordedDatasetConnector` (test double; `layer_check`).
+| Fact | Status | Source (all 2026-10-06) |
+|---|---|---|
+| Data endpoint `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/<DATASET_CODE>` | UNVERIFIED (search excerpt of the official page) | [ec.europa.eu/eurostat/…/api-introduction](https://ec.europa.eu/eurostat/fr/web/user-guides/data-browser/api-data-access/api-introduction) |
+| The answer is JSON-stat 2.0; labels in English, French or German (`lang=EN`) | UNVERIFIED (search excerpt) | as above |
+| Filters are `<DIMENSION_CODE>=<VALUE>`, case-insensitive; several values of one dimension are repeated parameters (`geo=CZ&geo=SK`) | UNVERIFIED (search excerpt) | [ec.europa.eu/eurostat/…/api-statistics](https://ec.europa.eu/eurostat/web/user-guides/data-browser/api-data-access/api-detailed-guidelines/api-statistics) |
+| Time: `time=<period>`; or `sinceTimePeriod`, `untilTimePeriod` (together allowed), `lastTimePeriod=<n>`; no other combination of time parameters is accepted | UNVERIFIED (search excerpts) | as above |
+| `geoLevel=aggregate\|country\|nuts1\|nuts2\|nuts3` | UNVERIFIED (search excerpt) | as above |
+| A request the API decides to answer asynchronously is answered `{"warning":{"status":413,"label":"ASYNCHRONOUS_RESPONSE. …"}}`; datasets over 500,000 cells are asynchronous | UNVERIFIED (search excerpt) | as above |
+| Eurostat's JSON-stat documents carry no `role`; Eurostat uses standardised dimension names (`geo`, `time`, `unit`, `freq`) | UNVERIFIED (third party: the JSON-stat author's EuroJSONstat library README, read as bytes) | [github.com/jsonstat/euro](https://github.com/jsonstat/euro) |
+| At most 50 categories per request, not counting time and (usually) geo | UNVERIFIED (third party: EuroJSONstat API reference) | [github.com/jsonstat/euro/…/API.md](https://github.com/jsonstat/euro/blob/master/docs/API.md) |
+| A status symbol's label is carried in a JSON-stat `extension` | UNVERIFIED (search excerpt citing EuroJSONstat) | as above |
+| Reuse of statistical data is authorised, commercial or not, provided the source is acknowledged (Commission Decision 2011/833/EU); editorial content is CC BY 4.0 | UNVERIFIED (search excerpt) | [ec.europa.eu/eurostat/help/copyright-notice](https://ec.europa.eu/eurostat/help/copyright-notice) |
+| Content type of the JSON answer; a key; rate limits | Not found | none |
 
-## 4. Before a composition names either connector (chunk 23)
+**What chunk 15 built on it** (`packages/aia_core/src/aia_core/infrastructure/dataset_eurostat.py`,
+unregistered): `EurostatConnector`, connector id `eurostat-statistics-1`, one GET to
+`ec.europa.eu` only: `…/statistics/1.0/data/{code}?format=JSON&lang=EN`, then the query's
+filters sorted by dimension (one parameter per value), then `time=<period>`. The code is
+`[A-Za-z0-9_]{1,64}`; a dimension is `[A-Za-z0-9_]{1,64}` and may not be one of the parameters
+the connector writes itself (`format`, `lang`, `time`, `sinceTimePeriod`, `untilTimePeriod`,
+`lastTimePeriod`, `geoLevel`); a category is `[A-Za-z0-9_.-]{1,64}`; anything else is never sent.
+`application/json` only, 5 MB cap. The answer is read by `jsonstat.py` with `time` named as the
+time dimension when the document declares no role (a declared role wins; a document without
+`time` is refused), and the filters are checked again on it: an asked category the answer lacks
+is `filter_category_unknown`, never a silently wider table. The `unit` dimension is a note or a
+part of a row's label, never a unit stamped on a cell. The asynchronous warning is
+`dataset_asynchronous` (provider answered, no table, nothing polls). `licence` is `None`. The
+fixture (`…/fixtures/dataset_connectors/eurostat_dataset_fictional.json`) is fictional; **no real
+Eurostat answer has been captured.** A dimension code is matched exactly as the answer spells it
+(`geo`, not `GEO`): Eurostat is recorded as case-insensitive, the reader is not.
 
-Each item is a check to make first-hand, recorded here with its date and the page it was seen on:
+## 4. OpenAlex (works and their open-access locations)
 
-1. Read the DataStat API page and Swagger (`…/dotaz/v1/swagger-ui/index.html`) and record the
-   selection-data endpoint, its content type and the JSON-stat version; capture one real answer
-   (a public selection) as a fixture beside the fictional one.
-2. Read ČSÚ's terms for DataStat data and its API, and record the licence string and URL the
-   connector should state (today `DATASTAT_LICENCE = None`).
-3. Find any stated rate limit or fair-use rule for DataStat and for `data.gov.cz/sparql`; size
-   the per-host politeness of chunk 21 to it.
-4. Send `nkod_query` for one known public dataset IRI to `data.gov.cz/sparql`, record the
-   content type and shape of the answer, and capture it as a fixture.
-5. Establish DCAT-AP-CZ's terms-of-use structure from the OFN specification and decide whether
-   the NKOD connector reads it (a new column, a new query version).
-6. Record the price of each route (expected zero) and its ADR 0008 route facts (zone, retention)
-   in the plan's § 13.
+| Fact | Status | Source (all 2026-10-06, `ourresearch/openalex-docs@main`) |
+|---|---|---|
+| `GET https://api.openalex.org/works/<id>` answers one `Work`; external ids in URN form, among them `doi:` (`/works/doi:<DOI>`), or URL form (`/works/https://doi.org/<DOI>`) | VERIFIED | `api-entities/works/get-a-single-work.md`, `how-to-use-the-api/get-single-entities/README.md` |
+| An incorrect id gets no result; an id containing `,` or `&` fails with 403 | VERIFIED | `api-entities/works/get-a-single-work.md` |
+| A merged entity's id redirects to the entity it was merged into | VERIFIED | `how-to-use-the-api/get-single-entities/README.md` |
+| `select=` keeps only the listed **root-level** fields, on a single entity or a list | VERIFIED | `how-to-use-the-api/get-lists-of-entities/select-fields.md`, `get-a-single-work.md` |
+| `GET /works?search=<text>` searches titles, abstracts and fulltext; `AND`, `OR`, `NOT` are operators only in UPPER CASE; results are sorted by `relevance_score` | VERIFIED | `api-entities/works/search-works.md`, `how-to-use-the-api/get-lists-of-entities/search-entities.md` |
+| A list answers `{"meta": {…, "count", "per_page"}, "results": […]}`; 25 per page by default, `per-page` 1–200; `filter=publication_year:2020` | VERIFIED | `how-to-use-the-api/get-lists-of-entities/README.md`, `…/paging.md` |
+| `Work` fields: `id`, `doi` (`https://doi.org/…`, the published version's DOI), `title`, `publication_year`, `type`, `open_access` {`is_oa`, `oa_status` ∈ diamond/gold/green/hybrid/bronze/closed, `oa_url`, `any_repository_has_fulltext`}, `best_oa_location`, `locations`, `authorships` (≤ 100 authors) | VERIFIED | `api-entities/works/work-object/README.md` |
+| `Location`: `is_oa` ("a URL where you can read the fulltext of this work without needing to pay money or log in"), `landing_page_url`, `pdf_url`, `license` (e.g. `cc-by`; null when undetermined), `version` ∈ `publishedVersion`/`acceptedVersion`/`submittedVersion`, `source` {`display_name`, `type` …}, `is_accepted`, `is_published` | VERIFIED | `api-entities/works/work-object/location-object.md` |
+| `best_oa_location` is scored: `is_oa` required; publisher over repository; published over accepted over submitted; a PDF link over none; major repositories ranked higher | VERIFIED | `work-object/README.md` |
+| No authentication required; 100,000 credits a day free, 100 requests a second; a singleton costs 1 credit, a list 10; over the limit is HTTP 429; `X-RateLimit-*` headers on every answer | VERIFIED | `how-to-use-the-api/rate-limits-and-authentication.md` |
+| Polite pool: `mailto=you@example.com` as a parameter, or `mailto:` in the User-Agent | VERIFIED | as above |
+| "Our complete dataset is free under the CC0 license" | VERIFIED | `README.md` |
+| Content type of the answer (`application/json` assumed) | UNVERIFIED (not stated) | none |
+| That `docs.openalex.org` publishes this repository unchanged | UNVERIFIED (the GitBook markup matches; the site was not reachable) | none |
 
-## 5. ARES, the register of economic subjects (chunk 16)
+**What chunk 15 built on it** (`…/infrastructure/dataset_openalex.py`, unregistered):
+`OpenAlexConnector`, connector id `openalex-works-1`, one GET to `api.openalex.org` only. The
+answer is search-like metadata, not a statistical cube, and it is modelled as a table of records
+(like NKOD's distributions):
+
+- `doi:<DOI>` (`10.\d{4,9}/…`, no whitespace, `,` or `&`): `GET /works/doi:<DOI>?select=id,doi,
+  title,publication_year,type,open_access,best_oa_location,locations`; 1 credit. One row per
+  location (`loc1` …, labelled by its source's name), columns `is_oa`, `version`, `license`,
+  `landing_page_url`, `pdf_url`, source name and type, and whether it is `best_oa_location`; the
+  title, DOI, OpenAlex id, year, type and `open_access` are notes. An answer for another DOI is
+  refused. `open_access_copies(result)` is the ladder's reading (plan § 7 rung 7): only `is_oa`
+  locations, the PDF else the landing page, OpenAlex's best first. A paywalled version of record
+  is never offered as a copy.
+- `works` with filter `search` (1–10 words of `[A-Za-z0-9-]`, sent lower case so that none is an
+  operator) and optionally `publication_year` (one year): `GET /works?search=…&filter=
+  publication_year:<y>&select=id,doi,title,publication_year,open_access&per-page=25`; 10 credits.
+  One row per work in the provider's order; `meta.count` is a note. A free-text phrase (with
+  diacritics, quotes, operators) is not a dataset query: it is the search tool's.
+- No author, affiliation or abstract is asked for (`select`), so nothing person-level is received
+  or stored (plan § 4). `mailto` is a constructor value (an email address, or `None`; never
+  guessed, never in code); it is sent and kept out of the stored `source_url`. No key. A merged
+  work's redirect is not followed (`redirect_refused`). `licence` is `CC0` (OpenAlex's data); a
+  location's `license` is the work's, and a cell. The credits are the `DatasetResponse.credits`
+  the gate journals. Fixtures `openalex_work_fictional.json` and `openalex_search_fictional.json`
+  are fictional; **no real OpenAlex answer has been captured.**
+
+## 5. Wayback Machine CDX index (archived captures)
+
+| Fact | Status | Source (all 2026-10-06, `internetarchive/wayback@master`, `wayback-cdx-server/README.md`) |
+|---|---|---|
+| `GET http://web.archive.org/cdx/search/cdx?url=<url>`; `url` is the only required parameter and is URL-encoded if it carries a query | VERIFIED | § Basic Usage |
+| Public fields: `urlkey`, `timestamp`, `original`, `mimetype`, `statuscode`, `digest`, `length`; `fl=` picks and orders them | VERIFIED | § Basic Usage, § Field Order |
+| `output=json` answers a JSON array whose first row names the fields | VERIFIED | § Output Format (JSON) |
+| The answer is gzip-encoded by default; `gzip=false` turns it off | VERIFIED | as above |
+| `matchType=exact` is the default; `prefix`, `host`, `domain` widen it | VERIFIED | § Url Match Scope |
+| `from=` / `to=`: 1 to 14 digits (`yyyyMMddhhmmss`), inclusive | VERIFIED | § Filtering |
+| `collapse=digest` drops **adjacent** captures with the same digest | VERIFIED | § Collapsing |
+| `limit=N` the first N rows, `limit=-N` the last N (slow); a server maximum of 150,000 per query by default | VERIFIED | § Query Result Limits |
+| An API key cookie grants access to restricted data; none is needed for public captures | VERIFIED (a feature of the software; whether `web.archive.org` restricts anything is not stated) | § Access Control |
+| HTTPS serves the same as the documented `http://` URL | UNVERIFIED | none |
+| Content type of the JSON answer (`application/json` or `text/plain`) | UNVERIFIED (not stated; both accepted) | none |
+| An empty answer is `[]` (no header row) | UNVERIFIED (not stated; read as "no capture") | none |
+| A capture's replay URL is `https://web.archive.org/web/<timestamp>/<original>` (and `…/<timestamp>id_/<original>` for the original bytes) | UNVERIFIED (the README shows only the calendar's `/web/*/<url>`) | § Collapsing |
+| The Internet Archive's terms of use, and any rate limit of the CDX server | Not read | none |
+
+**What chunk 15 built on it** (`…/infrastructure/dataset_wayback.py`, unregistered):
+`WaybackCdxConnector`, connector id `wayback-cdx-1`, **tool kind `archive_lookup`**. One GET to
+`web.archive.org` only: `/cdx/search/cdx?url=<page>&output=json&gzip=false&fl=timestamp,original,
+mimetype,statuscode,digest,length&collapse=digest&limit=200`, plus `from` and `to` set to the
+query's period (4–14 digits, whole date parts). The page is a public `http(s)` URL under AIA's own
+fetch rules (`web.check_url`); filters are refused. The header row must be exactly the six fields
+asked for; every row is checked (a real 14-digit timestamp, a 3-digit status or `-`, a digest, a
+length); 200 rows or more is `dataset_too_large`, never read as every capture. One row per
+capture (`c1` …), its fields as published plus the replay URL (unverified form).
+`nearest_capture` picks the HTTP 200 capture nearest a cited date (a capture of a redirect or an
+error is no copy); `licence` is `None`. Fixture `wayback_cdx_fictional.json` is fictional.
+**Fetching an archived page is not built**: no public-web fetch is on this branch's base (plan
+chunk 5, PR #143); the replay host would go through that fetch path, on the archive's own route,
+when it lands.
+
+**The archive is used only for a dead or moved page** (`domain/deep_research/archive.py`, plan
+§ 4 and § 7 rung 9). `decide_archive_use(LiveAttempt, needed_quote)` is the only issuer of an
+`ArchivePermit` (a module-private issuer; `layer_check` forbids constructing one elsewhere), and
+`RetrievalGate.archive` asks an `archive_lookup` connector only with a permit for the same URL,
+refusing and journaling `archive_not_permitted` otherwise; `RetrievalGate.dataset` cannot reach
+an archive at all. Allowed: `dead` (404, 410, the host no longer resolves), `moved` (redirected
+elsewhere and the quote is gone), `changed` (same URL, quote gone). Refused: the live page holds
+the quote (`live_has_quote`); a barrier on the page, or 401/402/403/451
+(`live_access_restricted`; an unstated barrier counts as one); 408/429/5xx/connection failures
+(`live_transient`); an uncertain delivery (`live_uncertain`); AIA's own refusal of the URL
+(`live_refused`); any failure not named (`live_failure_unrecognised`).
+`application.web_retrieval.live_attempt` builds the attempt from the gate's `FetchOutcome`.
+
+## 6. ARES, the register of economic subjects (chunk 16)
 
 ARES (Administrativní registr ekonomických subjektů) is the Ministry of Finance's register that
 gathers a subject's public facts from the source registers (public register, RES, trade
@@ -150,7 +250,7 @@ postcode, region and country code, and the subject's state in the public registe
 VAT register. Licence `None`. The fixtures (`…/fixtures/dataset_connectors/ares_*_fictional.json`)
 are fictional; **no real ARES answer has been captured.**
 
-## 6. Public procurement: ISVZ, VVZ and NEN (chunk 16)
+## 7. Public procurement: ISVZ, VVZ and NEN (chunk 16)
 
 **Method, 2026-10-06.** `isvz.nipez.cz`, `www.isvz.cz`, `nen.nipez.cz`, `vvz.nipez.cz` and
 `podpora.nipez.cz` were refused by the egress proxy. The facts come from a web search tool's
@@ -181,7 +281,28 @@ IČO with letters is refused. Licence `None`. The fixture
 (`…/fixtures/dataset_connectors/procurement_notice_fictional.json`) is fictional; **no real
 answer has been captured.**
 
-## 7. Personal data in the register and procurement connectors (plan § 4)
+## 8. The shared contract (every connector)
+
+- `domain/deep_research/datasets.py`: `DatasetQuery` (connector, dataset id, filters by
+  category code, period) and `DatasetResult` (a table: title, publisher, licence or `None`,
+  source URL, columns and rows with labels, units and periods, values as published text).
+  Rendering `aia-dataset-table-1`: one line per cell, `[<dataset>!<row>/<column>] <row label> |
+  <column label> | period <p> | unit <u> = <value>[ | status <s>]`. Refused, never truncated,
+  over 5,000 cells or 200,000 characters.
+- `SourceSnapshot.dataset`: the table beside its rendering (the snapshot's text). Omitted from
+  the serialised form when absent, so page snapshots keep their bytes and hashes.
+- `grounding.ground_cell`: a quote is exactly one cell's line, or it does not ground.
+- `ToolKind.DATASET_QUERY`; `RetrievalGate.dataset`: classified like a search (the query text is
+  the dataset id, filters and period), **Class C only**, egress, metering, journaled around the
+  call. `ToolKind.ARCHIVE_LOOKUP`; `RetrievalGate.archive`: the same path on an archive's own
+  route, after an `ArchivePermit` for the URL. A connector's class fixes its `tool_kind`, and a
+  `DatasetAccess` whose route is of another kind is refused at construction.
+- `DatasetResponse.credits`: the provider's own unit of charge, journaled (OpenAlex: 1 or 10).
+- `infrastructure/dataset_connectors.py`: `DatasetConnector` (raises only `ToolCallFailed` with
+  a `Delivery`), `HostScopedClient` (one host, checked addresses, no redirect, byte cap,
+  declared type, fixed error text), `RecordedDatasetConnector` (test double; `layer_check`).
+
+## 9. Personal data in the register and procurement connectors (plan § 4)
 
 | Decision | Where |
 |---|---|
@@ -194,7 +315,36 @@ answer has been captured.**
 | Procurement: in the two free-text fields read (authority name, contract title), e-mail addresses and telephone numbers are replaced by `[osobní údaj odstraněn]`, and a note says so. A nine-digit run in a title is redacted as if it were a phone number | `dataset_procurement.py` |
 | A query's text (an IČO, an evidence number) is journaled like any query, so the IČO of a refused sole trader stays in the tool journal | `RetrievalGate.dataset` |
 
-## 8. Before a composition names the ARES or procurement connector (chunk 23)
+## 10. Before a composition names a connector (chunk 23)
+
+Each item is a check to make first-hand, recorded here with its date and the page it was seen on:
+
+1. Read the DataStat API page and Swagger (`…/dotaz/v1/swagger-ui/index.html`) and record the
+   selection-data endpoint, its content type and the JSON-stat version; capture one real answer
+   (a public selection) as a fixture beside the fictional one.
+2. Read ČSÚ's terms for DataStat data and its API, and record the licence string and URL the
+   connector should state (today `DATASTAT_LICENCE = None`).
+3. Find any stated rate limit or fair-use rule for DataStat and for `data.gov.cz/sparql`; size
+   the per-host politeness of chunk 21 to it.
+4. Send `nkod_query` for one known public dataset IRI to `data.gov.cz/sparql`, record the
+   content type and shape of the answer, and capture it as a fixture.
+5. Establish DCAT-AP-CZ's terms-of-use structure from the OFN specification and decide whether
+   the NKOD connector reads it (a new column, a new query version).
+6. Record the price of each route (expected zero) and its ADR 0008 route facts (zone, retention)
+   in the plan's § 13, for Eurostat, OpenAlex and the Wayback Machine as for the two above.
+7. Eurostat: read the API Statistics pages first-hand; confirm the endpoint, `format=JSON`,
+   `lang`, the filter and `time` syntax, the content type, the asynchronous warning and that
+   documents carry no `role`; capture one real answer; read the copyright notice and record the
+   licence string the connector should state (today `EUROSTAT_LICENCE = None`).
+8. OpenAlex: capture one real `/works/doi:` answer and one `/works?search=` answer with the
+   connector's `select`; confirm the content type; decide the polite-pool contact (an operator
+   mailbox, configured, never a person's own address) and record it as a setting, not code.
+9. Wayback: confirm the HTTPS endpoint, the JSON content type, the empty answer and the replay
+   URL form; read the Internet Archive's terms of use and any stated rate limit; capture one real
+   CDX answer. Then wire the archived-page fetch through the public-web fetch path (chunk 5) on
+   the archive's own route.
+
+## 11. Before a composition names the ARES or procurement connector (chunk 23)
 
 1. Read ARES's developer page and OpenAPI document first-hand; record the subject endpoint, its
    content type, its field names and its error shape (an unknown IČO), and capture one real

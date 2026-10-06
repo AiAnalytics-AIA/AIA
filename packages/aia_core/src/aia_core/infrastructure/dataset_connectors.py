@@ -40,6 +40,7 @@ from ..domain.ai_contracts import Delivery
 from ..domain.deep_research.contracts import RetrievalMode, SourceSnapshot
 from ..domain.deep_research.datasets import DATASET_MEDIA_TYPE, DatasetQuery, DatasetResult
 from ..domain.deep_research.grounding import detect_instructions
+from ..domain.deep_research.tooling import ToolKind
 from ..domain.deep_research.web import FetchRefused, check_resolution, check_url
 from .web_retrieval import FetchedResponse, FetchTransport, Resolver, ToolCallFailed
 
@@ -73,6 +74,13 @@ class DatasetConnector(Protocol):
 
     @property
     def connector_id(self) -> str: ...
+
+    @property
+    def tool_kind(self) -> ToolKind:
+        """``DATASET_QUERY``, or ``ARCHIVE_LOOKUP`` for an archive's index. Fixed by the class:
+        the gate asks an archive only with a permit, so a connector cannot be configured
+        out of being one."""
+        ...
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -231,6 +239,8 @@ class RecordedDatasetConnector:
     exchanges: Mapping[str, Mapping[str, Any]]
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
     calls: list[str] = field(default_factory=list)
+    #: The kind of connector this double stands in for.
+    tool_kind: ToolKind = ToolKind.DATASET_QUERY
 
     @property
     def retrieval_mode(self) -> RetrievalMode:

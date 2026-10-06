@@ -46,6 +46,7 @@ from .residency import DataClass
 from .workflow import FailureClass, classify_failure
 
 __all__ = [
+    "THINKING_MIN_BUDGET_TOKENS",
     "AIUsageEvent",
     "AdapterRequest",
     "AdapterResponse",
@@ -67,6 +68,7 @@ __all__ = [
     "StructuredValidation",
     "UsageOutcome",
     "canonical_json",
+    "check_thinking_budget",
     "content_fingerprint",
     "extract_json_object",
     "input_fingerprint",
@@ -80,6 +82,10 @@ __all__ = [
     "strictify",
     "validate_structured_output",
 ]
+
+
+#: The smallest extended-thinking budget Claude accepts (``budget_tokens`` >= 1024).
+THINKING_MIN_BUDGET_TOKENS: Final = 1024
 
 
 def new_call_id() -> str:
@@ -214,6 +220,9 @@ def input_fingerprint(request: AdapterRequest) -> str:
         # Only when set, so every fingerprint recorded before the field existed
         # still identifies the same inputs.
         content["temperature"] = request.temperature
+    if request.thinking_budget_tokens is not None:
+        # The same rule: a call without thinking keeps the fingerprint it had.
+        content["thinking_budget_tokens"] = request.thinking_budget_tokens
     return content_fingerprint(content)
 
 
@@ -507,6 +516,21 @@ _FALLBACK_ELIGIBLE: Final = frozenset(
 )
 
 
+def check_thinking_budget(budget_tokens: int, output_token_limit: int) -> None:
+    """Raise ``ValueError`` unless ``budget_tokens`` is a budget a call may carry.
+
+    At least :data:`THINKING_MIN_BUDGET_TOKENS`, and below the output limit it is
+    part of, so that the answer itself has room after the thinking.
+    """
+    if budget_tokens < THINKING_MIN_BUDGET_TOKENS:
+        raise ValueError(f"a thinking budget is at least {THINKING_MIN_BUDGET_TOKENS} tokens")
+    if budget_tokens >= output_token_limit:
+        raise ValueError(
+            f"a thinking budget of {budget_tokens} tokens must be below the output limit "
+            f"of {output_token_limit}, which it is part of"
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class ModelRequest:
     """One logical model call, as domain code states it.
@@ -538,6 +562,13 @@ class ModelRequest:
     #: agent asks for 0.0: its probabilities are drawn from by code, so the model's
     #: own sampling noise is not wanted on top). ``None`` leaves the provider default.
     temperature: float | None = None
+    #: Extended thinking, opted into per request (Deep Research's agents only, when
+    #: configured). ``None`` sends no thinking setting at all. The budget is part of
+    #: the output limit, as the provider counts it: thinking and the answer together
+    #: stay within :attr:`output_token_limit`, so the budget must be below it, and
+    #: the call's ceiling -- priced at that limit -- already covers the thinking.
+    #: Thinking takes no sampling setting, so ``temperature`` must be unset with it.
+    thinking_budget_tokens: int | None = None
 
     def __post_init__(self) -> None:
         if not self.messages:
@@ -546,6 +577,10 @@ class ModelRequest:
             raise ValueError("max_output_tokens must be positive")
         if self.temperature is not None and not 0.0 <= self.temperature <= 1.0:
             raise ValueError("temperature must be within 0..1")
+        if self.thinking_budget_tokens is not None:
+            check_thinking_budget(self.thinking_budget_tokens, self.output_token_limit)
+            if self.temperature is not None:
+                raise ValueError("a thinking request takes no temperature")
 
     @property
     def capability(self) -> ModelCapability:
@@ -583,6 +618,9 @@ class AdapterRequest:
     schema_name: str = ""
     strict_schema: bool = False
     temperature: float | None = None
+    #: Extended thinking's budget, within ``max_output_tokens``; ``None`` sends none.
+    #: An adapter that cannot send it refuses the request unsent.
+    thinking_budget_tokens: int | None = None
 
 
 class FinishReason(StrEnum):

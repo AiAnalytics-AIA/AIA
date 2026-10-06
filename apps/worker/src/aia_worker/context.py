@@ -166,12 +166,16 @@ class AttemptContext:
         # The last point at which stopping costs nothing: after this, the call is
         # in flight and its billing is the client's.
         self.checkpoint()
-        if call.reservation_id is None:
+        reservation_id = call.reservation_id
+        if reservation_id is None:
             return
+        # The mark names the hold: two calls in flight at once are two open
+        # questions, and settling one must not answer the other.
         self._write(
             lambda repo: repo.mark_paid_call_dispatched(
                 self._step.attempt_id,
                 worker_id=self._worker_id,
+                reservation_id=reservation_id,
                 provider_request_id=provider_request_id,
             )
         )

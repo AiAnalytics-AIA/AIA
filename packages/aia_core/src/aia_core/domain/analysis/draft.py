@@ -58,6 +58,7 @@ __all__ = [
     "NumericClaimDraft",
     "ResearchQuestionAnswerDraft",
     "check_analysis_draft",
+    "number_spans",
     "numbers_in",
     "uncovered_numbers",
 ]
@@ -135,14 +136,23 @@ def _name_forms(text: str) -> list[tuple[tuple[object, ...], int, int]]:
     return forms
 
 
-def _numbers_at(text: str) -> list[tuple[float, int, int]]:
-    """Every number in prose, as (value, decimals shown, start offset)."""
-    found: list[tuple[float, int, int]] = []
+def number_spans(text: str) -> tuple[tuple[float, int, int, int], ...]:
+    """Every number in prose, as (value, decimals shown, start offset, end offset).
+
+    The same reading as :func:`numbers_in`, with where each number is written, for
+    a caller that reads the words around a number (Deep Research's measures).
+    """
+    found: list[tuple[float, int, int, int]] = []
     for match in _NUMBER.finditer(text):
         raw = re.sub(r"[ \u00a0\u202f]", "", match.group(0)).replace(",", ".")
         decimals = len(raw.split(".", 1)[1]) if "." in raw else 0
-        found.append((float(raw), decimals, match.start()))
-    return found
+        found.append((float(raw), decimals, match.start(), match.end()))
+    return tuple(found)
+
+
+def _numbers_at(text: str) -> list[tuple[float, int, int]]:
+    """Every number in prose, as (value, decimals shown, start offset)."""
+    return [(value, decimals, start) for value, decimals, start, _ in number_spans(text)]
 
 
 def numbers_in(text: str) -> tuple[tuple[float, int], ...]:
