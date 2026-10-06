@@ -103,6 +103,17 @@ class Settings(BaseSettings):
     ai_fieldwork_reservation_usd: float | None = None
     ai_analysis_reservation_usd: float | None = None
 
+    # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
+    # from the same keys the worker composes it from: the research agents' reservation per
+    # request (``AIA_AI_RESEARCH_RESERVATION_USD``, primary plus one repair), whether the
+    # public Wikipedia route is on (its search and fetch are free), and the mode switches
+    # (``AIA_DEEP_RESEARCH_AGENT_DIRECTED``, ``AIA_DEEP_RESEARCH_LEAD``). Unset reservation is
+    # not zero: a study with a spend limit then does not start a Deep Research run.
+    ai_research_reservation_usd: float | None = None
+    deep_research_wikipedia_enabled: bool = False
+    deep_research_agent_directed: bool = False
+    deep_research_lead: bool = False
+
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_format: Literal["json", "console"] = "json"
 
@@ -118,7 +129,12 @@ class Settings(BaseSettings):
             return parse_build_sha(value) or ""
         return value
 
-    @field_validator("ai_fieldwork_reservation_usd", "ai_analysis_reservation_usd", mode="before")
+    @field_validator(
+        "ai_fieldwork_reservation_usd",
+        "ai_analysis_reservation_usd",
+        "ai_research_reservation_usd",
+        mode="before",
+    )
     @classmethod
     def _blank_reservation_is_unset(cls, value: object) -> object:
         """A Compose variable passed through empty means "not set", not a number that fails."""

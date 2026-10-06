@@ -264,7 +264,11 @@ def _cost_refused(exc: CostConfirmationRequired | CostCeilingUnknown) -> HTTPExc
             "code": "cost_ceiling_unknown",
             "message": "The study has a spend limit and this run's cost ceiling cannot be worked "
             "out, so it is not started.",
-            "details": {"reason": exc.reason.value, "limit_usd": exc.limit_usd},
+            "details": {
+                "reason": exc.reason.value,
+                "limit_usd": exc.limit_usd,
+                **({"kinds": list(exc.kinds)} if exc.kinds else {}),
+            },
         },
     )
 
