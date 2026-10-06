@@ -12,7 +12,10 @@ the fetcher's first gate, and they fail closed:
   multicast, reserved or unspecified, IPv4-mapped forms included -- and a host
   that resolves to nothing is refused;
 * the same checks on **every redirect hop**, at most :data:`MAX_REDIRECTS` of them;
-* a body of at most :data:`MAX_BODY_BYTES`, of a declared textual content type.
+* a body of a declared content type the fetcher keeps -- a page (HTML, XHTML,
+  plain text) or a document (PDF, XLSX, CSV) -- and at most that type's own cap
+  (:data:`MAX_BODY_BYTES_BY_TYPE`): a page keeps :data:`MAX_BODY_BYTES`, a
+  document its larger one, and the read stops at :data:`MAX_FETCH_BYTES`.
 
 The fetcher applies these to what its resolver and transport report (see
 ``aia_core.infrastructure.web_retrieval``). A live transport must connect to the
@@ -25,33 +28,67 @@ Pure: stdlib only.
 from __future__ import annotations
 
 import ipaddress
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Final
 from urllib.parse import urlsplit
 
 __all__ = [
     "ALLOWED_CONTENT_TYPES",
+    "CSV_MEDIA_TYPE",
+    "DOCUMENT_MEDIA_TYPES",
     "MAX_ALTERNATE_LINKS",
     "MAX_BODY_BYTES",
+    "MAX_BODY_BYTES_BY_TYPE",
+    "MAX_FETCH_BYTES",
     "MAX_LINK_TEXT_CHARS",
     "MAX_LINK_URL_CHARS",
     "MAX_REDIRECTS",
     "MAX_SNAPSHOT_LINKS",
     "MAX_TEXT_CHARS",
+    "PDF_MEDIA_TYPE",
+    "XLSX_MEDIA_TYPE",
     "FetchRefused",
     "SearchHit",
     "check_address",
     "check_content_type",
     "check_resolution",
     "check_url",
+    "max_body_bytes",
 ]
 
 MAX_REDIRECTS: Final = 3
+#: The cap on a page's body (HTML, XHTML, plain text).
 MAX_BODY_BYTES: Final = 2_000_000
-#: Normalised text kept per snapshot; beyond it the snapshot says it is truncated.
+#: Normalised text kept per page snapshot; beyond it the snapshot says it is truncated.
 MAX_TEXT_CHARS: Final = 200_000
-ALLOWED_CONTENT_TYPES: Final = frozenset({"text/html", "text/plain", "application/xhtml+xml"})
+PDF_MEDIA_TYPE: Final = "application/pdf"
+XLSX_MEDIA_TYPE: Final = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+CSV_MEDIA_TYPE: Final = "text/csv"
+#: The documents a fetch keeps; read by ``domain.deep_research.documents``.
+DOCUMENT_MEDIA_TYPES: Final = frozenset({PDF_MEDIA_TYPE, XLSX_MEDIA_TYPE, CSV_MEDIA_TYPE})
+#: Each kept type's own body cap. A page keeps the page cap: a document's larger
+#: cap is its own and raises nothing else. A PDF of statistics or an annual report
+#: is a few MB of text and fonts; past 20 MB it is mostly images, which yield no
+#: text. An XLSX is compressed: 10 MB holds far more cells than a snapshot keeps
+#: (``documents.MAX_GRID_CELLS``). A CSV is the text itself: 5 MB already renders
+#: past the document text cap (``documents.MAX_DOCUMENT_TEXT_CHARS``).
+MAX_BODY_BYTES_BY_TYPE: Final[Mapping[str, int]] = MappingProxyType(
+    {
+        "text/html": MAX_BODY_BYTES,
+        "text/plain": MAX_BODY_BYTES,
+        "application/xhtml+xml": MAX_BODY_BYTES,
+        PDF_MEDIA_TYPE: 20_000_000,
+        XLSX_MEDIA_TYPE: 10_000_000,
+        CSV_MEDIA_TYPE: 5_000_000,
+    }
+)
+ALLOWED_CONTENT_TYPES: Final = frozenset(MAX_BODY_BYTES_BY_TYPE)
+#: What one response is read to: the largest type cap. The type is known only from
+#: the response's headers, so the read is bounded by the largest cap and the body
+#: is then held to its own type's.
+MAX_FETCH_BYTES: Final = max(MAX_BODY_BYTES_BY_TYPE.values())
 #: Outbound ``<a href>`` links kept with an HTML snapshot, first in document order.
 MAX_SNAPSHOT_LINKS: Final = 200
 #: ``<link rel="alternate">`` targets kept with an HTML snapshot (feeds, translations).
@@ -155,3 +192,8 @@ def check_content_type(header: str) -> str:
     if media not in ALLOWED_CONTENT_TYPES:
         raise FetchRefused(f"content type {media or '(none)'!r} is not kept", reason="content_type")
     return media
+
+
+def max_body_bytes(media_type: str) -> int:
+    """The body cap of a kept media type, as :func:`check_content_type` returns it."""
+    return MAX_BODY_BYTES_BY_TYPE[media_type]

@@ -37,6 +37,9 @@ from ..domain.deep_research.robots import (
     policy_for_response,
 )
 from ..domain.deep_research.web import (
+    CSV_MEDIA_TYPE,
+    PDF_MEDIA_TYPE,
+    XLSX_MEDIA_TYPE,
     FetchRefused,
     SearchHit,
     check_address,
@@ -68,6 +71,11 @@ SEARCH_HOST: Final = "cs.wikipedia.org"
 SEARCH_ENDPOINT: Final = f"https://{SEARCH_HOST}/w/api.php"
 USER_AGENT: Final = "AIAResearch/0.1 (https://aia-develop.art-chain.io/)"
 MAX_SEARCH_BYTES: Final = 128_000
+#: What a public fetch asks for: a page first, then the documents it keeps.
+PAGE_ACCEPT: Final = (
+    "text/html, application/xhtml+xml, text/plain;q=0.9, "
+    f"{PDF_MEDIA_TYPE};q=0.8, {XLSX_MEDIA_TYPE};q=0.8, {CSV_MEDIA_TYPE};q=0.8"
+)
 
 
 class SystemResolver:
@@ -444,7 +452,7 @@ class PublicHttpsTransport:
                     host=host,
                     address=address,
                     max_bytes=max_bytes,
-                    accept="text/html, application/xhtml+xml, text/plain;q=0.9",
+                    accept=PAGE_ACCEPT,
                 ),
             )
             return response

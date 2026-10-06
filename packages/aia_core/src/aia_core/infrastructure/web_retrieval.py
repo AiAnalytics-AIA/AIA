@@ -9,10 +9,12 @@ to retry, reroute or substitute:
   Wikipedia adapter is in :mod:`web_retrieval_live`; recorded search replays tests.
 * :class:`WebFetcher` -- one page, fetched through a :class:`FetchTransport` after
   the address checks of ``domain.deep_research.web`` pass for the URL and for every
-  address its host resolves to, **on every redirect hop**; then the size and type
-  caps; then HTML to text, normalised, and a content-addressed
+  address its host resolves to, **on every redirect hop**; then the type and that
+  type's size cap; then HTML to text, normalised, and a content-addressed
   :class:`~aia_core.domain.deep_research.contracts.SourceSnapshot` that keeps the
-  page's outbound and ``alternate`` links as data (never followed here). A live
+  page's outbound and ``alternate`` links as data (never followed here). A PDF,
+  XLSX or CSV is read by ``document_text.read_web_document`` into the same kind
+  of snapshot, with the layout that maps its text back to pages or cells. A live
   transport must connect to the address that was checked (DNS rebinding).
 
 Recorded doubles are test doubles (the model adapters keep theirs beside the
@@ -38,12 +40,19 @@ from typing import Any, Final, Protocol, runtime_checkable
 from urllib.parse import urldefrag, urljoin
 
 from ..domain.ai_contracts import Delivery
-from ..domain.deep_research.contracts import RetrievalMode, SnapshotLink, SourceSnapshot
+from ..domain.deep_research.contracts import (
+    DocumentLayout,
+    RetrievalMode,
+    SnapshotLink,
+    SourceSnapshot,
+)
+from ..domain.deep_research.documents import CapturedDocument, DocumentRefused
 from ..domain.deep_research.grounding import detect_instructions, normalise_text
 from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.web import (
+    DOCUMENT_MEDIA_TYPES,
     MAX_ALTERNATE_LINKS,
-    MAX_BODY_BYTES,
+    MAX_FETCH_BYTES,
     MAX_LINK_TEXT_CHARS,
     MAX_LINK_URL_CHARS,
     MAX_REDIRECTS,
@@ -54,7 +63,9 @@ from ..domain.deep_research.web import (
     check_content_type,
     check_resolution,
     check_url,
+    max_body_bytes,
 )
+from .document_text import read_web_document
 
 __all__ = [
     "FetchTransport",
@@ -348,6 +359,14 @@ def _charset(content_type: str) -> str:
     return match[1] if match else "utf-8"
 
 
+def _read_document(body: bytes, media: str, content_type: str) -> CapturedDocument:
+    """A document's snapshot text and layout, or :class:`FetchRefused` with the reason."""
+    try:
+        return read_web_document(body, media, charset=_charset(content_type))
+    except DocumentRefused as exc:
+        raise FetchRefused(str(exc), reason=exc.reason) from exc
+
+
 @dataclass(frozen=True, slots=True)
 class FetchedPage:
     """A snapshot, and what scoring needs that the snapshot does not hold."""
@@ -395,7 +414,7 @@ class WebFetcher:
             host = check_url(current)
             addresses = self._resolver.resolve(host)
             check_resolution(host, addresses)
-            response = self._transport.get(current, address=addresses[0], max_bytes=MAX_BODY_BYTES)
+            response = self._transport.get(current, address=addresses[0], max_bytes=MAX_FETCH_BYTES)
             if response.status in (301, 302, 303, 307, 308):
                 location = {k.lower(): v for k, v in response.headers.items()}.get("location")
                 if not location:
@@ -415,32 +434,42 @@ class WebFetcher:
                 delivery=Delivery.RESPONDED,
             )
         headers = {k.lower(): v for k, v in response.headers.items()}
-        media = check_content_type(headers.get("content-type", ""))
-        if response.truncated:
+        content_type = headers.get("content-type", "")
+        media = check_content_type(content_type)
+        cap = max_body_bytes(media)
+        if response.truncated or len(response.body) > cap:
             raise FetchRefused(
-                f"the page is larger than {MAX_BODY_BYTES} bytes", reason="body_too_large"
+                f"the {media} body is larger than its cap of {cap} bytes", reason="body_too_large"
             )
-        charset = _charset(headers.get("content-type", ""))
-        try:
-            codecs.lookup(charset)
-        except LookupError as exc:
-            # errors="replace" covers bad bytes, not an unknown codec: decoding with a
-            # guessed charset would store text the page never said.
-            raise FetchRefused(
-                f"the declared charset {charset[:40]!r} is not one AIA can read",
-                reason="charset_unknown",
-            ) from exc
-        decoded = response.body.decode(charset, errors="replace")
         links: tuple[SnapshotLink, ...] = ()
-        if media == "text/plain":
-            title, text, published = extract_page(decoded, media)
+        layout: DocumentLayout | None = None
+        published: date | None = None
+        if media in DOCUMENT_MEDIA_TYPES:
+            document = _read_document(response.body, media, content_type)
+            title, kept, layout = document.title, document.text, document.layout
+            truncated = document.truncated
         else:
-            parser = _parse(decoded)
-            title = normalise_text("".join(parser.title_parts))
-            text = normalise_text("".join(parser.parts))
-            published = _first_date(parser.dates)
-            links = _links(parser, current)
-        kept = text[:MAX_TEXT_CHARS]
+            charset = _charset(content_type)
+            try:
+                codecs.lookup(charset)
+            except LookupError as exc:
+                # errors="replace" covers bad bytes, not an unknown codec: decoding with a
+                # guessed charset would store text the page never said.
+                raise FetchRefused(
+                    f"the declared charset {charset[:40]!r} is not one AIA can read",
+                    reason="charset_unknown",
+                ) from exc
+            decoded = response.body.decode(charset, errors="replace")
+            if media == "text/plain":
+                title, text, published = extract_page(decoded, media)
+            else:
+                parser = _parse(decoded)
+                title = normalise_text("".join(parser.title_parts))
+                text = normalise_text("".join(parser.parts))
+                published = _first_date(parser.dates)
+                links = _links(parser, current)
+            kept = text[:MAX_TEXT_CHARS]
+            truncated = len(text) > MAX_TEXT_CHARS
         text_sha = hashlib.sha256(kept.encode("utf-8")).hexdigest()
         snapshot = SourceSnapshot(
             snapshot_id="SNP-" + text_sha[:24],
@@ -456,12 +485,13 @@ class WebFetcher:
             raw_bytes=len(response.body),
             text=kept,
             text_sha256=text_sha,
-            truncated=len(text) > MAX_TEXT_CHARS,
+            truncated=truncated,
             adapter=self.adapter_id,
             request_id=response.provider_request_id,
             retrieval_mode=self.retrieval_mode,
             instructions_detected=detect_instructions(kept),
             links=links,
+            document=layout,
         )
         return FetchedPage(snapshot=snapshot, published=published)
 
