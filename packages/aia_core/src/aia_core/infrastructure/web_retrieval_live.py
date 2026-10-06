@@ -342,6 +342,15 @@ class PublicHttpsTransport:
         policy = self._held(host)
         return None if policy is None else self._refusal(policy, url)
 
+    def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
+        """The ``Sitemap:`` URLs of ``host``'s robots.txt, if this transport holds it.
+
+        None when it has not been read (or is stale); sends nothing. A host whose
+        robots.txt could not be read or forbids everything declares none.
+        """
+        policy = self._held(host.lower().rstrip("."))
+        return None if policy is None else policy.sitemaps
+
     def _host_lock(self, host: str) -> threading.Lock:
         with self._guard:
             return self._host_locks.setdefault(host, threading.Lock())

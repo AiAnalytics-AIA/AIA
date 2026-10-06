@@ -565,3 +565,35 @@ def test_the_wikipedia_transport_still_refuses_every_other_host() -> None:
     transport.get("https://cs.wikipedia.org/wiki/Praha", address=PUBLIC, max_bytes=1000)
     assert wire.targets() == ["cs.wikipedia.org/wiki/Praha"]  # no robots.txt on this route
     assert wire.sent[0].headers["User-Agent"] == web_retrieval_live.USER_AGENT
+
+
+def test_the_sitemaps_robots_txt_declares_are_known_once_it_was_read(scoped: Any) -> None:
+    fetcher, transport, wire, _ = _setup(
+        {
+            ("stats.example", "/robots.txt"): _robots(
+                "User-agent: *\nDisallow: /x\nSitemap: https://stats.example/sitemap.xml\n"
+            ),
+            ("stats.example", "/a"): _ok(PAGE),
+        }
+    )
+    gate = RetrievalGate(
+        retrieval=WebRetrieval(
+            search_route=_route(ToolKind.WEB_SEARCH),
+            fetch_route=_route(ToolKind.WEB_FETCH),
+            search=_LiveSearch(),
+            fetcher=fetcher,
+        ),
+        scope=scoped.scope(),
+        meter=InMemoryToolLedger(budget_usd=0.0),
+        client_terms=(),
+        class_a_texts=(),
+        clock=lambda: NOW,
+    )
+    # Not read yet: unknown, and asking sends nothing.
+    assert gate.known_sitemaps("stats.example") is None
+    assert wire.sent == []
+    gate.fetch("https://stats.example/a", track_id="T")
+    assert gate.known_sitemaps("stats.example") == ("https://stats.example/sitemap.xml",)
+    assert transport.known_sitemaps("STATS.example.") == ("https://stats.example/sitemap.xml",)
+    assert gate.known_sitemaps("news.example") is None
+    assert wire.targets() == ["stats.example/robots.txt", "stats.example/a"]
