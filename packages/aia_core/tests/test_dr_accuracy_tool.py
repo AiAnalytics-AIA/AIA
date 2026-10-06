@@ -286,8 +286,8 @@ def test_score_reads_a_run_record_too(tool: Any, tmp_path: Path) -> None:
             {
                 "evidence_id": "EV-0000000000000001",
                 "subject_key": subject.key,
-                "claim": "Česko mělo 10 450 tis. obyvatel.",
-                "quote": "[OBY01!CZ/2091] Česko | 2091 = 10 450",
+                "claim": "Česko mělo k 31. 12. 2091 10 450 tis. obyvatel.",
+                "quote": "[OBY01!CZ/2091-12-31] Česko | 2091-12-31 = 10 450",
                 "source_ref": "SNP-" + "3" * 24,
                 "source_url": "https://statistika-fikce.example/data/OBY01",
                 "measures": [
@@ -296,7 +296,7 @@ def test_score_reads_a_run_record_too(tool: Any, tmp_path: Path) -> None:
                         "scale": 1000,
                         "population": "PERSONS",
                         "geography": "CZ",
-                        "period": "2091",
+                        "period": "2091-12-31",
                     }
                 ],
                 "measures_from": "stated",
