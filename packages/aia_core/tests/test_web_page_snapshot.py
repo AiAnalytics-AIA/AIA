@@ -7,16 +7,31 @@ live snapshot serialises exactly as it did before the field existed.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 
+from aia_core.application.web_retrieval import RetrievalGate, WebRetrieval
 from aia_core.domain.deep_research.contracts import (
     ArchivedCapture,
     RetrievalMode,
     SourceSnapshot,
 )
+from aia_core.domain.deep_research.tooling import (
+    InMemoryToolLedger,
+    ToolKind,
+    ToolOutcome,
+    ToolRoute,
+)
 from aia_core.domain.deep_research.web import FetchRefused
-from aia_core.infrastructure.web_retrieval import page_snapshot
+from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
+from aia_core.infrastructure.web_retrieval import (
+    RecordedFetchTransport,
+    RecordedResolver,
+    RecordedSearch,
+    WebFetcher,
+    page_snapshot,
+)
 
 NOW = datetime(2026, 10, 6, 9, 0, tzinfo=UTC)
 BODY = (
@@ -87,3 +102,68 @@ def test_a_type_no_snapshot_keeps_is_refused() -> None:
             retrieved_at=NOW,
         )
     assert caught.value.reason == "content_type"
+
+
+def _recorded_route(tool: ToolKind) -> ToolRoute:
+    return ToolRoute(
+        route=ProviderRoute(
+            route_id=f"{tool.value}-recorded",
+            provider="recorded",
+            zone=ResidencyZone.EU,
+            eu_processing_approved=True,
+            excluded_from_training=True,
+            retention_days=0,
+            approved_for=frozenset({DataClass.CLASS_C_INTERNAL}),
+        ),
+        tool=tool,
+        adapter_id=f"recorded-{tool.value.split('_')[1]}-v1",
+        retrieval_mode=RetrievalMode.RECORDED,
+        price_usd_per_call=0.0,
+    )
+
+
+def test_a_charset_nobody_can_read_is_refused_and_the_call_is_closed(scoped: Any) -> None:
+    """Regression: an unknown charset raised LookupError through the gate, leaving
+    the call DISPATCHED with no outcome and ending the step."""
+    with pytest.raises(FetchRefused) as caught:
+        page_snapshot(
+            url="https://stats.example/a",
+            final_url="https://stats.example/a",
+            redirects=(),
+            http_status=200,
+            content_type="text/html; charset=x-unknown",
+            body=b"<p>x</p>",
+            request_id=None,
+            adapter_id="test-v1",
+            retrieval_mode=RetrievalMode.RECORDED,
+            retrieved_at=NOW,
+        )
+    assert caught.value.reason == "charset_unknown"
+
+    ledger = InMemoryToolLedger(budget_usd=1.0)
+    gate = RetrievalGate(
+        retrieval=WebRetrieval(
+            search_route=_recorded_route(ToolKind.WEB_SEARCH),
+            fetch_route=_recorded_route(ToolKind.WEB_FETCH),
+            search=RecordedSearch(adapter_id="recorded-search-v1", exchanges={}),
+            fetcher=WebFetcher(
+                transport=RecordedFetchTransport(
+                    pages={
+                        "https://stats.example/a": {
+                            "body": "<p>x</p>",
+                            "headers": {"content-type": "text/html; charset=x-unknown"},
+                        }
+                    }
+                ),
+                resolver=RecordedResolver(hosts={"stats.example": ["93.184.215.14"]}),
+                adapter_id="recorded-fetch-v1",
+            ),
+        ),
+        scope=scoped.scope(),
+        meter=ledger,
+        client_terms=(),
+        class_a_texts=(),
+    )
+    outcome = gate.fetch("https://stats.example/a", track_id="T")
+    assert outcome.page is None and outcome.reason == "charset_unknown"
+    assert [e.outcome for e in ledger.events()] == [ToolOutcome.DISPATCHED, ToolOutcome.FAILED]

@@ -25,6 +25,7 @@ composition but the local recorded one.
 
 from __future__ import annotations
 
+import codecs
 import hashlib
 import json
 import re
@@ -407,7 +408,16 @@ def page_snapshot(
     archived copy is never the same snapshot as a live page with the same words.
     """
     media = check_content_type(content_type)
-    decoded = body.decode(_charset(content_type), errors="replace")
+    charset = _charset(content_type)
+    try:
+        codecs.lookup(charset)
+    except LookupError as exc:
+        # Decoding with a guessed charset would store text the page never said.
+        raise FetchRefused(
+            f"the declared charset {charset[:40]!r} is not one AIA can read",
+            reason="charset_unknown",
+        ) from exc
+    decoded = body.decode(charset, errors="replace")
     links: tuple[SnapshotLink, ...] = ()
     if media == "text/plain":
         title, text, published = extract_page(decoded, media)
