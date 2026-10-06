@@ -328,11 +328,13 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
     ).covered
 
 
-#: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested, as
-#: origin/develop @ 757154e computed them before the thinking budget existed. A
-#: deliberate change to the harness, the rules or this file's design moves it (re-pin
-#: it then); a thinking budget left unset never may.
-FINGERPRINTS_WITHOUT_THINKING = "ebcebd817430c267256764a0fe0d2612d7dfba2007a7cb0dbc46f7919a583b50"
+#: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested,
+#: without a thinking budget. A deliberate change to the harness, the rules or this
+#: file's design moves it (re-pin it then); a thinking budget left unset never may.
+#: Re-pinned when the measures check joined the grounding rules (GROUNDING_VERSION
+#: aia-grounding-2/aia-measures-2): under aia-measures-1 it is 8aed76aa..., and with
+#: no measures check, as develop @ 757154e computed it, ebcebd81....
+FINGERPRINTS_WITHOUT_THINKING = "b07b8d2af80abc97bac26f92fc3a7f84c108946ad76299ea779a794ad3db72c8"
 
 
 def _thinking(budget: int | None) -> TrackInputs:
