@@ -555,3 +555,18 @@ def test_the_lead_state_bounds_of_a_fresh_plan_are_within_the_start_s() -> None:
     )
     for kind in CallKind:
         assert after[kind] <= start[kind], kind
+
+
+@pytest.mark.parametrize(
+    ("mode", "expected"),
+    [
+        (ResearchMode.PLANNED, 1),
+        (ResearchMode.AGENT_DIRECTED, 2),
+        (ResearchMode.LEAD, 2),
+    ],
+)
+def test_a_brief_and_its_one_repair_are_both_counted(mode: ResearchMode, expected: int) -> None:
+    """The agent-directed brief is asked again once to repair its numbers (chunk 13); that
+    second request is paid, so the ceiling counts it."""
+    bounds = call_bounds(PRESETS["STANDARD"], TrackCounts(web=1, internal=0), mode)
+    assert bounds[CallKind.SYNTHESIZER] == expected

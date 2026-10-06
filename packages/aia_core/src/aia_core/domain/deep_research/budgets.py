@@ -14,7 +14,9 @@ with no composition at hand -- and why each count is a bound:
   and a track's candidates are bounded twice: by its requests times what one answer may
   hold (:data:`EVIDENCE_PER_ANSWER`, read from the contracts), and by its evidence
   target, since the stop rule is checked before every request (the last request may
-  add a full answer to ``evidence_target - 1``). The synthesizer asks once.
+  add a full answer to ``evidence_target - 1``). The planned synthesizer asks once; an
+  agent-directed or lead-planned run's brief synthesizer asks once and may be asked
+  once more to repair its numbers (chunk 13), so twice.
 * **Tool calls.** Searches and pages opened are each track's allowance
   (``planning.allocate``), or a lead-planned run's ceiling.
 * **Routes beyond search and fetch** -- triage reads on the light model, a focused
@@ -247,7 +249,9 @@ def _bounds(depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode) -> dict
                 verifier += _verifier_requests(1, a.search_calls, depth)
     counts[CallKind.INTERNAL_INVESTIGATOR] = tracks.internal
     counts[CallKind.VERIFIER] = verifier
-    counts[CallKind.SYNTHESIZER] = 1 if tracks.web or tracks.internal else 0
+    # The brief is repaired once with every problem (chunk 13): a second request.
+    briefs = 1 if mode is ResearchMode.PLANNED else 2
+    counts[CallKind.SYNTHESIZER] = briefs if tracks.web or tracks.internal else 0
     routes = ROUTE_ALLOWANCES[depth.name]
     counts[CallKind.TRIAGE] = routes.triage_reads
     counts[CallKind.CRAWL_FETCH] = routes.crawl_pages

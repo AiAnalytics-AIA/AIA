@@ -32,8 +32,9 @@ DESIGN = {
 #: batches of 12 (3), the synthesizer (1) -- 15 requests. No retrieval route is on.
 EXHAUSTIVE_PLANNED = 15 * 0.5
 #: The same under the lead: its plan and 6 re-plans (7), its ceiling's 720 turns, 50 tasks'
-#: verification at 3 batches each (150), the synthesizer (1) -- 878 requests.
-EXHAUSTIVE_LEAD = 878 * 0.5
+#: verification at 3 batches each (150), the brief synthesizer and its one repair (2) --
+#: 879 requests.
+EXHAUSTIVE_LEAD = 879 * 0.5
 
 
 @pytest.fixture

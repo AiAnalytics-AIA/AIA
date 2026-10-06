@@ -44,6 +44,7 @@ ROLES = {
     "verifier": CallKind.VERIFIER,
     "independent_verifier": CallKind.VERIFIER,
     "synthesizer": CallKind.SYNTHESIZER,
+    "brief_synthesizer": CallKind.SYNTHESIZER,
     "lead": CallKind.LEAD,
     "lead_replan": CallKind.LEAD,
 }

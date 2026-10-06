@@ -3,6 +3,16 @@
 from __future__ import annotations
 
 from aia_core.domain.deep_research.agents import PROMPT_VERSION, AgentRole, SynthesisProposal
+from aia_core.domain.deep_research.brief import (
+    BRIEF_VERSION,
+    BriefRepair,
+    ResearchBrief,
+    brief_material,
+    brief_payload,
+    check_brief,
+    research_brief,
+    synthesis_check,
+)
 from aia_core.domain.deep_research.bundle import (
     SnapshotRef,
     SynthesisRecord,
@@ -17,9 +27,13 @@ from aia_core.domain.deep_research.contracts import (
     TrackStatus,
     digest,
 )
+from aia_core.domain.deep_research.gaps import track_facts
+from aia_core.domain.deep_research.investigator import Transcript
 from aia_core.domain.deep_research.steps import (
+    CallRecord,
     Gate,
     InvestigationRecord,
+    PlanRecord,
     SynthesisArtifact,
     TrackResult,
     VerificationBatch,
@@ -32,10 +46,16 @@ from aia_core.domain.deep_research.synthesis import (
     SynthesisStatus,
     validate_synthesis,
 )
+from aia_core.domain.deep_research.synthesizer import (
+    BRIEF_CONTRACT_VERSION,
+    BRIEF_PROMPT_VERSION,
+    BriefProposal,
+)
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
 from ..research import upstream_artifact
 from ._shared import (
+    _agent_directed,
     _composition_changed,
     _detail,
     _lineage,
@@ -44,6 +64,7 @@ from ._shared import (
     _Step,
     _unconfigured,
 )
+from .runtime import DeepResearchRuntime
 
 __all__ = ["PublishExecutor", "SynthesizeExecutor"]
 
@@ -78,6 +99,8 @@ class SynthesizeExecutor(_Step):
                 return _produced(existing, reused=True)
             verify = self._read(repo, verify_id, VerifyRecord)
 
+        if _agent_directed(plan):
+            return self._directed(step, context, runtime, plan, verify_id, mine, verify)
         accepted = {a.evidence.evidence_id: a for a in verify.accepted}
         subjects = {s.key: s for s in plan.subjects}
         if not accepted:
@@ -167,6 +190,185 @@ class SynthesizeExecutor(_Step):
         )
         return self._record(context, step, written, fingerprint, verify_id)
 
+    # ----------------------------------------------------------------------- #
+    # The agent-directed brief (plan deep-research-web-search.md § 8.8)
+    # ----------------------------------------------------------------------- #
+
+    def _directed(
+        self,
+        step: StepInput,
+        context: StepContext,
+        runtime: DeepResearchRuntime,
+        plan: PlanRecord,
+        verify_id: str,
+        mine: str,
+        verify: VerifyRecord,
+    ) -> StepOutcome:
+        """The brief: code's findings, confidence, conflicts and gaps; the model's prose.
+
+        The prose is checked (``check_brief``); a draft with problems is sent back once
+        with every problem, and what the repair still gets wrong is refused, never
+        rewritten. Each request is metered like any other.
+        """
+        with context.transaction() as (session, workflow):
+            repo = self._repo(session, context)
+            investigation_id = upstream_artifact(workflow, step, "investigate")
+            if investigation_id is None:
+                return _missing_upstream("investigate")
+            investigation = self._read(repo, investigation_id, InvestigationRecord)
+            results = [self._read(repo, e.artifact_id, TrackResult) for e in investigation.tracks]
+            transcripts = {
+                r.track.track_id: self._read(repo, r.transcript_artifact_id, Transcript)
+                for r in results
+                if r.transcript_artifact_id is not None
+            }
+        tracks = [
+            track_facts(
+                track_id=r.track.track_id,
+                subject_key=r.track.subject.key,
+                status=r.status,
+                stop_reason=r.stop_reason,
+                detail=r.detail,
+                sub_questions=r.sub_questions,
+                gap_lines=r.gaps,
+                transcript=transcripts.get(r.track.track_id),
+            )
+            for r in results
+        ]
+        tracks += [
+            track_facts(
+                track_id=t.track_id,
+                subject_key=t.subject.key,
+                status=TrackStatus.BLOCKED,
+                stop_reason=StopReason.TRACK_LIMIT,
+                detail="",
+                sub_questions=(),
+                gap_lines=(),
+                transcript=None,
+            )
+            for t in plan.beyond
+        ]
+        read_on = {s.ref: s.retrieved for r in results for s in r.sources}
+        material = brief_material(
+            verify.accepted,
+            quarantined=verify.quarantined,
+            review=verify.review,
+            subjects=plan.subjects,
+            tracks=tracks,
+            read={
+                a.evidence.evidence_id: read_on.get(a.evidence.source_ref) for a in verify.accepted
+            },
+            table=runtime.source_table,
+            register=runtime.register,
+            weights=runtime.weights,
+        )
+        if not verify.accepted:
+            empty = research_brief(material, None, repair=None)
+            return self._record(context, step, self._artifact(empty, None, None), mine, verify_id)
+
+        payload = brief_payload(material, plan.subjects)
+        fingerprint = digest(
+            {
+                "kind": "brief",
+                "payload": payload,
+                "material": digest(material.model_dump(mode="json")),
+                "policy": runtime.config.policy_version,
+                "prompt": BRIEF_PROMPT_VERSION,
+                "contract": BRIEF_CONTRACT_VERSION,
+                "brief": BRIEF_VERSION,
+                "harness": HARNESS_VERSION,
+            }
+        )
+        with context.transaction() as (session, _workflow):
+            repo = self._repo(session, context)
+            found = self._find(repo, step, "synthesis", fingerprint)
+            if found is not None:
+                repo.read(found.artifact_id)
+                return _produced(found, reused=self._reused(found, step))
+
+        # What the prose may draw on: the accepted findings, and every track's gap text.
+        knowledge = [
+            k
+            for ref in dict.fromkeys(
+                [a.evidence.source_ref for a in verify.accepted]
+                + [ref for r in results for ref in r.knowledge_refs]
+            )
+            if (k := plan.request.knowledge.source(ref)) is not None
+        ]
+        data_class = most_restrictive(
+            [
+                plan.design_class,
+                *(a.evidence.data_class for a in verify.accepted),
+                *(k.data_class for k in knowledge),
+            ]
+        )
+        caller = self._caller(context, runtime)
+        answer = self._ask(
+            caller,
+            runtime,
+            AgentRole.BRIEF_SYNTHESIZER,
+            payload=payload,
+            data_class=data_class,
+            lineage=_lineage(knowledge),
+        )
+        if answer.gate is not None:
+            refused = research_brief(
+                material,
+                None,
+                repair=None,
+                withheld=f"the brief was not requested: {answer.refused}",
+            )
+            return self._record(
+                context, step, self._artifact(refused, None, answer.refused), mine, verify_id
+            )
+        assert isinstance(answer.output, BriefProposal)
+        subjects = {s.key: s for s in plan.subjects}
+        check = check_brief(answer.output, material=material, subjects=subjects)
+        repair: BriefRepair | None = None
+        repair_call: CallRecord | None = None
+        if check.problems:
+            context.checkpoint()
+            again = self._ask(
+                caller,
+                runtime,
+                AgentRole.BRIEF_SYNTHESIZER,
+                payload={
+                    **payload,
+                    "previous": answer.output.model_dump(mode="json"),
+                    "problems": [
+                        {"where": p.where, "reason": p.reason, "detail": p.detail}
+                        for p in check.problems
+                    ],
+                },
+                data_class=data_class,
+                lineage=_lineage(knowledge),
+            )
+            repair = BriefRepair(problems=check.problems, refused=again.refused or None)
+            if again.gate is None:
+                assert isinstance(again.output, BriefProposal)
+                check = check_brief(again.output, material=material, subjects=subjects)
+                repair_call = again.call
+        brief = research_brief(material, check, repair=repair)
+        written = self._artifact(brief, answer.call, None, repair_call=repair_call)
+        return self._record(context, step, written, fingerprint, verify_id)
+
+    @staticmethod
+    def _artifact(
+        brief: ResearchBrief,
+        call: CallRecord | None,
+        refused: str | None,
+        *,
+        repair_call: CallRecord | None = None,
+    ) -> SynthesisArtifact:
+        return SynthesisArtifact(
+            kind="deep_research_synthesis",
+            check=synthesis_check(brief),
+            call=call,
+            refused=refused,
+            brief=brief,
+            repair_call=repair_call,
+        )
+
     def _record(
         self,
         context: StepContext,
@@ -184,12 +386,24 @@ class SynthesizeExecutor(_Step):
                 key=key,
                 depends_on=[verify_id],
             )
+        extra = (
+            {
+                "repaired": record.brief.repair is not None,
+                "conflicts": len(record.brief.conflicts),
+                "gaps": len(record.brief.gaps),
+                "acquisition_gaps": len(record.brief.acquisition_gaps),
+            }
+            if record.brief is not None
+            else {}
+        )
         context.progress(
             "deep_research_synthesized",
             status=record.check.status.value,
             findings=len(record.check.findings),
             excluded=len(record.check.excluded),
-            model_requests=0 if record.call is None else 1,
+            model_requests=(0 if record.call is None else 1)
+            + (0 if record.repair_call is None else 1),
+            **extra,
         )
         return _produced(artifact, reused=not created)
 
@@ -335,7 +549,9 @@ class PublishExecutor(_Step):
                 accepted=verify.accepted,
                 quarantined=verify.quarantined,
                 snapshots=tuple(snapshots.values()),
-                synthesis=SynthesisRecord(artifact_id=synthesis_id, check=synthesis.check),
+                synthesis=SynthesisRecord(
+                    artifact_id=synthesis_id, check=synthesis.check, brief=synthesis.brief
+                ),
                 fictional_client=plan.fictional_client,
                 counts=counts,
                 spend_usd=spend,
