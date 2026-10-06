@@ -16,7 +16,9 @@ Code, not a model, decides *what* is researched (plan decision I-1, ADR 0007):
   and says which.
 
 The presets are a **proposal** (DR-5 is open): a run names one explicitly; there is
-no default depth and no default budget.
+no default depth and no default budget. The table is versioned
+(:data:`PRESET_TABLE_VERSION`): QUICK, STANDARD and DEEP as chunks 9 and 11 left them,
+and EXHAUSTIVE (plan ``deep-research-web-search.md`` § 9, chunk 22).
 
 Pure: stdlib and Pydantic only.
 """
@@ -55,6 +57,7 @@ __all__ = [
     "AGENT_DIRECTED_FIELDS",
     "PRESETS",
     "PRESET_STATUS",
+    "PRESET_TABLE_VERSION",
     "DepthPreset",
     "PlanViolation",
     "TrackAllowance",
@@ -71,10 +74,17 @@ __all__ = [
     "screen_questions",
     "stop_reason",
     "track_fingerprint",
+    "track_slots",
 ]
 
 #: The presets are proposed, not decided (DR-5); the status travels with every run.
 PRESET_STATUS: Final = "PROPOSED_DR5"
+#: The preset table: :data:`PRESETS`, the lead's limits (``lead.LEAD_LIMITS``) and each
+#: preset's route allowances (``budgets.ROUTE_ALLOWANCES``). Every number in it is
+#: proposed (DR-5; plan § 9, chunk 22) until the owner sets the presets from chunks 25-26.
+#: ``aia-presets-1`` was QUICK, STANDARD and DEEP as chunks 9 and 11 left them; ``-2``
+#: adds EXHAUSTIVE and the route allowances, and changes none of the three.
+PRESET_TABLE_VERSION: Final = "aia-presets-2-proposed"
 
 
 class DepthPreset(BaseModel):
@@ -111,6 +121,8 @@ AGENT_DIRECTED_FIELDS: Final = frozenset({"max_turns", "max_searches", "max_open
 PRESETS: Final[dict[str, DepthPreset]] = {
     p.name: p
     for p in (
+        # Not one of § 9's three: the smallest depth, kept for tests, recorded journeys
+        # and the web client's first run (chunk 22 decision); runs that name it read it.
         DepthPreset(
             name="QUICK",
             queries_per_web_track=2,
@@ -158,6 +170,25 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_turns=30,
             max_searches=15,
             max_opens=40,
+        ),
+        # Plan § 9: the widest research, with triage, crawl and Common Crawl (their
+        # allowances are ``budgets.ROUTE_ALLOWANCES``'). Its lead plans up to 50 tasks
+        # (``lead.LEAD_LIMITS``); the subject leads § 9 names are not built.
+        DepthPreset(
+            name="EXHAUSTIVE",
+            queries_per_web_track=10,
+            pages_per_query=5,
+            evidence_target=16,
+            knowledge_items_per_track=12,
+            include_crosses=True,
+            saturation_window=3,
+            max_tracks=400,
+            max_search_calls=2000,
+            max_fetches=5000,
+            verify_batch=12,
+            max_turns=40,
+            max_searches=20,
+            max_opens=60,
         ),
     )
 }
@@ -383,6 +414,21 @@ def _crosses(subjects: Sequence[ResearchSubject]) -> list[ResearchSubject]:
     return crosses
 
 
+def track_slots(
+    request: DeepResearchRequest, depth: DepthPreset
+) -> list[tuple[ResearchSubject, Channel]]:
+    """Every track a run would open, as (subject, channel), in :func:`build_tracks`' order.
+
+    Before the preset's ``max_tracks`` cut and without fingerprints: what the run's cost
+    ceiling counts tracks from (``budgets.call_bounds``), with no composition at hand.
+    """
+    subjects = list(request.subjects)
+    if depth.include_crosses:
+        subjects += _crosses(request.subjects)
+    channels = [c for c in (Channel.INTERNAL, Channel.WEB) if c in request.channels]
+    return [(subject, channel) for subject in subjects for channel in channels]
+
+
 def build_tracks(
     request: DeepResearchRequest, depth: DepthPreset, *, inputs: TrackInputs
 ) -> tuple[tuple[ResearchTrack, ...], tuple[ResearchTrack, ...]]:
@@ -392,10 +438,6 @@ def build_tracks(
     subject, internal before web. Tracks beyond ``max_tracks`` are returned, not
     dropped: the run records them as skipped (``track_limit``).
     """
-    subjects = list(request.subjects)
-    if depth.include_crosses:
-        subjects += _crosses(request.subjects)
-    channels = [c for c in (Channel.INTERNAL, Channel.WEB) if c in request.channels]
     tracks = [
         ResearchTrack(
             track_id=track_id(subject.key, channel),
@@ -405,8 +447,7 @@ def build_tracks(
                 subject, channel, request=request, depth=depth, inputs=inputs
             ),
         )
-        for subject in subjects
-        for channel in channels
+        for subject, channel in track_slots(request, depth)
     ]
     return tuple(tracks[: depth.max_tracks]), tuple(tracks[depth.max_tracks :])
 
