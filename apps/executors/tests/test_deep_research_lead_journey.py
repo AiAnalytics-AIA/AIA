@@ -51,10 +51,11 @@ from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.workflow_repository import WorkQueue
-from aia_executors.ai_runtime import build_gateway
+from aia_executors.ai_runtime import AIRuntimeConfigError, build_gateway
 from aia_executors.deep_research import DeepResearchConfig, DeepResearchRuntime
 from aia_executors.deep_research import agent_directed as agent_directed_module
 from aia_executors.deep_research_recorded import recorded_runtime
+from aia_executors.deep_research_runtime import deep_research_runtime
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     TURNS,
     WEB,
@@ -624,7 +625,7 @@ def test_a_retry_reuses_the_stored_plan_and_re_plan_without_a_new_lead_call(
 
 
 # --------------------------------------------------------------------------- #
-# The lead's policy entry
+# The switch and the lead's policy entry
 # --------------------------------------------------------------------------- #
 
 
@@ -640,3 +641,60 @@ def test_the_lead_s_model_is_its_own_policy_entry_bound_only_when_on(
     assert on.coverage(version) - off.coverage(version) == {ModelCapability.RESEARCH_LEAD}
     resolved = on.resolve(capability=ModelCapability.RESEARCH_LEAD, policy_version=version)
     assert (resolved.model, resolved.route_id) == (settings.model_id, settings.route_id)
+
+
+@pytest.mark.parametrize("value", ["maybe", "2"])
+def test_the_lead_switch_is_read_strictly_and_needs_the_agent_directed_mode(
+    research: ResearchWorld,  # noqa: F811
+    value: str,
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=TEST_ROUTE)
+    on = {"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true"}
+    with pytest.raises(AIRuntimeConfigError, match="AIA_DEEP_RESEARCH_LEAD"):
+        deep_research_runtime(settings, env={**on, "AIA_DEEP_RESEARCH_LEAD": value})
+    with pytest.raises(AIRuntimeConfigError, match="needs AIA_DEEP_RESEARCH_AGENT_DIRECTED"):
+        deep_research_runtime(
+            settings, env={"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_LEAD": "true"}
+        )
+    with pytest.raises(AIRuntimeConfigError, match="needs AIA_DEEP_RESEARCH_ENABLED"):
+        deep_research_runtime(
+            None,
+            env={"AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true", "AIA_DEEP_RESEARCH_LEAD": "true"},
+        )
+
+
+def test_the_lead_switch_is_off_unless_set_and_on_records_the_mode(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=TEST_ROUTE)
+    directed = {"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true"}
+
+    def runtime(env: dict[str, str]) -> DeepResearchRuntime:
+        built = deep_research_runtime(
+            settings,
+            env={**directed, **env},
+            transport=ScriptedLead(ANSWERS),
+            signer=Signer(),
+        )
+        assert built is not None
+        return built
+
+    for env in ({}, {"AIA_DEEP_RESEARCH_LEAD": ""}, {"AIA_DEEP_RESEARCH_LEAD": "false"}):
+        off = runtime(env)
+        assert off.config.lead is False and "lead" not in off.versions()
+        registry = off.gateway._registry
+        assert ModelCapability.RESEARCH_LEAD not in registry.coverage(settings.policy_version)
+    on = runtime({"AIA_DEEP_RESEARCH_LEAD": "true"})
+    assert on.config.lead is True and on.versions()["lead"] == LEAD_VERSION
+    registry = on.gateway._registry
+    assert ModelCapability.RESEARCH_LEAD in registry.coverage(settings.policy_version)
+    assert on.retrieval is None  # the switch adds no retrieval
+    with pytest.raises(ValueError, match="agent-directed"):
+        DeepResearchConfig(
+            policy_version="p",
+            max_output_tokens=1,
+            context_window_tokens=1,
+            reservation_usd=1.0,
+            fictional_client_ids=frozenset(),
+            lead=True,
+        )

@@ -16,6 +16,11 @@ AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS
 AIA_DEEP_RESEARCH_AGENT_DIRECTED        ``true`` runs web tracks as the agent-directed
                                         investigator's turns (plan chunk 9); unset or
                                         false, the planner's queries, as before
+AIA_DEEP_RESEARCH_LEAD                  ``true`` has a lead researcher plan the
+                                        agent-directed web research: subjects sized by
+                                        effort, tasks in waves, re-plans (chunk 11);
+                                        needs the agent-directed switch; unset or
+                                        false, chunk 9's tracks, as before
 ======================================  ============================================
 
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``
@@ -32,6 +37,11 @@ thinking on, the output tool cannot be forced; the gateway offers it with
 ``auto``, tells the agent to answer through it, and repairs an answer in text
 like any schema violation. No other agent thinks: the key is Deep Research's.
 
+The lead switch binds ``RESEARCH_LEAD``, the lead's own policy entry, to the
+route's model (``AIRuntimeSettings.research_lead_enabled``); off, nothing binds it and
+nothing asks for it. Like the agent-directed switch, it changes who decides what to
+research, not what may leave.
+
 The agent-directed switch changes how a web track is researched, not what may
 leave: every action still passes the retrieval gate, and with no retrieval
 configured there is no web track to direct. Off (the default), every request,
@@ -46,6 +56,7 @@ kinds, including when disabled, so a run has a visible parked state.
 
 from __future__ import annotations
 
+import dataclasses
 import os
 from collections.abc import Mapping
 from typing import Final
@@ -63,10 +74,12 @@ from .deep_research_live import wikipedia_retrieval
 __all__ = [
     "AGENT_DIRECTED_KEY",
     "ENABLED_KEY",
+    "LEAD_KEY",
     "THINKING_KEY",
     "agent_directed",
     "deep_research_enabled",
     "deep_research_runtime",
+    "lead",
     "thinking_budget",
 ]
 
@@ -74,6 +87,7 @@ ENABLED_KEY: Final = "AIA_DEEP_RESEARCH_ENABLED"
 WIKIPEDIA_KEY: Final = "AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED"
 THINKING_KEY: Final = "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS"
 AGENT_DIRECTED_KEY: Final = "AIA_DEEP_RESEARCH_AGENT_DIRECTED"
+LEAD_KEY: Final = "AIA_DEEP_RESEARCH_LEAD"
 
 _TRUE: Final = frozenset({"1", "true", "yes", "on"})
 _FALSE: Final = frozenset({"0", "false", "no", "off", ""})
@@ -93,10 +107,9 @@ def deep_research_enabled(env: Mapping[str, str] | None = None) -> bool:
     raise AIRuntimeConfigError(f"{ENABLED_KEY}={raw!r} is not true or false")
 
 
-def agent_directed(env: Mapping[str, str] | None = None) -> bool:
-    """The agent-directed switch, read strictly: ``true`` or ``false`` (or unset)."""
+def _switch(env: Mapping[str, str] | None, key: str) -> bool:
     env = os.environ if env is None else env
-    raw = env.get(AGENT_DIRECTED_KEY)
+    raw = env.get(key)
     if raw is None:
         return False
     value = raw.strip().lower()
@@ -104,7 +117,17 @@ def agent_directed(env: Mapping[str, str] | None = None) -> bool:
         return True
     if value in _FALSE:
         return False
-    raise AIRuntimeConfigError(f"{AGENT_DIRECTED_KEY}={raw!r} is not true or false")
+    raise AIRuntimeConfigError(f"{key}={raw!r} is not true or false")
+
+
+def agent_directed(env: Mapping[str, str] | None = None) -> bool:
+    """The agent-directed switch, read strictly: ``true`` or ``false`` (or unset)."""
+    return _switch(env, AGENT_DIRECTED_KEY)
+
+
+def lead(env: Mapping[str, str] | None = None) -> bool:
+    """The lead researcher's switch, read strictly: ``true`` or ``false`` (or unset)."""
+    return _switch(env, LEAD_KEY)
 
 
 def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
@@ -143,11 +166,18 @@ def deep_research_runtime(
     use_wikipedia = wiki in {"1", "true", "yes", "on"}
     thinking = thinking_budget(values)
     directed = agent_directed(values)
+    planned_by_lead = lead(values)
+    if planned_by_lead and not directed:
+        raise AIRuntimeConfigError(
+            f"{LEAD_KEY} needs {AGENT_DIRECTED_KEY}: the lead plans agent-directed tracks"
+        )
     if not deep_research_enabled(values):
         if use_wikipedia:
             raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY} needs {ENABLED_KEY}")
         if thinking is not None:
             raise AIRuntimeConfigError(f"{THINKING_KEY} needs {ENABLED_KEY}")
+        if planned_by_lead:
+            raise AIRuntimeConfigError(f"{LEAD_KEY} needs {ENABLED_KEY}")
         if directed:
             raise AIRuntimeConfigError(f"{AGENT_DIRECTED_KEY} needs {ENABLED_KEY}")
         return None
@@ -162,6 +192,8 @@ def deep_research_runtime(
             f"{settings.research_max_output_tokens}: thinking is part of the output limit"
         )
     retrieval, table = wikipedia_retrieval() if use_wikipedia else (None, SOURCE_TABLE_V1)
+    if planned_by_lead:
+        settings = dataclasses.replace(settings, research_lead_enabled=True)
     return DeepResearchRuntime(
         gateway=build_gateway(settings, transport=transport, signer=signer),
         config=DeepResearchConfig(
@@ -174,6 +206,7 @@ def deep_research_runtime(
             material_approvals=settings.material_approvals,
             thinking_budget_tokens=thinking,
             agent_directed=directed,
+            lead=planned_by_lead,
         ),
         retrieval=retrieval,
         source_table=table,
