@@ -1,15 +1,15 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. This plan: per-kind request limits, derived reservations, measured before code"
   - "[x] 2. Domain: the request-limit table, role to kind, kind budgets derived from the model's prices"
   - "[x] 3. Executors: every request carries its kind's output limit, window and reservation"
   - "[x] 4. API: the ceiling priced from the same keys, per kind"
-  - "[ ] 5. Measurements, findings and doc follow-up"
+  - "[x] 5. Measurements, findings and doc follow-up"
 ---
 # Deep Research — per-kind request limits and reservations (chunk 23, first part)
 
-**Status:** in-progress · **Parent:** [deep-research-web-search.md](deep-research-web-search.md)
+**Status:** done (on its pull request) · **Parent:** [deep-research-web-search.md](deep-research-web-search.md)
 chunk 23 ("per-kind reservations first") · **Base:** `develop` @ `d2e038a` (PR #167 merged)
 
 ## Why
@@ -87,10 +87,57 @@ windows are sized above a heavy turn and batch; a refusal is visible (the gate, 
 costs nothing. An answer longer than its kind's limit is cut, fails its schema and takes its one
 repair, as any off-contract answer does today.
 
+## Measurements
+
+Ceilings at the same settings as § Why, 12 web and 2 internal tracks, before and after
+(`call_bounds` priced by `kind_budgets`, on `e8a23e3`):
+
+| Preset, mode | model calls | one flat reservation | per kind | lower by |
+|---|---|---|---|---|
+| Standard, planned | 78 | $113 | $77 | 32 % |
+| Standard, agent-directed | 211 | $305 | $216 | 29 % |
+| Standard, lead | 152 | $220 | $155 | 29 % |
+| Deep, planned | 102 | $147 | $102 | 31 % |
+| Deep, agent-directed | 391 | $565 | $405 | 28 % |
+| Deep, lead | 410 | $593 | $422 | 29 % |
+| Exhaustive, planned | 162 | $234 | $162 | 31 % |
+| Exhaustive, agent-directed | 523 | $756 | $541 | 29 % |
+| Exhaustive, lead | 883 | $1,277 | $891 | 30 % |
+
+Per request: planner, lead, synthesizer $1.446 (unchanged); investigator $1.048; internal
+investigator $1.384; verifier $0.795. The spend API's one-track EXHAUSTIVE planned run: $15.76
+against $21.69 (`test_deep_research_spend_api.py`).
+
 ## Findings
 
-(Recorded as they are found.)
+- **The ceiling stays an order of magnitude above § 9's estimates, and the input bound is why.**
+  An investigator's reservation is $1.048: $0.864 of it is its 144,000-token window priced at
+  the input rate, twice (`request_limits.reservation_usd`), because the gateway bounds input
+  tokens by UTF-8 bytes (`application/model_gateway.py:107-124 @ d2e038a`), several times the
+  real count for Czech text, and the repair must fit what the primary may have spent. The
+  answer limits take the output term from $0.246 to $0.184. A ceiling is a bound, so this is
+  correct, not a defect; the next lever is a sound, tighter input bound (a provider token
+  count before dispatch) or showing an expected cost beside the ceiling. Test that would
+  measure it: `test_deep_research_ceiling_journey.py`'s per-kind holds, against the ledger's
+  `input_tokens`. Not done here.
+- **The windows and answer limits are judgment, not measurement.** No live run's request sizes
+  exist yet (develop has Deep Research off); the sizes in § Approach are from the code's caps
+  and plausible content. Chunk 25/26's runs measure them; until then the values are proposed
+  with the presets (chunk 1).
 
 ## Doc follow-up
 
-(Written when the code lands.)
+- `CLAUDE.md` § 2, `aia_core/domain/deep_research/`: add "`request_limits.py` each model
+  kind's window and output limit (proposed) and its reservation, derived from the route's
+  prices; the worker and the API derive the same".
+- `CLAUDE.md` § 2, `deep_research_runtime.py`: "each kind of request reserves its own amount
+  (`request_limits`); `AIA_AI_RESEARCH_RESERVATION_USD` is the design jobs' only".
+- `docs/architecture/deep-research.md` (cost section) and `docs/architecture/research-agents.md`
+  line 81: the research reservation no longer prices Deep Research; the API reads
+  `AIA_BEDROCK_*_USD_PER_MTOK`, `AIA_BEDROCK_CONTEXT_WINDOW_TOKENS`,
+  `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS`, `AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS` for a run's
+  ceiling.
+- `.planning/plans/deep-research-web-search.md` chunk 23 and § 13: "per-kind reservations done
+  (`deep-research-request-limits.md`); switches, routes and dated prices remain"; § 13 gets
+  the measurements above.
+- `.planning/open-items.md`: the first finding above, as a new OI.
