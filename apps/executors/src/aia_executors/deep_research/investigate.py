@@ -1,10 +1,24 @@
-"""The ``investigate`` step: every track, reused or researched, grounded in what it captured."""
+"""The ``investigate`` step: every track, reused or researched, grounded in what it captured.
+
+With ``DeepResearchConfig.fan_out`` (chunk 21, ``docs/architecture/deep-research-fan-out.md``)
+the step is a join: every track that would make a call is handed out as a step of its own
+(:class:`InvestigateTrackExecutor`, any worker), the step waits, and it runs again to take
+what they stored. A lead-planned run's waves are handed out the same way, one wave at a
+time. Off, every track is researched here, one after another, as before.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import TypeVar
 
-from aia_core.application.web_retrieval import RetrievalGate, RunSnapshotCache
+from aia_core.application.web_retrieval import (
+    FetchOutcome,
+    RetrievalGate,
+    RunSnapshotCache,
+    SearchOutcome,
+)
+from aia_core.domain.analysis.harness import request_sha256
 from aia_core.domain.deep_research.agents import (
     SOURCE_TEXT_CHARS,
     AgentRole,
@@ -32,6 +46,11 @@ from aia_core.domain.deep_research.steps import (
     CallRecord,
     Gate,
     InvestigationRecord,
+    PlannedFetch,
+    PlannedHit,
+    PlannedRound,
+    PlannedRoundAnswer,
+    PlannedSearch,
     PlannedTrack,
     PlanRecord,
     SnapshotArtifact,
@@ -40,9 +59,12 @@ from aia_core.domain.deep_research.steps import (
     TrackResult,
     run_scoped,
 )
+from aia_core.domain.deep_research.workflow import track_step_key
 from aia_core.domain.licence import DataLineage
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository
 from aia_core.infrastructure.web_retrieval import FetchedPage
-from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
+from aia_worker.executor import ChildStep, Deferred, Failed, StepContext, StepInput, StepOutcome
+from pydantic import BaseModel, ValidationError
 
 from ..ai_step import StepModelCaller
 from ._findings import _blocked_result, _Findings
@@ -52,16 +74,20 @@ from ._shared import (
     _class_a_texts,
     _composition_changed,
     _detail,
+    _invalid,
     _lineage,
     _produced,
     _Step,
     _unconfigured,
 )
 from .agent_directed import AgentDirectedTrack
-from .lead import LeadTask, LeadWaves
+from .fan_out import StoredRunSnapshotCache, TrackStepPayload, track_child
+from .lead import LeadTask, LeadWaves, WaveHandedOut
 from .runtime import DeepResearchRuntime, StepToolMeter
 
-__all__ = ["InvestigateExecutor"]
+__all__ = ["InvestigateExecutor", "InvestigateTrackExecutor"]
+
+_R = TypeVar("_R", bound=BaseModel)
 
 # --------------------------------------------------------------------------- #
 # investigate
@@ -86,13 +112,9 @@ class InvestigateExecutor(_Step):
         if isinstance(loaded, Failed):
             return loaded
         plan_id, plan = loaded
-        inputs = runtime.inputs()
-        if (
-            runtime.versions() != plan.versions
-            or (dict(inputs.web_retrieval) if inputs.web_retrieval is not None else None)
-            != plan.web_retrieval
-        ):
-            return _composition_changed("the composition's rules, policy or retrieval")
+        changed = _changed(runtime, plan)
+        if changed is not None:
+            return changed
         key = run_scoped(step.run_id, digest({"kind": "investigation", "plan": plan_id}))
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
@@ -102,22 +124,20 @@ class InvestigateExecutor(_Step):
                 return _produced(existing, reused=True)
 
         meter = StepToolMeter.resuming(context, clock=runtime.clock)
-        gate = (
-            RetrievalGate(
-                retrieval=runtime.retrieval,
-                scope=context.scope,
-                meter=meter,
-                client_terms=plan.request.client_terms,
-                class_a_texts=_class_a_texts(plan.request),
-                clock=runtime.clock,
-                # Agent-directed tracks share the run's captures: a URL any track of
-                # this attempt captured is answered from them and sends nothing. The
-                # planned mode has no cache, as before.
-                cache=RunSnapshotCache() if _agent_directed(plan) else None,
-            )
-            if runtime.retrieval is not None
-            else None
+        # Agent-directed tracks share the run's captures: a URL any track of this
+        # attempt captured is answered from them and sends nothing. The planned mode
+        # has no cache, as before.
+        gate = self._gate(
+            context,
+            runtime,
+            plan,
+            meter,
+            cache=RunSnapshotCache() if _agent_directed(plan) else None,
         )
+        if runtime.config.fan_out:
+            pending = self._unstored(step, context, plan, gate)
+            if pending:
+                return _hand_out(step, [(t, None) for t in pending])
         caller = self._caller(context, runtime)
         entries: list[TrackEntry] = []
         for track in plan.tracks:
@@ -126,17 +146,22 @@ class InvestigateExecutor(_Step):
         lead = None
         if plan.lead_plan_artifact_id is not None:
             # A lead-planned run: its tasks' tracks, wave by wave, after the plan's own.
-            lead_entries, lead = LeadWaves(
-                self,
-                step=step,
-                context=context,
-                runtime=runtime,
-                plan=plan,
-                lead_plan_id=plan.lead_plan_artifact_id,
-                gate=gate,
-                meter=meter,
-                caller=caller,
-            ).run()
+            try:
+                lead_entries, lead = LeadWaves(
+                    self,
+                    step=step,
+                    context=context,
+                    runtime=runtime,
+                    plan=plan,
+                    lead_plan_id=plan.lead_plan_artifact_id,
+                    gate=gate,
+                    meter=meter,
+                    caller=caller,
+                    fan_out=runtime.config.fan_out,
+                ).run()
+            except WaveHandedOut as wave:
+                # A wave's tracks are out in steps of their own: wait for them.
+                return _hand_out(step, wave.tracks)
             entries += lead_entries
         record = InvestigationRecord(
             kind="deep_research_investigation",
@@ -180,9 +205,7 @@ class InvestigateExecutor(_Step):
         mine = run_scoped(step.run_id, track.fingerprint)
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
-            found = self._find(repo, step, "track", track.fingerprint) or self._find(
-                repo, step, "track", mine
-            )
+            found = self._stored(repo, step, track)
             if found is not None:
                 repo.read(found.artifact_id)
                 return TrackEntry(
@@ -254,6 +277,76 @@ class InvestigateExecutor(_Step):
             quarantined=len(result.quarantined),
         )
         return TrackEntry(track_id=track.track_id, artifact_id=artifact.artifact_id, reused=False)
+
+    # -- fan-out ----------------------------------------------------------------
+
+    def _gate(
+        self,
+        context: StepContext,
+        runtime: DeepResearchRuntime,
+        plan: PlanRecord,
+        meter: StepToolMeter,
+        *,
+        cache: RunSnapshotCache | None,
+    ) -> RetrievalGate | None:
+        """The step's gate over the composition's retrieval; None when it has none."""
+        if runtime.retrieval is None:
+            return None
+        return RetrievalGate(
+            retrieval=runtime.retrieval,
+            scope=context.scope,
+            meter=meter,
+            client_terms=plan.request.client_terms,
+            class_a_texts=_class_a_texts(plan.request),
+            clock=runtime.clock,
+            cache=cache,
+        )
+
+    def _stored(
+        self, repo: ArtifactRepository, step: StepInput, track: ResearchTrack
+    ) -> Artifact | None:
+        """The track's stored result: by fingerprint (any run), else this run's own."""
+        return self._find(repo, step, "track", track.fingerprint) or self._find(
+            repo, step, "track", run_scoped(step.run_id, track.fingerprint)
+        )
+
+    def stored_track(self, step: StepInput, context: StepContext, track: ResearchTrack) -> bool:
+        """True when the track's result is stored (a reused, done or handed-out track)."""
+        with context.transaction() as (session, _workflow):
+            return self._stored(self._repo(session, context), step, track) is not None
+
+    @staticmethod
+    def researches(
+        plan: PlanRecord, track: ResearchTrack, gate: RetrievalGate | None, *, lead: bool = False
+    ) -> bool:
+        """Whether :meth:`_track` would research the track (and so may send something).
+
+        Exactly its branches: a blocked track, and a web track with no retrieval or no
+        plan, are recorded without a call -- inline, never handed out.
+        """
+        if lead:
+            return gate is not None
+        if plan.blocked_for(track.track_id) is not None:
+            return False
+        if track.channel is Channel.INTERNAL:
+            return True
+        return gate is not None and plan.planned_for(track.track_id) is not None
+
+    def _unstored(
+        self,
+        step: StepInput,
+        context: StepContext,
+        plan: PlanRecord,
+        gate: RetrievalGate | None,
+    ) -> list[ResearchTrack]:
+        """The plan's tracks that would be researched and are not stored yet, in plan order."""
+        with context.transaction() as (session, _workflow):
+            repo = self._repo(session, context)
+            return [
+                t
+                for t in plan.tracks
+                if self.researches(plan, t, gate) and self._stored(repo, step, t) is None
+            ]
 
     # -- internal ---------------------------------------------------------------
 
@@ -399,6 +492,15 @@ class InvestigateExecutor(_Step):
         One round is one query: its results fetched (within the track's allowance,
         each URL once), each page snapshotted, then one investigator request over the
         round's new pages. The stop rule is checked before every round.
+
+        Every external outcome is durable before the next call leaves
+        (:class:`_PlannedLog`): the search with its hits in order, each fetch with the
+        page it captured, the round once its fetches resolved, the investigator's
+        answer before it is grounded. A step that runs again walks the same sequence,
+        reads each record in place of the call it stands for, and goes live at the
+        first one missing -- unless an earlier attempt dispatched a call no record
+        accounts for: what came back is not known, so the track ends
+        ``TOOL_OUTCOME_UNCERTAIN`` and nothing more is sent.
         """
         depth = plan.depth
         allowance = plan.allowances.get(track.track_id) or AllowanceRecord(
@@ -407,6 +509,7 @@ class InvestigateExecutor(_Step):
         assert runtime.retrieval is not None
         mode = runtime.retrieval.retrieval_mode
         queries = list(planned.queries)
+        log = _PlannedLog(self, step, context, track, meter)
         records: list[QueryRecord] = []
         refs: dict[str, SnapshotRef] = {}
         stored: dict[str, SnapshotArtifact] = {}
@@ -414,61 +517,91 @@ class InvestigateExecutor(_Step):
         findings = _Findings(track=track, data_class=plan.design_class, evidence=[], quarantined=[])
         calls: list[CallRecord] = []
         new_by_round: list[int] = []
+        # What this track dispatched, counted along the walk: a replayed record counts
+        # as the dispatch it records, so the allowance is the one the track spent
+        # (the resumed meter already holds every earlier attempt's dispatches).
+        searches_used = fetches_used = 0
         status, stop, detail = TrackStatus.COMPLETED, None, ""
 
         for i, query in enumerate(queries):
-            if meter.uncertain(track.track_id):
-                # An earlier attempt of this step sent a call for this track and stopped
-                # before its outcome was on record: resuming closed it as uncertain.
-                status, stop = TrackStatus.INCOMPLETE, StopReason.TOOL_OUTCOME_UNCERTAIN
-                detail = (
-                    "a call an earlier attempt sent for this track may have been served; "
-                    "nothing more is sent"
-                )
-                break
-            searches, fetches, _credits, _cost = meter.track_usage(track.track_id)
             stop = stop_reason(
                 grounded=len(findings.evidence),
                 new_by_round=new_by_round,
                 queries_left=len(queries) - i,
-                searches_left=allowance.search_calls - searches,
+                searches_left=allowance.search_calls - searches_used,
                 depth=depth,
             )
             if stop is not None:
                 break
-            context.checkpoint()
-            outcome = gate.search(
-                query,
-                context_class=plan.design_class,
-                track_id=track.track_id,
-                max_results=depth.pages_per_query,
-            )
-            records.append(outcome.record)
-            if outcome.record.decision is QueryDecision.REFUSED:
+            search = log.search(i, query)
+            if search is None:
+                if log.unaccounted():
+                    status, stop, detail = _uncertain_earlier()
+                    break
+                context.checkpoint()
+                outcome = gate.search(
+                    query,
+                    context_class=plan.design_class,
+                    track_id=track.track_id,
+                    max_results=depth.pages_per_query,
+                )
+                search = log.searched(i, query, outcome)
+            records.append(search.record)
+            if search.request_fingerprint is not None:
+                searches_used += 1
+            if search.record.decision is QueryDecision.REFUSED:
                 continue
-            if outcome.uncertain:
+            if search.uncertain:
                 status, stop = TrackStatus.INCOMPLETE, StopReason.TOOL_OUTCOME_UNCERTAIN
                 detail = f"the search for {query!r} may have been served; nothing more is sent"
                 break
-            if outcome.record.failure is not None:
+            if search.record.failure is not None:
                 # A known failure returned nothing: it says nothing about saturation.
                 continue
+            done = log.round(i)
+            fetches: list[PlannedFetch] = []
             pages: list[SnapshotArtifact] = []
-            for hit in outcome.hits:
-                if meter.track_usage(track.track_id)[1] >= allowance.fetches:
+            for position, hit in enumerate(search.hits):
+                if fetches_used >= allowance.fetches:
                     break
                 url_key = canonical_url(hit.url) or hit.url
                 if url_key in fetched_urls:
                     continue
                 fetched_urls.add(url_key)
-                got = gate.fetch(hit.url, track_id=track.track_id)
-                if got.uncertain:
+                fetch: PlannedFetch | None
+                if done is not None:
+                    fetch = done.fetches[len(fetches)]
+                    assert fetch.position == position, "a round replays the fetches it made"
+                    log.replayed(fetch.request_fingerprint)
+                else:
+                    fetch = log.fetch(i, position)
+                if fetch is None:
+                    if log.unaccounted():
+                        status, stop, detail = _uncertain_earlier()
+                        break
+                    got = gate.fetch(hit.url, track_id=track.track_id)
+                    captured = None
+                    if got.page is not None and not got.uncertain:
+                        captured = self._snapshot(context, step, got.page)
+                    fetch = log.fetched(i, position, got, captured)
+                    snap = captured[1] if captured is not None else None
+                else:
+                    snap = (
+                        self._read_snapshot(context, fetch.snapshot_artifact_id)
+                        if fetch.snapshot_artifact_id is not None
+                        else None
+                    )
+                fetches.append(fetch)
+                if fetch.request_fingerprint is not None:
+                    fetches_used += 1
+                if fetch.uncertain:
                     status, stop = TrackStatus.INCOMPLETE, StopReason.TOOL_OUTCOME_UNCERTAIN
                     detail = f"the fetch of {hit.url} may have been served; nothing more is sent"
                     break
-                if got.page is None:
+                if snap is None:
                     continue
-                ref, snap = self._snapshot(context, step, got.page)
+                assert fetch.snapshot_artifact_id is not None
+                ref = self._snapshot_ref(fetch.snapshot_artifact_id, snap)
                 if ref.snapshot_id not in refs:
                     refs[ref.snapshot_id] = ref
                     stored[ref.snapshot_id] = snap
@@ -477,9 +610,21 @@ class InvestigateExecutor(_Step):
                 # The round's last fetch may have been served: nothing more is sent, not
                 # even the investigator request over the pages it did capture.
                 break
+            if done is None:
+                log.rounded(i, query, fetches)
             if pages:
                 new = self._investigate_pages(
-                    caller, runtime, plan, track, planned, pages, stored, findings, calls
+                    caller,
+                    runtime,
+                    plan,
+                    track,
+                    planned,
+                    pages,
+                    stored,
+                    findings,
+                    calls,
+                    log=log,
+                    round_index=i,
                 )
                 if isinstance(new, _Answer):
                     stop = (
@@ -495,7 +640,7 @@ class InvestigateExecutor(_Step):
             else:
                 new_by_round.append(0)
 
-        searches, fetches, charged, tool_cost = meter.track_usage(track.track_id)
+        searches, fetched, charged, tool_cost = meter.track_usage(track.track_id)
         sent = [r for r in records if r.decision is QueryDecision.SENT]
         if status is TrackStatus.COMPLETED:
             if records and not sent:
@@ -544,7 +689,7 @@ class InvestigateExecutor(_Step):
             gaps=(),
             calls=tuple(calls),
             search_calls=searches,
-            fetches=fetches,
+            fetches=fetched,
             credits=charged,
             model_cost_usd=sum(c.cost_usd for c in calls),
             tool_cost_usd=tool_cost,
@@ -561,10 +706,17 @@ class InvestigateExecutor(_Step):
         stored: dict[str, SnapshotArtifact],
         findings: _Findings,
         calls: list[CallRecord],
+        *,
+        log: _PlannedLog,
+        round_index: int,
     ) -> int | _Answer:
-        """One investigator request over a round's new pages; the count newly grounded."""
-        answer = self._ask(
-            caller,
+        """One investigator request over a round's new pages; the count newly grounded.
+
+        The answer is stored the moment it returns, before it is grounded; a step that
+        runs again grounds the stored answer and asks nothing.
+        """
+        data_class = plan.design_class
+        request = self._request(
             runtime,
             AgentRole.WEB_INVESTIGATOR,
             payload={
@@ -584,16 +736,26 @@ class InvestigateExecutor(_Step):
                     for p in pages
                 ],
             },
-            data_class=plan.design_class,
+            data_class=data_class,
             lineage=DataLineage.none(),
         )
-        if answer.gate is not None:
-            return answer
-        assert isinstance(answer.output, ExtractionProposal) and answer.call is not None
-        calls.append(answer.call)
+        sha = request_sha256(request)
+        answered = log.answer(round_index, sha)
+        if answered is not None:
+            output, call = answered.output, answered.call
+        else:
+            answer = self._send(
+                caller, runtime, AgentRole.WEB_INVESTIGATOR, request, data_class=data_class
+            )
+            if answer.gate is not None:
+                return answer
+            assert isinstance(answer.output, ExtractionProposal) and answer.call is not None
+            output, call = answer.output, answer.call
+            log.answered(round_index, sha, output, call)
+        calls.append(call)
         snaps: dict[str, SourceSnapshot] = {k: v.snapshot for k, v in stored.items()}
         grounded, _quarantined = findings.add(
-            answer.output.evidence,
+            output.evidence,
             sources={
                 k: GroundableSource(k, s.text, s.instructions_detected) for k, s in snaps.items()
             },
@@ -602,3 +764,262 @@ class InvestigateExecutor(_Step):
             titles={k: s.title for k, s in snaps.items()},
         )
         return len(grounded)
+
+
+def _uncertain_earlier() -> tuple[TrackStatus, StopReason, str]:
+    """An earlier attempt dispatched a call for this track that no record accounts for."""
+    return (
+        TrackStatus.INCOMPLETE,
+        StopReason.TOOL_OUTCOME_UNCERTAIN,
+        "a call an earlier attempt sent for this track may have been served; nothing more is sent",
+    )
+
+
+class _PlannedLog:
+    """A planned web track's durable record of every external outcome, for this run alone.
+
+    Each record is keyed by the track's fingerprint, the round and what the call was
+    (``run_scoped``), and written the moment its outcome is known. Reading one back
+    consumes the dispatch it records from what the earlier attempts journaled, so
+    :meth:`unaccounted` is true exactly when an earlier attempt sent a call whose
+    outcome no record holds -- the only case a recovered track cannot continue.
+    """
+
+    def __init__(
+        self,
+        executor: InvestigateExecutor,
+        step: StepInput,
+        context: StepContext,
+        track: ResearchTrack,
+        meter: StepToolMeter,
+    ) -> None:
+        self._executor, self._step, self._context, self._track = executor, step, context, track
+        self._meter = meter
+        self._earlier = meter.dispatched_earlier(track.track_id)
+
+    def _key(self, kind: str, *parts: object) -> str:
+        return run_scoped(
+            self._step.run_id, digest([f"planned_{kind}", self._track.fingerprint, *parts])
+        )
+
+    def _find(self, kind: str, key: str, model: type[_R]) -> _R | None:
+        with self._context.transaction() as (session, _workflow):
+            repo = self._executor._repo(session, self._context)
+            found = self._executor._find(repo, self._step, kind, key)
+            if found is None:
+                return None
+            return self._executor._read(repo, found.artifact_id, model)
+
+    def _put(self, kind: str, key: str, payload: BaseModel) -> None:
+        with self._context.transaction() as (session, _workflow):
+            self._executor._put(
+                self._executor._repo(session, self._context),
+                self._step,
+                payload=payload,
+                kind=kind,
+                key=key,
+            )
+
+    def replayed(self, fingerprint: str | None) -> None:
+        """A recorded call stands for one dispatch an earlier attempt journaled."""
+        if fingerprint is not None and self._earlier[fingerprint] > 0:
+            self._earlier[fingerprint] -= 1
+
+    def unaccounted(self) -> bool:
+        """True when a call may have been served with no record of what came back."""
+        return self._meter.uncertain(self._track.track_id) or any(
+            n > 0 for n in self._earlier.values()
+        )
+
+    # -- search ------------------------------------------------------------------
+
+    def search(self, round_index: int, query: str) -> PlannedSearch | None:
+        found = self._find("planned_search", self._key("search", round_index, query), PlannedSearch)
+        if found is not None:
+            self.replayed(found.request_fingerprint)
+        return found
+
+    def searched(self, round_index: int, query: str, outcome: SearchOutcome) -> PlannedSearch:
+        record = PlannedSearch(
+            kind="deep_research_planned_search",
+            track_id=self._track.track_id,
+            round=round_index,
+            query=query,
+            record=outcome.record,
+            hits=tuple(
+                PlannedHit(url=h.url, title=h.title, snippet=h.snippet, rank=h.rank)
+                for h in outcome.hits
+            ),
+            uncertain=outcome.uncertain,
+            request_fingerprint=outcome.request_fingerprint,
+        )
+        self._put("planned_search", self._key("search", round_index, query), record)
+        return record
+
+    # -- fetch -------------------------------------------------------------------
+
+    def fetch(self, round_index: int, position: int) -> PlannedFetch | None:
+        found = self._find("planned_fetch", self._key("fetch", round_index, position), PlannedFetch)
+        if found is not None:
+            self.replayed(found.request_fingerprint)
+        return found
+
+    def fetched(
+        self,
+        round_index: int,
+        position: int,
+        outcome: FetchOutcome,
+        captured: tuple[SnapshotRef, SnapshotArtifact] | None,
+    ) -> PlannedFetch:
+        record = PlannedFetch(
+            kind="deep_research_planned_fetch",
+            track_id=self._track.track_id,
+            round=round_index,
+            position=position,
+            url=outcome.url,
+            request_fingerprint=outcome.request_fingerprint,
+            reason=outcome.reason,
+            uncertain=outcome.uncertain,
+            snapshot_artifact_id=captured[0].artifact_id if captured is not None else None,
+        )
+        self._put("planned_fetch", self._key("fetch", round_index, position), record)
+        return record
+
+    # -- round -------------------------------------------------------------------
+
+    def round(self, round_index: int) -> PlannedRound | None:
+        return self._find("planned_round", self._key("round", round_index), PlannedRound)
+
+    def rounded(self, round_index: int, query: str, fetches: Sequence[PlannedFetch]) -> None:
+        self._put(
+            "planned_round",
+            self._key("round", round_index),
+            PlannedRound(
+                kind="deep_research_planned_round",
+                track_id=self._track.track_id,
+                round=round_index,
+                query=query,
+                fetches=tuple(fetches),
+            ),
+        )
+
+    # -- answer ------------------------------------------------------------------
+
+    def answer(self, round_index: int, sha: str) -> PlannedRoundAnswer | None:
+        return self._find(
+            "planned_round_answer", self._key("answer", round_index, sha), PlannedRoundAnswer
+        )
+
+    def answered(
+        self, round_index: int, sha: str, output: ExtractionProposal, call: CallRecord
+    ) -> None:
+        self._put(
+            "planned_round_answer",
+            self._key("answer", round_index, sha),
+            PlannedRoundAnswer(
+                kind="deep_research_planned_round_answer",
+                track_id=self._track.track_id,
+                round=round_index,
+                request_sha256=sha,
+                output=output,
+                call=call,
+            ),
+        )
+
+
+def _changed(runtime: DeepResearchRuntime, plan: PlanRecord) -> Failed | None:
+    """Refuse a composition whose rules, policy or retrieval are not the plan's."""
+    inputs = runtime.inputs()
+    if (
+        runtime.versions() != plan.versions
+        or (dict(inputs.web_retrieval) if inputs.web_retrieval is not None else None)
+        != plan.web_retrieval
+    ):
+        return _composition_changed("the composition's rules, policy or retrieval")
+    return None
+
+
+def _hand_out(step: StepInput, tracks: Sequence[tuple[ResearchTrack, LeadTask | None]]) -> Deferred:
+    """Every track as a step of its own; this step waits for them (``Deferred``)."""
+    children: list[ChildStep] = [track_child(step, t, lead) for t, lead in tracks]
+    return Deferred(
+        children=tuple(children),
+        output={"handed_out": [t.track_id for t, _lead in tracks]},
+    )
+
+
+# --------------------------------------------------------------------------- #
+# A track's own step
+# --------------------------------------------------------------------------- #
+
+
+class InvestigateTrackExecutor(InvestigateExecutor):
+    """One track a fanned-out ``investigate`` handed out, researched in a step of its own.
+
+    The same research as the sequential step -- :meth:`InvestigateExecutor._track`, with
+    its own resumed tool meter, gate and model caller -- so the artifact it stores is the
+    one the join finds. Its input is re-checked first: the run's plan read through the
+    run, the composition the plan's, the track the plan's (or, for a lead task, a web
+    track of a subject of a lead-planned run), and the fingerprint and node key the ones
+    the track was handed out under. In agent-directed mode the run's snapshot cache is
+    the store's (:class:`~aia_executors.deep_research.fan_out.StoredRunSnapshotCache`),
+    so a URL another track step captured is not fetched again.
+    """
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        runtime = self._runtime
+        if runtime is None:
+            return _unconfigured()
+        loaded = self._plan(context, step)
+        if isinstance(loaded, Failed):
+            return loaded
+        _plan_id, plan = loaded
+        changed = _changed(runtime, plan)
+        if changed is not None:
+            return changed
+        try:
+            payload = TrackStepPayload.model_validate(step.payload)
+        except ValidationError as exc:
+            return _invalid("track_payload_invalid", f"the track's input does not validate: {exc}")
+        track = payload.track
+        if (
+            track.fingerprint != step.input_fingerprint
+            or track_step_key(track.track_id) != step.node_key
+        ):
+            return _invalid("request_altered", "the track is not the one this step was handed")
+        lead: LeadTask | None = None
+        if payload.lead is None:
+            if track not in plan.tracks:
+                return _invalid("track_not_planned", "the run's plan has no such track")
+        else:
+            if (
+                plan.lead_plan_artifact_id is None
+                or track.channel is not Channel.WEB
+                or track.subject.key not in {s.key for s in plan.subjects}
+                or payload.lead.planned.track_id != track.track_id
+            ):
+                return _invalid("track_not_planned", "the run's lead planned no such task")
+            lead = payload.lead.task()
+        meter = StepToolMeter.resuming(context, clock=runtime.clock)
+        gate = self._gate(
+            context,
+            runtime,
+            plan,
+            meter,
+            cache=StoredRunSnapshotCache(self, context, step) if _agent_directed(plan) else None,
+        )
+        entry = self._track(
+            step,
+            context,
+            runtime,
+            plan,
+            track,
+            gate,
+            meter,
+            self._caller(context, runtime),
+            lead=lead,
+        )
+        with context.transaction() as (session, _workflow):
+            artifact = self._repo(session, context).get(entry.artifact_id)
+        return _produced(artifact, reused=entry.reused, track_id=track.track_id)

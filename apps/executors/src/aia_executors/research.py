@@ -103,12 +103,9 @@ _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
 
 def upstream_artifact(workflow: WorkflowRepository, step: StepInput, node_key: str) -> str | None:
     """The artifact the run's ``node_key`` step recorded, or ``None`` if it has none."""
-    run = workflow.get_run(step.run_id)
-    for s in run["steps"]:
-        if s["node_key"] == node_key:
-            artifact_id = (s.get("output") or {}).get("artifact_id")
-            return str(artifact_id) if artifact_id else None
-    return None
+    output = workflow.step_output(step.run_id, node_key)
+    artifact_id = (output or {}).get("artifact_id")
+    return str(artifact_id) if artifact_id else None
 
 
 def _artifacts(session: Session, context: StepContext, store: ArtifactStore) -> ArtifactRepository:

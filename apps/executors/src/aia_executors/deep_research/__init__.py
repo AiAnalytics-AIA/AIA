@@ -28,17 +28,20 @@ gate lets it, a finding exists only if its quote is in a source the track
 captured, acceptance is the declared source tables and the verifier, and a
 number reaches the brief only from a quote it cites. Every unit of work is an
 artifact with a fingerprint (I-4), so a retried step and a later pass buy nothing
-twice. The production registry includes the six kinds, including the parked state.
+twice. The production registry includes the six kinds, including the parked state,
+and the kind of a track handed out to its own step (``deep_research_investigate_track``,
+chunk 21): registered whether or not this composition fans out, so a worker deployed
+with the switch off still finishes the tracks a fanned-out run handed out.
 """
 
 from __future__ import annotations
 
-from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS, INVESTIGATE_TRACK_KIND
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import StepExecutor
 
-from .investigate import InvestigateExecutor
+from .investigate import InvestigateExecutor, InvestigateTrackExecutor
 from .plan import PlanExecutor
 from .publish import PublishExecutor, SynthesizeExecutor
 from .review import MergeExecutor, VerifyExecutor
@@ -48,6 +51,7 @@ __all__ = [
     "DeepResearchConfig",
     "DeepResearchRuntime",
     "InvestigateExecutor",
+    "InvestigateTrackExecutor",
     "MergeExecutor",
     "PlanExecutor",
     "PublishExecutor",
@@ -61,7 +65,7 @@ __all__ = [
 def deep_research_registry(
     *, store: ArtifactStore, build: BuildIdentity, runtime: DeepResearchRuntime | None
 ) -> dict[str, StepExecutor]:
-    """The six Deep Research kinds -> executors over one composition.
+    """The six Deep Research kinds, and a handed-out track's, -> executors over one composition.
 
     ``runtime=None`` is the honest unconfigured state: the plan step parks the run.
     """
@@ -76,4 +80,5 @@ def deep_research_registry(
             store=store, build=build, runtime=runtime
         ),
         DEEP_RESEARCH_KINDS["publish"]: PublishExecutor(store=store, build=build, runtime=runtime),
+        INVESTIGATE_TRACK_KIND: InvestigateTrackExecutor(store=store, build=build, runtime=runtime),
     }

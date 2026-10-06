@@ -21,6 +21,8 @@ returns ``Succeeded``                 ``complete_attempt``
 returns ``Failed`` / raises           ``fail_attempt`` with its class; the domain
 ``StepFailed``                        decides retry, park or stop
 returns ``NeedsApproval``             ``fail_attempt(APPROVAL_REQUIRED)`` + a gate
+returns ``Deferred``                  ``defer_attempt``: its children added to the
+                                      run, the step ``BLOCKED`` until they succeed
 lets ``BudgetExceeded`` escape        ``fail_attempt(BUDGET_EXCEEDED)``
 raises anything else                  ``fail_attempt(UNKNOWN)`` -- permanent: an
                                       error nobody classified is not retried
@@ -49,7 +51,7 @@ from typing import Any
 
 from aia_core.application.scope import ScopeResolver
 from aia_core.domain.scope import ScopeDenied, StudyContext
-from aia_core.domain.workflow import FailureClass, StepRunStatus
+from aia_core.domain.workflow import FailureClass, InteractionMode, StepDefinition, StepRunStatus
 from aia_core.infrastructure.db import shares_one_connection
 from aia_core.infrastructure.workflow_repository import (
     BudgetExceeded,
@@ -64,6 +66,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .context import AttemptContext, AttemptSignals, in_transaction
 from .executor import (
     CancellationRequested,
+    Deferred,
     ExecutorRegistry,
     Failed,
     GateDecision,
@@ -92,7 +95,7 @@ class AttemptResult:
     attempt_id: str
     step_id: str
     ending: str
-    """``completed``, ``failed``, ``gated``, ``abandoned``, ``released``,
+    """``completed``, ``failed``, ``gated``, ``deferred``, ``abandoned``, ``released``,
     ``lease_lost``, ``refused`` or ``unrecorded`` (recording itself failed)."""
     step_status: StepRunStatus | None = None
 
@@ -403,7 +406,30 @@ class Worker:
             )
         if isinstance(outcome, NeedsApproval):
             return self._record(claim, "gated", lambda repo: self._open_gate(repo, claim, outcome))
+        if isinstance(outcome, Deferred):
+            return self._record(claim, "deferred", lambda repo: self._defer(repo, claim, outcome))
         return self._record_failure(claim, outcome)
+
+    def _defer(self, repo: WorkflowRepository, claim: _Claim, deferred: Deferred) -> StepRunStatus:
+        """End the attempt and add its children to the run, atomically."""
+        return repo.defer_attempt(
+            claim.work.attempt_id,
+            worker_id=self.worker_id,
+            children=[
+                StepDefinition(
+                    node_key=c.node_key,
+                    kind=c.kind,
+                    stage_type=c.stage_type,
+                    artifact_target=c.artifact_target,
+                    interaction_mode=InteractionMode.AUTO,
+                    max_attempts=c.max_attempts,
+                )
+                for c in deferred.children
+            ],
+            child_inputs={c.node_key: dict(c.payload) for c in deferred.children},
+            child_fingerprints={c.node_key: c.input_fingerprint for c in deferred.children},
+            output=deferred.output,
+        )
 
     def _open_gate(
         self, repo: WorkflowRepository, claim: _Claim, request: NeedsApproval

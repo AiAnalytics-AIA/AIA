@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
-from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS, INVESTIGATE_TRACK_KIND
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
@@ -81,6 +81,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         RESEARCH_AGENT,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
+        INVESTIGATE_TRACK_KIND,
         KIND,
         REPORT_STEP_KIND,
         SOCIOMAPPING_REPORT_STEP_KIND,
@@ -210,6 +211,7 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         RESEARCH_AGENT,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),
+        INVESTIGATE_TRACK_KIND,
         KIND,
         REPORT_STEP_KIND,
         SOCIOMAPPING_REPORT_STEP_KIND,

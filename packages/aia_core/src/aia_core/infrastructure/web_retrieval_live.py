@@ -49,6 +49,7 @@ from ..domain.deep_research.web import (
     check_resolution,
     check_url,
 )
+from .host_pacing import HostPacer, LocalHostPacer
 from .model_adapters.live_transport import _certificate_refused
 from .web_retrieval import (
     FetchedResponse,
@@ -320,6 +321,13 @@ class PublicHttpsTransport:
 
     ``contact`` is required: it is the address a site operator writes to, carried
     in every request's user agent. The clock and the sleep are injectable.
+
+    ``pacer`` decides when a request to a host may start (``host_pacing.HostPacer``):
+    by default a :class:`~aia_core.infrastructure.host_pacing.LocalHostPacer` on this
+    transport's clock -- the rule above, in this process. A fan-out composition gives
+    every transport the deployment's shared pacer, so the interval holds across worker
+    processes (``docs/architecture/deep-research-fan-out.md`` § 3); a pacer that would
+    wait too long refuses before anything is sent (``host_wait_exceeded``).
     """
 
     def __init__(
@@ -335,6 +343,7 @@ class PublicHttpsTransport:
         robots_ttl_s: float = 86_400.0,
         monotonic: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
+        pacer: HostPacer | None = None,
     ) -> None:
         if not 0 <= min_interval_s <= max_crawl_delay_s:
             raise ValueError("the minimum interval is between zero and the longest crawl delay")
@@ -353,7 +362,7 @@ class PublicHttpsTransport:
         self._guard = threading.Lock()
         self._host_locks: dict[str, threading.Lock] = {}
         self._robots: dict[str, _KnownRobots] = {}
-        self._last_request: dict[str, float] = {}
+        self._pacer: HostPacer = pacer or LocalHostPacer(monotonic=monotonic, sleep=sleep)
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -403,16 +412,9 @@ class PublicHttpsTransport:
     def _paced(
         self, host: str, interval_s: float, send: Callable[[], FetchedResponse]
     ) -> FetchedResponse:
-        """Send once ``interval_s`` has passed since the host's last request (lock held)."""
-        last = self._last_request.get(host)
-        if last is not None:
-            wait = last + interval_s - self._monotonic()
-            if wait > 0:
-                self._sleep(wait)
-        try:
+        """Send in the host's turn: once ``interval_s`` has passed since its last request."""
+        with self._pacer.turn(host, interval_s):
             return send()
-        finally:
-            self._last_request[host] = self._monotonic()
 
     def _send(
         self, url: str, *, host: str, address: str, max_bytes: int, accept: str

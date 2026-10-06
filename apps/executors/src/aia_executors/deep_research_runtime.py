@@ -21,6 +21,16 @@ AIA_DEEP_RESEARCH_LEAD                  ``true`` has a lead researcher plan the
                                         effort, tasks in waves, re-plans (chunk 11);
                                         needs the agent-directed switch; unset or
                                         false, chunk 9's tracks, as before
+AIA_DEEP_RESEARCH_FAN_OUT               ``true`` runs every track that makes a call in
+                                        a step of its own, on any worker, with every
+                                        host paced and model requests bounded across
+                                        processes (chunk 21); unset or false, one step
+                                        researches every track, as before
+AIA_DEEP_RESEARCH_MODEL_CONCURRENCY     required with fan-out, refused without it: the
+                                        model requests in flight across every worker
+                                        on the route (1-256). Below the account's quota
+                                        for the route's model; proposed 4, pending the
+                                        quota request (plan chunk 1). No default
 ======================================  ============================================
 
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``
@@ -41,6 +51,12 @@ The lead switch binds ``RESEARCH_LEAD``, the lead's own policy entry, to the
 route's model (``AIRuntimeSettings.research_lead_enabled``); off, nothing binds it and
 nothing asks for it. Like the agent-directed switch, it changes who decides what to
 research, not what may leave.
+
+The fan-out switch changes where a track is researched, never what it finds: no
+fingerprint, version or artifact depends on it. On, it needs ``DATABASE_URL`` (the
+worker's own): a small engine of its own carries the shared host pacer and the model
+slots (``infrastructure/fan_out_coordination.py``), outside any step's transaction. See
+``docs/architecture/deep-research-fan-out.md``.
 
 The agent-directed switch changes how a web track is researched, not what may
 leave: every action still passes the retrieval gate, and with no retrieval
@@ -65,8 +81,11 @@ from aia_core.domain.ai_contracts import THINKING_MIN_BUDGET_TOKENS
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
 from aia_core.domain.providers import Provider
+from aia_core.infrastructure.db import create_app_engine, create_session_factory, is_sqlite
+from aia_core.infrastructure.fan_out_coordination import ModelSlots, SharedHostPacer
 from aia_core.infrastructure.model_adapters import BedrockSigner
 from aia_core.infrastructure.model_adapters.transport import HttpTransport
+from sqlalchemy.orm import Session, sessionmaker
 
 from .ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from .deep_research import DeepResearchConfig, DeepResearchRuntime
@@ -75,12 +94,16 @@ from .deep_research_live import wikipedia_retrieval
 __all__ = [
     "AGENT_DIRECTED_KEY",
     "ENABLED_KEY",
+    "FAN_OUT_KEY",
     "LEAD_KEY",
+    "MODEL_CONCURRENCY_KEY",
     "THINKING_KEY",
     "agent_directed",
     "deep_research_enabled",
     "deep_research_runtime",
+    "fan_out",
     "lead",
+    "model_concurrency",
     "thinking_budget",
 ]
 
@@ -89,6 +112,8 @@ WIKIPEDIA_KEY: Final = "AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED"
 THINKING_KEY: Final = "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS"
 AGENT_DIRECTED_KEY: Final = "AIA_DEEP_RESEARCH_AGENT_DIRECTED"
 LEAD_KEY: Final = "AIA_DEEP_RESEARCH_LEAD"
+FAN_OUT_KEY: Final = "AIA_DEEP_RESEARCH_FAN_OUT"
+MODEL_CONCURRENCY_KEY: Final = "AIA_DEEP_RESEARCH_MODEL_CONCURRENCY"
 
 _TRUE: Final = frozenset({"1", "true", "yes", "on"})
 _FALSE: Final = frozenset({"0", "false", "no", "off", ""})
@@ -131,6 +156,44 @@ def lead(env: Mapping[str, str] | None = None) -> bool:
     return _switch(env, LEAD_KEY)
 
 
+def fan_out(env: Mapping[str, str] | None = None) -> bool:
+    """The fan-out switch, read strictly: ``true`` or ``false`` (or unset)."""
+    return _switch(env, FAN_OUT_KEY)
+
+
+def model_concurrency(env: Mapping[str, str] | None = None) -> int | None:
+    """Model requests in flight across the route, read strictly: unset is None; else 1-256.
+
+    There is no default: the limit must sit below the account's quota, which only the
+    operator knows (proposed 4, pending the quota request).
+    """
+    env = os.environ if env is None else env
+    raw = (env.get(MODEL_CONCURRENCY_KEY) or "").strip()
+    if not raw:
+        return None
+    if not raw.isdigit():
+        raise AIRuntimeConfigError(f"{MODEL_CONCURRENCY_KEY}={raw!r} is not a whole number")
+    value = int(raw)
+    if not 1 <= value <= 256:
+        raise AIRuntimeConfigError(f"{MODEL_CONCURRENCY_KEY}={value} is not between 1 and 256")
+    return value
+
+
+def _coordination_sessions(env: Mapping[str, str]) -> sessionmaker[Session]:
+    """The fan-out coordination's own engine, on the worker's database."""
+    url = (env.get("DATABASE_URL") or "").strip()
+    if not url:
+        raise AIRuntimeConfigError(
+            f"{FAN_OUT_KEY} needs DATABASE_URL: the host pacer and the model slots are "
+            "shared through the worker's database"
+        )
+    if is_sqlite(url) and ":memory:" in url:
+        raise AIRuntimeConfigError(
+            f"{FAN_OUT_KEY} cannot share an in-memory database between processes"
+        )
+    return create_session_factory(create_app_engine(url, pool_size=2, max_overflow=4))
+
+
 def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
     """The thinking budget, read strictly: unset or empty is none; else an integer >= 1024.
 
@@ -158,8 +221,13 @@ def deep_research_runtime(
     env: Mapping[str, str] | None = None,
     transport: HttpTransport | None = None,
     signer: BedrockSigner | None = None,
+    coordination: sessionmaker[Session] | None = None,
 ) -> DeepResearchRuntime | None:
-    """``None`` when Deep Research is off; the runtime when on; raise when it cannot be."""
+    """``None`` when Deep Research is off; the runtime when on; raise when it cannot be.
+
+    ``coordination`` is the fan-out's session factory (a test's database); ``None``
+    builds one from ``DATABASE_URL`` when the switch is on.
+    """
     values = os.environ if env is None else env
     wiki = values.get(WIKIPEDIA_KEY, "false").strip().lower()
     if wiki not in {"1", "true", "yes", "on", "0", "false", "no", "off", ""}:
@@ -168,6 +236,8 @@ def deep_research_runtime(
     thinking = thinking_budget(values)
     directed = agent_directed(values)
     planned_by_lead = lead(values)
+    fanned_out = fan_out(values)
+    slots_limit = model_concurrency(values)
     if planned_by_lead and not directed:
         raise AIRuntimeConfigError(
             f"{LEAD_KEY} needs {AGENT_DIRECTED_KEY}: the lead plans agent-directed tracks"
@@ -181,7 +251,18 @@ def deep_research_runtime(
             raise AIRuntimeConfigError(f"{LEAD_KEY} needs {ENABLED_KEY}")
         if directed:
             raise AIRuntimeConfigError(f"{AGENT_DIRECTED_KEY} needs {ENABLED_KEY}")
+        if fanned_out:
+            raise AIRuntimeConfigError(f"{FAN_OUT_KEY} needs {ENABLED_KEY}")
+        if slots_limit is not None:
+            raise AIRuntimeConfigError(f"{MODEL_CONCURRENCY_KEY} needs {FAN_OUT_KEY}")
         return None
+    if fanned_out and slots_limit is None:
+        raise AIRuntimeConfigError(
+            f"{FAN_OUT_KEY} needs {MODEL_CONCURRENCY_KEY}: the model requests in flight "
+            "across every worker, below the account's quota (proposed 4); there is no default"
+        )
+    if slots_limit is not None and not fanned_out:
+        raise AIRuntimeConfigError(f"{MODEL_CONCURRENCY_KEY} needs {FAN_OUT_KEY}")
     if settings is None or not settings.research_agents_enabled:
         raise AIRuntimeConfigError(
             f"{ENABLED_KEY} needs AIA_AI_RUNTIME_ENABLED and AIA_AI_RESEARCH_AGENTS_ENABLED: "
@@ -192,7 +273,16 @@ def deep_research_runtime(
             f"{THINKING_KEY}={thinking} must be below AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS="
             f"{settings.research_max_output_tokens}: thinking is part of the output limit"
         )
-    retrieval, table = wikipedia_retrieval() if use_wikipedia else (None, SOURCE_TABLE_V1)
+    slots: ModelSlots | None = None
+    pacer: SharedHostPacer | None = None
+    if fanned_out:
+        assert slots_limit is not None
+        sessions = coordination or _coordination_sessions(values)
+        slots = ModelSlots(sessions, pool=f"bedrock:{settings.route_id}", limit=slots_limit)
+        pacer = SharedHostPacer(sessions)
+    retrieval, table = (
+        wikipedia_retrieval(pacer=pacer) if use_wikipedia else (None, SOURCE_TABLE_V1)
+    )
     if planned_by_lead:
         settings = dataclasses.replace(settings, research_lead_enabled=True)
     return DeepResearchRuntime(
@@ -208,10 +298,12 @@ def deep_research_runtime(
             thinking_budget_tokens=thinking,
             agent_directed=directed,
             lead=planned_by_lead,
+            fan_out=fanned_out,
         ),
         retrieval=retrieval,
         source_table=table,
         # The proposed register names publishers for the agent-directed review only
         # (chunk 12); the planned mode never reads it.
         register=REPUTATION_REGISTER_V1 if directed else None,
+        model_slots=slots,
     )

@@ -17,15 +17,17 @@ request's hash: the memory a long run and a retried step keep.
 
 **The waves** (:class:`LeadWaves`, from the ``investigate`` step). The plan's tasks run
 wave by wave, each task as one agent-directed track whose brief is the task's
-(``LeadState.assignment``) and whose allowance is its budget; tracks within a wave run
-one after another (fan-out is chunk 21). After a wave, while the preset allows, the
-lead re-plans (``AgentRole.LEAD_REPLAN``) over what the wave found; its contract is
-bound to the run's state, so a re-plan that overdraws a task, overlaps a pending task,
-exceeds the ceiling or the task limit is refused like the plan. A refused re-plan counts
-toward the limit and changes nothing: the remaining waves run as planned. Each re-plan
-is stored (:class:`~aia_core.domain.deep_research.steps.ReplanRecord`) and a retried step
-applies it again without a call; every task's track is stored like any track, so a
-retry buys nothing twice.
+(``LeadState.assignment``) and whose allowance is its budget; tracks within a wave run one
+after another -- or, with fan-out (chunk 21), each in a step of its own: the wave's
+unstored tracks are handed out (:class:`WaveHandedOut`), the step waits for them, and the
+next attempt replays the waves before it from what they stored. After a wave, while the
+preset allows, the lead re-plans (``AgentRole.LEAD_REPLAN``) over what the wave found; its
+contract is bound to the run's state, so a re-plan that overdraws a task, overlaps a
+pending task, exceeds the ceiling or the task limit is refused like the plan. A refused
+re-plan counts toward the limit and changes nothing: the remaining waves run as planned.
+Each re-plan is stored (:class:`~aia_core.domain.deep_research.steps.ReplanRecord`) and a
+retried step applies it again without a call; every task's track is stored like any track,
+so a retry buys nothing twice.
 """
 
 from __future__ import annotations
@@ -88,7 +90,7 @@ from .runtime import DeepResearchRuntime, StepToolMeter
 if TYPE_CHECKING:
     from .investigate import InvestigateExecutor
 
-__all__ = ["LeadPlanned", "LeadPlanning", "LeadTask", "LeadWaves"]
+__all__ = ["LeadPlanned", "LeadPlanning", "LeadTask", "LeadWaves", "WaveHandedOut"]
 
 #: Why a lead-planned run's web tracks are blocked when the lead's plan is refused.
 LEAD_PLAN_REFUSED = "lead_plan_refused"
@@ -330,6 +332,19 @@ class LeadTask:
     assignment: dict[str, Any]
 
 
+class WaveHandedOut(Exception):
+    """A wave's unstored tracks go to steps of their own; the investigate step waits.
+
+    Raised by :meth:`LeadWaves.run` with fan-out on, before anything of the wave is
+    researched here. The next attempt replays every earlier wave and re-plan from what
+    was stored, finds this wave stored too, and carries on.
+    """
+
+    def __init__(self, tracks: Sequence[tuple[ResearchTrack, LeadTask]]) -> None:
+        super().__init__(f"{len(tracks)} track(s) handed out")
+        self.tracks: tuple[tuple[ResearchTrack, LeadTask | None], ...] = tuple(tracks)
+
+
 class LeadWaves:
     """A lead-planned run's tasks, wave by wave, with a re-plan after each while allowed."""
 
@@ -345,11 +360,13 @@ class LeadWaves:
         gate: RetrievalGate | None,
         meter: StepToolMeter,
         caller: StepModelCaller,
+        fan_out: bool = False,
     ) -> None:
         self._executor = executor
         self._step, self._context, self._runtime, self._plan = step, context, runtime, plan
         self._lead_plan_id = lead_plan_id
         self._gate, self._meter, self._caller = gate, meter, caller
+        self._fan_out = fan_out
 
     def run(self) -> tuple[list[TrackEntry], LeadRunRecord | None]:
         """Every task's track entry, in the order run, and how the waves went.
@@ -378,8 +395,8 @@ class LeadWaves:
             wave += 1
             ran: list[tuple[SubagentTask, TrackResult]] = []
             used: dict[str, Allotment] = {}
+            planned_wave: list[tuple[SubagentTask, ResearchTrack, LeadTask]] = []
             for task in tasks:
-                self._context.checkpoint()
                 subject = subjects[task.subject_key]
                 track = lead_track(
                     task,
@@ -393,6 +410,36 @@ class LeadWaves:
                     ),
                     state=state,
                 )
+                planned_wave.append(
+                    (
+                        task,
+                        track,
+                        LeadTask(
+                            planned=PlannedTrack(
+                                track_id=track.track_id,
+                                sub_questions=state.questions[task.subject_key],
+                                queries=(),
+                            ),
+                            allowance=Allowance(
+                                turns=task.budget.turns,
+                                searches=task.budget.searches,
+                                opens=task.budget.opens,
+                            ),
+                            assignment=state.assignment(task),
+                        ),
+                    )
+                )
+            if self._fan_out:
+                out = [
+                    (track, lead)
+                    for _task, track, lead in planned_wave
+                    if self._executor.researches(self._plan, track, self._gate, lead=True)
+                    and not self._executor.stored_track(self._step, self._context, track)
+                ]
+                if out:
+                    raise WaveHandedOut(out)
+            for task, track, lead in planned_wave:
+                self._context.checkpoint()
                 entry = self._executor._track(
                     self._step,
                     self._context,
@@ -402,19 +449,7 @@ class LeadWaves:
                     self._gate,
                     self._meter,
                     self._caller,
-                    lead=LeadTask(
-                        planned=PlannedTrack(
-                            track_id=track.track_id,
-                            sub_questions=state.questions[task.subject_key],
-                            queries=(),
-                        ),
-                        allowance=Allowance(
-                            turns=task.budget.turns,
-                            searches=task.budget.searches,
-                            opens=task.budget.opens,
-                        ),
-                        assignment=state.assignment(task),
-                    ),
+                    lead=lead,
                 )
                 result = self._read(entry.artifact_id, TrackResult)
                 entries.append(entry)

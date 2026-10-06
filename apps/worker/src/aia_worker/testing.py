@@ -40,6 +40,12 @@ Payload keys, all optional:
 ``approval``
     A question. Returns :class:`NeedsApproval` until a decision is on the step,
     then succeeds with the decision in its output.
+``defer``
+    A list of payloads. The first attempt returns :class:`Deferred` with one
+    ``scripted`` child per payload (node keys ``<node>/0``, ``<node>/1``, ...); a
+    later attempt -- the step released once they succeeded -- succeeds. With
+    ``defer_attempts`` (default 1) it defers on that many attempts, naming the same
+    children each time.
 """
 
 from __future__ import annotations
@@ -50,9 +56,11 @@ import time
 from typing import Any
 
 from aia_core.domain.providers import Provider
-from aia_core.domain.workflow import FailureClass
+from aia_core.domain.workflow import FailureClass, child_node_key
 
 from .executor import (
+    ChildStep,
+    Deferred,
     Failed,
     NeedsApproval,
     StepContext,
@@ -138,6 +146,23 @@ class ScriptedExecutor:
         failure = script.get("fail")
         if failure and step.attempt_number < int(script.get("fail_until_attempt", 10**6)):
             return Failed(FailureClass(str(failure)), {"attempt": step.attempt_number})
+
+        children = script.get("defer")
+        if isinstance(children, list) and step.attempt_number <= int(
+            script.get("defer_attempts", 1)
+        ):
+            _ledger(ledger, step, "defer")
+            return Deferred(
+                children=tuple(
+                    ChildStep(
+                        node_key=child_node_key(step.node_key, str(i)),
+                        kind=KIND,
+                        payload=dict(child),
+                    )
+                    for i, child in enumerate(children)
+                ),
+                output={"deferred": len(children)},
+            )
 
         question = script.get("approval")
         if question and not step.gate_decisions:

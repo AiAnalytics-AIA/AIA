@@ -35,7 +35,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from ..residency import DataClass
-from .agents import AgentRole
+from .agents import AgentRole, ExtractionProposal
 from .brief import ResearchBrief
 from .bundle import SnapshotRef
 from .contracts import (
@@ -72,6 +72,11 @@ __all__ = [
     "MergeRecord",
     "PlanRecord",
     "PlanViolationRecord",
+    "PlannedFetch",
+    "PlannedHit",
+    "PlannedRound",
+    "PlannedRoundAnswer",
+    "PlannedSearch",
     "PlannedTrack",
     "ReplanRecord",
     "SnapshotArtifact",
@@ -79,6 +84,7 @@ __all__ = [
     "SynthesisArtifact",
     "TrackEntry",
     "TrackResult",
+    "UrlCaptureRecord",
     "VerificationBatch",
     "VerifyRecord",
     "run_scoped",
@@ -207,6 +213,91 @@ class SnapshotArtifact(_Closed):
     snapshot: SourceSnapshot
     #: The page's own publication date, when it states one; scoring reads it.
     published: date | None
+
+
+class UrlCaptureRecord(_Closed):
+    """A URL this run captured, and the content address of what it returned (chunk 21).
+
+    Stored run-scoped by the URL's canonical form, so a track step of the same run asking
+    for the URL is answered from the snapshot and sends nothing (the run's snapshot
+    cache, held in the store when tracks run in steps of their own).
+    """
+
+    kind: Literal["deep_research_url_capture"]
+    url: str
+    snapshot_id: str
+
+
+class PlannedHit(_Closed):
+    """One search result a planned round was given, as the adapter ranked it."""
+
+    url: str
+    title: str
+    snippet: str
+    rank: int
+
+
+class PlannedSearch(_Closed):
+    """A planned round's search as it came back: stored the moment its outcome is known.
+
+    This run's own (:func:`run_scoped`, by track fingerprint, round and query). A
+    step that runs again reads it in place of the search, and so is given the same
+    hits in the same order -- which decides what survives the dedupe and the fetch
+    allowance, and so what the round's model request shows. ``request_fingerprint``
+    is what the journal holds of the dispatch (None when nothing was dispatched).
+    """
+
+    kind: Literal["deep_research_planned_search"]
+    track_id: str
+    round: int = Field(ge=0)
+    query: str
+    record: QueryRecord
+    hits: tuple[PlannedHit, ...]
+    uncertain: bool
+    request_fingerprint: str | None
+
+
+class PlannedFetch(_Closed):
+    """One fetch of a planned round as it came back: stored the moment its outcome is
+    known, after the page it captured is stored. ``position`` is the hit's index in
+    the round's search; ``snapshot_artifact_id`` the captured page, or None."""
+
+    kind: Literal["deep_research_planned_fetch"]
+    track_id: str
+    round: int = Field(ge=0)
+    position: int = Field(ge=0)
+    url: str
+    request_fingerprint: str | None
+    reason: str | None
+    uncertain: bool
+    snapshot_artifact_id: str | None
+
+
+class PlannedRound(_Closed):
+    """A planned round once every eligible fetch resolved: its fetches, in order.
+
+    Built from the :class:`PlannedFetch` records already stored; a step that runs
+    again reads it in place of the round's fetches.
+    """
+
+    kind: Literal["deep_research_planned_round"]
+    track_id: str
+    round: int = Field(ge=0)
+    query: str
+    fetches: tuple[PlannedFetch, ...]
+
+
+class PlannedRoundAnswer(_Closed):
+    """A planned round's investigator answer, stored the moment it returns -- before
+    grounding -- keyed by the request's SHA256: a step that runs again grounds it
+    again and asks nothing."""
+
+    kind: Literal["deep_research_planned_round_answer"]
+    track_id: str
+    round: int = Field(ge=0)
+    request_sha256: str
+    output: ExtractionProposal
+    call: CallRecord
 
 
 class SourceFactsRecord(_Closed):

@@ -210,6 +210,25 @@ forbid "executors never touch the prompt tables" \
   'Prompt(Version|Activation)Row' \
   "$EXECUTORS"
 
+# Fan-out's shared state (Deep Research chunk 21): one request per host at a time and at
+# most N model requests in flight, across every worker process. Written in short
+# transactions of their own by one module; a write anywhere else -- inside an attempt's
+# fenced unit of work, say, or without the conditional UPDATE -- is a second scheduler
+# that can hand one host or one slot to two processes.
+forbid "the fan-out coordination tables are touched only by their module" \
+  '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
+  "$CORE" \
+  tables.py fan_out_coordination.py
+forbid "the API never touches the fan-out coordination tables" \
+  '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
+  "$API"
+forbid "the worker never touches the fan-out coordination tables" \
+  '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
+  "$WORKER"
+forbid "executors never touch the fan-out coordination tables" \
+  '(HostPoliteness|ModelConcurrencySlot)Row|host_politeness|model_concurrency_slots' \
+  "$EXECUTORS"
+
 # A Study's design project is found only through the Study (ADR 0016 decision 1).
 # The table used anywhere but its repository is a query that could find a design
 # project -- and the revisions runs execute -- by something other than scope.

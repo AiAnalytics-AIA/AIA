@@ -1585,3 +1585,52 @@ class PromptActivationRow(Base):
         ),
         Index("ix_ai_prompt_activations_prompt", "organization_id", "prompt_id", "activation_id"),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Fan-out coordination (Deep Research chunk 21)
+# --------------------------------------------------------------------------- #
+
+
+class HostPolitenessRow(Base):
+    """One public host's turn: who is requesting it now, and when it may be asked next.
+
+    Written only by ``fan_out_coordination.SharedHostPacer``. Keyed by host alone, not
+    by run: a crawl delay is owed by AIA's user agent, which every run shares
+    (``docs/architecture/deep-research-fan-out.md`` § 3). A host name and instants --
+    no run, study or client.
+    """
+
+    __tablename__ = "host_politeness"
+
+    host: Mapped[str] = mapped_column(String(255), primary_key=True)
+    #: The earliest instant the next request may start: the end of the last one plus
+    #: the interval the host is owed. NULL: never requested.
+    next_allowed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    #: The request in flight now, and when its hold lapses should its process die.
+    holder_token: Mapped[str | None] = mapped_column(String(64))
+    held_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (Index("ix_host_politeness_updated", "updated_at"),)
+
+
+class ModelConcurrencySlotRow(Base):
+    """One slot of a model concurrency pool: free, or held by one request of one attempt.
+
+    Written only by ``fan_out_coordination.ModelSlots``. A held slot is free again once
+    its holder attempt no longer holds its lease, so a killed worker's slots return
+    when its step could be recovered.
+    """
+
+    __tablename__ = "model_concurrency_slots"
+
+    pool: Mapped[str] = mapped_column(String(128), primary_key=True)
+    slot: Mapped[int] = mapped_column(Integer, primary_key=True)
+    holder_attempt_id: Mapped[str | None] = mapped_column(String(64))
+    holder_token: Mapped[str | None] = mapped_column(String(64))
+    acquired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (CheckConstraint("slot >= 0", name="model_slot_non_negative"),)

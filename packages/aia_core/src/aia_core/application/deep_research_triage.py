@@ -14,10 +14,14 @@ per logical request (the primary and its one schema repair), dispatch journaled
 before the call leaves, the reservation settled once -- as
 ``aia_executors.ai_step.StepModelCaller`` keeps them for one call at a time.
 
-**The limiter** is deliberately small (:class:`SemaphoreLimiter`): a bound on calls in
-flight for one run of the runner. Chunk 21 (fan-out) replaces or shares it with a
-model concurrency limiter below the account's quota; the runner only asks it for a
-slot around each send.
+**The limiter** is a seam the runner asks for a slot around each send, and nothing
+more. :class:`SemaphoreLimiter` bounds the calls in flight of one run of the runner;
+:class:`SharedSlotLimiter` (chunk 21) puts each send in one of the deployment's model
+slots (``infrastructure.fan_out_coordination.ModelSlots``: below the account's quota,
+across every worker process); :class:`CombinedLimiter` holds a slot of each, so a triage
+burst is bounded per run *and* across the deployment. With a shared limiter the caller
+must not take a slot of its own for the same send (``StepModelCaller`` without a
+``limiter``): the send would hold two.
 
 **Failures, page by page.** A request that fails with a known outcome (a schema
 violation after its repair, a provider refusal) leaves that page ``FAILED`` and the
@@ -35,8 +39,13 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
-from collections.abc import AsyncIterator, Sequence
-from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from collections.abc import AsyncIterator, Callable, Sequence
+from contextlib import (
+    AbstractAsyncContextManager,
+    AbstractContextManager,
+    AsyncExitStack,
+    asynccontextmanager,
+)
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Protocol
@@ -57,8 +66,11 @@ from aia_core.domain.licence import DataLineage
 from aia_core.domain.residency import DataClass
 
 __all__ = [
+    "CombinedLimiter",
     "ConcurrencyLimiter",
     "SemaphoreLimiter",
+    "SharedSlotLimiter",
+    "SlotPool",
     "TriageCaller",
     "TriageOutcome",
     "TriageRun",
@@ -99,6 +111,62 @@ class SemaphoreLimiter:
         if self._semaphore is None or self._loop is not loop:
             self._semaphore, self._loop = asyncio.Semaphore(self._limit), loop
         async with self._semaphore:
+            yield
+
+
+class SlotPool(Protocol):
+    """Model slots shared across processes (``fan_out_coordination.ModelSlots``)."""
+
+    def hold(
+        self, *, holder_attempt_id: str, checkpoint: Callable[[], None]
+    ) -> AbstractContextManager[int]:
+        """Hold one slot for the block (blocking), or raise once the wait runs out."""
+        ...
+
+
+class SharedSlotLimiter:
+    """Each send in one of the deployment's model slots, held in the attempt's name.
+
+    The pool is synchronous (a database round trip, then a sleep while it is full), so
+    the slot is taken and given back on a worker thread, never on the event loop: the
+    other sends keep running while one waits. A wait that runs out raises out of the
+    runner, as any refusal from the caller does once the calls in flight have finished.
+    """
+
+    def __init__(
+        self,
+        slots: SlotPool,
+        *,
+        holder_attempt_id: str,
+        checkpoint: Callable[[], None] = lambda: None,
+    ) -> None:
+        self._slots = slots
+        self._holder = holder_attempt_id
+        self._checkpoint = checkpoint
+
+    @asynccontextmanager
+    async def slot(self) -> AsyncIterator[None]:
+        held = self._slots.hold(holder_attempt_id=self._holder, checkpoint=self._checkpoint)
+        await asyncio.to_thread(held.__enter__)
+        try:
+            yield
+        finally:
+            await asyncio.to_thread(held.__exit__, None, None, None)
+
+
+class CombinedLimiter:
+    """A slot of every limiter, taken in order and given back in reverse."""
+
+    def __init__(self, *limiters: ConcurrencyLimiter) -> None:
+        if not limiters:
+            raise ValueError("a combined limiter combines at least one")
+        self._limiters = limiters
+
+    @asynccontextmanager
+    async def slot(self) -> AsyncIterator[None]:
+        async with AsyncExitStack() as stack:
+            for limiter in self._limiters:
+                await stack.enter_async_context(limiter.slot())
             yield
 
 
