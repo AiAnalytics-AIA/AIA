@@ -199,6 +199,12 @@ engine, the harness's own polling excluded; "working" excludes the idle workers'
   journal read back, its completion, two model-slot round trips per request). Four workers also
   poll for work when idle: 429 statements over the run at `poll_seconds` 0.2 (the production
   default is 2 s). A full pool adds slot polling, backed off: 194 per track with 2 slots.
+* **With every planned round checkpointed** (§ 8's fix, measured again the same way, 2026-10-06):
+  switch off 32.6 s investigation, 60.8 s end to end, 148.0 statements per track; switch on with 4
+  workers and 4 slots 11.0 s, 39.6 s, 213.5; with 2 slots 18.0 s, 46.5 s, 230.0; one worker
+  63.6 s end to end. Each track of one round pays about 32 more statements -- its search, fetch,
+  round and answer records and the lookups that find them on a resumed step -- about 1 s to 1.6 s
+  over 24 tracks. That is the price of never sending a call twice.
 * **Threads, not processes.** The workers share one interpreter; the PostgreSQL suite's four
   worker processes (`test_deep_research_fan_out_processes.py`) are the concurrency proof, these
   the cost.
