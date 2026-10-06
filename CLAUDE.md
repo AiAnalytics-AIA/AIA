@@ -156,8 +156,9 @@ apps/
                             verify, synthesize, publish; StepToolMeter (every tool call journaled,
                             fenced, before it leaves; a retry takes the journal over and never
                             resends a call left in flight); deep_research_registry(runtime=None) parks
-    deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; no web retrieval
-                            exists, so web tracks are blocked and nothing is sent
+    deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; without
+                            AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED web tracks are blocked and nothing is
+                            sent; with it, deep_research_live.py's Czech Wikipedia route (Class C only)
     deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless
                             AIA_ENV is local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
@@ -357,7 +358,8 @@ packages/aia_core/src/aia_core/
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
     web_retrieval.py        WebFetcher (every hop and address checked, caps, HTML to a content-
                             addressed snapshot); search/fetch protocols; recorded doubles (they say
-                            RECORDED and nothing else); no live adapter exists (DR-2)
+                            RECORDED and nothing else). The one live route is web_retrieval_live.py:
+                            fee-free Czech Wikipedia, pinned IP, no proxy, no other host
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
 
 migrations/                 Alembic
