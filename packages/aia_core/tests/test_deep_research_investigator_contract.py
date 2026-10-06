@@ -65,6 +65,17 @@ SEARCH: dict[str, Any] = {
 }
 OPEN: dict[str, Any] = {"kind": "open", "ref": "L3", "purpose": "tabulka ke zprávě"}
 READ: dict[str, Any] = {"kind": "read", "ref": "S1", "part": "2", "purpose": "metodika"}
+LADDER: dict[str, Any] = {
+    "kind": "ladder",
+    "need": "tabulka, ze které číslo pochází",
+    "publisher": "Fiktivní statistický úřad",
+    "title": "Ročenka spotřeby 2025",
+    "phrase": "Tabulka 7",
+    "doi": None,
+    "source": "S1",
+    "link": None,
+    "purpose": "primární zdroj",
+}
 FINISH: dict[str, Any] = {
     "kind": "finish",
     "gaps": [{"need": "údaj za rok 2025", "why": "nevyšel", "tried": "ČSÚ, Eurostat"}],
@@ -103,14 +114,17 @@ def test_the_investigator_is_its_own_agent_with_no_tools() -> None:
 
 
 def test_every_action_kind_validates_and_an_unknown_one_does_not() -> None:
-    assert _valid(_turn(evidence=[EVIDENCE], next=[SEARCH, OPEN, READ, FINISH]))
-    assert ACTION_KINDS == ("search", "open", "read", "finish")
+    assert _valid(_turn(evidence=[EVIDENCE], next=[SEARCH, OPEN, READ, LADDER, FINISH]))
+    assert ACTION_KINDS == ("search", "open", "read", "ladder", "finish")
     for bad in (
         {**OPEN, "kind": "chase"},  # a later chunk's kind is not this contract's
         {**OPEN, "url": "https://stat.example/"},  # a model never writes a URL
         {**SEARCH, "lang": "de"},
         {k: v for k, v in SEARCH.items() if k != "site"},  # null, never absent
         {**READ, "part": ""},
+        {k: v for k, v in LADDER.items() if k != "doi"},  # null, never absent
+        {**LADDER, "url": "https://stat.example/t7.pdf"},  # a ladder names refs, not URLs
+        {**LADDER, "need": ""},
     ):
         assert not _valid(_turn(next=[bad])), bad
 

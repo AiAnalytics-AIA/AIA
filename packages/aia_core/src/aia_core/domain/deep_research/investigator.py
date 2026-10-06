@@ -45,15 +45,23 @@ from enum import StrEnum
 from typing import Any, Final, Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..residency import DataClass
+from .acquisition import (
+    LADDER_VERSION,
+    AcquisitionLead,
+    LadderRecord,
+    LadderStop,
+    LeadOrigin,
+)
 from .agents import (
     INVESTIGATOR_CONTRACT_VERSION,
     INVESTIGATOR_PROMPT_VERSION,
     MAX_ACTIONS_PER_TURN,
     FinishAction,
     InvestigatorTurn,
+    LadderAction,
     OpenAction,
     ReadAction,
     SearchAction,
@@ -106,10 +114,10 @@ __all__ = [
 ]
 
 #: What an agent-directed track's result depends on beyond the planned mode's
-#: rules: the loop, its contract, its prompt, and the stated-measure check.
+#: rules: the loop, its contract, its prompt, the stated-measure check and the ladder.
 INVESTIGATOR_VERSION: Final = (
     f"aia-investigator-1/{INVESTIGATOR_CONTRACT_VERSION}/prompt-{INVESTIGATOR_PROMPT_VERSION}"
-    f"/{STATED_MEASURES_VERSION}"
+    f"/{STATED_MEASURES_VERSION}/{LADDER_VERSION}"
 )
 
 #: A captured source is read in parts of this many characters (``read`` names one).
@@ -403,6 +411,8 @@ class Refusal(StrEnum):
     SEARCH_OPERATOR = "search_operator"
     DUPLICATE_SEARCH = "duplicate_search"
     ALLOWANCE_SPENT = "allowance_spent"
+    #: A ``ladder`` whose lead names nothing code could recognise when found.
+    LEAD_UNCHECKABLE = "lead_uncheckable"
 
 
 #: Refusals that say nothing about the agent going wrong: never counted to the limit.
@@ -436,7 +446,7 @@ class ActionRecord(_Closed):
     """One proposed action and everything code decided and did about it."""
 
     index: int = Field(ge=0)
-    kind: Literal["search", "open", "read", "finish"]
+    kind: Literal["search", "open", "read", "ladder", "finish"]
     purpose: str
     ref: str | None = None
     part: str | None = None
@@ -457,10 +467,12 @@ class ActionRecord(_Closed):
     #: The ``R<n>`` the hits are, and why the search was weak.
     results: tuple[str, ...] = ()
     feedback: tuple[SearchFeedback, ...] = ()
-    #: The ``S<n>`` an open captured or a read was served from.
+    #: The ``S<n>`` an open or a ladder captured, or a read was served from.
     source: str | None = None
     snapshot_id: str | None = None
     snapshot_artifact_id: str | None = None
+    #: A ``ladder``'s climb: every attempt, the acquisition or the acquisition gap.
+    ladder: LadderRecord | None = None
 
     @property
     def counted_refusal(self) -> str | None:
@@ -576,7 +588,8 @@ class TrackState:
 
     @property
     def searches_used(self) -> int:
-        """Searches dispatched (sent, or sent by an earlier attempt and not resent)."""
+        """Searches dispatched (sent, or sent by an earlier attempt and not resent),
+        a ladder's included."""
         return sum(
             1
             for a in self._actions()
@@ -585,11 +598,13 @@ class TrackState:
                 a.decision is ActionDecision.SENT
                 or (a.decision is ActionDecision.SKIPPED and a.reason == SKIP_EARLIER_ATTEMPT)
             )
-        )
+        ) + sum(a.ladder.searches for a in self._actions() if a.ladder is not None)
 
     @property
     def opens_used(self) -> int:
-        """Pages fetched (dispatched); a cached open costs nothing and is not counted."""
+        """Pages fetched (dispatched); a cached open costs nothing and is not counted.
+
+        A ladder's fetches, dataset and archive queries count as opens."""
         return sum(
             1
             for a in self._actions()
@@ -598,7 +613,7 @@ class TrackState:
                 a.decision is ActionDecision.SENT
                 or (a.decision is ActionDecision.SKIPPED and a.reason == SKIP_EARLIER_ATTEMPT)
             )
-        )
+        ) + sum(a.ladder.fetches for a in self._actions() if a.ladder is not None)
 
     def refusals(self) -> Counter[str]:
         """Counted refusal reasons over the whole track."""
@@ -719,21 +734,24 @@ class PlannedAction:
     """One proposed action after code's own checks: decided, or for the gate.
 
     ``record`` is set when code decided alone (refused, skipped, served, finished).
-    Otherwise ``search`` (text and language) or ``url`` says what the gate is asked.
+    Otherwise ``search`` (text and language), ``url`` or ``lead`` (a ladder's, with the
+    ``source`` that cites it) says what the gate is asked.
     """
 
     index: int
-    kind: Literal["search", "open", "read", "finish"]
+    kind: Literal["search", "open", "read", "ladder", "finish"]
     purpose: str
     record: ActionRecord | None = None
     search: tuple[str, str] | None = None
     url: str | None = None
     ref: str | None = None
+    lead: AcquisitionLead | None = None
+    source: str | None = None
 
 
 def _decided(
     index: int,
-    kind: Literal["search", "open", "read", "finish"],
+    kind: Literal["search", "open", "read", "ladder", "finish"],
     purpose: str,
     decision: ActionDecision,
     reason: str | None = None,
@@ -840,6 +858,8 @@ def plan_actions(
                 continue
             opens_left -= 1
             out.append(PlannedAction(i, "open", action.purpose, url=url, ref=action.ref))
+        elif isinstance(action, LadderAction):
+            out.append(_plan_ladder(i, action, state, searches_left + opens_left))
         else:
             assert isinstance(action, ReadAction)
             source = state.refs.source(action.ref)
@@ -882,6 +902,66 @@ def plan_actions(
     return tuple(out)
 
 
+def _plan_ladder(
+    index: int, action: LadderAction, state: TrackState, allowance_left: int
+) -> PlannedAction:
+    """A ladder action: its refs resolved by code into a lead, or refused.
+
+    ``source`` must be an ``S<n>`` the track holds (the page that cites the source);
+    ``link`` an ``R<n>`` or ``L<n>`` (its URL is the lead's first). A lead naming
+    nothing code could recognise is refused (``lead_uncheckable``); a track with no
+    search or open left, too (``allowance_spent``).
+    """
+    refs = state.refs
+
+    def refused(reason: Refusal) -> PlannedAction:
+        return _decided(
+            index,
+            "ladder",
+            action.purpose,
+            ActionDecision.REFUSED,
+            reason,
+            ref=action.link or action.source,
+        )
+
+    citing = None
+    if action.source is not None:
+        citing = refs.source(action.source)
+        if citing is None:
+            known = refs.url_for(action.source) is not None
+            return refused(Refusal.NOT_READABLE if known else Refusal.UNKNOWN_REF)
+    urls: tuple[str, ...] = ()
+    if action.link is not None:
+        url = refs.url_for(action.link)
+        if url is None:
+            known = refs.source(action.link) is not None
+            return refused(Refusal.NOT_OPENABLE if known else Refusal.UNKNOWN_REF)
+        urls = (url,)
+    try:
+        lead = AcquisitionLead(
+            need=action.need,
+            publisher=action.publisher,
+            title=action.title,
+            phrases=(action.phrase,) if action.phrase else (),
+            urls=urls,
+            doi=action.doi,
+            cited_on=citing.url if citing is not None else None,
+            origin=LeadOrigin.INVESTIGATOR,
+        )
+    except ValidationError:
+        return refused(Refusal.LEAD_UNCHECKABLE)
+    if allowance_left <= 0:
+        return refused(Refusal.ALLOWANCE_SPENT)
+    return PlannedAction(
+        index,
+        "ladder",
+        action.purpose,
+        lead=lead,
+        ref=action.link or action.source,
+        source=citing.ref if citing is not None else None,
+    )
+
+
 # --------------------------------------------------------------------------- #
 # The turn's input
 # --------------------------------------------------------------------------- #
@@ -908,6 +988,22 @@ def _action_view(record: ActionRecord) -> dict[str, Any]:
         view["part"] = record.part
     if record.source is not None:
         view["source"] = record.source
+    if record.ladder is not None:
+        climb = record.ladder
+        view["ladder"] = {
+            "stop": climb.stop.value,
+            "rungs_tried": [r.value for r in climb.rungs_tried],
+            "requests": climb.requests,
+        }
+        if climb.acquisition is not None:
+            view["ladder"]["rung"] = climb.acquisition.rung.value
+            view["ladder"]["archived"] = climb.acquisition.archived is not None
+        if climb.gap is not None:
+            view["ladder"]["gap"] = {
+                "reason": climb.gap.reason.value,
+                "publisher": climb.gap.publisher,
+                "title": climb.gap.title,
+            }
     return view
 
 
@@ -1096,6 +1192,13 @@ def transcript(
         "searches": sum(1 for a in actions if a.kind == "search"),
         "opens": sum(1 for a in actions if a.kind == "open"),
         "reads": sum(1 for a in actions if a.kind == "read"),
+        "ladders": sum(1 for a in actions if a.kind == "ladder"),
+        "acquired": sum(
+            1 for a in actions if a.ladder is not None and a.ladder.stop is LadderStop.ACQUIRED
+        ),
+        "acquisition_gaps": sum(
+            1 for a in actions if a.ladder is not None and a.ladder.gap is not None
+        ),
         "grounded": sum(len(t.grounded) for t in turns),
         "quarantined": sum(len(t.quarantined) for t in turns),
     }
