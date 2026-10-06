@@ -148,6 +148,7 @@ __all__ = [
     "WebRetrieval",
     "live_attempt",
     "request_fingerprint",
+    "sent_archived",
     "sent_search",
 ]
 
@@ -354,6 +355,12 @@ class FetchOutcome:
 def request_fingerprint(sent: str) -> str:
     """What the journal keeps of a sent query or URL: its SHA256, never the text."""
     return _fingerprint(sent)
+
+
+def sent_archived(row: IndexRow) -> str:
+    """What reading an archived record sends, as journaled: the WARC file's URL and its range."""
+    last = row.warc_record_offset + row.warc_record_length - 1
+    return f"{archive_url(row)} bytes={row.warc_record_offset}-{last}"
 
 
 def sent_search(query: str, lang: str | None) -> str:
@@ -581,6 +588,29 @@ class RetrievalGate:
             return search
         fetch = self._refusal(self._retrieval.fetch_route, data_class=DataClass.CLASS_C_INTERNAL)
         return None if fetch is None else f"fetch_{fetch}"
+
+    @property
+    def has_common_crawl(self) -> bool:
+        """Whether this gate was given Common Crawl's routes. Sends nothing."""
+        return self._archive is not None
+
+    def has_dataset(self, connector_id: str) -> bool:
+        """Whether this gate was given the dataset connector ``connector_id``. Sends nothing."""
+        return connector_id in self._datasets
+
+    def has_archive(self, connector_id: str) -> bool:
+        """Whether this gate was given the archive lookup ``connector_id``. Sends nothing."""
+        return connector_id in self._archives
+
+    def index_statement(self, query: UrlIndexQuery) -> str:
+        """The statement :meth:`query_url_index` would send for ``query``. Sends nothing.
+
+        What a caller that must not send a call twice (a resumed step) compares with
+        the journal's fingerprints.
+        """
+        if self._archive is None:
+            raise ValueError("this gate has no Common Crawl route")
+        return build_index_sql(query, self._archive.index.table)
 
     def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
         """The ``Sitemap:`` URLs ``host``'s robots.txt declares, if this run already read it.
@@ -1165,8 +1195,7 @@ class RetrievalGate:
             raise ValueError("this gate has no Common Crawl route")
         route = archive.archive_route
         url = archive_url(row)
-        last = row.warc_record_offset + row.warc_record_length - 1
-        sent = f"{url} bytes={row.warc_record_offset}-{last}"
+        sent = sent_archived(row)
         cls = classify_query(
             url,
             context_class=DataClass.CLASS_C_INTERNAL,
