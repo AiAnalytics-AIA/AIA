@@ -59,6 +59,7 @@ __all__ = [
     "ResearchTrack",
     "RetrievalMode",
     "ScreenQuestion",
+    "SnapshotLink",
     "SourceKind",
     "SourceSnapshot",
     "StopReason",
@@ -273,6 +274,22 @@ class RetrievalMode(StrEnum):
     LIVE = "LIVE"
 
 
+class SnapshotLink(_Closed):
+    """One link a captured HTML page carries: data for a later ``L<n>`` ref, never followed.
+
+    ``kind`` is ``anchor`` for an ``<a href>`` (``text`` is its anchor text,
+    normalised and truncated) or ``alternate`` for a ``<link rel="alternate">``
+    (``media_type`` is its declared ``type``, when it has one). ``url`` is absolute,
+    without a fragment, and passed ``check_url`` when the page was captured; it is
+    checked again, with its resolution, if anything ever opens it.
+    """
+
+    kind: Literal["anchor", "alternate"]
+    url: str = Field(min_length=1, max_length=2048)
+    text: str = Field(default="", max_length=200)
+    media_type: str | None = Field(default=None, max_length=100)
+
+
 class SourceSnapshot(_Closed):
     """A fetched page as stored: content-addressed, with how it was retrieved.
 
@@ -280,6 +297,11 @@ class SourceSnapshot(_Closed):
     one snapshot however often it is fetched, and a changed page is a new one.
     ``instructions_detected`` names every prompt-injection pattern the text
     contains; such a page is kept for provenance and quarantined as a source.
+
+    ``links`` are the outbound and ``alternate`` links of an HTML page. They are
+    not part of the content address, and a snapshot without links serialises
+    exactly as one stored before the field existed (the key is omitted), so its
+    stored JSON, and every hash taken of it, is unchanged.
     """
 
     snapshot_id: str = Field(pattern=r"^SNP-[0-9a-f]{24}$")
@@ -300,6 +322,14 @@ class SourceSnapshot(_Closed):
     request_id: str | None
     retrieval_mode: RetrievalMode
     instructions_detected: tuple[str, ...]
+    links: tuple[SnapshotLink, ...] = ()
+
+    @model_serializer(mode="wrap")
+    def _omit_no_links(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if not self.links and isinstance(data, dict):
+            data.pop("links", None)
+        return data
 
 
 # --------------------------------------------------------------------------- #

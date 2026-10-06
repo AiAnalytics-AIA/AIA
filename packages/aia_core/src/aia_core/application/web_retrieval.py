@@ -10,12 +10,19 @@ never rerouted:
    context: it came from a search result, and a client term in it still raises it.
 2. **egress** -- ``evaluate_egress`` for that class over the tool's own route
    (ADR 0008). A route not approved for the class refuses; there is no other route.
+   A URL a host's robots.txt (already read in this run) forbids is refused here too.
 3. **metering** -- a route with a price is refused unless the meter holds tool spend
    against the study's budget (it cannot yet: the generalized ledger does not exist);
    otherwise the call is reserved, and ``dispatching`` is journaled **durably
    before** it leaves.
 4. **the call** -- through the route's adapter; its outcome is journaled: succeeded,
    failed (known), or uncertain (charged at its ceiling, never retried here).
+
+A fetch a run has already made is not made again: with a :class:`RunSnapshotCache`,
+a URL whose canonical form this run already captured (after steps 1-2, so a
+refusal stays a refusal) is answered from it and journaled ``CACHED`` -- nothing
+dispatched, nothing reserved, nothing charged -- and :attr:`FetchOutcome.cached`
+says so.
 
 What a call is charged is decided here, once, and never in AIA's favour: a success or
 a failure the provider answered costs the route's price (a provider that answered has
@@ -32,6 +39,7 @@ step before anything more is sent.
 from __future__ import annotations
 
 import hashlib
+import threading
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -45,6 +53,7 @@ from ..domain.deep_research.contracts import (
     QueryRecord,
     RetrievalMode,
 )
+from ..domain.deep_research.legacy import canonical_url
 from ..domain.deep_research.tooling import (
     ToolKind,
     ToolMeter,
@@ -60,7 +69,7 @@ from ..domain.residency import DataClass, EgressDenied, evaluate_egress
 from ..domain.scope import ScopeDenied, ScopeGrant, StudyContext
 from ..infrastructure.web_retrieval import FetchedPage, SearchAdapter, ToolCallFailed, WebFetcher
 
-__all__ = ["FetchOutcome", "RetrievalGate", "SearchOutcome", "WebRetrieval"]
+__all__ = ["FetchOutcome", "RetrievalGate", "RunSnapshotCache", "SearchOutcome", "WebRetrieval"]
 
 
 def _utcnow() -> datetime:
@@ -131,6 +140,45 @@ class FetchOutcome:
     #: Why nothing was kept: a refusal before sending, or the failure after.
     reason: str | None
     uncertain: bool
+    #: The page came from this run's snapshot cache: nothing was sent or charged.
+    cached: bool = False
+
+
+class RunSnapshotCache:
+    """The pages one run has captured, by canonical URL, held in this process.
+
+    Keyed by URL, never by snapshot id: a URL is answered only with the page
+    that URL itself returned (under its requested or its final URL). The id is
+    content-addressed, so two URLs whose pages extract to the same text -- a
+    mirrored article, two script-only shells with no text at all -- share it;
+    answering one from the other would attach the wrong URL and title to a
+    citation. One cache serves one run -- the caller builds it with the run's
+    gate and drops it with the run; nothing here is shared across runs or
+    stored. Only a page that was kept is cached: a refusal or a failure is
+    asked again.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._pages: dict[str, FetchedPage] = {}
+
+    @staticmethod
+    def _key(url: str) -> str:
+        return canonical_url(url) or url
+
+    def get(self, url: str) -> FetchedPage | None:
+        with self._lock:
+            return self._pages.get(self._key(url))
+
+    def put(self, url: str, page: FetchedPage) -> None:
+        with self._lock:
+            for each in (url, page.snapshot.final_url):
+                self._pages.setdefault(self._key(each), page)
+
+    def __len__(self) -> int:
+        """The captures held (a page under two URLs is one)."""
+        with self._lock:
+            return len({id(page) for page in self._pages.values()})
 
 
 class RetrievalGate:
@@ -145,6 +193,7 @@ class RetrievalGate:
         client_terms: Sequence[ClientTerm],
         class_a_texts: Sequence[str],
         clock: Callable[[], datetime] = _utcnow,
+        cache: RunSnapshotCache | None = None,
     ) -> None:
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
@@ -156,6 +205,7 @@ class RetrievalGate:
         self._terms = tuple(client_terms)
         self._class_a = tuple(class_a_texts)
         self._clock = clock
+        self._cache = cache
 
     # ---------------------------------------------------------------- shared --
 
@@ -390,6 +440,24 @@ class RetrievalGate:
                 if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
                 else self._refusal(route, data_class=cls)
             )
+        if reason is None and self._cache is not None:
+            hit = self._cache.get(url)
+            if hit is not None:
+                self._meter.outcome(
+                    self._event(
+                        route,
+                        call_id=new_tool_call_id(),
+                        outcome=ToolOutcome.CACHED,
+                        data_class=cls,
+                        track_id=track_id,
+                        sent=url,
+                        note=f"run_snapshot_cache {hit.snapshot.snapshot_id}",
+                    )
+                )
+                return FetchOutcome(url=url, page=hit, reason=None, uncertain=False, cached=True)
+        if reason is None:
+            # A robots.txt the transport already holds: refused before any dispatch.
+            reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=url)
             return FetchOutcome(url=url, page=None, reason=reason, uncertain=False)
@@ -438,4 +506,6 @@ class RetrievalGate:
                 provider_request_id=page.snapshot.request_id,
             )
         )
+        if self._cache is not None:
+            self._cache.put(url, page)
         return FetchOutcome(url=url, page=page, reason=None, uncertain=False)
