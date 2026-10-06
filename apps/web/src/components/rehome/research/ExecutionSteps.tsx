@@ -54,7 +54,6 @@ import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
 
 const POLL_MS = 2000;
-const usd = (n: number) => `${n.toFixed(2)} USD`;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 /** The server refused a start or retry because the study's limit asks first: the ceiling it worked out. */
@@ -103,7 +102,6 @@ function useFrame() {
 function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; canEdit: boolean; onLimitSaved: () => void }) {
   const frame = useFrame();
   const [study, setStudy] = useState<Study | null | undefined>(undefined);
-  const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -119,7 +117,18 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   // An API that does not send a figure has not given one: read it as absent, never as zero.
   const ceiling = num(readiness.cost_ceiling_usd);
   const limit = num(readiness.spend_confirm_usd);
-  useEffect(() => setAmount(limit === null ? "" : String(limit)), [limit]);
+  // The switch is on while a limit is stored, or while the person is typing one; the switch
+  // and the amount follow the stored limit when it changes. They are adjusted during render,
+  // never in an effect: an effect runs after the commit, so a switch turned on (or an amount
+  // typed) before it ran was overwritten by the mount's "no limit".
+  const [asking, setAsking] = useState(limit !== null);
+  const [amount, setAmount] = useState(limit === null ? "" : String(limit));
+  const [shownLimit, setShownLimit] = useState(limit);
+  if (limit !== shownLimit) {
+    setShownLimit(limit);
+    setAsking(limit !== null);
+    setAmount(limit === null ? "" : String(limit));
+  }
 
   const save = async (limit: number | null) => {
     setSaving(true);
@@ -136,9 +145,6 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   const typed = amount.trim() === "" ? Number.NaN : Number(amount);
   const remaining = num(study?.remaining_usd);
   const budget = num(study?.budget_usd);
-  // The switch is on while a limit is stored, or while the person is typing one.
-  const [asking, setAsking] = useState(limit !== null);
-  useEffect(() => setAsking(limit !== null), [limit]);
   const commit = () => {
     if (Number.isFinite(typed) && typed >= 0 && typed !== limit) void save(typed);
   };
@@ -157,7 +163,7 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
         <p className="text-sm">{t(`research.exec.cost.unknown.${readiness.cost_ceiling_unknown ?? "sample_size_missing"}`)}</p>
       )}
       {study === undefined ? null : remaining !== null && budget !== null ? (
-        <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: usd(remaining), budget: usd(budget) })}</p>
+        <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: remaining.toFixed(2), budget: budget.toFixed(2) })}</p>
       ) : (
         <p className="mt-2 text-sm text-ink-muted">{t("research.exec.cost.budgetUnknown")}</p>
       )}
@@ -225,12 +231,12 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
           <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
-          {tv("research.exec.cost.legendCeiling", { ceiling: usd(ceiling) })}
+          {t("research.exec.cost.legendCeiling")}
         </span>
         {limit !== null ? (
           <span className="inline-flex items-center gap-1.5">
             <i aria-hidden="true" className="block h-2.5 w-0.5 bg-ink" />
-            {tv("research.exec.cost.legendLimit", { limit: usd(limit) })}
+            {t("research.exec.cost.legendLimit")}
           </span>
         ) : null}
       </div>
@@ -340,7 +346,7 @@ export function RunStep() {
   };
 
   const ask = (ceiling: number, limit: number) =>
-    confirm(tv("research.exec.cost.confirm", { ceiling: usd(ceiling), limit: usd(limit) }));
+    confirm(tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }));
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
@@ -659,7 +665,7 @@ export function ProgressStep() {
                   // A retry is a new run, so the study's limit asks again.
                   const asked = confirmationAsked(e);
                   if (!asked) throw e;
-                  const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: usd(asked.ceiling), limit: usd(asked.limit) }));
+                  const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
                   if (!yes) return run;
                   return research.retry(frame.studyId, run.run_id, asked.ceiling);
                 }

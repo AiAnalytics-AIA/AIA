@@ -317,6 +317,12 @@ forbid "no deployment runs the recorded Deep Research composition" \
 forbid "the site crawl imports no infrastructure and no HTTP client" \
   '^\s*(from|import)\s+(\.\.infrastructure|aia_core\.infrastructure|urllib3|urllib\.request|http\.client|socket|ssl|httpx|requests)\b' \
   "$CORE/application/site_crawl.py"
+# The acquisition ladder (plan chunk 10) is the same: every rung asks the gate it
+# is given. It may read a connector's id and its pure table readers (OpenAlex's open
+# copies, Wayback's nearest capture), never a transport, a fetcher or an HTTP client.
+forbid "the acquisition ladder imports no transport and no HTTP client" \
+  '^\s*(from|import)\s+(\.\.infrastructure\.(web_retrieval|web_retrieval_live|web_retrieval_brave|common_crawl|dataset_connectors)|aia_core\.infrastructure\.(web_retrieval|common_crawl|dataset_connectors)|urllib3|urllib\.request|http\.client|socket|ssl|httpx|requests)\b' \
+  "$CORE/application/acquisition_ladder.py"
 # An archived copy is for a dead or moved page only (plan deep-research-web-search
 # § 7 rung 9): the gate asks the archive only with a permit, and only the archive
 # policy issues one. Nothing else may construct it.

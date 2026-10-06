@@ -39,6 +39,17 @@ names, by byte range, over the archive route: the snapshot says it is an
 archived capture, and it is never put in the run's snapshot cache, so a later
 live fetch of the same URL is never answered with an archive's copy.
 
+**No archive, cache or mirror is fetched without a permit** (plan § 4: never an
+archive to get round a paywall). A URL on one of their hosts
+(``acquisition.ARCHIVE_HOSTS``) is refused before dispatch
+(``archive_host_not_permitted``) unless the caller holds an
+:class:`~aia_core.domain.deep_research.archive.ArchivePermit` for exactly the page
+the URL is a copy of (a Wayback replay names it); a redirect to such a host is
+refused before the hop (``redirect_out_of_scope``) unless it is the same permitted
+host. Common Crawl's reads take their permit too: an index query for one exact URL
+and an archived record are refused (``archive_not_permitted``) without a permit
+for that URL.
+
 A fetch may be confined to hosts the caller names (a crawl stays on its host):
 a URL elsewhere is refused before dispatch, a redirect elsewhere before the hop
 is requested. A document read for what it lists rather than what it says (a
@@ -80,6 +91,11 @@ from typing import Any, TypeVar
 from uuid import uuid4
 
 from ..domain.ai_contracts import Delivery
+from ..domain.deep_research.acquisition import (
+    ARCHIVE_HOST_NOT_PERMITTED,
+    archive_permits,
+    is_archive_host,
+)
 from ..domain.deep_research.archive import AccessBarrier, ArchivePermit, LiveAttempt
 from ..domain.deep_research.classification import classify_query
 from ..domain.deep_research.common_crawl import (
@@ -87,6 +103,7 @@ from ..domain.deep_research.common_crawl import (
     AthenaPricing,
     IndexRow,
     IndexRowInvalid,
+    IndexTarget,
     UrlIndexQuery,
     archive_url,
     build_index_sql,
@@ -148,6 +165,7 @@ __all__ = [
     "WebRetrieval",
     "live_attempt",
     "request_fingerprint",
+    "sent_archived",
     "sent_search",
 ]
 
@@ -354,6 +372,37 @@ class FetchOutcome:
 def request_fingerprint(sent: str) -> str:
     """What the journal keeps of a sent query or URL: its SHA256, never the text."""
     return _fingerprint(sent)
+
+
+def _permit_url(permit: ArchivePermit | None) -> str | None:
+    """The page a permit is for; None for no permit, or anything that is not one."""
+    return permit.url if isinstance(permit, ArchivePermit) else None
+
+
+def _no_archive_hops(
+    host_allowed: HostFilter | None, *, url: str, permit: ArchivePermit | None
+) -> HostFilter:
+    """``host_allowed``, and no redirect hop to an archive's host -- except, for a
+    permitted archive URL, its own host (an archive redirects to its nearest capture)."""
+    own: str | None = None
+    if archive_permits(_permit_url(permit), url):
+        try:
+            own = check_url(url)
+        except FetchRefused:
+            own = None  # refused at admission; nothing will be requested
+
+    def allowed(host: str) -> bool:
+        if host_allowed is not None and not host_allowed(host):
+            return False
+        return not is_archive_host(host) or (own is not None and host == own)
+
+    return allowed
+
+
+def sent_archived(row: IndexRow) -> str:
+    """What reading an archived record sends, as journaled: the WARC file's URL and its range."""
+    last = row.warc_record_offset + row.warc_record_length - 1
+    return f"{archive_url(row)} bytes={row.warc_record_offset}-{last}"
 
 
 def sent_search(query: str, lang: str | None) -> str:
@@ -582,6 +631,29 @@ class RetrievalGate:
         fetch = self._refusal(self._retrieval.fetch_route, data_class=DataClass.CLASS_C_INTERNAL)
         return None if fetch is None else f"fetch_{fetch}"
 
+    @property
+    def has_common_crawl(self) -> bool:
+        """Whether this gate was given Common Crawl's routes. Sends nothing."""
+        return self._archive is not None
+
+    def has_dataset(self, connector_id: str) -> bool:
+        """Whether this gate was given the dataset connector ``connector_id``. Sends nothing."""
+        return connector_id in self._datasets
+
+    def has_archive(self, connector_id: str) -> bool:
+        """Whether this gate was given the archive lookup ``connector_id``. Sends nothing."""
+        return connector_id in self._archives
+
+    def index_statement(self, query: UrlIndexQuery) -> str:
+        """The statement :meth:`query_url_index` would send for ``query``. Sends nothing.
+
+        What a caller that must not send a call twice (a resumed step) compares with
+        the journal's fingerprints.
+        """
+        if self._archive is None:
+            raise ValueError("this gate has no Common Crawl route")
+        return build_index_sql(query, self._archive.index.table)
+
     def known_sitemaps(self, host: str) -> tuple[str, ...] | None:
         """The ``Sitemap:`` URLs ``host``'s robots.txt declares, if this run already read it.
 
@@ -803,9 +875,10 @@ class RetrievalGate:
     # ----------------------------------------------------------------- fetch --
 
     def _fetch_admission(
-        self, url: str, *, host_allowed: HostFilter | None
+        self, url: str, *, host_allowed: HostFilter | None, permit: ArchivePermit | None = None
     ) -> tuple[DataClass, str | None]:
-        """A URL's class, and why it may not be requested (address, scope, class, egress)."""
+        """A URL's class, and why it may not be requested (address, archive, scope,
+        class, egress)."""
         cls = classify_query(
             url,
             context_class=DataClass.CLASS_C_INTERNAL,
@@ -816,6 +889,8 @@ class RetrievalGate:
             host = check_url(url)
         except FetchRefused as exc:
             return cls, exc.reason
+        if not archive_permits(_permit_url(permit), url):
+            return cls, ARCHIVE_HOST_NOT_PERMITTED
         if host_allowed is not None and not host_allowed(host):
             return cls, HOST_OUT_OF_SCOPE
         if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
@@ -925,7 +1000,12 @@ class RetrievalGate:
         )
 
     def fetch(
-        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+        self,
+        url: str,
+        *,
+        track_id: str,
+        host_allowed: HostFilter | None = None,
+        permit: ArchivePermit | None = None,
     ) -> FetchOutcome:
         """One page: checked, authorised, reserved, journaled, fetched -- or refused.
 
@@ -934,20 +1014,26 @@ class RetrievalGate:
         a redirect elsewhere before the hop is requested (``redirect_out_of_scope``),
         and a cached page whose final URL is elsewhere is refused, not served.
         """
-        begun = self.begin_fetch(url, track_id=track_id, host_allowed=host_allowed)
+        begun = self.begin_fetch(url, track_id=track_id, host_allowed=host_allowed, permit=permit)
         if isinstance(begun, FetchOutcome):
             return begun
         begun.send()
         return self.finish_fetch(begun)
 
     def begin_fetch(
-        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+        self,
+        url: str,
+        *,
+        track_id: str,
+        host_allowed: HostFilter | None = None,
+        permit: ArchivePermit | None = None,
     ) -> FetchOutcome | PendingFetch:
         """Check, classify (the whole URL: host, path and query), confine to
         ``host_allowed``, authorise; answer from the run's cache; or reserve and
         journal ``DISPATCHED``. Sends nothing (see :meth:`begin_search`)."""
         route = self._retrieval.fetch_route
-        cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        cls, reason = self._fetch_admission(url, host_allowed=host_allowed, permit=permit)
+        host_allowed = _no_archive_hops(host_allowed, url=url, permit=permit)
         if reason is None and self._cache is not None:
             hit = self._cache.get(url)
             if hit is not None:
@@ -1039,6 +1125,7 @@ class RetrievalGate:
         """
         route = self._retrieval.fetch_route
         cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        host_allowed = _no_archive_hops(host_allowed, url=url, permit=None)
         if reason is None:
             reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
@@ -1060,7 +1147,12 @@ class RetrievalGate:
     # ---------------------------------------------------------- common crawl --
 
     def query_url_index(
-        self, query: UrlIndexQuery, *, context_class: DataClass, track_id: str
+        self,
+        query: UrlIndexQuery,
+        *,
+        context_class: DataClass,
+        track_id: str,
+        permit: ArchivePermit | None = None,
     ) -> IndexOutcome:
         """One URL index query: written, classified, authorised, reserved, run, settled.
 
@@ -1071,6 +1163,11 @@ class RetrievalGate:
         query can cost) and is charged the bytes it scanned; an unknown scan is
         charged the reservation. Rows of another shape are refused whole, and the
         scan they cost is still charged.
+
+        A query for one exact URL asks where copies of that page are: it needs the
+        permit ``decide_archive_use`` issued for that URL, or it is refused
+        (``archive_not_permitted``) and journaled before anything else. A query by
+        host or domain (discovery) names no page and needs none.
         """
         archive = self._archive
         if archive is None:
@@ -1083,11 +1180,13 @@ class RetrievalGate:
             client_terms=self._terms,
             class_a_texts=self._class_a,
         ).data_class
-        reason = (
-            "class_a_query"
-            if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
-            else self._refusal(route, data_class=cls)
-        )
+        reason: str | None
+        if query.target is IndexTarget.URL and _permit_url(permit) != query.value:
+            reason = "archive_not_permitted"
+        elif cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
+            reason = "class_a_query"
+        else:
+            reason = self._refusal(route, data_class=cls)
         if reason is not None:
             self._refuse(route, reason=reason, data_class=cls, track_id=track_id, sent=statement)
             return IndexOutcome(statement, cls, (), reason, False)
@@ -1151,8 +1250,15 @@ class RetrievalGate:
         )
         return IndexOutcome(statement, cls, rows, None, False, scanned, cost)
 
-    def fetch_archived(self, row: IndexRow, *, track_id: str) -> FetchOutcome:
+    def fetch_archived(
+        self, row: IndexRow, *, track_id: str, permit: ArchivePermit | None
+    ) -> FetchOutcome:
         """The archived capture an index row names, by byte range -- or refused.
+
+        Only with the permit ``decide_archive_use`` issued for the page the row is a
+        capture of (``row.url``): without it the read is refused
+        (``archive_not_permitted``) and journaled, and nothing is sent. ``permit`` has
+        no default: every caller says what it holds.
 
         Classified (the WARC file's URL, from a public index), egress-checked over
         the archive route, reserved and journaled like a fetch; what was sent is
@@ -1165,8 +1271,7 @@ class RetrievalGate:
             raise ValueError("this gate has no Common Crawl route")
         route = archive.archive_route
         url = archive_url(row)
-        last = row.warc_record_offset + row.warc_record_length - 1
-        sent = f"{url} bytes={row.warc_record_offset}-{last}"
+        sent = sent_archived(row)
         cls = classify_query(
             url,
             context_class=DataClass.CLASS_C_INTERNAL,
@@ -1178,6 +1283,8 @@ class RetrievalGate:
             reason = None if check_url(url) == ARCHIVE_HOST else HOST_OUT_OF_SCOPE
         except FetchRefused as exc:
             reason = exc.reason
+        if _permit_url(permit) != row.url:
+            reason = "archive_not_permitted"
         if reason is None:
             reason = (
                 "class_a_url"

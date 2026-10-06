@@ -124,6 +124,12 @@ services:
       # the ceiling is unknown, and a study with a spend limit does not start such a run.
       AIA_AI_FIELDWORK_RESERVATION_USD: ${AIA_AI_FIELDWORK_RESERVATION_USD:-}
       AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
+      # The same for a Deep Research run (deep-research-web-search.md chunk 22): the research
+      # agents' reservation, the public route and the mode switches the worker composes from.
+      AIA_AI_RESEARCH_RESERVATION_USD: ${AIA_AI_RESEARCH_RESERVATION_USD:-}
+      AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED: ${AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED:-false}
+      AIA_DEEP_RESEARCH_AGENT_DIRECTED: ${AIA_DEEP_RESEARCH_AGENT_DIRECTED:-false}
+      AIA_DEEP_RESEARCH_LEAD: ${AIA_DEEP_RESEARCH_LEAD:-false}
     expose: ["8000"]
     depends_on:
       postgres:

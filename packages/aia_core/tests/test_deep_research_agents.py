@@ -11,6 +11,7 @@ from aia_core.domain.ai_contracts import ModelRequest, validate_structured_outpu
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.deep_research.agents import (
     AGENT_IDS,
+    INVESTIGATOR_PROMPT_VERSION,
     PROMPT_VERSION,
     AgentRole,
     ExtractionProposal,
@@ -34,7 +35,11 @@ def test_every_agent_names_a_capability_holds_no_tools_and_has_a_closed_contract
     assert agent.agent_id == AGENT_IDS[role] == f"aia.deep_research.{role.value}"
     assert agent.allowed_tools == frozenset()
     assert agent.is_structured and agent.schema_repair_attempts == 1
-    assert agent.prompt_version == PROMPT_VERSION
+    # The investigator has its own prompt version (agents.py); the rest share one.
+    expected_prompt = (
+        INVESTIGATOR_PROMPT_VERSION if role is AgentRole.INVESTIGATOR else PROMPT_VERSION
+    )
+    assert agent.prompt_version == expected_prompt
     expected = {
         AgentRole.VERIFIER: ModelCapability.CRITIC,
         AgentRole.INDEPENDENT_VERIFIER: ModelCapability.CRITIC,

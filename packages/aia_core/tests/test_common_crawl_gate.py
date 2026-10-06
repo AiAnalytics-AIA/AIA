@@ -27,6 +27,7 @@ from aia_core.application.web_retrieval import (
     RunSnapshotCache,
     WebRetrieval,
 )
+from aia_core.domain.deep_research.archive import LiveAttempt, decide_archive_use
 from aia_core.domain.deep_research.common_crawl import (
     INDEX_COLUMNS,
     AthenaPricing,
@@ -116,6 +117,15 @@ def _row(offset: int = 0, length: int = len(MEMBER)) -> list[str | None]:
 
 
 QUERY = UrlIndexQuery(target=IndexTarget.URL, value=PAGE_URL, crawls=(CRAWL,), limit=3)
+#: Leave to ask the archive about PAGE_URL: its live fetch found it gone (404).
+PERMIT = decide_archive_use(
+    LiveAttempt(url=PAGE_URL, failure="http_404", uncertain=False), needed_quote="45 %"
+).permit
+#: A permit for another page: it opens nothing of PAGE_URL's.
+OTHER_PERMIT = decide_archive_use(
+    LiveAttempt(url="https://stats.example/jina", failure="http_410", uncertain=False),
+    needed_quote="45 %",
+).permit
 
 
 def _provider(route_id: str, *, approved: frozenset[DataClass]) -> ProviderRoute:
@@ -261,7 +271,9 @@ def test_a_recorded_index_query_sends_the_statement_code_wrote_and_reads_its_row
     scoped: Any,
 ) -> None:
     h = _harness(scoped.scope())
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.reason is None and not outcome.uncertain
     assert outcome.statement == build_index_sql(QUERY, TABLE)
     assert h.index.calls == [outcome.statement]
@@ -299,7 +311,9 @@ def test_a_statement_written_from_client_material_never_leaves_the_eu(
     scoped: Any, context_class: DataClass, approved: frozenset[DataClass], reason: str
 ) -> None:
     h = _harness(scoped.scope(), index_approved=approved)
-    outcome = h.gate.query_url_index(QUERY, context_class=context_class, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=context_class, track_id="T", permit=PERMIT
+    )
     assert outcome.reason == reason and outcome.rows == ()
     assert h.index.calls == []
     (event,) = h.ledger.events()
@@ -334,7 +348,9 @@ def test_rows_of_another_shape_are_refused_whole(scoped: Any) -> None:
         },
     )
     h = _harness(scoped.scope(), index=index)
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.reason == "index_rows_invalid" and outcome.rows == ()
     assert h.ledger.events()[-1].outcome is ToolOutcome.FAILED
 
@@ -431,7 +447,9 @@ def test_a_query_is_reserved_at_its_cutoff_and_charged_the_bytes_it_scanned(scop
     )
     ledger = _StudyLedger(budget_usd=1.0)
     h, _ = _live(scoped.scope(), wire, ledger)
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.reason is None and len(outcome.rows) == 1
     dispatched, settled = ledger.events()
     assert dispatched.ceiling_usd == pytest.approx(CEILING) == pytest.approx(0.1)
@@ -453,7 +471,9 @@ def test_a_failed_query_is_charged_what_it_scanned_and_an_unknown_scan_its_ceili
     )
     ledger = _StudyLedger(budget_usd=1.0)
     h, _ = _live(scoped.scope(), failed, ledger)
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.reason == "athena_failed" and not outcome.uncertain
     # Below the 10 MB minimum: billed the minimum.
     assert ledger.committed_usd() == pytest.approx(PRICING.cost_usd(10_000_000))
@@ -463,7 +483,9 @@ def test_a_failed_query_is_charged_what_it_scanned_and_an_unknown_scan_its_ceili
     )
     ledger = _StudyLedger(budget_usd=1.0)
     h, _ = _live(scoped.scope(), lost, ledger)
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.uncertain and outcome.data_scanned_bytes is None
     assert ledger.events()[-1].outcome is ToolOutcome.UNCERTAIN
     assert ledger.committed_usd() == pytest.approx(CEILING)
@@ -474,7 +496,9 @@ def test_a_paid_index_is_refused_while_tool_spend_cannot_be_charged_to_the_study
 ) -> None:
     wire = _AthenaWire(answers={})
     h, _ = _live(scoped.scope(), wire, InMemoryToolLedger(budget_usd=1.0))
-    outcome = h.gate.query_url_index(QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    outcome = h.gate.query_url_index(
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
+    )
     assert outcome.reason == "tool_metering_unavailable"
     assert wire.sent == []
 
@@ -519,9 +543,9 @@ def test_an_archived_record_is_extracted_grounded_and_kept_apart_from_live_fetch
     cache = RunSnapshotCache()
     h = _harness(scoped.scope(), cache=cache)
     (row,) = h.gate.query_url_index(
-        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T"
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
     ).rows
-    archived = h.gate.fetch_archived(row, track_id="T")
+    archived = h.gate.fetch_archived(row, track_id="T", permit=PERMIT)
     assert archived.reason is None and archived.page is not None
     snapshot = archived.page.snapshot
     assert snapshot.archive is not None and snapshot.archive.crawl == CRAWL
@@ -562,7 +586,7 @@ def test_an_archived_record_is_extracted_grounded_and_kept_apart_from_live_fetch
 
 def _fetch_row(h: _Harness) -> Any:
     return h.gate.query_url_index(
-        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T"
+        QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=PERMIT
     ).rows[0]
 
 
@@ -570,7 +594,7 @@ def test_a_truncated_member_is_refused_and_the_call_closed(scoped: Any) -> None:
     h = _harness(scoped.scope(), files={FILE_URL: MEMBER[:-9]})
     row = _fetch_row(h)
     # The file ends before the record does: the archive answers a shorter range.
-    outcome = h.gate.fetch_archived(row, track_id="T")
+    outcome = h.gate.fetch_archived(row, track_id="T", permit=PERMIT)
     assert outcome.page is None and outcome.reason == "range_mismatch"
     assert h.ledger.events()[-1].outcome is ToolOutcome.FAILED
 
@@ -582,7 +606,7 @@ def test_a_truncated_member_is_refused_and_the_call_closed(scoped: Any) -> None:
         },
     )
     h = _harness(scoped.scope(), index=index)
-    outcome = h.gate.fetch_archived(_fetch_row(h), track_id="T")
+    outcome = h.gate.fetch_archived(_fetch_row(h), track_id="T", permit=PERMIT)
     assert outcome.reason == "archive_record_truncated"
 
 
@@ -599,7 +623,7 @@ def test_a_member_that_inflates_past_its_bound_is_refused(scoped: Any) -> None:
         },
     )
     h = _harness(scoped.scope(), index=index, files={FILE_URL: bomb})
-    outcome = h.gate.fetch_archived(_fetch_row(h), track_id="T")
+    outcome = h.gate.fetch_archived(_fetch_row(h), track_id="T", permit=PERMIT)
     assert outcome.page is None and outcome.reason == "archive_record_too_large"
 
 
@@ -614,6 +638,42 @@ def test_an_archived_fetch_is_refused_for_a_client_term_in_its_url(scoped: Any) 
             "warc_filename": f"crawl-data/{CRAWL}/segments/pivovar-kotelna/warc/a.warc.gz",
         }
     )
-    outcome = h.gate.fetch_archived(kotelna, track_id="T")
+    outcome = h.gate.fetch_archived(kotelna, track_id="T", permit=PERMIT)
     assert outcome.reason == "egress_route_not_approved_for_class"
     assert h.archive.calls == []
+
+
+# --------------------------------------------------------------------------- #
+# The permit: an archived copy only of a page found dead, moved or changed
+# --------------------------------------------------------------------------- #
+
+
+def test_an_exact_url_index_query_is_refused_without_a_permit_for_that_url(scoped: Any) -> None:
+    h = _harness(scoped.scope())
+    for permit in (None, OTHER_PERMIT):
+        outcome = h.gate.query_url_index(
+            QUERY, context_class=DataClass.CLASS_C_INTERNAL, track_id="T", permit=permit
+        )
+        assert outcome.reason == "archive_not_permitted" and outcome.rows == ()
+    assert h.index.calls == []
+    assert [(e.outcome, e.note) for e in h.ledger.events()] == [
+        (ToolOutcome.REFUSED, "archive_not_permitted")
+    ] * 2
+    # Discovery by host names no page and asks for no copy of one: no permit needed.
+    host = UrlIndexQuery(target=IndexTarget.HOST, value="stats.example", crawls=(CRAWL,), limit=5)
+    found = h.gate.query_url_index(host, context_class=DataClass.CLASS_C_INTERNAL, track_id="T")
+    # (Sent: the recorded index answers an unrecorded statement with no columns.)
+    assert found.reason == "index_rows_invalid" and len(h.index.calls) == 1
+
+
+def test_an_archived_record_is_refused_without_a_permit_for_its_page(scoped: Any) -> None:
+    h = _harness(scoped.scope())
+    row = _fetch_row(h)
+    for permit in (None, OTHER_PERMIT):
+        outcome = h.gate.fetch_archived(row, track_id="T", permit=permit)
+        assert outcome.page is None and outcome.reason == "archive_not_permitted"
+    assert h.archive.calls == []
+    refused = [e for e in h.ledger.events() if e.tool is ToolKind.ARCHIVE_FETCH]
+    assert [(e.outcome, e.note) for e in refused] == [
+        (ToolOutcome.REFUSED, "archive_not_permitted")
+    ] * 2
