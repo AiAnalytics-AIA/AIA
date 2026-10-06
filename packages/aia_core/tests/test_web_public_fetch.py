@@ -448,6 +448,48 @@ def test_the_gate_journals_a_robots_refusal_and_refuses_a_known_one_before_dispa
     assert wire.targets() == ["stats.example/robots.txt"]
 
 
+def test_a_charset_nobody_can_read_is_refused_and_the_call_is_closed(scoped: Any) -> None:
+    """Regression: an unknown charset raised LookupError through the gate, leaving
+    the call DISPATCHED with no outcome and ending the step."""
+    fetcher, _, _, _ = _setup(
+        {
+            ("stats.example", "/robots.txt"): _robots(""),
+            ("stats.example", "/a"): _ok(
+                "<p>x</p>", {"content-type": "text/html; charset=x-unknown"}
+            ),
+        }
+    )
+    with pytest.raises(FetchRefused) as caught:
+        fetcher.fetch("https://stats.example/a")
+    assert caught.value.reason == "charset_unknown"
+
+    fetcher, _, _, _ = _setup(
+        {
+            ("stats.example", "/robots.txt"): _robots(""),
+            ("stats.example", "/a"): _ok(
+                "<p>x</p>", {"content-type": "text/html; charset=x-unknown"}
+            ),
+        }
+    )
+    ledger = InMemoryToolLedger(budget_usd=0.0)
+    gate = RetrievalGate(
+        retrieval=WebRetrieval(
+            search_route=_route(ToolKind.WEB_SEARCH),
+            fetch_route=_route(ToolKind.WEB_FETCH),
+            search=_LiveSearch(),
+            fetcher=fetcher,
+        ),
+        scope=scoped.scope(),
+        meter=ledger,
+        client_terms=(),
+        class_a_texts=(),
+        clock=lambda: NOW,
+    )
+    outcome = gate.fetch("https://stats.example/a", track_id="T")
+    assert outcome.page is None and outcome.reason == "charset_unknown"
+    assert [e.outcome for e in ledger.events()] == [ToolOutcome.DISPATCHED, ToolOutcome.FAILED]
+
+
 # --------------------------------------------------------------------------- the wire
 
 
