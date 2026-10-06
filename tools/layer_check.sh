@@ -307,7 +307,7 @@ forbid "only the archive policy issues an archive permit" \
   archive.py
 # The public dataset and archive connectors are registered by no composition until
 # the Deep Research composition chunk (plan chunk 23) records their routes and prices.
-DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector'
+DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
 for composition in "$API" "$WORKER" "$EXECUTORS" deploy; do
   forbid "no composition registers a dataset connector yet ($composition)" \
     "$DATASET_CONNECTORS" \
