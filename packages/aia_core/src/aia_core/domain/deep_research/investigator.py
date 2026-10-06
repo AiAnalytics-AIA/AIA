@@ -924,23 +924,31 @@ def turn_input(
     findings: Sequence[tuple[str, str]],
     reading: Sequence[Mapping[str, Any]],
     waiting: Sequence[Mapping[str, Any]],
+    assignment: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The payload of one turn's request: deterministic for the same state.
 
     ``findings`` are (``S<n>``, claim) of the track's grounded findings so far;
     ``reading`` and ``waiting`` come from :meth:`TrackState.take_reading`.
+    ``assignment`` is a lead-planned task's brief (``LeadState.assignment``): the task
+    then carries it in place of the planner's suggested queries. ``None`` builds the
+    payload exactly as before the lead existed.
     """
     refs = state.refs
     duplicates = refs.duplicates()
+    task: dict[str, Any] = {
+        "subject": {"kind": track.subject.kind.value, "text": track.subject.text},
+        "brief": {"title": brief.title, "goal": brief.goal},
+        "sub_questions": list(sub_questions),
+    }
+    if assignment is None:
+        task["suggested_queries"] = list(suggested_queries)
+    else:
+        task["assignment"] = dict(assignment)
     return {
         "track_id": track.track_id,
         "turn": turn,
-        "task": {
-            "subject": {"kind": track.subject.kind.value, "text": track.subject.text},
-            "brief": {"title": brief.title, "goal": brief.goal},
-            "sub_questions": list(sub_questions),
-            "suggested_queries": list(suggested_queries),
-        },
+        "task": task,
         "allowance": {
             "turns_left": max(allowance.turns - turn + 1, 0),
             "searches_left": max(allowance.searches - state.searches_used, 0),

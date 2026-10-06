@@ -609,6 +609,7 @@ export const cs = {
         capability: {
           FAST_EXTRACTION: "levná strukturovaná extrakce",
           RESEARCH_REASONING: "syntéza s dlouhým kontextem, návrh studie",
+          RESEARCH_LEAD: "vedoucí výzkumu: plán, úsilí a úkoly (Deep Research)",
           REPORT_WRITING: "dlouhý text v češtině",
           CRITIC: "adversariální revize",
           SIMULATION: "simulace respondentů a světa",

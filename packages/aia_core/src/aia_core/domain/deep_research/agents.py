@@ -18,6 +18,10 @@ investigator            RESEARCH_REASONING   one turn of an agent-directed web t
 independent verifier    CRITIC               supported / overstated / unsupported /
                                              superseded, the attacks tried, a search
                                              it proposes (agent-directed mode only)
+lead                    RESEARCH_LEAD        the run's plan: subjects sized by effort,
+                                             tasks in waves (``lead.ResearchPlan``)
+lead re-plan            RESEARCH_LEAD        after a wave: gap and resolve tasks,
+                                             budget moved, notes routed (``lead.Replan``)
 ======================  ===================  ===========================================
 
 The **investigator** (plan ``deep-research-web-search.md`` § 6, chunk 9) is the
@@ -33,7 +37,16 @@ pair must say unambiguously what shape came back. The **independent verifier**
 (§ 8.4, chunk 12; :mod:`.verifier`) is one too, for the same reason: the planned
 mode's verifier and its prompt are unchanged.
 
-The capabilities are the two the AI runtime binds for research agents today (plan
+The **lead researcher** (chunk 11) plans a lead-planned run and re-plans it after
+each wave. It answers in two contracts, so it is two agents
+(``aia.deep_research.lead`` and ``aia.deep_research.lead_replan``) with one prompt
+version, :data:`~.lead.LEAD_PROMPT_VERSION`. It names its own capability,
+``RESEARCH_LEAD``, so its model is its own policy entry; its prompts are rendered from
+the effort table they describe (:data:`~.lead.EFFORT_CAPS`). A request may carry a
+*bound* form of the lead's contract (:func:`~.lead.bound_plan_contract`): the same
+schema, with code's checks run in the gateway's validation.
+
+The other capabilities are the two the AI runtime binds for research agents today (plan
 decision I-7). Prompts are rendered from the enums they refer to, so a new
 recommended-use value or verdict cannot be missing from the text the model reads.
 
@@ -59,6 +72,16 @@ from ..licence import DataLineage
 from ..residency import DataClass
 from .classification import most_restrictive
 from .contracts import EvidenceType, Measure, MeasureBasis, RecommendedUse
+from .lead import (
+    EFFORT_CAPS,
+    LEAD_PROMPT_VERSION,
+    MAX_TASKS_PER_WAVE,
+    MIN_TASKS_PER_WAVE,
+    Complexity,
+    Replan,
+    ResearchPlan,
+    TaskKind,
+)
 from .verifier import VERIFIER_PROMPT_VERSION, VERIFIER_TASK, Verification
 
 __all__ = [
@@ -321,6 +344,9 @@ class AgentRole(StrEnum):
     INVESTIGATOR = "investigator"
     #: The agent-directed mode's verifier (chunk 12); the planned mode never asks it.
     INDEPENDENT_VERIFIER = "independent_verifier"
+    #: The lead researcher's plan, and its re-plan after a wave (chunk 11).
+    LEAD = "lead"
+    LEAD_REPLAN = "lead_replan"
 
 
 _CONTRACTS: Final[dict[AgentRole, type[BaseModel]]] = {
@@ -331,11 +357,23 @@ _CONTRACTS: Final[dict[AgentRole, type[BaseModel]]] = {
     AgentRole.SYNTHESIZER: SynthesisProposal,
     AgentRole.INVESTIGATOR: InvestigatorTurn,
     AgentRole.INDEPENDENT_VERIFIER: Verification,
+    AgentRole.LEAD: ResearchPlan,
+    AgentRole.LEAD_REPLAN: Replan,
 }
 
 _PROMPT_VERSIONS: Final[dict[AgentRole, str]] = {
     AgentRole.INVESTIGATOR: INVESTIGATOR_PROMPT_VERSION,
     AgentRole.INDEPENDENT_VERIFIER: VERIFIER_PROMPT_VERSION,
+    AgentRole.LEAD: LEAD_PROMPT_VERSION,
+    AgentRole.LEAD_REPLAN: LEAD_PROMPT_VERSION,
+}
+
+#: Every agent not named here asks for ``RESEARCH_REASONING``.
+_CAPABILITIES: Final[dict[AgentRole, ModelCapability]] = {
+    AgentRole.VERIFIER: ModelCapability.CRITIC,
+    AgentRole.INDEPENDENT_VERIFIER: ModelCapability.CRITIC,
+    AgentRole.LEAD: ModelCapability.RESEARCH_LEAD,
+    AgentRole.LEAD_REPLAN: ModelCapability.RESEARCH_LEAD,
 }
 
 AGENT_IDS: Final[dict[AgentRole, str]] = {r: f"aia.deep_research.{r.value}" for r in AgentRole}
@@ -421,6 +459,44 @@ které potřebuješ a nemáš (need, publisher nebo null, why).
     + _LEAKAGE
 )
 
+
+def _effort_table() -> str:
+    lines = []
+    for complexity, cap in EFFORT_CAPS.items():
+        last = cap.max_tasks
+        noun = "úkol" if last == 1 else ("úkoly" if last < 5 else "úkolů")
+        tasks = (
+            f"přesně {last} {noun}"
+            if cap.min_tasks == last
+            else f"{cap.min_tasks} až {last} {noun}"
+        )
+        lines.append(
+            f"'{complexity.value}' -- {tasks}, každý nejvýše {cap.turns} tahů, "
+            f"{cap.searches} vyhledávání a {cap.opens} otevření stránek"
+        )
+    return ";\n".join(lines)
+
+
+_LEAD: Final = f"""Jsi vedoucí výzkumu (lead researcher). Sám nic nevyhledáváš ani neotevíráš:
+plánuješ, odhaduješ potřebné úsilí a zadáváš přesné úkoly výzkumníkům, kteří prohledávají
+veřejný web. Každý úkol je jedna výzkumná stopa jednoho výzkumníka. Aplikace každý tvůj
+návrh ověří; návrh, který pravidla porušuje, ti vrátí s pojmenovanými důvody.
+SLOŽITOST (complexity) subjektu je jedno z: {_values(Complexity)}. Úsilí (effort) je počet
+úkolů subjektu a musí ležet v rozmezí jeho složitosti:
+{_effort_table()}.
+Rozpočet úkolu (budget: turns, searches, opens) nesmí překročit limit složitosti jeho subjektu
+ani limit jedné stopy (limits.per_task); součet rozpočtů nesmí překročit strop běhu
+(limits.ceiling) a úkolů nesmí být víc než limits.max_tasks.
+ÚKOL: task_id ('T1', 'T2'...; v celém běhu jedinečné), kind (jedno z: {_values(TaskKind)}),
+subject_key, measure -- ukazatel, který úkol zjišťuje (název, populace, území, období); dva
+úkoly téhož subjektu se stejným measure jsou duplicitní a aplikace je odmítne. objective --
+co přesně zjistit; wanted_output -- co má výzkumník vrátit (každé číslo s jednotkou,
+obdobím, územím a populací); prefer_sources -- zdroje, kterým dát přednost (vydavatel čísla,
+statistický úřad, regulátor, autor studie); boundaries -- co do úkolu nepatří (jiný subjekt,
+jiný ukazatel, placené nebo uzavřené zdroje). Úkol nesmí obsahovat jméno klienta, kódová
+jména ani důvěrné plány: o tom, co smí opustit aplikaci, rozhoduje aplikace.
+"""
+
 _TASKS: Final[dict[AgentRole, str]] = {
     AgentRole.PLANNER: """Pro každou zadanou webovou stopu (track_id) navrhni 0 až 5 dílčích otázek
 a 1 až tolik vyhledávacích dotazů, kolik povoluje limit. Každou zadanou stopu naplánuj právě
@@ -444,29 +520,55 @@ Každé číslo v textu musí být v citaci některého uvedeného zjištění; 
 klienta a nesmíš je tak podat. Subjekty bez přijatých zjištění uveď v gaps.""",
     AgentRole.INVESTIGATOR: _INVESTIGATOR,
     AgentRole.INDEPENDENT_VERIFIER: VERIFIER_TASK,
+    AgentRole.LEAD: _LEAD
+    + f"""PLÁN: pro každý zadaný subjekt (subject_key) uveď dílčí otázky (questions, nejvýše 5),
+složitost, úsilí a krátké zdůvodnění; každý zadaný subjekt naplánuj právě jednou a žádný
+nepřidávej. Úkoly rozděl do vln (waves): úkoly jedné vlny běží současně, vlny po sobě. Každá
+vlna kromě poslední má {MIN_TASKS_PER_WAVE} až {MAX_TASKS_PER_WAVE} úkolů, poslední 1 až
+{MAX_TASKS_PER_WAVE}. V plánu jsou jen úkoly druhu '{TaskKind.RESEARCH.value}' s prázdným
+addresses a reason null. Po každé vlně tě aplikace požádá o úpravu plánu, dokud to limit
+úprav (limits.replans) dovolí.""",
+    AgentRole.LEAD_REPLAN: _LEAD
+    + f"""ÚPRAVA PLÁNU po vlně: dostaneš výsledky právě dokončených úkolů (ověřená zjištění s
+mírami, mezery, vodítka a souhrny výzkumníků), dříve dokončené úkoly, čekající úkoly s
+rozpočty a stav běhu (spotřeba, strop, zbývající úpravy a úkoly). Navrhni: next_wave --
+nejvýše {MAX_TASKS_PER_WAVE} nových úkolů, které poběží hned: '{TaskKind.GAP.value}' doplní
+mezeru, '{TaskKind.RESOLVE.value}' vyřeší rozpor dvou zjištění (najde primární zdroj každé
+hodnoty a vysvětlí rozdíl: definice, revize, období); každý s reason (mezera nebo rozpor) a
+addresses (task_id dokončených úkolů, kterých se týká). moves -- přesun rozpočtu z jednoho
+čekajícího úkolu (from_task) na jiný (to_task); součet se nemění a from_task si ponechá aspoň
+jeden tah. routed -- poznámka (note) z dokončeného úkolu pro čekající nebo nový úkol, kterou
+výzkumník dostane v zadání. Nové úkoly se se zbytkem plánu musí vejít pod strop běhu.
+Nepotřebuješ-li nic, vrať prázdné seznamy. Rozpor nikdy neprůměruj.""",
 }
 
 
-#: The agents that judge rather than research.
-_CRITICS: Final = frozenset({AgentRole.VERIFIER, AgentRole.INDEPENDENT_VERIFIER})
-
-
 def prompt_for(role: AgentRole) -> str:
-    """The system prompt of one agent: :data:`PROMPT_VERSION`, or the agent's own."""
+    """The system prompt of one agent: :data:`PROMPT_VERSION`, or the agent's own version."""
     return _COMMON + "\n" + _TASKS[role]
 
 
-def agent_definition(role: AgentRole, *, max_output_tokens: int) -> AgentDefinition:
-    """The agent: its capability, its prompt identity, its contract, no tools."""
+def agent_definition(
+    role: AgentRole, *, max_output_tokens: int, contract: type[BaseModel] | None = None
+) -> AgentDefinition:
+    """The agent: its capability, its prompt identity, its contract, no tools.
+
+    ``contract`` is a bound form of the role's own contract (a subclass with the same
+    schema whose validation runs code's checks, :func:`~.lead.bound_plan_contract`);
+    ``None`` is the role's contract itself.
+    """
+    output = _CONTRACTS[role]
+    if contract is not None:
+        if not issubclass(contract, output):
+            raise TypeError(f"{contract.__name__} is not a form of {output.__name__}")
+        output = contract
     return AgentDefinition(
         agent_id=AGENT_IDS[role],
         version="1",
-        capability=ModelCapability.CRITIC
-        if role in _CRITICS
-        else ModelCapability.RESEARCH_REASONING,
+        capability=_CAPABILITIES.get(role, ModelCapability.RESEARCH_REASONING),
         prompt_id=AGENT_IDS[role],
         prompt_version=_PROMPT_VERSIONS.get(role, PROMPT_VERSION),
-        output_contract=_CONTRACTS[role],
+        output_contract=output,
         allowed_tools=frozenset(),
         max_output_tokens=max_output_tokens,
         schema_repair_attempts=1,
@@ -501,6 +603,7 @@ def model_request(
     policy_version: str,
     max_output_tokens: int,
     thinking_budget_tokens: int | None = None,
+    contract: type[BaseModel] | None = None,
 ) -> ModelRequest:
     """One request for one agent, its payload as canonical JSON in a single user message.
 
@@ -508,9 +611,10 @@ def model_request(
     capability under the policy, and the executor's reservation is the budget.
     ``thinking_budget_tokens`` turns extended thinking on, within ``max_output_tokens``;
     ``None`` (the default) builds the request exactly as it was before the setting.
+    ``contract`` is a bound form of the role's contract (see :func:`agent_definition`).
     """
     return ModelRequest(
-        agent=agent_definition(role, max_output_tokens=max_output_tokens),
+        agent=agent_definition(role, max_output_tokens=max_output_tokens, contract=contract),
         policy_version=policy_version,
         data_classification=data_class,
         data_lineage=lineage,
