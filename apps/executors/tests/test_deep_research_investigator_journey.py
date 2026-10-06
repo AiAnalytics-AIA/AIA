@@ -47,7 +47,15 @@ from aia_core.domain.deep_research.contracts import (
     TrackStatus,
 )
 from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
+from aia_core.domain.deep_research.reputation import (
+    REPUTATION_REGISTER_V1,
+    Publisher,
+    RegisterStatus,
+    ReputationRegister,
+)
+from aia_core.domain.deep_research.sources import SourceClass, SourceTier
 from aia_core.domain.deep_research.tooling import ToolOutcome
+from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSION
 from aia_core.domain.residency import DataClass
 from aia_core.domain.workflow import WorkflowRunStatus
 from aia_core.infrastructure.storage import InMemoryArtifactStore
@@ -123,6 +131,27 @@ class ScriptedInvestigator(RecordedAgents):
     turns: dict[str, list[dict[str, Any]]] = field(default_factory=lambda: TURNS)
     #: Every investigator payload it was sent, by (subject, turn), in order.
     shown: list[tuple[str, int, dict[str, Any]]] = field(default_factory=list)
+    #: The independent verifier's answers by claim, over "supported" (chunk 12).
+    judged: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Every item the independent verifier was shown, in order.
+    verified: list[dict[str, Any]] = field(default_factory=list)
+
+    def _independent_verifier(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self.verified.extend(payload["items"])
+        return {
+            "judgements": [
+                {
+                    "evidence_id": i["evidence_id"],
+                    "verdict": "supported",
+                    "attacks": [],
+                    "superseded_by": None,
+                    "search": None,
+                    "reason": "posouzeno podle citace a měr",
+                    **self.judged.get(i["claim"], {}),
+                }
+                for i in payload["items"]
+            ]
+        }
 
     def _investigator(self, payload: dict[str, Any]) -> dict[str, Any]:
         subject, turn = payload["task"]["subject"]["text"], payload["turn"]
@@ -145,6 +174,23 @@ class ScriptedInvestigator(RecordedAgents):
         return next(p for s, t, p in self.shown if s == subject and t == turn)
 
 
+#: The fictional publishers of the recorded web, as a register names them.
+REGISTER = ReputationRegister(
+    version="test-register-dr-1",
+    status=RegisterStatus.PROPOSED,
+    publishers=(
+        Publisher(
+            "Statistický úřad DR",
+            ("SÚDR",),
+            ("stat-dr.example",),
+            SourceClass.OFFICIAL_STATISTICS,
+            SourceTier.T1,
+            ("datastat",),
+        ),
+    ),
+)
+
+
 def directed(
     world: ResearchWorld, agents: RecordedAgents, *, agent_directed: bool = True
 ) -> DeepResearchRuntime:
@@ -162,6 +208,7 @@ def directed(
         ),
         fixture=WEB,
         env={"AIA_ENV": "test"},
+        register=REGISTER if agent_directed else None,
     )
 
 
@@ -781,3 +828,146 @@ def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
         deep_research_package.DeepResearchConfig.__dataclass_fields__["agent_directed"].default
         is False
     )
+
+
+# --------------------------------------------------------------------------- #
+# Verification (chunk 12): the independent verifier, decided by code
+# --------------------------------------------------------------------------- #
+
+TABLE_CLAIM = (
+    "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů."
+)
+
+
+def verify_record(store: InMemoryArtifactStore) -> dict[str, Any]:
+    """The run's verify record, as stored."""
+    records = [
+        record
+        for key in store.keys
+        if isinstance(record := json.loads(store.get(key).decode("utf-8")), dict)
+        and record.get("kind") == "deep_research_verify"
+    ]
+    assert len(records) == 1
+    return records[0]
+
+
+def test_the_independent_verifier_reviews_each_candidate_with_its_measures_and_source(
+    directed_run: Directed, store: InMemoryArtifactStore
+) -> None:
+    agents = directed_run.agents
+    roles = agents.roles()
+    assert roles["independent_verifier"] == 1 and roles["verifier"] == 0
+    [shown] = agents.verified
+    assert shown["claim"] == TABLE_CLAIM
+    # What it is shown: the measures code normalised and the source's trace, never the
+    # investigator's reasoning or its opinion of its source.
+    assert [(m["value"], m.get("unit"), m.get("period")) for m in shown["measures"]] == [
+        (12.5, "%", "Y2025"),
+        (41.0, "l", "Y2025"),
+    ]
+    assert shown["source"]["publisher"] == "Statistický úřad DR"
+    assert shown["source"]["primary"] == "primary"
+    assert "source_quality" not in json.dumps(shown) and "summary" not in shown
+    review = verify_record(store)["review"]
+    assert review["rules_version"] == VERIFICATION_RULES_VERSION
+    assert review["register_version"] == "test-register-dr-1"
+    [trace] = review["traces"]
+    assert (trace["status"], trace["publisher_name"]) == ("primary", "Statistický úřad DR")
+    assert review["conflicts"] == [] and review["resolve_requests"] == []
+    assert review["supersessions"] == [] and review["primary_leads"] == []
+    _run, bundle = read(directed_run.world, directed_run.run_id, store)
+    [accepted] = [a for a in bundle.accepted if a.evidence.claim == TABLE_CLAIM]
+    assert accepted.confirmations == ()
+    assert bundle.versions["verification"] == VERIFICATION_RULES_VERSION
+    assert bundle.versions["register"] == "test-register-dr-1"
+
+
+@pytest.mark.parametrize(
+    ("judgement", "reason", "detail"),
+    [
+        (
+            {"verdict": "overstated", "attacks": ["overstated_generalisation"]},
+            QuarantineReason.OVERSTATED_BY_VERIFIER,
+            "overstated_generalisation",
+        ),
+        (
+            # A newer figure named that the run never captured: code does not accept it.
+            {"verdict": "superseded", "superseded_by": "EV-0000000000000000"},
+            QuarantineReason.UNVERIFIED,
+            "cannot accept",
+        ),
+    ],
+)
+def test_the_verifier_s_verdict_is_applied_by_code(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    judgement: dict[str, Any],
+    reason: QuarantineReason,
+    detail: str,
+) -> None:
+    agents = ScriptedInvestigator(ANSWERS, judged={TABLE_CLAIM: judgement})
+    runtime = directed(research, agents)
+    run_id = start_web(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+    assert not [a for a in bundle.accepted if a.evidence.claim == TABLE_CLAIM]
+    [q] = [q for q in bundle.quarantined if q.claim == TABLE_CLAIM]
+    assert q.reason is reason and detail in q.detail
+
+
+def test_a_proposed_search_is_recorded_as_a_lead_and_nothing_is_sent(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    search = {"query": "spotřeba rostlinných nápojů 2026", "publisher": "SÚDR", "why": "novější"}
+    agents = ScriptedInvestigator(ANSWERS, judged={TABLE_CLAIM: {"search": search}})
+    runtime = directed(research, agents)
+    start_web(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+    searched = len(directed_run_search(runtime).calls)
+    [lead] = verify_record(store)["review"]["verifier_leads"]
+    assert (lead["query"], lead["publisher"]) == (search["query"], "Statistický úřad DR")
+    assert search["query"] not in directed_run_search(runtime).calls
+    assert searched == 7  # the investigators' searches only
+
+
+def test_the_planned_mode_never_asks_the_independent_verifier(
+    pass_one: Journey,  # noqa: F811
+    store: InMemoryArtifactStore,
+) -> None:
+    assert pass_one.agents.roles()["independent_verifier"] == 0
+    assert pass_one.agents.roles()["verifier"] > 0
+    assert "verification" not in pass_one.runtime.versions()
+    assert pass_one.runtime.register is None
+    blobs = [store.get(key).decode("utf-8") for key in store.keys]
+    assert not any('"judgements"' in b or "deep_research_verification_review" in b for b in blobs)
+
+
+def test_the_composition_gives_the_register_to_the_agent_directed_mode_only(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=TEST_ROUTE)
+
+    def runtime(directed_value: str) -> DeepResearchRuntime:
+        built = deep_research_runtime(
+            settings,
+            env={
+                "AIA_DEEP_RESEARCH_ENABLED": "true",
+                "AIA_DEEP_RESEARCH_AGENT_DIRECTED": directed_value,
+            },
+            transport=ScriptedInvestigator(ANSWERS),
+            signer=Signer(),
+        )
+        assert built is not None
+        return built
+
+    off, on = runtime("false"), runtime("true")
+    assert off.register is None and "register" not in off.versions()
+    assert on.register is REPUTATION_REGISTER_V1
+    assert on.versions()["register"] == REPUTATION_REGISTER_V1.version
+    assert on.versions()["verification"] == VERIFICATION_RULES_VERSION

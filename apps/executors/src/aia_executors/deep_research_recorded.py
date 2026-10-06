@@ -42,6 +42,7 @@ from typing import Final
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.deep_research.contracts import RetrievalMode
+from aia_core.domain.deep_research.reputation import ReputationRegister
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceClass, SourceTable
 from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
@@ -116,6 +117,7 @@ def recorded_runtime(
     config: DeepResearchConfig,
     fixture: Path,
     env: Mapping[str, str] | None = None,
+    register: ReputationRegister | None = None,
 ) -> DeepResearchRuntime:
     """The recorded composition; refuses outside ``local`` and ``test``."""
     environment = ((os.environ if env is None else env).get("AIA_ENV") or "").strip().lower()
@@ -126,5 +128,9 @@ def recorded_runtime(
         )
     retrieval, table = recorded_retrieval(fixture)
     return DeepResearchRuntime(
-        gateway=gateway, config=config, retrieval=retrieval, source_table=table
+        gateway=gateway,
+        config=config,
+        retrieval=retrieval,
+        source_table=table,
+        register=register,
     )
