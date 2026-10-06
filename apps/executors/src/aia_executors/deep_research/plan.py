@@ -1,4 +1,9 @@
-"""The ``plan`` step: tracks, reuse, and the planner's queries for the web tracks left."""
+"""The ``plan`` step: tracks, reuse, and the planner's queries for the web tracks left.
+
+In a lead-planned run (``DeepResearchConfig.lead``) the lead researcher plans the web
+tracks instead of the planner (``lead.LeadPlanning``): its plan is stored as the run's
+own artifact and the web subjects it planned run as its tasks' tracks at investigate.
+"""
 
 from __future__ import annotations
 
@@ -43,6 +48,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 from pydantic import ValidationError
 
 from ._shared import _class_a_texts, _detail, _invalid, _produced, _Step, _subjects, _unconfigured
+from .lead import LeadPlanned, LeadPlanning
 from .runtime import StepToolMeter
 
 __all__ = ["PlanExecutor"]
@@ -119,6 +125,7 @@ class PlanExecutor(_Step):
             ),
         )
         reusable: dict[str, str] = {}
+        lead_mode = runtime.config.lead
         with context.transaction() as (session, _workflow):
             designs = StudyDesignRepository(session, context.scope)
             try:
@@ -138,6 +145,9 @@ class PlanExecutor(_Step):
                 repo.read(existing.artifact_id)  # verify the bytes, not only the row
                 return _produced(existing, reused=True)
             for track in tracks:
+                if lead_mode and track.channel is Channel.WEB:
+                    # The lead's tasks are the web tracks; a subject's own is never run.
+                    continue
                 found = self._find(repo, step, "track", track.fingerprint)
                 if found is not None:
                     reusable[track.track_id] = found.artifact_id
@@ -147,6 +157,7 @@ class PlanExecutor(_Step):
         blocked: list[BlockedTrack] = []
         violations: list[PlanViolationRecord] = []
         planner: CallRecord | None = None
+        lead: LeadPlanned | None = None
 
         def block(stop: StopReason, gate: Gate, reason: str, message: str) -> None:
             blocked.extend(
@@ -185,6 +196,20 @@ class PlanExecutor(_Step):
                     refusal,
                     f"a query written from {dclass.value} material may not leave",
                 )
+            elif lead_mode:
+                lead = LeadPlanning(
+                    self,
+                    step=step,
+                    context=context,
+                    runtime=runtime,
+                    caller=self._caller(context, runtime),
+                    request=request,
+                    depth=depth,
+                    data_class=dclass,
+                    plan_key=key,
+                ).plan(web)
+                planner = lead.call
+                blocked.extend(lead.blocked)
             else:
                 answer = self._ask(
                     self._caller(context, runtime),
@@ -223,6 +248,11 @@ class PlanExecutor(_Step):
                     planned, plan_blocked, violations = _accept_plan(answer.output, web, depth)
                     blocked.extend(plan_blocked)
 
+        # Every subject a track opened, the lead's planned ones (crosses) included.
+        subjects = _subjects(request, (*tracks, *beyond))
+        if lead is not None:
+            # The web tracks the lead planned run as its tasks' tracks (investigate).
+            tracks = tuple(t for t in tracks if t.track_id not in lead.planned)
         web_ids = [t.track_id for t in tracks if t.channel is Channel.WEB]
         record = PlanRecord(
             kind="deep_research_plan",
@@ -233,20 +263,23 @@ class PlanExecutor(_Step):
             design_class=dclass,
             fictional_client=fictional,
             web_retrieval=dict(inputs.web_retrieval) if inputs.web_retrieval is not None else None,
-            subjects=_subjects(request, (*tracks, *beyond)),
+            subjects=subjects,
             tracks=tracks,
             beyond=beyond,
             reusable=reusable,
             planned=tuple(planned),
             blocked=tuple(blocked),
             violations=tuple(violations),
-            allowances={
+            allowances={}
+            if lead_mode
+            else {
                 t: AllowanceRecord(search_calls=a.search_calls, fetches=a.fetches)
                 for t, a in allocate(
                     web_ids, depth, agent_directed=runtime.config.agent_directed
                 ).items()
             },
             planner=planner,
+            lead_plan_artifact_id=lead.artifact_id if lead is not None else None,
         )
         with context.transaction() as (session, _workflow):
             artifact, created = self._put(
@@ -260,6 +293,7 @@ class PlanExecutor(_Step):
             blocked=len(blocked),
             beyond_limit=len(beyond),
             model_requests=0 if planner is None else 1,
+            **({"lead_tasks": lead.tasks} if lead is not None else {}),
         )
         return _produced(artifact, reused=not created)
 

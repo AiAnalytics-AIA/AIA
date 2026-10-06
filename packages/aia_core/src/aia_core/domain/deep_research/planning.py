@@ -525,8 +525,12 @@ def investigator_stop_reason(
     opens_left: int,
     unread: bool,
     depth: DepthPreset,
+    max_turns: int | None = None,
 ) -> StopReason | None:
     """Why an agent-directed track stops before its next turn, or ``None`` to go on.
+
+    ``max_turns`` is the track's own turn allowance when it has one (a lead-planned
+    task's budget); ``None`` is the preset's ``max_turns``.
 
     :func:`stop_reason` for turns, in its order: the depth target; saturation --
     no newly grounded evidence in the last ``saturation_window`` turns that read
@@ -543,7 +547,7 @@ def investigator_stop_reason(
     window = depth.saturation_window
     if len(new_by_turn) >= window and not any(new_by_turn[-window:]):
         return StopReason.SATURATED
-    if turns_used >= depth.max_turns:
+    if turns_used >= (depth.max_turns if max_turns is None else max_turns):
         return StopReason.BUDGET_EXHAUSTED
     if searches_left <= 0 and opens_left <= 0 and not unread:
         return StopReason.BUDGET_EXHAUSTED

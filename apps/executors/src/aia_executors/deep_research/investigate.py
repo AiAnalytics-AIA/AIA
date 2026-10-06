@@ -58,6 +58,7 @@ from ._shared import (
     _unconfigured,
 )
 from .agent_directed import AgentDirectedTrack
+from .lead import LeadTask, LeadWaves
 from .runtime import DeepResearchRuntime, StepToolMeter
 
 __all__ = ["InvestigateExecutor"]
@@ -122,8 +123,26 @@ class InvestigateExecutor(_Step):
         for track in plan.tracks:
             context.checkpoint()
             entries.append(self._track(step, context, runtime, plan, track, gate, meter, caller))
+        lead = None
+        if plan.lead_plan_artifact_id is not None:
+            # A lead-planned run: its tasks' tracks, wave by wave, after the plan's own.
+            lead_entries, lead = LeadWaves(
+                self,
+                step=step,
+                context=context,
+                runtime=runtime,
+                plan=plan,
+                lead_plan_id=plan.lead_plan_artifact_id,
+                gate=gate,
+                meter=meter,
+                caller=caller,
+            ).run()
+            entries += lead_entries
         record = InvestigationRecord(
-            kind="deep_research_investigation", plan_artifact_id=plan_id, tracks=tuple(entries)
+            kind="deep_research_investigation",
+            plan_artifact_id=plan_id,
+            tracks=tuple(entries),
+            lead=lead,
         )
         with context.transaction() as (session, _workflow):
             artifact, created = self._put(
@@ -151,7 +170,13 @@ class InvestigateExecutor(_Step):
         gate: RetrievalGate | None,
         meter: StepToolMeter,
         caller: StepModelCaller,
+        lead: LeadTask | None = None,
     ) -> TrackEntry:
+        """One track's entry: found stored, or researched and stored.
+
+        ``lead`` is a lead-planned task's brief and budget: its track runs agent-directed
+        with them instead of the planner's queries and the plan's allowance.
+        """
         mine = run_scoped(step.run_id, track.fingerprint)
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
@@ -174,7 +199,7 @@ class InvestigateExecutor(_Step):
         elif track.channel is Channel.INTERNAL:
             result = self._internal(step, runtime, plan, track, caller)
         else:
-            planned = plan.planned_for(track.track_id)
+            planned = lead.planned if lead is not None else plan.planned_for(track.track_id)
             if gate is None or planned is None:
                 result = _blocked_result(
                     step,
@@ -195,6 +220,8 @@ class InvestigateExecutor(_Step):
                     gate=gate,
                     meter=meter,
                     caller=caller,
+                    allowance=lead.allowance if lead is not None else None,
+                    assignment=lead.assignment if lead is not None else None,
                 ).run()
             else:
                 result = self._web(
