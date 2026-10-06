@@ -190,6 +190,20 @@ def test_a_cached_page_begins_as_its_outcome(scoped: Any) -> None:
     assert isinstance(again, FetchOutcome) and again.cached and left == ["https://stats.example/a"]
 
 
+def test_a_remembered_page_is_a_cache_hit_and_journals_nothing_until_asked(scoped: Any) -> None:
+    first, _journal, _left = _gate(scoped.scope(), RunSnapshotCache())
+    page = first.fetch("https://stats.example/a", track_id="T").page
+    assert page is not None
+    gate, journal, left = _gate(scoped.scope(), RunSnapshotCache())
+    gate.remember("https://stats.example/a", page)
+    assert journal.order == []
+    assert gate.fetch("https://stats.example/a", track_id="T").cached and left == []
+    uncached, uncached_journal, _ = _gate(scoped.scope(), None)
+    uncached.remember("https://stats.example/a", page)  # no cache: nothing held
+    assert not uncached.fetch("https://stats.example/a", track_id="T").cached
+    assert uncached_journal.order[0][0] is ToolOutcome.DISPATCHED
+
+
 def test_an_adapter_error_is_raised_where_the_outcome_would_be_journaled(scoped: Any) -> None:
     gate, journal, _left = _gate(scoped.scope())
     pending = gate.begin_search("trh nápojů", context_class=C, track_id="T", max_results=3)

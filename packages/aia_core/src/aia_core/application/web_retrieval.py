@@ -85,6 +85,7 @@ __all__ = [
     "SearchOutcome",
     "WebRetrieval",
     "request_fingerprint",
+    "sent_search",
 ]
 
 
@@ -171,7 +172,7 @@ def request_fingerprint(sent: str) -> str:
     return _fingerprint(sent)
 
 
-def _sent_search(query: str, lang: str | None) -> str:
+def sent_search(query: str, lang: str | None) -> str:
     """What a search sends, as journaled: the text, and its language when one is asked."""
     return query if lang is None else f"{query}\n[lang={lang}]"
 
@@ -200,7 +201,7 @@ class PendingSearch:
 
     @property
     def sent(self) -> str:
-        return _sent_search(self.query, self.lang)
+        return sent_search(self.query, self.lang)
 
     def send(self) -> None:
         try:
@@ -436,6 +437,17 @@ class RetrievalGate:
         )
         return uncertain
 
+    def remember(self, url: str, page: FetchedPage) -> None:
+        """Hold a page this run captured in an earlier attempt (read back from its store).
+
+        A resumed step replays what its earlier attempt fetched without fetching it;
+        with this, a later action asking for the same URL is a cache hit, as it
+        would have been had the attempt not been interrupted. No cache: nothing.
+        Journals nothing: nothing was sent or answered.
+        """
+        if self._cache is not None:
+            self._cache.put(url, page)
+
     # ---------------------------------------------------------------- search --
 
     def search(
@@ -485,7 +497,7 @@ class RetrievalGate:
             class_a_texts=self._class_a,
         )
         cls = classified.data_class
-        sent = _sent_search(query, lang)
+        sent = sent_search(query, lang)
         reason = (
             "class_a_query"
             if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL

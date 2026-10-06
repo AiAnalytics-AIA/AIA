@@ -64,12 +64,14 @@ from .grounding import detect_instructions
 from .legacy import canonical_url
 from .measures import STATED_MEASURES_VERSION
 from .sources import SourceTable, SourceTier, web_tier
+from .steps import CallRecord
 from .web import FetchRefused, check_url
 
 __all__ = [
     "INVESTIGATOR_VERSION",
     "PART_CHARS",
     "REFUSAL_LIMIT",
+    "RESULTS_PER_SEARCH",
     "SHOWN_LINKS",
     "SHOWN_RESULTS",
     "SKIP_EARLIER_ATTEMPT",
@@ -89,6 +91,8 @@ __all__ = [
     "SourceRef",
     "TrackRefs",
     "TrackState",
+    "TurnAnswer",
+    "TurnRecord",
     "parse_ref",
     "part_count",
     "part_text",
@@ -96,6 +100,7 @@ __all__ = [
     "render_search",
     "search_feedback",
     "turn_input",
+    "turns_without_new_evidence",
 ]
 
 #: What an agent-directed track's result depends on beyond the planned mode's
@@ -109,6 +114,8 @@ INVESTIGATOR_VERSION: Final = (
 PART_CHARS: Final = 6_000
 #: The newest captured text one turn is shown, at most; the rest waits for a ``read``.
 TURN_TEXT_CHARS: Final = 18_000
+#: Results a search asks for: the investigator chooses among them; code fetches none unasked.
+RESULTS_PER_SEARCH: Final = 8
 #: Results and links shown a turn: the newest. Every ref stays resolvable.
 SHOWN_RESULTS: Final = 40
 SHOWN_LINKS: Final = 60
@@ -452,7 +459,6 @@ class ActionRecord(_Closed):
     source: str | None = None
     snapshot_id: str | None = None
     snapshot_artifact_id: str | None = None
-    cost_usd: float = Field(default=0.0, ge=0.0)
 
     @property
     def counted_refusal(self) -> str | None:
@@ -979,3 +985,56 @@ def turn_input(
         "findings": [{"source": s, "claim": c} for s, c in findings],
         "last_turn": [_action_view(a) for a in (state.turns[-1] if state.turns else ())],
     }
+
+
+def turns_without_new_evidence(new_by_turn: Sequence[int]) -> int:
+    """How many of the latest turns that read new text grounded nothing new."""
+    count = 0
+    for new in reversed(new_by_turn):
+        if new:
+            break
+        count += 1
+    return count
+
+
+# --------------------------------------------------------------------------- #
+# What a turn stores (checkpoints; this run's own)
+# --------------------------------------------------------------------------- #
+
+
+class TurnAnswer(_Closed):
+    """A turn's answer, stored the moment it is known: a retry never buys it again.
+
+    Keyed by the run, the track, the turn and the request's hash, so it answers only
+    the request it was given.
+    """
+
+    kind: Literal["deep_research_turn_answer"]
+    track_id: str
+    turn: int = Field(ge=1)
+    request_sha256: str
+    output: InvestigatorTurn
+    call: CallRecord
+
+
+class TurnRecord(_Closed):
+    """A turn as it ran: its answer, what code did with each action, what it grounded.
+
+    Stored once the turn's actions are done; a retry replays it without a model
+    call or a tool call, and arrives at the same state.
+    """
+
+    kind: Literal["deep_research_turn"]
+    track_id: str
+    turn: int = Field(ge=1)
+    request_sha256: str
+    call: CallRecord
+    #: The answer came from a stored :class:`TurnAnswer` (a retry), not a new call.
+    answer_replayed: bool
+    output: InvestigatorTurn
+    actions: tuple[ActionRecord, ...]
+    #: Evidence ids this turn grounded, and those it quarantined.
+    grounded: tuple[str, ...]
+    quarantined: tuple[str, ...]
+    #: Whether the turn read text it had not read before (saturation counts only these).
+    fresh: bool
