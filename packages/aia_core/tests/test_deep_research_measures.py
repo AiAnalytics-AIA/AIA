@@ -341,8 +341,9 @@ def test_a_figure_in_the_neighbouring_sentence_is_inside_the_window() -> None:
 
 
 def test_a_claims_measures_are_read_into_the_contract() -> None:
+    # The quarter is placed in its year (aia-measures-1 read "Q3" and dropped the 2025).
     assert claim_measures("Ve 3. čtvrtletí 2025 kupovalo v Praze 45 % domácností.") == (
-        Measure(value=45, unit="%", period="Q3", geography="CZ-PR", population="HOUSEHOLDS"),
+        Measure(value=45, unit="%", period="2025-Q3", geography="CZ-PR", population="HOUSEHOLDS"),
     )
     assert claim_measures("Tržby dosáhly 2,1 mld. Kč, cena 42 Kč/l.") == (
         Measure(value=2.1, unit="CZK", scale=1_000_000_000),
@@ -371,3 +372,151 @@ def test_grounding_carries_the_measures_version() -> None:
         "denominator",
         "geography",
     }
+
+
+# --------------------------------------------------------------------------- dates and periods
+
+
+def test_a_dates_day_and_month_are_not_measures() -> None:
+    """Reported against aia-measures-1: three measures, the 31 and the 12 among them."""
+    claim = "Česko mělo k 31. 12. 2091 celkem 10 450 tis. obyvatel."
+    assert claim_measures(claim) == (
+        Measure(
+            value=10450,
+            scale=1000,
+            period="2091-12-31",
+            geography="CZ",
+            population="PERSONS",
+        ),
+    )
+    day, month, year, figure = stated_numbers(claim)
+    assert [n.is_period for n in (day, month, year, figure)] == [True, True, True, False]
+    assert [t.key for t in figure.periods] == ["2091-12-31"]
+
+
+@pytest.mark.parametrize(
+    "date",
+    [
+        "31. 12. 2091",
+        "31.12.2091",
+        "2091-12-31",
+        "31. prosince 2091",
+        "31. prosinci 2091",
+        "31. prosince roku 2091",
+        "31.prosince 2091",
+    ],
+)
+def test_every_written_form_of_a_date_is_one_period(date: str) -> None:
+    (measure,) = claim_measures(f"Česko mělo k {date} celkem 10 450 tis. obyvatel.")
+    assert measure.value == 10450 and measure.period == "2091-12-31"
+
+
+@pytest.mark.parametrize(
+    ("phrase", "key"),
+    [
+        ("od 1. ledna", "M01-01"),
+        ("do 2. února", "M02-02"),
+        ("k 15. březnu", "M03-15"),
+        ("s 1. dubnem", "M04-01"),
+        ("od 1. května", "M05-01"),
+        ("do 30. června", "M06-30"),
+        ("od 1. července", "M07-01"),
+        ("do 31. srpna", "M08-31"),
+        ("od 1. září", "M09-01"),
+        ("do 28. října", "M10-28"),
+        ("od 17. listopadu", "M11-17"),
+        ("k 31. prosinci", "M12-31"),
+        ("od 1. ledna 2025", "2025-01-01"),
+        ("od 29. února 2024", "2024-02-29"),
+    ],
+)
+def test_a_day_before_a_month_name_in_any_case_is_part_of_a_date(phrase: str, key: str) -> None:
+    (n,) = (n for n in stated_numbers(f"Platí {phrase} pro 45 % domácností.") if not n.is_period)
+    assert n.value == 45
+    assert [t.key for t in n.periods] == [key]
+
+
+def test_a_date_with_no_year_is_not_placed_in_one() -> None:
+    (measure,) = claim_measures("Od 1. ledna kupuje rostlinné nápoje 45 % domácností.")
+    assert measure.period is None
+    # An impossible day is no date: its numbers stay numbers.
+    assert [n.value for n in stated_numbers("Mezi 31. 2. 2025 a dneškem 45 %.") if not n.is_period][
+        :2
+    ] == [31, 2]
+
+
+def test_a_number_at_a_sentence_end_is_still_a_number() -> None:
+    # A full stop after a number ends the sentence when a capital follows: no date.
+    (first, second) = claim_measures("Prodej vzrostl o 12. Poté klesl o 3 %.")
+    assert first == Measure(value=12) and second == Measure(value=3, unit="%")
+    # A capitalised month name after "12." starts the next sentence.
+    assert [m.value for m in claim_measures("Počet vzrostl o 12. Prosinec byl slabší.")] == [12]
+    # A numeric day and month need their year: "12. 12 obchodů" is two numbers.
+    assert [m.value for m in claim_measures("Přibylo jich 12. 12 obchodů zavřelo.")] == [12, 12]
+    # At the very end of the text.
+    assert [m.value for m in claim_measures("Počet domácností vzrostl o 12.")] == [12]
+
+
+@pytest.mark.parametrize(
+    ("phrase", "period"),
+    [
+        ("ve 2. čtvrtletí 2025", "2025-Q2"),
+        ("ve druhém čtvrtletí 2025", "2025-Q2"),
+        ("ve 2. čtvrtletí roku 2025", "2025-Q2"),
+        ("v Q2 2025", "2025-Q2"),
+        ("v Q2/2025", "2025-Q2"),
+        ("v 1. pololetí 2025", "2025-H1"),
+        ("v březnu 2025", "2025-03"),
+        ("v březnu roku 2025", "2025-03"),
+        ("v prosinci 2024", "2024-12"),
+        # No year next to it: not placed, and not guessed from one written elsewhere.
+        ("ve 2. čtvrtletí", None),
+        ("v březnu", None),
+        ("v roce 2025 ve 2. čtvrtletí", "Y2025"),
+        # A season's year is not a quarter's year.
+        ("v Q1 2023/24", "Y2023/2024"),
+    ],
+)
+def test_a_sub_year_period_is_placed_in_the_year_written_next_to_it(
+    phrase: str, period: str | None
+) -> None:
+    (measure,) = claim_measures(f"Rostlinné nápoje kupovalo {phrase} 45 % domácností.")
+    assert measure.period == period
+
+
+def test_a_quarter_of_another_year_is_quarantined() -> None:
+    # aia-measures-1 read "Q2" and "Y2025" apart, and both were in the window.
+    # The quote carries every number the claim states (the number check runs first).
+    source = "Ve 2. čtvrtletí 2024 kupovalo rostlinné nápoje 45 % domácností, v roce 2025 víc."
+    quote = "Ve 2. čtvrtletí 2024 kupovalo rostlinné nápoje 45 % domácností, v roce 2025"
+    _quarantined(
+        _ground(source, quote, "Ve 2. čtvrtletí 2025 kupovalo rostlinné nápoje 45 % domácností."),
+        "(2025-Q2)",
+    )
+    # The source's own phrase, a yearless quarter under its year, and the year alone pass.
+    same = "Ve 2. čtvrtletí 2025 kupovalo rostlinné nápoje 45 % domácností."
+    assert _ground(same, same, "Ve 2. čtvrtletí 2025 to bylo 45 % domácností.").grounded
+    under = "V roce 2025: ve 2. čtvrtletí kupovalo rostlinné nápoje 45 % domácností."
+    assert _ground(
+        under, under, "Ve 2. čtvrtletí 2025 kupovalo rostlinné nápoje 45 % domácností."
+    ).grounded
+    assert _ground(same, same, "V roce 2025 to bylo 45 % domácností.").grounded
+
+
+def test_a_date_is_checked_as_one_period() -> None:
+    source = "Česko mělo k 31. 12. 2091 celkem 10 450 tis. obyvatel."
+    quote = "k 31. 12. 2091 celkem 10 450 tis. obyvatel"
+    # The same date in another form, and the date's year alone, are in the source.
+    assert _ground(source, quote, "K 31. prosinci 2091 mělo Česko 10 450 tis. obyvatel.").grounded
+    assert _ground(source, quote, "V roce 2091 mělo Česko 10 450 tis. obyvatel.").grounded
+    # Another day is not.
+    _quarantined(
+        _ground(
+            "Česko mělo k 31. 12. 2091 celkem 10 450 tis. obyvatel, k 1. 1. 2090 méně.",
+            "k 31. 12. 2091 celkem 10 450 tis. obyvatel, k 1. 1. 2090",
+            "K 1. lednu 2091 mělo Česko 10 450 tis. obyvatel.",
+        ),
+        "(2091-01-01)",
+    )
+    # Its day and month are not measures demanded of the source.
+    assert check_measures("K 31. 12. 2091 mělo Česko 10 450 tis. obyvatel.", source) is None

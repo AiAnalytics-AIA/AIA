@@ -1,0 +1,36 @@
+{
+  "version": "2.0",
+  "class": "dataset",
+  "label": "Fictional share of households with a fictional good",
+  "source": "FICTIONAL",
+  "updated": "2026-01-01T11:00:00+0100",
+  "id": ["freq", "unit", "geo", "time"],
+  "size": [1, 1, 2, 2],
+  "dimension": {
+    "freq": {
+      "label": "Time frequency",
+      "category": {"index": {"A": 0}, "label": {"A": "Annual"}}
+    },
+    "unit": {
+      "label": "Unit of measure",
+      "category": {"index": {"PC_HH": 0}, "label": {"PC_HH": "Percentage of households"}}
+    },
+    "geo": {
+      "label": "Geopolitical entity (reporting)",
+      "category": {
+        "index": {"XA": 0, "XB": 1},
+        "label": {"XA": "Fictional country Alpha", "XB": "Fictional country Beta"}
+      }
+    },
+    "time": {
+      "label": "Time",
+      "category": {"index": {"2023": 0, "2024": 1}, "label": {"2023": "2023", "2024": "2024"}}
+    }
+  },
+  "value": {"0": 41.50, "1": 43.2, "2": 37.0},
+  "status": {"1": "p", "3": ":"},
+  "extension": {
+    "aia_fixture": "fictional",
+    "note": "FICTIONAL: every label and value here is invented; the shape is JSON-stat 2.0 without roles, as Eurostat's API Statistics is recorded (unverified) to answer. No real Eurostat answer has been captured yet."
+  }
+}

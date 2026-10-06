@@ -29,18 +29,26 @@ from pydantic import (
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
+    model_validator,
 )
 
 from ..ai_contracts import canonical_json
 from ..residency import DataClass
+from .datasets import DATASET_MEDIA_TYPE, DatasetResult
 
 __all__ = [
+    "DOCUMENT_LAYOUT_VERSION",
     "HARNESS_VERSION",
+    "ArchivedCapture",
     "BriefDigest",
     "Channel",
     "ClientTerm",
     "CoverageCell",
     "DeepResearchRequest",
+    "DocumentBookmark",
+    "DocumentLayout",
+    "DocumentPage",
+    "DocumentSheet",
     "EvidenceItem",
     "EvidenceOrigin",
     "EvidenceType",
@@ -290,6 +298,97 @@ class SnapshotLink(_Closed):
     media_type: str | None = Field(default=None, max_length=100)
 
 
+#: The layout's version: how a document's text is rendered and where its parts lie.
+#: A change to the rendering changes the text, and so every snapshot id it yields.
+DOCUMENT_LAYOUT_VERSION: Final = "aia-document-layout-1"
+
+
+class DocumentPage(_Closed):
+    """One PDF page: where its text lies in the snapshot's text, ``[start, end)``."""
+
+    page: int = Field(ge=1)
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+
+class DocumentBookmark(_Closed):
+    """One entry of a PDF's own outline (its bookmarks), as the file declares it."""
+
+    title: str = Field(max_length=500)
+    level: int = Field(ge=0)
+    #: The page it points to, when the file says so in a form that can be read.
+    page: int | None = Field(default=None, ge=1)
+
+
+class DocumentSheet(_Closed):
+    """One grid -- an XLSX sheet, or a CSV file -- as captured.
+
+    ``cells`` holds every non-empty cell as ``(row, column, start, end)``: its
+    1-based row and column in the sheet and where its value lies in the
+    snapshot's text, in text order. ``header_row`` is the first row with two or
+    more values (the column labels), ``label_column`` the leftmost column with
+    values below it (the row labels); ``caption`` the rows above the header,
+    ``notes`` the one-value rows below the table's last row of two or more.
+    These are rules over the grid as read, never a guess at what a person meant;
+    ``None`` where the rule finds nothing.
+    """
+
+    name: str = Field(max_length=200)
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+    header_row: int | None = Field(default=None, ge=1)
+    label_column: int | None = Field(default=None, ge=1)
+    caption: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
+    cells: tuple[tuple[int, int, int, int], ...] = ()
+    #: Rows or cells past a bound were not read.
+    truncated: bool = False
+
+
+class DocumentLayout(_Closed):
+    """Where a captured document's pages or cells lie in its snapshot's text.
+
+    The text itself is the snapshot's ``text`` -- normalised like a page's, so a
+    quote grounds in it exactly as in HTML; the layout maps a span of it back to
+    a page (PDF) or a cell (XLSX, CSV). Built by ``domain.deep_research.documents``.
+    """
+
+    version: Literal["aia-document-layout-1"] = DOCUMENT_LAYOUT_VERSION
+    kind: Literal["pdf", "xlsx", "csv"]
+    #: Pages in the file (PDF); ``pages`` holds those whose text was kept.
+    page_count: int | None = Field(default=None, ge=0)
+    pages: tuple[DocumentPage, ...] = ()
+    bookmarks: tuple[DocumentBookmark, ...] = ()
+    sheets: tuple[DocumentSheet, ...] = ()
+
+
+class ArchivedCapture(_Closed):
+    """Where an archived copy came from: a dated capture, never the live page.
+
+    A snapshot carrying one was read from a web archive (plan chunk 18: a Common
+    Crawl WARC record fetched by byte range), not from the publisher's host. Its
+    ``captured_at`` is when the archive captured the page (``WARC-Date``); the
+    snapshot's ``retrieved_at`` is when AIA read the archive. Everything here is
+    what the archive says about the record, kept so the capture can be fetched
+    again byte for byte and shown as what it is.
+    """
+
+    archive: Literal["common_crawl"]
+    #: The crawl the record belongs to (``CC-MAIN-YYYY-WW``).
+    crawl: str = Field(pattern=r"^CC-MAIN-\d{4}-\d{2}$")
+    captured_at: datetime
+    #: The page's URL as the archive captured it (``WARC-Target-URI``).
+    target_uri: str = Field(min_length=1, max_length=2048)
+    warc_filename: str = Field(min_length=1, max_length=512)
+    warc_record_offset: int = Field(ge=0)
+    warc_record_length: int = Field(gt=0)
+    warc_record_id: str = Field(min_length=1, max_length=200)
+    #: ``WARC-Payload-Digest`` as recorded (``sha1:<base32>``), when the record has one.
+    payload_digest: str | None = Field(default=None, max_length=200)
+    #: ``WARC-Truncated`` as recorded: the archive kept only part of the payload.
+    payload_truncated: str | None = Field(default=None, max_length=100)
+
+
 class SourceSnapshot(_Closed):
     """A fetched page as stored: content-addressed, with how it was retrieved.
 
@@ -302,6 +401,15 @@ class SourceSnapshot(_Closed):
     not part of the content address, and a snapshot without links serialises
     exactly as one stored before the field existed (the key is omitted), so its
     stored JSON, and every hash taken of it, is unchanged.
+
+    ``document`` is the layout of a PDF, XLSX or CSV source (where each page or
+    cell lies in ``text``); ``None`` for a page, and then omitted the same way.
+
+    ``archive`` is set when the text came from a web archive's capture
+    (:class:`ArchivedCapture`) rather than from the page's host; it is omitted
+    the same way when absent. An archived snapshot's id also names the record it
+    came from, so an archived copy and a live fetch of the same text are never
+    one snapshot.
     """
 
     snapshot_id: str = Field(pattern=r"^SNP-[0-9a-f]{24}$")
@@ -323,12 +431,38 @@ class SourceSnapshot(_Closed):
     retrieval_mode: RetrievalMode
     instructions_detected: tuple[str, ...]
     links: tuple[SnapshotLink, ...] = ()
+    document: DocumentLayout | None = None
+    #: Set only for a copy read from a web archive: the page was not fetched live.
+    archive: ArchivedCapture | None = None
+    #: A dataset connector's answer, when the source is a table (plan § 8.2): ``text``
+    #: is then its rendering, and a cell is cited by its locator. ``None`` for a page.
+    #: Absent from the serialised form when ``None``, so every page snapshot stored
+    #: before tables existed has the same bytes and the same hash it had.
+    dataset: DatasetResult | None = None
+
+    @model_validator(mode="after")
+    def _dataset_is_its_text(self) -> SourceSnapshot:
+        if self.dataset is not None:
+            if self.text != self.dataset.render():
+                raise ValueError("a dataset snapshot's text is its table's rendering")
+            if self.content_type != DATASET_MEDIA_TYPE or self.truncated:
+                raise ValueError("a dataset snapshot is a whole table, of the table's type")
+        elif self.content_type == DATASET_MEDIA_TYPE:
+            raise ValueError("a snapshot of the table type carries its table")
+        return self
 
     @model_serializer(mode="wrap")
-    def _omit_no_links(self, handler: SerializerFunctionWrapHandler) -> Any:
+    def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if not self.links and isinstance(data, dict):
-            data.pop("links", None)
+        if isinstance(data, dict):
+            if not self.links:
+                data.pop("links", None)
+            if self.document is None:
+                data.pop("document", None)
+            if self.archive is None:
+                data.pop("archive", None)
+            if self.dataset is None:
+                data.pop("dataset", None)
         return data
 
 

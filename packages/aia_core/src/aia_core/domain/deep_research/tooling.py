@@ -1,4 +1,4 @@
-"""The cost contract for non-model tools: web search and fetch (plan decision I-6).
+"""The cost contract for non-model tools: web search, fetch, datasets and archives (I-6).
 
 A search or a page fetch through a provider can cost money exactly as a model
 call does, so it gets the same bracket a model call has in
@@ -60,6 +60,16 @@ def new_tool_event_id() -> str:
 class ToolKind(StrEnum):
     WEB_SEARCH = "web_search"
     WEB_FETCH = "web_fetch"
+    #: A query of a web archive's URL index (Common Crawl through Athena, plan chunk 18).
+    URL_INDEX_QUERY = "url_index_query"
+    #: One archived record read from a web archive by byte range (plan chunk 18).
+    ARCHIVE_FETCH = "archive_fetch"
+    #: One query to a public dataset connector (DataStat, NKOD …): its text is the
+    #: dataset id and filters, classified like a search query (plan § 5.3).
+    DATASET_QUERY = "dataset_query"
+    #: One lookup of a URL's archived captures (Wayback CDX): asked only with an
+    #: archive permit, for a dead or moved page (plan § 5.3, § 7 rung 9).
+    ARCHIVE_LOOKUP = "archive_lookup"
 
 
 class ToolOutcome(StrEnum):
