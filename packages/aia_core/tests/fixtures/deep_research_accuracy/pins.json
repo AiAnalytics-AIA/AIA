@@ -1,0 +1,15 @@
+{
+  "kind": "deep_research_truth_set_pins",
+  "version": "aia-dr-truth-set-pins-1",
+  "pins": [
+    {
+      "set_id": "fictional-fixture-1",
+      "sha256": "f995b05d23b2936e150a8223ec6033c0725ea3bb61c535093f7050e763732d3d",
+      "path": "packages/aia_core/tests/fixtures/deep_research_accuracy/fictional_truth_set.json",
+      "facts": 7,
+      "fictional": true,
+      "pinned_at": "2026-10-06",
+      "pinned_by": "fictional fixture"
+    }
+  ]
+}

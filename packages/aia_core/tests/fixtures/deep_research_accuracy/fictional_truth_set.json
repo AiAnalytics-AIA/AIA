@@ -1,0 +1,297 @@
+{
+  "kind": "deep_research_truth_set",
+  "schema_version": "aia-dr-truth-set-1",
+  "set_id": "fictional-fixture-1",
+  "title": "FIKTIVNÍ testovací sada: vymyšlení vydavatelé, rok 2091, žádná skutečná čísla",
+  "fictional": true,
+  "register_version": "aia-dr-fictional-register-1",
+  "fictional_publishers": [
+    {
+      "name": "Fiktivní statistický úřad",
+      "hosts": [
+        "statistika-fikce.example"
+      ]
+    },
+    {
+      "name": "Fiktivní obchodní komora",
+      "hosts": [
+        "komora-fikce.example"
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "fact_id": "pop-01",
+      "topic": "population",
+      "slot": "Fiktivní počet obyvatel Česka k 31. 12. 2091",
+      "question": "Kolik obyvatel mělo Česko k 31. 12. 2091 (fiktivní)?",
+      "expected": {
+        "value_text": "10 450",
+        "unit": null,
+        "scale": 1000,
+        "period": "2091",
+        "geography": "CZ",
+        "population": "PERSONS",
+        "denominator": null,
+        "measure_name": "počet obyvatel (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": "OBY01",
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "dataset",
+        "url": "https://statistika-fikce.example/data/OBY01",
+        "cell": "OBY01!CZ/2091"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "pop-02",
+      "topic": "population",
+      "slot": "Fiktivní počet obyvatel Prahy k 31. 12. 2091",
+      "question": "Kolik obyvatel měla Praha k 31. 12. 2091 (fiktivní)?",
+      "expected": {
+        "value_text": "1 400",
+        "unit": null,
+        "scale": 1000,
+        "period": "2091",
+        "geography": "CZ-PR",
+        "population": "PERSONS",
+        "denominator": null,
+        "measure_name": "počet obyvatel Prahy (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": "OBY01",
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "dataset",
+        "url": "https://statistika-fikce.example/data/OBY01",
+        "cell": "OBY01!PHA/2091"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "cons-01",
+      "topic": "consumption",
+      "slot": "Fiktivní počet domácností s fiktivním přístrojem, 2091",
+      "question": "Kolik domácností v Česku vlastnilo v roce 2091 fiktivní přístroj?",
+      "expected": {
+        "value_text": "450",
+        "unit": null,
+        "scale": 1000,
+        "period": "2091",
+        "geography": "CZ",
+        "population": "HOUSEHOLDS",
+        "denominator": null,
+        "measure_name": "domácnosti s přístrojem (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": null,
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "document_table",
+        "url": "https://statistika-fikce.example/publikace/vybaveni-2091.xlsx",
+        "cell": "Tab1!B4"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "cons-02",
+      "topic": "consumption",
+      "slot": "Fiktivní podíl domácností kupujících fiktivní nápoj, 2091",
+      "question": "Jaký podíl domácností v Česku kupoval v roce 2091 fiktivní nápoj?",
+      "expected": {
+        "value_text": "45",
+        "unit": "%",
+        "scale": 1,
+        "period": "2091",
+        "geography": "CZ",
+        "population": "HOUSEHOLDS",
+        "denominator": null,
+        "measure_name": "podíl domácností kupujících nápoj (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": null,
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "web_table",
+        "url": "https://statistika-fikce.example/napoje-2091",
+        "cell": "tabulka 1, řádek Česko, sloupec 2091"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "price-01",
+      "topic": "prices",
+      "slot": "Fiktivní průměrná cena litru fiktivního nápoje, 2091",
+      "question": "Kolik stál v Česku v roce 2091 průměrně litr fiktivního nápoje?",
+      "expected": {
+        "value_text": "42,5",
+        "unit": "CZK",
+        "scale": 1,
+        "period": "2091",
+        "geography": "CZ",
+        "population": null,
+        "denominator": "l",
+        "measure_name": "průměrná cena za litr (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": "CEN02",
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "dataset",
+        "url": "https://statistika-fikce.example/data/CEN02",
+        "cell": "CEN02!NAPOJ/2091"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "price-02",
+      "topic": "prices",
+      "slot": "Fiktivní průměrná roční míra inflace v Česku, 2091",
+      "question": "Jaká byla v Česku průměrná roční míra inflace v roce 2091 (fiktivní)?",
+      "expected": {
+        "value_text": "2,5",
+        "unit": "%",
+        "scale": 1,
+        "period": "2091",
+        "geography": "CZ",
+        "population": null,
+        "denominator": null,
+        "measure_name": "míra inflace (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": null,
+        "publisher": "register:fiktivni statisticky urad",
+        "source_type": "web_text",
+        "url": "https://statistika-fikce.example/inflace-2091",
+        "cell": "odstavec 1"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    },
+    {
+      "fact_id": "trade-01",
+      "topic": "trade",
+      "slot": "Fiktivní hodnota vývozu fiktivního zboží z Česka, 2091",
+      "question": "Jakou hodnotu měl v roce 2091 vývoz fiktivního zboží z Česka?",
+      "expected": {
+        "value_text": "1,2",
+        "unit": "CZK",
+        "scale": 1000000000,
+        "period": "2091",
+        "geography": "CZ",
+        "population": null,
+        "denominator": null,
+        "measure_name": "vývoz fiktivního zboží (fiktivní)",
+        "basis": "actual"
+      },
+      "tolerance": {
+        "kind": "absolute",
+        "amount": "0,05",
+        "reason": "fixture: the publisher rounds to hundredths of a billion"
+      },
+      "primary": {
+        "title": null,
+        "dataset_id": null,
+        "publisher": "register:fiktivni obchodni komora",
+        "source_type": "web_text",
+        "url": "https://komora-fikce.example/vyvoz-2091",
+        "cell": "odstavec 2"
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": "2026-10-06",
+      "recorded_by": "fictional fixture",
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": "FICTIONAL: invented for the scorer's tests; no source exists"
+      }
+    }
+  ]
+}
