@@ -29,9 +29,9 @@ with no composition at hand -- and why each count is a bound:
   fingerprint changes before a step reads them.
 
 Each repair is inside its request: a research agent's reservation covers the primary
-call and its one schema repair (``AIA_AI_RESEARCH_RESERVATION_USD``, checked at the
-worker's start against two calls at the model's ceilings), and a triage read's
-likewise. Reuse is not subtracted: a reused track costs nothing, and the bound holds.
+call and its one schema repair, at its own kind's window and output limit
+(:mod:`.request_limits`), and a triage read's likewise. Reuse is not subtracted: a
+reused track costs nothing, and the bound holds.
 
 Pure: stdlib and Pydantic only.
 """

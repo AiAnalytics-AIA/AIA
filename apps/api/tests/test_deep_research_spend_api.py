@@ -1,9 +1,10 @@
 """A Deep Research start asks first over HTTP when its ceiling reaches the study's limit.
 
 Plan ``deep-research-web-search.md`` chunk 22, ADR 0019 gate 2, as a research run's start
-does it (``test_research_spend_api.py``). The deployment's settings carry the research
-agents' reservation per request and the mode switches the worker composes from; the server
-works the ceiling out, and the request never names it.
+does it (``test_research_spend_api.py``). The deployment's settings carry the route's prices,
+the model's window, the research output limit, the thinking budget and the mode switches the
+worker composes from; the server works each kind's reservation and the ceiling out
+(``request_limits``, chunk 23), and the request never names it.
 """
 
 from __future__ import annotations
@@ -27,19 +28,31 @@ DESIGN = {
     "sections": [],
 }
 
-#: One web track, EXHAUSTIVE, the planned mode, 0.5 reserved per request: the planner (1), a
-#: request per search (10), the verifier over min(10 x 12, 16 - 1 + 12) = 27 candidates in
-#: batches of 12 (3), the synthesizer (1) -- 15 requests. No retrieval route is on.
-EXHAUSTIVE_PLANNED = 15 * 0.5
+#: The route: $3 / $15 per MTok, a 200,000-token window, 8,192 research output tokens. Each
+#: kind reserves two calls at its window and output limit: the planner, the lead and the
+#: synthesizer the model's; the investigator 144,000 and 6,144; the verifier 112,000 and 4,096.
+ROUTE = {
+    "bedrock_input_usd_per_mtok": 3.0,
+    "bedrock_output_usd_per_mtok": 15.0,
+    "bedrock_context_window_tokens": 200_000,
+    "ai_research_max_output_tokens": 8_192,
+}
+WHOLE = 2 * (200_000 * 3.0 + 8_192 * 15.0) / 1_000_000
+INVESTIGATOR = 2 * (144_000 * 3.0 + 6_144 * 15.0) / 1_000_000
+VERIFIER = 2 * (112_000 * 3.0 + 4_096 * 15.0) / 1_000_000
+#: One web track, EXHAUSTIVE, the planned mode: the planner (1), a request per search (10),
+#: the verifier over min(10 x 12, 16 - 1 + 12) = 27 candidates in batches of 12 (3), the
+#: synthesizer (1) -- 15 requests. No retrieval route is on.
+EXHAUSTIVE_PLANNED = WHOLE + 10 * INVESTIGATOR + 3 * VERIFIER + WHOLE
 #: The same under the lead: its plan and 6 re-plans (7), its ceiling's 720 turns, 50 tasks'
 #: verification at 3 batches each (150), the brief synthesizer and its one repair (2) --
 #: 879 requests.
-EXHAUSTIVE_LEAD = 879 * 0.5
+EXHAUSTIVE_LEAD = 7 * WHOLE + 720 * INVESTIGATOR + 150 * VERIFIER + 2 * WHOLE
 
 
 @pytest.fixture
 def settings(settings: Settings) -> Settings:
-    return settings.model_copy(update={"ai_research_reservation_usd": 0.5})
+    return settings.model_copy(update=ROUTE)
 
 
 def _study(world: Any) -> str:
@@ -88,12 +101,16 @@ def test_an_exhaustive_run_over_the_limit_asks_then_starts_on_a_yes_recorded_onc
     asked = _start(researcher, world, revision)
     assert asked.status_code == 409, asked.text
     assert asked.json()["code"] == "cost_confirmation_required"
-    assert asked.json()["details"] == {"ceiling_usd": EXHAUSTIVE_PLANNED, "limit_usd": 5.0}
+    assert asked.json()["details"] == {
+        "ceiling_usd": pytest.approx(EXHAUSTIVE_PLANNED),
+        "limit_usd": 5.0,
+    }
+    ceiling = asked.json()["details"]["ceiling_usd"]
     assert researcher.get(_url(world)).json() == []
-    low = _start(researcher, world, revision, confirm_cost_usd=EXHAUSTIVE_PLANNED - 0.5)
+    low = _start(researcher, world, revision, confirm_cost_usd=ceiling - 0.5)
     assert low.status_code == 409
 
-    started = _start(researcher, world, revision, confirm_cost_usd=EXHAUSTIVE_PLANNED)
+    started = _start(researcher, world, revision, confirm_cost_usd=ceiling)
     assert started.status_code == 201, started.text
     assert started.json()["preset"] == "EXHAUSTIVE"
     [row] = _spend_rows(app)
@@ -121,29 +138,63 @@ def test_the_ceiling_is_the_mode_the_worker_composes(
     _limit(researcher, world, 100.0)
     asked = _start(researcher, world, revision)
     assert asked.status_code == 409
-    assert asked.json()["details"]["ceiling_usd"] == EXHAUSTIVE_LEAD
+    assert asked.json()["details"]["ceiling_usd"] == pytest.approx(EXHAUSTIVE_LEAD)
+
+
+def test_each_kind_reserves_its_own_and_the_ceiling_is_below_one_flat_reservation(
+    researcher: TestClient, world: Any
+) -> None:
+    revision = _revision(researcher, world)
+    _limit(researcher, world, 1.0)
+    ceiling = _start(researcher, world, revision).json()["details"]["ceiling_usd"]
+    # Before chunk 23 every one of the 15 requests reserved the whole window's amount.
+    assert ceiling == pytest.approx(EXHAUSTIVE_PLANNED) and ceiling < 15 * WHOLE
+
+
+def test_thinking_is_priced_into_each_kinds_output(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    app.state.settings = app.state.settings.model_copy(
+        update={"deep_research_thinking_budget_tokens": 2048}
+    )
+    revision = _revision(researcher, world)
+    _limit(researcher, world, 1.0)
+    ceiling = _start(researcher, world, revision).json()["details"]["ceiling_usd"]
+    # The investigator's 6,144 + 2,048 and the verifier's 4,096 + 2,048 output tokens.
+    thinking_investigator = 2 * (144_000 * 3.0 + 8_192 * 15.0) / 1_000_000
+    thinking_verifier = 2 * (112_000 * 3.0 + 6_144 * 15.0) / 1_000_000
+    assert ceiling == pytest.approx(2 * WHOLE + 10 * thinking_investigator + 3 * thinking_verifier)
 
 
 def test_a_retry_asks_again(researcher: TestClient, world: Any, app: FastAPI) -> None:
     revision = _revision(researcher, world)
     _limit(researcher, world, 5.0)
-    run_id = _start(researcher, world, revision, confirm_cost_usd=EXHAUSTIVE_PLANNED).json()[
-        "run_id"
-    ]
+    ceiling = _start(researcher, world, revision).json()["details"]["ceiling_usd"]
+    run_id = _start(researcher, world, revision, confirm_cost_usd=ceiling).json()["run_id"]
     assert researcher.post(f"{_url(world)}/{run_id}/cancel").status_code == 200
     asked = researcher.post(f"{_url(world)}/{run_id}/retry")
     assert asked.status_code == 409 and asked.json()["code"] == "cost_confirmation_required"
     retried = researcher.post(
-        f"{_url(world)}/{run_id}/retry", json={"confirm_cost_usd": EXHAUSTIVE_PLANNED}
+        f"{_url(world)}/{run_id}/retry",
+        json={"confirm_cost_usd": asked.json()["details"]["ceiling_usd"]},
     )
     assert retried.status_code == 201, retried.text
     assert len(_spend_rows(app)) == 2
 
 
-def test_an_unset_reservation_is_refused_with_a_limit_and_not_without(
-    researcher: TestClient, world: Any, app: FastAPI
+@pytest.mark.parametrize(
+    "unset",
+    [
+        "bedrock_input_usd_per_mtok",
+        "bedrock_output_usd_per_mtok",
+        "bedrock_context_window_tokens",
+        "ai_research_max_output_tokens",
+    ],
+)
+def test_an_unset_price_or_limit_is_refused_with_a_limit_and_not_without(
+    researcher: TestClient, world: Any, app: FastAPI, unset: str
 ) -> None:
-    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
+    app.state.settings = app.state.settings.model_copy(update={unset: None})
     revision = _revision(researcher, world)
     _limit(researcher, world, 100.0)
     refused = _start(researcher, world, revision)

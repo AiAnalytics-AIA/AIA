@@ -42,6 +42,12 @@ from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.integration import LEGACY_UNVERSIONED, PurposeSource
 from aia_core.domain.deep_research.planning import UnknownPreset
+from aia_core.domain.deep_research.request_limits import (
+    RESEARCH_KINDS,
+    KindBudget,
+    ModelPrices,
+    kind_budgets,
+)
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
@@ -151,27 +157,56 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
+def deep_research_budgets(settings: Settings) -> dict[CallKind, KindBudget] | None:
+    """Each kind of model request's window, output limit and reservation, derived as the
+    worker derives them (``request_limits.kind_budgets``) from the same keys; ``None`` when a
+    key it needs is missing or not a valid value -- unknown, never a guess."""
+    if (
+        settings.bedrock_input_usd_per_mtok is None
+        or settings.bedrock_output_usd_per_mtok is None
+        or settings.bedrock_context_window_tokens is None
+        or settings.ai_research_max_output_tokens is None
+    ):
+        return None
+    try:
+        return kind_budgets(
+            ModelPrices(
+                input_usd_per_mtok=settings.bedrock_input_usd_per_mtok,
+                output_usd_per_mtok=settings.bedrock_output_usd_per_mtok,
+                cache_read_usd_per_mtok=settings.bedrock_cache_read_usd_per_mtok,
+                cache_write_usd_per_mtok=settings.bedrock_cache_write_usd_per_mtok,
+            ),
+            context_window_tokens=settings.bedrock_context_window_tokens,
+            max_output_tokens=settings.ai_research_max_output_tokens,
+            thinking_budget_tokens=settings.deep_research_thinking_budget_tokens,
+        )
+    except ValueError:
+        return None
+
+
 def deep_research_prices(settings: Settings) -> DeepResearchPrices:
     """What each kind of call a Deep Research run makes may cost, as this deployment says.
 
-    Every research agent reserves the research agents' configured reservation per request
-    (``aia_executors.deep_research_runtime`` composes them so); unset, it is unknown. The
-    only retrieval a deployment composes is the public Wikipedia route, priced at zero
+    Each kind of research agent's request reserves its own kind's amount
+    (:func:`deep_research_budgets`, as ``aia_executors.deep_research_runtime`` composes
+    them); with a key missing, every model kind is unknown. The only retrieval a
+    deployment composes is the public Wikipedia route, priced at zero
     (``aia_executors.deep_research_live``); off, nothing is searched. Triage, the focused
     crawl, the connectors and Common Crawl are composed by no deployment yet (chunk 23
     wires them with their dated prices), so nothing is sent on them.
     """
-    research = RoutePrice.of(settings.ai_research_reservation_usd)
+    budgets = deep_research_budgets(settings)
+    model = {
+        kind: RoutePrice.unknown()
+        if budgets is None
+        else RoutePrice.per_call(budgets[kind].reservation_usd)
+        for kind in RESEARCH_KINDS
+    }
     web = RoutePrice.per_call(0.0) if settings.deep_research_wikipedia_enabled else RoutePrice.off()
     off = RoutePrice.off()
     return DeepResearchPrices(
         {
-            CallKind.PLANNER: research,
-            CallKind.LEAD: research,
-            CallKind.INTERNAL_INVESTIGATOR: research,
-            CallKind.INVESTIGATOR: research,
-            CallKind.VERIFIER: research,
-            CallKind.SYNTHESIZER: research,
+            **model,
             CallKind.SEARCH: web,
             CallKind.FETCH: web,
             CallKind.TRIAGE: off,
