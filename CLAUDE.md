@@ -312,8 +312,11 @@ packages/aia_core/src/aia_core/
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
                             run, every artifact pinned and verified, never the latest);
-                            start/start_interpretation/get/runs/events/cancel/retry (a retry never
-                            re-chooses its target); legacy runs read legacy-unversioned; the bundle
+                            start/get/runs/events/cancel/retry (a retry never re-chooses its
+                            target); _enqueue, the one enqueue boundary, refuses every
+                            INTERPRETATION_RESEARCH spec until chunk 30 (start_interpretation and
+                            a stored row's retry: interpretation_not_ready, OI-88); legacy runs
+                            read legacy-unversioned; the bundle
                             (seal verified), its snapshots and provenance only through the run
     web_retrieval.py        RetrievalGate: the ONLY way a query or URL leaves -- classify, egress,
                             metering, reserve, journal the dispatch, call, journal the outcome

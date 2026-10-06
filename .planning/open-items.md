@@ -3042,21 +3042,28 @@ deleted, never budgeted for (#166 recorded it as such).
 
 ---
 
-## OI-88 · Limitation · Interpretation Research researches its revision's subjects until slice 30
+## OI-88 · Limitation · Interpretation Research is frozen, never executed, until chunk 30
 
-**Claim.** ADR 0021's result-side freeze pins an interpretation run's target and lineage exactly,
-but its engine request is still the one frozen from the producing run's Design Revision, so the
-engine researches that revision's questions and objects, not the target
-(`application/deep_research.py` `freeze_interpretation`; ADR 0021 § Consequences).
+**Claim.** Interpretation execution is intentionally unavailable until chunk 30, because
+target-derived research subjects and mission do not yet exist. ADR 0021's result-side freeze
+resolves an interpretation target and pins its lineage exactly, but its engine request would still
+be the one frozen from the producing run's Design Revision; a run would be labelled
+`INTERPRETATION_RESEARCH` while researching the design's subjects. So the one enqueue boundary
+(`application/deep_research.py` `DeepResearchRuns._enqueue`) refuses every
+`INTERPRETATION_RESEARCH` spec (`InterpretationNotReady`, `interpretation_not_ready`), and a
+stored interpretation row is never retried. No knowingly mislabelled output exists in AIA.
 
-**Reproduction.** `apps/executors/tests/test_deep_research_lineage.py::test_interpretation_pins_the_exact_result_and_the_design_it_executed`
-asserts the interpretation spec's engine request equals the design-side one over the same revision.
+**Reproduction.** `apps/executors/tests/test_deep_research_lineage.py`:
+`::test_the_enqueue_boundary_refuses_any_interpretation_spec`,
+`::test_interpretation_execution_fails_closed_until_target_subjects_exist` and
+`::test_an_interpretation_row_is_never_retried_until_chunk_30` (no new run, no model or
+retrieval call). With the guard removed, these fail.
 
-**Consequence.** No user-visible effect today: no route starts Interpretation Research. An
-interpretation run started through the service is labelled `INTERPRETATION_RESEARCH` and its
-evidence is about the design's subjects.
+**Consequence.** No Interpretation Research runs yet; the freeze, the target and lineage
+validation and the provenance contract are available to build on.
 
-**Fix.** [web-search plan](plans/deep-research-web-search.md) chunk 30: subjects written from the
-target, and the result-side start route.
+**Fix.** [web-search plan](plans/deep-research-web-search.md) chunk 30: derive the mission from
+the exact target, build the engine request from it, then enable enqueueing and the result-side
+route together.
 
 **Status.** Open, by design (ADR 0021 Step 1).

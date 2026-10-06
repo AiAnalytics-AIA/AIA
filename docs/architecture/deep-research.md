@@ -41,7 +41,10 @@ id and SHA256). The engine request inside it is unchanged, so its fingerprint an
 are unchanged; the spec's own fingerprint keys the run, and a design run and an interpretation
 run over one engine input share the engine's reusable work. `DeepResearchProvenance` names the
 sealed bundle (artifact id, row SHA256, seal) beside purpose, target and lineage, without
-touching the bundle. A run stored before ADR 0021 reads `legacy-unversioned`. Neither purpose
+touching the bundle. A run stored before ADR 0021 reads `legacy-unversioned`.
+**Interpretation Research is frozen, never enqueued, until chunk 30**: its target, lineage and
+spec are built and validated now, and `_enqueue` refuses its spec (`interpretation_not_ready`),
+because its engine request would still research the design's subjects (OI-88). Neither purpose
 writes a design or a deterministic artifact (`require_may_write`, a `layer_check` rule).
 
 | Phase | Who decides | What it produces |
@@ -310,8 +313,8 @@ every web track's fingerprint.
 
 ## 10. What the integrator registers (Job 6)
 
-Items 1–3 are done: `DeepResearchRuns.start` (and, since ADR 0021, `start_interpretation`) is the
-entry point, the type built from `deep_research_steps()` rather than a `WORKFLOW_TYPES`
+Items 1–3 are done: `DeepResearchRuns.start` is the entry point (`start_interpretation`
+exists and is refused at the enqueue boundary until chunk 30, OI-88), the type built from `deep_research_steps()` rather than a `WORKFLOW_TYPES`
 template; `deep_research_registry(..., runtime=deep_research_runtime(settings))` is in
 `aia_executors/registry.py`; and `routers/deep_research.py` serves start, get, list, events,
 cancel, retry, bundle, snapshot and provenance, a corrupt read answering 409 through

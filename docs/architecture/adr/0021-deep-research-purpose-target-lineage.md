@@ -173,10 +173,19 @@ deterministic research truth.*
   on. The report (evidence families POPULATION/RESPONDENT, DETERMINISTIC, SOCIOMAP, DEEP_RESEARCH,
   CLIENT_KNOWLEDGE) and the Research Lens can cite `DeepResearchProvenance` without reaching
   into the engine.
-- The result-side freeze exists in the service; no route starts Interpretation Research yet, and
-  its engine request is still the design-derived one. Subjects written from the target are the
-  next slice; until then an interpretation run researches its revision's subjects, labelled
-  `INTERPRETATION_RESEARCH`.
+- **Interpretation Research is frozen, never executed, until chunk 30.** Its target resolution,
+  lineage freeze, run-spec construction and provenance contract exist now. Enqueueing is refused
+  at the one enqueue boundary (`DeepResearchRuns._enqueue`, `interpretation_not_ready`), and a
+  stored interpretation row is never retried. The reason: its engine request would still be the
+  design-derived one, so a run would be labelled as interpreting a result while researching the
+  design's subjects. Chunk 30 derives the research mission from the exact target, builds the
+  engine request from it, and then enables enqueueing together with the result-side route. No
+  knowingly mislabelled output exists in AIA.
+
+  | | target resolution | lineage freeze | run spec | provenance contract | enqueue | execute |
+  |---|---|---|---|---|---|---|
+  | `DESIGN_RESEARCH` | yes | yes | yes | yes | yes | yes |
+  | `INTERPRETATION_RESEARCH` (Step 1) | yes | yes | yes | yes | **no** | **no** |
 - A start after this ADR over a revision that already had a pre-ADR run is a new run (a new key):
   the honest cost of not pretending the old run was governed.
 

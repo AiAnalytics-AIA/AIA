@@ -60,7 +60,8 @@ DeepResearchRunSpec                     (domain/deep_research/integration.py)
 
 ## Not in this plan
 
-Interpretation subjects and the result-side start route (the next slice); the Research Lens; the
+Executing Interpretation Research: until chunk 30 derives its mission from the target, the
+enqueue boundary refuses its spec (OI-88); the result-side start route comes with it; the Research Lens; the
 report evidence graph; the operator screen; any engine change (retrieval, ladder, investigators,
 lead, fan-out, verification, grounding, confidence, bundle).
 
@@ -70,7 +71,7 @@ lead, fan-out, verification, grounding, confidence, bundle).
   returns `MEASURE_NOT_IN_SOURCE` (re-run on `579b7ab`). Closed in `open-items.md`.
 - **OI-86** (closed by #166), the released planned track that resent its calls, and **OI-87**, the
   model-slot lease hypothesis, are filed from #166's record; **OI-88** is this step's own
-  limitation: an interpretation run researches its revision's subjects until chunk 30.
+  limitation: Interpretation Research is frozen, never enqueued, until chunk 30.
 - **Stale "not registered" text.** `application/deep_research.py`'s docstring, `CLAUDE.md`,
   `deep-research.md` and `research-journey.md` said nothing was registered or executed; the
   executors are in the default registry and the API route calls the service (#92). Corrected here.

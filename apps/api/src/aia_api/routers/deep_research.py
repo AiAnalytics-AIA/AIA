@@ -4,8 +4,9 @@ Every run says why it ran, what it researched and which immutable state it rests
 (ADR 0021): ``purpose``, ``target`` and ``lineage`` on each run, and
 ``GET …/runs/{run_id}/provenance`` for what a later consumer cites. A start that names no
 ``purpose`` -- the deployed client's shape -- is a new ``DESIGN_RESEARCH`` run, recorded
-``purpose_source: LEGACY_DEFAULT``; only ``DESIGN_RESEARCH`` may be started here (the
-result-side start is the next slice). A run stored before ADR 0021 reads
+``purpose_source: LEGACY_DEFAULT``; only ``DESIGN_RESEARCH`` may be started here.
+Interpretation Research is frozen but never enqueued until chunk 30 (409
+``interpretation_not_ready``, e.g. on the retry of such a row). A run stored before ADR 0021 reads
 ``integration_contract: legacy-unversioned`` with no purpose.
 
 A start or a retry on a Study with a spend limit asks first (ADR 0019 gate 2): the
@@ -27,6 +28,7 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
+    InterpretationNotReady,
     LineageChanged,
     NothingToResearch,
     ResearchTargetInvalid,
@@ -203,6 +205,10 @@ def _errors(session: SessionDep) -> Iterator[None]:
     except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
+        ) from exc
+    except InterpretationNotReady as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": exc.code, "message": str(exc)}
         ) from exc
     except LineageChanged as exc:
         raise HTTPException(

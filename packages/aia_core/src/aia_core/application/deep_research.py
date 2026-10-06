@@ -23,8 +23,10 @@ Revision's hash; for interpretation every artifact of the producing research run
 target rests on, pinned by id and SHA256). The spec is the run's identity and is stored
 with the run; the engine request inside it, and so every engine fingerprint, is the one
 this module froze before ADR 0021. :meth:`freeze_design` is the design-side freeze;
-:meth:`freeze_interpretation` the result-side one. A run stored before the contract
-reads as ``legacy-unversioned``: nothing is back-filled.
+:meth:`freeze_interpretation` the result-side one. Interpretation Research is frozen, never
+enqueued, until chunk 30: :meth:`_enqueue`, where every run is created, refuses its spec
+(:class:`InterpretationNotReady`, OI-88). A run stored before the contract reads as
+``legacy-unversioned``: nothing is back-filled.
 
 **Registered and parked by default.** The API route (``routers/deep_research.py``) calls
 this service, and the worker's default registry holds the six executors; the worker
@@ -124,6 +126,7 @@ __all__ = [
     "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
     "GovernedRecord",
+    "InterpretationNotReady",
     "LineageChanged",
     "NothingToResearch",
     "ResearchTargetInvalid",
@@ -131,6 +134,7 @@ __all__ = [
     "RunNotGoverned",
     "RunSpecCorrupt",
     "governed_record",
+    "run_spec_metadata",
 ]
 
 
@@ -160,6 +164,24 @@ class ResearchTargetInvalid(ValueError):
 
 class LineageChanged(Exception):
     """A retry would no longer rest on the exact artifacts its run was anchored to."""
+
+
+class InterpretationNotReady(Exception):
+    """Interpretation Research may be frozen, never enqueued, until chunk 30 (ADR 0021).
+
+    Its engine request would still be the one frozen from the producing run's Design
+    Revision, so a run would be labelled as interpreting a result while researching the
+    design's subjects. Chunk 30 derives the mission from the exact target, builds the
+    engine request from it, and enables enqueueing together with the result-side route.
+    """
+
+    code = "interpretation_not_ready"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Interpretation Research cannot run yet: its research mission is not derived "
+            "from the target until chunk 30 (OI-88); the target and lineage freeze is available"
+        )
 
 
 class RunSpecCorrupt(ValueError):
@@ -445,11 +467,13 @@ class DeepResearchRuns:
         confirm_cost_usd: float | None = None,
         title: str | None = None,
     ) -> StartedRun:
-        """Start ``INTERPRETATION_RESEARCH`` over one result (:meth:`freeze_interpretation`).
+        """Start ``INTERPRETATION_RESEARCH`` over one result: refused until chunk 30.
 
-        The foundation only (ADR 0021, Step 1): the engine request is the one frozen from
-        the producing run's Design Revision. Subjects written from the target, and the
-        route that starts this, are the next slice.
+        The target, its scope and its lineage are resolved first (:meth:`freeze_interpretation`),
+        so a target of another Study, a missing entity or a corrupt artifact fails as it
+        would; then the enqueue boundary refuses the spec (:class:`InterpretationNotReady`).
+        Chunk 30 derives the research mission from the target and enables this with its
+        route.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
@@ -491,7 +515,14 @@ class DeepResearchRuns:
         prices, or a price the run needs missing, is
         :class:`~aia_core.application.research.CostCeilingUnknown`: not let by. A start
         that finds its run already there spends nothing and asks nothing.
+
+        **The one enqueue boundary.** Every run is created here, and an
+        ``INTERPRETATION_RESEARCH`` spec is refused before anything is read, priced or
+        written (:class:`InterpretationNotReady`): until chunk 30 its engine request would
+        research the design's subjects under an interpretation label.
         """
+        if spec.purpose is DeepResearchPurpose.INTERPRETATION_RESEARCH:
+            raise InterpretationNotReady()
         request = spec.engine_request
         project_id = self._designs().project_id()
         assert project_id is not None  # a revision exists, so its design project does
@@ -542,13 +573,7 @@ class DeepResearchRuns:
                 "preset_table": PRESET_TABLE_VERSION,
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
-                "integration_contract": spec.contract_version,
-                "purpose": spec.purpose.value,
-                "purpose_source": purpose_source.value,
-                "target": spec.target.model_dump(mode="json"),
-                "lineage": spec.lineage.model_dump(mode="json"),
-                "run_spec_fingerprint": spec_fingerprint,
-                **({"title": spec.title} if spec.title is not None else {}),
+                **run_spec_metadata(spec, purpose_source=purpose_source),
                 **(
                     {"cost_ceiling_usd": ceiling.total_usd, "cost_ceiling_mode": ceiling.mode.value}
                     if ceiling is not None
@@ -593,54 +618,34 @@ class DeepResearchRuns:
         item -- is in the new engine request, and what the earlier run stored is found
         by fingerprint, so a track, a snapshot or a verification it completed is not
         bought again. The *target* is never re-chosen: a design run retries over its
-        revision, an interpretation run over the exact result it named, and if that
-        result's pinned artifacts no longer resolve to the same hashes the retry is
-        :class:`LineageChanged`, never a run over something newer. A run stored before
-        ADR 0021 retries as a new Design Research run through the legacy rule. A retry
-        can spend again, so it asks again, as :meth:`start` does.
+        revision. A run stored before ADR 0021 retries as a new Design Research run through
+        the legacy rule. A stored ``INTERPRETATION_RESEARCH`` row -- which no code path can
+        create until chunk 30 -- is :class:`InterpretationNotReady` before anything is
+        frozen or read. A retry can spend again, so it asks again, as :meth:`start` does.
+        ``store`` is accepted for the result-side retry chunk 30 enables.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise DeepResearchRunNotRetryable(run["status"])
         metadata = run["metadata"]
-        channels = [Channel(c) for c in metadata["channels"]]
         record = governed_record(metadata)
-        if record is None or record.purpose is DeepResearchPurpose.DESIGN_RESEARCH:
-            return self.start(
-                design_revision_id=str(metadata["design_revision_id"]),
-                preset_name=str(metadata["preset"]),
-                channels=channels,
-                retry_of=run_id,
-                prices=prices,
-                modes=modes,
-                confirm_cost_usd=confirm_cost_usd,
-                purpose_source=(
-                    PurposeSource.LEGACY_DEFAULT
-                    if record is None
-                    else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
-                ),
-                title=record.title if record is not None else None,
-            )
-        if store is None:
-            raise ValueError("an interpretation retry re-reads its pinned results: pass a store")
-        self.scope.require(Permission.RUN_WORKFLOW)
-        self.scope.require_open_study()
-        spec = self.freeze_interpretation(
-            target=record.target,
+        if record is not None and record.purpose is DeepResearchPurpose.INTERPRETATION_RESEARCH:
+            raise InterpretationNotReady()
+        del store  # read by the result-side retry, from chunk 30
+        return self.start(
+            design_revision_id=str(metadata["design_revision_id"]),
             preset_name=str(metadata["preset"]),
-            store=store,
-            channels=channels,
-            title=record.title,
-        )
-        if spec.lineage != record.lineage:
-            raise LineageChanged("the result this run interpreted no longer reads as it did")
-        return self._enqueue(
-            spec,
-            purpose_source=PurposeSource.EXPLICIT,
+            channels=[Channel(c) for c in metadata["channels"]],
             retry_of=run_id,
             prices=prices,
             modes=modes,
             confirm_cost_usd=confirm_cost_usd,
+            purpose_source=(
+                PurposeSource.LEGACY_DEFAULT
+                if record is None
+                else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
+            ),
+            title=record.title if record is not None else None,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:
@@ -791,6 +796,25 @@ class DeepResearchRuns:
                     raise LineageChanged(f"{pin.artifact_id} is not the artifact pinned")
                 repo.read(pin.artifact_id)  # its bytes still hash to the pin
         return lineage
+
+
+def run_spec_metadata(
+    spec: DeepResearchRunSpec, *, purpose_source: PurposeSource
+) -> dict[str, Any]:
+    """What a run's metadata holds of its spec (ADR 0021): read back by :func:`governed_record`.
+
+    The engine request is not here: it is the plan step's input, and its fingerprint is
+    the metadata's ``request_fingerprint``.
+    """
+    return {
+        "integration_contract": spec.contract_version,
+        "purpose": spec.purpose.value,
+        "purpose_source": purpose_source.value,
+        "target": spec.target.model_dump(mode="json"),
+        "lineage": spec.lineage.model_dump(mode="json"),
+        "run_spec_fingerprint": spec.fingerprint(),
+        **({"title": spec.title} if spec.title is not None else {}),
+    }
 
 
 @dataclass(frozen=True, slots=True)

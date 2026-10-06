@@ -31,7 +31,7 @@ chunks:
   - "[ ] 27. Develop activation and the live acceptance (last)"
   - "[x] 28. Purpose, target and frozen lineage (ADR 0021, AIA-83 Step 1)"
   - "[ ] 29. Design Research integration: proposals from a design run, accepted into a revision (gate 1)"
-  - "[ ] 30. Interpretation Research integration: subjects written from the target, the result-side start"
+  - "[ ] 30. Interpretation Research integration: mission from the target, then enqueue and the route"
   - "[ ] 31. The Sociomap Research Lens: an annotation sidecar beside the canonical map"
   - "[ ] 32. The report evidence graph: five evidence families, every claim's support"
 ---
@@ -62,7 +62,8 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 28 purpose / target / frozen lineage            (done: ADR 0021)
 → 23 backend: composition, switches, prices; per-kind reservations FIRST
 → 29 Design Research integration                (proposals → gate 1 → a new revision)
-→ 30 Interpretation Research integration        (target-written subjects, the result-side start)
+→ 30 Interpretation Research integration        (mission from the target → engine request →
+                                                  enable enqueue → result-side route)
 → 31 Sociomap Research Lens                      (a sidecar; see the invariant below)
 → 32 report evidence graph                       (POPULATION/RESPONDENT, DETERMINISTIC, SOCIOMAP,
                                                   DEEP_RESEARCH, CLIENT_KNOWLEDGE)
