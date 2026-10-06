@@ -25,6 +25,7 @@ composition but the local recorded one.
 
 from __future__ import annotations
 
+import codecs
 import hashlib
 import json
 import re
@@ -429,7 +430,17 @@ class WebFetcher:
             raise FetchRefused(
                 f"the page is larger than {MAX_BODY_BYTES} bytes", reason="body_too_large"
             )
-        decoded = response.body.decode(_charset(headers.get("content-type", "")), errors="replace")
+        charset = _charset(headers.get("content-type", ""))
+        try:
+            codecs.lookup(charset)
+        except LookupError as exc:
+            # errors="replace" covers bad bytes, not an unknown codec: decoding with a
+            # guessed charset would store text the page never said.
+            raise FetchRefused(
+                f"the declared charset {charset[:40]!r} is not one AIA can read",
+                reason="charset_unknown",
+            ) from exc
+        decoded = response.body.decode(charset, errors="replace")
         links: tuple[SnapshotLink, ...] = ()
         if media == "text/plain":
             title, text, published = extract_page(decoded, media)

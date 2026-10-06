@@ -246,16 +246,19 @@ class PendingFetch:
 class RunSnapshotCache:
     """The pages one run has captured, by canonical URL, held in this process.
 
-    Content-addressed: a URL maps to a snapshot id, and the id to the page, so
-    URLs that reach the same page (its requested and its final URL) share one
-    entry. One cache serves one run -- the caller builds it with the run's gate
-    and drops it with the run; nothing here is shared across runs or stored.
-    Only a page that was kept is cached: a refusal or a failure is asked again.
+    Keyed by URL, never by snapshot id: a URL is answered only with the page
+    that URL itself returned (under its requested or its final URL). The id is
+    content-addressed, so two URLs whose pages extract to the same text -- a
+    mirrored article, two script-only shells with no text at all -- share it;
+    answering one from the other would attach the wrong URL and title to a
+    citation. One cache serves one run -- the caller builds it with the run's
+    gate and drops it with the run; nothing here is shared across runs or
+    stored. Only a page that was kept is cached: a refusal or a failure is
+    asked again.
     """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._ids: dict[str, str] = {}
         self._pages: dict[str, FetchedPage] = {}
 
     @staticmethod
@@ -264,19 +267,17 @@ class RunSnapshotCache:
 
     def get(self, url: str) -> FetchedPage | None:
         with self._lock:
-            snapshot_id = self._ids.get(self._key(url))
-            return None if snapshot_id is None else self._pages[snapshot_id]
+            return self._pages.get(self._key(url))
 
     def put(self, url: str, page: FetchedPage) -> None:
-        snapshot = page.snapshot
         with self._lock:
-            self._pages.setdefault(snapshot.snapshot_id, page)
-            for each in (url, snapshot.final_url):
-                self._ids.setdefault(self._key(each), snapshot.snapshot_id)
+            for each in (url, page.snapshot.final_url):
+                self._pages.setdefault(self._key(each), page)
 
     def __len__(self) -> int:
+        """The captures held (a page under two URLs is one)."""
         with self._lock:
-            return len(self._pages)
+            return len({id(page) for page in self._pages.values()})
 
 
 class RetrievalGate:
