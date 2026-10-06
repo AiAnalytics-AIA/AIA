@@ -986,7 +986,9 @@ class StepAttemptRow(Base):
 
     # Whether a metered provider call was dispatched, and whether its outcome is
     # known. Together these decide whether a lapsed attempt may be retried or
-    # must become RECOVERY_REQUIRED -- the double-billing guard.
+    # must become RECOVERY_REQUIRED -- the double-billing guard. The second is a
+    # record of the per-hold truth (budget_reservations.paid_call_in_flight),
+    # rewritten from it on every metering write; decisions read the holds.
     paid_call_dispatched: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     paid_call_outcome_known: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     provider_request_id: Mapped[str | None] = mapped_column(String(255))
@@ -1038,6 +1040,11 @@ class BudgetReservationRow(Base):
     settled_amount_usd: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="RESERVED")
     reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    # A paid call against this hold has been dispatched and its outcome is not yet
+    # recorded. Per hold, not per attempt: an attempt that sends two calls at once
+    # has two questions open, and answering one must not close the other. An
+    # attempt's outcome is known only when none of its open holds says this.
+    paid_call_in_flight: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow

@@ -273,11 +273,14 @@ def model_request(
     lineage: DataLineage,
     policy_version: str,
     max_output_tokens: int,
+    thinking_budget_tokens: int | None = None,
 ) -> ModelRequest:
     """One request for one agent, its payload as canonical JSON in a single user message.
 
     No fallback, no requested provider or model, no tools: the gateway resolves the
     capability under the policy, and the executor's reservation is the budget.
+    ``thinking_budget_tokens`` turns extended thinking on, within ``max_output_tokens``;
+    ``None`` (the default) builds the request exactly as it was before the setting.
     """
     return ModelRequest(
         agent=agent_definition(role, max_output_tokens=max_output_tokens),
@@ -287,4 +290,5 @@ def model_request(
         system=prompt_for(role),
         messages=(Message(role="user", content=canonical_json(payload)),),
         max_output_tokens=max_output_tokens,
+        thinking_budget_tokens=thinking_budget_tokens,
     )

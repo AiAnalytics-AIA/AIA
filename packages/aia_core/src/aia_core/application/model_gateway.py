@@ -20,7 +20,9 @@ with cost or provenance consequences is made here, in this order, and recorded:
 4. **Journal the dispatch** -- durably -- before anything is sent.
 5. **Send** through the adapter bound to that route, and classify what comes back.
 6. **Validate** structured output deterministically, allowing the agent's one
-   same-model repair, recorded as its own call.
+   same-model repair, recorded as its own call. A call with extended thinking on
+   cannot have its output tool forced, so it is told to answer through it, and
+   an answer in text instead is a violation like any other.
 7. **Ledger** every call's terminal outcome, including failures and the
    uncertain case, with the provider request id wherever one exists.
 8. **Fall back** only when the request carries an explicitly authorised
@@ -74,11 +76,27 @@ from aia_core.domain.providers import check_budget
 from aia_core.domain.residency import EgressDecision, EgressDenied, EgressPolicy
 from aia_core.domain.workflow import FailureClass
 
-__all__ = ["REPAIR_PROMPT_VERSION", "GovernedModelGateway", "input_token_bound"]
+__all__ = [
+    "REPAIR_PROMPT_VERSION",
+    "REPAIR_TOOL_PROMPT_VERSION",
+    "TEXT_INSTEAD_OF_TOOL",
+    "TOOL_ANSWER_PROMPT_VERSION",
+    "GovernedModelGateway",
+    "input_token_bound",
+]
 
 #: Identity of the runtime's own schema-repair instruction. It is a prompt, so
 #: it is versioned and recorded on every repair call like any other.
 REPAIR_PROMPT_VERSION: Final = "schema-repair-v1"
+#: The repair instruction of a thinking call, which must answer through the tool.
+REPAIR_TOOL_PROMPT_VERSION: Final = "schema-repair-tool-v1"
+#: Identity of the instruction a thinking call's system prompt ends with. With
+#: thinking on, the output tool cannot be forced (only ``auto`` is allowed), so
+#: the call is told to answer through it, and an answer in text is off-contract.
+TOOL_ANSWER_PROMPT_VERSION: Final = "tool-answer-v1"
+
+#: An answer that arrived as text when it had to come through the output tool.
+TEXT_INSTEAD_OF_TOOL: Final = "answered in text, not through the output tool"
 
 # Framing allowance per message and per request, on top of content bytes.
 _PER_MESSAGE_OVERHEAD_TOKENS: Final = 16
@@ -111,13 +129,29 @@ def _schema_name(agent_id: str) -> str:
     return _UNSAFE_NAME.sub("_", agent_id)[:64] or "structured_output"
 
 
-def _repair_message(violations: tuple[str, ...]) -> str:
+def _repair_message(violations: tuple[str, ...], *, tool: str | None = None) -> str:
+    """The repair instruction; ``tool`` names the output tool of a thinking call."""
     listed = "\n".join(f"- {v}" for v in violations)
+    if tool is not None:
+        return (
+            "Your previous answer did not satisfy the required output schema:\n"
+            f"{listed}\n"
+            f"Call the tool {tool} exactly once with one object that satisfies its "
+            "input schema exactly. Do not answer in text."
+        )
     return (
         "Your previous answer did not satisfy the required output schema:\n"
         f"{listed}\n"
         "Return one JSON object that satisfies the schema exactly. "
         "Return only the JSON object."
+    )
+
+
+def _tool_answer_instruction(tool: str) -> str:
+    """What a thinking call's system prompt ends with (``TOOL_ANSWER_PROMPT_VERSION``)."""
+    return (
+        f"Answer only by calling the tool {tool} exactly once, with one object that "
+        "satisfies its input schema exactly. Do not answer in text."
     )
 
 
@@ -399,19 +433,32 @@ class GovernedModelGateway:
         messages = request.messages
         purpose = CallPurpose.FALLBACK if lane.fallback_from else CallPurpose.PRIMARY
         repairs_left = agent.schema_repair_attempts
+        schema_name = _schema_name(agent.agent_id) if schema is not None else ""
+        thinking = request.thinking_budget_tokens is not None
+        # A thinking call cannot be forced to use the tool, so it is told to; the
+        # instruction is part of what is sent, fingerprinted and bounded with it.
+        tool_answer = thinking and schema is not None
+        system = (
+            f"{request.system}\n\n{_tool_answer_instruction(schema_name)}"
+            if tool_answer
+            else request.system
+        )
 
         while True:
             outbound = AdapterRequest(
                 call_id=self._call_ids(),
                 provider=lane.resolution.provider,
                 model=lane.resolution.model,
-                system=request.system,
+                system=system,
                 messages=messages,
+                # With thinking on, this is the whole output -- thinking and answer
+                # together -- so the ceiling below, priced at it, covers the thinking.
                 max_output_tokens=request.output_token_limit,
                 output_schema=schema,
-                schema_name=_schema_name(agent.agent_id) if schema is not None else "",
+                schema_name=schema_name,
                 strict_schema=strict,
                 temperature=request.temperature,
+                thinking_budget_tokens=request.thinking_budget_tokens,
             )
             in_fp = input_fingerprint(outbound)
             ceiling = 0.0
@@ -444,11 +491,7 @@ class GovernedModelGateway:
                     reason="cancelled_before_dispatch",
                 )
 
-            note = (
-                f"repair_prompt={REPAIR_PROMPT_VERSION}"
-                if purpose is CallPurpose.SCHEMA_REPAIR
-                else ""
-            )
+            note = _note(repair=purpose is CallPurpose.SCHEMA_REPAIR, tool_answer=tool_answer)
             started = context.clock()
             dispatched = self._event(
                 request,
@@ -550,6 +593,10 @@ class GovernedModelGateway:
             if agent.output_contract is not None:
                 if response.finish_reason is FinishReason.TRUNCATED:
                     violations = ("output truncated at the output token limit",)
+                elif tool_answer and response.structured is None:
+                    # Off-contract even if the text parses: the answer had to come
+                    # through the tool. It takes the same repair path as any violation.
+                    violations = (TEXT_INSTEAD_OF_TOOL,)
                 else:
                     verdict = validate_structured_output(
                         agent.output_contract,
@@ -623,10 +670,17 @@ class GovernedModelGateway:
                 if response.structured is None
                 else canonical_json(response.structured)
             )
+            if tool_answer and not answer.strip():
+                # A thinking call can end with its reasoning alone; the provider
+                # refuses an empty turn, so the repair says there was none.
+                answer = "(no answer)"
             messages = (
                 *messages,
                 Message(role="assistant", content=answer),
-                Message(role="user", content=_repair_message(violations)),
+                Message(
+                    role="user",
+                    content=_repair_message(violations, tool=schema_name if tool_answer else None),
+                ),
             )
 
     # --------------------------------------------------------------- helpers --
@@ -806,6 +860,17 @@ class GovernedModelGateway:
             system_prompt_sha256=prompt_sha256(request.system),
             note=note,
         )
+
+
+def _note(*, repair: bool, tool_answer: bool) -> str:
+    """The runtime's own prompts a call carried, by version; empty when none."""
+    parts = []
+    if tool_answer:
+        parts.append(f"answer_prompt={TOOL_ANSWER_PROMPT_VERSION}")
+    if repair:
+        version = REPAIR_TOOL_PROMPT_VERSION if tool_answer else REPAIR_PROMPT_VERSION
+        parts.append(f"repair_prompt={version}")
+    return " ".join(parts)
 
 
 def _ms(started: datetime, finished: datetime) -> int:

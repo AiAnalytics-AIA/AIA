@@ -10,6 +10,7 @@ provider's headers.
 from __future__ import annotations
 
 import math
+import os
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -27,6 +28,7 @@ __all__ = [
     "CliResult",
     "CliRunner",
     "CredentialSource",
+    "EnvironmentCredentials",
     "HttpRequest",
     "HttpResponse",
     "HttpTransport",
@@ -37,6 +39,7 @@ __all__ = [
     "parse_duration_seconds",
     "plausible_instant",
     "plausible_wait",
+    "refuse_thinking",
     "render_transcript",
     "resolve_secret",
     "token_count",
@@ -254,12 +257,53 @@ class CredentialSource(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class StaticCredentials:
-    """A fixed mapping of references to secrets. For tests and local runs."""
+    """A fixed mapping of references to secrets. For tests and local runs.
 
-    secrets: Mapping[str, str]
+    The secrets stay out of the repr, so an adapter holding this can be printed.
+    """
+
+    secrets: Mapping[str, str] = field(repr=False)
 
     def secret(self, reference: str) -> str:
         return self.secrets[reference]
+
+
+def refuse_thinking(adapter: str) -> ProviderError:
+    """An adapter that does not send extended thinking refuses a request asking for it.
+
+    Unsent, and permanent: dropping the setting would answer a different request
+    than the one priced, fingerprinted and recorded.
+    """
+    return ProviderError(
+        f"the {adapter} adapter does not send extended thinking",
+        kind=ProviderErrorKind.OTHER,
+        delivery=Delivery.NOT_SENT,
+    )
+
+
+#: ``env:`` and the name of an AIA environment variable: ``env:AIA_DEEP_RESEARCH_BRAVE_API_KEY``.
+_ENV_REFERENCE: Final = re.compile(r"env:(AIA_[A-Z0-9_]+)")
+
+
+@dataclass(frozen=True, slots=True)
+class EnvironmentCredentials:
+    """Secrets from the process environment, named by a reference ``env:AIA_<NAME>``.
+
+    Configuration and logs carry the reference; the value is read from the
+    environment at the moment of the call, and only an ``AIA_`` variable can be
+    named, so a reference cannot reach the host's other secrets (``AWS_*`` and
+    the like). An unset, malformed or foreign reference is ``KeyError`` -- the
+    protocol's "absent" -- and :func:`resolve_secret` fails closed on it. The
+    environment is kept out of the repr.
+    """
+
+    environ: Mapping[str, str] = field(default_factory=lambda: os.environ, repr=False)
+
+    def secret(self, reference: str) -> str:
+        match = _ENV_REFERENCE.fullmatch(reference)
+        if match is None:
+            raise KeyError(reference)
+        return self.environ[match[1]]
 
 
 def resolve_secret(credentials: CredentialSource, reference: str) -> str:
