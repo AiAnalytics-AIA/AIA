@@ -37,6 +37,23 @@ comma, and a sentence end. A year (a whole number from 1900 to 2099 written with
 digits and no unit) and an ordinal quarter are periods, not measures: they carry
 no population of their own, so a claim whose only number is a year is not read.
 
+**Periods** (keys): a year ``Y2025``, a season ``Y2024/2025``; a quarter, half or
+month is placed in the year written right after it ("ve 2. čtvrtletí 2025",
+"v březnu roku 2025", "Q2/2025") as ``2025-Q2``, ``2025-H1``, ``2025-03``; with
+no year next to it, it stays ``Q2``, ``H1``, ``M03`` and is never placed in a year
+written elsewhere. A date is one period, and its day and month are not numbers:
+
+* ``31. 12. 2091`` and ``31.12.2091`` -- a numeric day and month count only with
+  their year, so "vzrostl o 12. 12 obchodů" is two numbers;
+* ``2091-12-31`` (ISO);
+* ``31. prosince`` / ``1. ledna 2025`` / ``k 31. prosinci roku 2091`` -- a month
+  name in any case, in lower case: "o 12. Prosinec byl..." starts a new sentence,
+  and its 12 is a number. "vzrostl o 12. Poté..." is a number at a sentence end.
+
+A date is ``2091-12-31``, or ``M12-31`` with no year; an impossible one (31. 2.)
+is no date. A placed period also names its year and its yearless part, so a
+source writing "ve 2. čtvrtletí 2025" names 2025 and ``Q2`` too.
+
 **The context window** (:func:`context_window`) is the source's sentence(s) the
 quote stands in, one sentence either side, at most :data:`CONTEXT_MAX_CHARS`
 characters either side of the quote, never cutting a word. Snapshot text is
@@ -56,7 +73,9 @@ not a period, against every occurrence of the same value in the window:
   nouns to that value itself, one of them ("45 % domácností, tedy 1,9 milionu
   lidí" does not make the 45 % a share of people);
 * *period* -- named in the window ("2023" is not "2023/24", March is not
-  January, Q3 is not Q1);
+  January, Q3 is not Q1), or, for a placed one, its yearless part and its year
+  both named ("V roce 2025: ... ve 2. čtvrtletí" names ``2025-Q2``; "2. čtvrtletí
+  2024 ... rok 2025" does not);
 * *geography* -- when the window names any geography, it names the claim's (a
   Prague figure claimed for the whole country fails; a page that names no place
   leaves the claim's place to the verifier).
@@ -71,6 +90,7 @@ import unicodedata
 from bisect import bisect_left, bisect_right
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from typing import Final
 
@@ -95,7 +115,9 @@ __all__ = [
 ]
 
 #: The vocabulary and the attachment rule's version; carried by GROUNDING_VERSION.
-MEASURES_VERSION: Final = "aia-measures-1"
+#: aia-measures-2: a written date is one period, never its day and month as numbers,
+#: and a quarter, half or month is placed in the year written next to it.
+MEASURES_VERSION: Final = "aia-measures-2"
 
 #: Tokens before / after a number in which a population noun is attached to it.
 ATTACH_BEFORE: Final = 3
@@ -422,11 +444,143 @@ def _is_year(tok: _Token) -> bool:
     )
 
 
-def _periods(tokens: Sequence[_Token]) -> dict[int, tuple[Term, frozenset[int]]]:
-    """Every period, by the index of its first token, with the token indexes it uses."""
-    found: dict[int, tuple[Term, frozenset[int]]] = {}
+_SPACE_CHARS: Final = "[ \u00a0\u202f]"
+_YEAR_RE: Final = r"(?:19|20)\d{2}"
+#: "31. 12. 2091", "31.12.2091", "1. 1. 2025": a numeric day and month need the year.
+_NUMERIC_DATE: Final = re.compile(
+    rf"(?<![\w.,])(\d{{1,2}})\.{_SPACE_CHARS}?(\d{{1,2}})\.{_SPACE_CHARS}?({_YEAR_RE})(?!\w|[.,]\d)"
+)
+#: "2091-12-31".
+_ISO_DATE: Final = re.compile(rf"(?<![\w.,/-])({_YEAR_RE})-(\d{{2}})-(\d{{2}})(?![\w-])")
+#: "31. prosince", "1. ledna 2025", "k 31. prosinci roku 2091": the month name is
+#: written in lower case (a capital after "12." starts a sentence).
+_NAMED_DATE: Final = re.compile(
+    rf"(?<![\w.,])(\d{{1,2}})\.{_SPACE_CHARS}?([^\W\d_]+)"
+    rf"(?:{_SPACE_CHARS}(?:roku{_SPACE_CHARS})?({_YEAR_RE})(?!\w|[.,]\d))?"
+)
+#: A period key with no year of its own: a quarter, a half, a month, a day of a month.
+_YEARLESS: Final = re.compile(r"^(?:Q[1-4]|H[12]|M\d{2}(?:-\d{2})?)$")
+#: A sub-year period placed in its year: "2025-Q2", "2025-H1", "2025-03", "2091-12-31".
+_PLACED: Final = re.compile(r"^(\d{4})-(Q[1-4]|H[12]|\d{2}(?:-\d{2})?)$")
+#: Words between a sub-year term and its year that keep them one phrase.
+_YEAR_JOINERS: Final = frozenset({"roku", "r"})
+
+
+def _month_of(word: str) -> int:
+    folded = fold(word)
+    return next((m for m, words in MONTHS.items() if folded in words), 0)
+
+
+def _valid_day(year: int | None, month: int, day: int) -> bool:
+    try:
+        date(year if year is not None else 2000, month, day)  # 2000: 29 February exists
+    except ValueError:
+        return False
+    return True
+
+
+def _placed(year: str | None, sub: str) -> tuple[str, frozenset[str]]:
+    """The key of a sub-year term (``Q2``, ``H1``, ``M03``, ``M12-31``) in ``year``, if any.
+
+    Returns the key and every key the period names: itself, and, when placed, its
+    year and its sub-year part, so a source that writes "ve 2. čtvrtletí 2025" also
+    names 2025 and the second quarter.
+    """
+    day = sub[1:].split("-") if sub.startswith("M") else None
+    names = {sub}
+    if day is not None and len(day) == 2:
+        names.add(f"M{day[0]}")
+    if year is None:
+        return sub, frozenset(names)
+    key = f"{year}-{'-'.join(day) if day is not None else sub}"
+    names |= {key, f"Y{year}"}
+    if day is not None and len(day) == 2:
+        names.add(f"{year}-{day[0]}")
+    return key, frozenset(names)
+
+
+@dataclass(frozen=True, slots=True)
+class _Period:
+    term: Term
+    #: The token indexes the period is written with.
+    used: frozenset[int]
+    #: Every key it names (:func:`_placed`).
+    names: frozenset[str]
+
+
+def _dates(text: str) -> list[tuple[int, int, str | None, int, int]]:
+    """Every written date: (start, end, year or None, month, day). Never overlapping."""
+    found: list[tuple[int, int, str | None, int, int]] = []
+
+    def free(a: int, b: int) -> bool:
+        return all(b <= s or e <= a for s, e, *_ in found)
+
+    for m in _NUMERIC_DATE.finditer(text):
+        day, month, year = int(m[1]), int(m[2]), m[3]
+        if _valid_day(int(year), month, day) and free(m.start(), m.end()):
+            found.append((m.start(), m.end(), year, month, day))
+    for m in _ISO_DATE.finditer(text):
+        year, month, day = m[1], int(m[2]), int(m[3])
+        if _valid_day(int(year), month, day) and free(m.start(), m.end()):
+            found.append((m.start(), m.end(), year, month, day))
+    for m in _NAMED_DATE.finditer(text):
+        day, month = int(m[1]), _month_of(m[2])
+        if not month or not m[2][0].islower():
+            continue
+        year = m[3]
+        if _valid_day(int(year) if year else None, month, day) and free(m.start(), m.end()):
+            found.append((m.start(), m.end(), year, month, day))
+    return sorted(found)
+
+
+def _year_after(tokens: Sequence[_Token], k: int) -> int | None:
+    """The index of a year that places the sub-year term ending before ``k``, or None.
+
+    The year must follow at once ("2. čtvrtletí 2025", "Q2/2025"), or after "roku"
+    or "r." ("v březnu roku 2025"). A year that opens a range ("Q1 2023/24") places
+    nothing: which of its years is meant is not written.
+    """
+    if k < len(tokens) and (
+        (tokens[k].kind == "word" and tokens[k].folded in _YEAR_JOINERS)
+        or (tokens[k].text == "/" and k > 0 and tokens[k - 1].end == tokens[k].start)
+    ):
+        k += 1
+    if k >= len(tokens) or not _is_year(tokens[k]):
+        return None
+    nxt = tokens[k + 1] if k + 1 < len(tokens) else None
+    if nxt is not None and nxt.text == "/" and nxt.start == tokens[k].end:
+        return None
+    return k
+
+
+def _periods(text: str, tokens: Sequence[_Token]) -> dict[int, _Period]:
+    """Every period, by the index of its first token (rule: module doc)."""
+    found: dict[int, _Period] = {}
+    taken: set[int] = set()
+    for start, end, year, month, day in _dates(text):
+        used = frozenset(k for k, t in enumerate(tokens) if start <= t.start < end)
+        if not used:
+            continue
+        key, names = _placed(year, f"M{month:02d}-{day:02d}")
+        found[min(used)] = _Period(Term(Attribute.PERIOD, key, text[start:end]), used, names)
+        taken |= used
+
+    def sub_year(i: int, last: int, sub: str) -> int:
+        """Record the sub-year term at tokens i..last, with its year when adjacent."""
+        y = _year_after(tokens, last + 1)
+        if y is not None and y in taken:
+            y = None
+        stop = y if y is not None else last
+        key, names = _placed(tokens[y].text if y is not None else None, sub)
+        term = Term(Attribute.PERIOD, key, text[tokens[i].start : tokens[stop].end])
+        found[i] = _Period(term, frozenset({i, last} | ({y} if y is not None else set())), names)
+        return stop + 1
+
     i = 0
     while i < len(tokens):
+        if i in taken:
+            i += 1
+            continue
         tok = tokens[i]
         nxt = tokens[i + 1] if i + 1 < len(tokens) else None
         after = tokens[i + 2] if i + 2 < len(tokens) else None
@@ -439,17 +593,18 @@ def _periods(tokens: Sequence[_Token]) -> dict[int, tuple[Term, frozenset[int]]]
                 and re.fullmatch(r"\d{2}|\d{4}", after.text)
                 and nxt.start == tok.end
             ):
-                end = after.text if len(after.text) == 4 else tok.text[:2] + after.text
-                text = tok.text + "/" + after.text
-                found[i] = (
-                    Term(Attribute.PERIOD, f"Y{tok.text}/{end}", text),
-                    frozenset({i, i + 2}),
-                )
+                last_year = after.text if len(after.text) == 4 else tok.text[:2] + after.text
+                key = f"Y{tok.text}/{last_year}"
+                season = Term(Attribute.PERIOD, key, tok.text + "/" + after.text)
+                found[i] = _Period(season, frozenset({i, i + 2}), frozenset({key}))
                 i += 3
                 continue
-            found[i] = (Term(Attribute.PERIOD, f"Y{tok.text}", tok.text), frozenset({i}))
+            key = f"Y{tok.text}"
+            whole_year = Term(Attribute.PERIOD, key, tok.text)
+            found[i] = _Period(whole_year, frozenset({i}), frozenset({key}))
         elif tok.kind == "word" and (q := _QUARTER.match(tok.folded)):
-            found[i] = (Term(Attribute.PERIOD, f"Q{q[1] or q[2]}", tok.text), frozenset({i}))
+            i = sub_year(i, i, f"Q{q[1] or q[2]}")
+            continue
         elif nxt is not None and nxt.kind == "word" and nxt.folded in ("ctvrtleti", "pololeti"):
             half = nxt.folded == "pololeti"
             n = 0
@@ -458,15 +613,11 @@ def _periods(tokens: Sequence[_Token]) -> dict[int, tuple[Term, frozenset[int]]]
             elif tok.kind == "word":
                 n = next((k for k, words in _ORDINALS.items() if tok.folded in words), 0)
             if 1 <= n <= (2 if half else 4):
-                key = f"{'H' if half else 'Q'}{n}"
-                text = f"{tok.text}{'.' if tok.kind == 'num' else ''} {nxt.text}"
-                found[i] = (Term(Attribute.PERIOD, key, text), frozenset({i, i + 1}))
-                i += 2
+                i = sub_year(i, i + 1, f"{'H' if half else 'Q'}{n}")
                 continue
-        elif tok.kind == "word":
-            month = next((m for m, words in MONTHS.items() if tok.folded in words), 0)
-            if month:
-                found[i] = (Term(Attribute.PERIOD, f"M{month:02d}", tok.text), frozenset({i}))
+        elif tok.kind == "word" and (month := _month_of(tok.text)):
+            i = sub_year(i, i, f"M{month:02d}")
+            continue
         i += 1
     return found
 
@@ -485,7 +636,8 @@ class StatedNumber:
     start: int
     end: int
     text: str
-    #: A year, a season or a quarter's ordinal: a period, not a measure.
+    #: A year, a season, a quarter's ordinal or a date's day and month: a period, not
+    #: a measure.
     is_period: bool
     unit: Term | None
     #: The written scale word, or None for "as written" (scale 1).
@@ -506,6 +658,8 @@ class _Reading:
 
     numbers: tuple[StatedNumber, ...]
     named: dict[Attribute, frozenset[str]]
+    #: Sub-year periods written with no year of their own ("ve 2. čtvrtletí").
+    unplaced: frozenset[str]
 
 
 def _read(text: str) -> _Reading:
@@ -515,13 +669,13 @@ def _read(text: str) -> _Reading:
     def clause(tok: _Token) -> int:
         return bisect_right(breaks, tok.start)
 
-    periods = _periods(tokens)
-    period_tokens = {k for _, used in periods.values() for k in used}
+    periods = _periods(text, tokens)
+    period_tokens = {k for p in periods.values() for k in p.used}
     geographies = {i: g for i in range(len(tokens)) if (g := _geography(tokens, i)) is not None}
 
     named: dict[Attribute, set[str]] = {a: set() for a in Attribute}
-    for term, _ in periods.values():
-        named[Attribute.PERIOD].add(term.key)
+    for period in periods.values():
+        named[Attribute.PERIOD] |= period.names
     for g in geographies.values():
         named[Attribute.GEOGRAPHY].add(g.key)
     for i, tok in enumerate(tokens):
@@ -592,13 +746,14 @@ def _read(text: str) -> _Reading:
                 scale=scale,
                 denominators=tuple(denominators),
                 populations=tuple(populations),
-                periods=tuple(t for k, (t, _) in sorted(periods.items()) if clause(tokens[k]) == c),
+                periods=tuple(p.term for k, p in sorted(periods.items()) if clause(tokens[k]) == c),
                 geographies=tuple(
                     g for k, g in sorted(geographies.items()) if clause(tokens[k]) == c
                 ),
             )
         )
-    return _Reading(tuple(numbers), {a: frozenset(v) for a, v in named.items()})
+    unplaced = frozenset(p.term.key for p in periods.values() if _YEARLESS.match(p.term.key))
+    return _Reading(tuple(numbers), {a: frozenset(v) for a, v in named.items()}, unplaced)
 
 
 def stated_numbers(text: str) -> tuple[StatedNumber, ...]:
@@ -610,14 +765,17 @@ def claim_measures(claim: str) -> tuple[Measure, ...]:
     """The :class:`~.contracts.Measure` of each number a claim states that is not a period.
 
     The first attached term of each attribute; ``measure_name`` and ``basis`` are
-    not read from prose and stay ``None`` (not stated).
+    not read from prose and stay ``None`` (not stated). A period is the first one the
+    claim places in a year: a quarter, half, month or day written with no year
+    ("ve 2. čtvrtletí") leaves the period ``None``, never guessed from a year written
+    elsewhere.
     """
     return tuple(
         Measure(
             value=n.value,
             unit=n.unit.key if n.unit else None,
             scale=n.scale_factor,
-            period=n.periods[0].key if n.periods else None,
+            period=next((t.key for t in n.periods if not _YEARLESS.match(t.key)), None),
             geography=n.geographies[0].key if n.geographies else None,
             population=n.populations[0].key if n.populations else None,
             denominator=n.denominators[0].key if n.denominators else None,
@@ -674,6 +832,24 @@ def _listed(texts: Iterable[str]) -> str:
 
 def _shown(n: StatedNumber) -> str:
     return f"{n.value:g}"
+
+
+def _period_named(key: str, source: _Reading) -> bool:
+    """The source names the period ``key``, or names its sub-year part unplaced and its year.
+
+    "ve 2. čtvrtletí 2025" is named by a source that writes it, or by one that writes
+    "V roce 2025: ... ve 2. čtvrtletí" (the quarter in no year of its own); not by
+    "ve 2. čtvrtletí 2024 ... v roce 2025", which places the quarter in another year.
+    """
+    named = source.named[Attribute.PERIOD]
+    if key in named:
+        return True
+    placed = _PLACED.match(key)
+    if placed is None:
+        return False
+    year, sub = placed[1], placed[2]
+    sub = sub if sub[0] in "QH" else f"M{sub}"
+    return sub in source.unplaced and f"Y{year}" in named
 
 
 def check_measures(claim: str, context: str) -> MeasureMismatch | None:
@@ -739,7 +915,7 @@ def check_measures(claim: str, context: str) -> MeasureMismatch | None:
                     f"the source gives it {', '.join(sorted(attached))}",
                 )
         for t in n.periods:
-            if t.key not in named[Attribute.PERIOD]:
+            if not _period_named(t.key, source):
                 return MeasureMismatch(
                     Attribute.PERIOD,
                     n.value,
