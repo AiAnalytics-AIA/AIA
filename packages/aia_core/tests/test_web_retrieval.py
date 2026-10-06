@@ -38,6 +38,7 @@ from aia_core.infrastructure.web_retrieval import (
     extract_page,
     load_recorded_web,
 )
+from aia_core.infrastructure.web_retrieval_live import WikipediaSearch
 
 NOW = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
 PUBLIC = "93.184.215.14"
@@ -600,3 +601,91 @@ def test_the_planning_step_can_ask_whether_any_query_of_a_class_could_leave(scop
     assert unmetered.refusal_for_class(DataClass.CLASS_C_INTERNAL) == "tool_metering_unavailable"
     # Asking sends nothing and journals nothing: nothing was proposed.
     assert ledger.events() == () and meter.events() == () and search.calls == []
+
+
+# The live search adapter under the gate: a host refused before sending is a known failure.
+
+
+@dataclass(slots=True)
+class _WikipediaResolver:
+    addresses: tuple[str, ...]
+
+    def resolve(self, host: str) -> tuple[str, ...]:
+        assert host == "cs.wikipedia.org"
+        return self.addresses
+
+
+@dataclass(slots=True)
+class _WikipediaTransport:
+    calls: list[str] = field(default_factory=list)
+
+    @property
+    def retrieval_mode(self) -> RetrievalMode:
+        return RetrievalMode.LIVE
+
+    def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+        self.calls.append(url)
+        return FetchedResponse(
+            status=200,
+            headers={"content-type": "application/json"},
+            body=json.dumps({"query": {"search": [{"title": "Praha"}]}}).encode(),
+            truncated=False,
+        )
+
+
+@pytest.mark.parametrize(
+    ("addresses", "reason"),
+    [
+        ((), "address_unresolved"),
+        (("10.0.0.5",), "address_not_public"),
+        ((PUBLIC, "127.0.0.1"), "address_not_public"),
+    ],
+)
+def test_a_search_host_refused_before_sending_closes_its_call_unsent_and_free(
+    scoped: Any, addresses: tuple[str, ...], reason: str
+) -> None:
+    classes = {DataClass.CLASS_C_INTERNAL}
+    resolver = _WikipediaResolver(addresses)
+    transport = _WikipediaTransport()
+    meter = _StudyBudget(budget_usd=PRICE)  # room for exactly one charged call
+    gate = RetrievalGate(
+        retrieval=WebRetrieval(
+            search_route=ToolRoute(
+                route=_route(ToolKind.WEB_SEARCH, classes, mode=RetrievalMode.LIVE).route,
+                tool=ToolKind.WEB_SEARCH,
+                adapter_id=WikipediaSearch.adapter_id,
+                retrieval_mode=RetrievalMode.LIVE,
+                price_usd_per_call=PRICE,
+            ),
+            fetch_route=_route(ToolKind.WEB_FETCH, classes, price=PRICE, mode=RetrievalMode.LIVE),
+            search=WikipediaSearch(resolver=resolver, transport=transport),
+            fetcher=WebFetcher(
+                transport=_PricedTransport(pages={}),
+                resolver=RecordedResolver(hosts={}),
+                adapter_id="live-fetch-v1",
+                clock=lambda: NOW,
+            ),
+        ),
+        scope=scoped.scope(),
+        meter=meter,
+        client_terms=(),
+        class_a_texts=(),
+        clock=lambda: NOW,
+    )
+    refused = gate.search(
+        "Praha", context_class=DataClass.CLASS_C_INTERNAL, track_id="T", max_results=3
+    )
+    assert refused.record.decision is QueryDecision.SENT and refused.record.failure == reason
+    assert not refused.uncertain and refused.hits == ()
+    assert transport.calls == []
+    dispatched, closed = meter.events()
+    assert dispatched.outcome is ToolOutcome.DISPATCHED and closed.outcome is ToolOutcome.FAILED
+    assert closed.call_id == dispatched.call_id and closed.note == reason
+    assert closed.cost_usd == 0.0 and meter.committed_usd() == 0.0
+    # The reservation was released: the one call the budget holds can still be made.
+    resolver.addresses = (PUBLIC,)
+    sent = gate.search(
+        "Praha", context_class=DataClass.CLASS_C_INTERNAL, track_id="T", max_results=3
+    )
+    assert sent.record.hits == 1 and len(transport.calls) == 1
+    assert meter.committed_usd() == pytest.approx(PRICE)

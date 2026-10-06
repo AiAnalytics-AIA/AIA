@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
-from aia_core.domain.ai_contracts import validate_structured_output
+from aia_core.domain.ai_contracts import ModelRequest, validate_structured_output
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.deep_research.agents import (
     AGENT_IDS,
@@ -107,3 +108,27 @@ def test_an_investigator_answer_is_validated_strictly() -> None:
             ExtractionProposal, structured={"evidence": [{**evidence, **bad}], "gaps": []}, text=""
         )
         assert not verdict.ok, bad
+
+
+def _planner(**thinking: int) -> ModelRequest:
+    return model_request(
+        AgentRole.PLANNER,
+        payload={"tracks": []},
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage.none(),
+        policy_version="test-v1",
+        max_output_tokens=4096,
+        **thinking,
+    )
+
+
+def test_a_request_thinks_only_when_given_a_budget_within_its_output_limit() -> None:
+    assert _planner().thinking_budget_tokens is None
+    assert _planner().temperature is None
+    assert _planner(thinking_budget_tokens=2048).thinking_budget_tokens == 2048
+    # Everything else is the request it was without the budget.
+    assert dataclasses.replace(
+        _planner(thinking_budget_tokens=2048), thinking_budget_tokens=None
+    ) == (_planner())
+    with pytest.raises(ValueError, match="below the output limit"):
+        _planner(thinking_budget_tokens=4096)

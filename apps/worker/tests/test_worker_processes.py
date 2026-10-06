@@ -282,6 +282,61 @@ def test_a_worker_killed_during_a_paid_call_is_never_retried_or_double_charged(
     assert study.run(run_id)["steps"][0]["status"] is StepRunStatus.RECOVERY_REQUIRED
 
 
+def test_a_worker_killed_with_one_of_two_calls_answered_is_never_retried(
+    study: Any,
+    spawn: Callable[[str], WorkerProcess],
+    sessions: sessionmaker[Session],
+    tmp_path: Path,
+) -> None:
+    """Two calls in flight at once, one settled, then ``SIGKILL``.
+
+    The answered call is charged its real $1; the other may have been billed, so
+    the reconciler must not retry the step and must charge its $3 at the ceiling.
+    Before, the first settle closed the attempt's single outcome flag and the
+    reconciler retried the step with the second hold released.
+    """
+    ledger = tmp_path / "ledger.jsonl"
+    run_id = study.create_run(
+        {
+            "ledger": str(ledger),
+            "paid_overlapping": {"reserve": [1.0, 3.0], "cost": 1.0, "hang_seconds": 120},
+        }
+    )
+    doomed = spawn("doomed")
+
+    def one_answered() -> bool:
+        with sessions() as session:
+            statuses = session.scalars(select(BudgetReservationRow.status)).all()
+        return ReservationStatus.SETTLED.value in statuses
+
+    _wait_for(one_answered, what="the first of two calls to be settled")
+    doomed.signal(signal.SIGKILL)
+    doomed.wait()
+    reconciler = spawn("reconciler")
+    _wait_for(
+        lambda: study.run(run_id)["status"] is WorkflowRunStatus.RECOVERY_REQUIRED,
+        what="recovery to require a person",
+    )
+    time.sleep(2.0)
+    _stop(reconciler)
+
+    assert [(a.worker_id, a.status) for a in _attempts(sessions)] == [
+        ("doomed", AttemptStatus.EXPIRED.value)
+    ], "no second attempt while a call may have been billed"
+    assert [e["event"] for e in _ledger(ledger)] == ["start"]
+    with sessions() as session:
+        holds = session.scalars(
+            select(BudgetReservationRow).order_by(BudgetReservationRow.amount_usd)
+        ).all()
+        assert [(h.status, h.settled_amount_usd) for h in holds] == [
+            (ReservationStatus.SETTLED.value, 1.0),
+            (ReservationStatus.SETTLED_UNCERTAIN.value, 3.0),
+        ]
+    budget = study.budget()
+    assert budget["spent_usd"] == pytest.approx(4.0)
+    assert budget["uncertain_usd"] == pytest.approx(3.0)
+
+
 # --------------------------------------------------------------------------- #
 # Shutdown
 # --------------------------------------------------------------------------- #

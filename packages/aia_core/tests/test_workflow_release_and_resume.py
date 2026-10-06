@@ -314,13 +314,16 @@ def test_releasing_makes_the_step_claimable_at_once_without_consuming_an_attempt
 def test_releasing_with_a_call_in_flight_is_recovery_required(
     engine_repo: WorkflowRepository, run: str, claimed: ClaimedWork
 ) -> None:
-    engine_repo.reserve_budget(
+    hold = engine_repo.reserve_budget(
         attempt_id=claimed.attempt_id,
         worker_id="worker-1",
         amount_usd=2.0,
         provider=Provider.ANTHROPIC,
     )
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id="worker-1")
+    assert hold is not None
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id="worker-1", reservation_id=hold
+    )
 
     decision = engine_repo.release_attempt(claimed.attempt_id, worker_id="worker-1")
 
