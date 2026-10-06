@@ -90,12 +90,12 @@ def test_an_archived_snapshot_says_so_and_is_never_the_live_one() -> None:
 def test_a_type_no_snapshot_keeps_is_refused() -> None:
     with pytest.raises(FetchRefused) as caught:
         page_snapshot(
-            url="https://stats.example/a.pdf",
-            final_url="https://stats.example/a.pdf",
+            url="https://stats.example/a.png",
+            final_url="https://stats.example/a.png",
             redirects=(),
             http_status=200,
-            content_type="application/pdf",
-            body=b"%PDF-1.7",
+            content_type="image/png",
+            body=b"\x89PNG\r\n\x1a\n",
             request_id=None,
             adapter_id="test-v1",
             retrieval_mode=RetrievalMode.RECORDED,

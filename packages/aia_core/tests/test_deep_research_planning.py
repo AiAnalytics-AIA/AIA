@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pytest
@@ -324,3 +326,36 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
     assert not next(
         g for g in blocked if g.object_key == obj.key and g.question_key == question.key
     ).covered
+
+
+#: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested,
+#: without a thinking budget. A deliberate change to the harness, the rules or this
+#: file's design moves it (re-pin it then); a thinking budget left unset never may.
+#: Re-pinned when the measures check joined the grounding rules (GROUNDING_VERSION
+#: aia-grounding-2/aia-measures-2): under aia-measures-1 it is 8aed76aa..., and with
+#: no measures check, as develop @ 757154e computed it, ebcebd81....
+FINGERPRINTS_WITHOUT_THINKING = "b07b8d2af80abc97bac26f92fc3a7f84c108946ad76299ea779a794ad3db72c8"
+
+
+def _thinking(budget: int | None) -> TrackInputs:
+    return TrackInputs(
+        policy_version=INPUTS.policy_version,
+        prompt_versions=INPUTS.prompt_versions,
+        web_retrieval=INPUTS.web_retrieval,
+        thinking_budget_tokens=budget,
+    )
+
+
+def test_without_a_thinking_budget_every_fingerprint_is_the_one_it_was() -> None:
+    fingerprints = _fingerprints(_request(DESIGN), _thinking(None))
+    digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
+    assert digest == FINGERPRINTS_WITHOUT_THINKING
+    assert fingerprints == _fingerprints(_request(DESIGN))
+
+
+def test_a_thinking_budget_is_part_of_every_track_and_its_size_matters() -> None:
+    base = _fingerprints(_request(DESIGN))
+    thinking = _fingerprints(_request(DESIGN), _thinking(2048))
+    more = _fingerprints(_request(DESIGN), _thinking(4096))
+    assert all(thinking[t] != fp for t, fp in base.items())
+    assert all(more[t] != fp for t, fp in thinking.items())

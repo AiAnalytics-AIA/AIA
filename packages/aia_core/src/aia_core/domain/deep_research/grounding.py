@@ -1,6 +1,6 @@
 """Grounding: a finding is admissible only when its quote is in the source it cites.
 
-ADR 0017 decision 4, plan decision I-5. Three checks, in order, each deterministic:
+ADR 0017 decision 4, plan decision I-5. Four checks, in order, each deterministic:
 
 1. **The source is this track's.** A web finding may cite only a snapshot fetched
    for its own track; an internal finding only an item retrieved for it. A model
@@ -10,6 +10,12 @@ ADR 0017 decision 4, plan decision I-5. Three checks, in order, each determinist
    and is long enough to mean something (``ungrounded_excerpt``).
 3. **Every number in the claim is in the quote** (``number_not_in_quote``): a
    claim may paraphrase its quote, never add a figure to it.
+4. **Every number means in the claim what it means in the source**
+   (``measure_not_in_source``): the unit, scale, period, population, denominator
+   and place the claim attaches to a number are the ones the quote's context in
+   the source gives it (:mod:`.measures`). A household share is not a share of
+   adults, "450" is not "450 tis.". The finding keeps its span: the quote is in
+   the source; the claim misstates it.
 
 Separately, :func:`detect_instructions` names the prompt-injection patterns in a
 source's text. A source that carries instructions is kept for provenance, and its
@@ -29,6 +35,7 @@ from typing import Final
 
 from ..analysis.draft import numbers_in, uncovered_numbers
 from .contracts import QuarantineReason
+from .measures import MEASURES_VERSION, check_measures, context_window
 
 __all__ = [
     "GROUNDING_VERSION",
@@ -44,7 +51,8 @@ __all__ = [
 ]
 
 #: The grounding rules' version; part of every track and merge fingerprint.
-GROUNDING_VERSION: Final = "aia-grounding-1"
+#: It carries the measures vocabulary's version: a vocabulary change regrounds.
+GROUNDING_VERSION: Final = f"aia-grounding-2/{MEASURES_VERSION}"
 
 #: A shorter quote matches too easily to prove anything ("the market").
 MIN_QUOTE_CHARS: Final = 20
@@ -182,7 +190,9 @@ def ground(
             QuarantineReason.UNGROUNDED_EXCERPT,
             f"a quote is {MIN_QUOTE_CHARS} to {MAX_QUOTE_CHARS} characters; this is {len(needle)}",
         )
-    span = locate_quote(source.text, needle)
+    haystack = normalise_text(source.text)
+    at = haystack.find(needle)
+    span = (at, at + len(needle)) if at >= 0 else None
     if span is None:
         return Grounding(
             None, QuarantineReason.UNGROUNDED_EXCERPT, f"the quote does not occur in {source_ref}"
@@ -196,6 +206,10 @@ def ground(
             QuarantineReason.NUMBER_NOT_IN_QUOTE,
             f"the claim states {shown}; the quote does not",
         )
+    lo, hi = context_window(haystack, span)
+    mismatch = check_measures(normalise_text(claim), haystack[lo:hi])
+    if mismatch is not None:
+        return Grounding(span, QuarantineReason.MEASURE_NOT_IN_SOURCE, mismatch.detail)
     if source.instructions_detected:
         return Grounding(
             span,
