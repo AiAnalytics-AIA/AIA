@@ -35,18 +35,25 @@ from ..ai_contracts import canonical_json
 from ..residency import DataClass
 
 __all__ = [
+    "DOCUMENT_LAYOUT_VERSION",
     "HARNESS_VERSION",
     "BriefDigest",
     "Channel",
     "ClientTerm",
     "CoverageCell",
     "DeepResearchRequest",
+    "DocumentBookmark",
+    "DocumentLayout",
+    "DocumentPage",
+    "DocumentSheet",
     "EvidenceItem",
     "EvidenceOrigin",
     "EvidenceType",
     "FrozenKnowledge",
     "GridCell",
     "KnowledgeSource",
+    "Measure",
+    "MeasureBasis",
     "QualityStatus",
     "QuarantineReason",
     "QuarantinedEvidence",
@@ -288,6 +295,70 @@ class SnapshotLink(_Closed):
     media_type: str | None = Field(default=None, max_length=100)
 
 
+#: The layout's version: how a document's text is rendered and where its parts lie.
+#: A change to the rendering changes the text, and so every snapshot id it yields.
+DOCUMENT_LAYOUT_VERSION: Final = "aia-document-layout-1"
+
+
+class DocumentPage(_Closed):
+    """One PDF page: where its text lies in the snapshot's text, ``[start, end)``."""
+
+    page: int = Field(ge=1)
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+
+
+class DocumentBookmark(_Closed):
+    """One entry of a PDF's own outline (its bookmarks), as the file declares it."""
+
+    title: str = Field(max_length=500)
+    level: int = Field(ge=0)
+    #: The page it points to, when the file says so in a form that can be read.
+    page: int | None = Field(default=None, ge=1)
+
+
+class DocumentSheet(_Closed):
+    """One grid -- an XLSX sheet, or a CSV file -- as captured.
+
+    ``cells`` holds every non-empty cell as ``(row, column, start, end)``: its
+    1-based row and column in the sheet and where its value lies in the
+    snapshot's text, in text order. ``header_row`` is the first row with two or
+    more values (the column labels), ``label_column`` the leftmost column with
+    values below it (the row labels); ``caption`` the rows above the header,
+    ``notes`` the one-value rows below the table's last row of two or more.
+    These are rules over the grid as read, never a guess at what a person meant;
+    ``None`` where the rule finds nothing.
+    """
+
+    name: str = Field(max_length=200)
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+    header_row: int | None = Field(default=None, ge=1)
+    label_column: int | None = Field(default=None, ge=1)
+    caption: tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
+    cells: tuple[tuple[int, int, int, int], ...] = ()
+    #: Rows or cells past a bound were not read.
+    truncated: bool = False
+
+
+class DocumentLayout(_Closed):
+    """Where a captured document's pages or cells lie in its snapshot's text.
+
+    The text itself is the snapshot's ``text`` -- normalised like a page's, so a
+    quote grounds in it exactly as in HTML; the layout maps a span of it back to
+    a page (PDF) or a cell (XLSX, CSV). Built by ``domain.deep_research.documents``.
+    """
+
+    version: Literal["aia-document-layout-1"] = DOCUMENT_LAYOUT_VERSION
+    kind: Literal["pdf", "xlsx", "csv"]
+    #: Pages in the file (PDF); ``pages`` holds those whose text was kept.
+    page_count: int | None = Field(default=None, ge=0)
+    pages: tuple[DocumentPage, ...] = ()
+    bookmarks: tuple[DocumentBookmark, ...] = ()
+    sheets: tuple[DocumentSheet, ...] = ()
+
+
 class SourceSnapshot(_Closed):
     """A fetched page as stored: content-addressed, with how it was retrieved.
 
@@ -300,6 +371,9 @@ class SourceSnapshot(_Closed):
     not part of the content address, and a snapshot without links serialises
     exactly as one stored before the field existed (the key is omitted), so its
     stored JSON, and every hash taken of it, is unchanged.
+
+    ``document`` is the layout of a PDF, XLSX or CSV source (where each page or
+    cell lies in ``text``); ``None`` for a page, and then omitted the same way.
     """
 
     snapshot_id: str = Field(pattern=r"^SNP-[0-9a-f]{24}$")
@@ -321,12 +395,16 @@ class SourceSnapshot(_Closed):
     retrieval_mode: RetrievalMode
     instructions_detected: tuple[str, ...]
     links: tuple[SnapshotLink, ...] = ()
+    document: DocumentLayout | None = None
 
     @model_serializer(mode="wrap")
-    def _omit_no_links(self, handler: SerializerFunctionWrapHandler) -> Any:
+    def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if not self.links and isinstance(data, dict):
-            data.pop("links", None)
+        if isinstance(data, dict):
+            if not self.links:
+                data.pop("links", None)
+            if self.document is None:
+                data.pop("document", None)
         return data
 
 
@@ -352,6 +430,37 @@ class RecommendedUse(StrEnum):
 
     CONTEXT_ONLY = "context_only"
     EXCLUDE_TARGET_LEAKAGE = "exclude_target_leakage"
+
+
+class MeasureBasis(StrEnum):
+    """What kind of figure a number is, as its source says (plan § 8.1)."""
+
+    ACTUAL = "actual"
+    ESTIMATE = "estimate"
+    FORECAST = "forecast"
+    PRELIMINARY = "preliminary"
+
+
+class Measure(_Closed):
+    """What one cited number means: the value and everything that makes it that number.
+
+    ``value`` is the number as written; ``scale`` multiplies it (``450`` with scale
+    1000 is "450 tis."). ``unit``, ``period``, ``geography``, ``population`` and
+    ``denominator`` hold the normalised keys of
+    :mod:`aia_core.domain.deep_research.measures` (``%``, ``CZK``, ``Y2025``,
+    ``CZ``, ``HOUSEHOLDS``...). ``None`` is *not stated*, never a default: a
+    missing population is unknown, not "everyone".
+    """
+
+    value: float = Field(allow_inf_nan=False)
+    unit: str | None = Field(default=None, max_length=40)
+    scale: int = Field(default=1, ge=1)
+    period: str | None = Field(default=None, max_length=40)
+    geography: str | None = Field(default=None, max_length=40)
+    population: str | None = Field(default=None, max_length=60)
+    denominator: str | None = Field(default=None, max_length=60)
+    measure_name: str | None = Field(default=None, max_length=200)
+    basis: MeasureBasis | None = None
 
 
 def evidence_id(track_fingerprint: str, source_ref: str, quote: str, claim: str) -> str:
@@ -389,6 +498,17 @@ class EvidenceItem(_Closed):
     agent_outcome_overlap: bool
     agent_recommended_use: RecommendedUse
     agent_source_quality: float = Field(ge=0.0, le=1.0)
+    #: The measure of each number the claim cites (plan § 8.1); empty until a later
+    #: chunk fills it. Empty is left out of the stored form, so an item stored
+    #: before measures existed dumps, digests and seals exactly as it did.
+    measures: tuple[Measure, ...] = Field(default=(), max_length=40)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_measures(self, handler: SerializerFunctionWrapHandler) -> Any:
+        dumped = handler(self)
+        if isinstance(dumped, dict) and not self.measures:
+            dumped.pop("measures", None)
+        return dumped
 
 
 class QuarantineReason(StrEnum):
@@ -409,6 +529,9 @@ class QuarantineReason(StrEnum):
     UNVERIFIED = "unverified"
     #: The compile-time re-screen against the final questionnaire.
     QUESTIONNAIRE_LEAKAGE = "questionnaire_leakage"
+    #: The claim gives a number a unit, scale, period, population, denominator or
+    #: place its quote's context in the source does not (``measures.py``).
+    MEASURE_NOT_IN_SOURCE = "measure_not_in_source"
 
 
 class QuarantinedEvidence(_Closed):
