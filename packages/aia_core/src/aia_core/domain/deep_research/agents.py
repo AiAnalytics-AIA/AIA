@@ -18,6 +18,9 @@ investigator            RESEARCH_REASONING   one turn of an agent-directed web t
 independent verifier    CRITIC               supported / overstated / unsupported /
                                              superseded, the attacks tried, a search
                                              it proposes (agent-directed mode only)
+brief synthesizer       RESEARCH_REASONING   the agent-directed brief's prose: an answer
+                                             per objective citing evidence ids, conflict
+                                             notes, limitations, a summary
 ======================  ===================  ===========================================
 
 The **investigator** (plan ``deep-research-web-search.md`` § 6, chunk 9) is the
@@ -31,7 +34,8 @@ rather than a second prompt version of the web investigator, because it answers 
 another contract: a stored call names an agent id and a prompt version, and the
 pair must say unambiguously what shape came back. The **independent verifier**
 (§ 8.4, chunk 12; :mod:`.verifier`) is one too, for the same reason: the planned
-mode's verifier and its prompt are unchanged.
+mode's verifier and its prompt are unchanged. So is the **brief synthesizer** (§ 8.8,
+chunk 13; :mod:`.synthesizer`): the planned mode's synthesizer is unchanged.
 
 The capabilities are the two the AI runtime binds for research agents today (plan
 decision I-7). Prompts are rendered from the enums they refer to, so a new
@@ -59,6 +63,7 @@ from ..licence import DataLineage
 from ..residency import DataClass
 from .classification import most_restrictive
 from .contracts import EvidenceType, Measure, MeasureBasis, RecommendedUse
+from .synthesizer import BRIEF_PROMPT_VERSION, BRIEF_TASK, BriefProposal
 from .verifier import VERIFIER_PROMPT_VERSION, VERIFIER_TASK, Verification
 
 __all__ = [
@@ -321,6 +326,8 @@ class AgentRole(StrEnum):
     INVESTIGATOR = "investigator"
     #: The agent-directed mode's verifier (chunk 12); the planned mode never asks it.
     INDEPENDENT_VERIFIER = "independent_verifier"
+    #: The agent-directed mode's brief (chunk 13); the planned mode never asks it.
+    BRIEF_SYNTHESIZER = "brief_synthesizer"
 
 
 _CONTRACTS: Final[dict[AgentRole, type[BaseModel]]] = {
@@ -331,11 +338,13 @@ _CONTRACTS: Final[dict[AgentRole, type[BaseModel]]] = {
     AgentRole.SYNTHESIZER: SynthesisProposal,
     AgentRole.INVESTIGATOR: InvestigatorTurn,
     AgentRole.INDEPENDENT_VERIFIER: Verification,
+    AgentRole.BRIEF_SYNTHESIZER: BriefProposal,
 }
 
 _PROMPT_VERSIONS: Final[dict[AgentRole, str]] = {
     AgentRole.INVESTIGATOR: INVESTIGATOR_PROMPT_VERSION,
     AgentRole.INDEPENDENT_VERIFIER: VERIFIER_PROMPT_VERSION,
+    AgentRole.BRIEF_SYNTHESIZER: BRIEF_PROMPT_VERSION,
 }
 
 AGENT_IDS: Final[dict[AgentRole, str]] = {r: f"aia.deep_research.{r.value}" for r in AgentRole}
@@ -444,6 +453,7 @@ Každé číslo v textu musí být v citaci některého uvedeného zjištění; 
 klienta a nesmíš je tak podat. Subjekty bez přijatých zjištění uveď v gaps.""",
     AgentRole.INVESTIGATOR: _INVESTIGATOR,
     AgentRole.INDEPENDENT_VERIFIER: VERIFIER_TASK,
+    AgentRole.BRIEF_SYNTHESIZER: BRIEF_TASK,
 }
 
 
