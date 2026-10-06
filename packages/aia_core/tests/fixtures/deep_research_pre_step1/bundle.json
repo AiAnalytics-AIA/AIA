@@ -1,0 +1,1120 @@
+{
+ "accepted": [
+  {
+   "confidence": 0.85,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "INTERNAL",
+    "claim": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+    "data_class": "CLASS_B_DERIVED_CLIENT",
+    "evidence_id": "EV-cca96c63784797d2",
+    "evidence_type": "client_knowledge",
+    "geography": "CZ",
+    "population": "zákazníci klienta",
+    "quote": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+    "quote_span": [
+     13,
+     96
+    ],
+    "source_date": null,
+    "source_kind": "CLIENT_KNOWLEDGE",
+    "source_ref": "KNW-d4191e4c711244@1",
+    "source_title": "Ovesný nápoj",
+    "source_url": null,
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-I-q-bac8e2a43f1b"
+   },
+   "merged_ids": [
+    "EV-9fce3ee152dded00",
+    "EV-2afdf9aa265c8233"
+   ],
+   "respondent_exclusion": null,
+   "respondent_use": "ELIGIBLE",
+   "score": {
+    "age": "approved",
+    "age_adjustment": 0.0,
+    "base": 0.85,
+    "geography": "",
+    "score": 0.85,
+    "source_class": "CLIENT_KNOWLEDGE",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.95,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-496b5f047c6e4329",
+    "evidence_type": "official_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "Spotřeba rostlinných nápojů v Česku vzrostla v roce 2025 o 12,5 % na 41 milionů litrů.",
+    "quote_span": [
+     33,
+     119
+    ],
+    "source_date": "2025-06-30",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-63021d954c34213046156456",
+    "source_title": "Spotřeba rostlinných nápojů 2025",
+    "source_url": "https://stat.example/rostlinne-napoje-2025",
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-bac8e2a43f1b"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": null,
+   "respondent_use": "ELIGIBLE",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.95,
+    "geography": "",
+    "score": 0.95,
+    "source_class": "OFFICIAL_STATISTICS",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.95,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Rostlinné nápoje kupuje 45 % domácností.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-e4d5edc882ae668d",
+    "evidence_type": "official_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "Rostlinné nápoje kupuje 45 % domácností.",
+    "quote_span": [
+     154,
+     194
+    ],
+    "source_date": "2025-06-30",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-63021d954c34213046156456",
+    "source_title": "Spotřeba rostlinných nápojů 2025",
+    "source_url": "https://stat.example/rostlinne-napoje-2025",
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-bac8e2a43f1b"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": "deterministic_target_overlap",
+   "respondent_use": "EXCLUDED",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.95,
+    "geography": "",
+    "score": 0.95,
+    "source_class": "OFFICIAL_STATISTICS",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.7,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-2220bdb6eb026c2c",
+    "evidence_type": "industry_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "Tržby za rostlinné nápoje dosáhly v roce 2025 celkem 2,1 miliardy korun.",
+    "quote_span": [
+     33,
+     105
+    ],
+    "source_date": "2025-11-02",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-320977f7f350b7d2aa506d66",
+    "source_title": "Zpráva o trhu rostlinných nápojů",
+    "source_url": "https://trh.example/zprava-2025",
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-bac8e2a43f1b"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": null,
+   "respondent_use": "ELIGIBLE",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.7,
+    "geography": "",
+    "score": 0.7,
+    "source_class": "INDUSTRY_RESEARCH",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.95,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-b2ac921f7416f95b",
+    "evidence_type": "official_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví",
+    "quote_span": [
+     32,
+     114
+    ],
+    "source_date": "2025-09-15",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-ef0c61b336fd74cfd8a0a81b",
+    "source_title": "Proč lidé volí rostlinné nápoje",
+    "source_url": "https://stat.example/motivace",
+    "subject_key": "q-fb01af550c1f",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-fb01af550c1f"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": null,
+   "respondent_use": "ELIGIBLE",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.95,
+    "geography": "",
+    "score": 0.95,
+    "source_class": "OFFICIAL_STATISTICS",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.95,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": true,
+    "agent_recommended_use": "exclude_target_leakage",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "U 22 % je důvodem ohled na životní prostředí.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-8d7a63b79d4c64fe",
+    "evidence_type": "official_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "u 22 % ohled na životní prostředí",
+    "quote_span": [
+     116,
+     149
+    ],
+    "source_date": "2025-09-15",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-ef0c61b336fd74cfd8a0a81b",
+    "source_title": "Proč lidé volí rostlinné nápoje",
+    "source_url": "https://stat.example/motivace",
+    "subject_key": "q-fb01af550c1f",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-fb01af550c1f"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": "target_outcome_overlap",
+   "respondent_use": "EXCLUDED",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.95,
+    "geography": "",
+    "score": 0.95,
+    "source_class": "OFFICIAL_STATISTICS",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  },
+  {
+   "confidence": 0.7,
+   "confirmations": [],
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Průměrná cena ovesného nápoje byla v roce 2025 42 Kč za litr.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-9271398208c9362c",
+    "evidence_type": "industry_report",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "jeho průměrná cena v roce 2025 byla 42 Kč za litr",
+    "quote_span": [
+     67,
+     116
+    ],
+    "source_date": "2025-10-01",
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-617e03a7cde7f6aa5f4e0f01",
+    "source_title": "Ovesné nápoje",
+    "source_url": "https://trh.example/ovesne-napoje",
+    "subject_key": "o-767da04676a4",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-o-767da04676a4"
+   },
+   "merged_ids": [],
+   "respondent_exclusion": null,
+   "respondent_use": "ELIGIBLE",
+   "score": {
+    "age": "recent",
+    "age_adjustment": 0.0,
+    "base": 0.7,
+    "geography": "",
+    "score": 0.7,
+    "source_class": "INDUSTRY_RESEARCH",
+    "table_version": "aia-source-table-1+recorded-85b10dd82a65"
+   },
+   "verifier_reason": "posouzeno podle citace"
+  }
+ ],
+ "channels": [
+  "INTERNAL",
+  "WEB"
+ ],
+ "client_facing": false,
+ "counts": {
+  "accepted": 7,
+  "fetches": 8,
+  "model_requests": 13,
+  "quarantined": 6,
+  "queries_refused": 2,
+  "search_calls": 6,
+  "snapshots": 7,
+  "tracks": 8,
+  "tracks_beyond_limit": 0,
+  "tracks_blocked": 1,
+  "tracks_incomplete": 1,
+  "tracks_researched": 8,
+  "tracks_reused": 0,
+  "verification_batches": 4,
+  "verification_batches_reused": 0
+ },
+ "coverage": [
+  {
+   "accepted": 1,
+   "channel": "INTERNAL",
+   "quarantined": 0,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "q-bac8e2a43f1b",
+   "track_id": "DRT-I-q-bac8e2a43f1b"
+  },
+  {
+   "accepted": 3,
+   "channel": "WEB",
+   "quarantined": 4,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "depth_target_met",
+   "subject_key": "q-bac8e2a43f1b",
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  },
+  {
+   "accepted": 0,
+   "channel": "INTERNAL",
+   "quarantined": 0,
+   "reused": false,
+   "status": "BLOCKED",
+   "stop_reason": "model_route_refused",
+   "subject_key": "q-fb01af550c1f",
+   "track_id": "DRT-I-q-fb01af550c1f"
+  },
+  {
+   "accepted": 2,
+   "channel": "WEB",
+   "quarantined": 1,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "queries_exhausted",
+   "subject_key": "q-fb01af550c1f",
+   "track_id": "DRT-W-q-fb01af550c1f"
+  },
+  {
+   "accepted": 0,
+   "channel": "INTERNAL",
+   "quarantined": 0,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "o-767da04676a4",
+   "track_id": "DRT-I-o-767da04676a4"
+  },
+  {
+   "accepted": 1,
+   "channel": "WEB",
+   "quarantined": 1,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "queries_exhausted",
+   "subject_key": "o-767da04676a4",
+   "track_id": "DRT-W-o-767da04676a4"
+  },
+  {
+   "accepted": 0,
+   "channel": "INTERNAL",
+   "quarantined": 0,
+   "reused": false,
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "o-98b4cf9beafa",
+   "track_id": "DRT-I-o-98b4cf9beafa"
+  },
+  {
+   "accepted": 0,
+   "channel": "WEB",
+   "quarantined": 0,
+   "reused": false,
+   "status": "INCOMPLETE",
+   "stop_reason": "tool_outcome_uncertain",
+   "subject_key": "o-98b4cf9beafa",
+   "track_id": "DRT-W-o-98b4cf9beafa"
+  }
+ ],
+ "design_revision": 1,
+ "design_revision_id": "REV-681c76fbacf54729",
+ "fictional_client": true,
+ "grid": [
+  {
+   "covered": true,
+   "cross_track": null,
+   "object_key": "o-767da04676a4",
+   "object_tracks": [
+    "DRT-I-o-767da04676a4",
+    "DRT-W-o-767da04676a4"
+   ],
+   "question_key": "q-bac8e2a43f1b",
+   "question_tracks": [
+    "DRT-I-q-bac8e2a43f1b",
+    "DRT-W-q-bac8e2a43f1b"
+   ]
+  },
+  {
+   "covered": true,
+   "cross_track": null,
+   "object_key": "o-98b4cf9beafa",
+   "object_tracks": [
+    "DRT-I-o-98b4cf9beafa"
+   ],
+   "question_key": "q-bac8e2a43f1b",
+   "question_tracks": [
+    "DRT-I-q-bac8e2a43f1b",
+    "DRT-W-q-bac8e2a43f1b"
+   ]
+  },
+  {
+   "covered": true,
+   "cross_track": null,
+   "object_key": "o-767da04676a4",
+   "object_tracks": [
+    "DRT-I-o-767da04676a4",
+    "DRT-W-o-767da04676a4"
+   ],
+   "question_key": "q-fb01af550c1f",
+   "question_tracks": [
+    "DRT-W-q-fb01af550c1f"
+   ]
+  },
+  {
+   "covered": true,
+   "cross_track": null,
+   "object_key": "o-98b4cf9beafa",
+   "object_tracks": [
+    "DRT-I-o-98b4cf9beafa"
+   ],
+   "question_key": "q-fb01af550c1f",
+   "question_tracks": [
+    "DRT-W-q-fb01af550c1f"
+   ]
+  }
+ ],
+ "harness_version": "aia-deep-research-harness-1",
+ "kind": "deep_research_bundle",
+ "origins": [
+  "CLIENT_KNOWLEDGE",
+  "RECORDED_FIXTURE"
+ ],
+ "preset": "QUICK",
+ "preset_status": "PROPOSED_DR5",
+ "quality_status": "PARTIAL",
+ "quarantined": [
+  {
+   "claim": "Ovesné nápoje rostly o 20 %.",
+   "detail": "the claim states 20; the quote does not; quote: Nejrychleji rostly ovesné nápoje.",
+   "evidence": null,
+   "evidence_id": "EV-10b285f6884e3cdf",
+   "reason": "number_not_in_quote",
+   "source_ref": "SNP-63021d954c34213046156456",
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  },
+  {
+   "claim": "Tržby vzrostou v roce 2026 na 3 miliardy korun.",
+   "detail": "the quote does not occur in SNP-320977f7f350b7d2aa506d66; quote: Tržby vzrostou v roce 2026 na 3 miliardy korun.",
+   "evidence": null,
+   "evidence_id": "EV-bb9836e62f53e2e2",
+   "reason": "ungrounded_excerpt",
+   "source_ref": "SNP-320977f7f350b7d2aa506d66",
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  },
+  {
+   "claim": "Rostlinné nápoje pije každý druhý Čech.",
+   "detail": "'SNP-ffffffffffffffffffffffff' is not a source this track retrieved; quote: Rostlinné nápoje pije každý druhý Čech.",
+   "evidence": null,
+   "evidence_id": "EV-6d11dbdc753cd022",
+   "reason": "citation_outside_track",
+   "source_ref": "SNP-ffffffffffffffffffffffff",
+   "track_id": "DRT-W-q-fb01af550c1f"
+  },
+  {
+   "claim": "Rostlinné nápoje jsou oblíbené mezi mladými lidmi ve velkých městech.",
+   "detail": "the source contains instructions: ignore_instructions, verdict_override",
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Rostlinné nápoje jsou oblíbené mezi mladými lidmi ve velkých městech.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-2d43bed1ecb302df",
+    "evidence_type": "media",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "Rostlinné nápoje jsou oblíbené mezi mladými lidmi ve velkých městech.",
+    "quote_span": [
+     16,
+     85
+    ],
+    "source_date": null,
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-dd6fc614771ddeca21615201",
+    "source_title": "Oblíbené nápoje",
+    "source_url": "https://zpravy.example/pokyny",
+    "subject_key": "o-767da04676a4",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-o-767da04676a4"
+   },
+   "evidence_id": "EV-2d43bed1ecb302df",
+   "reason": "source_contains_instructions",
+   "source_ref": "SNP-dd6fc614771ddeca21615201",
+   "track_id": "DRT-W-o-767da04676a4"
+  },
+  {
+   "claim": "Rostlinné nápoje kupuje polovina lidí.",
+   "detail": "FORUM_OR_SOCIAL source scored 0.25 (table aia-source-table-1+recorded-85b10dd82a65)",
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.9,
+    "channel": "WEB",
+    "claim": "Rostlinné nápoje kupuje polovina lidí.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-62bb41c92ae25eac",
+    "evidence_type": "other",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "rostlinné nápoje kupuje polovina lidí, co znám",
+    "quote_span": [
+     40,
+     86
+    ],
+    "source_date": null,
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-8eb053a3cbd37420b0df383f",
+    "source_title": "Kdo kupuje rostlinné nápoje?",
+    "source_url": "https://forum.example/vlakno-12",
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-bac8e2a43f1b"
+   },
+   "evidence_id": "EV-62bb41c92ae25eac",
+   "reason": "low_source_quality",
+   "source_ref": "SNP-8eb053a3cbd37420b0df383f",
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  },
+  {
+   "claim": "Zájem o rostlinné nápoje roste hlavně ve městech a na venkově.",
+   "detail": "posouzeno podle citace",
+   "evidence": {
+    "agent_outcome_overlap": false,
+    "agent_recommended_use": "context_only",
+    "agent_source_quality": 0.8,
+    "channel": "WEB",
+    "claim": "Zájem o rostlinné nápoje roste hlavně ve městech a na venkově.",
+    "data_class": "CLASS_C_INTERNAL",
+    "evidence_id": "EV-c6dc04cb553a6e7d",
+    "evidence_type": "media",
+    "geography": "CZ",
+    "population": "dospělí v Česku",
+    "quote": "zájem o rostlinné nápoje roste hlavně ve městech",
+    "quote_span": [
+     54,
+     102
+    ],
+    "source_date": null,
+    "source_kind": "WEB_PAGE",
+    "source_ref": "SNP-cf3a2d29b767fd78f4d87371",
+    "source_title": "Zájem o rostlinné nápoje roste",
+    "source_url": "https://zpravy.example/rostlinne-napoje",
+    "subject_key": "q-bac8e2a43f1b",
+    "topics": [
+     "trh"
+    ],
+    "track_id": "DRT-W-q-bac8e2a43f1b"
+   },
+   "evidence_id": "EV-c6dc04cb553a6e7d",
+   "reason": "overstated_by_verifier",
+   "source_ref": "SNP-cf3a2d29b767fd78f4d87371",
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  }
+ ],
+ "request_fingerprint": "f6a85316cd41fb35b6fe35991945f124c5ff06aacdef06f702cd84d94d26039c",
+ "sha256": "cd857f94d530809bfc85e257ae5ca23c1d49f69b692f9409f993dee8a7f94f81",
+ "snapshots": [
+  {
+   "artifact_id": "ART-d070af8a385d4b61",
+   "final_url": "https://stat.example/rostlinne-napoje-2025",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-63021d954c34213046156456",
+   "text_sha256": "63021d954c34213046156456a216cf224aec045fda8b431cb6821f7e8220297a",
+   "title": "Spotřeba rostlinných nápojů 2025",
+   "url": "https://stat.example/rostlinne-napoje-2025"
+  },
+  {
+   "artifact_id": "ART-083b92d59ea54403",
+   "final_url": "https://trh.example/zprava-2025",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-320977f7f350b7d2aa506d66",
+   "text_sha256": "320977f7f350b7d2aa506d6606e8b74780e96e7816d55840b0d030ed10ba936a",
+   "title": "Zpráva o trhu rostlinných nápojů",
+   "url": "https://trh.example/zprava-2025"
+  },
+  {
+   "artifact_id": "ART-66eb2385011e48a9",
+   "final_url": "https://zpravy.example/rostlinne-napoje",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-cf3a2d29b767fd78f4d87371",
+   "text_sha256": "cf3a2d29b767fd78f4d873717ba028730bed32fc53d54d819987aec84ace20f3",
+   "title": "Zájem o rostlinné nápoje roste",
+   "url": "https://zpravy.example/rostlinne-napoje"
+  },
+  {
+   "artifact_id": "ART-f9cc69988f7d481d",
+   "final_url": "https://forum.example/vlakno-12",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-8eb053a3cbd37420b0df383f",
+   "text_sha256": "8eb053a3cbd37420b0df383f215c8a765dcf8ec816bb8dcd57460283113f4ad5",
+   "title": "Kdo kupuje rostlinné nápoje?",
+   "url": "https://forum.example/vlakno-12"
+  },
+  {
+   "artifact_id": "ART-0a0d7a81002d46cc",
+   "final_url": "https://stat.example/motivace",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-ef0c61b336fd74cfd8a0a81b",
+   "text_sha256": "ef0c61b336fd74cfd8a0a81b70e11f14974b0173de361bf8291518f6b2a08dd8",
+   "title": "Proč lidé volí rostlinné nápoje",
+   "url": "https://stat.example/motivace"
+  },
+  {
+   "artifact_id": "ART-28d4320914cb4f5a",
+   "final_url": "https://trh.example/ovesne-napoje",
+   "instructions_detected": [],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-617e03a7cde7f6aa5f4e0f01",
+   "text_sha256": "617e03a7cde7f6aa5f4e0f01b87122c1948c377ed246f0e80a6af4bc6a91e798",
+   "title": "Ovesné nápoje",
+   "url": "https://trh.example/ovesne-napoje"
+  },
+  {
+   "artifact_id": "ART-f08113a39a724d78",
+   "final_url": "https://zpravy.example/pokyny",
+   "instructions_detected": [
+    "ignore_instructions",
+    "verdict_override"
+   ],
+   "retrieval_mode": "RECORDED",
+   "retrieved_at": "2026-09-01T09:00:00Z",
+   "snapshot_id": "SNP-dd6fc614771ddeca21615201",
+   "text_sha256": "dd6fc614771ddeca2161520110ebdfb2ad3c3d024f665ce1d65e95dd5e8feddb",
+   "title": "Oblíbené nápoje",
+   "url": "https://zpravy.example/pokyny"
+  }
+ ],
+ "spend_usd": {
+  "model_usd": 0.078,
+  "tool_usd": 0.0
+ },
+ "subjects": [
+  {
+   "key": "q-bac8e2a43f1b",
+   "kind": "QUESTION",
+   "object_key": null,
+   "origin": "research_plan.research_questions[0]",
+   "question_key": null,
+   "text": "Jak roste trh rostlinných nápojů v Česku?"
+  },
+  {
+   "key": "q-fb01af550c1f",
+   "kind": "QUESTION",
+   "object_key": null,
+   "origin": "research_plan.research_questions[1]",
+   "question_key": null,
+   "text": "Proč lidé přecházejí na rostlinné nápoje?"
+  },
+  {
+   "key": "o-767da04676a4",
+   "kind": "OBJECT",
+   "object_key": null,
+   "origin": "sections[1].objects[0]",
+   "question_key": null,
+   "text": "Ovesný nápoj"
+  },
+  {
+   "key": "o-98b4cf9beafa",
+   "kind": "OBJECT",
+   "object_key": null,
+   "origin": "sections[1].objects[1]",
+   "question_key": null,
+   "text": "Mandlový nápoj"
+  }
+ ],
+ "synthesis": {
+  "artifact_id": "ART-40c47218a1984d99",
+  "check": {
+   "excluded": [
+    {
+     "detail": "2030, 99 is in no quote this finding cites",
+     "index": 3,
+     "reason": "number_not_in_cited_evidence",
+     "subject_key": "q-bac8e2a43f1b",
+     "text": "Trh do roku 2030 vzroste o 99 %."
+    },
+    {
+     "detail": "cites no accepted evidence: EV-0000000000000000",
+     "index": 4,
+     "reason": "citation_not_accepted",
+     "subject_key": "q-bac8e2a43f1b",
+     "text": "Tvrzení bez přijatého důkazu."
+    }
+   ],
+   "findings": [
+    {
+     "evidence_ids": [
+      "EV-cca96c63784797d2"
+     ],
+     "subject_key": "q-bac8e2a43f1b",
+     "text": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta."
+    },
+    {
+     "evidence_ids": [
+      "EV-b2ac921f7416f95b"
+     ],
+     "subject_key": "q-fb01af550c1f",
+     "text": "Nejčastějším důvodem přechodu na rostlinné nápoje je podle 37 % respondentů zdraví"
+    },
+    {
+     "evidence_ids": [
+      "EV-9271398208c9362c"
+     ],
+     "subject_key": "o-767da04676a4",
+     "text": "Průměrná cena ovesného nápoje byla v roce 2025 42 Kč za litr."
+    }
+   ],
+   "gaps": [
+    "Mandlový nápoj"
+   ],
+   "limitations": [
+    "Externí kontext, nikoli výsledky panelu."
+   ],
+   "status": "PARTIAL",
+   "summary": "Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+   "summary_withheld": null
+  }
+ },
+ "tracks": [
+  {
+   "artifact_id": "ART-3801513680524fa8",
+   "channel": "INTERNAL",
+   "credits": 0,
+   "detail": "",
+   "evidence_ids": [
+    "EV-cca96c63784797d2"
+   ],
+   "fetches": 0,
+   "fingerprint": "0d90caaa426a134dc4e27b933eb13e3877ee3b60ebcf8ddfa49e187b23866e63",
+   "model_cost_usd": 0.006,
+   "model_requests": 1,
+   "quarantined_ids": [],
+   "queries": [],
+   "retrieval_mode": null,
+   "reused": false,
+   "search_calls": 0,
+   "snapshot_ids": [],
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "q-bac8e2a43f1b",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-I-q-bac8e2a43f1b"
+  },
+  {
+   "artifact_id": "ART-9b2fa8e019a647e3",
+   "channel": "WEB",
+   "credits": 2,
+   "detail": "",
+   "evidence_ids": [
+    "EV-496b5f047c6e4329",
+    "EV-e4d5edc882ae668d",
+    "EV-2220bdb6eb026c2c",
+    "EV-c6dc04cb553a6e7d",
+    "EV-62bb41c92ae25eac"
+   ],
+   "fetches": 4,
+   "fingerprint": "5f44248d66d7792a9960ee13a5838249ccd221894d9e046b2795d67759235378",
+   "model_cost_usd": 0.012,
+   "model_requests": 2,
+   "quarantined_ids": [
+    "EV-10b285f6884e3cdf",
+    "EV-bb9836e62f53e2e2",
+    "EV-62bb41c92ae25eac",
+    "EV-c6dc04cb553a6e7d"
+   ],
+   "queries": [
+    {
+     "call_id": "TOOL-8784e72a726f4926be51",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": null,
+     "hits": 2,
+     "refusal": null,
+     "text": "trh rostlinných nápojů česko"
+    },
+    {
+     "call_id": "TOOL-ac912fa0019543e587c0",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": null,
+     "hits": 2,
+     "refusal": null,
+     "text": "růst prodejů rostlinných nápojů"
+    }
+   ],
+   "retrieval_mode": "RECORDED",
+   "reused": false,
+   "search_calls": 2,
+   "snapshot_ids": [
+    "SNP-63021d954c34213046156456",
+    "SNP-320977f7f350b7d2aa506d66",
+    "SNP-cf3a2d29b767fd78f4d87371",
+    "SNP-8eb053a3cbd37420b0df383f"
+   ],
+   "status": "COMPLETED",
+   "stop_reason": "depth_target_met",
+   "subject_key": "q-bac8e2a43f1b",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-W-q-bac8e2a43f1b"
+  },
+  {
+   "artifact_id": "ART-177e787898814b15",
+   "channel": "INTERNAL",
+   "credits": 0,
+   "detail": "model_route: egress_route_not_approved_for_class -- route bedrock-eu-primary is not approved for CLASS_A_CLIENT_CONFIDENTIAL",
+   "evidence_ids": [],
+   "fetches": 0,
+   "fingerprint": "525c958e2444cd63686dcd67ea9ba7a3e566a1331ee1a226407cdcec36d04f45",
+   "model_cost_usd": 0.0,
+   "model_requests": 0,
+   "quarantined_ids": [],
+   "queries": [],
+   "retrieval_mode": null,
+   "reused": false,
+   "search_calls": 0,
+   "snapshot_ids": [],
+   "status": "BLOCKED",
+   "stop_reason": "model_route_refused",
+   "subject_key": "q-fb01af550c1f",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-I-q-fb01af550c1f"
+  },
+  {
+   "artifact_id": "ART-411737b39a984052",
+   "channel": "WEB",
+   "credits": 1,
+   "detail": "",
+   "evidence_ids": [
+    "EV-b2ac921f7416f95b",
+    "EV-8d7a63b79d4c64fe"
+   ],
+   "fetches": 2,
+   "fingerprint": "765e29f7a7d02f2a9e18a1cc5f16009f8e98684166be354f3928e3faab03bb9f",
+   "model_cost_usd": 0.006,
+   "model_requests": 1,
+   "quarantined_ids": [
+    "EV-6d11dbdc753cd022"
+   ],
+   "queries": [
+    {
+     "call_id": "TOOL-3c0b4e085b1e4a98aeee",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": null,
+     "hits": 2,
+     "refusal": null,
+     "text": "důvody přechodu na rostlinné nápoje"
+    },
+    {
+     "call_id": null,
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL",
+      "class_a_overlap"
+     ],
+     "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+     "decision": "REFUSED",
+     "failure": null,
+     "hits": 0,
+     "refusal": "class_a_query",
+     "text": "uvedení ovesného nápoje v květnu 2027 cena"
+    }
+   ],
+   "retrieval_mode": "RECORDED",
+   "reused": false,
+   "search_calls": 1,
+   "snapshot_ids": [
+    "SNP-ef0c61b336fd74cfd8a0a81b"
+   ],
+   "status": "COMPLETED",
+   "stop_reason": "queries_exhausted",
+   "subject_key": "q-fb01af550c1f",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-W-q-fb01af550c1f"
+  },
+  {
+   "artifact_id": "ART-a5a5029271044d76",
+   "channel": "INTERNAL",
+   "credits": 0,
+   "detail": "",
+   "evidence_ids": [
+    "EV-9fce3ee152dded00"
+   ],
+   "fetches": 0,
+   "fingerprint": "630dcdc33bb8775d1397c5bc2f43e21d88e15b664fcd044523800bb52edfdf56",
+   "model_cost_usd": 0.006,
+   "model_requests": 1,
+   "quarantined_ids": [],
+   "queries": [],
+   "retrieval_mode": null,
+   "reused": false,
+   "search_calls": 0,
+   "snapshot_ids": [],
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "o-767da04676a4",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-I-o-767da04676a4"
+  },
+  {
+   "artifact_id": "ART-4c3f635fcea341a9",
+   "channel": "WEB",
+   "credits": 1,
+   "detail": "",
+   "evidence_ids": [
+    "EV-9271398208c9362c"
+   ],
+   "fetches": 2,
+   "fingerprint": "6d287ec2897523359af74b7a3d31527ae0aa5d8fdf34ebec32619107065599fa",
+   "model_cost_usd": 0.006,
+   "model_requests": 1,
+   "quarantined_ids": [
+    "EV-2d43bed1ecb302df"
+   ],
+   "queries": [
+    {
+     "call_id": null,
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL",
+      "client_term:client.name"
+     ],
+     "data_class": "CLASS_B_DERIVED_CLIENT",
+     "decision": "REFUSED",
+     "failure": null,
+     "hits": 0,
+     "refusal": "egress_route_not_approved_for_class",
+     "text": "Acme ovesný nápoj"
+    },
+    {
+     "call_id": "TOOL-2c0e050ff3474b3ba48c",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": null,
+     "hits": 2,
+     "refusal": null,
+     "text": "ovesný nápoj spotřeba"
+    }
+   ],
+   "retrieval_mode": "RECORDED",
+   "reused": false,
+   "search_calls": 1,
+   "snapshot_ids": [
+    "SNP-617e03a7cde7f6aa5f4e0f01",
+    "SNP-dd6fc614771ddeca21615201"
+   ],
+   "status": "COMPLETED",
+   "stop_reason": "queries_exhausted",
+   "subject_key": "o-767da04676a4",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-W-o-767da04676a4"
+  },
+  {
+   "artifact_id": "ART-d684bb1af501402f",
+   "channel": "INTERNAL",
+   "credits": 0,
+   "detail": "",
+   "evidence_ids": [
+    "EV-2afdf9aa265c8233"
+   ],
+   "fetches": 0,
+   "fingerprint": "01dbc9b849d2873833cd7266b306a29b24e9e47b7d7b061fe5e15d969ae69c4e",
+   "model_cost_usd": 0.006,
+   "model_requests": 1,
+   "quarantined_ids": [],
+   "queries": [],
+   "retrieval_mode": null,
+   "reused": false,
+   "search_calls": 0,
+   "snapshot_ids": [],
+   "status": "COMPLETED",
+   "stop_reason": "single_pass",
+   "subject_key": "o-98b4cf9beafa",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-I-o-98b4cf9beafa"
+  },
+  {
+   "artifact_id": "ART-e25e1e6896d447b5",
+   "channel": "WEB",
+   "credits": 0,
+   "detail": "the search for 'mandlový nápoj trh' may have been served; nothing more is sent",
+   "evidence_ids": [],
+   "fetches": 0,
+   "fingerprint": "96dbe618ff6a28e8678a581956332ddfbe9456f68f70fad846ee5b4222de6d38",
+   "model_cost_usd": 0.0,
+   "model_requests": 0,
+   "quarantined_ids": [],
+   "queries": [
+    {
+     "call_id": "TOOL-8177b68d209345868de7",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": "provider_error",
+     "hits": 0,
+     "refusal": null,
+     "text": "mandlový nápoj cena"
+    },
+    {
+     "call_id": "TOOL-991b0651c0db4e028bf1",
+     "class_reasons": [
+      "context:CLASS_C_INTERNAL"
+     ],
+     "data_class": "CLASS_C_INTERNAL",
+     "decision": "SENT",
+     "failure": "lost",
+     "hits": 0,
+     "refusal": null,
+     "text": "mandlový nápoj trh"
+    }
+   ],
+   "retrieval_mode": "RECORDED",
+   "reused": false,
+   "search_calls": 2,
+   "snapshot_ids": [],
+   "status": "INCOMPLETE",
+   "stop_reason": "tool_outcome_uncertain",
+   "subject_key": "o-98b4cf9beafa",
+   "tool_cost_usd": 0.0,
+   "track_id": "DRT-W-o-98b4cf9beafa"
+  }
+ ],
+ "versions": {
+  "classifier": "aia-query-classifier-1",
+  "grounding": "aia-grounding-2/aia-measures-2",
+  "harness": "aia-deep-research-harness-1",
+  "merge": "aia-merge-1",
+  "policy": "test-deep-research-v1",
+  "preset_status": "PROPOSED_DR5",
+  "prompt": "1",
+  "source_table": "aia-source-table-1+recorded-85b10dd82a65"
+ }
+}
