@@ -1,4 +1,11 @@
-"""Study-scoped durable Deep Research jobs and their sealed internal evidence."""
+"""Study-scoped durable Deep Research jobs and their sealed internal evidence.
+
+A start or a retry on a Study with a spend limit asks first (ADR 0019 gate 2): the
+server works out the run's cost ceiling from the deployment's prices
+(:func:`deep_research_prices`) and answers 409 ``cost_confirmation_required`` with it,
+or 409 ``cost_ceiling_unknown`` when a price it needs is not configured, as a research
+run's start does.
+"""
 
 from __future__ import annotations
 
@@ -14,17 +21,22 @@ from aia_core.application.deep_research import (
     DeepResearchRuns,
     NothingToResearch,
 )
+from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
+from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.planning import UnknownPreset
+from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
-from fastapi import APIRouter, HTTPException, Path, Query, Response
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from ..config import Settings
 from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
+from .research import _cost_refused
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -43,8 +55,11 @@ SnapshotId = Annotated[str, Path(max_length=64, pattern=r"^SNP-[0-9a-f]{1,32}$")
 class DeepResearchStart(BaseModel):
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
-    preset_name: Literal["QUICK", "STANDARD", "DEEP"]
+    preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
     channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
+    #: What the person confirms the run can cost at most. Read only when the study has a
+    #: limit the run's ceiling reaches; the server works the ceiling out and holds this to it.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
     @field_validator("channels")
     @classmethod
@@ -52,6 +67,13 @@ class DeepResearchStart(BaseModel):
         if len(set(value)) != len(value):
             raise ValueError("channels must be distinct")
         return value
+
+
+class DeepResearchRetry(BaseModel):
+    """A retry's confirmation, when the study's limit asks for one."""
+
+    model_config = ConfigDict(extra="forbid")
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
 
 class DeepResearchStep(BaseModel):
@@ -98,12 +120,55 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
+def deep_research_prices(settings: Settings) -> DeepResearchPrices:
+    """What each kind of call a Deep Research run makes may cost, as this deployment says.
+
+    Every research agent reserves the research agents' configured reservation per request
+    (``aia_executors.deep_research_runtime`` composes them so); unset, it is unknown. The
+    only retrieval a deployment composes is the public Wikipedia route, priced at zero
+    (``aia_executors.deep_research_live``); off, nothing is searched. Triage, the focused
+    crawl, the connectors and Common Crawl are composed by no deployment yet (chunk 23
+    wires them with their dated prices), so nothing is sent on them.
+    """
+    research = RoutePrice.of(settings.ai_research_reservation_usd)
+    web = RoutePrice.per_call(0.0) if settings.deep_research_wikipedia_enabled else RoutePrice.off()
+    off = RoutePrice.off()
+    return DeepResearchPrices(
+        {
+            CallKind.PLANNER: research,
+            CallKind.LEAD: research,
+            CallKind.INTERNAL_INVESTIGATOR: research,
+            CallKind.INVESTIGATOR: research,
+            CallKind.VERIFIER: research,
+            CallKind.SYNTHESIZER: research,
+            CallKind.SEARCH: web,
+            CallKind.FETCH: web,
+            CallKind.TRIAGE: off,
+            CallKind.CRAWL_FETCH: off,
+            CallKind.CONNECTOR: off,
+            CallKind.URL_INDEX_QUERY: off,
+            CallKind.ARCHIVE_FETCH: off,
+        }
+    )
+
+
+def deep_research_mode(settings: Settings) -> ResearchMode:
+    """The mode the worker composes from the same switches (the lead needs agent-directed)."""
+    if settings.deep_research_lead:
+        return ResearchMode.LEAD
+    if settings.deep_research_agent_directed:
+        return ResearchMode.AGENT_DIRECTED
+    return ResearchMode.PLANNED
+
+
 @contextmanager
 def _errors(session: SessionDep) -> Iterator[None]:
     try:
         yield
     except ScopeDenied as exc:
         raise _refused(exc) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
     except (DeepResearchRunNotFound, DesignRevisionNotFound) as exc:
         raise _not_found() from exc
     except (NothingToResearch, UnknownPreset) as exc:
@@ -165,14 +230,22 @@ def _response(
 
 @router.post("/runs", response_model=DeepResearchRun, status_code=201)
 def start(
-    body: DeepResearchStart, scope: StudyScopeDep, session: SessionDep, response: Response
+    body: DeepResearchStart,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    response: Response,
 ) -> DeepResearchRun:
+    settings = request.app.state.settings
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
         started = runs.start(
             design_revision_id=body.design_revision_id,
             preset_name=body.preset_name,
             channels=body.channels,
+            prices=deep_research_prices(settings),
+            modes=(deep_research_mode(settings),),
+            confirm_cost_usd=body.confirm_cost_usd,
         )
         if not started.created:
             response.status_code = 200
@@ -214,11 +287,22 @@ def cancel(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepRese
 
 @router.post("/runs/{run_id}/retry", response_model=DeepResearchRun, status_code=201)
 def retry(
-    run_id: RunId, scope: StudyScopeDep, session: SessionDep, response: Response
+    run_id: RunId,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    response: Response,
+    body: DeepResearchRetry | None = None,
 ) -> DeepResearchRun:
+    settings = request.app.state.settings
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
-        started = runs.retry(run_id)
+        started = runs.retry(
+            run_id,
+            prices=deep_research_prices(settings),
+            modes=(deep_research_mode(settings),),
+            confirm_cost_usd=body.confirm_cost_usd if body else None,
+        )
         if not started.created:
             response.status_code = 200
         return _response(runs.get(started.run_id), scope, created=started.created)
