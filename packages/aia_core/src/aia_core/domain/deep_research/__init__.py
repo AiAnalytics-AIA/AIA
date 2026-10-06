@@ -29,6 +29,8 @@ is pure:
 * :mod:`.tracing` -- primary or secondary, traced, and the leads to primary sources;
 * :mod:`.verification` -- the independent verifier's verdicts decided by code,
   supersession, and the review an agent-directed verify step records.
+* :mod:`.truth_set` -- the accuracy truth set: public facts with known values, pinned by
+  hash and verified at the source before a run is scored against them.
 
 Pure: stdlib and Pydantic only.
 """

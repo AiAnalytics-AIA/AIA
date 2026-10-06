@@ -1,0 +1,1961 @@
+{
+  "kind": "deep_research_truth_set",
+  "schema_version": "aia-dr-truth-set-1",
+  "set_id": "cz-public-facts-1",
+  "title": "Veřejná česká fakta pro měření přesnosti Deep Research (šablona: hodnoty doplní a ověří člověk u zdroje)",
+  "fictional": false,
+  "register_version": "aia-reputation-register-1 (proposed)",
+  "fictional_publishers": [],
+  "facts": [
+    {
+      "fact_id": "pop-01",
+      "topic": "population",
+      "slot": "Počet obyvatel Česka k 31. 12. posledního zveřejněného roku",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-02",
+      "topic": "population",
+      "slot": "Počet živě narozených dětí v Česku za poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-03",
+      "topic": "population",
+      "slot": "Počet zemřelých v Česku za poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-04",
+      "topic": "population",
+      "slot": "Úhrnná plodnost v Česku za poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-05",
+      "topic": "population",
+      "slot": "Naděje dožití při narození, muži, Česko, poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-06",
+      "topic": "population",
+      "slot": "Naděje dožití při narození, ženy, Česko, poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-07",
+      "topic": "population",
+      "slot": "Počet obyvatel hl. m. Prahy k 31. 12. posledního zveřejněného roku",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-08",
+      "topic": "population",
+      "slot": "Počet obyvatel Jihomoravského kraje k 31. 12. posledního zveřejněného roku",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-09",
+      "topic": "population",
+      "slot": "Počet sňatků v Česku za poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-10",
+      "topic": "population",
+      "slot": "Saldo zahraniční migrace Česka za poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-11",
+      "topic": "population",
+      "slot": "Podíl osob ve věku 65 a více let na obyvatelstvu Česka k 31. 12.",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-12",
+      "topic": "population",
+      "slot": "Průměrný věk obyvatel Česka k 31. 12. posledního zveřejněného roku",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "pop-13",
+      "topic": "population",
+      "slot": "Počet hospodařících domácností v Česku podle posledního sčítání",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-01",
+      "topic": "prices",
+      "slot": "Průměrná roční míra inflace (index spotřebitelských cen) v Česku za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-02",
+      "topic": "prices",
+      "slot": "Meziroční změna indexu spotřebitelských cen v Česku v posledním zveřejněném měsíci",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-03",
+      "topic": "prices",
+      "slot": "Meziroční změna harmonizovaného indexu spotřebitelských cen (HICP) Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:evropska komise",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-04",
+      "topic": "prices",
+      "slot": "Průměrná spotřebitelská cena chleba konzumního kmínového v Česku (Kč za kg), poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-05",
+      "topic": "prices",
+      "slot": "Průměrná spotřebitelská cena polotučného trvanlivého mléka v Česku (Kč za litr), poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-06",
+      "topic": "prices",
+      "slot": "Průměrná spotřebitelská cena čerstvého másla v Česku (Kč za kg), poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-07",
+      "topic": "prices",
+      "slot": "Průměrná spotřebitelská cena benzinu Natural 95 v Česku (Kč za litr), poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-08",
+      "topic": "prices",
+      "slot": "Meziroční změna indexu cen průmyslových výrobců v Česku za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-09",
+      "topic": "prices",
+      "slot": "Meziroční změna indexu cen zemědělských výrobců v Česku za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-10",
+      "topic": "prices",
+      "slot": "Dvoutýdenní repo sazba ČNB platná k poslednímu dni posledního celého roku",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ceska narodni banka",
+        "source_type": "web_text",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-11",
+      "topic": "prices",
+      "slot": "Průměrný kurz koruny vůči euru za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ceska narodni banka",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-12",
+      "topic": "prices",
+      "slot": "Průměrná cena elektřiny pro domácnosti v Česku (Eurostat, pásmo spotřeby DC), poslední zveřejněné pololetí",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:evropska komise",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "price-13",
+      "topic": "prices",
+      "slot": "Meziroční změna indexu cen bytů v Česku za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-01",
+      "topic": "consumption",
+      "slot": "Spotřeba piva na obyvatele Česka (litry za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-02",
+      "topic": "consumption",
+      "slot": "Spotřeba masa celkem na obyvatele Česka (kg za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-03",
+      "topic": "consumption",
+      "slot": "Spotřeba mléka a mléčných výrobků na obyvatele Česka, poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-04",
+      "topic": "consumption",
+      "slot": "Spotřeba vína na obyvatele Česka (litry za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-05",
+      "topic": "consumption",
+      "slot": "Spotřeba ovoce na obyvatele Česka (kg za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-06",
+      "topic": "consumption",
+      "slot": "Spotřeba zeleniny na obyvatele Česka (kg za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-07",
+      "topic": "consumption",
+      "slot": "Spotřeba cukru na obyvatele Česka (kg za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-08",
+      "topic": "consumption",
+      "slot": "Spotřeba vajec na obyvatele Česka (kusy za rok), poslední zveřejněný rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-09",
+      "topic": "consumption",
+      "slot": "Průměrná spotřební vydání na osobu v Česku (Kč za rok) podle statistiky rodinných účtů",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-10",
+      "topic": "consumption",
+      "slot": "Podíl výdajů za potraviny a nealkoholické nápoje na spotřebních vydáních domácností v Česku (%)",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-11",
+      "topic": "consumption",
+      "slot": "Meziroční změna tržeb v maloobchodě v Česku (stálé ceny) za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "cons-12",
+      "topic": "consumption",
+      "slot": "Výdaje domácností na konečnou spotřebu v Česku (běžné ceny) za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-01",
+      "topic": "trade",
+      "slot": "Vývoz zboží z Česka celkem (národní pojetí) za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-02",
+      "topic": "trade",
+      "slot": "Dovoz zboží do Česka celkem (národní pojetí) za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-03",
+      "topic": "trade",
+      "slot": "Saldo zahraničního obchodu Česka se zbožím za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-04",
+      "topic": "trade",
+      "slot": "Podíl Německa na vývozu zboží z Česka za poslední celý rok (%)",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-05",
+      "topic": "trade",
+      "slot": "Vývoz zboží z Česka na Slovensko za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-06",
+      "topic": "trade",
+      "slot": "Vývoz silničních vozidel (SITC 78) z Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-07",
+      "topic": "trade",
+      "slot": "Dovoz zboží z Číny do Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:cesky statisticky urad",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-08",
+      "topic": "trade",
+      "slot": "Saldo běžného účtu platební bilance Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ceska narodni banka",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-09",
+      "topic": "trade",
+      "slot": "Vývoz zemědělských a potravinářských výrobků z Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ministerstvo zemedelstvi",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-10",
+      "topic": "trade",
+      "slot": "Saldo zahraničního obchodu Česka se zemědělskými a potravinářskými výrobky za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ministerstvo zemedelstvi",
+        "source_type": "document_table",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-11",
+      "topic": "trade",
+      "slot": "Příliv přímých zahraničních investic do Česka za poslední celý rok",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:ceska narodni banka",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    },
+    {
+      "fact_id": "trade-12",
+      "topic": "trade",
+      "slot": "Podíl zemí EU27 na vývozu zboží z Česka za poslední celý rok (%)",
+      "question": null,
+      "expected": {
+        "value_text": null,
+        "unit": null,
+        "scale": 1,
+        "period": null,
+        "geography": null,
+        "population": null,
+        "denominator": null,
+        "measure_name": null,
+        "basis": null
+      },
+      "tolerance": {
+        "kind": "exact",
+        "amount": null,
+        "reason": null
+      },
+      "primary": {
+        "publisher": "register:evropska komise",
+        "source_type": "dataset",
+        "url": null,
+        "dataset_id": null,
+        "cell": null,
+        "title": null
+      },
+      "data_class": "CLASS_C_INTERNAL",
+      "recorded_at": null,
+      "recorded_by": null,
+      "verification": {
+        "status": "unverified",
+        "verified_by": null,
+        "verified_at": null,
+        "note": null
+      }
+    }
+  ]
+}
