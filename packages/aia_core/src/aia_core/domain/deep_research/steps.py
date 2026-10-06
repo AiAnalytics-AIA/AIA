@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 
 from ..residency import DataClass
 from .agents import AgentRole
+from .brief import ResearchBrief
 from .bundle import SnapshotRef
 from .contracts import (
     DeepResearchRequest,
@@ -333,6 +334,23 @@ class SynthesisArtifact(_Closed):
     call: CallRecord | None
     #: Why no request was sent (``gate:reason``), when none was.
     refused: str | None
+    #: The agent-directed brief (chunk 13): findings with confidence by code, conflicts,
+    #: gaps, acquisition gaps; ``check`` is its planned-mode shape. None in the planned
+    #: mode, and then left out of the stored form, which is unchanged.
+    brief: ResearchBrief | None = None
+    #: The one repair request a failed agent-directed draft got, when it got one. Left
+    #: out of the stored form when None.
+    repair_call: CallRecord | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_brief(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            if self.brief is None:
+                data.pop("brief", None)
+            if self.repair_call is None:
+                data.pop("repair_call", None)
+        return data
 
 
 def _cost(calls: Iterable[CallRecord]) -> float:
@@ -362,6 +380,8 @@ def tally(
     calls += [batch_calls[b.fingerprint] for b in batches if b.fingerprint in batch_calls]
     if synthesis.call is not None and not synthesis_reused:
         calls.append(synthesis.call)
+        if synthesis.repair_call is not None:
+            calls.append(synthesis.repair_call)
     snapshots = {s.snapshot_id for r, _ in results for s in r.snapshots}
     counts = {
         "tracks": len(results) + len(plan.beyond),
