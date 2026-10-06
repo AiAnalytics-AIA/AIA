@@ -26,6 +26,17 @@ def _is_metered(event: AIUsageEvent) -> bool:
     return event.cost_basis is not CostBasis.SUBSCRIPTION
 
 
+def _hold(event: AIUsageEvent) -> str:
+    """The reservation a metered call is recorded against; none is refused.
+
+    The gateway sends no metered call without one (``paid_call_without_reservation``);
+    reaching here without one is a defect, and refusing it keeps the call unsent.
+    """
+    if event.reservation_id is None:
+        raise ValueError(f"metered call {event.call_id} carries no reservation")
+    return event.reservation_id
+
+
 class WorkflowCallJournal:
     """The journal over the workflow attempt and the usage ledger.
 
@@ -72,7 +83,11 @@ class WorkflowCallJournal:
         if event.attempt_id != self._attempt_id:
             raise ValueError("dispatch is for a different attempt")
         if _is_metered(event):
-            self._workflow.mark_paid_call_dispatched(self._attempt_id, worker_id=self._worker_id)
+            self._workflow.mark_paid_call_dispatched(
+                self._attempt_id,
+                worker_id=self._worker_id,
+                reservation_id=_hold(event),
+            )
         self._usage.append(event)
         self._commit()
 
@@ -91,15 +106,17 @@ class WorkflowCallJournal:
         self._committed += event.cost_usd
         self._commit()
         if _is_metered(event) and event.outcome is not UsageOutcome.UNCERTAIN:
-            # Known outcome: the billing question for this attempt is closed. The
-            # repository *adds* the cost to the attempt's known spend, so this is
-            # the call's own cost, never the running total -- passing the total
+            # Known outcome: the billing question for this call's hold is closed;
+            # another call of the attempt still in flight keeps the attempt's
+            # question open. The repository *adds* the cost to the attempt's known
+            # spend, so this is the call's own cost, never the running total -- passing the total
             # double-counts every attempt that makes more than one call. An
             # UNCERTAIN outcome deliberately leaves the attempt
             # dispatched-and-unknown, so fail_attempt chooses RECOVERY_REQUIRED.
             self._workflow.mark_paid_call_outcome_known(
                 self._attempt_id,
                 worker_id=self._worker_id,
+                reservation_id=_hold(event),
                 actual_cost_usd=event.cost_usd,
                 provider_request_id=event.provider_request_id,
             )
