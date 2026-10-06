@@ -19,16 +19,26 @@ read only through the run.
 calls this service; the run is created from the domain's own step graph, which a
 worker claims only if its registry has the kinds (``WorkQueue.claim(kinds=...)``).
 Registering the type, the executors and a route is the integrator's (Job 6).
+
+**A study's spend limit asks first** (ADR 0019 gate 2, plan
+``deep-research-web-search.md`` chunk 22), as a research run's start does: when the
+Study has a limit and a start would create a run, the run's cost ceiling is worked out
+here from the frozen request, its preset and the prices the caller states
+(:func:`~aia_core.domain.run_cost.deep_research_cost_ceiling`), never taken from the
+request. A ceiling at or above the limit needs ``confirm_cost_usd`` to cover it, and
+the yes is recorded once, in the approval ledger, with the run; a ceiling that cannot
+be worked out is not let by.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ..domain.deep_research.budgets import ResearchMode, track_counts
 from ..domain.deep_research.bundle import EvidenceBundle
 from ..domain.deep_research.contracts import (
     HARNESS_VERSION,
@@ -38,6 +48,7 @@ from ..domain.deep_research.contracts import (
 )
 from ..domain.deep_research.knowledge_access import client_terms, freeze_knowledge
 from ..domain.deep_research.planning import (
+    PRESET_TABLE_VERSION,
     brief_digest,
     extract_subjects,
     preset,
@@ -45,6 +56,12 @@ from ..domain.deep_research.planning import (
 )
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
 from ..domain.research import phase_of, retryable
+from ..domain.run_cost import (
+    CeilingUnknown,
+    DeepResearchCeiling,
+    DeepResearchPrices,
+    deep_research_cost_ceiling,
+)
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
@@ -52,7 +69,7 @@ from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
-from .research import research_artifacts
+from .research import CostCeilingUnknown, CostConfirmationRequired, research_artifacts
 from .workflows import StartedRun
 
 __all__ = [
@@ -102,6 +119,25 @@ class DeepResearchRuns:
         return WorkflowRepository(self.session, self.scope)
 
     # -- freeze and start -------------------------------------------------------
+
+    def spend_limit(self) -> float | None:
+        """The study's limit above which starting a run asks for confirmation; ``None``: never."""
+        return ScopeRepository(self.session).get_study(self.scope).spend_confirm_usd
+
+    @staticmethod
+    def cost_ceiling(
+        request: DeepResearchRequest,
+        *,
+        prices: DeepResearchPrices,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+    ) -> DeepResearchCeiling:
+        """The most a run of ``request`` can cost: its preset's bounds, priced.
+
+        ``modes`` are the modes the deployment may research in; every mode, the highest
+        ceiling, when the caller does not know the composition's switches.
+        """
+        depth = preset(request.preset)
+        return deep_research_cost_ceiling(depth, track_counts(request, depth), prices, modes=modes)
 
     def freeze(
         self,
@@ -158,6 +194,9 @@ class DeepResearchRuns:
         preset_name: str,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         retry_of: str | None = None,
+        prices: DeepResearchPrices | None = None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+        confirm_cost_usd: float | None = None,
     ) -> StartedRun:
         """Freeze a request over one Design Revision and enqueue a run of it.
 
@@ -165,6 +204,15 @@ class DeepResearchRuns:
         terms start one run, so a double submission gets the run that exists; an
         approval in between is a different request and a new run. Needs
         ``RUN_WORKFLOW`` on an open Study, checked before anything is read.
+
+        When the Study has a spend limit and this would create a run, the run's cost
+        ceiling is worked out from ``prices`` (the deployment's, never the request's)
+        over ``modes``. A ceiling at or above the limit needs ``confirm_cost_usd`` to
+        cover it (:class:`~aia_core.application.research.CostConfirmationRequired`
+        otherwise) and the yes is recorded in the approval ledger with the run. No
+        prices, or a price the run needs missing, is
+        :class:`~aia_core.application.research.CostCeilingUnknown`: not let by. A start
+        that finds its run already there spends nothing and asks nothing.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
@@ -180,6 +228,26 @@ class DeepResearchRuns:
             key += f":retry:{retry_of}"
         workflows = self._workflows()
         existing = workflows.find_run_by_idempotency_key(key)
+        confirmation: tuple[float, float] | None = None
+        ceiling: DeepResearchCeiling | None = None
+        limit = self.spend_limit()
+        if limit is not None and existing is None:
+            if prices is None:
+                raise CostCeilingUnknown(
+                    CeilingUnknown.DEEP_RESEARCH_PRICE_MISSING, limit_usd=limit
+                )
+            ceiling = self.cost_ceiling(request, prices=prices, modes=modes)
+            if ceiling.total_usd is None:
+                assert ceiling.unknown is not None
+                raise CostCeilingUnknown(
+                    ceiling.unknown,
+                    limit_usd=limit,
+                    kinds=tuple(k.value for k in ceiling.unknown_kinds),
+                )
+            if ceiling.total_usd >= limit:
+                if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
+                    raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
+                confirmation = (ceiling.total_usd, limit)
         run_id = workflows.create_run(
             project_id=project_id,
             project_revision=request.design_revision,
@@ -196,6 +264,12 @@ class DeepResearchRuns:
                 "subjects": len(request.subjects),
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
+                "preset_table": PRESET_TABLE_VERSION,
+                **(
+                    {"cost_ceiling_usd": ceiling.total_usd, "cost_ceiling_mode": ceiling.mode.value}
+                    if ceiling is not None
+                    else {}
+                ),
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             # Each step's fingerprint is the request's: a re-run after a crash is
@@ -203,6 +277,14 @@ class DeepResearchRuns:
             fingerprints={s.node_key: request_fingerprint for s in steps},
             step_inputs={"plan": {"request": request.model_dump(mode="json")}},
         )
+        if confirmation is not None and existing is None:
+            assert confirm_cost_usd is not None
+            workflows.record_spend_confirmation(
+                run_id,
+                ceiling_usd=confirmation[0],
+                limit_usd=confirmation[1],
+                confirmed_usd=confirm_cost_usd,
+            )
         return StartedRun(
             run_id=run_id,
             project_id=project_id,
@@ -212,12 +294,21 @@ class DeepResearchRuns:
             run=workflows.get_run(run_id),
         )
 
-    def retry(self, run_id: str) -> StartedRun:
+    def retry(
+        self,
+        run_id: str,
+        *,
+        prices: DeepResearchPrices | None = None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+        confirm_cost_usd: float | None = None,
+    ) -> StartedRun:
         """Start a failed or cancelled run again, as a new run linked to it.
 
         Frozen afresh: what changed since -- an approval, a revoked item -- is in the
         new request. What the earlier run stored is found by fingerprint, so a track,
-        a snapshot or a verification it completed is not bought again.
+        a snapshot or a verification it completed is not bought again. A retry can
+        spend again, so it asks again: the limit and the confirmation work as they do
+        for :meth:`start`.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
@@ -228,6 +319,9 @@ class DeepResearchRuns:
             preset_name=str(metadata["preset"]),
             channels=[Channel(c) for c in metadata["channels"]],
             retry_of=run_id,
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

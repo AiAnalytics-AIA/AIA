@@ -195,6 +195,11 @@ LEAD_LIMITS: Final[Mapping[str, _PresetLead]] = {
     "QUICK": _PresetLead(max_tasks=4, replans=0, ceiling=(16, 12, 24)),
     "STANDARD": _PresetLead(max_tasks=12, replans=1, ceiling=(120, 64, 160)),
     "DEEP": _PresetLead(max_tasks=20, replans=3, ceiling=(360, 200, 500)),
+    # Chunk 22 (``planning.PRESET_TABLE_VERSION``): 20-50 investigators under one lead
+    # (the subject leads § 9 names are not built). Below 50 tasks at the effort table's
+    # largest task (15/8/20), so the ceiling binds on its own; at about $0.04 a turn its
+    # 720 turns are about $29 of investigation.
+    "EXHAUSTIVE": _PresetLead(max_tasks=50, replans=6, ceiling=(720, 384, 960)),
 }
 
 

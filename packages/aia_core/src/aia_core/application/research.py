@@ -126,10 +126,15 @@ class CostConfirmationRequired(Exception):
 class CostCeilingUnknown(Exception):
     """The study has a limit and the run's ceiling cannot be worked out: it is not let by."""
 
-    def __init__(self, reason: CeilingUnknown, *, limit_usd: float) -> None:
-        super().__init__(f"the run's cost ceiling is unknown ({reason.value})")
+    def __init__(
+        self, reason: CeilingUnknown, *, limit_usd: float, kinds: tuple[str, ...] = ()
+    ) -> None:
+        detail = f": {', '.join(kinds)}" if kinds else ""
+        super().__init__(f"the run's cost ceiling is unknown ({reason.value}{detail})")
         self.reason = reason
         self.limit_usd = limit_usd
+        #: The kinds of call whose price is missing, when the ceiling names them.
+        self.kinds = kinds
 
 
 @dataclass(frozen=True, slots=True)

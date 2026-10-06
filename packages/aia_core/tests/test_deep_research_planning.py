@@ -417,6 +417,7 @@ def test_every_preset_states_its_agent_directed_allowance() -> None:
         "QUICK": (6, 4, 8),
         "STANDARD": (15, 8, 20),
         "DEEP": (30, 15, 40),
+        "EXHAUSTIVE": (40, 20, 60),
     }
     # A plan stored before the fields existed reads with QUICK's, the smallest.
     dumped = PRESETS["DEEP"].model_dump(exclude=set(AGENT_DIRECTED_FIELDS))
