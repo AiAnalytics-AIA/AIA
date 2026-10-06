@@ -35,7 +35,11 @@ is pure:
   the ladder (publisher, title, reason, rungs tried), filled with what is known now;
 * :mod:`.synthesizer` -- the agent-directed brief synthesizer: contract, prompt;
 * :mod:`.brief` -- the agent-directed brief: code's findings, confidence, conflicts
-  and gaps, and the prose's every number checked against what it cites.
+  and gaps, and the prose's every number checked against what it cites;
+* :mod:`.truth_set` -- the accuracy truth set: public facts with known values, pinned by
+  hash and verified at the source before a run is scored against them;
+* :mod:`.accuracy` -- a run scored against a truth set: exact values, primary sources,
+  cell grounding, false acceptances and gaps, per preset, against the proposed targets.
 
 Pure: stdlib and Pydantic only.
 """

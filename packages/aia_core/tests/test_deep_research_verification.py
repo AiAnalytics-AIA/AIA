@@ -845,3 +845,14 @@ def test_a_period_is_placed_only_when_its_year_is_stated(
     text: str | None, span: PeriodSpan | None
 ) -> None:
     assert period_span(text) == span
+
+
+def test_a_written_date_is_placed_in_its_month() -> None:
+    """The measures reader keeps a written date as one period (aia-measures-2); it is
+    placed in its month, so a dated figure can conflict, supersede and be scored."""
+    from aia_core.domain.deep_research.triangulation import period_span
+
+    december = period_span("2091-12-31")
+    assert december is not None and december == period_span("2091-12")
+    assert period_span("2091-13-01") is None
+    assert period_span("2091-12-32") is None
