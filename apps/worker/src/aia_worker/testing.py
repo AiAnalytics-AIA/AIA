@@ -24,6 +24,13 @@ Payload keys, all optional:
     checkpoint) and settle at ``cost``. With ``crash_in_flight`` the call never
     settles and the attempt fails with ``TRANSPORT`` -- a timeout after sending,
     the textbook possibly-billed failure.
+``paid_overlapping``
+    ``{"reserve": [2.0, 3.0], "cost": 1.0, "hang_seconds": 0, "crash_in_flight": false}``
+    -- several metered calls in flight at once, as a fan-out sends them: every one
+    reserved and dispatched before any is answered; then the first is settled at
+    ``cost`` while the others are still in flight, and the process hangs there (no
+    checkpoint). With ``crash_in_flight`` the rest never settle and the attempt fails
+    with ``TRANSPORT``; otherwise each is settled at ``cost``.
 ``fail``
     A :class:`~aia_core.domain.workflow.FailureClass` name, returned as
     :class:`Failed` while ``attempt_number < fail_until_attempt`` (default:
@@ -108,6 +115,22 @@ class ScriptedExecutor:
             if paid.get("crash_in_flight"):
                 raise StepFailed(FailureClass.TRANSPORT, "read timeout after sending")
             context.settled(call, actual_cost_usd=float(paid.get("cost", 0.0)))
+
+        overlapping = script.get("paid_overlapping")
+        if isinstance(overlapping, dict):
+            calls = [
+                context.reserve(amount_usd=float(amount), provider=Provider.ANTHROPIC)
+                for amount in overlapping.get("reserve", [1.0, 1.0])
+            ]
+            for number, call in enumerate(calls):
+                context.dispatching(call, provider_request_id=f"req-{step.attempt_id}-{number}")
+            cost = float(overlapping.get("cost", 0.0))
+            context.settled(calls[0], actual_cost_usd=cost)
+            time.sleep(float(overlapping.get("hang_seconds", 0)))  # the rest in flight
+            if overlapping.get("crash_in_flight"):
+                raise StepFailed(FailureClass.TRANSPORT, "read timeout after sending")
+            for call in calls[1:]:
+                context.settled(call, actual_cost_usd=cost)
 
         if "raise" in script:
             raise RuntimeError(str(script["raise"]))

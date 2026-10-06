@@ -403,7 +403,10 @@ def test_recovery_does_not_retry_a_possibly_billed_paid_call(
     )
     assert reservation_id is not None
     engine_repo.mark_paid_call_dispatched(
-        claimed.attempt_id, worker_id=claimed.worker_id, provider_request_id="req_abc123"
+        claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        reservation_id=reservation_id,
+        provider_request_id="req_abc123",
     )
     _expire(session, claimed.attempt_id)
 
@@ -462,15 +465,18 @@ def test_recovery_retries_a_paid_call_whose_outcome_is_known(
     _fund_study(session, engine_repo.scope.study_id, 100.0)
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.reserve_budget(
+    hold = engine_repo.reserve_budget(
         attempt_id=claimed.attempt_id,
         worker_id=claimed.worker_id,
         amount_usd=2.00,
         provider=Provider.ANTHROPIC,
     )
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id=claimed.worker_id)
+    assert hold is not None
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id=claimed.worker_id, reservation_id=hold
+    )
     engine_repo.mark_paid_call_outcome_known(
-        claimed.attempt_id, worker_id=claimed.worker_id, actual_cost_usd=1.80
+        claimed.attempt_id, worker_id=claimed.worker_id, reservation_id=hold, actual_cost_usd=1.80
     )
     _expire(session, claimed.attempt_id)
 
@@ -1550,13 +1556,16 @@ def test_recovery_of_a_paid_call_is_logged_with_its_exposure(
     _fund_study(session, engine_repo.scope.study_id, 100.0)
     claimed = engine_repo.claim_next(worker_id="worker-1")
     assert claimed is not None
-    engine_repo.reserve_budget(
+    hold = engine_repo.reserve_budget(
         attempt_id=claimed.attempt_id,
         worker_id=claimed.worker_id,
         amount_usd=2.0,
         provider=Provider.ANTHROPIC,
     )
-    engine_repo.mark_paid_call_dispatched(claimed.attempt_id, worker_id=claimed.worker_id)
+    assert hold is not None
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id=claimed.worker_id, reservation_id=hold
+    )
     _expire(session, claimed.attempt_id)
     engine_repo.recover_expired_attempts()
 
