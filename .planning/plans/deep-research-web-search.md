@@ -1,43 +1,90 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[x] 0. This plan"
   - "[ ] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
-  - "[ ] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
-  - "[ ] 3. Brave search adapter"
+  - "[x] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
+  - "[x] 3. Brave search adapter"
   - "[ ] 4. The search key as a credential reference"
-  - "[ ] 5. Public-web fetch: any public host, robots.txt, links, run snapshot cache"
+  - "[x] 5. Public-web fetch: any public host, robots.txt, links, run snapshot cache"
   - "[ ] 6. Documents: PDF, XLSX, CSV, read in parts, tables kept as tables"
-  - "[ ] 7. Measures: every number with its unit, scale, period, geography, population, denominator"
+  - "[x] 7. Measures: every number with its unit, scale, period, geography, population, denominator"
   - "[ ] 8. Source tiers and the reputation register"
-  - "[ ] 9. The investigator: parallel actions, refs, refusals, transcript"
-  - "[ ] 10. The acquisition ladder: every lawful way to reach a needed source"
-  - "[ ] 11. The lead researcher: effort scaling, delegation, waves, re-planning"
-  - "[ ] 12. Verification: adversarial verifiers, primary tracing, triangulation, conflicts"
-  - "[ ] 13. Confidence by code, gaps, acquisition gaps, the brief"
-  - "[ ] 14. Connectors I: ČSÚ DataStat and the national open-data catalogue"
-  - "[ ] 15. Connectors II: Eurostat, OpenAlex, Wayback CDX"
-  - "[ ] 16. Connectors III: ARES (legal entities), public procurement"
-  - "[ ] 17. Focused crawler for authoritative hosts"
-  - "[ ] 18. Common Crawl URL index and archived pages"
-  - "[ ] 19. Code filters: near-duplicates, language, relevance"
-  - "[ ] 20. Triage readers on the light model"
-  - "[ ] 21. Fan-out: parallel tracks, per-host politeness, model concurrency"
-  - "[ ] 22. Presets, budgets and the run's cost ceiling"
-  - "[ ] 23. Composition, switches, prices; Settings"
-  - "[ ] 24. The Deep Research screen: plan, progress, findings, gaps, transcript"
+  - "[x] 9. The investigator: parallel actions, refs, refusals, transcript"
+  - "[x] 10. The acquisition ladder: every lawful way to reach a needed source"
+  - "[x] 11. The lead researcher: effort scaling, delegation, waves, re-planning"
+  - "[x] 12. Verification: adversarial verifiers, primary tracing, triangulation, conflicts"
+  - "[x] 13. Confidence by code, gaps, acquisition gaps, the brief"
+  - "[x] 14. Connectors I: ČSÚ DataStat and the national open-data catalogue"
+  - "[x] 15. Connectors II: Eurostat, OpenAlex, Wayback CDX"
+  - "[x] 16. Connectors III: ARES (legal entities), public procurement"
+  - "[x] 17. Focused crawler for authoritative hosts"
+  - "[x] 18. Common Crawl URL index and archived pages"
+  - "[x] 19. Code filters: near-duplicates, language, relevance"
+  - "[x] 20. Triage readers on the light model"
+  - "[x] 21. Fan-out: parallel tracks, per-host politeness, model concurrency"
+  - "[x] 22. Presets, budgets and the run's cost ceiling"
+  - "[ ] 23. Composition, switches, prices (per-kind reservations first); Settings after the purpose model"
+  - "[ ] 24. The operator surface, for both purposes (after 29–32)"
   - "[ ] 25. Accuracy evaluation on a truth set of public Czech facts"
-  - "[ ] 26. Quality evaluation: 20 questions, three arms, rubric judge, blind grade"
-  - "[ ] 27. Develop activation and the live acceptance"
+  - "[ ] 26. Quality evaluation: design and interpretation use cases, three arms, rubric judge, blind grade"
+  - "[ ] 27. Develop activation and the live acceptance (last)"
+  - "[x] 28. Purpose, target and frozen lineage (ADR 0021, AIA-83 Step 1)"
+  - "[ ] 29. Design Research integration: proposals from a design run, accepted into a revision (gate 1)"
+  - "[ ] 30. Interpretation Research integration: subjects written from the target, the result-side start"
+  - "[ ] 31. The Sociomap Research Lens: an annotation sidecar beside the canonical map"
+  - "[ ] 32. The report evidence graph: five evidence families, every claim's support"
 ---
 # Deep Research — wide, precise, and defensible
 
-**Status:** planned · **Owner:** research-engine + ai-runtime · **Started:** 2026-10-05 ·
+**Status:** in-progress (the engine, chunks 2–22, is on `develop` @ `579b7ab`; re-cut 2026-10-06 around ADR 0021,
+§ 0) · **Owner:** research-engine + ai-runtime · **Started:** 2026-10-05 ·
 **Base:** `develop` @ `b2d43f7`
 **Parent:** [deep-research.md](deep-research.md) chunk 13 (*Live enablement, blocked on DR-2*).
 **Decides (proposed; chunk 1 is the data owner's sign-off):** DR-2 for Class C (Brave Search API),
 an amendment to ADR 0017 (agents direct the research; code still sends every call), a second
 model policy entry under ADR 0010 (a light triage model), and the boundaries in § 4.
+
+## 0. Re-cut after the engine landed (2026-10-06, ADR 0021)
+
+The engine this plan set out to build is on `develop` @ `579b7ab`: chunks 2, 3, 5, 7 and 9–22,
+each against its *Tests* / *Done when* (chunk 21 by #166, which also made a released planned track
+recover without sending a call twice). Its boundary is now **frozen** (ADR 0021 decision 7):
+acquisition, retrieval and readers, investigators, the lead, fan-out, the recovery log, pacing,
+model concurrency, verification, grounding, confidence and the bundle change only on a defect or
+an evaluation finding.
+
+The plan was written as if Deep Research were one standalone operation. ADR 0021 places it at two
+methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology freeze,
+`INTERPRETATION_RESEARCH` over immutable results), so the remaining order is:
+
+```
+28 purpose / target / frozen lineage            (done: ADR 0021)
+→ 23 backend: composition, switches, prices; per-kind reservations FIRST
+→ 29 Design Research integration                (proposals → gate 1 → a new revision)
+→ 30 Interpretation Research integration        (target-written subjects, the result-side start)
+→ 31 Sociomap Research Lens                      (sidecar; the canonical map is never an input)
+→ 32 report evidence graph                       (POPULATION/RESPONDENT, DETERMINISTIC, SOCIOMAP,
+                                                  DEEP_RESEARCH, CLIENT_KNOWLEDGE)
+→ 24 operator surface, for both purposes         (not a generic Deep Research screen)
+→ 25/26 accuracy and quality evaluation          (design and interpretation use cases)
+→ 27 live activation                             (last; needs chunk 1's sign-offs)
+```
+
+Chunk 23 is split: its backend (real route composition, switches, dated prices, **per-kind
+reservations** — today every call reserves the full research reservation, so a run's ceiling sits
+far above the § 9 estimates — and corrected ceilings) goes first, before Deep Research becomes a
+routine part of a study; its Settings surface waits for the purpose model. Chunk 24 is no longer
+the immediate next task: it is redesigned around the two purposes once 29–32 exist. The open
+sign-offs (chunk 1: Brave terms, the register, the weights, presets, the light model, quotas;
+Common Crawl's `us-east-1` exception; the truth set's facts) block live activation (27), not the
+integration (28–32), which stays under the same fail-closed, recorded/offline posture.
+
+Still open, with what is missing: **1** (no decision recorded in § 13); **4** (no SSM parameter,
+`write-env.sh` entry or start-up refusal; chunk 23 composes it); **6** (PDF tables are not
+extracted: an extractor and its licence are the owner's call, `eb1f9b8`); **8** (the register is
+`RegisterStatus.PROPOSED`, not approved); **23**, **24**, **26**, **27** (above); **25** (the
+harness exists, `tools/dr_accuracy.py`; `truth-set-pins.json` has no pins and no run is scored).
 
 ## 1. What we are building
 
@@ -525,7 +572,14 @@ chunk 13 for Class C.
 
 ## 13. Measurements and decisions log
 
-(Empty. Each chunk records its measurements here, and chunk 1 each decision with its date.)
+(Chunk 1's decisions: none recorded yet.)
+
+- **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
+  recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0
+  on the hand-labelled fictional corpus. The threshold is chunk 1's decision.
+- **Chunk 21, 2026-10-06** (#166, `docs/architecture/deep-research-fan-out.md` § 6): 24 recorded
+  tracks, 4 workers and 4 model slots investigate in 11.0 s against 32.6 s on one worker, with
+  every planned round checkpointed.
 
 ## 14. What this plan does not do
 
@@ -551,7 +605,8 @@ chunk 13 for Class C.
 
 ## 16. Doc follow-up
 
-For the docs PR after chunk 0 merges:
+*Applied 2026-10-06 by the ADR 0021 synchronisation PR, except the ADR 0017 amendment text, which
+waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
 
 - `.planning/overview.md`, DR-2 row: "Proposed for Class C: Brave Search API, within a
   lead-researcher, agent-directed, code-gated Deep Research; see

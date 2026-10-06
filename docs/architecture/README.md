@@ -18,6 +18,10 @@ is shaped that way. The companion documents go deeper:
 | [analysis.md](analysis.md) | A native run's analysis: evidence from its artifacts, the stored outcome, reconstruction by re-admission |
 | [research-agents.md](research-agents.md) | Native design-proposal jobs: the eight actions, frozen context, review and acceptance |
 | [research-journey.md](research-journey.md) | The research journey's integration contract: who owns each stage, the interfaces between jobs, shared files, what "accepted" means |
+| [deep-research.md](deep-research.md) | Deep Research: tracks, grounding, query classes, quarantine, the tool-cost contract; its two purposes, typed targets and frozen lineage (ADR 0021) |
+| [deep-research-fan-out.md](deep-research-fan-out.md) | Tracks in steps of their own, per-host politeness, model concurrency, and a released track's recovery |
+| [deep-research-connectors.md](deep-research-connectors.md) | Public dataset connectors: terms, interfaces, limits |
+| [deep-research-common-crawl.md](deep-research-common-crawl.md) | The Common Crawl URL index and archived pages: Athena, WARC ranges, the human actions it needs |
 | [artifacts.md](artifacts.md) | Artifact lifecycle and storage |
 | [scope-and-authorization.md](scope-and-authorization.md) | Who may touch which client's work, and approval policy |
 | [security.md](security.md) | Threat model and security architecture |
@@ -74,7 +78,8 @@ apps/api         FastAPI. Validates, delegates, serialises. No business rules.
 apps/worker      The execution loop: claims steps from PostgreSQL, heartbeats,
                  runs the StepExecutor registered for each kind, records the
                  outcome.
-apps/executors   Snapshot and Research steps. The governed respondent source landed in PR #56; default-off AI fieldwork parks until
+apps/executors   Snapshot, Research and Deep Research steps (Deep Research parks unless
+                 AIA_DEEP_RESEARCH_ENABLED). The governed respondent source landed in PR #56; default-off AI fieldwork parks until
                  the governed agent source is implemented.
 packages/aia_core
   domain/        Pure rules. No framework, no driver, no SDK imports.

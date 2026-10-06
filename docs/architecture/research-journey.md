@@ -100,7 +100,7 @@ reference's. **GAP**: nothing yet; the owner is named.
 | Stage | Reference node | AIA at `ceee2dc` | Class | Owner |
 |---|---|---|---|---|
 | Brief | `compile` | `research_compile` turns a Design Revision into a `ResearchSpecification` (`research.py:180-215`). Brief analysis is the native `analyze_brief` job (#63). The working copy, the attachments (`POST /api/project/attachment`) and the stage bootstrap are still the unit's (OI-58) | compile IMPLEMENTED; store GAP | compile: J6. Store, attachments: PO |
-| Deep Research | `research` (`background_research`) | Nothing executes it: [plan](../../.planning/plans/deep-research.md) chunk 0 only, ADR 0017 *Proposed*. *Dimenze* hands off to the classic Data Library (`apps/web/src/components/rehome/research/PersonaStep.tsx:293-302`); *Aktualizovat research* is refused before any call (`ResearchScreen.tsx:208`) | GAP | J5; its graph and registration: J6. Live use needs DR-2, plus D6 (route) for Class B |
+| Deep Research | `research` (`background_research`) | Not one stage: two checkpoints (ADR 0021). `DESIGN_RESEARCH` before the methodology freeze (advisory, proposals only) and `INTERPRETATION_RESEARCH` over immutable results (no mutation authority). The engine is built and registered (`aia_executors/deep_research/`, `routers/deep_research.py`), parked unless `AIA_DEEP_RESEARCH_ENABLED`; every new run carries its purpose, target and frozen lineage. The minimal panel lists and cancels runs (`DeepResearchPanel.tsx`) | PARTIAL | Design Research proposals, the result-side start, the Research Lens and the report evidence graph: [web-search plan](../../.planning/plans/deep-research-web-search.md) chunks 29–32. Live use needs DR-2, plus D6 (route) for Class B |
 | Research Design | `design` (snapshot) | The snapshot becomes an immutable Design Revision (ADR 0016). Critique, copilot and memory are proposals, accepted only by `submit_if_current` (`infrastructure/study_design_repository.py:146-160`) | REPLACEMENT | editor: PO; the revision contract stays |
 | Questionnaire | `questionnaire` (snapshot) | Editor in the unit store; import through the unit (`/api/questionnaire/upload`); native build and optimise | REPLACEMENT; import GAP | PO |
 | Audience | `audience` (snapshot) | The catalogue, check and uploads read the unit (`/api/audience`, `/api/audiences/*`, `/api/audience/dimensions`). The native proposal never sets filters. AC-05's sufficiency gate is not ported (`audience.definition` `NOT_STARTED`) | editor REPLACEMENT; sufficiency GAP | catalogue: PO. **Sufficiency gate: no owner** |
@@ -136,7 +136,7 @@ an explicit state. That is neither a silent skip nor the reference's hard precon
 |---|---|---|
 | `research_analysis`, `questionnaire_build`, `questionnaire_optimize`, `audience_propose`, `persona_suggest` | native `analyze_brief`, `build_questionnaire`, `optimize_questionnaire`, `propose_audience`, `suggest_dimensions` (#63) | REPLACEMENT |
 | `copilot`, `project_assistant` | `design_copilot`, `answer_memory`; plus `critique_design`, which is new | REPLACEMENT |
-| `deep_research` | none | GAP (J5) |
+| `deep_research` | native `deep_research` workflow (`DeepResearchRuns`, ADR 0017, ADR 0021), parked by default | REPLACEMENT, parked |
 | `questionnaire_repair`, `final_review` | none; readiness is decided by code | GAP, no owner; off the scenario's critical path |
 | `result_verify`, `/api/results/contextual_*` | none | GAP (§2.1) |
 | `audience_strategy` (*next*), `/api/discovery/from_run` | classic only; unreachable in 18.6.6 as well (OI-47) | outside this journey |
@@ -263,7 +263,9 @@ the shared file (§5):
     (`legacy/npc-panel-18.6.6/app/workflow_engine.py:24-31`). J6 decides the shape when it adds
     the nodes: parallel, as #76 proposes, unless one module reads another's output. `interpret`
     would then depend on all eight.
-  - Deep Research is its own workflow type, pinned to a Design Revision (plan § Approach).
+  - Deep Research is its own workflow type whose engine request is frozen from a Design Revision;
+    since ADR 0021 a run also carries its purpose (design or interpretation), a typed target and
+    a frozen lineage, so it serves two checkpoints of the journey rather than being one stage.
 - **Capabilities.**
   - One switch per capability family, off by default. Each has its own output cap and a
     reservation that must cover the worst case, validated when the worker starts
@@ -514,7 +516,7 @@ independence.
 |---|---|---|
 | Client or unknown material, including pasted or attached text, sent to a model | OI-79's per-material classification; D6 for any resulting Class A/B route | client B's design jobs park with zero calls; a locally allowlisted test client carrying client/unknown text must also park before OI-79 closes |
 | Panel-derived respondents | OI-61 (licence); the withheld archive (population import) | only the fictional roster runs; there is no `v17_4_0` binding |
-| Web search | DR-2 (a search route); D8 (a key, for a keyed service) | Deep Research parks at its first external call |
+| Web search | DR-2 (a search route); D8 (a key, for a keyed service) | Deep Research parks unless enabled; enabled, only the Class C Czech Wikipedia route is live and every other web track is blocked |
 | A client-facing Sociomap | D6 (methodology) | the report omits it and says so |
 | A report delivered to a client | AC-11's legal gate (`governance.legal` `NOT_STARTED`); synthetic and modeled origins are not observed evidence | the fixture review records *internal, synthetic*; no client delivery exists |
 | Production study routed by a "fictional client" declaration | OI-63 and OI-79; no such production authority exists | `AIA_AI_FICTIONAL_CLIENT_IDS` is local/test-only and refused in production |

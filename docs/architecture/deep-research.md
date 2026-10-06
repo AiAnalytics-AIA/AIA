@@ -1,10 +1,15 @@
 # Deep Research — the contracts
 
-**State:** recorded/offline. The domain rules and their execution through the worker are
-implemented and proven on recorded exchanges; nothing is registered, deployed or enabled. No
-live search or fetch exists; no search provider, route or account is approved (DR-2).
-Decision record: [ADR 0017](adr/0017-deep-research-external-retrieval.md) (*Proposed*,
-amended 2026-09-27). Plan and chunk state: [deep-research.md](../../.planning/plans/deep-research.md).
+**State:** registered, parked by default. The executors are in the worker's default registry and
+the API route calls the service; a run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a
+runtime (off on develop). The one live web route is fee-free Czech Wikipedia (Class C,
+`AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`); no search provider is composed or approved (DR-2), and
+everything else runs on recorded exchanges. The engine is frozen after #166 (ADR 0021).
+Decision records: [ADR 0017](adr/0017-deep-research-external-retrieval.md) (*Proposed*,
+amended 2026-09-27) for retrieval, grounding and evidence; [ADR 0021](adr/0021-deep-research-purpose-target-lineage.md)
+for the two purposes, the typed target and the frozen lineage. Plan and chunk state:
+[deep-research.md](../../.planning/plans/deep-research.md) and
+[deep-research-web-search.md](../../.planning/plans/deep-research-web-search.md).
 Code: `packages/aia_core/src/aia_core/domain/deep_research/` (pure);
 `application/web_retrieval.py` (the gate), `application/deep_research.py` (the runs),
 `infrastructure/web_retrieval.py` (fetcher and recorded doubles);
@@ -19,8 +24,25 @@ tests decide and this document is stale.
 ## 1. What a run does
 
 `plan → investigate → merge → verify → synthesize → publish`, one Study-scoped
-workflow (`deep_research`, `domain/deep_research/workflow.py`) pinned to one Design
-Revision and filed under `DEEP_RESEARCH`.
+workflow (`deep_research`, `domain/deep_research/workflow.py`) whose engine request is frozen
+from one Design Revision and filed under `DEEP_RESEARCH`. With `AIA_DEEP_RESEARCH_FAN_OUT` the
+`investigate` step hands each track to a step of its own and joins them
+([deep-research-fan-out.md](deep-research-fan-out.md)); with `AIA_DEEP_RESEARCH_AGENT_DIRECTED`
+and `AIA_DEEP_RESEARCH_LEAD` investigators and a lead researcher direct the web tracks.
+
+**Not a stage: two checkpoints** (ADR 0021). Every new run is started from a
+`DeepResearchRunSpec` (`integration.py`): its **purpose** (`DESIGN_RESEARCH` before the
+methodology freeze, advisory, proposals only; `INTERPRETATION_RESEARCH` over immutable results,
+no mutation authority), its **target** (a closed `ResearchTargetRef`: a Design Revision; a
+question's or battery object's aggregate result; an analysis module; a battery's Sociomap, one
+of its objects, or a pair), and its **frozen lineage** (the revision's content SHA256; for
+interpretation the producing research run's `compile`, `run`, `aggregate` and target artifacts by
+id and SHA256). The engine request inside it is unchanged, so its fingerprint and every track's
+are unchanged; the spec's own fingerprint keys the run, and a design run and an interpretation
+run over one engine input share the engine's reusable work. `DeepResearchProvenance` names the
+sealed bundle (artifact id, row SHA256, seal) beside purpose, target and lineage, without
+touching the bundle. A run stored before ADR 0021 reads `legacy-unversioned`. Neither purpose
+writes a design or a deterministic artifact (`require_may_write`, a `layer_check` rule).
 
 | Phase | Who decides | What it produces |
 |---|---|---|
@@ -111,8 +133,9 @@ from. A design is Class C only for a client the operator declared fictional
 credentials, no internal hostnames, every resolved address globally routable
 (private, loopback, link-local and the metadata service, CGNAT, multicast, reserved,
 IPv4-mapped forms refused), a host that resolves to nothing refused, the same checks
-on every redirect hop (at most 3), at most 2 MB, only `text/html`, `text/plain` and
-`application/xhtml+xml`.
+on every redirect hop (at most 3); kept types and their caps (`MAX_BODY_BYTES_BY_TYPE`):
+`text/html`, `text/plain` and `application/xhtml+xml` at 2 MB, PDF at 20 MB, XLSX at 10 MB and
+CSV at 5 MB, the documents read in parts (`documents.py`).
 
 **Merge and verification** (`merge.py`, `aia-merge-1`). Declared score, then dedupe
 (same source, claim similarity ≥ the unit's 0.42), then independent confirmation
@@ -272,30 +295,28 @@ and that its Design Revision is the held Study's (`design_not_in_scope`).
 | Composition | Built by | What a run does |
 |---|---|---|
 | none | `deep_research_registry(runtime=None)` | parks at plan (`RUNTIME_UNAVAILABLE`, `deep_research_unconfigured`); nothing read or sent |
-| production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | web tracks `web_retrieval_unavailable` without a planner call (no retrieval exists); internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
+| production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | without `AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`, web tracks `web_retrieval_unavailable` without a planner call; with it, Class C queries go to the Czech Wikipedia route only (`deep_research_live.py`); internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
 | recorded | `recorded_runtime(...)` (`deep_research_recorded.py`) | the whole path over a recorded exchange file; refuses unless `AIA_ENV` is `local` or `test`; `layer_check` keeps it out of the API, the worker, the other executors and deployments |
 
 Configuration: **`AIA_DEEP_RESEARCH_ENABLED`** (strict `true`/`false`, default off). On, it
 requires `AIA_AI_RUNTIME_ENABLED` and `AIA_AI_RESEARCH_AGENTS_ENABLED` -- the capabilities it
 names (`RESEARCH_REASONING`, `CRITIC`) are bound only then -- and uses their output limit and
 their per-request reservation (primary plus one repair, checked there against the model's
-ceilings); the worker refuses to start otherwise. There is no key for web retrieval: no
-provider exists to configure. The recorded exchange file's format is in
+ceilings); the worker refuses to start otherwise. No keyed provider is composed: the Brave
+adapter exists (`web_retrieval_brave.py`) and is composed by no deployment until chunk 23 of
+the web-search plan; the Wikipedia route needs no key. The recorded exchange file's format is in
 `deep_research_recorded.py`; its SHA256 is in the adapter ids, so a changed recording changes
 every web track's fingerprint.
 
 ## 10. What the integrator registers (Job 6)
 
-1. `deep_research` in `workflow_templates.WORKFLOW_TYPES` with `deep_research_steps()`, and
-   `start_workflow` able to create it for a Study's design project -- or keep
-   `DeepResearchRuns.start` as the one entry point, as now.
-2. `deep_research_registry(store=..., build=..., runtime=deep_research_runtime(settings))` in
-   `aia_executors/registry.py`, in the same change as 1: a worker claims only kinds it has
-   executors for, and a type without executors would wait forever.
-3. An API route over `DeepResearchRuns` (start, get, list, events, cancel, retry, bundle,
-   snapshot) with the Study's permissions, and a screen. The bundle is never client-facing. A
-   bundle or snapshot whose bytes fail verification is a 409 that commits the `CORRUPT` mark
-   before answering, as `routers/runs.py` › `artifact_corrupt` does since #84 (OI-77).
+Items 1–3 are done: `DeepResearchRuns.start` (and, since ADR 0021, `start_interpretation`) is the
+entry point, the type built from `deep_research_steps()` rather than a `WORKFLOW_TYPES`
+template; `deep_research_registry(..., runtime=deep_research_runtime(settings))` is in
+`aia_executors/registry.py`; and `routers/deep_research.py` serves start, get, list, events,
+cancel, retry, bundle, snapshot and provenance, a corrupt read answering 409 through
+`artifact_corrupt` (OI-77). What remains:
+
 4. The generalized metered ledger (a migration), so `ToolMeter.charges_study_budget` can be
    true and tool spend reach the study's budget; then `EXTERNAL_RETRIEVAL` in `ToolRegistry`.
 5. The consumers: `respondent_context` at compile, `design_input` in the design jobs,
@@ -352,7 +373,7 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 
 | Id | Decision | Effect until made |
 |---|---|---|
-| DR-2 | A search provider and route per data class, with terms covering stored excerpts | No live search exists; only recorded retrieval runs |
+| DR-2 | A search provider and route per data class, with terms covering stored excerpts | No search provider is composed: Czech Wikipedia (Class C) is the only live route; everything else replays recordings |
 | DR-2b | May a code-built digest of a client's design (questions, object names) travel as Class B? | Queries from a real client's design are Class A and never leave |
 | DR-5 | Depth presets and default run budget | A run must name a proposed preset |
 | D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |

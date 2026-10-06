@@ -152,13 +152,25 @@ apps/
                             the one gateway over ADR 0010's route; the only builder of the adapter
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
-    deep_research/          The six Deep Research steps (not registered): plan, investigate, merge,
-                            verify, synthesize, publish; StepToolMeter (every tool call journaled,
-                            fenced, before it leaves; a retry takes the journal over and never
-                            resends a call left in flight); deep_research_registry(runtime=None) parks
+    deep_research/          The six Deep Research steps (in the default registry; a run parks
+                            without AIA_DEEP_RESEARCH_ENABLED): plan, investigate, merge, verify,
+                            synthesize, publish; StepToolMeter (every tool call journaled, fenced,
+                            before it leaves; a retry takes the journal over and never resends a
+                            call left in flight); deep_research_registry(runtime=None) parks.
+                            investigate.py: a planned track's _PlannedLog stores every external
+                            outcome (the search with its hits in order, each fetch, the round, the
+                            answer) before the next call, so a released step continues and never
+                            sends a call twice; a journaled call with no stored outcome is uncertain
+      fan_out.py            AIA_DEEP_RESEARCH_FAN_OUT (off by default): every track that makes a call
+                            in a step of its own, any worker (InvestigateTrackExecutor; its payload,
+                            TrackStepPayload); the run's snapshot cache in the store
+                            (StoredRunSnapshotCache); investigate joins them
     deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; without
                             AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED web tracks are blocked and nothing is
-                            sent; with it, deep_research_live.py's Czech Wikipedia route (Class C only)
+                            sent; with it, deep_research_live.py's Czech Wikipedia route (Class C only).
+                            AIA_DEEP_RESEARCH_FAN_OUT (off by default) needs
+                            AIA_DEEP_RESEARCH_MODEL_CONCURRENCY: no default, 1-256, model requests in
+                            flight across every worker on the route
     deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless
                             AIA_ENV is local/test, and no deployment may name it (layer_check)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
@@ -174,11 +186,18 @@ packages/aia_core/src/aia_core/
     ai_tools.py             ToolRegistry — scope never from model arguments
     research_agents.py     Eight closed Research task contracts, prompt/harness versions,
                             bounded context and task-owned proposal mapping
-    deep_research/          Deep Research (ADR 0017), pure; recorded/offline, nothing registered:
+    deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
                             stop reasons, the request a run is frozen to
       workflow.py           the deep_research graph: plan → investigate → merge → verify →
-                            synthesize → publish (defined here; registration is the integrator's)
+                            synthesize → publish (built from here by the service, not a template)
+      integration.py        ADR 0021, around the engine: DeepResearchPurpose (DESIGN_RESEARCH /
+                            INTERPRETATION_RESEARCH), ResearchTargetRef (closed: Design Revision,
+                            question / battery-object result, analysis module, Sociomap battery,
+                            object, object pair), FrozenLineage (artifacts pinned by id + SHA256),
+                            DeepResearchRunSpec (its fingerprint keys the run; the engine request's
+                            does not move), DeepResearchProvenance; neither purpose may write a
+                            design or a deterministic artifact
       tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome
       legacy.py             18.6.6 research_context leakage screen + merge, EXACT (unit captures)
       grounding.py          a quote must be in a source the same track retrieved; numbers too
@@ -289,9 +308,13 @@ packages/aia_core/src/aia_core/
                             start/retry ask when the run's cost ceiling reaches the study's spend
                             limit, and record the yes (ADR 0019 gate 2); ResearchAgentJobs.accept: a
                             person applies an agent's proposal (APPROVE_GATE), recorded (gate 1)
-    deep_research.py        DeepResearchRuns: the request frozen at enqueue (knowledge via
-                            for_study, client terms), start/get/runs/events/cancel/retry; the
-                            bundle (seal verified) and its snapshots only through the run
+    deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
+                            freeze_design (the engine request: knowledge via for_study, client
+                            terms) and freeze_interpretation (a result of this Study's own research
+                            run, every artifact pinned and verified, never the latest);
+                            start/start_interpretation/get/runs/events/cancel/retry (a retry never
+                            re-chooses its target); legacy runs read legacy-unversioned; the bundle
+                            (seal verified), its snapshots and provenance only through the run
     web_retrieval.py        RetrievalGate: the ONLY way a query or URL leaves -- classify, egress,
                             metering, reserve, journal the dispatch, call, journal the outcome
     develop_seed.py         The synthetic develop world, through the same paths the API uses
@@ -346,6 +369,9 @@ packages/aia_core/src/aia_core/
                             resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
                             approval ledger (the worker's scope cannot); record_spend_confirmation and
                             record_ai_proposal_acceptance (once per agent job): the same ledger
+    fan_out_coordination.py  ModelSlots (model requests in flight across processes, PostgreSQL
+                            rows) and SharedHostPacer (per-host politeness shared by every worker)
+    host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
     population_repository.py  Population registry: versions, populations, history
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
@@ -539,9 +565,26 @@ track; models only propose. A query's data class is inherited from what it was w
 never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a finding from
 respondent context, which is re-screened against the final questionnaire. It runs through the
 worker as six steps whose every unit is an artifact with a fingerprint, so a later pass buys only
-what changed. It is recorded/offline: no live search, no route, nothing registered in production;
-the production-shaped composition blocks every web track and sends nothing, and recorded web
-retrieval exists only in `aia_executors.deep_research_recorded` (local and test).
+what changed. Its executors are in the worker's default registry and its route in the API, but a
+run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a runtime; the only live web route is
+fee-free Czech Wikipedia (`AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`, Class C); without it the
+production-shaped composition blocks every web track and sends nothing, and recorded web retrieval
+exists only in `aia_executors.deep_research_recorded` (local and test). Tracks fan out across
+workers behind `AIA_DEEP_RESEARCH_FAN_OUT` (off by default), which needs
+`AIA_DEEP_RESEARCH_MODEL_CONCURRENCY` (no default, 1-256).
+
+**Deep Research serves two checkpoints, never research truth** (ADR 0021). `DESIGN_RESEARCH`
+runs before the methodology freeze and may only *propose*; a person turns a proposal into a new
+Design Revision. `INTERPRETATION_RESEARCH` runs over immutable results and has no mutation
+authority over respondent data, aggregates, analysis or the canonical Sociomap. Every new run
+carries its purpose, a typed target and a frozen lineage (exact artifacts, by SHA256) in an
+envelope around the unchanged engine request and sealed bundle; a pre-ADR run reads
+`legacy-unversioned`. The engine (retrieval, ladder, investigators, lead, fan-out, recovery,
+verification, grounding, confidence, the bundle) is frozen: change it only on a defect or
+evaluation finding. Deep Research helps decide what to measure; respondents determine what we
+observed; deterministic analysis and Sociomapping determine the computed structure; Deep Research
+may then help interpret it. External research never manufactures respondent evidence and never
+rewrites deterministic research truth.
 
 **Evidence is a capability, like scope.** A number reaches an analysis result only
 as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,

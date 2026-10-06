@@ -1720,3 +1720,33 @@ assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregat
 Anything that stores a result over a run's artifacts and reads it back -- an analysis
 outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
 ids only as provenance of where it was computed.
+
+## A tool journal proves what was sent, not what came back (Deep Research recovery, #166)
+
+A step released mid-call (a deploy's `SIGTERM`, a crash between calls) runs again on another
+worker. The resumed `StepToolMeter` holds every dispatch an earlier attempt journaled, by
+request fingerprint, and that tempts a recovery that re-derives the next action from the
+journal. It cannot: the journal says a search *left*, not which hits came back, so the next
+fetch, and therefore the model request over the round's pages, cannot be reproduced from it.
+Before #166 a released planned track started again at its first query and sent the search and
+the round's paid model request a second time
+(`test_deep_research_planned_recovery.py::test_a_released_planned_track_continues_and_sends_nothing_twice`).
+
+```python
+# WRONG: the fingerprint says the search was sent; nothing says what it returned
+if fingerprint in meter.dispatched_earlier(track_id):
+    hits = ???          # unknown, so the search is sent again, or the round guessed
+outcome = gate.search(query, ...)
+
+# RIGHT: every external outcome, with its ordering, is durable before the next call
+search = log.search(round, query)            # PlannedSearch: the hits, in order
+if search is None:
+    if log.unaccounted():                    # journaled, never recorded: uncertain
+        return TOOL_OUTCOME_UNCERTAIN        # stop; nothing is resent automatically
+    search = log.searched(round, query, gate.search(query, ...))
+```
+
+A journaled dispatch with no durable outcome is uncertain, never retried by itself. And a
+replay counts its own dispatches (`fetches_used`): the resumed meter already holds the earlier
+attempts', so reading its totals mid-replay would call the allowance spent before the replayed
+round's fetches were reached.
