@@ -23,6 +23,12 @@ is pure:
 * :mod:`.quarantine` -- what leaves the bundle for respondents, design and analysis.
 * :mod:`.filters` -- the funnel's Filter stage: exact and near duplicates, language,
   relevance (defined, not wired).
+* :mod:`.verifier` -- the agent-directed mode's independent verifier: contract, prompt;
+* :mod:`.triangulation` -- publishers, independence after near-duplicate collapse,
+  conflicts and resolve-track requests;
+* :mod:`.tracing` -- primary or secondary, traced, and the leads to primary sources;
+* :mod:`.verification` -- the independent verifier's verdicts decided by code,
+  supersession, and the review an agent-directed verify step records.
 
 Pure: stdlib and Pydantic only.
 """

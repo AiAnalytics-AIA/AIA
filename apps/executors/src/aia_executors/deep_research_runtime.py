@@ -51,6 +51,7 @@ from collections.abc import Mapping
 from typing import Final
 
 from aia_core.domain.ai_contracts import THINKING_MIN_BUDGET_TOKENS
+from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
 from aia_core.domain.providers import Provider
 from aia_core.infrastructure.model_adapters import BedrockSigner
@@ -177,4 +178,7 @@ def deep_research_runtime(
         ),
         retrieval=retrieval,
         source_table=table,
+        # The proposed register names publishers for the agent-directed review only
+        # (chunk 12); the planned mode never reads it.
+        register=REPUTATION_REGISTER_V1 if directed else None,
     )

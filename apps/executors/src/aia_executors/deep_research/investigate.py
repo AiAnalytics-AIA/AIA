@@ -47,6 +47,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 from ..ai_step import StepModelCaller
 from ._findings import _blocked_result, _Findings
 from ._shared import (
+    _agent_directed,
     _Answer,
     _class_a_texts,
     _composition_changed,
@@ -64,11 +65,6 @@ __all__ = ["InvestigateExecutor"]
 # --------------------------------------------------------------------------- #
 # investigate
 # --------------------------------------------------------------------------- #
-
-
-def _agent_directed(plan: PlanRecord) -> bool:
-    """Whether the run was planned with agent-directed web tracks (recorded on the plan)."""
-    return "investigator" in plan.versions
 
 
 class InvestigateExecutor(_Step):
