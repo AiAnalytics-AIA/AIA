@@ -122,13 +122,21 @@ def _at(container: Any, index: int, size: int) -> Any:
 
 
 def jsonstat_table(
-    body: bytes, *, query: DatasetQuery, max_cells: int = MAX_DATASET_CELLS
+    body: bytes,
+    *,
+    query: DatasetQuery,
+    max_cells: int = MAX_DATASET_CELLS,
+    time_dimension: str | None = None,
 ) -> dict[str, Any]:
     """The fields of a :class:`DatasetResult` (title, notes, columns, rows) from a JSON-stat body.
 
     Raises :class:`ToolCallFailed` (``RESPONDED``) for a document this reader does not
     hold to the format, a filter or period the cube does not have, or a table over
     ``max_cells``. Numbers are parsed as their text, so nothing is re-rounded.
+
+    ``time_dimension`` names the time dimension for a provider whose documents declare
+    no ``role`` (Eurostat): it applies only when the document declares no time role,
+    and a document without a dimension of that id is refused. A declared role wins.
     """
     try:
         doc = json.loads(body, parse_float=lambda s: s, parse_int=lambda s: s)
@@ -166,6 +174,10 @@ def jsonstat_table(
         if not isinstance(role.get(name) or [], list):
             raise contract_failure("JSON-stat with roles as lists")
     time_dims = [d for d in (role.get("time") or []) if d in codes]
+    if not time_dims and time_dimension is not None:
+        if time_dimension not in codes:
+            raise contract_failure("JSON-stat with the provider's time dimension")
+        time_dims = [time_dimension]
     metric_dims = [d for d in (role.get("metric") or []) if d in codes]
     if len(time_dims) > 1 or len(metric_dims) > 1:
         raise contract_failure("JSON-stat with at most one time and one metric dimension")
