@@ -13,6 +13,9 @@ AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS
                                         think. An integer >= 1024 and below
                                         ``AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS`` turns
                                         on extended thinking for the five agents
+AIA_DEEP_RESEARCH_AGENT_DIRECTED        ``true`` runs web tracks as the agent-directed
+                                        investigator's turns (plan chunk 9); unset or
+                                        false, the planner's queries, as before
 ======================================  ============================================
 
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``
@@ -28,6 +31,11 @@ reservation (checked against two calls at that limit) already covers it. With
 thinking on, the output tool cannot be forced; the gateway offers it with
 ``auto``, tells the agent to answer through it, and repairs an answer in text
 like any schema violation. No other agent thinks: the key is Deep Research's.
+
+The agent-directed switch changes how a web track is researched, not what may
+leave: every action still passes the retrieval gate, and with no retrieval
+configured there is no web track to direct. Off (the default), every request,
+fingerprint and count is the planned mode's.
 
 Without the public switch, web tracks park without a search call. With it, public
 queries may use Czech Wikipedia through a pinned-IP transport. Unknown or client
@@ -53,8 +61,10 @@ from .deep_research import DeepResearchConfig, DeepResearchRuntime
 from .deep_research_live import wikipedia_retrieval
 
 __all__ = [
+    "AGENT_DIRECTED_KEY",
     "ENABLED_KEY",
     "THINKING_KEY",
+    "agent_directed",
     "deep_research_enabled",
     "deep_research_runtime",
     "thinking_budget",
@@ -63,6 +73,10 @@ __all__ = [
 ENABLED_KEY: Final = "AIA_DEEP_RESEARCH_ENABLED"
 WIKIPEDIA_KEY: Final = "AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED"
 THINKING_KEY: Final = "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS"
+AGENT_DIRECTED_KEY: Final = "AIA_DEEP_RESEARCH_AGENT_DIRECTED"
+
+_TRUE: Final = frozenset({"1", "true", "yes", "on"})
+_FALSE: Final = frozenset({"0", "false", "no", "off", ""})
 
 
 def deep_research_enabled(env: Mapping[str, str] | None = None) -> bool:
@@ -77,6 +91,20 @@ def deep_research_enabled(env: Mapping[str, str] | None = None) -> bool:
     if value in {"0", "false", "no", "off", ""}:
         return False
     raise AIRuntimeConfigError(f"{ENABLED_KEY}={raw!r} is not true or false")
+
+
+def agent_directed(env: Mapping[str, str] | None = None) -> bool:
+    """The agent-directed switch, read strictly: ``true`` or ``false`` (or unset)."""
+    env = os.environ if env is None else env
+    raw = env.get(AGENT_DIRECTED_KEY)
+    if raw is None:
+        return False
+    value = raw.strip().lower()
+    if value in _TRUE:
+        return True
+    if value in _FALSE:
+        return False
+    raise AIRuntimeConfigError(f"{AGENT_DIRECTED_KEY}={raw!r} is not true or false")
 
 
 def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
@@ -114,11 +142,14 @@ def deep_research_runtime(
         raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY}={wiki!r} is not true or false")
     use_wikipedia = wiki in {"1", "true", "yes", "on"}
     thinking = thinking_budget(values)
+    directed = agent_directed(values)
     if not deep_research_enabled(values):
         if use_wikipedia:
             raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY} needs {ENABLED_KEY}")
         if thinking is not None:
             raise AIRuntimeConfigError(f"{THINKING_KEY} needs {ENABLED_KEY}")
+        if directed:
+            raise AIRuntimeConfigError(f"{AGENT_DIRECTED_KEY} needs {ENABLED_KEY}")
         return None
     if settings is None or not settings.research_agents_enabled:
         raise AIRuntimeConfigError(
@@ -142,6 +173,7 @@ def deep_research_runtime(
             provider=Provider.AWS_BEDROCK,
             material_approvals=settings.material_approvals,
             thinking_budget_tokens=thinking,
+            agent_directed=directed,
         ),
         retrieval=retrieval,
         source_table=table,

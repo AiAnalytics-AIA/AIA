@@ -55,10 +55,11 @@ from aia_core.infrastructure.study_design_repository import StudyDesignRepositor
 from aia_core.infrastructure.web_retrieval import RecordedSearch
 from aia_core.infrastructure.workflow_repository import WorkQueue
 from aia_executors import deep_research as deep_research_package
-from aia_executors.ai_runtime import build_gateway
+from aia_executors.ai_runtime import AIRuntimeConfigError, build_gateway
 from aia_executors.deep_research import DeepResearchConfig, DeepResearchRuntime
 from aia_executors.deep_research import agent_directed as agent_directed_module
 from aia_executors.deep_research_recorded import recorded_runtime
+from aia_executors.deep_research_runtime import deep_research_runtime
 from test_deep_research_journey import (  # type: ignore[import-not-found]
     ALMOND,
     ANSWERS,
@@ -663,6 +664,58 @@ def directed_run_search(runtime: DeepResearchRuntime) -> RecordedSearch:
     retrieval = runtime.retrieval
     assert retrieval is not None and isinstance(retrieval.search, RecordedSearch)
     return retrieval.search
+
+
+# --------------------------------------------------------------------------- #
+# The switch
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("value", ["maybe", "2", "yes please"])
+def test_the_switch_is_read_strictly_and_needs_deep_research(
+    research: ResearchWorld,  # noqa: F811
+    value: str,
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=TEST_ROUTE)
+    with pytest.raises(AIRuntimeConfigError, match="AIA_DEEP_RESEARCH_AGENT_DIRECTED"):
+        deep_research_runtime(
+            settings,
+            env={"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_AGENT_DIRECTED": value},
+            transport=ScriptedInvestigator(ANSWERS),
+            signer=Signer(),
+        )
+    with pytest.raises(AIRuntimeConfigError, match="needs AIA_DEEP_RESEARCH_ENABLED"):
+        deep_research_runtime(None, env={"AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true"})
+
+
+def test_the_switch_is_off_unless_set_and_on_records_the_mode(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    settings = ai_settings(research.client_id, approved_for=TEST_ROUTE)
+
+    def runtime(env: dict[str, str]) -> DeepResearchRuntime:
+        built = deep_research_runtime(
+            settings,
+            env={"AIA_DEEP_RESEARCH_ENABLED": "true", **env},
+            transport=ScriptedInvestigator(ANSWERS),
+            signer=Signer(),
+        )
+        assert built is not None
+        return built
+
+    for env in (
+        {},
+        {"AIA_DEEP_RESEARCH_AGENT_DIRECTED": ""},
+        {"AIA_DEEP_RESEARCH_AGENT_DIRECTED": "false"},
+    ):
+        off = runtime(env)
+        assert off.config.agent_directed is False and "investigator" not in off.versions()
+    on = runtime({"AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true"})
+    assert on.config.agent_directed is True
+    assert on.versions()["investigator"] == INVESTIGATOR_VERSION
+    # The switch adds no retrieval: what may leave is the composition's, unchanged.
+    assert on.retrieval is None
+    assert deep_research_runtime(None, env={}) is None
 
 
 # --------------------------------------------------------------------------- #
