@@ -33,7 +33,7 @@ sent, not even the next turn) and the same refusal three times
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from typing import TYPE_CHECKING, Any
@@ -132,19 +132,26 @@ class AgentDirectedTrack:
         gate: RetrievalGate,
         meter: StepToolMeter,
         caller: StepModelCaller,
+        allowance: Allowance | None = None,
+        assignment: Mapping[str, Any] | None = None,
     ) -> None:
+        """``allowance`` and ``assignment`` are a lead-planned task's budget and brief;
+        without them the track's allowance is the plan's and its task the planner's."""
         self._executor = executor
         self._step, self._context, self._runtime = step, context, runtime
         self._plan, self._track, self._planned = plan, track, planned
         self._gate, self._meter, self._caller = gate, meter, caller
-        allowance = plan.allowances.get(track.track_id) or AllowanceRecord(
-            search_calls=0, fetches=0
-        )
-        self._allowance = Allowance(
-            turns=plan.depth.max_turns,
-            searches=allowance.search_calls,
-            opens=allowance.fetches,
-        )
+        self._assignment = assignment
+        if allowance is None:
+            planned_allowance = plan.allowances.get(track.track_id) or AllowanceRecord(
+                search_calls=0, fetches=0
+            )
+            allowance = Allowance(
+                turns=plan.depth.max_turns,
+                searches=planned_allowance.search_calls,
+                opens=planned_allowance.fetches,
+            )
+        self._allowance = allowance
         self._state = TrackState(refs=TrackRefs(runtime.source_table))
         self._findings = _Findings(
             track=track, data_class=plan.design_class, evidence=[], quarantined=[]
@@ -178,6 +185,7 @@ class AgentDirectedTrack:
                 opens_left=self._allowance.opens - self._state.opens_used,
                 unread=bool(self._state.reading),
                 depth=self._plan.depth,
+                max_turns=self._allowance.turns,
             )
             if stop is not None:
                 break
@@ -244,6 +252,7 @@ class AgentDirectedTrack:
             ],
             reading=reading,
             waiting=waiting,
+            assignment=self._assignment,
         )
         request = self._executor._request(
             self._runtime,

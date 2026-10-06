@@ -35,9 +35,12 @@ def test_every_agent_names_a_capability_holds_no_tools_and_has_a_closed_contract
     assert agent.allowed_tools == frozenset()
     assert agent.is_structured and agent.schema_repair_attempts == 1
     assert agent.prompt_version == PROMPT_VERSION
-    expected = (
-        ModelCapability.CRITIC if role is AgentRole.VERIFIER else ModelCapability.RESEARCH_REASONING
-    )
+    expected = {
+        AgentRole.VERIFIER: ModelCapability.CRITIC,
+        # The lead researcher's own policy entry (chunk 11).
+        AgentRole.LEAD: ModelCapability.RESEARCH_LEAD,
+        AgentRole.LEAD_REPLAN: ModelCapability.RESEARCH_LEAD,
+    }.get(role, ModelCapability.RESEARCH_REASONING)
     assert agent.capability is expected
 
 

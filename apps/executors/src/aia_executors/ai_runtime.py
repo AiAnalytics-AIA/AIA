@@ -149,6 +149,10 @@ class AIRuntimeSettings:
     analysis_max_output_tokens: int = 0
     analysis_reservation_usd: float = 0.0
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Binds ``RESEARCH_LEAD`` -- Deep Research's lead researcher, its own policy entry
+    #: -- to the route's model. Never read from the environment here: the Deep Research
+    #: composition sets it when its lead switch is on (``deep_research_runtime``).
+    research_lead_enabled: bool = False
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -296,6 +300,10 @@ class AIRuntimeSettings:
             "route_id": self.route_id,
         }
         capabilities = [ModelCapability.SIMULATION]
+        if self.research_lead_enabled:
+            # The lead's own entry, on this route's model until a stronger one is
+            # approved for it (plan deep-research-web-search.md chunk 1).
+            capabilities.append(ModelCapability.RESEARCH_LEAD)
         if self.research_agents_enabled or self.analysis_enabled:
             capabilities.append(ModelCapability.RESEARCH_REASONING)
         if self.research_agents_enabled:
