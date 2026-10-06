@@ -17,6 +17,7 @@ from aia_core.domain.analysis import (
     result_from_check,
     uncovered_numbers,
 )
+from aia_core.domain.analysis.draft import number_spans
 from aia_core.domain.evidence import (
     METHOD_STATUS_PENDING,
     ClaimLevel,
@@ -48,6 +49,13 @@ QUESTIONS = ("Jaký je zájem o nabídku?", "Liší se zájem podle věku?")
 )
 def test_numbers_in(text: str, numbers: tuple[tuple[float, int], ...]) -> None:
     assert numbers_in(text) == numbers
+
+
+def test_number_spans_read_as_numbers_in_and_say_where() -> None:
+    text = "Tržby 1 200 Kč, podíl 12,5 % (2025)."
+    spans = number_spans(text)
+    assert tuple((v, d) for v, d, _, _ in spans) == numbers_in(text)
+    assert [text[a:b] for _, _, a, b in spans] == ["1 200", "12,5", "2025"]
 
 
 def test_rounding_shown_in_prose_is_allowed_and_no_more() -> None:
