@@ -65,22 +65,26 @@ import unicodedata
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
-from enum import StrEnum
 from typing import Final, Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from ..domain.deep_research.acquisition import (
     AGGREGATOR_HOSTS,
     LADDER_REQUEST_CAP,
-    LADDER_VERSION,
     PATH_DISCOVERY_CAP,
+    Acquisition,
     AcquisitionGap,
     AcquisitionLead,
+    ArchivedFrom,
+    AttemptDecision,
+    AttemptTool,
     DatasetRef,
     GapReason,
-    Match,
+    LadderAttempt,
+    LadderRecord,
+    LadderStop,
     Rung,
     TitleVariant,
     detect_barrier,
@@ -96,7 +100,6 @@ from ..domain.deep_research.acquisition import (
 )
 from ..domain.deep_research.archive import (
     AccessBarrier,
-    ArchiveBasis,
     ArchivePermit,
     LiveAttempt,
     decide_archive_use,
@@ -137,15 +140,10 @@ from .web_retrieval import (
 __all__ = [
     "DATA_INTERFACE_CONNECTORS",
     "RUNGS",
-    "Acquisition",
-    "ArchivedFrom",
     "Climb",
-    "LadderAttempt",
     "LadderConfig",
     "LadderLimits",
-    "LadderRecord",
     "LadderResult",
-    "LadderStop",
     "ladder",
     "rung_aggregator",
     "rung_archived_copy",
@@ -205,92 +203,6 @@ class LadderConfig:
     crawls: tuple[str, ...] = ()
     hits_per_search: int = 8
     opens_per_search: int = 2
-
-
-class AttemptDecision(StrEnum):
-    SENT = "sent"
-    CACHED = "cached"
-    REFUSED = "refused"
-    #: Not sent by this ladder: the track allowance is spent, or the candidate is barred.
-    SKIPPED = "skipped"
-
-
-_Tool = Literal[
-    "search",
-    "fetch",
-    "resource",
-    "dataset",
-    "archive_lookup",
-    "url_index",
-    "archived_fetch",
-    "archive_permit",
-]
-
-
-class LadderAttempt(_Closed):
-    """One step of the climb: a gate call, or a decision code made without one."""
-
-    rung: Rung
-    tool: _Tool
-    #: What was asked: a URL, a query as sent, a dataset query's text.
-    target: str = Field(max_length=4100)
-    decision: AttemptDecision
-    reason: str | None = None
-    outcome: Literal["succeeded", "failed", "uncertain"] | None = None
-    data_class: DataClass | None = None
-    call_id: str | None = None
-    #: SHA256 of what the gate journaled as sent; None when nothing was dispatched.
-    request_fingerprint: str | None = None
-    snapshot_id: str | None = None
-    #: Counted against the lead's cap.
-    counted: bool = False
-
-
-class ArchivedFrom(_Closed):
-    """An acquisition read from an archive: which, why it was allowed, and when captured."""
-
-    archive: Literal["wayback", "common_crawl"]
-    basis: ArchiveBasis
-    #: The capture's time as the archive states it (a 14-digit timestamp or ISO time).
-    captured: str
-
-
-class Acquisition(_Closed):
-    """The capture that answered a lead, the rung that reached it, and how it answered."""
-
-    rung: Rung
-    url: str
-    snapshot_id: str
-    match: Match
-    #: On one of the resolved publisher's registered hosts (a primary source by host).
-    on_publisher_host: bool
-    archived: ArchivedFrom | None = None
-    #: The edition's period, when a previous edition answered (rung 6).
-    edition_period: str | None = None
-
-
-class LadderStop(StrEnum):
-    ACQUIRED = "acquired"
-    GAP = "gap"
-    #: A call may have been served with no answer on record: nothing more is sent.
-    UNCERTAIN = "uncertain"
-    #: An earlier attempt of the step dispatched a call this ladder would send.
-    EARLIER_ATTEMPT = "earlier_attempt"
-
-
-class LadderRecord(_Closed):
-    """What one climb did, for the transcript: every attempt, and how it ended."""
-
-    version: Literal["aia-acquisition-ladder-1"] = LADDER_VERSION
-    lead: AcquisitionLead
-    stop: LadderStop
-    acquisition: Acquisition | None
-    gap: AcquisitionGap | None
-    rungs_tried: tuple[Rung, ...]
-    attempts: tuple[LadderAttempt, ...]
-    requests: int = Field(ge=0)
-    searches: int = Field(ge=0)
-    fetches: int = Field(ge=0)
 
 
 @dataclass(frozen=True, slots=True)
@@ -383,7 +295,7 @@ class Climb:
             fetch and self.limits.fetches is not None and self.fetches >= self.limits.fetches
         )
 
-    def _earlier(self, tool: _Tool, sent: str) -> None:
+    def _earlier(self, tool: AttemptTool, sent: str) -> None:
         """Stop before sending what an earlier attempt of the step already dispatched."""
         if self._may_send is not None and not self._may_send(sent):
             self.attempts.append(
@@ -399,7 +311,7 @@ class Climb:
 
     def _record(
         self,
-        tool: _Tool,
+        tool: AttemptTool,
         target: str,
         *,
         sent: bool,
@@ -445,7 +357,7 @@ class Climb:
             self.met.append(GapReason.UNCERTAIN)
             raise _Stop(LadderStop.UNCERTAIN, GapReason.UNCERTAIN)
 
-    def _skip(self, tool: _Tool, target: str, reason: str) -> None:
+    def _skip(self, tool: AttemptTool, target: str, reason: str) -> None:
         self.attempts.append(
             LadderAttempt(
                 rung=self.rung,
@@ -550,7 +462,7 @@ class Climb:
         self, query: DatasetQuery, *, permit: ArchivePermit | None = None
     ) -> SourceSnapshot | None:
         """One connector query (an archive lookup with ``permit``), at most once per climb."""
-        tool: _Tool = "archive_lookup" if permit is not None else "dataset"
+        tool: AttemptTool = "archive_lookup" if permit is not None else "dataset"
         sent = query.text()
         if query.fingerprint() in self._datasets:
             return None

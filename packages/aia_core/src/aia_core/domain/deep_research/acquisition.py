@@ -50,7 +50,8 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .archive import AccessBarrier
+from ..residency import DataClass
+from .archive import AccessBarrier, ArchiveBasis
 from .contracts import SourceSnapshot
 from .grounding import locate_quote, normalise_text
 from .legacy import canonical_url
@@ -67,10 +68,17 @@ __all__ = [
     "LADDER_VERSION",
     "PATH_DISCOVERY_CAP",
     "RUNG_ORDER",
+    "Acquisition",
     "AcquisitionGap",
     "AcquisitionLead",
+    "ArchivedFrom",
+    "AttemptDecision",
+    "AttemptTool",
     "DatasetRef",
     "GapReason",
+    "LadderAttempt",
+    "LadderRecord",
+    "LadderStop",
     "LeadOrigin",
     "Match",
     "Rung",
@@ -717,6 +725,97 @@ class AcquisitionGap(_Closed):
             how_to_obtain=how_to_obtain(reason),
             detail=detail[:1000],
         )
+
+
+# --------------------------------------------------------------------------- #
+# What one climb did (the ladder's record, stored with the turn that asked)
+# --------------------------------------------------------------------------- #
+
+
+class AttemptDecision(StrEnum):
+    SENT = "sent"
+    CACHED = "cached"
+    REFUSED = "refused"
+    #: Not sent by this ladder: the track allowance is spent, or the candidate is barred.
+    SKIPPED = "skipped"
+
+
+AttemptTool = Literal[
+    "search",
+    "fetch",
+    "resource",
+    "dataset",
+    "archive_lookup",
+    "url_index",
+    "archived_fetch",
+    "archive_permit",
+]
+
+
+class LadderAttempt(_Closed):
+    """One step of the climb: a gate call, or a decision code made without one."""
+
+    rung: Rung
+    tool: AttemptTool
+    #: What was asked: a URL, a query as sent, a dataset query's text.
+    target: str = Field(max_length=4100)
+    decision: AttemptDecision
+    reason: str | None = None
+    outcome: Literal["succeeded", "failed", "uncertain"] | None = None
+    data_class: DataClass | None = None
+    call_id: str | None = None
+    #: SHA256 of what the gate journaled as sent; None when nothing was dispatched.
+    request_fingerprint: str | None = None
+    snapshot_id: str | None = None
+    #: Counted against the lead's cap.
+    counted: bool = False
+
+
+class ArchivedFrom(_Closed):
+    """An acquisition read from an archive: which, why it was allowed, and when captured."""
+
+    archive: Literal["wayback", "common_crawl"]
+    basis: ArchiveBasis
+    #: The capture's time as the archive states it (a 14-digit timestamp or ISO time).
+    captured: str
+
+
+class Acquisition(_Closed):
+    """The capture that answered a lead, the rung that reached it, and how it answered."""
+
+    rung: Rung
+    url: str
+    snapshot_id: str
+    match: Match
+    #: On one of the resolved publisher's registered hosts (a primary source by host).
+    on_publisher_host: bool
+    archived: ArchivedFrom | None = None
+    #: The edition's period, when a previous edition answered (rung 6).
+    edition_period: str | None = None
+
+
+class LadderStop(StrEnum):
+    ACQUIRED = "acquired"
+    GAP = "gap"
+    #: A call may have been served with no answer on record: nothing more is sent.
+    UNCERTAIN = "uncertain"
+    #: An earlier attempt of the step dispatched a call this ladder would send.
+    EARLIER_ATTEMPT = "earlier_attempt"
+
+
+class LadderRecord(_Closed):
+    """What one climb did, for the transcript: every attempt, and how it ended."""
+
+    version: Literal["aia-acquisition-ladder-1"] = LADDER_VERSION
+    lead: AcquisitionLead
+    stop: LadderStop
+    acquisition: Acquisition | None
+    gap: AcquisitionGap | None
+    rungs_tried: tuple[Rung, ...]
+    attempts: tuple[LadderAttempt, ...]
+    requests: int = Field(ge=0)
+    searches: int = Field(ge=0)
+    fetches: int = Field(ge=0)
 
 
 # --------------------------------------------------------------------------- #
