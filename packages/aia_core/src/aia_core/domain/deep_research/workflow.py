@@ -76,6 +76,14 @@ ARTIFACT_TYPES: Final[dict[str, str]] = {
     # Fan-out (chunk 21): a URL the run captured, by canonical URL, naming the
     # snapshot's content address -- the run's cache across its track steps.
     "url_capture": "deep_research_url_capture",
+    # A planned web track's rounds (this run's own): each search, each fetch, each
+    # round once its fetches resolved, and each round's investigator answer -- every
+    # external outcome durable before the next call, so a step that runs again
+    # continues the track and sends nothing twice.
+    "planned_search": "deep_research_planned_search",
+    "planned_fetch": "deep_research_planned_fetch",
+    "planned_round": "deep_research_planned_round",
+    "planned_round_answer": "deep_research_planned_round_answer",
 }
 
 #: The kind of a track handed out to its own step by a fanned-out ``investigate``

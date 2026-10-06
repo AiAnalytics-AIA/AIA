@@ -213,9 +213,8 @@ engine, the harness's own polling excluded; "working" excludes the idle workers'
 * **A lock on the URL index.** Two tracks asking for one URL at one instant may both fetch it.
 * **Clock-independent pacing.** Waits are on each process's clock (one host on develop).
 * **Deadlines per step.** A wait is bounded by its own maximum; a step has no deadline to hand it.
-* **The planned mode's rounds are not checkpointed.** A planned web track interrupted between
-  rounds starts again at its first query (§ 8, independent of fan-out); the agent-directed mode
-  stores every turn and replays it.
+* ~~**The planned mode's rounds are not checkpointed.**~~ Fixed (§ 8): every external outcome of
+  a planned round is stored before the next call leaves, and a step that runs again continues.
 
 ## 8. Findings
 
@@ -238,3 +237,28 @@ answer stored run-scoped by track, round and request hash; a query the journal s
 and not answered skipped as `SKIP_EARLIER_ATTEMPT`). *The test that would have caught it:* release
 the investigate step after the first round of a planned track, run it again, and assert every
 query is searched once and every round's investigator request is asked once.
+
+**Fixed** -- `test_deep_research_planned_recovery.py::test_a_released_planned_track_continues_and_sends_nothing_twice`.
+The fix is stronger than the smallest one above, because a planned round's sequence is known in
+advance: `_PlannedLog` (`investigate.py`) makes every external outcome durable before the next call
+leaves -- the search with its hits **in order** (`PlannedSearch`: the order decides what survives the
+dedupe and the fetch allowance, and so what the model is shown), each fetch with the page it
+captured (`PlannedFetch`), the round once its fetches resolved (`PlannedRound`), and the
+investigator's answer before it is grounded (`PlannedRoundAnswer`). All are run-scoped and none
+enters a track's fingerprint. A step that runs again walks the same sequence, reads each record in
+place of its call, counts a recorded dispatch against the allowance once (the walk keeps its own
+counters: the resumed meter already holds every earlier dispatch), and goes live at the first
+record missing. Released after a search, after one of a round's fetches, after a round's answer,
+and (fanned out) in a track's own step, the recovered run sends every search, fetch and model
+request exactly as often as an uninterrupted run, and stores the same research: tracks, queries,
+snapshots and their payload hashes, evidence, stop reasons, counts and allowance. Run-scoped
+identities (artifact rows, a run's or a call's id) differ between two independent runs and are not
+compared; within the resumed run no artifact row is written twice. Against the code before the fix
+the four releases fail on their dispatch counts.
+
+The one window a record cannot close stays fail-closed: an earlier attempt journaled a dispatch
+whose outcome no record holds (the call left and its answer was never kept, or the attempt died
+between the journal and the record). What came back is not known, so the track ends `INCOMPLETE` /
+`TOOL_OUTCOME_UNCERTAIN` and nothing more is sent for it
+(`test_a_dispatch_with_no_record_of_its_outcome_ends_the_track_and_sends_nothing_more`). A model
+request with no stored answer stays on the call journal's uncertain-call path.

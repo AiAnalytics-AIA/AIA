@@ -335,6 +335,11 @@ class ResearchWorld:
 
 @pytest.fixture
 def research(sessions: sessionmaker[Session]) -> ResearchWorld:
+    return make_research_world(sessions)
+
+
+def make_research_world(sessions: sessionmaker[Session]) -> ResearchWorld:
+    """The journey's world in an empty database (the ``research`` fixture's)."""
     with sessions() as session:
         repo, resolver = ScopeRepository(session), ScopeResolver(session)
         org, owner = repo.create_organization(
