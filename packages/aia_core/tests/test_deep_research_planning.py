@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pytest
@@ -18,6 +20,7 @@ from aia_core.domain.deep_research.contracts import (
     TrackStatus,
 )
 from aia_core.domain.deep_research.planning import (
+    AGENT_DIRECTED_FIELDS,
     PRESETS,
     TrackInputs,
     UnknownPreset,
@@ -27,6 +30,7 @@ from aia_core.domain.deep_research.planning import (
     check_plan_coverage,
     coverage_grid,
     extract_subjects,
+    investigator_stop_reason,
     preset,
     screen_questions,
     stop_reason,
@@ -324,3 +328,140 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
     assert not next(
         g for g in blocked if g.object_key == obj.key and g.question_key == question.key
     ).covered
+
+
+#: The fingerprints of ``_request(DESIGN)``'s tracks under ``INPUTS``, digested,
+#: without a thinking budget. A deliberate change to the harness, the rules or this
+#: file's design moves it (re-pin it then); a thinking budget left unset never may.
+#: Re-pinned when the measures check joined the grounding rules (GROUNDING_VERSION
+#: aia-grounding-2/aia-measures-2): under aia-measures-1 it is 8aed76aa..., and with
+#: no measures check, as develop @ 757154e computed it, ebcebd81....
+FINGERPRINTS_WITHOUT_THINKING = "b07b8d2af80abc97bac26f92fc3a7f84c108946ad76299ea779a794ad3db72c8"
+
+
+def _thinking(budget: int | None) -> TrackInputs:
+    return TrackInputs(
+        policy_version=INPUTS.policy_version,
+        prompt_versions=INPUTS.prompt_versions,
+        web_retrieval=INPUTS.web_retrieval,
+        thinking_budget_tokens=budget,
+    )
+
+
+def test_without_a_thinking_budget_every_fingerprint_is_the_one_it_was() -> None:
+    fingerprints = _fingerprints(_request(DESIGN), _thinking(None))
+    digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
+    assert digest == FINGERPRINTS_WITHOUT_THINKING
+    assert fingerprints == _fingerprints(_request(DESIGN))
+
+
+def test_a_thinking_budget_is_part_of_every_track_and_its_size_matters() -> None:
+    base = _fingerprints(_request(DESIGN))
+    thinking = _fingerprints(_request(DESIGN), _thinking(2048))
+    more = _fingerprints(_request(DESIGN), _thinking(4096))
+    assert all(thinking[t] != fp for t, fp in base.items())
+    assert all(more[t] != fp for t, fp in thinking.items())
+
+
+# --------------------------------------------------------------- agent-directed mode
+
+
+def _directed(version: str | None, depth: str = "QUICK") -> dict[str, str]:
+    inputs = TrackInputs(
+        policy_version=INPUTS.policy_version,
+        prompt_versions=INPUTS.prompt_versions,
+        web_retrieval=INPUTS.web_retrieval,
+        investigator=version,
+    )
+    tracks, _ = build_tracks(_request(DESIGN), PRESETS[depth], inputs=inputs)
+    return {t.track_id: t.fingerprint for t in tracks}
+
+
+def test_without_the_agent_directed_mode_every_fingerprint_is_the_one_it_was() -> None:
+    fingerprints = _directed(None)
+    digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
+    assert digest == FINGERPRINTS_WITHOUT_THINKING
+    # The agent-directed allowances are not part of a planned track's fingerprint.
+    changed = PRESETS["QUICK"].model_copy(update={"max_turns": 50, "max_opens": 99})
+    tracks, _ = build_tracks(_request(DESIGN), changed, inputs=INPUTS)
+    assert {t.track_id: t.fingerprint for t in tracks} == fingerprints
+
+
+def test_the_mode_and_its_versions_change_only_web_tracks() -> None:
+    base, directed = _directed(None), _directed("aia-investigator-1/x")
+    other = _directed("aia-investigator-2/x")
+    for track, fingerprint in base.items():
+        if track.startswith("DRT-W-"):
+            assert directed[track] != fingerprint and other[track] != directed[track]
+        else:
+            assert directed[track] == fingerprint == other[track]
+
+
+def test_an_agent_directed_track_depends_on_its_allowances() -> None:
+    request = _request(DESIGN)
+    inputs = TrackInputs(
+        policy_version="p", prompt_versions={}, web_retrieval=None, investigator="v"
+    )
+    quick = PRESETS["QUICK"]
+    more = quick.model_copy(update={"max_turns": quick.max_turns + 1})
+    a, _ = build_tracks(request, quick, inputs=inputs)
+    b, _ = build_tracks(request, more, inputs=inputs)
+    assert [x.fingerprint != y.fingerprint for x, y in zip(a, b, strict=True)] == [
+        x.channel is Channel.WEB for x in a
+    ]
+
+
+def test_every_preset_states_its_agent_directed_allowance() -> None:
+    assert {"max_turns", "max_searches", "max_opens"} == AGENT_DIRECTED_FIELDS
+    assert {n: (p.max_turns, p.max_searches, p.max_opens) for n, p in PRESETS.items()} == {
+        "QUICK": (6, 4, 8),
+        "STANDARD": (15, 8, 20),
+        "DEEP": (30, 15, 40),
+        "EXHAUSTIVE": (40, 20, 60),
+    }
+    # A plan stored before the fields existed reads with QUICK's, the smallest.
+    dumped = PRESETS["DEEP"].model_dump(exclude=set(AGENT_DIRECTED_FIELDS))
+    old = type(PRESETS["DEEP"]).model_validate(dumped)
+    assert (old.max_turns, old.max_searches, old.max_opens) == (6, 4, 8)
+
+
+def test_an_agent_directed_allowance_is_its_preset_s_within_the_run_s_share() -> None:
+    quick = PRESETS["QUICK"]
+    planned = allocate(["a", "b"], quick)
+    directed = allocate(["a", "b"], quick, agent_directed=True)
+    assert planned["a"].search_calls == quick.queries_per_web_track
+    assert (directed["a"].search_calls, directed["a"].fetches) == (4, 8)
+    crowded = allocate([str(i) for i in range(30)], quick, agent_directed=True)
+    assert crowded["0"].search_calls == 2 and crowded["29"].search_calls == 1  # 48 / 30
+
+
+def _stop(**fields: Any) -> StopReason | None:
+    values: dict[str, Any] = {
+        "grounded": 0,
+        "new_by_turn": [],
+        "turns_used": 0,
+        "searches_left": 2,
+        "opens_left": 2,
+        "unread": False,
+        "depth": PRESETS["QUICK"],
+    }
+    return investigator_stop_reason(**{**values, **fields})
+
+
+def test_the_investigator_stops_on_target_saturation_then_allowance() -> None:
+    assert _stop() is None
+    assert _stop(grounded=4, turns_used=99) is StopReason.DEPTH_TARGET_MET
+    # QUICK's window is one turn that read new text and grounded nothing.
+    assert _stop(new_by_turn=[2, 0], turns_used=99) is StopReason.SATURATED
+    assert _stop(new_by_turn=[2]) is None
+    assert _stop(turns_used=6) is StopReason.BUDGET_EXHAUSTED
+    assert _stop(searches_left=0, opens_left=0) is StopReason.BUDGET_EXHAUSTED
+    # Nothing left to send, but a capture still unread: one more turn reads it.
+    assert _stop(searches_left=0, opens_left=0, unread=True) is None
+    assert _stop(searches_left=0) is None and _stop(opens_left=0) is None
+
+
+def test_the_new_stop_reasons_keep_every_stored_value() -> None:
+    assert StopReason.AGENT_FINISHED.value == "agent_finished"
+    assert StopReason.STOP_REFUSALS.value == "repeated_refusals"
+    assert StopReason("queries_exhausted") is StopReason.QUERIES_EXHAUSTED

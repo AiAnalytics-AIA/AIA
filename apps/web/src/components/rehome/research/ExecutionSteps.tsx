@@ -102,7 +102,6 @@ function useFrame() {
 function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; canEdit: boolean; onLimitSaved: () => void }) {
   const frame = useFrame();
   const [study, setStudy] = useState<Study | null | undefined>(undefined);
-  const [amount, setAmount] = useState(() => (num(readiness.spend_confirm_usd) === null ? "" : String(readiness.spend_confirm_usd)));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -118,14 +117,17 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   // An API that does not send a figure has not given one: read it as absent, never as zero.
   const ceiling = num(readiness.cost_ceiling_usd);
   const limit = num(readiness.spend_confirm_usd);
-  // The switch and the amount follow the stored limit when it changes (a save, a re-read),
-  // never on mount: an effect there could undo what the person had already done.
+  // The switch is on while a limit is stored, or while the person is typing one; the switch
+  // and the amount follow the stored limit when it changes. They are adjusted during render,
+  // never in an effect: an effect runs after the commit, so a switch turned on (or an amount
+  // typed) before it ran was overwritten by the mount's "no limit".
   const [asking, setAsking] = useState(limit !== null);
-  const [seenLimit, setSeenLimit] = useState(limit);
-  if (seenLimit !== limit) {
-    setSeenLimit(limit);
-    setAmount(limit === null ? "" : String(limit));
+  const [amount, setAmount] = useState(limit === null ? "" : String(limit));
+  const [shownLimit, setShownLimit] = useState(limit);
+  if (limit !== shownLimit) {
+    setShownLimit(limit);
     setAsking(limit !== null);
+    setAmount(limit === null ? "" : String(limit));
   }
 
   const save = async (limit: number | null) => {
@@ -143,7 +145,6 @@ function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; 
   const typed = amount.trim() === "" ? Number.NaN : Number(amount);
   const remaining = num(study?.remaining_usd);
   const budget = num(study?.budget_usd);
-  // The switch is on while a limit is stored, or while the person is typing one.
   const commit = () => {
     if (Number.isFinite(typed) && typed >= 0 && typed !== limit) void save(typed);
   };

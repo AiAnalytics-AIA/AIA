@@ -2,20 +2,28 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
 
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
+from aia_core.domain.ai_contracts import check_thinking_budget
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
+from aia_core.domain.deep_research.brief import BRIEF_VERSION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
+from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1, ConfidenceWeights
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
 from aia_core.domain.deep_research.grounding import GROUNDING_VERSION
+from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
+from aia_core.domain.deep_research.lead import LEAD_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
+from aia_core.domain.deep_research.reputation import ReputationRegister
 from aia_core.domain.deep_research.sources import SourceTable
 from aia_core.domain.deep_research.tooling import (
     TOOL_EVENT_KINDS,
@@ -25,6 +33,7 @@ from aia_core.domain.deep_research.tooling import (
     ToolReservation,
     ToolUsageEvent,
 )
+from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSION
 from aia_core.domain.providers import Provider
 from aia_worker.executor import StepContext
 
@@ -52,6 +61,23 @@ class DeepResearchConfig:
     fictional_client_ids: frozenset[str]
     provider: Provider = Provider.AWS_BEDROCK
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Extended thinking for every agent request, within ``max_output_tokens`` (so the
+    #: reservation, sized on that limit, covers it); ``None`` sends no thinking.
+    thinking_budget_tokens: int | None = None
+    #: Web tracks run as the agent-directed investigator's turns (chunk 9) instead of
+    #: the planner's queries. Off: every request, fingerprint and count is the
+    #: planned mode's, exactly as before the mode existed.
+    agent_directed: bool = False
+    #: A lead researcher plans the agent-directed web research (chunk 11): subjects
+    #: sized by effort, tasks in waves, a re-plan after each wave. Needs
+    #: ``agent_directed``; off, every request and fingerprint is chunk 9's.
+    lead: bool = False
+
+    def __post_init__(self) -> None:
+        if self.thinking_budget_tokens is not None:
+            check_thinking_budget(self.thinking_budget_tokens, self.max_output_tokens)
+        if self.lead and not self.agent_directed:
+            raise ValueError("the lead researcher plans agent-directed tracks only")
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,17 +91,40 @@ class DeepResearchRuntime:
     source_table: SourceTable
     #: The journal's clock: when a tool call was made (a snapshot keeps its own time).
     clock: Callable[[], datetime] = _utcnow
+    #: The reputation register the agent-directed review names publishers by (chunk 12).
+    #: ``None``: publishers are hosts, nothing is traced to a primary source. The planned
+    #: mode never reads it.
+    register: ReputationRegister | None = None
+    #: The weights an agent-directed brief's confidence is computed by (chunk 13; proposed
+    #: until approved with the tiers). The planned mode never reads them.
+    weights: ConfidenceWeights = CONFIDENCE_WEIGHTS_V1
+    #: What the agent-directed investigator's ``ladder`` may use beyond the gate (the
+    #: reputation register, Common Crawl's crawls). None: the ladder's defaults -- no
+    #: register, no crawl. Read only in the agent-directed mode.
+    ladder: LadderConfig | None = None
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
             policy_version=self.config.policy_version,
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
             web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
+            thinking_budget_tokens=self.config.thinking_budget_tokens,
+            investigator=self._investigator() if self.config.agent_directed else None,
         )
 
+    def _investigator(self) -> str:
+        """The investigator's version, and the ladder configuration's identity when one
+        is set (without one, exactly the version: no fingerprint moves)."""
+        if self.ladder is None:
+            return INVESTIGATOR_VERSION
+        return f"{INVESTIGATOR_VERSION}/ladder-{self.ladder.identity()}"
+
     def versions(self) -> dict[str, str]:
-        """Every rule and prompt version a run's result depends on, recorded on the plan."""
-        return {
+        """Every rule and prompt version a run's result depends on, recorded on the plan.
+
+        The thinking budget only when set, so a plan recorded without it still matches.
+        """
+        versions = {
             "harness": HARNESS_VERSION,
             "prompt": PROMPT_VERSION,
             "grounding": GROUNDING_VERSION,
@@ -85,6 +134,20 @@ class DeepResearchRuntime:
             "policy": self.config.policy_version,
             "preset_status": PRESET_STATUS,
         }
+        if self.config.thinking_budget_tokens is not None:
+            versions["thinking_budget_tokens"] = str(self.config.thinking_budget_tokens)
+        if self.config.agent_directed:
+            # Only when on: the mode a run was planned in is the mode it investigates in,
+            # the rules and register it is verified by, and the brief's rules and weights.
+            versions["investigator"] = self._investigator()
+            versions["verification"] = VERIFICATION_RULES_VERSION
+            versions["register"] = self.register.version if self.register is not None else "none"
+            versions["brief"] = BRIEF_VERSION
+            versions["confidence_weights"] = self.weights.version
+        if self.config.lead:
+            # Only when on: a run planned by the lead is investigated by its waves.
+            versions["lead"] = LEAD_VERSION
+        return versions
 
 
 # --------------------------------------------------------------------------- #
@@ -141,6 +204,7 @@ class StepToolMeter:
         self._context = context
         self._ledger = InMemoryToolLedger(budget_usd=0.0)
         self._resumed = False
+        self._earlier: tuple[ToolUsageEvent, ...] = ()
 
     @classmethod
     def resuming(cls, context: StepContext, *, clock: Callable[[], datetime]) -> StepToolMeter:
@@ -152,10 +216,24 @@ class StepToolMeter:
         true for its track, which ends ``INCOMPLETE`` without sending anything.
         """
         meter = cls(context)
-        for closure in meter._ledger.adopt(_earlier_tool_entries(context), closed_at=clock()):
+        earlier = _earlier_tool_entries(context)
+        for closure in meter._ledger.adopt(earlier, closed_at=clock()):
             meter._journal(closure)
+        meter._earlier = tuple(earlier)
         meter._resumed = True
         return meter
+
+    def dispatched_earlier(self, track_id: str) -> Counter[str]:
+        """Request fingerprints an earlier attempt of this step dispatched for a track.
+
+        What a resumed step must not send again: it was sent, and what came back is
+        only known if the step recorded it.
+        """
+        return Counter(
+            e.request_fingerprint
+            for e in self._earlier
+            if e.track_id == track_id and e.outcome is ToolOutcome.DISPATCHED
+        )
 
     @property
     def charges_study_budget(self) -> bool:

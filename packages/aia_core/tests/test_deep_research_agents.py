@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
 import pytest
 
-from aia_core.domain.ai_contracts import validate_structured_output
+from aia_core.domain.ai_contracts import ModelRequest, validate_structured_output
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.deep_research.agents import (
     AGENT_IDS,
+    INVESTIGATOR_PROMPT_VERSION,
     PROMPT_VERSION,
     AgentRole,
     ExtractionProposal,
@@ -33,10 +35,18 @@ def test_every_agent_names_a_capability_holds_no_tools_and_has_a_closed_contract
     assert agent.agent_id == AGENT_IDS[role] == f"aia.deep_research.{role.value}"
     assert agent.allowed_tools == frozenset()
     assert agent.is_structured and agent.schema_repair_attempts == 1
-    assert agent.prompt_version == PROMPT_VERSION
-    expected = (
-        ModelCapability.CRITIC if role is AgentRole.VERIFIER else ModelCapability.RESEARCH_REASONING
+    # The investigator has its own prompt version (agents.py); the rest share one.
+    expected_prompt = (
+        INVESTIGATOR_PROMPT_VERSION if role is AgentRole.INVESTIGATOR else PROMPT_VERSION
     )
+    assert agent.prompt_version == expected_prompt
+    expected = {
+        AgentRole.VERIFIER: ModelCapability.CRITIC,
+        AgentRole.INDEPENDENT_VERIFIER: ModelCapability.CRITIC,
+        # The lead researcher's own policy entry (chunk 11).
+        AgentRole.LEAD: ModelCapability.RESEARCH_LEAD,
+        AgentRole.LEAD_REPLAN: ModelCapability.RESEARCH_LEAD,
+    }.get(role, ModelCapability.RESEARCH_REASONING)
     assert agent.capability is expected
 
 
@@ -107,3 +117,27 @@ def test_an_investigator_answer_is_validated_strictly() -> None:
             ExtractionProposal, structured={"evidence": [{**evidence, **bad}], "gaps": []}, text=""
         )
         assert not verdict.ok, bad
+
+
+def _planner(**thinking: int) -> ModelRequest:
+    return model_request(
+        AgentRole.PLANNER,
+        payload={"tracks": []},
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage.none(),
+        policy_version="test-v1",
+        max_output_tokens=4096,
+        **thinking,
+    )
+
+
+def test_a_request_thinks_only_when_given_a_budget_within_its_output_limit() -> None:
+    assert _planner().thinking_budget_tokens is None
+    assert _planner().temperature is None
+    assert _planner(thinking_budget_tokens=2048).thinking_budget_tokens == 2048
+    # Everything else is the request it was without the budget.
+    assert dataclasses.replace(
+        _planner(thinking_budget_tokens=2048), thinking_budget_tokens=None
+    ) == (_planner())
+    with pytest.raises(ValueError, match="below the output limit"):
+        _planner(thinking_budget_tokens=4096)

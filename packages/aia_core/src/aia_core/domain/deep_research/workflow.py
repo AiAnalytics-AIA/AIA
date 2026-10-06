@@ -62,6 +62,14 @@ ARTIFACT_TYPES: Final[dict[str, str]] = {
     "verify": "deep_research_verify",
     "synthesis": "deep_research_synthesis",
     "bundle": "deep_research_bundle",
+    # Agent-directed tracks (chunk 9): each turn's answer and record (this run's
+    # own), and the track's transcript (keyed like the track).
+    "turn_answer": "deep_research_turn_answer",
+    "turn": "deep_research_turn",
+    "transcript": "deep_research_transcript",
+    # A lead-planned run (chunk 11): the lead's plan and each re-plan (this run's own).
+    "lead_plan": "deep_research_lead_plan",
+    "replan": "deep_research_lead_replan",
 }
 
 #: The artifact each step records as its output.

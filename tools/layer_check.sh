@@ -263,12 +263,15 @@ forbid "no deployment runs the workbench composition" \
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
-# API or the worker, and named by no deployment.
-RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web'
+# API or the worker, and named by no deployment. The Common Crawl doubles (plan
+# chunk 18: a recorded URL index, recorded archive ranges) are held to the same
+# rules, beside their own adapters in common_crawl.py.
+# The recorded dataset connector is the same kind of double, beside the connectors.
+RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web|RecordedUrlIndex|RecordedArchiveTransport|RecordedDatasetConnector'
 forbid "recorded web retrieval is defined only beside the web adapters" \
   "$RECORDED_WEB" \
   "$CORE/infrastructure" \
-  web_retrieval.py
+  web_retrieval.py common_crawl.py dataset_connectors.py
 forbid "application code never names recorded web retrieval" \
   "$RECORDED_WEB" \
   "$CORE/application"
@@ -288,6 +291,57 @@ forbid "among the executors, only the recorded composition builds recorded web r
 forbid "no deployment runs the recorded Deep Research composition" \
   'deep_research_recorded|load_recorded_web' \
   deploy
+# The focused crawler (plan chunk 17) reaches the web only through the retrieval
+# gate it is given: classified, egress-checked, reserved, journaled, robots.txt and
+# pacing kept by the gate's transport. An import of infrastructure or of an HTTP
+# client here would be a second path out that none of that sees.
+forbid "the site crawl imports no infrastructure and no HTTP client" \
+  '^\s*(from|import)\s+(\.\.infrastructure|aia_core\.infrastructure|urllib3|urllib\.request|http\.client|socket|ssl|httpx|requests)\b' \
+  "$CORE/application/site_crawl.py"
+# The acquisition ladder (plan chunk 10) is the same: every rung asks the gate it
+# is given. It may read a connector's id and its pure table readers (OpenAlex's open
+# copies, Wayback's nearest capture), never a transport, a fetcher or an HTTP client.
+forbid "the acquisition ladder imports no transport and no HTTP client" \
+  '^\s*(from|import)\s+(\.\.infrastructure\.(web_retrieval|web_retrieval_live|web_retrieval_brave|common_crawl|dataset_connectors)|aia_core\.infrastructure\.(web_retrieval|common_crawl|dataset_connectors)|urllib3|urllib\.request|http\.client|socket|ssl|httpx|requests)\b' \
+  "$CORE/application/acquisition_ladder.py"
+# An archived copy is for a dead or moved page only (plan deep-research-web-search
+# § 7 rung 9): the gate asks the archive only with a permit, and only the archive
+# policy issues one. Nothing else may construct it.
+forbid "only the archive policy issues an archive permit" \
+  'ArchivePermit\(' \
+  packages/aia_core/src \
+  archive.py
+# The public dataset and archive connectors are registered by no composition until
+# the Deep Research composition chunk (plan chunk 23) records their routes and prices.
+DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
+for composition in "$API" "$WORKER" "$EXECUTORS" deploy; do
+  forbid "no composition registers a dataset connector yet ($composition)" \
+    "$DATASET_CONNECTORS" \
+    "$composition"
+done
+# The recorded procurement notice source is the same kind of double, defined only
+# beside the procurement connector and refused everywhere the others are.
+RECORDED_NOTICES='RecordedNoticeSource'
+forbid "the recorded notice source is defined only beside the procurement connector" \
+  "$RECORDED_NOTICES" \
+  "$CORE/infrastructure" \
+  dataset_procurement.py
+forbid "application code never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$CORE/application"
+forbid "domain code never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$CORE/domain"
+forbid "no API code names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$API"
+forbid "the worker never names the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$WORKER"
+forbid "among the executors, only the recorded composition builds the recorded notice source" \
+  "$RECORDED_NOTICES" \
+  "$EXECUTORS" \
+  deep_research_recorded.py
 # A revision is what a run executed. The ORM refuses to UPDATE one
 # (tables.py, before_update); a bulk update() would go around it.
 forbid "no statement updates a project revision" \

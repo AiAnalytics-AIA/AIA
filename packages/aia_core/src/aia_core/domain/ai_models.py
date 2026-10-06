@@ -65,6 +65,10 @@ class ModelCapability(StrEnum):
     FAST_EXTRACTION = "FAST_EXTRACTION"
     #: Long-context synthesis and study design.
     RESEARCH_REASONING = "RESEARCH_REASONING"
+    #: Deep Research's lead researcher: plan, size, delegate and re-plan a run. Its
+    #: own policy entry (plan ``deep-research-web-search.md`` § 5.2, chunk 11), so the
+    #: strongest model on the route can be bound to it alone; proposed until chunk 1.
+    RESEARCH_LEAD = "RESEARCH_LEAD"
     #: Long-form prose in Czech.
     REPORT_WRITING = "REPORT_WRITING"
     #: Adversarial review of another agent's output.
@@ -73,6 +77,11 @@ class ModelCapability(StrEnum):
     SIMULATION = "SIMULATION"
     #: Vector embedding for retrieval.
     EMBEDDING = "EMBEDDING"
+    #: Deep Research's triage reader: judge one page, propose a few quotes. High
+    #: volume, short answers, no tools -- the light model's capability (plan
+    #: ``deep-research-web-search.md`` chunk 20; its policy entry is proposed until
+    #: chunk 1's sign-off).
+    RESEARCH_TRIAGE = "RESEARCH_TRIAGE"
 
 
 class ModelConfigError(ValueError):

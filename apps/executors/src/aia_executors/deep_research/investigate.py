@@ -3,33 +3,27 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
 
-from aia_core.application.web_retrieval import RetrievalGate
+from aia_core.application.web_retrieval import RetrievalGate, RunSnapshotCache
 from aia_core.domain.deep_research.agents import (
     SOURCE_TEXT_CHARS,
     AgentRole,
     ExtractionProposal,
-    ProposedEvidence,
     request_class,
 )
 from aia_core.domain.deep_research.bundle import SnapshotRef
 from aia_core.domain.deep_research.contracts import (
     Channel,
-    EvidenceItem,
-    QuarantinedEvidence,
     QueryDecision,
     QueryRecord,
     ResearchTrack,
-    RetrievalMode,
     SourceKind,
     SourceSnapshot,
     StopReason,
     TrackStatus,
     digest,
-    evidence_id,
 )
-from aia_core.domain.deep_research.grounding import GroundableSource, detect_instructions, ground
+from aia_core.domain.deep_research.grounding import GroundableSource, detect_instructions
 from aia_core.domain.deep_research.knowledge_access import retrieve
 from aia_core.domain.deep_research.legacy import canonical_url
 from aia_core.domain.deep_research.planning import stop_reason
@@ -47,12 +41,13 @@ from aia_core.domain.deep_research.steps import (
     run_scoped,
 )
 from aia_core.domain.licence import DataLineage
-from aia_core.domain.residency import DataClass
 from aia_core.infrastructure.web_retrieval import FetchedPage
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 
 from ..ai_step import StepModelCaller
+from ._findings import _blocked_result, _Findings
 from ._shared import (
+    _agent_directed,
     _Answer,
     _class_a_texts,
     _composition_changed,
@@ -62,6 +57,8 @@ from ._shared import (
     _Step,
     _unconfigured,
 )
+from .agent_directed import AgentDirectedTrack
+from .lead import LeadTask, LeadWaves
 from .runtime import DeepResearchRuntime, StepToolMeter
 
 __all__ = ["InvestigateExecutor"]
@@ -69,105 +66,6 @@ __all__ = ["InvestigateExecutor"]
 # --------------------------------------------------------------------------- #
 # investigate
 # --------------------------------------------------------------------------- #
-
-
-def _blocked_result(
-    step: StepInput, track: ResearchTrack, stop: StopReason, detail: str, mode: RetrievalMode | None
-) -> TrackResult:
-    return TrackResult(
-        kind="deep_research_track",
-        run_id=step.run_id,
-        track=track,
-        status=TrackStatus.BLOCKED,
-        stop_reason=stop,
-        detail=detail[:2000],
-        retrieval_mode=mode,
-        sub_questions=(),
-        queries=(),
-        snapshots=(),
-        knowledge_refs=(),
-        sources=(),
-        evidence=(),
-        quarantined=(),
-        gaps=(),
-        calls=(),
-        search_calls=0,
-        fetches=0,
-        credits=0,
-        model_cost_usd=0.0,
-        tool_cost_usd=0.0,
-    )
-
-
-@dataclass(slots=True)
-class _Findings:
-    """One track's grounded and quarantined findings, deduplicated by evidence id."""
-
-    track: ResearchTrack
-    data_class: DataClass
-    evidence: list[EvidenceItem]
-    quarantined: list[QuarantinedEvidence]
-
-    def add(
-        self,
-        proposals: Sequence[ProposedEvidence],
-        *,
-        sources: dict[str, GroundableSource],
-        kind: SourceKind,
-        urls: dict[str, str],
-        titles: dict[str, str],
-    ) -> int:
-        """Ground each proposal against the track's own sources; the count newly grounded."""
-        seen = {e.evidence_id for e in self.evidence} | {q.evidence_id for q in self.quarantined}
-        new = 0
-        for p in proposals:
-            eid = evidence_id(self.track.fingerprint, p.source_id, p.quote, p.claim)
-            if eid in seen:
-                continue
-            seen.add(eid)
-            verdict = ground(source_ref=p.source_id, quote=p.quote, claim=p.claim, sources=sources)
-            item = None
-            if verdict.span is not None:
-                item = EvidenceItem(
-                    evidence_id=eid,
-                    track_id=self.track.track_id,
-                    subject_key=self.track.subject.key,
-                    channel=self.track.channel,
-                    source_kind=kind,
-                    source_ref=p.source_id,
-                    source_url=urls.get(p.source_id),
-                    source_title=titles.get(p.source_id, ""),
-                    claim=p.claim,
-                    quote=p.quote,
-                    quote_span=verdict.span,
-                    evidence_type=p.evidence_type,
-                    source_date=p.source_date,
-                    geography=p.geography,
-                    population=p.population,
-                    topics=tuple(p.topics),
-                    data_class=self.data_class,
-                    agent_outcome_overlap=p.outcome_overlap,
-                    agent_recommended_use=p.recommended_use,
-                    agent_source_quality=p.source_quality,
-                )
-            if verdict.grounded and item is not None:
-                self.evidence.append(item)
-                new += 1
-                continue
-            assert verdict.failure is not None
-            detail = verdict.detail if item is not None else f"{verdict.detail}; quote: {p.quote}"
-            self.quarantined.append(
-                QuarantinedEvidence(
-                    evidence_id=eid,
-                    track_id=self.track.track_id,
-                    reason=verdict.failure,
-                    detail=detail[:2000],
-                    claim=p.claim,
-                    source_ref=p.source_id,
-                    evidence=item,
-                )
-            )
-        return new
 
 
 class InvestigateExecutor(_Step):
@@ -212,6 +110,10 @@ class InvestigateExecutor(_Step):
                 client_terms=plan.request.client_terms,
                 class_a_texts=_class_a_texts(plan.request),
                 clock=runtime.clock,
+                # Agent-directed tracks share the run's captures: a URL any track of
+                # this attempt captured is answered from them and sends nothing. The
+                # planned mode has no cache, as before.
+                cache=RunSnapshotCache() if _agent_directed(plan) else None,
             )
             if runtime.retrieval is not None
             else None
@@ -221,8 +123,26 @@ class InvestigateExecutor(_Step):
         for track in plan.tracks:
             context.checkpoint()
             entries.append(self._track(step, context, runtime, plan, track, gate, meter, caller))
+        lead = None
+        if plan.lead_plan_artifact_id is not None:
+            # A lead-planned run: its tasks' tracks, wave by wave, after the plan's own.
+            lead_entries, lead = LeadWaves(
+                self,
+                step=step,
+                context=context,
+                runtime=runtime,
+                plan=plan,
+                lead_plan_id=plan.lead_plan_artifact_id,
+                gate=gate,
+                meter=meter,
+                caller=caller,
+            ).run()
+            entries += lead_entries
         record = InvestigationRecord(
-            kind="deep_research_investigation", plan_artifact_id=plan_id, tracks=tuple(entries)
+            kind="deep_research_investigation",
+            plan_artifact_id=plan_id,
+            tracks=tuple(entries),
+            lead=lead,
         )
         with context.transaction() as (session, _workflow):
             artifact, created = self._put(
@@ -250,7 +170,13 @@ class InvestigateExecutor(_Step):
         gate: RetrievalGate | None,
         meter: StepToolMeter,
         caller: StepModelCaller,
+        lead: LeadTask | None = None,
     ) -> TrackEntry:
+        """One track's entry: found stored, or researched and stored.
+
+        ``lead`` is a lead-planned task's brief and budget: its track runs agent-directed
+        with them instead of the planner's queries and the plan's allowance.
+        """
         mine = run_scoped(step.run_id, track.fingerprint)
         with context.transaction() as (session, _workflow):
             repo = self._repo(session, context)
@@ -273,7 +199,7 @@ class InvestigateExecutor(_Step):
         elif track.channel is Channel.INTERNAL:
             result = self._internal(step, runtime, plan, track, caller)
         else:
-            planned = plan.planned_for(track.track_id)
+            planned = lead.planned if lead is not None else plan.planned_for(track.track_id)
             if gate is None or planned is None:
                 result = _blocked_result(
                     step,
@@ -282,6 +208,21 @@ class InvestigateExecutor(_Step):
                     _detail(Gate.PLAN, "plan_incomplete", "no plan for this track"),
                     mode,
                 )
+            elif _agent_directed(plan):
+                result = AgentDirectedTrack(
+                    self,
+                    step=step,
+                    context=context,
+                    runtime=runtime,
+                    plan=plan,
+                    track=track,
+                    planned=planned,
+                    gate=gate,
+                    meter=meter,
+                    caller=caller,
+                    allowance=lead.allowance if lead is not None else None,
+                    assignment=lead.assignment if lead is not None else None,
+                ).run()
             else:
                 result = self._web(
                     step, context, runtime, plan, track, planned, gate, meter, caller
@@ -295,7 +236,10 @@ class InvestigateExecutor(_Step):
                 payload=result,
                 kind="track",
                 key=key,
-                depends_on=[s.artifact_id for s in result.snapshots],
+                depends_on=[
+                    *(s.artifact_id for s in result.snapshots),
+                    *([result.transcript_artifact_id] if result.transcript_artifact_id else []),
+                ],
             )
         context.progress(
             "deep_research_track",
@@ -416,21 +360,27 @@ class InvestigateExecutor(_Step):
             )
             if not created:
                 stored = self._read(repo, artifact.artifact_id, SnapshotArtifact)
+        return self._snapshot_ref(artifact.artifact_id, stored), stored
+
+    @staticmethod
+    def _snapshot_ref(artifact_id: str, stored: SnapshotArtifact) -> SnapshotRef:
         s = stored.snapshot
-        return (
-            SnapshotRef(
-                snapshot_id=s.snapshot_id,
-                artifact_id=artifact.artifact_id,
-                url=s.url,
-                final_url=s.final_url,
-                title=s.title,
-                retrieved_at=s.retrieved_at,
-                text_sha256=s.text_sha256,
-                retrieval_mode=s.retrieval_mode,
-                instructions_detected=s.instructions_detected,
-            ),
-            stored,
+        return SnapshotRef(
+            snapshot_id=s.snapshot_id,
+            artifact_id=artifact_id,
+            url=s.url,
+            final_url=s.final_url,
+            title=s.title,
+            retrieved_at=s.retrieved_at,
+            text_sha256=s.text_sha256,
+            retrieval_mode=s.retrieval_mode,
+            instructions_detected=s.instructions_detected,
         )
+
+    def _read_snapshot(self, context: StepContext, artifact_id: str) -> SnapshotArtifact:
+        """A snapshot this run stored, read back (and verified) for a replayed turn."""
+        with context.transaction() as (session, _workflow):
+            return self._read(self._repo(session, context), artifact_id, SnapshotArtifact)
 
     def _web(
         self,
@@ -642,7 +592,7 @@ class InvestigateExecutor(_Step):
         assert isinstance(answer.output, ExtractionProposal) and answer.call is not None
         calls.append(answer.call)
         snaps: dict[str, SourceSnapshot] = {k: v.snapshot for k, v in stored.items()}
-        return findings.add(
+        grounded, _quarantined = findings.add(
             answer.output.evidence,
             sources={
                 k: GroundableSource(k, s.text, s.instructions_detected) for k, s in snaps.items()
@@ -651,3 +601,4 @@ class InvestigateExecutor(_Step):
             urls={k: s.final_url for k, s in snaps.items()},
             titles={k: s.title for k, s in snaps.items()},
         )
+        return len(grounded)

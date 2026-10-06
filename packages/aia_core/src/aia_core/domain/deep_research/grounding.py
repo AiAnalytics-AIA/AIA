@@ -1,6 +1,6 @@
 """Grounding: a finding is admissible only when its quote is in the source it cites.
 
-ADR 0017 decision 4, plan decision I-5. Three checks, in order, each deterministic:
+ADR 0017 decision 4, plan decision I-5. Four checks, in order, each deterministic:
 
 1. **The source is this track's.** A web finding may cite only a snapshot fetched
    for its own track; an internal finding only an item retrieved for it. A model
@@ -10,6 +10,20 @@ ADR 0017 decision 4, plan decision I-5. Three checks, in order, each determinist
    and is long enough to mean something (``ungrounded_excerpt``).
 3. **Every number in the claim is in the quote** (``number_not_in_quote``): a
    claim may paraphrase its quote, never add a figure to it.
+4. **Every number means in the claim what it means in the source**
+   (``measure_not_in_source``): the unit, scale, period, population, denominator
+   and place the claim attaches to a number are the ones the quote's context in
+   the source gives it (:mod:`.measures`). A household share is not a share of
+   adults, "450" is not "450 tis.". The finding keeps its span: the quote is in
+   the source; the claim misstates it.
+5. **Only for an agent that states its measures** (the agent-directed
+   investigator): every number of the claim has one (``measure_missing``), and
+   each says what the source says (``measure_not_in_source``).
+
+A table cell (plan § 8.2) is grounded by :func:`ground_cell`: the quote must be
+exactly that cell's line in the table's rendering -- its row and column labels,
+period, unit, value and status -- so a value read off a neighbouring cell, or a
+prefix of a longer value, does not ground.
 
 Separately, :func:`detect_instructions` names the prompt-injection patterns in a
 source's text. A source that carries instructions is kept for provenance, and its
@@ -23,28 +37,33 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Final
 
 from ..analysis.draft import numbers_in, uncovered_numbers
-from .contracts import QuarantineReason
+from .contracts import Measure, QuarantineReason, SourceSnapshot
+from .datasets import DatasetCell
+from .measures import MEASURES_VERSION, check_measures, check_stated_measures, context_window
 
 __all__ = [
     "GROUNDING_VERSION",
     "INSTRUCTION_PATTERNS",
     "MAX_QUOTE_CHARS",
     "MIN_QUOTE_CHARS",
+    "CellGrounding",
     "GroundableSource",
     "Grounding",
     "detect_instructions",
     "ground",
+    "ground_cell",
     "locate_quote",
     "normalise_text",
 ]
 
 #: The grounding rules' version; part of every track and merge fingerprint.
-GROUNDING_VERSION: Final = "aia-grounding-1"
+#: It carries the measures vocabulary's version: a vocabulary change regrounds.
+GROUNDING_VERSION: Final = f"aia-grounding-2/{MEASURES_VERSION}"
 
 #: A shorter quote matches too easily to prove anything ("the market").
 MIN_QUOTE_CHARS: Final = 20
@@ -165,9 +184,22 @@ class Grounding:
 
 
 def ground(
-    *, source_ref: str, quote: str, claim: str, sources: Mapping[str, GroundableSource]
+    *,
+    source_ref: str,
+    quote: str,
+    claim: str,
+    sources: Mapping[str, GroundableSource],
+    measures: Sequence[Measure] | None = None,
 ) -> Grounding:
-    """Check one proposed finding against the sources its track holds."""
+    """Check one proposed finding against the sources its track holds.
+
+    ``measures`` is what the proposing agent says each number means (an
+    agent-directed turn states them; the planned mode's agents do not, and pass
+    ``None``, which changes nothing). Given, check 5 runs after the other four:
+    every number of the claim has a measure (``measure_missing``), and every
+    measure is the source's (``measure_not_in_source``), by
+    :func:`~.measures.check_stated_measures`.
+    """
     source = sources.get(source_ref)
     if source is None:
         return Grounding(
@@ -182,7 +214,9 @@ def ground(
             QuarantineReason.UNGROUNDED_EXCERPT,
             f"a quote is {MIN_QUOTE_CHARS} to {MAX_QUOTE_CHARS} characters; this is {len(needle)}",
         )
-    span = locate_quote(source.text, needle)
+    haystack = normalise_text(source.text)
+    at = haystack.find(needle)
+    span = (at, at + len(needle)) if at >= 0 else None
     if span is None:
         return Grounding(
             None, QuarantineReason.UNGROUNDED_EXCERPT, f"the quote does not occur in {source_ref}"
@@ -196,6 +230,21 @@ def ground(
             QuarantineReason.NUMBER_NOT_IN_QUOTE,
             f"the claim states {shown}; the quote does not",
         )
+    lo, hi = context_window(haystack, span)
+    mismatch = check_measures(normalise_text(claim), haystack[lo:hi])
+    if mismatch is not None:
+        return Grounding(span, QuarantineReason.MEASURE_NOT_IN_SOURCE, mismatch.detail)
+    if measures is not None:
+        problem = check_stated_measures(
+            claim=normalise_text(claim), quote=needle, context=haystack[lo:hi], measures=measures
+        )
+        if problem is not None:
+            reason = (
+                QuarantineReason.MEASURE_MISSING
+                if problem.missing
+                else QuarantineReason.MEASURE_NOT_IN_SOURCE
+            )
+            return Grounding(span, reason, problem.detail)
     if source.instructions_detected:
         return Grounding(
             span,
@@ -203,3 +252,72 @@ def ground(
             "the source contains instructions: " + ", ".join(source.instructions_detected),
         )
     return Grounding(span, None, "")
+
+
+@dataclass(frozen=True, slots=True)
+class CellGrounding:
+    """The verdict on a quote of one table cell: the cell and its span, or why not."""
+
+    cell: DatasetCell | None
+    span: tuple[int, int] | None
+    failure: QuarantineReason | None
+    detail: str
+
+    @property
+    def grounded(self) -> bool:
+        return self.failure is None
+
+
+def ground_cell(*, snapshot: SourceSnapshot, locator: str, quote: str) -> CellGrounding:
+    """Check that ``quote`` is the cell at ``locator`` of a dataset snapshot, exactly.
+
+    The quote is the cell's line with or without its ``[locator]`` prefix, compared
+    after :func:`normalise_text`. A quote that is another cell's line names that
+    cell in the detail; a quote that is part of a line (a value cut short, a label
+    dropped) is not a cell. The source's instruction flags apply as for any quote.
+    """
+    table = snapshot.dataset
+    if table is None:
+        return CellGrounding(
+            None,
+            None,
+            QuarantineReason.UNGROUNDED_EXCERPT,
+            f"{snapshot.snapshot_id} is not a table; a cell is cited only in a dataset snapshot",
+        )
+    cell = table.cell(locator)
+    if cell is None:
+        return CellGrounding(
+            None,
+            None,
+            QuarantineReason.UNGROUNDED_EXCERPT,
+            f"{locator!r} is not a cell of {table.dataset_id}",
+        )
+    needle = normalise_text(quote)
+    if needle not in (normalise_text(cell.line()), normalise_text(cell.text())):
+        other = next(
+            (
+                c.locator
+                for c in table.cells()
+                if needle in (normalise_text(c.line()), normalise_text(c.text()))
+            ),
+            None,
+        )
+        detail = (
+            f"the quote is the cell {other}, not {locator}"
+            if other is not None
+            else f"the quote is not the cell {locator} as the table states it"
+        )
+        return CellGrounding(cell, None, QuarantineReason.UNGROUNDED_EXCERPT, detail)
+    span = locate_quote(snapshot.text, cell.line())
+    if span is None:  # the validator makes the text the rendering; this cannot happen
+        return CellGrounding(
+            cell, None, QuarantineReason.UNGROUNDED_EXCERPT, "the cell is not in the snapshot text"
+        )
+    if snapshot.instructions_detected:
+        return CellGrounding(
+            cell,
+            span,
+            QuarantineReason.SOURCE_CONTAINS_INSTRUCTIONS,
+            "the source contains instructions: " + ", ".join(snapshot.instructions_detected),
+        )
+    return CellGrounding(cell, span, None, "")

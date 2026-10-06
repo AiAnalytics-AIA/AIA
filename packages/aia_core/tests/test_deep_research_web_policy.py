@@ -70,10 +70,18 @@ def test_a_host_must_resolve_and_every_address_must_be_public() -> None:
         check_resolution("example.org", ["93.184.215.14", "10.0.0.7"])
 
 
-def test_only_declared_text_types_are_kept() -> None:
+def test_only_declared_page_and_document_types_are_kept() -> None:
     assert check_content_type("text/html; charset=utf-8") == "text/html"
     assert check_content_type("TEXT/PLAIN") == "text/plain"
-    for header in ("application/pdf", "image/png", "application/octet-stream", ""):
+    assert check_content_type("application/pdf") == "application/pdf"
+    assert check_content_type("text/csv; charset=windows-1250") == "text/csv"
+    for header in (
+        "image/png",
+        "application/octet-stream",
+        "application/vnd.ms-excel",
+        "application/msword",
+        "",
+    ):
         with pytest.raises(FetchRefused) as refused:
             check_content_type(header)
         assert refused.value.reason == "content_type"

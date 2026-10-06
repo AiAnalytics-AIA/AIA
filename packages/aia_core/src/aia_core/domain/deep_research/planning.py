@@ -16,7 +16,9 @@ Code, not a model, decides *what* is researched (plan decision I-1, ADR 0007):
   and says which.
 
 The presets are a **proposal** (DR-5 is open): a run names one explicitly; there is
-no default depth and no default budget.
+no default depth and no default budget. The table is versioned
+(:data:`PRESET_TABLE_VERSION`): QUICK, STANDARD and DEEP as chunks 9 and 11 left them,
+and EXHAUSTIVE (plan ``deep-research-web-search.md`` § 9, chunk 22).
 
 Pure: stdlib and Pydantic only.
 """
@@ -52,8 +54,10 @@ from .contracts import (
 from .grounding import GROUNDING_VERSION
 
 __all__ = [
+    "AGENT_DIRECTED_FIELDS",
     "PRESETS",
     "PRESET_STATUS",
+    "PRESET_TABLE_VERSION",
     "DepthPreset",
     "PlanViolation",
     "TrackAllowance",
@@ -65,14 +69,22 @@ __all__ = [
     "check_plan_coverage",
     "coverage_grid",
     "extract_subjects",
+    "investigator_stop_reason",
     "preset",
     "screen_questions",
     "stop_reason",
     "track_fingerprint",
+    "track_slots",
 ]
 
 #: The presets are proposed, not decided (DR-5); the status travels with every run.
 PRESET_STATUS: Final = "PROPOSED_DR5"
+#: The preset table: :data:`PRESETS`, the lead's limits (``lead.LEAD_LIMITS``) and each
+#: preset's route allowances (``budgets.ROUTE_ALLOWANCES``). Every number in it is
+#: proposed (DR-5; plan § 9, chunk 22) until the owner sets the presets from chunks 25-26.
+#: ``aia-presets-1`` was QUICK, STANDARD and DEEP as chunks 9 and 11 left them; ``-2``
+#: adds EXHAUSTIVE and the route allowances, and changes none of the three.
+PRESET_TABLE_VERSION: Final = "aia-presets-2-proposed"
 
 
 class DepthPreset(BaseModel):
@@ -92,11 +104,25 @@ class DepthPreset(BaseModel):
     max_fetches: int = Field(ge=0, le=5000)
     #: Evidence items one verification request judges.
     verify_batch: int = Field(ge=1, le=40)
+    #: The agent-directed mode's allowance per web track (chunk 9; proposed with the
+    #: presets, DR-5): investigator turns, searches sent, pages opened. The planned
+    #: mode never reads them, and no planned-mode fingerprint covers them
+    #: (:data:`AGENT_DIRECTED_FIELDS`). The defaults are QUICK's, for a plan stored
+    #: before they existed; every preset states its own.
+    max_turns: int = Field(default=6, ge=1, le=60)
+    max_searches: int = Field(default=4, ge=0, le=100)
+    max_opens: int = Field(default=8, ge=0, le=200)
+
+
+#: The preset fields only the agent-directed mode reads.
+AGENT_DIRECTED_FIELDS: Final = frozenset({"max_turns", "max_searches", "max_opens"})
 
 
 PRESETS: Final[dict[str, DepthPreset]] = {
     p.name: p
     for p in (
+        # Not one of § 9's three: the smallest depth, kept for tests, recorded journeys
+        # and the web client's first run (chunk 22 decision); runs that name it read it.
         DepthPreset(
             name="QUICK",
             queries_per_web_track=2,
@@ -109,6 +135,9 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=48,
             max_fetches=96,
             verify_batch=12,
+            max_turns=6,
+            max_searches=4,
+            max_opens=8,
         ),
         DepthPreset(
             name="STANDARD",
@@ -122,6 +151,9 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=240,
             max_fetches=720,
             verify_batch=12,
+            max_turns=15,
+            max_searches=8,
+            max_opens=20,
         ),
         DepthPreset(
             name="DEEP",
@@ -135,6 +167,28 @@ PRESETS: Final[dict[str, DepthPreset]] = {
             max_search_calls=1200,
             max_fetches=4800,
             verify_batch=12,
+            max_turns=30,
+            max_searches=15,
+            max_opens=40,
+        ),
+        # Plan § 9: the widest research, with triage, crawl and Common Crawl (their
+        # allowances are ``budgets.ROUTE_ALLOWANCES``'). Its lead plans up to 50 tasks
+        # (``lead.LEAD_LIMITS``); the subject leads § 9 names are not built.
+        DepthPreset(
+            name="EXHAUSTIVE",
+            queries_per_web_track=10,
+            pages_per_query=5,
+            evidence_target=16,
+            knowledge_items_per_track=12,
+            include_crosses=True,
+            saturation_window=3,
+            max_tracks=400,
+            max_search_calls=2000,
+            max_fetches=5000,
+            verify_batch=12,
+            max_turns=40,
+            max_searches=20,
+            max_opens=60,
         ),
     )
 }
@@ -278,11 +332,19 @@ class TrackInputs:
     ``web_retrieval`` identifies the retrieval a web track would use -- route ids,
     recorded or live, adapter ids and prices -- or ``None`` when this composition
     has none; a recorded result is then never reused as a live one.
+
+    ``thinking_budget_tokens`` is the agents' extended-thinking budget, or ``None``
+    when they do not think; a result is reused only by a pass that thinks the same.
     """
 
     policy_version: str
     prompt_versions: Mapping[Channel, str]
     web_retrieval: Mapping[str, Any] | None
+    thinking_budget_tokens: int | None = None
+    #: ``investigator.INVESTIGATOR_VERSION`` when web tracks are agent-directed (the
+    #: loop, its contract and prompt, the stated-measure rule); ``None`` in the planned
+    #: mode, which then fingerprints exactly as before the mode existed.
+    investigator: str | None = None
 
 
 def track_fingerprint(
@@ -305,12 +367,26 @@ def track_fingerprint(
         "harness": HARNESS_VERSION,
         "subject": [subject.key, subject.kind.value, normalise_label(subject.text)],
         "channel": channel.value,
-        "depth": depth.model_dump(mode="json"),
+        # The agent-directed allowances only for an agent-directed web track: every
+        # other track's fingerprint is what it was before they existed.
+        "depth": depth.model_dump(
+            mode="json",
+            exclude=None
+            if inputs.investigator is not None and channel is Channel.WEB
+            else set(AGENT_DIRECTED_FIELDS),
+        ),
         "brief": request.brief.fingerprint(),
         "policy": inputs.policy_version,
         "prompt": inputs.prompt_versions.get(channel, ""),
         "rules": [GROUNDING_VERSION, CLASSIFIER_VERSION],
     }
+    if inputs.thinking_budget_tokens is not None:
+        # Only when set: every fingerprint taken without thinking keeps its value.
+        material["thinking"] = inputs.thinking_budget_tokens
+    if inputs.investigator is not None and channel is Channel.WEB:
+        # The mode and the versions of its rules -- never the queries the agent
+        # writes: they are the result, not an input.
+        material["investigator"] = inputs.investigator
     if channel is Channel.WEB:
         material["retrieval"] = dict(inputs.web_retrieval) if inputs.web_retrieval else None
     else:
@@ -338,6 +414,21 @@ def _crosses(subjects: Sequence[ResearchSubject]) -> list[ResearchSubject]:
     return crosses
 
 
+def track_slots(
+    request: DeepResearchRequest, depth: DepthPreset
+) -> list[tuple[ResearchSubject, Channel]]:
+    """Every track a run would open, as (subject, channel), in :func:`build_tracks`' order.
+
+    Before the preset's ``max_tracks`` cut and without fingerprints: what the run's cost
+    ceiling counts tracks from (``budgets.call_bounds``), with no composition at hand.
+    """
+    subjects = list(request.subjects)
+    if depth.include_crosses:
+        subjects += _crosses(request.subjects)
+    channels = [c for c in (Channel.INTERNAL, Channel.WEB) if c in request.channels]
+    return [(subject, channel) for subject in subjects for channel in channels]
+
+
 def build_tracks(
     request: DeepResearchRequest, depth: DepthPreset, *, inputs: TrackInputs
 ) -> tuple[tuple[ResearchTrack, ...], tuple[ResearchTrack, ...]]:
@@ -347,10 +438,6 @@ def build_tracks(
     subject, internal before web. Tracks beyond ``max_tracks`` are returned, not
     dropped: the run records them as skipped (``track_limit``).
     """
-    subjects = list(request.subjects)
-    if depth.include_crosses:
-        subjects += _crosses(request.subjects)
-    channels = [c for c in (Channel.INTERNAL, Channel.WEB) if c in request.channels]
     tracks = [
         ResearchTrack(
             track_id=track_id(subject.key, channel),
@@ -360,8 +447,7 @@ def build_tracks(
                 subject, channel, request=request, depth=depth, inputs=inputs
             ),
         )
-        for subject in subjects
-        for channel in channels
+        for subject, channel in track_slots(request, depth)
     ]
     return tuple(tracks[: depth.max_tracks]), tuple(tracks[depth.max_tracks :])
 
@@ -413,23 +499,31 @@ class TrackAllowance:
     fetches: int
 
 
-def allocate(web_tracks: Sequence[str], depth: DepthPreset) -> dict[str, TrackAllowance]:
+def allocate(
+    web_tracks: Sequence[str], depth: DepthPreset, *, agent_directed: bool = False
+) -> dict[str, TrackAllowance]:
     """Split the run's search and fetch limits across its web tracks, deterministically.
 
     Each track gets at most what its preset allows one track, and an equal share of
     the run's limits; the remainder of a division goes to the earlier tracks. A
     track whose share is zero stops at once with ``budget_exhausted``: visible,
-    never skipped in silence.
+    never skipped in silence. An agent-directed track's own limits are the preset's
+    ``max_searches`` and ``max_opens`` (pages opened are its fetches); the planned
+    mode's are its queries and their pages.
     """
     n = len(web_tracks)
     if n == 0:
         return {}
     searches, extra_s = divmod(depth.max_search_calls, n)
     fetches, extra_f = divmod(depth.max_fetches, n)
-    per_track_fetches = depth.queries_per_web_track * depth.pages_per_query
+    if agent_directed:
+        per_track_searches, per_track_fetches = depth.max_searches, depth.max_opens
+    else:
+        per_track_searches = depth.queries_per_web_track
+        per_track_fetches = depth.queries_per_web_track * depth.pages_per_query
     return {
         t: TrackAllowance(
-            search_calls=min(depth.queries_per_web_track, searches + (1 if i < extra_s else 0)),
+            search_calls=min(per_track_searches, searches + (1 if i < extra_s else 0)),
             fetches=min(per_track_fetches, fetches + (1 if i < extra_f else 0)),
         )
         for i, t in enumerate(web_tracks)
@@ -460,6 +554,44 @@ def stop_reason(
         return StopReason.BUDGET_EXHAUSTED
     if queries_left <= 0:
         return StopReason.QUERIES_EXHAUSTED
+    return None
+
+
+def investigator_stop_reason(
+    *,
+    grounded: int,
+    new_by_turn: Sequence[int],
+    turns_used: int,
+    searches_left: int,
+    opens_left: int,
+    unread: bool,
+    depth: DepthPreset,
+    max_turns: int | None = None,
+) -> StopReason | None:
+    """Why an agent-directed track stops before its next turn, or ``None`` to go on.
+
+    ``max_turns`` is the track's own turn allowance when it has one (a lead-planned
+    task's budget); ``None`` is the preset's ``max_turns``.
+
+    :func:`stop_reason` for turns, in its order: the depth target; saturation --
+    no newly grounded evidence in the last ``saturation_window`` turns that read
+    new text (``new_by_turn`` holds only those, so a turn of weak or refused
+    searches does not count); then the allowance -- every turn used, or no search
+    and no open left with nothing captured and still unread (a last turn always
+    reads what the one before captured). The other ends are decided where they
+    happen: the agent's ``finish`` (``agent_finished``), an uncertain delivery
+    (``tool_outcome_uncertain``) and the same refusal reason three times
+    (``repeated_refusals``).
+    """
+    if grounded >= depth.evidence_target:
+        return StopReason.DEPTH_TARGET_MET
+    window = depth.saturation_window
+    if len(new_by_turn) >= window and not any(new_by_turn[-window:]):
+        return StopReason.SATURATED
+    if turns_used >= (depth.max_turns if max_turns is None else max_turns):
+        return StopReason.BUDGET_EXHAUSTED
+    if searches_left <= 0 and opens_left <= 0 and not unread:
+        return StopReason.BUDGET_EXHAUSTED
     return None
 
 

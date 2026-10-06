@@ -9,7 +9,8 @@ is pure:
 * :mod:`.tooling` -- the cost contract for search and fetch;
 * :mod:`.legacy` -- the 18.6.6 leakage screen and merge, ported exactly;
 * :mod:`.grounding` -- a quote must be in the source it cites;
-* :mod:`.sources` -- source classes and scores from declared tables;
+* :mod:`.sources` -- source classes, tiers and scores from declared tables;
+* :mod:`.reputation` -- the reputation register: publishers, names, hosts, tiers (proposed);
 * :mod:`.classification` -- a query's data class, inherited and never lowered;
 * :mod:`.web` -- what a fetch may reach, on every hop;
 * :mod:`.knowledge_access` -- Client Knowledge frozen at enqueue, retrieved by code;
@@ -20,6 +21,21 @@ is pure:
 * :mod:`.bundle` -- the sealed evidence bundle;
 * :mod:`.steps` -- what each step of a run stores, and the gate each refusal names;
 * :mod:`.quarantine` -- what leaves the bundle for respondents, design and analysis.
+* :mod:`.filters` -- the funnel's Filter stage: exact and near duplicates, language,
+  relevance (defined, not wired).
+* :mod:`.verifier` -- the agent-directed mode's independent verifier: contract, prompt;
+* :mod:`.triangulation` -- publishers, independence after near-duplicate collapse,
+  conflicts and resolve-track requests;
+* :mod:`.tracing` -- primary or secondary, traced, and the leads to primary sources;
+* :mod:`.verification` -- the independent verifier's verdicts decided by code,
+  supersession, and the review an agent-directed verify step records.
+* :mod:`.confidence` -- a finding's confidence computed by code from versioned
+  weights (proposed), monotone in every input; no agent's rating is an input.
+* :mod:`.gaps` -- stated, unanswered and conflict gaps; acquisition gaps typed for
+  the ladder (publisher, title, reason, rungs tried), filled with what is known now;
+* :mod:`.synthesizer` -- the agent-directed brief synthesizer: contract, prompt;
+* :mod:`.brief` -- the agent-directed brief: code's findings, confidence, conflicts
+  and gaps, and the prose's every number checked against what it cites.
 
 Pure: stdlib and Pydantic only.
 """

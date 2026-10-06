@@ -1,0 +1,5 @@
+[["timestamp","original","mimetype","statuscode","digest","length"],
+ ["20221230080000","https://zpravy.example/fiktivni-zprava-2022","text/html","200","FIKTIVNI2022AAAAAAAAAAAAAAAAAAAA","5120"],
+ ["20230112093000","https://zpravy.example/fiktivni-zprava-2022","text/html","301","FIKTIVNIREDIRECTAAAAAAAAAAAAAAAA","410"],
+ ["20230301120000","https://zpravy.example/fiktivni-zprava-2022","text/html","200","FIKTIVNI2023BBBBBBBBBBBBBBBBBBBB","5230"],
+ ["20240615000000","https://zpravy.example/fiktivni-zprava-2022","text/html","404","FIKTIVNIGONECCCCCCCCCCCCCCCCCCCC","890"]]

@@ -17,6 +17,11 @@ Two kinds of artifact, told apart by their fingerprint (plan decision I-4):
   that runs again finds them; no other run can. A track a gate refused is never
   reusable: the gate may open, and the next pass must look again.
 
+A lead-planned run (chunk 11) adds two of this run's own: the lead's plan
+(:class:`LeadPlanRecord`) -- the memory a long run and a retried step keep -- and one
+:class:`ReplanRecord` per re-plan asked after a wave. A task's track is keyed like any
+track, by a fingerprint that includes its brief and budget.
+
 Pure: stdlib and Pydantic only.
 """
 
@@ -27,10 +32,11 @@ from datetime import date
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
 
 from ..residency import DataClass
 from .agents import AgentRole
+from .brief import ResearchBrief
 from .bundle import SnapshotRef
 from .contracts import (
     DeepResearchRequest,
@@ -47,9 +53,12 @@ from .contracts import (
     TrackStatus,
     digest,
 )
+from .lead import Allotment, LeadLimits, Replan, ResearchPlan
 from .merge import AcceptedEvidence, Candidate, SourceFacts
 from .planning import DepthPreset
 from .synthesis import SynthesisCheck
+from .verification import VerificationReview
+from .verifier import ClaimJudgement
 
 __all__ = [
     "AllowanceRecord",
@@ -58,10 +67,13 @@ __all__ = [
     "CallRecord",
     "Gate",
     "InvestigationRecord",
+    "LeadPlanRecord",
+    "LeadRunRecord",
     "MergeRecord",
     "PlanRecord",
     "PlanViolationRecord",
     "PlannedTrack",
+    "ReplanRecord",
     "SnapshotArtifact",
     "SourceFactsRecord",
     "SynthesisArtifact",
@@ -167,7 +179,19 @@ class PlanRecord(_Closed):
     blocked: tuple[BlockedTrack, ...]
     violations: tuple[PlanViolationRecord, ...]
     allowances: dict[str, AllowanceRecord]
+    #: The planner's request, or in a lead-planned run the lead's plan request.
     planner: CallRecord | None
+    #: A lead-planned run's :class:`LeadPlanRecord`. None otherwise, and then left out
+    #: of the stored form, so a plan stored before the lead existed reads and hashes
+    #: exactly as it did.
+    lead_plan_artifact_id: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_lead(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.lead_plan_artifact_id is None and isinstance(data, dict):
+            data.pop("lead_plan_artifact_id", None)
+        return data
 
     def planned_for(self, track_id: str) -> PlannedTrack | None:
         return next((p for p in self.planned if p.track_id == track_id), None)
@@ -231,6 +255,18 @@ class TrackResult(_Closed):
     credits: int = Field(ge=0)
     model_cost_usd: float = Field(ge=0.0)
     tool_cost_usd: float = Field(ge=0.0)
+    #: An agent-directed track's transcript artifact (``deep_research_transcript``):
+    #: every turn, action and decision. None for a planned-mode track, and then left
+    #: out of the stored form, so a track stored before it existed reads, dumps and
+    #: hashes exactly as it did.
+    transcript_artifact_id: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_transcript(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.transcript_artifact_id is None and isinstance(data, dict):
+            data.pop("transcript_artifact_id", None)
+        return data
 
 
 class TrackEntry(_Closed):
@@ -240,12 +276,80 @@ class TrackEntry(_Closed):
     reused: bool
 
 
+class LeadPlanRecord(_Closed):
+    """The lead's plan for one run, or why there is none. This run's own.
+
+    Stored the moment the answer is known, keyed by the run and the request's hash,
+    so a plan step that runs again finds it and asks nothing. ``plan`` is None when
+    the lead's answer was refused after the gateway's one repair (``refused`` names
+    every reason, ``call_ids`` the calls it cost); the run's web tracks are then
+    blocked (``plan_incomplete``, ``lead_plan_refused``), never planned some other way.
+    """
+
+    kind: Literal["deep_research_lead_plan"]
+    run_id: str
+    version: str
+    request_sha256: str
+    limits: LeadLimits
+    plan: ResearchPlan | None
+    refused: tuple[str, ...]
+    call: CallRecord | None
+    call_ids: tuple[str, ...]
+
+
+class ReplanRecord(_Closed):
+    """One re-plan after a wave, as asked and as decided. This run's own.
+
+    Keyed by the run, the lead's plan, the wave and the request's hash: a retried
+    step that rebuilds the same request finds it and applies it again without a call.
+    ``pending_before`` and ``pending_after`` are the budgets of the tasks still to run
+    either side of its moves -- equal, by construction and by check -- and
+    ``committed_after`` what the run is committed to after it, within ``ceiling``.
+    """
+
+    kind: Literal["deep_research_lead_replan"]
+    run_id: str
+    wave: int = Field(ge=1)
+    request_sha256: str
+    replan: Replan | None
+    #: Why it was not applied: the gate that refused the request, or every reason the
+    #: lead's answer was refused for after the gateway's one repair.
+    refused: tuple[str, ...]
+    call: CallRecord | None
+    call_ids: tuple[str, ...]
+    pending_before: Allotment
+    pending_after: Allotment
+    committed_after: Allotment
+    ceiling: Allotment
+
+
+class LeadRunRecord(_Closed):
+    """How a lead-planned run's waves ran: their tracks, its re-plans, the lead's calls."""
+
+    lead_plan_artifact_id: str
+    #: Each wave's track ids, in the order the waves ran.
+    waves: tuple[tuple[str, ...], ...]
+    replan_artifact_ids: tuple[str, ...]
+    #: The re-plans' calls (the plan's is ``PlanRecord.planner``).
+    calls: tuple[CallRecord, ...]
+
+
 class InvestigationRecord(_Closed):
     """The ``investigate`` step: every planned track, and where its result is."""
 
     kind: Literal["deep_research_investigation"]
     plan_artifact_id: str
     tracks: tuple[TrackEntry, ...]
+    #: A lead-planned run's waves and re-plans; None otherwise, and then left out of
+    #: the stored form (a record stored before the lead existed is unchanged).
+    lead: LeadRunRecord | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_lead(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.lead is None and isinstance(data, dict):
+            data.pop("lead", None)
+        return data
 
 
 class MergeRecord(_Closed):
@@ -268,6 +372,17 @@ class VerificationBatch(_Closed):
     #: evidence id -> [verdict, reason], for the ids of this batch only.
     verdicts: dict[str, tuple[str, str]]
     call: CallRecord
+    #: The independent verifier's whole judgements (agent-directed mode, chunk 12). Empty
+    #: for the planned mode's verifier, and then left out of the stored form, so a batch
+    #: stored before it existed reads, dumps and hashes exactly as it did.
+    judgements: tuple[ClaimJudgement, ...] = ()
+
+    @model_serializer(mode="wrap")
+    def _omit_no_judgements(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if not self.judgements and isinstance(data, dict):
+            data.pop("judgements", None)
+        return data
 
 
 class BatchEntry(_Closed):
@@ -287,6 +402,17 @@ class VerifyRecord(_Closed):
     batches: tuple[BatchEntry, ...]
     accepted: tuple[AcceptedEvidence, ...]
     quarantined: tuple[QuarantinedEvidence, ...]
+    #: An agent-directed run's review (chunk 12): independence, primary tracing, leads,
+    #: supersessions, conflicts and resolve-track requests. None in the planned mode,
+    #: and then left out of the stored form, which is unchanged.
+    review: VerificationReview | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_review(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.review is None and isinstance(data, dict):
+            data.pop("review", None)
+        return data
 
 
 class SynthesisArtifact(_Closed):
@@ -297,6 +423,23 @@ class SynthesisArtifact(_Closed):
     call: CallRecord | None
     #: Why no request was sent (``gate:reason``), when none was.
     refused: str | None
+    #: The agent-directed brief (chunk 13): findings with confidence by code, conflicts,
+    #: gaps, acquisition gaps; ``check`` is its planned-mode shape. None in the planned
+    #: mode, and then left out of the stored form, which is unchanged.
+    brief: ResearchBrief | None = None
+    #: The one repair request a failed agent-directed draft got, when it got one. Left
+    #: out of the stored form when None.
+    repair_call: CallRecord | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_brief(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            if self.brief is None:
+                data.pop("brief", None)
+            if self.repair_call is None:
+                data.pop("repair_call", None)
+        return data
 
 
 def _cost(calls: Iterable[CallRecord]) -> float:
@@ -313,19 +456,24 @@ def tally(
     synthesis_reused: bool,
     accepted: int,
     quarantined: int,
+    lead_calls: Sequence[CallRecord] = (),
 ) -> tuple[dict[str, int], dict[str, float]]:
     """What this run did and spent, counted from its records. A reused unit costs nothing.
 
     ``results`` pairs each track's result with whether it was reused; ``batch_calls``
-    maps a batch fingerprint to the call this run made for it.
+    maps a batch fingerprint to the call this run made for it; ``lead_calls`` are a
+    lead-planned run's re-plan requests.
     """
     fresh = [r for r, reused in results if not reused]
     calls = [c for r in fresh for c in r.calls]
     if plan.planner is not None:
         calls.append(plan.planner)
+    calls += lead_calls
     calls += [batch_calls[b.fingerprint] for b in batches if b.fingerprint in batch_calls]
     if synthesis.call is not None and not synthesis_reused:
         calls.append(synthesis.call)
+        if synthesis.repair_call is not None:
+            calls.append(synthesis.repair_call)
     snapshots = {s.snapshot_id for r, _ in results for s in r.snapshots}
     counts = {
         "tracks": len(results) + len(plan.beyond),
