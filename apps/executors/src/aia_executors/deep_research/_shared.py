@@ -223,8 +223,13 @@ class _Step:
         payload: dict[str, Any],
         data_class: DataClass,
         lineage: DataLineage,
+        contract: type[BaseModel] | None = None,
     ) -> ModelRequest:
-        """One agent's request under the composition's policy, limits and thinking."""
+        """One agent's request under the composition's policy, limits and thinking.
+
+        ``contract`` is a bound form of the role's contract (the lead's, with code's
+        checks in its validation); ``None`` is the role's own.
+        """
         cfg = runtime.config
         return model_request(
             role,
@@ -234,6 +239,7 @@ class _Step:
             policy_version=cfg.policy_version,
             max_output_tokens=cfg.max_output_tokens,
             thinking_budget_tokens=cfg.thinking_budget_tokens,
+            contract=contract,
         )
 
     @staticmethod

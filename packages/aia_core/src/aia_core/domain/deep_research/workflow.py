@@ -67,6 +67,9 @@ ARTIFACT_TYPES: Final[dict[str, str]] = {
     "turn_answer": "deep_research_turn_answer",
     "turn": "deep_research_turn",
     "transcript": "deep_research_transcript",
+    # A lead-planned run (chunk 11): the lead's plan and each re-plan (this run's own).
+    "lead_plan": "deep_research_lead_plan",
+    "replan": "deep_research_lead_replan",
 }
 
 #: The artifact each step records as its output.

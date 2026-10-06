@@ -19,6 +19,7 @@ from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1, Conf
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
 from aia_core.domain.deep_research.grounding import GROUNDING_VERSION
 from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
+from aia_core.domain.deep_research.lead import LEAD_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
 from aia_core.domain.deep_research.reputation import ReputationRegister
@@ -66,10 +67,16 @@ class DeepResearchConfig:
     #: the planner's queries. Off: every request, fingerprint and count is the
     #: planned mode's, exactly as before the mode existed.
     agent_directed: bool = False
+    #: A lead researcher plans the agent-directed web research (chunk 11): subjects
+    #: sized by effort, tasks in waves, a re-plan after each wave. Needs
+    #: ``agent_directed``; off, every request and fingerprint is chunk 9's.
+    lead: bool = False
 
     def __post_init__(self) -> None:
         if self.thinking_budget_tokens is not None:
             check_thinking_budget(self.thinking_budget_tokens, self.max_output_tokens)
+        if self.lead and not self.agent_directed:
+            raise ValueError("the lead researcher plans agent-directed tracks only")
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +132,9 @@ class DeepResearchRuntime:
             versions["register"] = self.register.version if self.register is not None else "none"
             versions["brief"] = BRIEF_VERSION
             versions["confidence_weights"] = self.weights.version
+        if self.config.lead:
+            # Only when on: a run planned by the lead is investigated by its waves.
+            versions["lead"] = LEAD_VERSION
         return versions
 
 
