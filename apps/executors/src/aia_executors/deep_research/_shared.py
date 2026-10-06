@@ -213,6 +213,7 @@ class _Step:
             lineage=lineage,
             policy_version=cfg.policy_version,
             max_output_tokens=cfg.max_output_tokens,
+            thinking_budget_tokens=cfg.thinking_budget_tokens,
         )
         size = _too_large(request, cfg)
         if size is not None:

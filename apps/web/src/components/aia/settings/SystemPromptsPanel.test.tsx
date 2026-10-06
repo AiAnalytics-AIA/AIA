@@ -372,6 +372,35 @@ describe("the author's declaration", () => {
     expect(panel.querySelector("[data-needs-approval]")).toBeNull();
   });
 
+  it("knows the version it just saved before the prompt has been read again", async () => {
+    fakeApi();
+    // Hold every read of the prompt after the save: the "Zapnout e1" button shows at once, from
+    // the save's answer, while the detail it once read the version from is still the old one.
+    const served = globalThis.fetch;
+    let release!: () => void;
+    const held = new Promise<void>((r) => { release = r; });
+    let saved = false;
+    vi.stubGlobal("fetch", async (url: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(url).split("?")[0];
+      if (saved && (init?.method ?? "GET") === "GET" && u.startsWith("/api/v1/system-prompts")) await held;
+      if (init?.method === "POST" && u.endsWith("/versions")) saved = true;
+      return served(url, init);
+    });
+    mount();
+    await saveAs("Analyzuj stručně.");
+    fireEvent.click(await screen.findByRole("button", { name: "Zapnout e1" }));
+    expect(document.querySelector('[data-version="v1"]')).toBeNull(); // the detail has not been read again
+    const panel = document.querySelector("[data-activation]") as HTMLElement;
+    expect(panel.querySelector("[data-needs-approval]")).toBeNull();
+    fireEvent.click(within(panel).getByRole("button", { name: "Potvrdit" }));
+    await screen.findByText("Teď běží: e1.");
+    // The editor keeps the text that now runs, not an empty one.
+    expect((await editor()).value).toBe("Analyzuj stručně.");
+    release();
+    await versionRow("v1");
+    expect((await editor()).value).toBe("Analyzuj stručně.");
+  });
+
   it("warns only for a version saved before declarations existed", async () => {
     fakeApi();
     mount();

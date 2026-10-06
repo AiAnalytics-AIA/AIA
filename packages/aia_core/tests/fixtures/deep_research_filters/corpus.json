@@ -1,0 +1,408 @@
+{
+  "_about": "Fictional corpus for the Deep Research code filters (chunk 19). Every organisation, brand, club, park, town council and figure is invented. Labelled by hand: lang (cs, sk, en, other, unknown), dup_group (documents that are one text), relevant_to (question ids). A label changes only together with the measured numbers the tests assert.",
+  "questions": [
+    {
+      "id": "q1",
+      "text": "Jak roste trh rostlinných nápojů v Česku? How is the plant-based drinks market growing in Czechia?"
+    },
+    {
+      "id": "q2",
+      "text": "Kolik elektrokol se prodává v českých městech? How many electric bicycles (e-bikes) are sold in Czech cities?"
+    },
+    {
+      "id": "q3",
+      "text": "Jaké jsou ceny domácích kávovarů? What do home coffee machines cost?"
+    },
+    {
+      "id": "q4",
+      "text": "Jak se vyvíjí online nákup potravin s doručením domů? How is online grocery delivery developing?"
+    }
+  ],
+  "documents": [
+    {
+      "id": "p01",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "text": "Trh rostlinných nápojů v Česku loni vzrostl o 14 procent a dosáhl hodnoty 2,1 miliardy korun, uvádí nová zpráva agentury Trhoměr. Nejrychleji rostly ovesné nápoje, jejichž prodej se zvýšil o 22 procent, zatímco sójové nápoje stagnovaly. Rostlinné nápoje podle zprávy pravidelně kupuje 31 procent domácností, nejčastěji ve velkých městech. Analytici agentury očekávají, že růst trhu bude pokračovat i letos, i když pomaleji, protože ceny rostlinných nápojů zůstávají výrazně vyšší než ceny kravského mléka. Značka Ovesná louka si udržela první místo s podílem 18 procent. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "p02",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "exact duplicate: case and spacing only",
+      "text": "  TRH ROSTLINNÝCH NÁPOJŮ V ČESKU LONI VZROSTL O 14 PROCENT A DOSÁHL HODNOTY 2,1 MILIARDY KORUN, UVÁDÍ NOVÁ ZPRÁVA AGENTURY TRHOMĚR.\n\nNEJRYCHLEJI ROSTLY OVESNÉ NÁPOJE, JEJICHŽ PRODEJ SE ZVÝŠIL O 22 PROCENT, ZATÍMCO SÓJOVÉ NÁPOJE STAGNOVALY.\n\nROSTLINNÉ NÁPOJE PODLE ZPRÁVY PRAVIDELNĚ KUPUJE 31 PROCENT DOMÁCNOSTÍ, NEJČASTĚJI VE VELKÝCH MĚSTECH.\n\nANALYTICI AGENTURY OČEKÁVAJÍ, ŽE RŮST TRHU BUDE POKRAČOVAT I LETOS, I KDYŽ POMALEJI, PROTOŽE CENY ROSTLINNÝCH NÁPOJŮ ZŮSTÁVAJÍ VÝRAZNĚ VYŠŠÍ NEŽ CENY KRAVSKÉHO MLÉKA.\n\nZNAČKA OVESNÁ LOUKA SI UDRŽELA PRVNÍ MÍSTO S PODÍLEM 18 PROCENT.\n\nO AGENTUŘE TRHOMĚR: TRHOMĚR JE SMYŠLENÁ VÝZKUMNÁ AGENTURA, KTERÁ OD ROKU 2011 SLEDUJE SPOTŘEBITELSKÉ TRHY VE STŘEDNÍ EVROPĚ A PRAVIDELNĚ ZVEŘEJŇUJE SVÉ ZPRÁVY. "
+    },
+    {
+      "id": "p03",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "exact duplicate after diacritics folding",
+      "text": "Trh rostlinných nápojů v Cesku loni vzrostl o 14 procent a dosáhl hodnoty 2,1 miliardy korun, uvádí nová zpráva agentury Trhomer. Nejrychleji rostly ovesné napoje, jejichž prodej se zvýšil o 22 procent, zatímco sójové napoje stagnovaly. Rostlinné napoje podle zprávy pravidelně kupuje 31 procent domácností, nejčastěji ve velkých městech. Analytici agentury očekávají, že růst trhu bude pokračovat i letos, i když pomaleji, protože ceny rostlinných nápojů zůstávají výrazně vyšší než ceny kravského mléka. Značka Ovesná louka si udržela první místo s podílem 18 procent. O agentuře Trhomer: Trhomer je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "p04",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "syndicated: dateline and one word",
+      "text": "Praha (Zpravodaj Střed) – Trh rostlinných nápojů v Česku loni vzrostl o 14 procent a dosáhl hodnoty 2,1 miliardy korun, uvádí čerstvá zpráva agentury Trhoměr. Nejrychleji rostly ovesné nápoje, jejichž prodej se zvýšil o 22 procent, zatímco sójové nápoje stagnovaly. Rostlinné nápoje podle zprávy pravidelně kupuje 31 procent domácností, nejčastěji ve velkých městech. Analytici agentury očekávají, že růst trhu bude pokračovat i letos, i když pomaleji, protože ceny rostlinných nápojů zůstávají výrazně vyšší než ceny kravského mléka. Značka Ovesná louka si udržela první místo s podílem 18 procent. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "p05",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "syndicated: boilerplate swapped for a credit line",
+      "text": "Trh rostlinných nápojů v Česku loni vzrostl o 14 procent a dosáhl hodnoty 2,1 miliardy korun, uvádí nová zpráva agentury Trhoměr. Nejrychleji rostly ovesné nápoje, jejichž prodej se zvýšil o 22 procent, zatímco sójové nápoje stagnovaly. Rostlinné nápoje podle zprávy pravidelně kupuje 31 procent domácností, nejčastěji ve velkých městech. Analytici agentury očekávají, že růst trhu bude pokračovat i letos, i když pomaleji, protože ceny rostlinných nápojů zůstávají výrazně vyšší než ceny kravského mléka. Značka Ovesná louka si udržela první místo s podílem 18 procent. Článek převzat se svolením redakce."
+    },
+    {
+      "id": "p06",
+      "lang": "cs",
+      "dup_group": "g_p1",
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "heavy rewrite of the same release: labelled a duplicate, expected to be missed",
+      "text": "Rostlinné nápoje v Česku rostou: podle agentury Trhoměr se jejich trh loni zvětšil o 14 procent na 2,1 miliardy korun. Táhly ho hlavně ovesné nápoje (plus 22 procent), sójové přešlapovaly na místě. Pravidelně je kupuje necelá třetina domácností. Jedničkou zůstává Ovesná louka s 18 procenty trhu."
+    },
+    {
+      "id": "p07",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [
+        "q1"
+      ],
+      "text": "Ovesné nápoje se v Česku stávají běžnou součástí nákupu. Průzkum smyšleného Institutu spotřebních zvyklostí ukázal, že ovesný nápoj si do kávy dává už každý pátý pražský kavárenský host. Výrobci proto rozšiřují nabídku o baristické verze a menší balení. Prodejci uvádějí, že poptávka po rostlinných nápojích roste nejvíce mezi lidmi do 35 let, zatímco starší zákazníci zůstávají u kravského mléka."
+    },
+    {
+      "id": "p08",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [
+        "q1"
+      ],
+      "text": "The Czech plant-based drinks market grew by 14 percent last year to 2.1 billion crowns, according to a report by the fictional research agency Trhomer. Oat drinks led the growth, while soy drinks were flat. The report says that 31 percent of households buy plant-based drinks regularly, mostly in large cities, and that the market is expected to keep growing at a slower pace this year."
+    },
+    {
+      "id": "p09",
+      "lang": "sk",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "Slovak market, not the Czech one",
+      "text": "Trh rastlinných nápojov na Slovensku vlani vzrástol o deväť percent. Podľa vymyslenej agentúry Trhomer sú najobľúbenejšie ovsené nápoje, ktoré si kupuje takmer štvrtina domácností. Predajcovia očakávajú, že dopyt bude rásť aj tento rok, hoci ceny rastlinných nápojov sú stále vyššie ako ceny kravského mlieka."
+    },
+    {
+      "id": "p10",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "hard negative: milk, not plant drinks",
+      "text": "Výkupní ceny kravského mléka v Česku letos klesly o čtyři procenta. Zemědělci si stěžují, že ceny v obchodech se nemění, zatímco oni dostávají za litr méně. Mlékárny argumentují vyššími náklady na energie a dopravu. Spotřeba mléka na obyvatele zůstává podle smyšleného svazu chovatelů stabilní."
+    },
+    {
+      "id": "e01",
+      "lang": "cs",
+      "dup_group": "g_e1",
+      "relevant_to": [
+        "q2"
+      ],
+      "text": "Prodej elektrokol v českých městech loni překonal hranici 120 tisíc kusů, uvádí smyšlený Svaz prodejců jízdních kol. Elektrokola tvořila už 41 procent všech prodaných jízdních kol, ve městech nad sto tisíc obyvatel dokonce polovinu. Nejvíce elektrokol se prodalo v Praze, Brně a Ostravě. Průměrná cena elektrokola se ustálila na 52 tisících korun. Prodejci hlásí rostoucí zájem o nákladní elektrokola, která rodiny používají místo druhého auta, a o firemní leasing elektrokol pro zaměstnance."
+    },
+    {
+      "id": "e02",
+      "lang": "cs",
+      "dup_group": "g_e1",
+      "relevant_to": [
+        "q2"
+      ],
+      "note": "syndicated: dateline and a closing line",
+      "text": "Brno (Zpravodaj Jih) – Prodej elektrokol v českých městech loni překonal hranici 120 tisíc kusů, uvádí smyšlený Svaz prodejců jízdních kol. Elektrokola tvořila už 41 procent všech prodaných jízdních kol, ve městech nad sto tisíc obyvatel dokonce polovinu. Nejvíce elektrokol se prodalo v Praze, Brně a Ostravě. Průměrná cena elektrokola se ustálila na 52 tisících korun. Prodejci hlásí rostoucí zájem o nákladní elektrokola, která rodiny používají místo druhého auta, a o firemní leasing elektrokol pro zaměstnance. Více informací přineseme v příštím vydání."
+    },
+    {
+      "id": "e03",
+      "lang": "cs",
+      "dup_group": "g_e1",
+      "relevant_to": [
+        "q2"
+      ],
+      "note": "syndicated: two words changed",
+      "text": "Prodej elektrokol v českých městech loni přesáhl hranici 120 tisíc kusů, uvádí smyšlený Svaz prodejců jízdních kol. Elektrokola tvořila už 41 procent všech prodaných jízdních kol, ve městech nad sto tisíc obyvatel dokonce polovinu. Nejvíc elektrokol se prodalo v Praze, Brně a Ostravě. Průměrná cena elektrokola se ustálila na 52 tisících korun. Prodejci hlásí rostoucí zájem o nákladní elektrokola, která rodiny používají místo druhého auta, a o firemní leasing elektrokol pro zaměstnance."
+    },
+    {
+      "id": "e04",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [
+        "q2"
+      ],
+      "text": "Electric bicycle sales in Czech cities passed 120,000 units last year, according to a fictional cycling retailers' association. E-bikes made up 41 percent of all bicycles sold, and half of all bikes in cities with more than 100,000 inhabitants. Prague, Brno and Ostrava saw the highest e-bike sales, with an average price of 52,000 crowns."
+    },
+    {
+      "id": "e05",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [
+        "q2"
+      ],
+      "text": "Sdílená kola v Brně loni ujela rekordní počet kilometrů. Smyšlený provozovatel systému Šlapka uvádí, že třetinu výpůjček tvořila sdílená elektrokola, o která je ve městě největší zájem. Do sítě proto přibude dalších dvě stě elektrokol a nové nabíjecí stanice u zastávek tramvají."
+    },
+    {
+      "id": "e06",
+      "lang": "sk",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "Slovak cities, not Czech",
+      "text": "Predaj elektrobicyklov v slovenských mestách vlani vzrástol o pätinu. Podľa vymysleného združenia predajcov bicyklov tvorili elektrobicykle tretinu všetkých predaných bicyklov. Najviac sa ich predalo v Bratislave a v Košiciach, kde mestá budujú nové cyklotrasy."
+    },
+    {
+      "id": "e07",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "hard negative: cars",
+      "text": "Registrace nových osobních aut v Česku letos vzrostly o šest procent. Nejvíce se prodávaly kompaktní vozy a SUV, elektromobily tvořily necelá čtyři procenta trhu. Smyšlený svaz dovozců automobilů očekává, že prodej aut bude růst i ve druhém pololetí, pokud se nezhorší dostupnost úvěrů."
+    },
+    {
+      "id": "e08",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "near-topic, not sales",
+      "text": "Městská rada v Olomouci schválila plán na 30 kilometrů nových cyklostezek. Podle radnice má síť propojit sídliště s centrem a nádražím. Stavba začne na jaře a potrvá tři roky. Cyklisté plán vítají, ale upozorňují na chybějící úschovny kol."
+    },
+    {
+      "id": "c01",
+      "lang": "cs",
+      "dup_group": "g_c1",
+      "relevant_to": [
+        "q3"
+      ],
+      "text": "Ceny domácích kávovarů letos klesly v průměru o osm procent, ukazuje srovnání smyšleného portálu Cenoměr. Automatické kávovary s mlýnkem se nejčastěji prodávají za 9 až 14 tisíc korun, pákové kávovary za 4 až 7 tisíc a kapslové kávovary už od 1 500 korun. Nejvíce zlevnily automatické kávovary střední třídy, protože výrobci na trh uvedli nové modely. Prodejci upozorňují, že u kapslových kávovarů je třeba počítat s vyšší cenou za šálek. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "c02",
+      "lang": "cs",
+      "dup_group": "g_c1",
+      "relevant_to": [
+        "q3"
+      ],
+      "note": "exact duplicate: punctuation spacing only",
+      "text": "Ceny domácích kávovarů letos klesly v průměru o osm procent , ukazuje srovnání smyšleného portálu Cenoměr. Automatické kávovary s mlýnkem se nejčastěji prodávají za 9 až 14 tisíc korun , pákové kávovary za 4 až 7 tisíc a kapslové kávovary už od 1 500 korun . Nejvíce zlevnily automatické kávovary střední třídy , protože výrobci na trh uvedli nové modely. Prodejci upozorňují , že u kapslových kávovarů je třeba počítat s vyšší cenou za šálek. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura , která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "c03",
+      "lang": "cs",
+      "dup_group": "g_c1",
+      "relevant_to": [
+        "q3"
+      ],
+      "note": "syndicated: two small edits",
+      "text": "Ceny domácích kávovarů letos klesly v průměru zhruba o osm procent, ukazuje srovnání smyšleného portálu Cenoměr. Automatické kávovary s mlýnkem se nejčastěji prodávají za 9 až 14 tisíc korun, pákové kávovary za 4 až 7 tisíc a kapslové kávovary už od 1 500 korun. Nejvíce zlevnily automatické kávovary střední třídy, protože výrobci na trh uvedli nové modely. Obchodníci upozorňují, že u kapslových kávovarů je třeba počítat s vyšší cenou za šálek. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "c04",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [
+        "q3"
+      ],
+      "text": "Home coffee machine prices fell by about eight percent this year. Fully automatic bean-to-cup machines now typically cost between 9,000 and 14,000 crowns, manual espresso machines between 4,000 and 7,000, and capsule machines start at 1,500 crowns. Buyers should remember that capsules make the price per cup much higher than freshly ground coffee."
+    },
+    {
+      "id": "c05",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "hard negative: coffee beans, not machines",
+      "text": "Ceny kávových zrn na světových trzích vystoupaly na nejvyšší úroveň za deset let. Pražírny v Česku proto zdražují balenou kávu o deset až patnáct procent. Smyšlená pražírna Zrnko uvádí, že zákazníci přecházejí na menší balení a levnější směsi."
+    },
+    {
+      "id": "c06",
+      "lang": "sk",
+      "dup_group": null,
+      "relevant_to": [
+        "q3"
+      ],
+      "text": "Ceny domácich kávovarov na Slovensku tento rok klesli približne o sedem percent. Automatické kávovary sa najčastejšie predávajú za 380 až 550 eur, pákové kávovary za 150 až 300 eur a kapsulové kávovary sú dostupné už od 60 eur. Predajcovia očakávajú ďalšie zľavy pred Vianocami."
+    },
+    {
+      "id": "c07",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [
+        "q3"
+      ],
+      "text": "Recenze: smyšlený pákový kávovar Kávoslav Duo připraví hustou cremu a jeho napěňovač mléka zvládne i latte art. Kávovar stojí 5 990 korun a v našem testu obstál lépe než o tisíc korun dražší konkurence. Výtky máme jen k hlučnému čerpadlu a malé nádržce na vodu."
+    },
+    {
+      "id": "g01",
+      "lang": "cs",
+      "dup_group": "g_g1",
+      "relevant_to": [
+        "q4"
+      ],
+      "text": "Online nákupy potravin s doručením domů loni v Česku vzrostly o 17 procent, uvádí smyšlená Asociace internetových obchodů. Doručení potravin využilo alespoň jednou 28 procent domácností, nejčastěji rodiny s malými dětmi ve velkých městech. Průměrná objednávka dosáhla 1 450 korun. Obchodníci rozšiřují doručování do menších měst a zkracují časová okna doručení, služba Nákupník nově vozí nákupy do dvou hodin. Mimo velká města ale online nákup potravin zůstává spíše výjimkou."
+    },
+    {
+      "id": "g02",
+      "lang": "cs",
+      "dup_group": "g_g1",
+      "relevant_to": [
+        "q4"
+      ],
+      "note": "syndicated: dateline",
+      "text": "Ostrava (Zpravodaj Sever) – Online nákupy potravin s doručením domů loni v Česku vzrostly o 17 procent, uvádí smyšlená Asociace internetových obchodů. Doručení potravin využilo alespoň jednou 28 procent domácností, nejčastěji rodiny s malými dětmi ve velkých městech. Průměrná objednávka dosáhla 1 450 korun. Obchodníci rozšiřují doručování do menších měst a zkracují časová okna doručení, služba Nákupník nově vozí nákupy do dvou hodin. Mimo velká města ale online nákup potravin zůstává spíše výjimkou."
+    },
+    {
+      "id": "g03",
+      "lang": "cs",
+      "dup_group": "g_g1",
+      "relevant_to": [
+        "q4"
+      ],
+      "note": "syndicated: a figure changed and the last sentence cut",
+      "text": "Online nákupy potravin s doručením domů loni v Česku vzrostly o 17 procent, uvádí smyšlená Asociace internetových obchodů. Doručení potravin využilo alespoň jednou 28 procent domácností, nejčastěji rodiny s malými dětmi ve velkých městech. Průměrná objednávka dosáhla 1 460 korun. Obchodníci rozšiřují doručování do menších měst a zkracují časová okna doručení, služba Nákupník nově vozí nákupy do dvou hodin."
+    },
+    {
+      "id": "g04",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [
+        "q4"
+      ],
+      "text": "Online grocery delivery in Czechia grew by 17 percent last year, a fictional e-commerce association says. Twenty-eight percent of households ordered groceries online at least once, most often families with small children in big cities. Retailers are extending delivery to smaller towns and shortening delivery windows."
+    },
+    {
+      "id": "g05",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [
+        "q4"
+      ],
+      "text": "Rozvoz potravin se rozšiřuje i do menších měst. Smyšlený řetězec Nákupník od října doručuje objednávky z e-shopu do třiceti nových obcí na Vysočině. Zákazníci si mohou vybrat dvouhodinové okno doručení a zaplatit při převzetí. Podle obchodníků roste zájem o online nákup potravin hlavně mezi seniory."
+    },
+    {
+      "id": "g06",
+      "lang": "sk",
+      "dup_group": null,
+      "relevant_to": [
+        "q4"
+      ],
+      "text": "Online nákup potravín s doručením domov využíva na Slovensku už pätina domácností. Podľa vymyslenej asociácie internetových obchodov je priemerná objednávka 58 eur a najviac objednávok prichádza z Bratislavy. Obchodníci rozširujú rozvoz aj do menších miest."
+    },
+    {
+      "id": "g07",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "hard negative for near-duplicates: shares only the boilerplate with p01 and c01",
+      "text": "Nová provozovna smyšleného řetězce Nákupník v Jihlavě nabídne 120 pracovních míst. Firma hledá skladníky, řidiče a pracovníky zákaznické linky. Nástup je možný od listopadu, zájemci se mohou hlásit na náborovém dni v pátek. O agentuře Trhoměr: Trhoměr je smyšlená výzkumná agentura, která od roku 2011 sleduje spotřebitelské trhy ve střední Evropě a pravidelně zveřejňuje své zprávy."
+    },
+    {
+      "id": "x01",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "Meteorologové varují před silnými bouřkami, které v noci zasáhnou většinu Čech. Hrozí přívalové srážky, krupobití a nárazy větru až 90 kilometrů za hodinu. Lidé by neměli parkovat pod stromy a měli by si zajistit volné předměty."
+    },
+    {
+      "id": "x02",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "Fotbalisté smyšleného klubu FK Lipová porazili v sobotu soupeře 3:1 a posunuli se na třetí místo tabulky. Dvěma góly se blýskl útočník, který se vrátil po zranění. Trenér ocenil hlavně výkon obrany ve druhém poločase."
+    },
+    {
+      "id": "x03",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "Recept na bramborové placky: nastrouhejte kilo brambor, přidejte dvě vejce, česnek, majoránku a hrst mouky. Těsto osolte a placky smažte na rozpáleném oleji dozlatova z obou stran. Podávejte s kysaným zelím."
+    },
+    {
+      "id": "x04",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "A new hiking trail opened in the fictional Lindenvale national park this weekend. The twelve-kilometre route follows the river through old beech forest and ends at a viewpoint above the valley. Rangers ask visitors to stay on the marked path."
+    },
+    {
+      "id": "x05",
+      "lang": "en",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "The fictional town council of Eastbrook voted to extend library opening hours on weekends. Councillors said the change would cost little and that students had asked for more quiet space to study before exams."
+    },
+    {
+      "id": "x06",
+      "lang": "sk",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "Futbalisti vymysleného klubu FK Lipová vyhrali v nedeľu na ihrisku súpera 2:0. Tréner bol spokojný s výkonom mužstva, ktoré je po desiatich kolách na druhom mieste tabuľky. Ďalší zápas odohrá doma."
+    },
+    {
+      "id": "x07",
+      "lang": "other",
+      "dup_group": null,
+      "relevant_to": [
+        "q1"
+      ],
+      "note": "German: relevant, but outside the allowed languages",
+      "text": "Der Markt für pflanzliche Getränke in Tschechien ist im letzten Jahr um 14 Prozent gewachsen. Haferdrinks waren besonders gefragt, während Sojadrinks stagnierten. Die meisten Käufer leben in großen Städten."
+    },
+    {
+      "id": "x08",
+      "lang": "other",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "Polish",
+      "text": "Sprzedaż rowerów elektrycznych w polskich miastach wzrosła w zeszłym roku o jedną piątą. Najwięcej rowerów sprzedano w Warszawie i Krakowie, gdzie miasta budują nowe drogi rowerowe."
+    },
+    {
+      "id": "x09",
+      "lang": "unknown",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "short: under the language minimum",
+      "text": "Kontakt pro média: tisková mluvčí, telefon 555 000 111."
+    },
+    {
+      "id": "x10",
+      "lang": "unknown",
+      "dup_group": null,
+      "relevant_to": [
+        "q2"
+      ],
+      "note": "short headline",
+      "text": "Elektrokola: ceny 2025"
+    },
+    {
+      "id": "x11",
+      "lang": "unknown",
+      "dup_group": null,
+      "relevant_to": [],
+      "note": "empty text",
+      "text": "   \n\t  "
+    },
+    {
+      "id": "x12",
+      "lang": "cs",
+      "dup_group": null,
+      "relevant_to": [],
+      "text": "Smyšlené sdružení včelařů hlásí letos podprůměrnou úrodu medu. Za slabší sezónu může studené jaro a sucho v létě. Cena medu od včelařů proto vzroste zhruba o desetinu, odhaduje sdružení."
+    }
+  ]
+}

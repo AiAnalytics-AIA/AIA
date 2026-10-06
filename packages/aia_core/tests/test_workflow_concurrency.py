@@ -367,13 +367,16 @@ def test_concurrent_reconcilers_recover_each_attempt_once(
         # Reserve for two of them and dispatch, so recovery must settle
         # uncertain exposure -- the expensive path to double-count.
         for work in claimed[:2]:
-            setup_repo.reserve_budget(
+            hold = setup_repo.reserve_budget(
                 attempt_id=work.attempt_id,
                 worker_id=work.worker_id,
                 amount_usd=5.0,
                 provider=Provider.ANTHROPIC,
             )
-            setup_repo.mark_paid_call_dispatched(work.attempt_id, worker_id=work.worker_id)
+            assert hold is not None
+            setup_repo.mark_paid_call_dispatched(
+                work.attempt_id, worker_id=work.worker_id, reservation_id=hold
+            )
 
         for work in claimed:
             attempt = setup_session.get(StepAttemptRow, work.attempt_id)
@@ -917,14 +920,18 @@ def test_uncertain_settlement_is_charged_exactly_once_under_contention(
     try:
         claimed = repo.claim_next(worker_id="worker-1")
         assert claimed is not None
-        repo.reserve_budget(
+        hold = repo.reserve_budget(
             attempt_id=claimed.attempt_id,
             worker_id=claimed.worker_id,
             amount_usd=7.5,
             provider=Provider.ANTHROPIC,
         )
+        assert hold is not None
         repo.mark_paid_call_dispatched(
-            claimed.attempt_id, worker_id=claimed.worker_id, provider_request_id="req_x"
+            claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            reservation_id=hold,
+            provider_request_id="req_x",
         )
         attempt = session.get(StepAttemptRow, claimed.attempt_id)
         assert attempt is not None

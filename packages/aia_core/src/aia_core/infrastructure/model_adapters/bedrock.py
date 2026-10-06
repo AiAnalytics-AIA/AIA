@@ -17,6 +17,15 @@ arrives as ``toolUse.input`` and still goes through AIA's deterministic validato
 Bedrock's newer ``outputConfig.textFormat`` is not used: its model support is
 narrower, and the forced tool is the shape every Anthropic model on Bedrock accepts.
 
+**Extended thinking** (a request with ``thinking_budget_tokens``) is sent as
+``additionalModelRequestFields.thinking`` (``type: enabled``, ``budget_tokens``).
+Claude refuses a forced tool choice with thinking on, so the same single tool is
+offered with ``toolChoice.auto`` and the gateway's instruction to answer through it;
+an answer in text is then the gateway's violation, not this adapter's. Thinking
+takes no sampling setting, so a temperature with it is refused unsent, as is a
+budget the output limit does not exceed. The reasoning blocks of the answer
+(``reasoningContent``) are skipped: neither the text nor its signature is kept.
+
 Classification, from the service model's error shapes (``x-amzn-errortype`` header,
 else the body's ``__type`` / ``code``):
 
@@ -183,6 +192,7 @@ class BedrockConverseAdapter:
 
     def build_body(self, request: AdapterRequest) -> dict[str, Any]:
         """The Converse request body for one call."""
+        thinking = request.thinking_budget_tokens
         inference: dict[str, Any] = {"maxTokens": request.max_output_tokens}
         if request.temperature is not None:
             inference["temperature"] = request.temperature
@@ -206,9 +216,29 @@ class BedrockConverseAdapter:
                         }
                     }
                 ],
-                "toolChoice": {"tool": {"name": name}},
+                # Thinking allows only ``auto``; the gateway's instruction does the rest.
+                "toolChoice": {"auto": {}} if thinking is not None else {"tool": {"name": name}},
+            }
+        if thinking is not None:
+            body["additionalModelRequestFields"] = {
+                "thinking": {"type": "enabled", "budget_tokens": thinking}
             }
         return body
+
+    @staticmethod
+    def _thinking_problem(request: AdapterRequest) -> str:
+        """Why a thinking request cannot be sent as it stands; empty when it can."""
+        budget = request.thinking_budget_tokens
+        if budget is None:
+            return ""
+        if request.temperature is not None:
+            return "a thinking request takes no temperature"
+        if budget >= request.max_output_tokens:
+            return (
+                f"thinking budget {budget} is not below the output limit "
+                f"{request.max_output_tokens}"
+            )
+        return ""
 
     def build_request(self, request: AdapterRequest) -> HttpRequest:
         """The exact, signed HTTP request for one call."""
@@ -228,6 +258,10 @@ class BedrockConverseAdapter:
                 kind=ProviderErrorKind.MODEL,
                 delivery=Delivery.NOT_SENT,
             )
+        problem = self._thinking_problem(request)
+        if problem:
+            # The provider would answer 400; refusing here keeps it unsigned and unsent.
+            raise ProviderError(problem, kind=ProviderErrorKind.OTHER, delivery=Delivery.NOT_SENT)
         try:
             http_request = self.build_request(request)
         except SigningUnavailable as exc:
@@ -270,6 +304,8 @@ class BedrockConverseAdapter:
         for block in content:
             if not isinstance(block, Mapping):
                 continue
+            # ``reasoningContent`` (extended thinking) is neither text nor the answer:
+            # it is skipped, and nothing of it is kept.
             if isinstance(block.get("text"), str):
                 texts.append(block["text"])
             tool_use = block.get("toolUse")

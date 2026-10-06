@@ -235,6 +235,54 @@ def test_a_possibly_billed_failure_is_recovery_required_and_never_retried(
     assert worker.run_once() is None, "no automatic retry of a possibly-billed call"
 
 
+def test_one_answered_call_does_not_make_an_overlapping_one_safe_to_retry(
+    study: Any, make_worker: MakeWorker, sessions: sessionmaker[Session]
+) -> None:
+    """Two calls in flight at once; one settled at $1; the other times out after sending.
+
+    Before, the first settle closed the attempt's one outcome flag, the timeout
+    was retried as a new attempt, and the second call's $3 hold was released --
+    a call that may have been billed, run again and recorded as free.
+    """
+    run_id = study.create_run(
+        {"paid_overlapping": {"reserve": [2.0, 3.0], "cost": 1.0, "crash_in_flight": True}}
+    )
+    worker = make_worker()
+
+    result = worker.run_once()
+
+    assert result is not None
+    assert result.step_status is StepRunStatus.RECOVERY_REQUIRED
+    assert study.run(run_id)["status"] is WorkflowRunStatus.RECOVERY_REQUIRED
+    with sessions() as session:
+        holds = session.scalars(
+            select(BudgetReservationRow).order_by(BudgetReservationRow.amount_usd)
+        ).all()
+        assert [(h.amount_usd, h.status, h.settled_amount_usd) for h in holds] == [
+            (2.0, ReservationStatus.SETTLED.value, 1.0),
+            (3.0, ReservationStatus.SETTLED_UNCERTAIN.value, 3.0),
+        ]
+    budget = study.budget()
+    assert budget["spent_usd"] == pytest.approx(4.0)
+    assert budget["uncertain_usd"] == pytest.approx(3.0)
+    assert worker.run_once() is None, "no automatic retry of a possibly-billed call"
+
+
+def test_overlapping_calls_all_answered_complete_at_their_real_cost(
+    study: Any, make_worker: MakeWorker
+) -> None:
+    """The same fan-out with every call answered: nothing uncertain, nothing over-charged."""
+    run_id = study.create_run({"paid_overlapping": {"reserve": [2.0, 3.0], "cost": 1.0}})
+
+    assert make_worker().run_once() is not None
+
+    assert _step(study, run_id)["status"] is StepRunStatus.SUCCEEDED
+    budget = study.budget()
+    assert budget["spent_usd"] == pytest.approx(2.0)
+    assert budget["reserved_usd"] == pytest.approx(0.0)
+    assert budget["uncertain_usd"] == pytest.approx(0.0)
+
+
 def test_running_out_of_budget_parks_awaiting_budget(study: Any, make_worker: MakeWorker) -> None:
     run_id = study.create_run({"paid": {"reserve": 500.0, "cost": 1.0}})
 

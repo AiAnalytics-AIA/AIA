@@ -60,6 +60,10 @@ def new_tool_event_id() -> str:
 class ToolKind(StrEnum):
     WEB_SEARCH = "web_search"
     WEB_FETCH = "web_fetch"
+    #: A query of a web archive's URL index (Common Crawl through Athena, plan chunk 18).
+    URL_INDEX_QUERY = "url_index_query"
+    #: One archived record read from a web archive by byte range (plan chunk 18).
+    ARCHIVE_FETCH = "archive_fetch"
     #: One query to a public dataset connector (DataStat, NKOD …): its text is the
     #: dataset id and filters, classified like a search query (plan § 5.3).
     DATASET_QUERY = "dataset_query"
@@ -77,6 +81,8 @@ class ToolOutcome(StrEnum):
     UNCERTAIN = "UNCERTAIN"
     #: AIA refused it before anything was sent (class, route, address, budget).
     REFUSED = "REFUSED"
+    #: Answered from what this run already captured: nothing was sent, nothing charged.
+    CACHED = "CACHED"
 
     @property
     def is_terminal(self) -> bool:
@@ -246,7 +252,9 @@ class InMemoryToolLedger:
     def outcome(self, event: ToolUsageEvent) -> None:
         if not event.outcome.is_terminal:
             raise ValueError("an outcome is a terminal entry")
-        if event.outcome is not ToolOutcome.REFUSED and not any(
+        if event.outcome is ToolOutcome.CACHED and (event.cost_usd or event.reservation_id):
+            raise ValueError("a cached answer sent nothing: it holds and costs nothing")
+        if event.outcome not in (ToolOutcome.REFUSED, ToolOutcome.CACHED) and not any(
             e.call_id == event.call_id and e.outcome is ToolOutcome.DISPATCHED for e in self._events
         ):
             raise ValueError("an outcome closes a dispatched call")
