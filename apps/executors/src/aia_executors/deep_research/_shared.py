@@ -59,6 +59,11 @@ class _Answer:
         return f"{self.gate.value}:{self.reason}" if self.gate is not None else ""
 
 
+def _agent_directed(plan: PlanRecord) -> bool:
+    """Whether the run was planned with agent-directed web tracks (recorded on the plan)."""
+    return "investigator" in plan.versions
+
+
 def _unconfigured() -> Failed:
     return Failed(
         FailureClass.RUNTIME_UNAVAILABLE,

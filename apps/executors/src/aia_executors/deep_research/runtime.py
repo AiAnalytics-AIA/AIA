@@ -13,12 +13,15 @@ from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.ai_contracts import check_thinking_budget
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
+from aia_core.domain.deep_research.brief import BRIEF_VERSION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
+from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1, ConfidenceWeights
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
 from aia_core.domain.deep_research.grounding import GROUNDING_VERSION
 from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
+from aia_core.domain.deep_research.reputation import ReputationRegister
 from aia_core.domain.deep_research.sources import SourceTable
 from aia_core.domain.deep_research.tooling import (
     TOOL_EVENT_KINDS,
@@ -28,6 +31,7 @@ from aia_core.domain.deep_research.tooling import (
     ToolReservation,
     ToolUsageEvent,
 )
+from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSION
 from aia_core.domain.providers import Provider
 from aia_worker.executor import StepContext
 
@@ -79,6 +83,13 @@ class DeepResearchRuntime:
     source_table: SourceTable
     #: The journal's clock: when a tool call was made (a snapshot keeps its own time).
     clock: Callable[[], datetime] = _utcnow
+    #: The reputation register the agent-directed review names publishers by (chunk 12).
+    #: ``None``: publishers are hosts, nothing is traced to a primary source. The planned
+    #: mode never reads it.
+    register: ReputationRegister | None = None
+    #: The weights an agent-directed brief's confidence is computed by (chunk 13; proposed
+    #: until approved with the tiers). The planned mode never reads them.
+    weights: ConfidenceWeights = CONFIDENCE_WEIGHTS_V1
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
@@ -107,8 +118,13 @@ class DeepResearchRuntime:
         if self.config.thinking_budget_tokens is not None:
             versions["thinking_budget_tokens"] = str(self.config.thinking_budget_tokens)
         if self.config.agent_directed:
-            # Only when on: the mode a run was planned in is the mode it investigates in.
+            # Only when on: the mode a run was planned in is the mode it investigates in,
+            # the rules and register it is verified by, and the brief's rules and weights.
             versions["investigator"] = INVESTIGATOR_VERSION
+            versions["verification"] = VERIFICATION_RULES_VERSION
+            versions["register"] = self.register.version if self.register is not None else "none"
+            versions["brief"] = BRIEF_VERSION
+            versions["confidence_weights"] = self.weights.version
         return versions
 
 

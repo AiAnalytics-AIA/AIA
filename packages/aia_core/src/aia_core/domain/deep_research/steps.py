@@ -31,6 +31,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 
 from ..residency import DataClass
 from .agents import AgentRole
+from .brief import ResearchBrief
 from .bundle import SnapshotRef
 from .contracts import (
     DeepResearchRequest,
@@ -50,6 +51,8 @@ from .contracts import (
 from .merge import AcceptedEvidence, Candidate, SourceFacts
 from .planning import DepthPreset
 from .synthesis import SynthesisCheck
+from .verification import VerificationReview
+from .verifier import ClaimJudgement
 
 __all__ = [
     "AllowanceRecord",
@@ -280,6 +283,17 @@ class VerificationBatch(_Closed):
     #: evidence id -> [verdict, reason], for the ids of this batch only.
     verdicts: dict[str, tuple[str, str]]
     call: CallRecord
+    #: The independent verifier's whole judgements (agent-directed mode, chunk 12). Empty
+    #: for the planned mode's verifier, and then left out of the stored form, so a batch
+    #: stored before it existed reads, dumps and hashes exactly as it did.
+    judgements: tuple[ClaimJudgement, ...] = ()
+
+    @model_serializer(mode="wrap")
+    def _omit_no_judgements(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if not self.judgements and isinstance(data, dict):
+            data.pop("judgements", None)
+        return data
 
 
 class BatchEntry(_Closed):
@@ -299,6 +313,17 @@ class VerifyRecord(_Closed):
     batches: tuple[BatchEntry, ...]
     accepted: tuple[AcceptedEvidence, ...]
     quarantined: tuple[QuarantinedEvidence, ...]
+    #: An agent-directed run's review (chunk 12): independence, primary tracing, leads,
+    #: supersessions, conflicts and resolve-track requests. None in the planned mode,
+    #: and then left out of the stored form, which is unchanged.
+    review: VerificationReview | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_review(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if self.review is None and isinstance(data, dict):
+            data.pop("review", None)
+        return data
 
 
 class SynthesisArtifact(_Closed):
@@ -309,6 +334,23 @@ class SynthesisArtifact(_Closed):
     call: CallRecord | None
     #: Why no request was sent (``gate:reason``), when none was.
     refused: str | None
+    #: The agent-directed brief (chunk 13): findings with confidence by code, conflicts,
+    #: gaps, acquisition gaps; ``check`` is its planned-mode shape. None in the planned
+    #: mode, and then left out of the stored form, which is unchanged.
+    brief: ResearchBrief | None = None
+    #: The one repair request a failed agent-directed draft got, when it got one. Left
+    #: out of the stored form when None.
+    repair_call: CallRecord | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_no_brief(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            if self.brief is None:
+                data.pop("brief", None)
+            if self.repair_call is None:
+                data.pop("repair_call", None)
+        return data
 
 
 def _cost(calls: Iterable[CallRecord]) -> float:
@@ -338,6 +380,8 @@ def tally(
     calls += [batch_calls[b.fingerprint] for b in batches if b.fingerprint in batch_calls]
     if synthesis.call is not None and not synthesis_reused:
         calls.append(synthesis.call)
+        if synthesis.repair_call is not None:
+            calls.append(synthesis.repair_call)
     snapshots = {s.snapshot_id for r, _ in results for s in r.snapshots}
     counts = {
         "tracks": len(results) + len(plan.beyond),

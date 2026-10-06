@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from aia_core.domain.deep_research.agents import (
     PROMPT_VERSION,
     AgentRole,
@@ -11,12 +13,15 @@ from aia_core.domain.deep_research.agents import (
 from aia_core.domain.deep_research.classification import most_restrictive
 from aia_core.domain.deep_research.contracts import (
     HARNESS_VERSION,
+    QuarantinedEvidence,
     QuarantineReason,
+    SnapshotLink,
     TrackStatus,
     digest,
 )
 from aia_core.domain.deep_research.merge import (
     MERGE_RULES_VERSION,
+    Candidate,
     TrackEvidence,
     apply_verdicts,
     excerpt_window,
@@ -27,16 +32,37 @@ from aia_core.domain.deep_research.steps import (
     BatchEntry,
     InvestigationRecord,
     MergeRecord,
+    PlanRecord,
     SnapshotArtifact,
     TrackResult,
     VerificationBatch,
     VerifyRecord,
     run_scoped,
 )
+from aia_core.domain.deep_research.tracing import TraceSource, trace_findings
+from aia_core.domain.deep_research.triangulation import (
+    IndependenceSource,
+    independence_groups,
+    publisher_identity,
+)
+from aia_core.domain.deep_research.verification import (
+    RELATED_LIMIT,
+    VERIFICATION_RULES_VERSION,
+    VerificationReview,
+    review_candidates,
+    verifier_item,
+)
+from aia_core.domain.deep_research.verifier import (
+    VERIFIER_CONTRACT_VERSION,
+    VERIFIER_PROMPT_VERSION,
+    ClaimJudgement,
+    Verification,
+)
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 
 from ..research import upstream_artifact
 from ._shared import (
+    _agent_directed,
     _composition_changed,
     _invalid,
     _lineage,
@@ -45,6 +71,7 @@ from ._shared import (
     _Step,
     _unconfigured,
 )
+from .runtime import DeepResearchRuntime
 
 __all__ = ["MergeExecutor", "VerifyExecutor"]
 
@@ -113,6 +140,19 @@ class MergeExecutor(_Step):
         return _produced(artifact, reused=not created)
 
 
+def _refused_detail(
+    quarantined: Sequence[QuarantinedEvidence], entries: Sequence[BatchEntry]
+) -> tuple[QuarantinedEvidence, ...]:
+    """An unverified candidate of a refused batch says which gate refused it."""
+    refused = {i: e.refused for e in entries if e.refused for i in e.evidence_ids}
+    return tuple(
+        q.model_copy(update={"detail": f"verification refused: {refused[q.evidence_id]}"})
+        if q.reason is QuarantineReason.UNVERIFIED and q.evidence_id in refused
+        else q
+        for q in quarantined
+    )
+
+
 # --------------------------------------------------------------------------- #
 # verify
 # --------------------------------------------------------------------------- #
@@ -168,6 +208,8 @@ class VerifyExecutor(_Step):
                 "source_missing",
                 "candidates cite sources the run does not hold: " + ", ".join(missing),
             )
+        if _agent_directed(plan):
+            return self._directed(step, context, runtime, plan, merge_id, key, merge, texts)
 
         caller = self._caller(context, runtime)
         entries: list[BatchEntry] = []
@@ -294,5 +336,227 @@ class VerifyExecutor(_Step):
             reused=sum(1 for e in entries if e.reused),
             refused=sum(1 for e in entries if e.refused),
             accepted=len(accepted),
+        )
+        return _produced(artifact, reused=not created)
+
+    # ----------------------------------------------------------------------- #
+    # The agent-directed mode (plan deep-research-web-search.md § 8.3-8.5)
+    # ----------------------------------------------------------------------- #
+
+    def _directed(
+        self,
+        step: StepInput,
+        context: StepContext,
+        runtime: DeepResearchRuntime,
+        plan: PlanRecord,
+        merge_id: str,
+        key: str,
+        merge: MergeRecord,
+        texts: dict[str, str],
+    ) -> StepOutcome:
+        """Independence, tracing, the independent verifier, supersession and conflicts.
+
+        The same batches as the planned mode, each shown to the independent verifier
+        with its measures, its source's trace and the publisher's other figures;
+        everything it decided beside acceptance is the record's ``review``.
+        """
+        register = runtime.register
+        candidates = merge.candidates
+        with context.transaction() as (session, _workflow):
+            repo = self._repo(session, context)
+            investigation = self._read(repo, merge.investigation_artifact_id, InvestigationRecord)
+            results = [self._read(repo, e.artifact_id, TrackResult) for e in investigation.tracks]
+            snapshot_ids = {s.snapshot_id: s.artifact_id for r in results for s in r.snapshots}
+            refs = sorted({c.evidence.source_ref for c in candidates} & set(snapshot_ids))
+            links: dict[str, tuple[SnapshotLink, ...]] = {
+                ref: self._read(repo, snapshot_ids[ref], SnapshotArtifact).snapshot.links
+                for ref in refs
+            }
+        published_by_ref = {s.ref: s.published for r in results for s in r.sources}
+        published = {
+            c.evidence.evidence_id: published_by_ref.get(c.evidence.source_ref) for c in candidates
+        }
+        sources: dict[str, IndependenceSource] = {}
+        for c in candidates:
+            ref = c.evidence.source_ref
+            sources.setdefault(
+                ref,
+                IndependenceSource(
+                    ref=ref,
+                    publisher=publisher_identity(
+                        url=c.evidence.source_url, source_ref=ref, register=register
+                    ),
+                    text=texts[ref],
+                ),
+            )
+        groups = independence_groups(list(sources.values()))
+        trace_records, primary_leads = trace_findings(
+            [c.evidence for c in candidates],
+            {
+                c.evidence.source_ref: TraceSource(
+                    ref=c.evidence.source_ref,
+                    url=c.evidence.source_url,
+                    text=texts[c.evidence.source_ref],
+                    links=links.get(c.evidence.source_ref, ()),
+                )
+                for c in candidates
+            },
+            register=register,
+        )
+        traces = {t.evidence_id: t for t in trace_records}
+
+        caller = self._caller(context, runtime)
+        entries: list[BatchEntry] = []
+        judgements: dict[str, ClaimJudgement] = {}
+        for batch in verification_batches(candidates, size=plan.depth.verify_batch):
+            context.checkpoint()
+            shown: list[Candidate] = list(batch)
+            items = []
+            for c in batch:
+                related = [
+                    o
+                    for o in candidates
+                    if o.evidence.evidence_id != c.evidence.evidence_id
+                    and traces[o.evidence.evidence_id].publisher
+                    == traces[c.evidence.evidence_id].publisher
+                ][:RELATED_LIMIT]
+                shown += related
+                items.append(
+                    verifier_item(
+                        c,
+                        excerpt=excerpt_window(texts[c.evidence.source_ref], c.evidence.quote_span),
+                        trace=traces[c.evidence.evidence_id],
+                        related=related,
+                    )
+                )
+            ids = tuple(str(i["evidence_id"]) for i in items)
+            fingerprint = digest(
+                {
+                    "kind": "independent_verification",
+                    "items": items,
+                    "policy": runtime.config.policy_version,
+                    "prompt": VERIFIER_PROMPT_VERSION,
+                    "contract": VERIFIER_CONTRACT_VERSION,
+                    "harness": HARNESS_VERSION,
+                }
+            )
+            with context.transaction() as (session, _workflow):
+                repo = self._repo(session, context)
+                found = self._find(repo, step, "verification", fingerprint)
+                stored = self._read(repo, found.artifact_id, VerificationBatch) if found else None
+            if found is not None and stored is not None:
+                entries.append(
+                    BatchEntry(
+                        fingerprint=fingerprint,
+                        evidence_ids=ids,
+                        artifact_id=found.artifact_id,
+                        reused=self._reused(found, step),
+                        refused=None,
+                    )
+                )
+            else:
+                knowledge = [
+                    k
+                    for ref in dict.fromkeys(o.evidence.source_ref for o in shown)
+                    if (k := plan.request.knowledge.source(ref)) is not None
+                ]
+                answer = self._ask(
+                    caller,
+                    runtime,
+                    AgentRole.INDEPENDENT_VERIFIER,
+                    payload={"items": items},
+                    data_class=most_restrictive([o.evidence.data_class for o in shown]),
+                    lineage=_lineage(knowledge),
+                )
+                if answer.gate is not None:
+                    entries.append(
+                        BatchEntry(
+                            fingerprint=fingerprint,
+                            evidence_ids=ids,
+                            artifact_id=None,
+                            reused=False,
+                            refused=answer.refused,
+                        )
+                    )
+                    continue
+                assert isinstance(answer.output, Verification) and answer.call is not None
+                answered: dict[str, ClaimJudgement] = {}
+                for j in answer.output.judgements:
+                    if j.evidence_id in ids and j.evidence_id not in answered:
+                        answered[j.evidence_id] = j
+                stored = VerificationBatch(
+                    kind="deep_research_verification",
+                    evidence_ids=ids,
+                    verdicts={k: (j.verdict.value, j.reason) for k, j in answered.items()},
+                    call=answer.call,
+                    judgements=tuple(answered.values()),
+                )
+                with context.transaction() as (session, _workflow):
+                    artifact, _created = self._put(
+                        self._repo(session, context),
+                        step,
+                        payload=stored,
+                        kind="verification",
+                        key=fingerprint,
+                    )
+                entries.append(
+                    BatchEntry(
+                        fingerprint=fingerprint,
+                        evidence_ids=ids,
+                        artifact_id=artifact.artifact_id,
+                        reused=False,
+                        refused=None,
+                    )
+                )
+            judgements.update({j.evidence_id: j for j in stored.judgements})
+
+        outcome = review_candidates(
+            candidates,
+            judgements,
+            groups=groups,
+            traces=traces,
+            published=published,
+            register=register,
+        )
+        distinct = {g.group_id: g for g in groups.values()}
+        review = VerificationReview(
+            kind="deep_research_verification_review",
+            rules_version=VERIFICATION_RULES_VERSION,
+            register_version=register.version if register is not None else None,
+            independence=tuple(distinct[k] for k in sorted(distinct)),
+            traces=trace_records,
+            primary_leads=primary_leads,
+            verifier_leads=outcome.verifier_leads,
+            supersessions=outcome.supersessions,
+            conflicts=outcome.conflicts,
+            resolve_requests=outcome.resolve_requests,
+        )
+        record = VerifyRecord(
+            kind="deep_research_verify",
+            merge_artifact_id=merge_id,
+            batches=tuple(entries),
+            accepted=outcome.accepted,
+            quarantined=(*merge.quarantined, *_refused_detail(outcome.quarantined, entries)),
+            review=review,
+        )
+        with context.transaction() as (session, _workflow):
+            artifact, created = self._put(
+                self._repo(session, context),
+                step,
+                payload=record,
+                kind="verify",
+                key=key,
+                depends_on=[merge_id, *(e.artifact_id for e in entries if e.artifact_id)],
+            )
+        context.progress(
+            "deep_research_verified",
+            batches=len(entries),
+            reused=sum(1 for e in entries if e.reused),
+            refused=sum(1 for e in entries if e.refused),
+            accepted=len(outcome.accepted),
+            superseded=len(outcome.supersessions),
+            conflicts=len(outcome.conflicts),
+            resolve_requests=len(outcome.resolve_requests),
+            primary_leads=len(primary_leads),
         )
         return _produced(artifact, reused=not created)
