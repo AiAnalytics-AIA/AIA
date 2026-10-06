@@ -61,14 +61,35 @@ def test_wikipedia_search_uses_one_checked_ip_and_public_article_namespace() -> 
 
 def test_search_refuses_mixed_resolution_and_oversized_query_before_egress() -> None:
     transport = Transport(_response({"query": {"search": []}}))
-    with pytest.raises(FetchRefused):
-        WikipediaSearch(
-            resolver=Resolver(("93.184.215.14", "10.0.0.5")), transport=transport
-        ).search("Praha", max_results=1)
+    for addresses, reason in (
+        (("93.184.215.14", "10.0.0.5"), "address_not_public"),
+        ((), "address_unresolved"),
+    ):
+        with pytest.raises(ToolCallFailed) as unsent:
+            WikipediaSearch(resolver=Resolver(addresses), transport=transport).search(
+                "Praha", max_results=1
+            )
+        assert unsent.value.delivery is Delivery.NOT_SENT and unsent.value.reason == reason
     with pytest.raises(ToolCallFailed) as refused:
         WikipediaSearch(resolver=Resolver(), transport=transport).search("x" * 513, max_results=1)
     assert refused.value.delivery is Delivery.NOT_SENT
     assert transport.calls == []
+
+
+@dataclass
+class RefusingTransport:
+    retrieval_mode: RetrievalMode = RetrievalMode.LIVE
+
+    def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+        raise FetchRefused("refused before connecting", reason="https_only")
+
+
+def test_a_transport_refusal_is_a_failure_that_sent_nothing() -> None:
+    with pytest.raises(ToolCallFailed) as unsent:
+        WikipediaSearch(resolver=Resolver(), transport=RefusingTransport()).search(
+            "Praha", max_results=1
+        )
+    assert unsent.value.delivery is Delivery.NOT_SENT and unsent.value.reason == "https_only"
 
 
 def test_search_refuses_unusable_provider_response() -> None:
