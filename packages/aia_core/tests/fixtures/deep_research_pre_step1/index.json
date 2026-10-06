@@ -1,0 +1,11 @@
+{
+ "bundle_seal": "cd857f94d530809bfc85e257ae5ca23c1d49f69b692f9409f993dee8a7f94f81",
+ "captured_at": "579b7abd47aef4748436ec6f9411954de0d6b1ba",
+ "files": {
+  "bundle.json": "0531c0b60c4e4b48a697ae0afafd52f78d7fa5216e67c4083a085d87c9e376b1",
+  "request.json": "d70ba3a48ff950df3b451749e7e9f604c4b95126b1b462c6f96dfca441821d09",
+  "run_metadata.json": "354d58aa8adba0fc9fed2a0364ea116860f4e639009b75a617b0bf395f335162"
+ },
+ "how": "apps/executors/tests/test_deep_research_journey.py pass_one on develop before ADR 0021: DeepResearchRuns.freeze over the run's revision, the run's metadata, its published bundle",
+ "request_fingerprint": "f6a85316cd41fb35b6fe35991945f124c5ff06aacdef06f702cd84d94d26039c"
+}

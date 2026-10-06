@@ -521,11 +521,22 @@ PR #56 has merged and deployed, and the fictional Class C acceptance is done (20
   fingerprints, merge/verify, the brief's checks, the sealed bundle, respondent quarantine);
   PR 2 (#81, `feature/deep-research-execution`), recorded execution through the worker (chunks
   e–h): the gate, the runs, six executors, the production-shaped composition (every web track
-  blocked, nothing sent) and the recorded one; the journey measures two passes. Not registered,
-  not deployed, not enabled. Next for it is Job 6's registration list and the eight live-search
-  decisions ([deep-research.md](../docs/architecture/deep-research.md) §§ 10, 12). Live use waits on DR-2 (and DR-2b, below) and D6; AR-2 accepted ADR 0010 for
-  fictional Class C on develop only (2026-09-26). Where it sits against OI-58 / OI-59 is the
-  data owner's call.
+  blocked, nothing sent) and the recorded one; the journey measures two passes. **Since then
+  (2026-09-30 – 2026-10-06):** the API route and the default registry (#92; a run parks without
+  `AIA_DEEP_RESEARCH_ENABLED`), the Czech Wikipedia live route (Class C), and the
+  [web-search plan](plans/deep-research-web-search.md)'s engine, chunks 2–22 (investigators, the
+  lead, the acquisition ladder, verification, confidence, connectors, the crawler, Common Crawl,
+  filters, triage, presets and the cost ceiling, fan-out with recovery, #136–#166). The engine is
+  now **frozen** (ADR 0021). **ADR 0021 (2026-10-06)** places Deep Research at two methodological
+  checkpoints rather than one stage — `DESIGN_RESEARCH` before the methodology freeze (proposals
+  only) and `INTERPRETATION_RESEARCH` over immutable results (no mutation authority) — and gives
+  every new run a purpose, a typed target and a frozen lineage around the unchanged engine
+  request and sealed bundle. Next, in order: the backend of chunk 23 (per-kind reservations
+  first), Design Research integration, Interpretation Research integration, the Sociomap
+  Research Lens, the report evidence graph, then the operator surface, evaluation and live
+  activation (that plan, § 0). Live use waits on DR-2 (and DR-2b, below) and D6; AR-2 accepted
+  ADR 0010 for fictional Class C on develop only (2026-09-26). Where it sits against OI-58 / OI-59
+  is the data owner's call.
 - **OI-58**: port the research store from the unit into AIA's study-scoped
   project, stage by stage; remove `study_workspaces` when no stage reads the unit.
 - **OI-59**: open `/app` to members by client and study grant once OI-58 no
@@ -703,7 +714,7 @@ with the topic until they are renumbered in one change with every reference.*
 | ANL-2 | **Should thin support pause analysis for a person** (`donor_qc`'s `review_if_warning`), or is per-row suppression enough | A review gate before the analysis nodes | `legacy/npc-panel-18.6.6/app/worker_job.py:558-566` · [plan](plans/evidence-backed-analysis.md) |
 | ANL-3 | **Port run QC (`qc.kontrola`)** with its author-calibrated thresholds as warnings, as gates, or not at all | `analysis.qc` | `legacy/npc-panel-18.6.6/app/qc.py:24`, `:70-262` |
 | ANL-4 | **Must every key finding cite evidence, and must a module state a finding?** The unit refused an analysis where fewer than 95 % of findings cited evidence, or with none; AIA admits both | Parity of the analysis gate's two looser cases | `test_analysis_gate_parity.py` cases `finding-without-evidence`, `no-finding-at-all` |
-| DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run. Proposed presets QUICK / STANDARD / DEEP exist as data (`domain/deep_research/planning.py` `PRESETS`, status `PROPOSED_DR5`); a run must name one | Choosing a default | [plans/deep-research.md](plans/deep-research.md) § Decisions |
+| DR-5 | **Default Deep Research budget and depth presets** — how far "as far as the budget allows" goes by default, and who may extend a parked run. Proposed presets QUICK / STANDARD / DEEP / EXHAUSTIVE exist as data (`domain/deep_research/planning.py` `PRESETS`, table `aia-presets-2-proposed`, status `PROPOSED_DR5`); a run must name one, and a start whose cost ceiling reaches the study's spend limit asks first | Choosing a default | [plans/deep-research.md](plans/deep-research.md) § Decisions |
 | DR-2b | **May a code-built digest of a client's design (its research questions and object names) travel as Class B?** Until decided, a query written from a real client's design inherits the design's Class A and never leaves (ADR 0017 amendment 2) | Web research for any non-fictional client | [deep-research.md](../docs/architecture/deep-research.md) §§ 12–13 |
 | IA-4 | ~~Commit the files `next dev` regenerates~~ — **resolved 2026-09-24**: only when their diff carries an intentional canonical instruction change | — | `AGENTS.md` § Next.js |
 | D1 | ~~Confirm or replace ADR 0005~~ — **resolved**. Split into two statuses: the `ModelGateway` contract is *Accepted*; LiteLLM as its transport stays *Proposed* against seven conditions. Phase 4 is unblocked | — | `docs/architecture/adr/0005-llm-gateway.md` @ 8f545a5 |

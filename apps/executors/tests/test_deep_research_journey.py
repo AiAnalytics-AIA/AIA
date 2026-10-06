@@ -391,7 +391,9 @@ def make_research_world(sessions: sessionmaker[Session]) -> ResearchWorld:
         )
 
 
-def ai_settings(fictional: str, *, approved_for: str) -> AIRuntimeSettings:
+def ai_settings(
+    fictional: str, *, approved_for: str, contents: tuple[dict[str, Any], ...] = ()
+) -> AIRuntimeSettings:
     settings = AIRuntimeSettings.from_env(
         {
             "AIA_ENV": "test",
@@ -424,7 +426,7 @@ def ai_settings(fictional: str, *, approved_for: str) -> AIRuntimeSettings:
                     provenance="generated wholly by this test; class explicitly set",
                     synthetic=bool(fictional),
                 ).model_dump_json()
-                for content in (DESIGN, DESIGN_2)
+                for content in (DESIGN, DESIGN_2, *contents)
             )
             + "]",
         }
@@ -448,8 +450,11 @@ def recorded(
     policy: str | None = None,
     fixture: Path = WEB,
     thinking: int | None = None,
+    contents: tuple[dict[str, Any], ...] = (),
 ) -> DeepResearchRuntime:
-    settings = ai_settings(world.client_id if fictional else "", approved_for=approved_for)
+    settings = ai_settings(
+        world.client_id if fictional else "", approved_for=approved_for, contents=contents
+    )
     return recorded_runtime(
         gateway=build_gateway(settings, transport=agents, signer=Signer()),
         config=DeepResearchConfig(

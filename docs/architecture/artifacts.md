@@ -173,3 +173,22 @@ the transaction rolled back.
 
 Frozen and approved artifacts are exempt from automatic retention. A deliverable
 a client has been shown is not garbage-collected on a schedule.
+
+## Deep Research evidence beside the research chain (ADR 0021)
+
+Deep Research writes only its own artifacts (`deep_research_*`,
+`domain/deep_research/workflow.py` `ARTIFACT_TYPES`) on the Study's design project:
+plans, tracks, source snapshots (content-addressed), verifications, the synthesis and
+the sealed bundle. It never writes a design or any artifact of the deterministic chain
+(`research_specification`, `research_fieldwork_dataset`, `research_aggregate`,
+`research_analysis_*`, `research_sociomap*`): `integration.py` refuses to load beside
+an engine whose types overlap them, and `layer_check` keeps its code from naming their
+writers.
+
+What it reads, it pins. An Interpretation Research run's lineage records the producing
+research run's `compile`, `run`, `aggregate` and target artifacts as `(node, artifact
+id, type, sha256)`, each read and hash-verified when the run is frozen, and
+`DeepResearchRuns.resolve_lineage` re-reads them on demand: a `CORRUPT`, superseded
+or re-hashed artifact is a changed lineage, never silently the newest one. A run's
+output is cited through `DeepResearchProvenance`: purpose, target, lineage, and the
+bundle's artifact id, row SHA256 and seal -- the bundle itself unchanged.

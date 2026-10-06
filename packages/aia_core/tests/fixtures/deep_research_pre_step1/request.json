@@ -1,0 +1,110 @@
+{
+ "brief": {
+  "briefing": "Klient zvažuje nový nápoj pro dojíždějící.",
+  "decision_use": "Rozhodnutí o uvedení produktu.",
+  "goal": "Porozumět trhu rostlinných nápojů před uvedením nového nápoje.",
+  "title": "Rostlinné nápoje v Česku"
+ },
+ "channels": [
+  "INTERNAL",
+  "WEB"
+ ],
+ "client_terms": [
+  {
+   "source": "client.name",
+   "term": "Acme"
+  },
+  {
+   "source": "study.name",
+   "term": "Projekt Zelená"
+  }
+ ],
+ "design_revision": 1,
+ "design_revision_id": "REV-681c76fbacf54729",
+ "harness_version": "aia-deep-research-harness-1",
+ "knowledge": {
+  "items": [
+   {
+    "data_class": "CLASS_A_CLIENT_CONFIDENTIAL",
+    "item_id": "KNW-1bfef5c31c8245",
+    "kind": "DOCUMENT",
+    "lineage": [],
+    "public": false,
+    "ref": "KNW-1bfef5c31c8245@1",
+    "revision": 1,
+    "text": "Interní plán uvedení Interní plán: uvedení ovesného nápoje v květnu 2027 za 39 Kč.",
+    "title": "Interní plán uvedení",
+    "truncated": false
+   },
+   {
+    "data_class": "CLASS_B_DERIVED_CLIENT",
+    "item_id": "KNW-d4191e4c711244",
+    "kind": "FACT",
+    "lineage": [],
+    "public": false,
+    "ref": "KNW-d4191e4c711244@1",
+    "revision": 1,
+    "text": "Ovesný nápoj Ovesný nápoj tvořil v roce 2025 polovinu prodejů rostlinných nápojů v síti klienta.",
+    "title": "Ovesný nápoj",
+    "truncated": false
+   }
+  ],
+  "omitted_ids": [],
+  "retrieval_limit": 200
+ },
+ "preset": "QUICK",
+ "questionnaire": [
+  {
+   "id": "q1",
+   "kategorie": [
+    "Ano",
+    "Ne"
+   ],
+   "text": "Jaký podíl domácností kupuje rostlinné nápoje?"
+  },
+  {
+   "id": "section_2_obj_1",
+   "kategorie": [],
+   "text": "Jak hodnotíte Ovesný nápoj?"
+  },
+  {
+   "id": "section_2_obj_2",
+   "kategorie": [],
+   "text": "Jak hodnotíte Mandlový nápoj?"
+  }
+ ],
+ "subjects": [
+  {
+   "key": "q-bac8e2a43f1b",
+   "kind": "QUESTION",
+   "object_key": null,
+   "origin": "research_plan.research_questions[0]",
+   "question_key": null,
+   "text": "Jak roste trh rostlinných nápojů v Česku?"
+  },
+  {
+   "key": "q-fb01af550c1f",
+   "kind": "QUESTION",
+   "object_key": null,
+   "origin": "research_plan.research_questions[1]",
+   "question_key": null,
+   "text": "Proč lidé přecházejí na rostlinné nápoje?"
+  },
+  {
+   "key": "o-767da04676a4",
+   "kind": "OBJECT",
+   "object_key": null,
+   "origin": "sections[1].objects[0]",
+   "question_key": null,
+   "text": "Ovesný nápoj"
+  },
+  {
+   "key": "o-98b4cf9beafa",
+   "kind": "OBJECT",
+   "object_key": null,
+   "origin": "sections[1].objects[1]",
+   "question_key": null,
+   "text": "Mandlový nápoj"
+  }
+ ]
+}

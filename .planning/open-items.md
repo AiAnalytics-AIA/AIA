@@ -2988,5 +2988,82 @@ checks against the quote's context and a `MEASURE_NOT_IN_SOURCE` quarantine.
 
 **Test that would have caught it.** This reproduction as a grounding unit test (chunk 7's first).
 
-**Status.** Open.
+**Status.** Closed by chunk 7 (#144, `e61540d`): the reproduction now returns
+`failure=MEASURE_NOT_IN_SOURCE` ("the claim gives 45 the population 'dospělých' (ADULTS); the
+quote's context in the source does not name it"), re-run 2026-10-06 on `579b7ab`; pinned by
+`test_deep_research_measures.py::test_a_household_share_claimed_as_a_share_of_adults_is_quarantined`.
 
+---
+
+## OI-86 · Finding · A released planned Deep Research track sent its search and model request twice
+
+**Claim.** A planned web track whose step was released between rounds (a deploy's `SIGTERM`, a
+crash between calls) started again at its first query: the search was sent again, the round's
+paid investigator request asked again, and the allowance, charged for both, cut the track short.
+
+**Anchor.** `apps/executors/src/aia_executors/deep_research/investigate.py:419-440 @ f6199d0`:
+`_web` looped over the plan's queries from the first on every attempt; the resumed meter counted
+earlier dispatches but nothing recorded what they returned.
+
+**Reproduction.** `apps/executors/tests/test_deep_research_planned_recovery.py`: release the
+investigate step after a search, after one of a round's fetches, after a round's answer, or
+(fanned out) in a track's own step; before the fix every case fails on its dispatch counts.
+
+**Consequence.** With a live provider: a duplicate query and a duplicate paid model request after
+every deploy during a planned investigation, and less coverage for the same money.
+
+**Fix.** `_PlannedLog` stores every external outcome before the next call -- the search with its
+hits in order, each fetch, the round, the answer before grounding -- and a resumed step replays
+them; a journaled dispatch with no stored outcome ends the track `TOOL_OUTCOME_UNCERTAIN`
+(`docs/architecture/deep-research-fan-out.md` § 8).
+
+**Test that would have caught it.**
+`test_deep_research_planned_recovery.py::test_a_released_planned_track_continues_and_sends_nothing_twice`
+and `::test_a_dispatch_with_no_record_of_its_outcome_ends_the_track_and_sends_nothing_more`.
+
+**Status.** Closed by #166 (`63693fa`, merged as `579b7ab`).
+
+---
+
+## OI-87 · Hypothesis · A model slot may be taken over while its holder is still calling
+
+**Claim (unreproduced).** `ModelSlots` treats a slot as free when its holder attempt's lease has
+passed (`infrastructure/fan_out_coordination.py`, "a slot expires with the lease of the attempt
+that took it", `deep-research-fan-out.md` § 4 @ `579b7ab`). A worker that is alive and mid-request
+but whose heartbeat fell behind its lease would lose its slot to another taker, so more requests
+than the limit could be in flight for a moment.
+
+**What would make it a finding.** A test that stalls one attempt's heartbeat past
+`lease_until` while it holds a slot and a request is in flight, and shows a second attempt
+acquiring that slot before the first request returns. Until then it is a hypothesis: reproduced or
+deleted, never budgeted for (#166 recorded it as such).
+
+**Status.** Open (hypothesis).
+
+---
+
+## OI-88 · Limitation · Interpretation Research is frozen, never executed, until chunk 30
+
+**Claim.** Interpretation execution is intentionally unavailable until chunk 30, because
+target-derived research subjects and mission do not yet exist. ADR 0021's result-side freeze
+resolves an interpretation target and pins its lineage exactly, but its engine request would still
+be the one frozen from the producing run's Design Revision; a run would be labelled
+`INTERPRETATION_RESEARCH` while researching the design's subjects. So the one enqueue boundary
+(`application/deep_research.py` `DeepResearchRuns._enqueue`) refuses every
+`INTERPRETATION_RESEARCH` spec (`InterpretationNotReady`, `interpretation_not_ready`), and a
+stored interpretation row is never retried. No knowingly mislabelled output exists in AIA.
+
+**Reproduction.** `apps/executors/tests/test_deep_research_lineage.py`:
+`::test_the_enqueue_boundary_refuses_any_interpretation_spec`,
+`::test_interpretation_execution_fails_closed_until_target_subjects_exist` and
+`::test_an_interpretation_row_is_never_retried_until_chunk_30` (no new run, no model or
+retrieval call). With the guard removed, these fail.
+
+**Consequence.** No Interpretation Research runs yet; the freeze, the target and lineage
+validation and the provenance contract are available to build on.
+
+**Fix.** [web-search plan](plans/deep-research-web-search.md) chunk 30: derive the mission from
+the exact target, build the engine request from it, then enable enqueueing and the result-side
+route together.
+
+**Status.** Open, by design (ADR 0021 Step 1).

@@ -4,6 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 
+from aia_core.application.deep_research import DeepResearchRuns, run_spec_metadata
+from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.deep_research.contracts import Channel
+from aia_core.domain.deep_research.integration import (
+    RUN_SPEC_CONTRACT,
+    ArtifactPin,
+    DeepResearchPurpose,
+    DeepResearchRunSpec,
+    DesignLineage,
+    InterpretationLineage,
+    PurposeSource,
+    SociomapTarget,
+)
+from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.tables import WorkflowRunRow
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
@@ -93,3 +108,107 @@ def test_an_invalid_job_is_refused_before_enqueue_and_a_viewer_label_may_start(
     # A member who was never granted the study starts the same job: idempotent, so 200.
     again = outsider.post(_url(world), json={**base, "channels": ["WEB"]})
     assert again.status_code == 200 and again.json()["run_id"] == started.json()["run_id"]
+
+
+def test_a_run_says_why_what_and_on_which_design_and_the_old_shape_still_starts(
+    researcher: TestClient, world: Any
+) -> None:
+    """ADR 0021. The deployed client names no purpose: a new start through that shape is
+    Design Research, recorded as the compatibility default; naming it is the same run."""
+    revision = _revision(researcher, world)
+    legacy_shape = {"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]}
+    started = researcher.post(_url(world), json=legacy_shape)
+    assert started.status_code == 201, started.text
+    job = started.json()
+    assert job["integration_contract"] == "aia-deep-research-run-spec-1"
+    assert job["purpose"] == "DESIGN_RESEARCH" and job["purpose_source"] == "LEGACY_DEFAULT"
+    assert job["target"] == {"kind": "DESIGN_REVISION", "design_revision_id": revision}
+    assert job["lineage"]["kind"] == "DESIGN"
+    assert job["lineage"]["design_revision_id"] == revision
+    assert len(job["lineage"]["design_content_sha256"]) == 64
+    assert len(job["run_spec_fingerprint"]) == 64
+
+    named = researcher.post(
+        _url(world), json={**legacy_shape, "purpose": "DESIGN_RESEARCH", "title": "Kontext"}
+    )
+    assert named.status_code == 200 and named.json()["run_id"] == job["run_id"]
+
+    # The result-side start is not this route's yet; nothing else is a purpose.
+    for purpose in ("INTERPRETATION_RESEARCH", "ANYTHING"):
+        refused = researcher.post(_url(world), json={**legacy_shape, "purpose": purpose})
+        assert refused.status_code == 422, purpose
+
+    run_url = f"{_url(world)}/{job['run_id']}"
+    provenance = researcher.get(f"{run_url}/provenance")
+    assert provenance.status_code == 409
+    assert provenance.json()["code"] == "bundle_not_ready"
+
+
+def test_an_interpretation_row_answers_interpretation_not_ready_and_starts_nothing(
+    researcher: TestClient, world: Any, app: Any
+) -> None:
+    """ADR 0021 Step 1: Interpretation Research is frozen, never enqueued, until chunk 30.
+
+    No route creates an interpretation run, so the row is written at the repository level
+    (a historical or future row): its retry is 409 ``interpretation_not_ready`` and no run
+    is created."""
+    revision = _revision(researcher, world)
+    started = researcher.post(
+        _url(world),
+        json={"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]},
+    ).json()
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(
+                user_id=world.users["researcher"], organization_id=world.organization_id
+            ),
+            study_id=world.study_id(),
+        )
+        runs = DeepResearchRuns(session, scope)
+        request = runs.freeze(
+            design_revision_id=revision, preset_name="QUICK", channels=(Channel.WEB,)
+        )
+        design = DesignLineage(
+            kind="DESIGN",
+            design_revision_id=revision,
+            design_revision=request.design_revision,
+            design_content_sha256="a" * 64,
+        )
+        spec = DeepResearchRunSpec(
+            contract_version=RUN_SPEC_CONTRACT,
+            purpose=DeepResearchPurpose.INTERPRETATION_RESEARCH,
+            target=SociomapTarget(
+                kind="SOCIOMAP",
+                research_run_id="RUN-00000000000000a1",
+                sociomap_artifact_id="ART-00000000000000a4",
+                battery_id="napoje",
+            ),
+            lineage=InterpretationLineage(
+                kind="INTERPRETATION",
+                research_run_id="RUN-00000000000000a1",
+                design=design,
+                artifacts=(
+                    ArtifactPin(
+                        node_key="sociomap",
+                        artifact_id="ART-00000000000000a4",
+                        artifact_type="research_sociomap",
+                        sha256="b" * 64,
+                    ),
+                ),
+            ),
+            engine_request=request,
+        )
+        row = session.get(WorkflowRunRow, started["run_id"])
+        assert row is not None
+        row.metadata_json = {
+            **row.metadata_json,
+            **run_spec_metadata(spec, purpose_source=PurposeSource.EXPLICIT),
+        }
+        session.commit()
+    run_url = f"{_url(world)}/{started['run_id']}"
+    shown = researcher.get(run_url).json()
+    assert shown["purpose"] == "INTERPRETATION_RESEARCH" and shown["target"]["kind"] == "SOCIOMAP"
+    assert researcher.post(f"{run_url}/cancel").status_code == 200
+    retried = researcher.post(f"{run_url}/retry")
+    assert retried.status_code == 409 and retried.json()["code"] == "interpretation_not_ready"
+    assert [r["run_id"] for r in researcher.get(_url(world)).json()] == [started["run_id"]]

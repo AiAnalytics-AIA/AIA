@@ -1,0 +1,15 @@
+{
+ "channels": [
+  "INTERNAL",
+  "WEB"
+ ],
+ "design_revision": 1,
+ "design_revision_id": "REV-681c76fbacf54729",
+ "harness_version": "aia-deep-research-harness-1",
+ "knowledge_items": 2,
+ "omitted_knowledge_ids": [],
+ "preset": "QUICK",
+ "preset_table": "aia-presets-2-proposed",
+ "request_fingerprint": "f6a85316cd41fb35b6fe35991945f124c5ff06aacdef06f702cd84d94d26039c",
+ "subjects": 4
+}
