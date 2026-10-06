@@ -393,6 +393,7 @@ class Climb:
             url,
             track_id=self.track_id,
             host_allowed=(lambda h: h == host) if same_host else None,
+            permit=archive_permit,
         )
         self._fetched[_key(url)] = outcome
         dispatched = outcome.call_id is not None

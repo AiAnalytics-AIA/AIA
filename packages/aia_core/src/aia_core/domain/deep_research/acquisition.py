@@ -61,6 +61,7 @@ from .web import CSV_MEDIA_TYPE, PDF_MEDIA_TYPE, XLSX_MEDIA_TYPE, FetchRefused, 
 __all__ = [
     "AGGREGATOR_HOSTS",
     "ARCHIVE_HOSTS",
+    "ARCHIVE_HOST_NOT_PERMITTED",
     "BARRIER_MIN_TEXT_CHARS",
     "GAP_PRIORITY",
     "LADDER_REQUEST_CAP",
@@ -84,11 +85,14 @@ __all__ = [
     "Rung",
     "SecondaryFinding",
     "TitleVariant",
+    "archive_permits",
+    "archived_original",
     "detect_barrier",
     "document_twins",
     "failure_reason",
     "gap_reason",
     "how_to_obtain",
+    "is_archive_host",
     "is_archive_url",
     "lead_from_secondary",
     "link_matches",
@@ -263,8 +267,46 @@ def _within(host: str, declared: str) -> bool:
 
 def is_archive_url(url: str) -> bool:
     """Whether ``url`` is on an archive's, a cache's or a mirror's host (or a subdomain)."""
-    host = _host(url)
+    return is_archive_host(_host(url))
+
+
+def is_archive_host(host: str) -> bool:
+    """Whether ``host`` is an archive's, a cache's or a mirror's (or a subdomain of one)."""
+    host = host.lower().rstrip(".").removeprefix("www.")
     return any(_within(host, a) for a in ARCHIVE_HOSTS)
+
+
+#: Why a fetch of an archive, cache or mirror was refused: no permit for the page it copies.
+ARCHIVE_HOST_NOT_PERMITTED: Final = "archive_host_not_permitted"
+_WAYBACK_REPLAY: Final = re.compile(r"^/web/[0-9]{1,14}(?:[a-z]{2}_)?/(https?://.+)$")
+
+
+def archived_original(url: str) -> str | None:
+    """The page an archive URL is a copy of, when the archive's URL names it; else None.
+
+    Only a Wayback replay (``https://web.archive.org/web/<timestamp>/<original>``) is
+    read; every other archive, cache or mirror names no original code will trust, so
+    no permit can open it.
+    """
+    parts = urlsplit(url)
+    if _host(url) != "web.archive.org" or parts.scheme != "https":
+        return None
+    path = parts.path + (f"?{parts.query}" if parts.query else "")
+    match = _WAYBACK_REPLAY.match(path)
+    return match[1] if match else None
+
+
+def archive_permits(permit_url: str | None, url: str) -> bool:
+    """Whether a permit for ``permit_url`` opens ``url``: a live URL always (no archive is
+    involved), an archive's URL only when it is a copy of exactly that page."""
+    if not is_archive_url(url):
+        return True
+    original = archived_original(url)
+    return (
+        permit_url is not None
+        and original is not None
+        and (canonical_url(original) or original) == (canonical_url(permit_url) or permit_url)
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -662,6 +704,7 @@ _POLICY: Final = frozenset(
         "redirect_out_of_scope",
         "tool_metering_unavailable",
         "archive_not_permitted",
+        "archive_host_not_permitted",
         "dataset_connector_unavailable",
     }
 )

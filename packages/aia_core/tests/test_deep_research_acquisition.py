@@ -24,6 +24,8 @@ from aia_core.domain.deep_research.acquisition import (
     Rung,
     SecondaryFinding,
     TitleVariant,
+    archive_permits,
+    archived_original,
     detect_barrier,
     document_twins,
     failure_reason,
@@ -305,6 +307,7 @@ def test_the_ladder_writes_its_own_operators_and_refuses_a_bad_site() -> None:
         ("robots_disallowed", GapReason.ROBOTS),
         ("egress_route_not_approved_for_class", GapReason.POLICY_REFUSED),
         ("class_a_url", GapReason.POLICY_REFUSED),
+        ("archive_host_not_permitted", GapReason.POLICY_REFUSED),
         ("http_404", None),
         (None, None),
     ],
@@ -373,3 +376,21 @@ def test_a_primary_finding_or_an_untraceable_one_raises_nothing() -> None:
     assert lead_from_secondary(finding, citing=own, register=REGISTER) is None
     nobody = page("https://blog.example/a", body=f"{FILLER} Prý 45 % domácností.")
     assert lead_from_secondary(finding, citing=nobody, register=REGISTER) is None
+
+
+def test_a_permit_opens_only_a_wayback_copy_of_its_own_page() -> None:
+    page = "https://noviny.example/clanek?id=7"
+    replay = f"https://web.archive.org/web/20240301000000/{page}"
+    assert archived_original(replay) == page
+    assert archived_original("https://web.archive.org/web/2024id_/https://x.example/a") == (
+        "https://x.example/a"
+    )
+    assert archived_original("https://archive.ph/abcd") is None
+    assert archived_original("https://web.archive.org/cdx/search/cdx?url=x") is None
+    assert archive_permits(page, replay)
+    assert not archive_permits(None, replay)
+    assert not archive_permits("https://noviny.example/jiny", replay)
+    # No archive but Wayback names its original: no permit opens a mirror or a cache.
+    assert not archive_permits(page, "https://archive.ph/abcd")
+    # A live URL needs no permit.
+    assert archive_permits(None, page)

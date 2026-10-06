@@ -33,6 +33,7 @@ from aia_core.application.acquisition_ladder import (
 from aia_core.application.web_retrieval import (
     ArchiveRetrieval,
     DatasetAccess,
+    FetchOutcome,
     RetrievalGate,
     WebRetrieval,
     request_fingerprint,
@@ -47,7 +48,8 @@ from aia_core.domain.deep_research.acquisition import (
     Rung,
     TitleVariant,
 )
-from aia_core.domain.deep_research.archive import ArchiveBasis
+from aia_core.domain.deep_research.agents import InvestigatorTurn
+from aia_core.domain.deep_research.archive import ArchiveBasis, LiveAttempt, decide_archive_use
 from aia_core.domain.deep_research.common_crawl import (
     INDEX_COLUMNS,
     IndexTable,
@@ -56,12 +58,18 @@ from aia_core.domain.deep_research.common_crawl import (
     build_index_sql,
 )
 from aia_core.domain.deep_research.contracts import RetrievalMode
+from aia_core.domain.deep_research.investigator import (
+    Allowance,
+    TrackRefs,
+    TrackState,
+    plan_actions,
+)
 from aia_core.domain.deep_research.reputation import (
     Publisher,
     RegisterStatus,
     ReputationRegister,
 )
-from aia_core.domain.deep_research.sources import SourceClass, SourceTier
+from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceClass, SourceTier
 from aia_core.domain.deep_research.tooling import (
     InMemoryToolLedger,
     ToolKind,
@@ -894,3 +902,93 @@ def test_a_failed_dataset_call_is_recorded_not_raised(scoped: Any) -> None:
     assert result.record.stop is LadderStop.GAP
     failed = [a for a in result.record.attempts if a.tool == "dataset"]
     assert [(a.outcome, a.reason) for a in failed] == [("failed", "provider_error")]
+
+
+# --------------------------------------------------------------------------- archives at the gate
+
+REPLAY = f"https://web.archive.org/web/20240301000000/{PAYWALLED}"
+
+
+def _refused_before_dispatch(w: World, outcome: Any, reason: str) -> None:
+    assert outcome.page is None and outcome.reason == reason
+    assert outcome.call_id is None and w.fetched() == []
+    assert [e.outcome for e in w.ledger.events()] == [ToolOutcome.REFUSED]
+    assert w.ledger.events()[0].note == reason
+
+
+def test_an_investigator_open_of_an_archive_link_is_refused_before_dispatch(scoped: Any) -> None:
+    # A captured page links an archived copy of a paywalled article; the model opens it.
+    body = f'<html><body><p>{FILLER}</p><a href="{REPLAY}">celý článek</a></body></html>'
+    news = page_snapshot(
+        url="https://zpravy.example/clanek",
+        final_url="https://zpravy.example/clanek",
+        redirects=(),
+        http_status=200,
+        content_type="text/html; charset=utf-8",
+        body=body.encode(),
+        request_id=None,
+        adapter_id="recorded-fetch-v1",
+        retrieval_mode=RetrievalMode.RECORDED,
+        retrieved_at=NOW,
+    ).snapshot
+    state = TrackState(refs=TrackRefs(SOURCE_TABLE_V1))
+    state.capture(news, artifact_id="A1", published=None)
+    [planned] = plan_actions(
+        InvestigatorTurn.model_validate(
+            {
+                "evidence": [],
+                "summary": "",
+                "leads": [],
+                "next": [{"kind": "open", "ref": "L1", "purpose": "celý článek"}],
+            }
+        ),
+        state,
+        Allowance(turns=3, searches=3, opens=3),
+    )
+    assert planned.url == REPLAY
+    w = world(scoped.scope(), pages={REPLAY: holding()})
+    begun = w.gate.begin_fetch(REPLAY, track_id="T1")
+    assert isinstance(begun, FetchOutcome)
+    _refused_before_dispatch(w, begun, "archive_host_not_permitted")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://webcache.googleusercontent.com/search?q=cache:noviny.example/a",
+        "https://archive.ph/abcd",
+        "https://data.commoncrawl.org/crawl-data/CC-MAIN-2024-10/x.warc.gz",
+    ],
+)
+def test_no_fetch_reaches_an_archive_cache_or_mirror_without_a_permit(
+    scoped: Any, url: str
+) -> None:
+    w = world(scoped.scope())
+    _refused_before_dispatch(w, w.gate.fetch(url, track_id="T1"), "archive_host_not_permitted")
+
+
+def test_a_permit_opens_only_the_archived_copy_of_its_own_page(scoped: Any) -> None:
+    dead = decide_archive_use(
+        LiveAttempt(url=PAYWALLED, failure="http_410", uncertain=False), needed_quote=PHRASE
+    ).permit
+    other = decide_archive_use(
+        LiveAttempt(url=DEAD, failure="http_404", uncertain=False), needed_quote=PHRASE
+    ).permit
+    assert dead is not None and other is not None
+    w = world(scoped.scope(), pages={REPLAY: holding()})
+    _refused_before_dispatch(
+        w, w.gate.fetch(REPLAY, track_id="T1", permit=other), "archive_host_not_permitted"
+    )
+    opened = w.gate.fetch(REPLAY, track_id="T1", permit=dead)
+    assert opened.page is not None and w.fetched() == [REPLAY]
+
+
+def test_a_live_page_redirecting_to_an_archive_is_refused_at_the_hop(scoped: Any) -> None:
+    moved = "https://noviny.example/presunuto"
+    w = world(
+        scoped.scope(),
+        pages={moved: {"status": 302, "headers": {"location": REPLAY}}, REPLAY: holding()},
+    )
+    outcome = w.gate.fetch(moved, track_id="T1")
+    assert outcome.page is None and outcome.reason == "redirect_out_of_scope"
+    assert w.fetched() == [moved]

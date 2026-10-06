@@ -39,6 +39,17 @@ names, by byte range, over the archive route: the snapshot says it is an
 archived capture, and it is never put in the run's snapshot cache, so a later
 live fetch of the same URL is never answered with an archive's copy.
 
+**No archive, cache or mirror is fetched without a permit** (plan § 4: never an
+archive to get round a paywall). A URL on one of their hosts
+(``acquisition.ARCHIVE_HOSTS``) is refused before dispatch
+(``archive_host_not_permitted``) unless the caller holds an
+:class:`~aia_core.domain.deep_research.archive.ArchivePermit` for exactly the page
+the URL is a copy of (a Wayback replay names it); a redirect to such a host is
+refused before the hop (``redirect_out_of_scope``) unless it is the same permitted
+host. Common Crawl's reads take their permit too: an index query for one exact URL
+and an archived record are refused (``archive_not_permitted``) without a permit
+for that URL.
+
 A fetch may be confined to hosts the caller names (a crawl stays on its host):
 a URL elsewhere is refused before dispatch, a redirect elsewhere before the hop
 is requested. A document read for what it lists rather than what it says (a
@@ -80,6 +91,11 @@ from typing import Any, TypeVar
 from uuid import uuid4
 
 from ..domain.ai_contracts import Delivery
+from ..domain.deep_research.acquisition import (
+    ARCHIVE_HOST_NOT_PERMITTED,
+    archive_permits,
+    is_archive_host,
+)
 from ..domain.deep_research.archive import AccessBarrier, ArchivePermit, LiveAttempt
 from ..domain.deep_research.classification import classify_query
 from ..domain.deep_research.common_crawl import (
@@ -355,6 +371,31 @@ class FetchOutcome:
 def request_fingerprint(sent: str) -> str:
     """What the journal keeps of a sent query or URL: its SHA256, never the text."""
     return _fingerprint(sent)
+
+
+def _permit_url(permit: ArchivePermit | None) -> str | None:
+    """The page a permit is for; None for no permit, or anything that is not one."""
+    return permit.url if isinstance(permit, ArchivePermit) else None
+
+
+def _no_archive_hops(
+    host_allowed: HostFilter | None, *, url: str, permit: ArchivePermit | None
+) -> HostFilter:
+    """``host_allowed``, and no redirect hop to an archive's host -- except, for a
+    permitted archive URL, its own host (an archive redirects to its nearest capture)."""
+    own: str | None = None
+    if archive_permits(_permit_url(permit), url):
+        try:
+            own = check_url(url)
+        except FetchRefused:
+            own = None  # refused at admission; nothing will be requested
+
+    def allowed(host: str) -> bool:
+        if host_allowed is not None and not host_allowed(host):
+            return False
+        return not is_archive_host(host) or (own is not None and host == own)
+
+    return allowed
 
 
 def sent_archived(row: IndexRow) -> str:
@@ -833,9 +874,10 @@ class RetrievalGate:
     # ----------------------------------------------------------------- fetch --
 
     def _fetch_admission(
-        self, url: str, *, host_allowed: HostFilter | None
+        self, url: str, *, host_allowed: HostFilter | None, permit: ArchivePermit | None = None
     ) -> tuple[DataClass, str | None]:
-        """A URL's class, and why it may not be requested (address, scope, class, egress)."""
+        """A URL's class, and why it may not be requested (address, archive, scope,
+        class, egress)."""
         cls = classify_query(
             url,
             context_class=DataClass.CLASS_C_INTERNAL,
@@ -846,6 +888,8 @@ class RetrievalGate:
             host = check_url(url)
         except FetchRefused as exc:
             return cls, exc.reason
+        if not archive_permits(_permit_url(permit), url):
+            return cls, ARCHIVE_HOST_NOT_PERMITTED
         if host_allowed is not None and not host_allowed(host):
             return cls, HOST_OUT_OF_SCOPE
         if cls is DataClass.CLASS_A_CLIENT_CONFIDENTIAL:
@@ -955,7 +999,12 @@ class RetrievalGate:
         )
 
     def fetch(
-        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+        self,
+        url: str,
+        *,
+        track_id: str,
+        host_allowed: HostFilter | None = None,
+        permit: ArchivePermit | None = None,
     ) -> FetchOutcome:
         """One page: checked, authorised, reserved, journaled, fetched -- or refused.
 
@@ -964,20 +1013,26 @@ class RetrievalGate:
         a redirect elsewhere before the hop is requested (``redirect_out_of_scope``),
         and a cached page whose final URL is elsewhere is refused, not served.
         """
-        begun = self.begin_fetch(url, track_id=track_id, host_allowed=host_allowed)
+        begun = self.begin_fetch(url, track_id=track_id, host_allowed=host_allowed, permit=permit)
         if isinstance(begun, FetchOutcome):
             return begun
         begun.send()
         return self.finish_fetch(begun)
 
     def begin_fetch(
-        self, url: str, *, track_id: str, host_allowed: HostFilter | None = None
+        self,
+        url: str,
+        *,
+        track_id: str,
+        host_allowed: HostFilter | None = None,
+        permit: ArchivePermit | None = None,
     ) -> FetchOutcome | PendingFetch:
         """Check, classify (the whole URL: host, path and query), confine to
         ``host_allowed``, authorise; answer from the run's cache; or reserve and
         journal ``DISPATCHED``. Sends nothing (see :meth:`begin_search`)."""
         route = self._retrieval.fetch_route
-        cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        cls, reason = self._fetch_admission(url, host_allowed=host_allowed, permit=permit)
+        host_allowed = _no_archive_hops(host_allowed, url=url, permit=permit)
         if reason is None and self._cache is not None:
             hit = self._cache.get(url)
             if hit is not None:
@@ -1069,6 +1124,7 @@ class RetrievalGate:
         """
         route = self._retrieval.fetch_route
         cls, reason = self._fetch_admission(url, host_allowed=host_allowed)
+        host_allowed = _no_archive_hops(host_allowed, url=url, permit=None)
         if reason is None:
             reason = self._retrieval.fetcher.known_refusal(url)
         if reason is not None:
