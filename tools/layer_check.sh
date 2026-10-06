@@ -263,12 +263,14 @@ forbid "no deployment runs the workbench composition" \
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
-# API or the worker, and named by no deployment.
-RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web'
+# API or the worker, and named by no deployment. The Common Crawl doubles (plan
+# chunk 18: a recorded URL index, recorded archive ranges) are held to the same
+# rules, beside their own adapters in common_crawl.py.
+RECORDED_WEB='RecordedSearch|RecordedFetchTransport|RecordedResolver|RecordedWeb\b|load_recorded_web|RecordedUrlIndex|RecordedArchiveTransport'
 forbid "recorded web retrieval is defined only beside the web adapters" \
   "$RECORDED_WEB" \
   "$CORE/infrastructure" \
-  web_retrieval.py
+  web_retrieval.py common_crawl.py
 forbid "application code never names recorded web retrieval" \
   "$RECORDED_WEB" \
   "$CORE/application"

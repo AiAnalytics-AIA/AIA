@@ -1,4 +1,4 @@
-"""SigV4 signing for Bedrock with the instance (or task) role -- and nothing else.
+"""SigV4 signing with the instance (or task) role -- and nothing else.
 
 ADR 0010: "there are no static credentials: the adapter signs requests with the
 instance role via SigV4". botocore is used **for signing only** (``SigV4Auth`` and
@@ -34,12 +34,19 @@ class InstanceRoleSigner:
     Credentials are resolved on first use and refreshed by botocore before they
     expire; nothing is fetched at construction, so building a worker's registry
     touches no network.
+
+    ``service`` is the SigV4 signing name: Bedrock by default; Athena's
+    (``athena``) for the Common Crawl URL index (plan chunk 18). One signer signs
+    for one service in one region.
     """
 
-    def __init__(self, *, region: str) -> None:
+    def __init__(self, *, region: str, service: str = BEDROCK_SIGNING_SERVICE) -> None:
         if not region.strip():
             raise ValueError("a signer needs a region")
+        if not service.strip():
+            raise ValueError("a signer needs a service name")
         self._region = region
+        self._service = service
         self._lock = threading.Lock()
         self._credentials: Any = None
 
@@ -56,7 +63,8 @@ class InstanceRoleSigner:
                 method = str(getattr(credentials, "method", "") or "")
                 if method not in ROLE_CREDENTIAL_METHODS:
                     raise SigningUnavailable(
-                        f"Bedrock is signed only with an instance or container role; "
+                        f"{self._service} requests are signed only with an instance or "
+                        f"container role; "
                         f"the available credential comes from {method or 'an unknown source'!r}"
                     )
                 self._credentials = credentials
@@ -70,5 +78,5 @@ class InstanceRoleSigner:
 
         frozen = self._resolve().get_frozen_credentials()
         aws_request = AWSRequest(method=method, url=url, data=body, headers=dict(headers))
-        SigV4Auth(frozen, BEDROCK_SIGNING_SERVICE, self._region).add_auth(aws_request)
+        SigV4Auth(frozen, self._service, self._region).add_auth(aws_request)
         return {k.lower(): str(v) for k, v in aws_request.headers.items()}
