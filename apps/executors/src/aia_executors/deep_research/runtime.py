@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Final
 
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.ai_contracts import check_thinking_budget
@@ -79,6 +80,10 @@ class DeepResearchRuntime:
     source_table: SourceTable
     #: The journal's clock: when a tool call was made (a snapshot keeps its own time).
     clock: Callable[[], datetime] = _utcnow
+    #: What the agent-directed investigator's ``ladder`` may use beyond the gate (the
+    #: reputation register, Common Crawl's crawls). None: the ladder's defaults -- no
+    #: register, no crawl. Read only in the agent-directed mode.
+    ladder: LadderConfig | None = None
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
@@ -86,8 +91,15 @@ class DeepResearchRuntime:
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
             web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
             thinking_budget_tokens=self.config.thinking_budget_tokens,
-            investigator=INVESTIGATOR_VERSION if self.config.agent_directed else None,
+            investigator=self._investigator() if self.config.agent_directed else None,
         )
+
+    def _investigator(self) -> str:
+        """The investigator's version, and the ladder configuration's identity when one
+        is set (without one, exactly the version: no fingerprint moves)."""
+        if self.ladder is None:
+            return INVESTIGATOR_VERSION
+        return f"{INVESTIGATOR_VERSION}/ladder-{self.ladder.identity()}"
 
     def versions(self) -> dict[str, str]:
         """Every rule and prompt version a run's result depends on, recorded on the plan.
@@ -108,7 +120,7 @@ class DeepResearchRuntime:
             versions["thinking_budget_tokens"] = str(self.config.thinking_budget_tokens)
         if self.config.agent_directed:
             # Only when on: the mode a run was planned in is the mode it investigates in.
-            versions["investigator"] = INVESTIGATOR_VERSION
+            versions["investigator"] = self._investigator()
         return versions
 
 
