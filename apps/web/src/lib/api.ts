@@ -763,3 +763,49 @@ export const admin = {
     request<SelfApprovalPolicy>("PUT", "/api/v1/self-approval", body),
   audit: (limit = 50) => request<AuditEntry[]>("GET", `/api/v1/access-audit?limit=${limit}`),
 };
+
+// ---- Deep Research settings (routers/deep_research_settings.py, ADR 0022) ---------------
+
+/** A JSON value a setting holds: a number, text, yes/no, a list of text, or null (unknown). */
+export type DrSettingValue = number | string | boolean | string[] | null;
+
+/** One policy value: what it is, its bounds, and what a run enqueued now would use. */
+export type DrSetting = {
+  key: string; group: string; type: string; label: string; unit: string;
+  minimum: number | null; maximum: number | null;
+  /** A cap: an approved value may lower the code's default and never raise it. */
+  lower_only: boolean; required_for_live: boolean;
+  /** The value shapes a run's result, so runs made under different values share no work. */
+  method: boolean;
+  /** The code's proposed default; null where the code holds nothing (unknown, never zero). */
+  default: DrSettingValue; default_source: string;
+  value: DrSettingValue; origin: "approved" | "proposed_default"; version: number | null;
+  approved_by: string | null; approved_at: string | null;
+  version_count: number; latest_number: number | null;
+};
+export type DrSettingsOverview = {
+  catalogue_version: string; may_administer: boolean;
+  /** Every setting live still needs approved (a status counts only as "approved"). */
+  missing_for_live: string[];
+  settings: DrSetting[];
+};
+export type DrSettingVersion = {
+  version_number: number; value: DrSettingValue; value_sha256: string; source_url: string; note: string;
+  created_by: string; created_at: string;
+};
+/** `version_number` null: the approval was withdrawn and the code's default came back into force. */
+export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
+export type DrSettingDetail = DrSetting & { versions: DrSettingVersion[]; history: DrSettingApproval[] };
+
+const DR_SETTINGS = "/api/v1/deep-research/settings";
+
+/** Read by any member; proposing and approving are an administrator's (the API decides). */
+export const deepResearchSettings = {
+  list: () => request<DrSettingsOverview>("GET", DR_SETTINGS),
+  get: (key: string) => request<DrSettingDetail>("GET", `${DR_SETTINGS}/${enc(key)}`),
+  propose: (key: string, body: { value: DrSettingValue; source_url: string; note: string }) =>
+    request<DrSettingVersion>("POST", `${DR_SETTINGS}/${enc(key)}/versions`, body),
+  /** `versionNumber` null returns the setting to the code's proposed default. */
+  approve: (key: string, versionNumber: number | null, reason: string) =>
+    request<DrSetting>("PUT", `${DR_SETTINGS}/${enc(key)}/approval`, { version_number: versionNumber, reason }),
+};

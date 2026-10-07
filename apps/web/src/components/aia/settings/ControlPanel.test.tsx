@@ -433,11 +433,11 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "AI běh", "Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+      "AI běh", "Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
     ]);
     expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("AI běh").hidden).toBe(false);
-    for (const other of ["Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    for (const other of ["Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
       expect(panelOf(other).hidden).toBe(true);
       expect(tab(other).getAttribute("aria-selected")).toBe("false");
     }
@@ -512,5 +512,16 @@ describe("the settings tabs", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Systémové prompty" }));
     expect(await screen.findByText(/Systémové prompty vidí a upravuje jen vlastník nebo správce/)).toBeTruthy();
     expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
+  });
+
+  it("asks for the Deep Research settings only when their tab is opened, for any member", async () => {
+    api({}, false);
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    expect(called("GET", "/api/v1/deep-research/settings")).toEqual([]);
+    fireEvent.click(tab("Deep Research"));
+    // A member reads them: the API, not the page, decides who may change one.
+    await waitFor(() => expect(called("GET", "/api/v1/deep-research/settings")).toHaveLength(1));
+    expect(panelOf("Deep Research").contains(section("deep_research"))).toBe(true);
   });
 });

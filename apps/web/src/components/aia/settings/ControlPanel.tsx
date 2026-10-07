@@ -35,6 +35,7 @@ import {
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
+import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
@@ -723,12 +724,15 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["ai", "prompts", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["ai", "prompts", "deep_research", "access", "studies", "audit", "reference"] as const;
 export type TabId = (typeof TABS)[number];
+
+// Tabs that read their own route and are drawn on the first visit only.
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
-const TAB_SECTIONS: Record<Exclude<TabId, "prompts">, string[]> = {
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research">, string[]> = {
   ai: ["ai", "ai_history"],
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
@@ -805,6 +809,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   );
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
+    if (tab === "deep_research") return <DeepResearchSection members={members} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -844,7 +849,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
       </div>
       {TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          {tab === "prompts" && !drawn.has("prompts") ? null : body(tab)}
+          {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
       ))}
     </div>
@@ -856,6 +861,16 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
   return (
     <Section id="prompts">
       <SystemPromptsPanel {...props} />
+    </Section>
+  );
+}
+
+/** The Deep Research tab: its policy values, read from their own route (ADR 0022). */
+function DeepResearchSection({ members }: { members: Part<Member[]> }) {
+  const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
+  return (
+    <Section id="deep_research">
+      <DeepResearchSettingsPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
     </Section>
   );
 }
