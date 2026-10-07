@@ -150,6 +150,10 @@ class NativeRuntime(BaseModel):
     #: The switch the worker reads first. Off, it reads nothing else and builds no AI
     #: runtime; on, a value it refuses in any activity's switch stops the worker.
     switch: str
+    #: Switches the worker reads even with ``switch`` off (Deep Research's). Each needs every
+    #: switch named before it by an activity that lists it: on without them, or holding a
+    #: value the worker refuses, it stops the worker, as a refused switch does.
+    strict_switches: list[str]
     activities: list[NativeActivity]
     #: Capabilities no native step asks for yet.
     unused_capabilities: list[str]

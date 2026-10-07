@@ -24,6 +24,9 @@ from __future__ import annotations
 from aia_core.domain import ai_respondent
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
+from aia_core.domain.deep_research import settings as dr_settings
+from aia_core.domain.deep_research.contracts import HARNESS_VERSION as DR_HARNESS_VERSION
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS, TIER_PERMITS
 from aia_core.domain.pipeline import RESEARCH_STAGES, SIMULATION_STAGES
 from aia_core.domain.population import CZ_DATASET_ID, CZ_LIVE, CZ_STATIC_REFERENCE
@@ -98,6 +101,13 @@ _PROJECT_PATCH = "PATCH /api/v1/studies/{study_id}/projects/{project_id}"
 _RUNTIME_SWITCH = "AIA_AI_RUNTIME_ENABLED"
 _DESIGN_SWITCH = "AIA_AI_RESEARCH_AGENTS_ENABLED"
 _ANALYSIS_SWITCH = "AIA_AI_ANALYSIS_ENABLED"
+# Deep Research's (apps/executors/src/aia_executors/deep_research_runtime.py). The worker
+# reads them whatever the runtime's switch says, and refuses to start when one is on
+# without what it needs -- so the page states them as strict switches.
+_DR_SWITCH = "AIA_DEEP_RESEARCH_ENABLED"
+_DR_DIRECTED_SWITCH = "AIA_DEEP_RESEARCH_AGENT_DIRECTED"
+_DR_LEAD_SWITCH = "AIA_DEEP_RESEARCH_LEAD"
+_DR_SETTINGS = "/api/v1/deep-research/settings"
 
 
 def _item(
@@ -252,6 +262,44 @@ def _groups() -> list[SettingGroup]:
                     "USD",
                 ),
                 _item("project_max_api_cost", None, _API, _PROJECT_PATCH, "USD"),
+            ],
+        ),
+        # Deep Research's policy values are on their own tab (ADR 0022); here are how they
+        # are set and what no setting can change.
+        SettingGroup(
+            key="deep_research",
+            items=[
+                _item("deep_research_settings", None, _API, f"PUT {_DR_SETTINGS}/{{key}}/approval"),
+                _item(
+                    "deep_research_catalogue",
+                    dr_settings.CATALOGUE_VERSION,
+                    _CODE,
+                    "aia_core.domain.deep_research.settings:CATALOGUE",
+                ),
+                _item(
+                    "deep_research_harness",
+                    DR_HARNESS_VERSION,
+                    _CODE,
+                    "aia_core.domain.deep_research.contracts:HARNESS_VERSION",
+                ),
+                _item(
+                    "deep_research_switches_in_deployment",
+                    True,
+                    _INVARIANT,
+                    "docs/architecture/adr/0022-deep-research-settings-are-approved-data.md",
+                ),
+                _item(
+                    "deep_research_public_sources_only",
+                    True,
+                    _INVARIANT,
+                    "docs/architecture/adr/0017-deep-research-external-retrieval.md",
+                ),
+                _item(
+                    "deep_research_grounded_findings",
+                    True,
+                    _INVARIANT,
+                    "docs/architecture/adr/0017-deep-research-external-retrieval.md",
+                ),
             ],
         ),
         SettingGroup(
@@ -449,12 +497,39 @@ def _native_runtime() -> NativeRuntime:
         switches=[_RUNTIME_SWITCH, _ANALYSIS_SWITCH],
         actions=[],
     )
-    activities = [fieldwork, design, analysis]
+    deep_research = NativeActivity(
+        key="deep_research",
+        step_kind=DEEP_RESEARCH_KINDS["plan"],
+        capabilities=[ModelCapability.RESEARCH_REASONING.value, ModelCapability.CRITIC.value],
+        versions=[
+            NamedValue(name="harness", value=DR_HARNESS_VERSION),
+            NamedValue(name="settings", value=dr_settings.CATALOGUE_VERSION),
+        ],
+        switches=[_RUNTIME_SWITCH, _DESIGN_SWITCH, _DR_SWITCH],
+        actions=[],
+    )
+    # The lead researcher has its own policy entry, bound only with its switch.
+    deep_research_lead = NativeActivity(
+        key="deep_research_lead",
+        step_kind=DEEP_RESEARCH_KINDS["plan"],
+        capabilities=[ModelCapability.RESEARCH_LEAD.value],
+        versions=[],
+        switches=[
+            _RUNTIME_SWITCH,
+            _DESIGN_SWITCH,
+            _DR_SWITCH,
+            _DR_DIRECTED_SWITCH,
+            _DR_LEAD_SWITCH,
+        ],
+        actions=[],
+    )
+    activities = [fieldwork, design, analysis, deep_research, deep_research_lead]
     used = {c for activity in activities for c in activity.capabilities}
     return NativeRuntime(
         providers=[_provider(p) for p in Provider if p in NATIVE_PROVIDERS],
         credential=RuntimeCredential.INSTANCE_ROLE,
         switch=_RUNTIME_SWITCH,
+        strict_switches=[_DR_SWITCH, _DR_DIRECTED_SWITCH, _DR_LEAD_SWITCH],
         activities=activities,
         unused_capabilities=[c.value for c in ModelCapability if c.value not in used],
     )

@@ -8,6 +8,7 @@ describe("public AI configuration", () => {
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "true");
     vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", undefined);
     vi.stubEnv("AIA_AI_ANALYSIS_ENABLED", undefined);
+    for (const dr of ["AIA_DEEP_RESEARCH_ENABLED", "AIA_DEEP_RESEARCH_AGENT_DIRECTED", "AIA_DEEP_RESEARCH_LEAD"]) vi.stubEnv(dr, undefined);
     vi.stubEnv("AIA_BEDROCK_REGION", "eu-central-1");
     vi.stubEnv("AIA_BEDROCK_MODEL_ID", "eu.anthropic.claude-sonnet-4-5-20250929-v1:0");
     vi.stubEnv("AIA_AI_ROUTE_APPROVED_FOR", "CLASS_C_INTERNAL");
@@ -21,7 +22,7 @@ describe("public AI configuration", () => {
       enabled: true, researchAgentsEnabled: false, provider: "aws_bedrock", region: "eu-central-1",
       model: "eu.anthropic.claude-sonnet-4-5-20250929-v1:0", approvedFor: "CLASS_C_INTERNAL",
       approvedClasses: ["CLASS_C_INTERNAL"],
-      switches: { AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: false, AIA_AI_ANALYSIS_ENABLED: false },
+      switches: { AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: false, AIA_AI_ANALYSIS_ENABLED: false, AIA_DEEP_RESEARCH_ENABLED: false, AIA_DEEP_RESEARCH_AGENT_DIRECTED: false, AIA_DEEP_RESEARCH_LEAD: false },
     });
     // No credential, no client configuration, no route internals reach a public document.
     for (const leak of ["secret-not-for-browser", "CLI-fictional-not-for-browser", "route-not-for-browser"]) {
@@ -30,16 +31,25 @@ describe("public AI configuration", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
   it("reports each switch by its own variable, so the page can say which one is off", async () => {
-    expect(AI_SWITCHES).toEqual(["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED", "AIA_AI_ANALYSIS_ENABLED"]);
+    expect(AI_SWITCHES).toEqual([
+      "AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED", "AIA_AI_ANALYSIS_ENABLED",
+      "AIA_DEEP_RESEARCH_ENABLED", "AIA_DEEP_RESEARCH_AGENT_DIRECTED", "AIA_DEEP_RESEARCH_LEAD",
+    ]);
+    for (const dr of ["AIA_DEEP_RESEARCH_ENABLED", "AIA_DEEP_RESEARCH_AGENT_DIRECTED", "AIA_DEEP_RESEARCH_LEAD"]) vi.stubEnv(dr, undefined);
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "false");
     vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", "true");
     const off = (await GET().json()).aiRuntime;
     // The effective design state is off, but the switch itself is on: two different reasons.
     expect(off.researchAgentsEnabled).toBe(false);
-    expect(off.switches).toEqual({ AIA_AI_RUNTIME_ENABLED: false, AIA_AI_RESEARCH_AGENTS_ENABLED: true, AIA_AI_ANALYSIS_ENABLED: false });
+    expect(off.switches).toEqual({ AIA_AI_RUNTIME_ENABLED: false, AIA_AI_RESEARCH_AGENTS_ENABLED: true, AIA_AI_ANALYSIS_ENABLED: false, AIA_DEEP_RESEARCH_ENABLED: false, AIA_DEEP_RESEARCH_AGENT_DIRECTED: false, AIA_DEEP_RESEARCH_LEAD: false });
     vi.stubEnv("AIA_AI_RUNTIME_ENABLED", "yes");
     vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", "maybe");
-    expect((await GET().json()).aiRuntime.switches).toEqual({ AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: null, AIA_AI_ANALYSIS_ENABLED: false });
+    vi.stubEnv("AIA_DEEP_RESEARCH_ENABLED", "true");
+    vi.stubEnv("AIA_DEEP_RESEARCH_LEAD", "perhaps");
+    expect((await GET().json()).aiRuntime.switches).toEqual({
+      AIA_AI_RUNTIME_ENABLED: true, AIA_AI_RESEARCH_AGENTS_ENABLED: null, AIA_AI_ANALYSIS_ENABLED: false,
+      AIA_DEEP_RESEARCH_ENABLED: true, AIA_DEEP_RESEARCH_AGENT_DIRECTED: false, AIA_DEEP_RESEARCH_LEAD: null,
+    });
   });
   it("splits the approved data classes as the worker does, and reads none as none", async () => {
     expect(approvedClasses(" CLASS_C_INTERNAL , ,CLASS_B_DERIVED_CLIENT ")).toEqual(["CLASS_C_INTERNAL", "CLASS_B_DERIVED_CLIENT"]);

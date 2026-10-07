@@ -11,7 +11,14 @@ export const dynamic = "force-dynamic";
 // The switches native AI activities are turned on by, in the worker's environment
 // (apps/executors/src/aia_executors/ai_runtime.py). Compose hands the web the same
 // raw values; the settings document names which activity needs which.
-export const AI_SWITCHES = ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_RESEARCH_AGENTS_ENABLED", "AIA_AI_ANALYSIS_ENABLED"] as const;
+export const AI_SWITCHES = [
+  "AIA_AI_RUNTIME_ENABLED",
+  "AIA_AI_RESEARCH_AGENTS_ENABLED",
+  "AIA_AI_ANALYSIS_ENABLED",
+  "AIA_DEEP_RESEARCH_ENABLED",
+  "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
+  "AIA_DEEP_RESEARCH_LEAD",
+] as const;
 
 export type PublicConfig = {
   cognitoDomain: string | null;

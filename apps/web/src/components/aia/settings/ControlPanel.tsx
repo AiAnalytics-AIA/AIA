@@ -35,6 +35,7 @@ import {
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
+import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
@@ -491,7 +492,9 @@ function reasonFor(state: ActivityState, activity: NativeActivity): string {
     case "off":
       return `${tv(`${R}.reason.off`, { switch: state.switch })} ${t(`${R}.activity.${activity.key}.off`)}`;
     case "invalid":
-      return tv(`${R}.reason.invalid`, { switch: state.switch });
+      return state.needs
+        ? tv(`${R}.reason.needs`, { switch: state.switch, needs: state.needs })
+        : tv(`${R}.reason.invalid`, { switch: state.switch });
     case "unknown":
       return state.switch ? tv(`${R}.reason.unknown`, { switch: state.switch }) : t(`${R}.reason.unknownConfig`);
   }
@@ -723,12 +726,15 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["ai", "prompts", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["ai", "prompts", "deep_research", "access", "studies", "audit", "reference"] as const;
 export type TabId = (typeof TABS)[number];
+
+// Tabs that read their own route and are drawn on the first visit only.
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
-const TAB_SECTIONS: Record<Exclude<TabId, "prompts">, string[]> = {
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research">, string[]> = {
   ai: ["ai", "ai_history"],
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
@@ -795,7 +801,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   };
   // A group is drawn when the API sent it; the AI section, roles and audit always are.
   const present = (k: string) => byKey.has(k) || k === "ai" || k === "roles" || k === "audit";
-  const known = new Set(Object.values(TAB_SECTIONS).flat());
+  const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
   const section = (key: string) => (
     <Section key={key} id={key}>
@@ -805,6 +811,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   );
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
+    if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? []} members={members} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -844,7 +851,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
       </div>
       {TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          {tab === "prompts" && !drawn.has("prompts") ? null : body(tab)}
+          {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
       ))}
     </div>
@@ -856,6 +863,17 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
   return (
     <Section id="prompts">
       <SystemPromptsPanel {...props} />
+    </Section>
+  );
+}
+
+/** The Deep Research tab: how its values are set, then the values from their own route (ADR 0022). */
+function DeepResearchSection({ items, members }: { items: SettingItem[]; members: Part<Member[]> }) {
+  const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
+  return (
+    <Section id="deep_research">
+      {items.length ? <div>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div> : null}
+      <DeepResearchSettingsPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
     </Section>
   );
 }
