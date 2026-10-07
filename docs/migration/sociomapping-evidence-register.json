@@ -1523,9 +1523,50 @@
    ],
    "formula": "delta_ij = sqrt(2 (1 - r~_ij)) in [0, 2] (0 identical, 1.41 unrelated, 2 opposite); min_P sigma(P) = sum_{i<j} w_ij (||p_i - p_j|| - delta_ij)^2, w_ij = 1 if RELIABLE or WEAK, 0 if UNKNOWN, by SMACOF from a Torgerson start; Stress-1 = sqrt(sum w (||p_i - p_j|| - delta_ij)^2 / sum w delta_ij^2); no rescaling to a fixed radius: one map unit means the same everywhere",
    "applies_to": "AIA's object map. Supersedes the strongest-pair target, the fixed-radius frame (map_frame max_abs_to_extent 45, engine.py:232-238; D6 package § 3) and, for the object map, the H-Model path (AIA-H8, AIA-H9), which stays experimental for comparison only.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The kernel widths of F12 and of the respondent density (sigma = 12 and 9.5 in the unit's +-62 frame) are not restated for this ruler (plan § 4 item 3).",
+   "implementation": "aia_core.domain.sociomap.layout:fit_smacof_objects",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_ruler_is_the_distance_between_standardised_variables",
+     "what": "delta = sqrt(2 (1 - r)): 0 identical, sqrt 2 unrelated, 2 opposite (p. 8)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_map_is_never_stretched_to_a_radius",
+     "what": "no rescaling to a fixed radius: cos(a - b) correlations land on radius 1 exactly"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_a_family_without_structure_keeps_its_size_and_says_so",
+     "what": "a weak family's targets crowd near 1.41 and its Stress-1 is >= 0.20; it is not stretched to a strong family's size [C4/P4, stated: the audit's own families are not vendored]"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_an_unknown_pair_pulls_nothing",
+     "what": "w = 0 for an UNKNOWN pair (F3): its number moves nothing"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_a_planted_configuration_is_recovered_exactly",
+     "what": "planted points recovered to Stress-1 < 1e-4 from the Torgerson start"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_each_iteration_never_raises_the_stress",
+     "what": "SMACOF majorisation: raw stress non-increasing"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_same_input_gives_the_same_bits",
+     "what": "deterministic, bit-identical"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_objects_with_no_chain_of_known_pairs_are_refused",
+     "what": "an object with no known pair to the rest is refused, not placed"
+    }
+   ],
+   "uncertainty": "The kernel widths of F12 and of the respondent density (sigma = 12 and 9.5 in the unit's +-62 frame) are not restated for this ruler (plan § 4 item 3). Landed in chunk 2b as layout.fit_smacof_objects with correlation_distance(s); one choice the audit leaves open is recorded on every layout (ObjectLayout.start_fill): an UNKNOWN pair's squared target in the Torgerson start is the mean of the known ones, which shapes only the start, never the stress. The audit's optimum 0.296 on its demo and the families of [C4]/[P4] are not reproducible without its data. No spec, preset or research body uses the layout yet (chunk 2d).",
    "resolve_by": "sociomap-formula-corrections chunk 2b",
    "question": "plan § 4 item 3"
   },
