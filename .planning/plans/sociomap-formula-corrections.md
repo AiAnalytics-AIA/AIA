@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 0a. The audit's sixteen rules in the evidence register, DOCUMENTED; its checks C1-C16 and P4-P14 as fixtures"
+  - "[x] 0a. The audit's sixteen rules in the evidence register, CANONICAL; its checks C1-C16 and P4-P14 as a fixture"
   - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
   - "[ ] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
@@ -21,7 +21,7 @@ chunks:
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
 **Owner:** method owner (QED Group; the audit is by Aram Bahbouh, status 6 October 2026) ·
-**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; no code yet) ·
+**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 ·
 **Base:** `develop` @ `579b7ab`.
 
 **Source.** `NPC_Sociomapa_Faulty_Formulas.pdf` (EN) and `NPC_Sociomapa_Chybne_Vzorce.pdf` (CS),
@@ -278,6 +278,39 @@ stay as they are, because v1 stays what it is.)
 
 Order: 0a → 1a → 1b → 1c → 2a → 2b → 2c → 2d → 3 → 4a → 4b → 4c → 4d → 5 → 6. 0b runs beside
 0a and gates 2a's rule, 2b/4b's σ and 4c.
+
+## 8a. Progress
+
+**0a (2026-10-07, `feature/sociomap-audit-register`).** `docs/migration/sociomapping-evidence-register.json`
+gains a `CANONICAL` label, the two audit documents (`NPC_AUDIT_EN`, `NPC_AUDIT_CS`, 30 pages,
+one pagination), sixteen rules `AUDIT-F1`..`AUDIT-F16` (each: the replacement as the formula,
+the Part I page and the § 12 page, what it applies to in AIA with the anchor it replaces, the
+chunk that implements it as `resolve_by`, the open question if the audit leaves one), and a
+`canonical` block: the owner's rule, the scope, `supersedes` (F2 → RTS-O1; F3 → AIA-D2;
+F4 → RTS-A1; F6 → AIA-H8, AIA-H9; F7 → SOMECS-H3; F10 → SOMECS-M1; F12 → SOMECS-M2;
+F14 → SOMECS-T1; each superseded rule's `uncertainty` now says so) and `checks`, the printed
+evidence each rule rests on. The audit's twenty checks (C1-C16, P4, P10, P12, P14) and its
+"checked and found sound" list are transcribed, number by number, into
+`packages/aia_core/tests/fixtures/sociomapping_sources/npc_audit_checks.json`; nothing was
+recomputed. `test_sociomapping_evidence_register.py` keeps it true: a CANONICAL rule cites a
+canonical document and a page, everything superseded says by what, the register and the
+fixture name the same checks and each check names the rules that claim it. Measured: the
+register suite 24 passed; every `sociomap` test 421 passed, 5 skipped (the archive-backed
+parity tests, as always); `mypy` over the four source trees clean; `ruff format --check` 478
+files; `layer_check` 94 rules; `exposure_check` 7 rules. Not done, and not doable from here:
+the audit's `code_formula_checks.py` and its outputs are still with the audit's author; the
+request below is what to send.
+
+**Request to the audit's author (chunk 0a, to be sent by the owner).** For
+`.planning/plans/sociomap-formula-corrections.md` chunk 0a we need, as files: (1)
+`NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; (2) its printed
+output, so every `[C*]` and `[P*]` number in the audit is reproducible here; (3) the simulated
+inputs behind C1, C2, C4/P4, C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and
+generators that made them; (4) if the demo dataset cannot leave, the per-check summaries it
+produced (C1's mean r and share positive, C5's stresses, C6's disparities, C8's rankings,
+C9's scores, C10's radii) as they stand. With them the fixture becomes the audit's own output
+instead of a transcription, and each of the plan's synthetic acceptance tests can be checked
+against the audit's number before it is trusted.
 
 ## 9. Doc follow-up
 
