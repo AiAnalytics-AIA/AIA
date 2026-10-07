@@ -492,7 +492,9 @@ function reasonFor(state: ActivityState, activity: NativeActivity): string {
     case "off":
       return `${tv(`${R}.reason.off`, { switch: state.switch })} ${t(`${R}.activity.${activity.key}.off`)}`;
     case "invalid":
-      return tv(`${R}.reason.invalid`, { switch: state.switch });
+      return state.needs
+        ? tv(`${R}.reason.needs`, { switch: state.switch, needs: state.needs })
+        : tv(`${R}.reason.invalid`, { switch: state.switch });
     case "unknown":
       return state.switch ? tv(`${R}.reason.unknown`, { switch: state.switch }) : t(`${R}.reason.unknownConfig`);
   }
@@ -799,7 +801,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   };
   // A group is drawn when the API sent it; the AI section, roles and audit always are.
   const present = (k: string) => byKey.has(k) || k === "ai" || k === "roles" || k === "audit";
-  const known = new Set(Object.values(TAB_SECTIONS).flat());
+  const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
   const section = (key: string) => (
     <Section key={key} id={key}>
@@ -809,7 +811,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   );
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
-    if (tab === "deep_research") return <DeepResearchSection members={members} />;
+    if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? []} members={members} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -865,11 +867,12 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
   );
 }
 
-/** The Deep Research tab: its policy values, read from their own route (ADR 0022). */
-function DeepResearchSection({ members }: { members: Part<Member[]> }) {
+/** The Deep Research tab: how its values are set, then the values from their own route (ADR 0022). */
+function DeepResearchSection({ items, members }: { items: SettingItem[]; members: Part<Member[]> }) {
   const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   return (
     <Section id="deep_research">
+      {items.length ? <div>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div> : null}
       <DeepResearchSettingsPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
     </Section>
   );

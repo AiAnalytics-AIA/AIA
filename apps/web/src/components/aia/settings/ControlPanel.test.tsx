@@ -43,6 +43,10 @@ const DOC = (mayAdminister = true) => ({
     ...(mayAdminister
       ? [{ key: "deployment", items: [item("env", "develop", "DEPLOYMENT", "AIA_ENV"), item("database_backend", null, "DEPLOYMENT", "DATABASE_URL")] }]
       : []),
+    { key: "deep_research", items: [
+      item("deep_research_settings", null, "API", "PUT /api/v1/deep-research/settings/{key}/approval"),
+      item("deep_research_public_sources_only", true, "INVARIANT", "docs/architecture/adr/0017-deep-research-external-retrieval.md"),
+    ] },
     { key: "access", items: [
       item("members", null, "API", "POST /api/v1/members"),
       item("membership_is_access", true, "INVARIANT", "docs/architecture/adr/0019-two-roles-and-human-ai-gates.md"),
@@ -523,5 +527,11 @@ describe("the settings tabs", () => {
     // A member reads them: the API, not the page, decides who may change one.
     await waitFor(() => expect(called("GET", "/api/v1/deep-research/settings")).toHaveLength(1));
     expect(panelOf("Deep Research").contains(section("deep_research"))).toBe(true);
+    // The settings document's own group says how the values are set and what no value changes.
+    // It is drawn on this tab, not again in Reference (whose invariants list holds every rail).
+    const group = within(panelOf("Deep Research"));
+    expect(group.getByText(/Jen veřejné zdroje: robots.txt platí/)).toBeTruthy();
+    expect(group.getByText(/Pravidla Deep Research/)).toBeTruthy();
+    expect(within(panelOf("Reference")).queryByText(/Pravidla Deep Research/)).toBeNull();
   });
 });

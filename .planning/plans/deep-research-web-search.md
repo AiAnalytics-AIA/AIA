@@ -43,7 +43,7 @@ chunks:
   - "[ ] 39. Extraction accuracy: record precision and recall on known catalogues (with 25)"
   - "[x] 40. Settings catalogue (ADR 0022): every policy value typed, bounded, with its proposed default"
   - "[x] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
-  - "[ ] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
+  - "[x] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
 ---

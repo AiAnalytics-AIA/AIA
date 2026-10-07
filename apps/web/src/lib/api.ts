@@ -653,6 +653,8 @@ export type NativeRuntime = {
   providers: ProviderEntry[];
   credential: "INSTANCE_ROLE";
   switch: string;
+  /** Read whatever `switch` says; on without a switch named before it, the worker does not start. */
+  strict_switches: string[];
   activities: NativeActivity[];
   unused_capabilities: string[];
 };
