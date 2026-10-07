@@ -41,7 +41,7 @@ chunks:
   - "[ ] 37. The run's dataset: sealed beside the bundle, cited by findings, exported, proposed to Client Knowledge"
   - "[ ] 38. Pages that need a browser: headless rendering behind its own switch (after 37)"
   - "[ ] 39. Extraction accuracy: record precision and recall on known catalogues (with 25)"
-  - "[ ] 40. Settings catalogue (ADR 0022): every policy value typed, bounded, with its proposed default"
+  - "[x] 40. Settings catalogue (ADR 0022): every policy value typed, bounded, with its proposed default"
   - "[ ] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
   - "[ ] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
