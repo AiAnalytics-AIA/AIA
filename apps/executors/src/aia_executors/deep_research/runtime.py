@@ -25,7 +25,12 @@ from aia_core.domain.deep_research.lead import LEAD_VERSION
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
 from aia_core.domain.deep_research.reputation import ReputationRegister
-from aia_core.domain.deep_research.request_limits import KindBudget, ModelPrices, kind_budgets
+from aia_core.domain.deep_research.request_limits import (
+    REQUEST_LIMITS_VERSION,
+    KindBudget,
+    ModelPrices,
+    kind_budgets,
+)
 from aia_core.domain.deep_research.sources import SourceTable
 from aia_core.domain.deep_research.tooling import (
     TOOL_EVENT_KINDS,
@@ -163,6 +168,8 @@ class DeepResearchRuntime:
         """
         versions = {
             "harness": HARNESS_VERSION,
+            # The table the harness's request limits come from (``request_limits``).
+            "request_limits": REQUEST_LIMITS_VERSION,
             "prompt": PROMPT_VERSION,
             "grounding": GROUNDING_VERSION,
             "classifier": CLASSIFIER_VERSION,

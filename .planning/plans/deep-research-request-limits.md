@@ -76,9 +76,18 @@ output limit, thinking budget) and prices the ceiling per kind. Any missing key 
 ceiling, never a zero. `AIA_AI_RESEARCH_RESERVATION_USD` stays the design jobs' reservation and
 stops pricing Deep Research.
 
-**Deliberately unchanged:** fingerprints and recorded versions (the output limit was never in
-them; changing it does not invalidate a stored track), the engine's payloads, the presets and
-call counts, the gateway's input bound.
+**A method change, so a new harness** (the owner's review, 2026-10-07). A shorter answer limit
+or a refused oversize request can change a track, a verification, a stop and so the bundle.
+`HARNESS_VERSION` moves to `aia-deep-research-harness-2`; it is already in every reuse key
+that crosses runs (the track, verification, independent-verification, synthesis and brief
+fingerprints) and in `runtime.versions()`, which also records `REQUEST_LIMITS_VERSION`. New
+requests are frozen for harness 2. A harness-1 request stays readable (the request literal
+accepts both, so its fingerprint and its sealed bundle keep verifying) and is never executed:
+the plan step refuses it (`harness_changed`, start a new run). A test pins the limit table to
+the harness, so the table cannot move again without it.
+
+**Deliberately unchanged:** the engine's payloads, the presets and call counts, the gateway's
+input bound.
 
 ## Trade-off
 
@@ -110,6 +119,15 @@ against $21.69 (`test_deep_research_spend_api.py`).
 
 ## Findings
 
+- **The engine method moves for a cost-governance finding (ADR 0021 decision 7's exception).**
+  Every request reserved the whole window and output limit
+  (`aia_executors/ai_runtime.py:342-361 @ d2e038a`), so a run's ceiling was priced at a worst
+  case most requests cannot reach, and a study's spend limit was checked against it. Per-kind
+  limits are the fix; because they change what a request can return, the harness moves with
+  them. Tests: `test_the_request_limits_move_only_with_the_harness`,
+  `test_an_identical_run_under_the_new_limits_reuses_nothing_made_under_the_old`,
+  `test_a_request_frozen_under_harness_one_is_never_executed_under_harness_two`.
+
 - **The ceiling stays an order of magnitude above § 9's estimates, and the input bound is why.**
   An investigator's reservation is $1.048: $0.864 of it is its 144,000-token window priced at
   the input rate, twice (`request_limits.reservation_usd`), because the gateway bounds input
@@ -126,6 +144,10 @@ against $21.69 (`test_deep_research_spend_api.py`).
   with the presets (chunk 1).
 
 ## Doc follow-up
+
+- ADR 0021 decision 7 (the frozen engine): add "Moved once, to harness 2, for per-kind
+  request limits (`deep-research-request-limits.md`, a cost-governance finding); harness-1
+  requests stay readable and are never executed."
 
 - `CLAUDE.md` § 2, `aia_core/domain/deep_research/`: add "`request_limits.py` each model
   kind's window and output limit (proposed) and its reservation, derived from the route's

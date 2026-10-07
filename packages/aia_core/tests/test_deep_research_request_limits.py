@@ -6,6 +6,7 @@ import pytest
 
 from aia_core.domain.deep_research.agents import AgentRole
 from aia_core.domain.deep_research.budgets import MODEL_KINDS, CallKind
+from aia_core.domain.deep_research.contracts import HARNESS_VERSION, digest
 from aia_core.domain.deep_research.request_limits import (
     REQUEST_LIMITS,
     RESEARCH_KINDS,
@@ -122,3 +123,24 @@ def test_a_price_is_finite_and_not_negative() -> None:
         ModelPrices(-1.0, 15.0)
     with pytest.raises(ValueError):
         ModelPrices(3.0, float("inf"))
+
+
+#: The request-limit table harness 2 was cut for. Changing a window or an answer limit
+#: changes what a request can return, and so what a track, a verification or a brief can
+#: be: move ``HARNESS_VERSION`` with the table, and this pin with both, so nothing made
+#: under the old limits is reused under the new ones.
+LIMITS_OF_HARNESS = {
+    "aia-deep-research-harness-2": (
+        "b5fa86901d095f100a15934bbd7487038358a95cc143fdc7291cb5ea1216ee1a"
+    ),
+}
+
+
+def test_the_request_limits_move_only_with_the_harness() -> None:
+    table = digest(
+        {k.value: [v.window_tokens, v.answer_tokens] for k, v in sorted(REQUEST_LIMITS.items())}
+    )
+    assert LIMITS_OF_HARNESS.get(HARNESS_VERSION) == table, (
+        "the request limits changed without the harness: bump HARNESS_VERSION "
+        "(contracts.py) and pin the new table here"
+    )

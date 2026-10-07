@@ -842,28 +842,43 @@ def test_the_switch_is_off_unless_set_and_on_records_the_mode(
 
 
 # --------------------------------------------------------------------------- #
-# Mode off: the planned journey, byte for byte
+# Mode off: the planned journey's content, and the requests as harness 2 sends them
 # --------------------------------------------------------------------------- #
 
-#: Pass one of ``test_deep_research_journey.py`` as feature/dr-agents-base @ a6338c3
-#: sent it, before the agent-directed mode existed: the planner's and the web
-#: investigators' request bodies exactly; every request with the random knowledge
-#: item ids and the evidence ids taken from them masked; and the tool journal as
-#: (tool, outcome, request fingerprint). Computed on that commit by this file's
-#: digests; the mode off must reproduce them. Each body's output limit is set back to
-#: that commit's 8,192 before hashing: since per-kind request limits
-#: (``request_limits``) it is its kind's, asserted exactly beside the digests.
+#: Content pins. Pass one of ``test_deep_research_journey.py`` as
+#: feature/dr-agents-base @ a6338c3 sent it, before the agent-directed mode existed: the
+#: planner's and the web investigators' request bodies; every request with the random
+#: knowledge item ids and the evidence ids taken from them masked; and the tool journal as
+#: (tool, outcome, request fingerprint). Computed on that commit by this file's digests.
+#: Since harness 2 (per-kind request limits) the requests are **not** byte-for-byte that
+#: commit's: each body's output limit is its kind's. These pins cover everything else --
+#: prompts, contracts, payloads -- and are taken with that one field set back to a6338c3's
+#: 8,192; the field itself is pinned by the envelope pins below.
 PLANNED_WEB_REQUESTS = "1017ad3dc20c686bd75ef42060f29c88bcd2b2e480cf684617600890e5c37bf1"
 PLANNED_ALL_REQUESTS = "513c447086654ec5bc2982bbf1111fb290c54f588d5cffc2f453a18cfb3d5fc9"
 PLANNED_TOOL_JOURNAL = "6ee0ced884929d5e127b81601bcedfcd64f439813477bb780242845a39aac605"
+#: Envelope pins: the same two digests over the bodies exactly as harness 2 sends them,
+#: output limits included (computed on this branch, 2026-10-07).
+HARNESS_2_WEB_REQUESTS = "86511dd88cb3019443e82dc3e653a2ca0c2a44540b90a9515989403038cd4ac3"
+HARNESS_2_ALL_REQUESTS = "b826af1e88e27f94258e2af8287902fedffe9d46b04c3fd8fdb8e064b8ea7397"
 
 
-def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
+def _masked(bodies: list[Any]) -> str:
+    return re.sub(r"(KNW-[0-9a-f]+@|EV-[0-9a-f]{16})", "ID", canonical_json(bodies))
+
+
+def _sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def test_with_the_mode_off_the_planned_content_is_unchanged_and_its_envelope_pinned(
     pass_one: Journey,  # noqa: F811
     store: InMemoryArtifactStore,
 ) -> None:
     requests = pass_one.agents.requests
-    # The one field that moved since a6338c3: each kind's own output limit.
+    is_web = [RecordedAgents._role(r) in {"planner", "web_investigator"} for r in requests]
+    sent = [r.body for r in requests]
+    # The execution envelope, exactly: each kind's own output limit (harness 2) ...
     assert {RecordedAgents._role(r): r.body["inferenceConfig"] for r in requests} == {
         "planner": {"maxTokens": 8192},
         "internal_investigator": {"maxTokens": 6144},
@@ -871,16 +886,17 @@ def test_with_the_mode_off_the_planned_journey_is_byte_for_byte_unchanged(
         "verifier": {"maxTokens": 4096},
         "synthesizer": {"maxTokens": 8192},
     }
-    bodies = [{**r.body, "inferenceConfig": {"maxTokens": 8192}} for r in requests]
-    web = [
-        b
-        for r, b in zip(requests, bodies, strict=True)
-        if RecordedAgents._role(r) in {"planner", "web_investigator"}
-    ]
+    # ... and the requests as sent, envelope included.
+    assert _sha(canonical_json([b for b, w in zip(sent, is_web, strict=True) if w])) == (
+        HARNESS_2_WEB_REQUESTS
+    )
+    assert _sha(_masked(sent)) == HARNESS_2_ALL_REQUESTS
+    # The content a6338c3 sent, unchanged: every body with only its output limit set back.
+    content = [{**b, "inferenceConfig": {"maxTokens": 8192}} for b in sent]
+    web = [b for b, w in zip(content, is_web, strict=True) if w]
     assert len(web) == 5
-    assert hashlib.sha256(canonical_json(web).encode()).hexdigest() == PLANNED_WEB_REQUESTS
-    masked = re.sub(r"(KNW-[0-9a-f]+@|EV-[0-9a-f]{16})", "ID", canonical_json(bodies))
-    assert hashlib.sha256(masked.encode()).hexdigest() == PLANNED_ALL_REQUESTS
+    assert _sha(canonical_json(web)) == PLANNED_WEB_REQUESTS
+    assert _sha(_masked(content)) == PLANNED_ALL_REQUESTS
     journal = [
         (e["payload"]["tool"], e["payload"]["outcome"], e["payload"]["request_fingerprint"])
         for e in tool_events(pass_one.world, pass_one.run_id)

@@ -14,6 +14,7 @@ from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.ai_material import classify_material
 from aia_core.domain.deep_research.agents import AgentRole, PlanProposal
 from aia_core.domain.deep_research.contracts import (
+    HARNESS_VERSION,
     Channel,
     DeepResearchRequest,
     ResearchTrack,
@@ -77,6 +78,14 @@ class PlanExecutor(_Step):
             return _invalid("request_invalid", f"the run's request does not validate: {exc}")
         if request.fingerprint() != step.input_fingerprint:
             return _invalid("request_altered", "the request is not the one the run was created for")
+        if request.harness_version != HARNESS_VERSION:
+            # Frozen for an earlier method: executed now it would run under another
+            # one and be labelled with the first. It stays readable; it is not run.
+            return _invalid(
+                "harness_changed",
+                f"the run was frozen for {request.harness_version}, not {HARNESS_VERSION}; "
+                "start a new run",
+            )
         try:
             depth = preset(request.preset)
         except UnknownPreset as exc:

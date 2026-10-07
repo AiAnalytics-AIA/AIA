@@ -39,6 +39,7 @@ from .datasets import DATASET_MEDIA_TYPE, DatasetResult
 __all__ = [
     "DOCUMENT_LAYOUT_VERSION",
     "HARNESS_VERSION",
+    "HARNESS_VERSIONS",
     "ArchivedCapture",
     "BriefDigest",
     "Channel",
@@ -82,7 +83,17 @@ __all__ = [
 
 #: The Deep Research harness. Part of every fingerprint: a harness change is a
 #: method change, and nothing produced under the old one is reused under the new.
-HARNESS_VERSION: Final = "aia-deep-research-harness-1"
+#:
+#: 2 (chunk 23, ``request_limits``): each kind of request has its own window and
+#: output limit, where 1 sent every request under the model's window and the whole
+#: research output limit. A shorter answer or a refused oversize request can change a
+#: track, a verification or a brief, so work done under 1 is never reused under 2.
+HARNESS_VERSION: Final = "aia-deep-research-harness-2"
+
+#: Every harness a stored request may name: the current one is frozen into new
+#: requests and the only one executed; an earlier one stays readable, so a run, its
+#: request and its sealed bundle from before still validate and keep their identity.
+HARNESS_VERSIONS: Final = ("aia-deep-research-harness-1", HARNESS_VERSION)
 
 
 class _Closed(BaseModel):
@@ -241,7 +252,9 @@ class DeepResearchRequest(_Closed):
     request's identity, for idempotent enqueueing.
     """
 
-    harness_version: Literal["aia-deep-research-harness-1"]
+    #: The harness the request was frozen for (:data:`HARNESS_VERSIONS`); only the
+    #: current one is executed.
+    harness_version: Literal["aia-deep-research-harness-1", "aia-deep-research-harness-2"]
     design_revision_id: str = Field(min_length=1)
     design_revision: int = Field(ge=1)
     preset: str
