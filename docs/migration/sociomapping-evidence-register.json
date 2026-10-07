@@ -1502,9 +1502,50 @@
    ],
    "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7; AIA's reading of 'left out': the denominator counts the known PRIMARY pairs of i (m_P - 1 minus i's UNKNOWN pairs), and an object with no known pair has no score (undefined, not 0)",
    "applies_to": "object scores and the default object height; replaces relation_classic (metrics.py:213-224) and the T-score default height (specification.py:415). AIA has no object manager yet; the SECONDARY rule is written into the contract now.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a).",
+   "implementation": "aia_core.domain.sociomap.metrics:primary_scores",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_the_scores_are_the_audits_formula_on_a_hand_computed_example",
+     "what": "A_i and K_i as the audit writes them, on a hand-computed four-object family; WEAK pairs count, as only UNKNOWN is left out"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic",
+     "what": "a SECONDARY object leaves every PRIMARY score bit-identical where it moves the classic score's top object to the bottom [C8, stated]"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_the_classic_score_is_mostly_constant_where_alignment_and_connectedness_differ",
+     "what": "the classic score stays within 15 % of 11 (m - 1) and ties a split object with an unconnected one; alignment gives the side, connectedness the strength"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_an_unknown_pair_is_out_of_sum_and_denominator_where_a_fixed_one_scores_zero",
+     "what": "AIA's reading of 'left out': out of the sums and the denominator; the excluded pair and the denominator recorded"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_an_object_with_only_unknown_pairs_is_unscored_where_zero_would_be_a_guess",
+     "what": "no known pair: alignment and connectedness None, never 0"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_the_scores_stay_in_their_bounds_where_the_inputs_do",
+     "what": "A in [-1, 1], K in [0, 1], |A| <= K over 200 random families; the bounds reached"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_primary_scores.py::test_every_role_must_be_declared_where_a_default_would_make_everything_primary",
+     "what": "the PRIMARY set is the caller's: an undeclared, unknown or unnamed role is refused"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown",
+     "what": "the research step's stored body carries the scores, the excluded pairs and the denominators"
+    }
+   ],
+   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice (AUDIT_PROVISIONAL_DEFAULT_HEIGHT; spec v3, chunk 2d, declares it). The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a). The audit's C8 numbers come from its demo, which AIA does not have, so the SECONDARY test is synthetic. Landed in chunk 1b: the scores are stored in the research Sociomap body beside the map; every object of a tracked set is PRIMARY until an object manager exists; no height, terrain or Results surface reads them yet (2d, 4b, 5).",
    "resolve_by": "sociomap-formula-corrections chunk 1b",
    "question": "Q7"
   },

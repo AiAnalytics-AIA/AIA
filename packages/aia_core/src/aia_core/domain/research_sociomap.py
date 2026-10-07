@@ -15,7 +15,12 @@ PR C chunk 6. For each tracked object set of the specification:
    stays in step 1 only, because ``aia-sociomap-1`` is the unit's formula kept
    as a named comparison alternative; the status says where that matrix must
    not be read (plan ``sociomap-formula-corrections``, chunk 1a);
-3. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
+3. **each object's alignment and connectedness** -- the audit's replacement
+   of the classic score (F8), over the PRIMARY objects with UNKNOWN pairs left
+   out; every object of a tracked set is PRIMARY until AIA has an object
+   manager (chunk 1b). Stored beside the map; the map's height is still the
+   preset's;
+4. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
    preset ``AIA_SOCIOMAP_V1`` adopted by name, with only the rating scale taken
    from the battery (a property of the data, recorded on the artifact).
 
@@ -40,6 +45,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecBattery
 from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
+from .sociomap.metrics import ObjectRole, primary_scores
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, fisher_interval, pair_status
 
@@ -61,8 +67,11 @@ __all__ = [
 #: The version of this module's artifact body. ``2``: the relation block carries
 #: every pair's signed correlation, rater count, interval and status (chunk 1a);
 #: the executor fingerprints its input with it, so a run computed under ``1`` is
-#: not reused as if it had them. Not the engine preset (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-2"
+#: not reused as if it had them. ``3``: each set carries ``object_scores``, the
+#: audit's alignment and connectedness (chunk 1b), so a body stored under ``2``
+#: (without them) is not reused as if it had them. Not the engine preset
+#: (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-3"
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
 #: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE.
 PAIR_CONFIDENCE: Final = 0.95
@@ -300,6 +309,11 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
     pairs = derive_pair_relations(
         ratings, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
     )
+    # Every object of a tracked set is PRIMARY: AIA has no object manager, so no
+    # set has context objects yet. Declared here, by name, not defaulted.
+    object_scores = primary_scores(
+        object_ids, pairs.r, pairs.status, dict.fromkeys(object_ids, ObjectRole.PRIMARY)
+    )
 
     low, high = battery.scale
     spec = AIA_SOCIOMAP_V1.model_copy(
@@ -347,6 +361,7 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
                 "n_min is the audit's provisional value, pending its Q6"
             ),
         },
+        "object_scores": object_scores.to_payload(),
         "sociomap": artifact.model_dump(mode="json"),
     }
 
