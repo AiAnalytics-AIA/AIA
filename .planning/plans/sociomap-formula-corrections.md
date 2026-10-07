@@ -4,7 +4,7 @@ chunks:
   - "[x] 0a. The audit's sixteen rules in the evidence register, CANONICAL; its checks C1-C16 and P4-P14 as a fixture"
   - "[ ] 0b. The canonical rule recorded in the decision package; Q5, Q6, Q7 decided by the owner from the sheets in § 4a; the kernel width on the fixed ruler and the audit's other open points put to its author; the R-smacof seam settled with engineering"
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
-  - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
+  - "[x] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
   - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
@@ -511,6 +511,22 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   terrain, still counted in `support_n`; tests `test_a_straight_liner_below_the_top_is_not_placed`,
   `test_straight_liners_do_not_move_anyone_else`. `CLAUDE.md` map, `executors/research.py`: "a
   stored Sociomap is reused only under the same engine implementation version".
+- From chunk 1b: `CLAUDE.md` map, a line under `domain/sociomap/` for `metrics.py` (it has none
+  today): "metrics.py  object metrics and the normaliser (F5, F6); `primary_scores`: alignment and
+  connectedness over the PRIMARY objects, UNKNOWN pairs out of the sums and the denominator, an
+  object with none unscored (audit F8)"; `research_sociomap.py`: "... and each object's alignment
+  and connectedness (`object_scores`)". `sociomapa-deterministic-engine.md`: § 2 pipeline, beside
+  the object metrics, "alignment / connectedness over PRIMARY (audit F8), stored by the research
+  step, read by no height yet"; § 5 a note that `aia-sociomap-1`'s default height stays the
+  classic T-score and the audit's provisional default (mean rating, Q7) arrives with spec v3; § 8 a
+  row S10 -- reference: the classic score `sum_j (s_ij + s_ji)`, mostly the constant `11 (m - 1)`,
+  a 5.5-stamped pair counted as medium, context objects in the sum; production: `relation_classic`
+  kept for `aia-sociomap-1`, and `primary_scores` beside it over PRIMARY objects with UNKNOWN
+  pairs left out; tests `test_the_scores_are_the_audits_formula_on_a_hand_computed_example`,
+  `test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic`. (The
+  envelope-terrain row this plan's § 9 first called S10 takes the next free number.)
+  `.planning/overview.md` / D6 v2 note: AIA's reading of F8's denominator (known PRIMARY pairs,
+  unscored with none) is put to the audit's author with Q7.
 
 ## 10. Progress and review outcome
 
@@ -585,3 +601,42 @@ terrain bit-identical (`test_straight_liners_do_not_move_anyone_else`).
 Checks run: `ruff check`, `ruff format --check`, `mypy --strict`, `make layer_check`, `make
 exposure_check`, `tools/sociomap_golden.py --check`, `make test` on Python 3.12 (4,973 + 331 + 54 +
 296 passed, 0 failed).
+
+### Chunk 1b -- alignment and connectedness over PRIMARY objects (F8), 2026-10-07
+
+What landed, on `feature/sociomap-alignment-connectedness`:
+
+- `domain/sociomap/metrics.py`: `primary_scores(object_ids, r, status, roles)` → `PrimaryScores`
+  (per PRIMARY object: `alignment`, `connectedness`, `known_pairs` -- the denominator -- and
+  `unknown_partners`; plus `primary`, `secondary`, `excluded_pairs` and the rule id
+  `audit-f8-known-primary-pairs-v1`); `alignment(...)` and `connectedness(...)` as by-id views;
+  `ObjectRole` (PRIMARY / SECONDARY); `AUDIT_PROVISIONAL_DEFAULT_HEIGHT = MEAN_RATING` (the
+  audit's provisional answer to Q7). `roles` must declare every object: nothing defaults to
+  PRIMARY, and an undeclared or unknown id is refused. Only PRIMARY x PRIMARY cells are read; an
+  UNKNOWN pair's number never is; a RELIABLE or WEAK pair must carry r in [-1, 1] and both halves
+  of a pair must agree. UNKNOWN pairs are out of the sums and the denominator; an object with no
+  known pair is `None`, never 0 (the reading put to the author in § 8a item 6).
+- `domain/research_sociomap.py`: each set's stored body gains `object_scores` (every object of a
+  tracked set declared PRIMARY, since there is no object manager). `SOCIOMAP_VERSION` `-2` → `-3`:
+  the executor fingerprints its input with it, so a body stored under `-2` (without the scores)
+  is not reused as if it had them.
+- Register `AUDIT-F8`: `implementation` and eight `validation` entries.
+
+What it does not do: no height, terrain or Results surface reads the scores. `relation_classic`
+and the T-score height stay `aia-sociomap-1`'s, unchanged; mean rating becomes a declared
+default only with spec v3 (2d), and the new scores become `ObjectMetric` members there too, so
+no v1 spec can select a metric v1 does not compute. The audit's C8 numbers come from its demo,
+which we do not have; the SECONDARY test is synthetic (a context object moves the classic
+score's top object to the bottom and leaves every PRIMARY score bit-identical).
+
+Measured on the captured case `A01_full_questionnaire` (450 respondents, 5 objects): every pair
+known, each object's scores the mean of its four signed / absolute r to 1e-12. With the first
+object's ratings kept for 20 respondents only, its four pairs are UNKNOWN, it is unscored, and
+the other four are scored over three pairs.
+
+Checks run: `ruff check`, `ruff format --check` (547 files), `mypy --strict` over the four source
+trees (295 files, clean), `make layer_check` (94 rules), `make exposure_check` (7 rules), the
+evidence-register suite (24 passed), every `sociomap` test (473 passed, 5 skipped: the
+archive-backed parity tests), `make test` on Python 3.12 (4,992 + 331 + 54 + 296 passed, 0
+failed). `tsc --noEmit`, `make web_design` and `make test-web` were not run: no web file
+changed, and `apps/web` has no installed packages in the session's container.

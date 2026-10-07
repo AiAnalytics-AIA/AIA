@@ -35,6 +35,7 @@ from aia_core.domain.research_sociomap import (
     research_sociomaps,
 )
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
+from aia_core.domain.sociomap.metrics import PRIMARY_SCORE_RULE
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 
@@ -219,6 +220,45 @@ def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
             if i != j and relation["status"][i][j] == "reliable":
                 low, high = relation["interval"][i][j]
                 assert low > 0 or high < 0
+
+
+def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_as_primary() -> None:
+    # Chunk 1b (audit F8): no object manager yet, so every object is PRIMARY by
+    # declaration; with no UNKNOWN pair each score is the mean over m - 1 pairs.
+    spec, dataset = _case("A01_full_questionnaire")
+    body = battery_sociomap(spec.batteries[0], dataset)
+    scores, relation = body["object_scores"], body["relation"]
+    ids = [o["id"] for o in body["objects"]]
+    m = len(ids)
+    assert scores["rule"] == PRIMARY_SCORE_RULE
+    assert scores["primary"] == ids and scores["secondary"] == []
+    assert scores["excluded_pairs"] == []
+    for i, obj in enumerate(scores["objects"]):
+        row = [relation["r"][i][j] for j in range(m) if j != i]
+        assert obj["id"] == ids[i] and obj["known_pairs"] == m - 1
+        assert obj["alignment"] == pytest.approx(sum(row) / (m - 1), abs=1e-12)
+        assert obj["connectedness"] == pytest.approx(sum(map(abs, row)) / (m - 1), abs=1e-12)
+    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-3"
+
+
+def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> None:
+    # The same case, with every rating of the first object but twenty removed:
+    # its pairs fall below n_min, and it is unscored rather than scored zero.
+    spec, dataset = _case("A01_full_questionnaire")
+    battery = spec.batteries[0]
+    first = battery.question_id(battery.objects[0])
+    respondents = [
+        r if k < 20 else r.model_copy(update={"answers": {**r.answers, first: None}})
+        for k, r in enumerate(dataset.respondents)
+    ]
+    thinned = dataset.model_copy(update={"respondents": tuple(respondents)})
+    body = battery_sociomap(battery, thinned)
+    ids = [o["id"] for o in body["objects"]]
+    first_score = body["object_scores"]["objects"][0]
+    assert first_score["alignment"] is None and first_score["connectedness"] is None
+    assert first_score["known_pairs"] == 0 and first_score["unknown_partners"] == ids[1:]
+    assert body["object_scores"]["excluded_pairs"] == [[ids[0], other] for other in ids[1:]]
+    assert all(o["known_pairs"] == len(ids) - 2 for o in body["object_scores"]["objects"][1:])
 
 
 def test_a_constant_column_has_no_correlation_rather_than_a_zero_one() -> None:

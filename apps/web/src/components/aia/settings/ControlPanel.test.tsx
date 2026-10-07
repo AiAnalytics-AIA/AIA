@@ -43,6 +43,10 @@ const DOC = (mayAdminister = true) => ({
     ...(mayAdminister
       ? [{ key: "deployment", items: [item("env", "develop", "DEPLOYMENT", "AIA_ENV"), item("database_backend", null, "DEPLOYMENT", "DATABASE_URL")] }]
       : []),
+    { key: "deep_research", items: [
+      item("deep_research_settings", null, "API", "PUT /api/v1/deep-research/settings/{key}/approval"),
+      item("deep_research_public_sources_only", true, "INVARIANT", "docs/architecture/adr/0017-deep-research-external-retrieval.md"),
+    ] },
     { key: "access", items: [
       item("members", null, "API", "POST /api/v1/members"),
       item("membership_is_access", true, "INVARIANT", "docs/architecture/adr/0019-two-roles-and-human-ai-gates.md"),
@@ -433,11 +437,11 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "AI běh", "Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+      "AI běh", "Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
     ]);
     expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("AI běh").hidden).toBe(false);
-    for (const other of ["Systémové prompty", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    for (const other of ["Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
       expect(panelOf(other).hidden).toBe(true);
       expect(tab(other).getAttribute("aria-selected")).toBe("false");
     }
@@ -512,5 +516,22 @@ describe("the settings tabs", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Systémové prompty" }));
     expect(await screen.findByText(/Systémové prompty vidí a upravuje jen vlastník nebo správce/)).toBeTruthy();
     expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
+  });
+
+  it("asks for the Deep Research settings only when their tab is opened, for any member", async () => {
+    api({}, false);
+    render(<ControlPanel />);
+    await screen.findByRole("tablist");
+    expect(called("GET", "/api/v1/deep-research/settings")).toEqual([]);
+    fireEvent.click(tab("Deep Research"));
+    // A member reads them: the API, not the page, decides who may change one.
+    await waitFor(() => expect(called("GET", "/api/v1/deep-research/settings")).toHaveLength(1));
+    expect(panelOf("Deep Research").contains(section("deep_research"))).toBe(true);
+    // The settings document's own group says how the values are set and what no value changes.
+    // It is drawn on this tab, not again in Reference (whose invariants list holds every rail).
+    const group = within(panelOf("Deep Research"));
+    expect(group.getByText(/Jen veřejné zdroje: robots.txt platí/)).toBeTruthy();
+    expect(group.getByText(/Pravidla Deep Research/)).toBeTruthy();
+    expect(within(panelOf("Reference")).queryByText(/Pravidla Deep Research/)).toBeNull();
   });
 });
