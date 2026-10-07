@@ -47,12 +47,19 @@ from .research_design import ResearchSpecification, SpecBattery
 from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
 from .sociomap.metrics import ObjectRole, primary_scores
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
-from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, fisher_interval, pair_status
+from .sociomap.relations import (
+    AUDIT_PROVISIONAL_N_MIN,
+    PairStatus,
+    fisher_interval,
+    pair_status,
+    person_minmax,
+)
 
 __all__ = [
     "D6_OPEN",
     "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
+    "RESCALE_RULE",
     "SOCIOMAP_VERSION",
     "MethodologyStatus",
     "PairRelations",
@@ -61,6 +68,7 @@ __all__ = [
     "derive_pair_relations",
     "derive_relation_matrix",
     "require_client_facing",
+    "rescaled_battery_ratings",
     "research_sociomaps",
 ]
 
@@ -69,9 +77,18 @@ __all__ = [
 #: the executor fingerprints its input with it, so a run computed under ``1`` is
 #: not reused as if it had them. ``3``: each set carries ``object_scores``, the
 #: audit's alignment and connectedness (chunk 1b), so a body stored under ``2``
-#: (without them) is not reused as if it had them. Not the engine preset
-#: (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-3"
+#: (without them) is not reused as if it had them. ``4``: each set carries
+#: ``relation_rescaled``, every pair over each person's own 0-1 scale (audit F2,
+#: chunk 2a), and ``object_scores`` read it instead of the raw correlation. Not
+#: the engine preset (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-4"
+#: How ``relation_rescaled`` was made, recorded on every body.
+RESCALE_RULE: Final = (
+    "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
+    "respondent's own min-max over every declared rating item of the specification they "
+    "rated, straight-liners excluded, then the weighted Pearson correlation as the unit "
+    "computes it; the weighting is AIA's reading where the audit is silent (register AUDIT-F2)"
+)
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
 #: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE.
 PAIR_CONFIDENCE: Final = 0.95
@@ -289,30 +306,79 @@ def derive_pair_relations(
     )
 
 
-def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[str, Any]:
-    """One tracked set's relation matrix and its Sociomap, as an internal artifact body."""
+def _rating(value: Any) -> float | None:
+    return float(value) if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def rescaled_battery_ratings(
+    battery: SpecBattery, dataset: FieldworkDataset, rated_with: Sequence[SpecBattery]
+) -> tuple[list[list[float | None]], list[str]]:
+    """``battery``'s ratings on each respondent's own 0-1 scale (audit F2), and who has none.
+
+    Every rating of every set in ``rated_with`` -- the specification's declared rating
+    items (audit F1) -- is first put on its own declared 0-1 scale, so items with different
+    ends compare; each respondent's lowest is then 0 and highest 1 over all of them
+    (:func:`~.sociomap.relations.person_minmax`), and ``battery``'s columns are returned.
+    A respondent whose rated items all share one value is excluded: their row is all
+    ``None`` and their id is listed.
+    """
+    if not any(b.id == battery.id for b in rated_with):
+        raise ValueError(f"battery {battery.id!r} is not among the sets it is rated with")
+    columns: list[tuple[str, int, int]] = []
+    own: list[int] = []
+    for b in rated_with:
+        low, high = b.scale
+        if not high > low:
+            raise ValueError(f"battery {b.id!r} declares an empty scale {b.scale!r}")
+        for obj in b.objects:
+            if b.id == battery.id:
+                own.append(len(columns))
+            columns.append((b.question_id(obj), low, high))
+    rows: list[list[float | None]] = []
+    for r in dataset.respondents:
+        row: list[float | None] = []
+        for qid, low, high in columns:
+            value = _rating(r.answers.get(qid))
+            row.append(None if value is None else (value - low) / (high - low))
+        rows.append(row)
+    scaled = person_minmax(rows)
+    ids = [dataset.respondents[k].respondent_id for k in scaled.excluded]
+    return [[scaled.values[k][c] for c in own] for k in range(len(rows))], ids
+
+
+def battery_sociomap(
+    battery: SpecBattery, dataset: FieldworkDataset, *, rated_with: Sequence[SpecBattery]
+) -> dict[str, Any]:
+    """One tracked set's relation matrix and its Sociomap, as an internal artifact body.
+
+    ``rated_with`` are every tracked set of the specification: the declared rating items
+    each respondent's own scale is read over (audit F2: all the items they rated, not only
+    this family).
+    """
     object_ids = [o.id for o in battery.objects]
     qids = [battery.question_id(o) for o in battery.objects]
     raw = [r.weight for r in dataset.respondents]
     total = sum(raw) or 1.0
     weights = [w * (len(raw) / total) for w in raw]  # project_engine.py:34-35, "vaha"
-    ratings: list[list[float | None]] = []
-    for r in dataset.respondents:
-        row: list[float | None] = []
-        for q in qids:
-            value = r.answers.get(q)
-            row.append(
-                float(value) if isinstance(value, int) and not isinstance(value, bool) else None
-            )
-        ratings.append(row)
+    ratings: list[list[float | None]] = [
+        [_rating(r.answers.get(q)) for q in qids] for r in dataset.respondents
+    ]
     relation, scores = derive_relation_matrix(ratings, weights)
     pairs = derive_pair_relations(
         ratings, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
     )
+    rescaled, not_rescaled = rescaled_battery_ratings(battery, dataset, rated_with)
+    rescaled_pairs = derive_pair_relations(
+        rescaled, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
+    )
     # Every object of a tracked set is PRIMARY: AIA has no object manager, so no
-    # set has context objects yet. Declared here, by name, not defaulted.
+    # set has context objects yet. Declared here, by name, not defaulted. The scores
+    # read the relation after the rating habit is removed (audit F8 reads r~, F2).
     object_scores = primary_scores(
-        object_ids, pairs.r, pairs.status, dict.fromkeys(object_ids, ObjectRole.PRIMARY)
+        object_ids,
+        rescaled_pairs.r,
+        rescaled_pairs.status,
+        dict.fromkeys(object_ids, ObjectRole.PRIMARY),
     )
 
     low, high = battery.scale
@@ -361,6 +427,15 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
                 "n_min is the audit's provisional value, pending its Q6"
             ),
         },
+        "relation_rescaled": {
+            "rule": RESCALE_RULE,
+            "rated_with": [b.id for b in rated_with],
+            "excluded_respondents": not_rescaled,
+            **rescaled_pairs.model_dump(mode="json"),
+            # Audit F4: how strong, whichever its direction, beside the signed r~.
+            "abs_r": [[None if v is None else abs(v) for v in row] for row in rescaled_pairs.r],
+            "status_counts": rescaled_pairs.counts(),
+        },
         "object_scores": object_scores.to_payload(),
         "sociomap": artifact.model_dump(mode="json"),
     }
@@ -372,6 +447,8 @@ def research_sociomaps(spec: ResearchSpecification, dataset: FieldworkDataset) -
         "sociomap_version": SOCIOMAP_VERSION,
         "methodology_status": _methodology_status().value,
         "data_origin": dataset.origin.value if dataset.origin else None,
-        "batteries": [battery_sociomap(b, dataset) for b in spec.batteries],
+        "batteries": [
+            battery_sociomap(b, dataset, rated_with=spec.batteries) for b in spec.batteries
+        ],
         "note": None if spec.batteries else "Návrh nemá sledovanou sadu; Sociomapa nevznikla.",
     }

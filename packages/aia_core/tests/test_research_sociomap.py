@@ -72,7 +72,7 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
     captured = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
     spec, dataset = _case(captured["case_id"])
     battery = next(b for b in spec.batteries if b.id == captured["battery_id"])
-    ours = battery_sociomap(battery, dataset)
+    ours = battery_sociomap(battery, dataset, rated_with=(battery,))
     assert [o["id"] for o in ours["objects"]] == captured["object_ids"]
     for mine, theirs in zip(ours["relation"]["matrix"], captured["matrix"], strict=True):
         for a, b in zip(mine, theirs, strict=True):
@@ -125,7 +125,9 @@ def test_the_battery_scale_is_the_datas_and_is_recorded() -> None:
         }
     )
     assert spec is not None, problems
-    one = battery_sociomap(spec.batteries[0], synthetic_dataset(spec, seed=3))
+    one = battery_sociomap(
+        spec.batteries[0], synthetic_dataset(spec, seed=3), rated_with=spec.batteries
+    )
     assert one["rating_scale"] == [1, 5]
     assert one["sociomap"]["spec"]["ratings"]["rating_scale_max"] == 5.0
 
@@ -191,7 +193,7 @@ def test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_hal
 
 def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    relation = battery_sociomap(spec.batteries[0], dataset)["relation"]
+    relation = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)["relation"]
     m = len(relation["matrix"])
     for i in range(m):
         for j in range(m):
@@ -206,7 +208,7 @@ def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> 
 
 def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    relation = battery_sociomap(spec.batteries[0], dataset)["relation"]
+    relation = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)["relation"]
     assert relation["n_min"] == AUDIT_PROVISIONAL_N_MIN == 30
     assert relation["confidence"] == 0.95
     assert "audit F3" in relation["status_rule"] and "Q6" in relation["status_rule"]
@@ -225,9 +227,12 @@ def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
 def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_as_primary() -> None:
     # Chunk 1b (audit F8): no object manager yet, so every object is PRIMARY by
     # declaration; with no UNKNOWN pair each score is the mean over m - 1 pairs.
+    # The scores read r~, the relation after each person's rating habit is removed
+    # (audit F8 over F2, chunk 2a), not the raw correlation.
     spec, dataset = _case("A01_full_questionnaire")
-    body = battery_sociomap(spec.batteries[0], dataset)
-    scores, relation = body["object_scores"], body["relation"]
+    body = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)
+    scores, relation = body["object_scores"], body["relation_rescaled"]
+    assert relation["status_counts"]["unknown"] == 0
     ids = [o["id"] for o in body["objects"]]
     m = len(ids)
     assert scores["rule"] == PRIMARY_SCORE_RULE
@@ -238,7 +243,7 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         assert obj["id"] == ids[i] and obj["known_pairs"] == m - 1
         assert obj["alignment"] == pytest.approx(sum(row) / (m - 1), abs=1e-12)
         assert obj["connectedness"] == pytest.approx(sum(map(abs, row)) / (m - 1), abs=1e-12)
-    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-3"
+    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-4"
 
 
 def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> None:
@@ -252,7 +257,7 @@ def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> Non
         for k, r in enumerate(dataset.respondents)
     ]
     thinned = dataset.model_copy(update={"respondents": tuple(respondents)})
-    body = battery_sociomap(battery, thinned)
+    body = battery_sociomap(battery, thinned, rated_with=(battery,))
     ids = [o["id"] for o in body["objects"]]
     first_score = body["object_scores"]["objects"][0]
     assert first_score["alignment"] is None and first_score["connectedness"] is None

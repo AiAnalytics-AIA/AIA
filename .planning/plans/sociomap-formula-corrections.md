@@ -6,7 +6,7 @@ chunks:
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[x] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
-  - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
+  - "[x] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
   - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
   - "[ ] 2d. Spec v3 and the preset aia-sociomap-2; aia-sociomap-1 kept as the comparison alternative; artifact v3; the research step adapter"
@@ -378,6 +378,21 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   envelope-terrain row this plan's § 9 first called S10 takes the next free number.)
   `.planning/overview.md` / D6 v2 note: AIA's reading of F8's denominator (known PRIMARY pairs,
   unscored with none) is put to the audit's author with Q7.
+- From chunk 2a: `CLAUDE.md` map, `domain/sociomap/relations.py` "scale coercion, mutual
+  projection, ipsatization F1-F3" gains "; `person_minmax` (audit F2: each respondent's own 0-1
+  scale over every item they rated, straight-liners out); `coerce_declared_1_10` (audit F5: a
+  matrix's declared type, never detected)"; `specification.py` "SociomapSpec v2 (no defaults)"
+  gains "; `RelationScaleCoercion.DECLARED_*`"; `research_sociomap.py` gains "; each pair after the
+  rating habit is removed (`relation_rescaled`, signed r~ and |r~|), which the object scores read".
+  `sociomapa-deterministic-engine.md` § 2: the relation step's choice of coercion (reference
+  detection or a declared type); § 8 a row -- reference: a supplied matrix's scale guessed from
+  its values (r = 0.30 is 3.70 or 6.85); production: `aia-sociomap-1` keeps the guess for fixture
+  F1, `DECLARED_*` converts by the declaration and refuses what the type cannot hold; tests
+  `test_the_same_correlation_means_the_same_strength_whatever_the_other_cells`,
+  `test_the_engine_converts_by_the_declared_type_and_records_it`. A row for F2 -- reference:
+  weighted Pearson on raw ratings (the habit inflates r, +0.394 for six independent objects);
+  production: the unit's matrix kept for `aia-sociomap-1`'s layout, `relation_rescaled` beside it;
+  test `test_the_rating_habit_inflates_raw_r_and_the_rescaling_removes_it`.
 
 ## 10. Progress and review outcome
 
@@ -491,3 +506,53 @@ evidence-register suite (24 passed), every `sociomap` test (473 passed, 5 skippe
 archive-backed parity tests), `make test` on Python 3.12 (4,992 + 331 + 54 + 296 passed, 0
 failed). `tsc --noEmit`, `make web_design` and `make test-web` were not run: no web file
 changed, and `apps/web` has no installed packages in the session's container.
+
+### Chunk 2a -- each person on their own scale (F2), a declared matrix type (F5), 2026-10-07
+
+**Why now, with Q5 open.** The audit names this variant as chosen ("This is the variant we chose
+(per-person normalisation within the active family only was rejected)", § 12 F2, p. 22) and
+leaves only Q5 (co-movement vs "rated alike") open; § 8 above already says nothing waits on 0b
+but 4b and 4c. Q5 stays with the audit's author; if it changes the rule, `relation_rescaled`
+changes with it under a new `SOCIOMAP_VERSION`.
+
+What landed, on `feature/sociomap-person-minmax`:
+
+- `domain/sociomap/relations.py`: `person_minmax` (eq. 5: `(a - min_l) / (max_l - min_l)` over
+  every item the respondent rated; a row with no spread -- one value, one item or none -- is
+  excluded, never 0/0; non-finite refused) and `PersonScaled`. `DeclaredRelationType` and
+  `coerce_declared_1_10` (eq. 11: correlation `1 + 9 (x + 1) / 2`, similarity `1 + 9 x`, strength
+  as is, chosen by the declaration; a cell outside the type's range or non-finite refused, never
+  clipped or 5.5). `mutual_relation_for_position` now projects through `mutual_from_1_10`, the same
+  arithmetic, so the declared path projects alike (fixtures F1-F2 unchanged).
+- `domain/sociomap/specification.py`: `RelationScaleCoercion.DECLARED_CORRELATION |
+  DECLARED_SIMILARITY_0_1 | DECLARED_STRENGTH_1_10` beside `REFERENCE_COERCE_1_10`;
+  `require_supported` refuses a declared type with the 5.5 midpoint sentinel (F5: a missing cell is
+  unknown). `engine.py` dispatches on the declared coercion and records the branch as
+  `declared_<type>`. No preset names a declared type: `aia-sociomap-1` keeps the reference's
+  detection for fixture F1, and no upload route exists to declare one.
+- `domain/research_sociomap.py`: `rescaled_battery_ratings` puts every rating of every tracked set
+  of the specification on its item's declared 0-1 scale first (F1 eq. 3, so items with different
+  ends compare), then each respondent's own min-max over all of them (F2: all items rated, not only
+  the family mapped), and returns the mapped set's columns and the excluded respondents. Each
+  battery's body gains `relation_rescaled`: the rule, the sets read, the excluded respondents, every
+  pair's signed `r`, `abs_r` (F4's strength, beside the sign), `n`, interval, status and counts.
+  `object_scores` (1b) now read `relation_rescaled`, as F8 writes them over r~.
+  `battery_sociomap` takes `rated_with` by keyword, no default. `SOCIOMAP_VERSION` `-3` -> `-4`.
+- The Pearson step stays weighted after the rescaling, AIA's reading where the audit is silent
+  (register `AUDIT-F2`, § 8a item 5).
+
+Measured (`test_the_rating_habit_inflates_raw_r_and_the_rescaling_removes_it`): six independent
+objects, generosity sd 1.2, taste sd 1.5, integer 1-10, 3,000 respondents, seed 1: raw mean r
+**+0.394** (the audit's [C1]: +0.394; theory 0.39), after min-max **-0.090** (the audit's -0.09).
+With continuous (unrounded) ratings the same panel gives +0.40 and -0.11: the audit's baseline is
+reproduced on the integer scale a panel collects. [C7]: r = 0.30 is 3.70 or 6.85 under detection
+and 6.85 both times when declared a correlation.
+
+What it does not do: no layout reads r~ (2b: SMACOF on `sqrt(2 (1 - r~))`), `aia-sociomap-1` lays
+out over the unit's matrix as before; Results and the DOCX show nothing new (chunk 5); arrows by
+`abs_r` and sign are chunk 5's.
+
+Checks run: `ruff check`, `ruff format --check` (543 files), `mypy --strict` (300 files, clean),
+`make layer_check` (100 rules), `make exposure_check` (7 rules), the evidence-register suite (24
+passed), every `sociomap` test and the new `test_sociomap_person_minmax.py` (24 tests).
+

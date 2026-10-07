@@ -87,7 +87,14 @@ class RatingsMissingPolicy(StrEnum):
 class RelationScaleCoercion(StrEnum):
     """How a relation matrix is harmonised onto one scale."""
 
+    #: The reference's: the scale guessed from the values (audit F5), kept for
+    #: ``aia-sociomap-1``'s parity with fixture F1.
     REFERENCE_COERCE_1_10 = "reference_coerce_1_10"
+    #: Audit F5: the matrix's type is declared, never detected; each maps onto the
+    #: 1-10 scale by its own conversion, and a cell outside its range is refused.
+    DECLARED_CORRELATION = "declared_correlation"
+    DECLARED_SIMILARITY_0_1 = "declared_similarity_0_1"
+    DECLARED_STRENGTH_1_10 = "declared_strength_1_10"
 
 
 class PositionProjection(StrEnum):
@@ -337,6 +344,15 @@ def require_supported(spec: SociomapSpec) -> None:
             )
         if not _member(RelationMissingPolicy, rel.missing_data_policy):
             problems["relation.missing_data_policy"] = f"unknown policy {rel.missing_data_policy!r}"
+        elif (
+            rel.scale_coercion != RelationScaleCoercion.REFERENCE_COERCE_1_10
+            and rel.missing_data_policy == RelationMissingPolicy.REFERENCE_MIDPOINT_SENTINEL
+        ):
+            # Audit F5: under a declared type a missing cell is unknown, never 5.5.
+            problems["relation.missing_data_policy"] = (
+                "a declared relation type takes no midpoint sentinel: a missing cell is "
+                "unknown (audit F5); declare 'refuse'"
+            )
 
     layout = spec.layout
     try:
