@@ -8,7 +8,14 @@ PR C chunk 6. For each tracked object set of the specification:
    ``+1 -> 10``), fewer than five common ratings -> 5.5, diagonal 0; and each
    object's weighted mean rating. Weighted by ``_analysis_weight`` normalised to
    sum N, as the unit's ``project_engine._battery_dataset`` builds ``vaha``;
-2. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
+2. **each pair's status** -- the audit *NPC Sociomapa: faulty formulas in the
+   code* (F3): the same correlation signed, the number of respondents who rated
+   both objects, the Fisher-z interval and what the pair can be said to be
+   (``UNKNOWN`` below ``n_min``, ``RELIABLE``, ``WEAK``). The unit's 5.5 stamp
+   stays in step 1 only, because ``aia-sociomap-1`` is the unit's formula kept
+   as a named comparison alternative; the status says where that matrix must
+   not be read (plan ``sociomap-formula-corrections``, chunk 1a);
+3. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
    preset ``AIA_SOCIOMAP_V1`` adopted by name, with only the rating scale taken
    from the battery (a property of the data, recorded on the artifact).
 
@@ -26,27 +33,39 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Any, Final
+from typing import Any, Final, Self
+
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecBattery
 from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
+from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, fisher_interval, pair_status
 
 __all__ = [
     "D6_OPEN",
+    "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
     "SOCIOMAP_VERSION",
     "MethodologyStatus",
+    "PairRelations",
     "SociomapNotApproved",
     "battery_sociomap",
+    "derive_pair_relations",
     "derive_relation_matrix",
     "require_client_facing",
     "research_sociomaps",
 ]
 
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-1"
+#: The version of this module's artifact body. ``2``: the relation block carries
+#: every pair's signed correlation, rater count, interval and status (chunk 1a);
+#: the executor fingerprints its input with it, so a run computed under ``1`` is
+#: not reused as if it had them. Not the engine preset (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-2"
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
+#: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE.
+PAIR_CONFIDENCE: Final = 0.95
 
 #: PROGRESS D6: the four AIA Sociomap declarations await the methodology owner.
 #: Flipping this is a methodology decision recorded in PROGRESS, never a fix.
@@ -77,6 +96,48 @@ def _methodology_status() -> MethodologyStatus:
     return MethodologyStatus.INTERNAL_ONLY if D6_OPEN else MethodologyStatus.CLIENT_FACING
 
 
+_Triples = list[tuple[float, float, float]]
+
+
+def _columns(ratings: Sequence[Sequence[float | None]]) -> list[list[float]]:
+    """Object columns, an unrated cell as NaN (the unit's ``pd.to_numeric`` reading)."""
+    m = len(ratings[0]) if ratings else 0
+    cols: list[list[float]] = [[] for _ in range(m)]
+    for row in ratings:
+        for j in range(m):
+            value = row[j]
+            cols[j].append(math.nan if value is None else float(value))
+    return cols
+
+
+def _common(a: Sequence[float], b: Sequence[float], w: Sequence[float]) -> _Triples:
+    """The respondents who rated both objects with a positive finite weight."""
+    return [
+        (x, y, ww)
+        for x, y, ww in zip(a, b, w, strict=True)
+        if math.isfinite(x) and math.isfinite(y) and math.isfinite(ww) and ww > 0
+    ]
+
+
+def _weighted_moments(ok: _Triples) -> tuple[float, float, float]:
+    """Weighted variances of both columns and their covariance, as the unit computes them."""
+    sw = sum(ww for _, _, ww in ok) or 1.0
+    ma = sum(ww * a for a, _, ww in ok) / sw
+    mb = sum(ww * b for _, b, ww in ok) / sw
+    va = sum(ww * (a - ma) ** 2 for a, _, ww in ok) / sw
+    vb = sum(ww * (b - mb) ** 2 for _, b, ww in ok) / sw
+    cov = sum(ww * (a - ma) * (b - mb) for a, b, ww in ok) / sw
+    return va, vb, cov
+
+
+def _clamped_correlation(va: float, vb: float, cov: float) -> float:
+    # ``** 0.5``, not ``math.sqrt``: the unit's operation, kept for EXACT parity;
+    # typeshed types float ** float as Any, so the result is narrowed here.
+    spread: float = (va * vb) ** 0.5
+    corr = cov / max(spread, 1e-12)
+    return max(-1.0, min(1.0, corr))
+
+
 def derive_relation_matrix(
     ratings: Sequence[Sequence[float | None]], weights: Sequence[float]
 ) -> tuple[list[list[float]], list[float | None]]:
@@ -85,17 +146,14 @@ def derive_relation_matrix(
     ``ratings[r][j]`` is respondent ``r``'s rating of object ``j`` (``None`` unrated).
     Returns the symmetric 1-10 relation matrix with a zero diagonal, and each
     object's weighted mean rating (``None`` where nobody rated it).
+
+    This is the unit's formula, kept EXACT for ``aia-sociomap-1``: fewer than
+    five common ratings is stamped 5.5 and a constant column reads as r = 0,
+    both drawn as a medium relation (audit F3, F4). Read
+    :func:`derive_pair_relations` for what each cell can be said to be.
     """
-    m = len(ratings[0]) if ratings else 0
-
-    def column(j: int) -> list[float]:
-        out: list[float] = []
-        for row in ratings:
-            value = row[j]
-            out.append(math.nan if value is None else float(value))
-        return out
-
-    cols = [column(j) for j in range(m)]
+    cols = _columns(ratings)
+    m = len(cols)
     w = [x if math.isfinite(x) else 1.0 for x in weights]
 
     scores: list[float | None] = []
@@ -108,25 +166,118 @@ def derive_relation_matrix(
     relation = [[0.0] * m for _ in range(m)]
     for i in range(m):
         for j in range(i + 1, m):
-            ok = [
-                (a, b, ww)
-                for a, b, ww in zip(cols[i], cols[j], w, strict=True)
-                if math.isfinite(a) and math.isfinite(b) and math.isfinite(ww) and ww > 0
-            ]
+            ok = _common(cols[i], cols[j], w)
             if len(ok) < 5:
                 rel = 5.5
             else:
-                sw = sum(ww for _, _, ww in ok) or 1.0
-                ma = sum(ww * a for a, _, ww in ok) / sw
-                mb = sum(ww * b for _, b, ww in ok) / sw
-                va = sum(ww * (a - ma) ** 2 for a, _, ww in ok) / sw
-                vb = sum(ww * (b - mb) ** 2 for _, b, ww in ok) / sw
-                cov = sum(ww * (a - ma) * (b - mb) for a, b, ww in ok) / sw
-                corr = cov / max((va * vb) ** 0.5, 1e-12)
-                corr = max(-1.0, min(1.0, corr))
+                corr = _clamped_correlation(*_weighted_moments(ok))
                 rel = 1.0 + 9.0 * ((corr + 1.0) / 2.0)
             relation[i][j] = relation[j][i] = float(min(10.0, max(1.0, rel)))
     return relation, scores
+
+
+Interval = tuple[float, float]
+
+
+class PairRelations(BaseModel):
+    """Every object pair's correlation and what it can be said to be (audit F3).
+
+    Square matrices over the battery's objects, in order. The diagonal is not a
+    pair and is ``None`` in every matrix. ``r`` is the signed weighted Pearson
+    correlation over the respondents who rated both objects, or ``None`` where
+    there is none to compute; ``n`` counts those respondents; ``interval`` is the
+    Fisher-z interval at ``confidence`` (``None`` below four raters); ``status``
+    is :func:`~.sociomap.relations.pair_status` at ``n_min``.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    r: tuple[tuple[float | None, ...], ...]
+    n: tuple[tuple[int | None, ...], ...]
+    interval: tuple[tuple[Interval | None, ...], ...]
+    status: tuple[tuple[PairStatus | None, ...], ...]
+    n_min: int
+    confidence: float
+
+    @model_validator(mode="after")
+    def _square_and_pairwise(self) -> Self:
+        m = len(self.r)
+        for name in ("r", "n", "interval", "status"):
+            matrix = getattr(self, name)
+            if len(matrix) != m or any(len(row) != m for row in matrix):
+                raise ValueError(f"{name} must be a {m} x {m} matrix like r")
+            if any(matrix[i][i] is not None for i in range(m)):
+                raise ValueError(f"{name}: the diagonal is not a pair and must be None")
+        return self
+
+    def counts(self) -> dict[str, int]:
+        """How many unordered pairs carry each status."""
+        out = dict.fromkeys((s.value for s in PairStatus), 0)
+        m = len(self.status)
+        for i in range(m):
+            for j in range(i + 1, m):
+                status = self.status[i][j]
+                if status is not None:
+                    out[status.value] += 1
+        return out
+
+
+def derive_pair_relations(
+    ratings: Sequence[Sequence[float | None]],
+    weights: Sequence[float],
+    *,
+    n_min: int,
+    confidence: float,
+) -> PairRelations:
+    """Each pair's signed weighted correlation, its rater count, interval and status.
+
+    The audit's reading of the unit's relation matrix (F3, and the data side of
+    F4): the same weighted Pearson correlation, signed and unmapped, with the
+    number of respondents who rated both objects and the status that number
+    gives it. Nothing is stamped: a pair with fewer than two common raters or a
+    constant column has no correlation (``None``), and a pair below ``n_min`` is
+    ``UNKNOWN`` whatever its number says. The 1-10 mapping and the 5.5 sentinel
+    stay in :func:`derive_relation_matrix`, the unit's own formula.
+
+    ``weights`` weight the correlation as the unit's ``vaha`` does; a respondent
+    whose weight is not a positive finite number rates no pair here (the unit
+    substituted 1.0 for a non-finite weight, a stamp this variant drops). ``n``
+    counts respondents, not weight: the interval reads it as the sample size with
+    no correction for unequal weights, which makes it somewhat optimistic under a
+    weighted design -- recorded for the audit's author with the plan's open
+    points. Scaling each person's ratings before the correlation (F2) is chunk
+    2a's and is applied to ``ratings`` before this call.
+    """
+    cols = _columns(ratings)
+    m = len(cols)
+    w = [float(x) for x in weights]
+    r: list[list[float | None]] = [[None] * m for _ in range(m)]
+    n: list[list[int | None]] = [[None] * m for _ in range(m)]
+    interval: list[list[Interval | None]] = [[None] * m for _ in range(m)]
+    status: list[list[PairStatus | None]] = [[None] * m for _ in range(m)]
+    for i in range(m):
+        for j in range(i + 1, m):
+            ok = _common(cols[i], cols[j], w)
+            corr: float | None = None
+            # Constancy is read from the values, not the variance: weighted
+            # arithmetic over equal values can leave a variance of 1e-32, and
+            # 0 / 1e-12 would then report "no relation" where there is no data.
+            if len({a for a, _, _ in ok}) > 1 and len({b for _, b, _ in ok}) > 1:
+                corr = _clamped_correlation(*_weighted_moments(ok))
+            r[i][j] = r[j][i] = corr
+            n[i][j] = n[j][i] = len(ok)
+            interval[i][j] = interval[j][i] = (
+                None if corr is None else fisher_interval(corr, len(ok), confidence)
+            )
+            status[i][j] = status[j][i] = pair_status(corr, len(ok), n_min, confidence)
+    return PairRelations(
+        r=tuple(tuple(row) for row in r),
+        n=tuple(tuple(row) for row in n),
+        interval=tuple(tuple(row) for row in interval),
+        status=tuple(tuple(row) for row in status),
+        n_min=n_min,
+        confidence=confidence,
+    )
 
 
 def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[str, Any]:
@@ -146,6 +297,9 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
             )
         ratings.append(row)
     relation, scores = derive_relation_matrix(ratings, weights)
+    pairs = derive_pair_relations(
+        ratings, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
+    )
 
     low, high = battery.scale
     spec = AIA_SOCIOMAP_V1.model_copy(
@@ -179,7 +333,19 @@ def battery_sociomap(battery: SpecBattery, dataset: FieldworkDataset) -> dict[st
             "source": RELATION_SOURCE,
             "ported_from": "legacy/npc-panel-18.6.6/app/sociomap.py derive_relation_matrix",
             "matrix": relation,
+            "matrix_caveat": (
+                "the unit's 1-10 strength, kept for aia-sociomap-1: a pair below five raters "
+                "is stamped 5.5 and r = 0 reads as a medium relation (audit F3, F4); read "
+                "status before matrix"
+            ),
             "scores": scores,
+            **pairs.model_dump(mode="json"),
+            "status_counts": pairs.counts(),
+            "status_rule": (
+                "audit F3: UNKNOWN below n_min common raters or without a correlation; "
+                "RELIABLE when the Fisher-z interval at confidence excludes 0; WEAK otherwise. "
+                "n_min is the audit's provisional value, pending its Q6"
+            ),
         },
         "sociomap": artifact.model_dump(mode="json"),
     }

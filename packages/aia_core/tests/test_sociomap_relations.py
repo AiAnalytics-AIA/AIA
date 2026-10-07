@@ -1,4 +1,5 @@
-"""Relation transforms against golden fixtures F1-F3, plus their error paths.
+"""Relation transforms against golden fixtures F1-F3, plus their error paths, and the
+audit's pair status (F3), checked against the chance band the audit prints.
 
 Fixture values are serialised to ten decimals by the reference's fixture
 builder, so "EXACT" (F1) means the branch decision is exact and each value
@@ -16,11 +17,15 @@ import pytest
 from aia_core.domain.sociomap.relations import (
     AmbiguousCoercion,
     CoercionBranch,
+    PairStatus,
     RelationScaleError,
     coerce_relation_scale_1_10,
     coercion_branch,
+    fisher_interval,
     ipsatize,
     mutual_relation_for_position,
+    null_band,
+    pair_status,
 )
 
 SERIALISATION = 1e-9  # the fixture builder rounds to 10 decimals
@@ -154,3 +159,85 @@ def test_ipsatize_keeps_missing_cells_missing_and_excludes_them_from_the_mean() 
 
 def test_ipsatize_leaves_an_unobserved_row_unobserved() -> None:
     assert ipsatize([[None, None]]) == ((None, None),)
+
+
+# ------------------------------------------------------- pair status (F3) --
+#
+# The audit "NPC Sociomapa: faulty formulas in the code", F3: a pair with too few
+# raters is UNKNOWN, never a medium relation. Its printed chance band is the
+# check: +-0.88 at N = 5, +-0.36 at N = 30.
+
+
+def test_the_chance_band_is_the_audits() -> None:
+    assert null_band(5, 0.95) == pytest.approx(0.88, abs=0.005)
+    assert null_band(30, 0.95) == pytest.approx(0.36, abs=0.005)
+    assert null_band(3, 0.95) is None  # no standard error below four raters
+
+
+def test_the_fisher_interval_is_symmetric_on_the_z_scale() -> None:
+    low, high = fisher_interval(0.5, 30, 0.95) or (math.nan, math.nan)
+    assert low < 0.5 < high
+    assert math.atanh(0.5) - math.atanh(low) == pytest.approx(math.atanh(high) - math.atanh(0.5))
+    assert math.atanh(high) - math.atanh(0.5) == pytest.approx(1.959964 / math.sqrt(27), rel=1e-6)
+
+
+def test_a_perfect_correlation_is_its_own_interval() -> None:
+    assert fisher_interval(1.0, 10, 0.95) == (1.0, 1.0)
+    assert fisher_interval(-1.0, 10, 0.95) == (-1.0, -1.0)
+    assert pair_status(-1.0, 30, 30, 0.95) is PairStatus.RELIABLE
+
+
+def test_the_fisher_interval_needs_four_raters() -> None:
+    assert fisher_interval(0.9, 3, 0.95) is None
+    assert fisher_interval(0.9, 4, 0.95) is not None
+
+
+def test_below_n_min_a_pair_is_unknown_whatever_its_number_says() -> None:
+    assert pair_status(0.99, 29, 30, 0.95) is PairStatus.UNKNOWN
+    assert pair_status(0.0, 4, 30, 0.95) is PairStatus.UNKNOWN
+
+
+def test_a_pair_without_a_correlation_is_unknown() -> None:
+    assert pair_status(None, 500, 30, 0.95) is PairStatus.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    ("r", "n", "expected"),
+    [
+        (0.5, 30, PairStatus.RELIABLE),  # band at 30 is 0.36
+        (-0.5, 30, PairStatus.RELIABLE),  # the sign does not matter
+        (0.3, 30, PairStatus.WEAK),
+        (0.3, 100, PairStatus.RELIABLE),  # more raters, narrower band
+        (0.0, 1000, PairStatus.WEAK),
+    ],
+)
+def test_reliable_means_the_interval_excludes_zero(r: float, n: int, expected: PairStatus) -> None:
+    assert pair_status(r, n, 30, 0.95) is expected
+    band = null_band(n, 0.95)
+    assert band is not None and (abs(r) > band) is (expected is PairStatus.RELIABLE)
+
+
+@pytest.mark.parametrize("n_min", [0, 3, True])
+def test_n_min_must_leave_room_for_a_standard_error(n_min: Any) -> None:
+    with pytest.raises(ValueError, match="n_min"):
+        pair_status(0.5, 50, n_min, 0.95)
+
+
+@pytest.mark.parametrize("confidence", [0.0, 1.0, -0.5, 1.5, True])
+def test_confidence_must_be_a_probability(confidence: Any) -> None:
+    with pytest.raises(ValueError, match="confidence"):
+        pair_status(0.5, 50, 30, confidence)
+    with pytest.raises(ValueError, match="confidence"):
+        null_band(50, confidence)
+
+
+@pytest.mark.parametrize("r", [1.5, -1.01, math.nan, math.inf, True])
+def test_a_correlation_outside_minus_one_to_one_is_refused(r: Any) -> None:
+    with pytest.raises(ValueError, match="correlation"):
+        pair_status(r, 50, 30, 0.95)
+
+
+@pytest.mark.parametrize("n", [-1, True])
+def test_a_rater_count_is_a_count(n: Any) -> None:
+    with pytest.raises(ValueError, match="raters"):
+        pair_status(0.5, n, 30, 0.95)

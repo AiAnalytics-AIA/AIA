@@ -29,6 +29,7 @@ from aia_core.domain.sociomap import (
     SociomapInputError,
     SociomapInputs,
     SociomapSpec,
+    UnfoldingDesignError,
     UnsupportedMethodology,
     ViewOverrideMismatch,
     ViewOverrides,
@@ -307,6 +308,46 @@ def test_unplaceable_respondents_are_excluded_with_a_reason_and_still_counted() 
     # Their ratings are real: support counts them.
     assert art.object_metrics["support_n"].values == (9.0, 9.0, 9.0, 9.0)  # not (8, 7, 8, 8)
     assert any("excluded" in w for w in art.warnings)
+
+
+def test_a_straight_liner_below_the_top_is_not_placed() -> None:
+    # Finding F-2 of plan sociomap-formula-corrections (audit F11): a respondent
+    # who gave every object 6 prefers none; they were placed, and raised the
+    # density terrain where nobody has a preference.
+    rows = [*RATINGS, (6, 6, 6, 6), (3, None, 3, 3)]
+    art = compute_sociomap(with_relation(rows), AIA_SOCIOMAP_V1)
+    assert set(art.excluded_respondents) == {"p8", "p9"}
+    assert "the same (6)" in art.excluded_respondents["p8"]
+    assert "straight-liner" in art.excluded_respondents["p8"]
+    assert "the same (3)" in art.excluded_respondents["p9"]  # missing cells do not hide it
+    assert "p8" not in art.layout.respondent_ids
+    assert "p8" not in art.respondent_terrain.source_ids
+    assert any(w.startswith("2 respondent(s) excluded") for w in art.warnings)
+    # Their ratings are real: they still count towards each object's support.
+    assert art.object_metrics["support_n"].values == (10.0, 8.0, 10.0, 10.0)  # B: 7 + p8
+
+
+def test_one_different_rating_is_a_preference_and_is_placed() -> None:
+    art = compute_sociomap(with_relation([*RATINGS, (6, 6, 6, 7)]), AIA_SOCIOMAP_V1)
+    assert "p8" in art.layout.respondent_ids and not art.excluded_respondents
+
+
+def test_straight_liners_do_not_move_anyone_else() -> None:
+    alone = compute_sociomap(with_relation(), AIA_SOCIOMAP_V1)
+    crowd = compute_sociomap(
+        with_relation([*RATINGS, *([(5, 5, 5, 5)] * 20), (2, 2, None, 2)]), AIA_SOCIOMAP_V1
+    )
+    assert len(crowd.excluded_respondents) == 21
+    assert crowd.layout.respondent_ids == alone.layout.respondent_ids
+    assert crowd.layout.respondent_xy == alone.layout.respondent_xy
+    assert crowd.layout.object_xy == alone.layout.object_xy
+    assert crowd.respondent_terrain == alone.respondent_terrain
+
+
+def test_a_battery_of_only_straight_liners_has_no_map() -> None:
+    rows = [(4, 4, 4, 4), (7, 7, 7, 7), (1, None, 1, 1)]
+    with pytest.raises(UnfoldingDesignError, match="placeable respondent"):
+        compute_sociomap(with_relation(rows), AIA_SOCIOMAP_V1)
 
 
 def test_every_respondent_is_placed_or_excluded(artifact: SociomapArtifact) -> None:
