@@ -210,6 +210,23 @@ forbid "executors never touch the prompt tables" \
   'Prompt(Version|Activation)Row' \
   "$EXECUTORS"
 
+# Deep Research's policy values are data an Admin approves (ADR 0022). Their rows are written
+# and read only through their repository, which validates every value against the catalogue,
+# refuses anyone who may not administer, keeps versions immutable and audits every change.
+forbid "the Deep Research settings tables are touched only by their repository" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$CORE" \
+  tables.py deep_research_settings_repository.py
+forbid "the API never touches the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$API"
+forbid "the worker never touches the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$WORKER"
+forbid "executors never touch the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$EXECUTORS"
+
 # Fan-out's shared state (Deep Research chunk 21): one request per host at a time and at
 # most N model requests in flight, across every worker process. Written in short
 # transactions of their own by one module; a write anywhere else -- inside an attempt's

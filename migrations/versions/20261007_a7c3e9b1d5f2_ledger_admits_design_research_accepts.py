@@ -1,7 +1,7 @@
 """the approval ledger admits a Design Research proposal's accept
 
 Revision ID: a7c3e9b1d5f2
-Revises: ef96e7f732a2
+Revises: 3c8e1d5a7f20
 Created: 2026-10-07
 
 ``approval_decisions.subject_type`` admits ``'design_research'``, so a person accepting what a
@@ -15,7 +15,7 @@ from __future__ import annotations
 from alembic import op
 
 revision: str = 'a7c3e9b1d5f2'
-down_revision: str | None = 'ef96e7f732a2'
+down_revision: str | None = '3c8e1d5a7f20'
 branch_labels = None
 depends_on = None
 
