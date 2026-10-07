@@ -6,13 +6,6 @@ import json
 from typing import Any
 
 import pytest
-from test_deep_research_bundle_and_quarantine import (
-    OBJECT,
-    QUESTION,
-    WEB_O,
-    _accepted,
-    _bundle,
-)
 
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.design_proposals import (
@@ -49,6 +42,12 @@ DESIGN: dict[str, Any] = {
 }
 
 
+@pytest.fixture
+def dr(deep_research_bundles: Any) -> Any:
+    """The shared bundle builders (``conftest.deep_research_bundles``)."""
+    return deep_research_bundles
+
+
 def _provenance(bundle: EvidenceBundle, **fields: Any) -> DeepResearchProvenance:
     values: dict[str, Any] = {
         "contract_version": RUN_SPEC_CONTRACT,
@@ -71,34 +70,34 @@ def _provenance(bundle: EvidenceBundle, **fields: Any) -> DeepResearchProvenance
     return DeepResearchProvenance.model_validate(values)
 
 
-def _proposal(*, fictional: bool = True) -> DesignResearchProposal:
-    bundle = _bundle(_accepted(1, FINDING), fictional=fictional)
+def _proposal(dr: Any, *, fictional: bool = True) -> DesignResearchProposal:
+    bundle = dr.bundle(dr.accepted(1, FINDING), fictional=fictional)
     return design_research_proposal(_provenance(bundle), bundle)
 
 
-def test_every_subject_is_an_item_with_its_findings_verbatim_or_a_gap() -> None:
-    proposal = _proposal()
+def test_every_subject_is_an_item_with_its_findings_verbatim_or_a_gap(dr: Any) -> None:
+    proposal = _proposal(dr)
     assert proposal.contract_version == DESIGN_PROPOSAL_CONTRACT
     assert proposal.admissible and proposal.refusal is None
     assert (proposal.design_revision_id, proposal.design_revision) == ("REV-1", 1)
     assert proposal.role == "EXTERNAL_CONTEXT"
     by_subject = {i.subject_key: i for i in proposal.items}
-    assert list(by_subject) == [QUESTION.key, OBJECT.key]
-    evidence, gap = by_subject[QUESTION.key], by_subject[OBJECT.key]
+    assert list(by_subject) == [dr.QUESTION.key, dr.OBJECT.key]
+    evidence, gap = by_subject[dr.QUESTION.key], by_subject[dr.OBJECT.key]
     assert evidence.kind is ItemKind.EVIDENCE and gap.kind is ItemKind.GAP
     assert [(f.claim, f.quote) for f in evidence.findings] == [(FINDING, FINDING)]
-    assert evidence.subject_origin == QUESTION.origin and gap.findings == ()
+    assert evidence.subject_origin == dr.QUESTION.origin and gap.findings == ()
 
 
-def test_the_same_run_always_proposes_the_same_item_ids() -> None:
-    assert [i.item_id for i in _proposal().items] == [i.item_id for i in _proposal().items]
-    other = _bundle(_accepted(2, "Jiný nález.", track=WEB_O), fictional=True)
+def test_the_same_run_always_proposes_the_same_item_ids(dr: Any) -> None:
+    assert [i.item_id for i in _proposal(dr).items] == [i.item_id for i in _proposal(dr).items]
+    other = dr.bundle(dr.accepted(2, "Jiný nález.", track=dr.WEB_O), fictional=True)
     others = design_research_proposal(_provenance(other), other)
-    assert not {i.item_id for i in others.items} & {i.item_id for i in _proposal().items}
+    assert not {i.item_id for i in others.items} & {i.item_id for i in _proposal(dr).items}
 
 
-def test_only_design_research_anchored_to_its_own_bundle_proposes() -> None:
-    bundle = _bundle(_accepted(1, FINDING), fictional=True)
+def test_only_design_research_anchored_to_its_own_bundle_proposes(dr: Any) -> None:
+    bundle = dr.bundle(dr.accepted(1, FINDING), fictional=True)
     interpretation = _provenance(
         bundle,
         purpose=DeepResearchPurpose.INTERPRETATION_RESEARCH,
@@ -153,16 +152,18 @@ def test_only_design_research_anchored_to_its_own_bundle_proposes() -> None:
     assert refused.value.reason == "bundle_mismatch"
 
 
-def test_recorded_evidence_never_enters_a_real_clients_design() -> None:
-    proposal = _proposal(fictional=False)
+def test_recorded_evidence_never_enters_a_real_clients_design(dr: Any) -> None:
+    proposal = _proposal(dr, fictional=False)
     assert not proposal.admissible and "recorded fixtures" in (proposal.refusal or "")
     with pytest.raises(DesignProposalRefused) as refused:
         apply_to_design(DESIGN, proposal, [proposal.items[0].item_id])
     assert refused.value.reason == "inadmissible"
 
 
-def test_accepting_writes_only_the_chosen_items_and_leaves_every_other_key_unchanged() -> None:
-    proposal = _proposal()
+def test_accepting_writes_only_the_chosen_items_and_leaves_every_other_key_unchanged(
+    dr: Any,
+) -> None:
+    proposal = _proposal(dr)
     evidence = proposal.items[0]
     design = apply_to_design(DESIGN, proposal, [evidence.item_id])
     assert {k: v for k, v in design.items() if k != DESIGN_RESEARCH_KEY} == DESIGN
@@ -180,8 +181,8 @@ def test_accepting_writes_only_the_chosen_items_and_leaves_every_other_key_uncha
     assert json.loads(json.dumps(design)) == design
 
 
-def test_accepting_again_changes_nothing_and_a_later_accept_adds_to_the_block() -> None:
-    proposal = _proposal()
+def test_accepting_again_changes_nothing_and_a_later_accept_adds_to_the_block(dr: Any) -> None:
+    proposal = _proposal(dr)
     first, second = (i.item_id for i in proposal.items)
     once = apply_to_design(DESIGN, proposal, [first])
     assert apply_to_design(once, proposal, [first]) == once
@@ -190,16 +191,16 @@ def test_accepting_again_changes_nothing_and_a_later_accept_adds_to_the_block() 
     assert both[DESIGN_RESEARCH_KEY]["items"][second]["kind"] == "GAP"
 
 
-def test_an_empty_or_unknown_selection_is_refused() -> None:
-    proposal = _proposal()
+def test_an_empty_or_unknown_selection_is_refused(dr: Any) -> None:
+    proposal = _proposal(dr)
     for ids, reason in (([], "empty_selection"), (["DRP-" + "0" * 24], "unknown_item")):
         with pytest.raises(DesignProposalRefused) as refused:
             apply_to_design(DESIGN, proposal, ids)
         assert refused.value.reason == reason
 
 
-def test_a_block_that_is_not_this_contracts_is_never_overwritten() -> None:
-    proposal = _proposal()
+def test_a_block_that_is_not_this_contracts_is_never_overwritten(dr: Any) -> None:
+    proposal = _proposal(dr)
     for foreign in ({"notes": "a person's own"}, ["x"], {"contract_version": "other", "items": {}}):
         with pytest.raises(DesignProposalRefused) as refused:
             apply_to_design({**DESIGN, DESIGN_RESEARCH_KEY: foreign}, proposal, ["x"])
@@ -211,11 +212,11 @@ def test_a_block_that_is_not_this_contracts_is_never_overwritten() -> None:
         assert refused.value.reason == "block_invalid"
 
 
-def test_the_block_is_bounded_so_the_design_jobs_context_has_room() -> None:
+def test_the_block_is_bounded_so_the_design_jobs_context_has_room(dr: Any) -> None:
     # Quotes are at most 800 characters, so the bound is crossed by many findings, not one.
-    found = [_accepted(n, f"Nález {n}: " + "x" * 780) for n in range(1, 45)]
+    found = [dr.accepted(n, f"Nález {n}: " + "x" * 780) for n in range(1, 45)]
     assert sum(len(a.evidence.quote) for a in found) > DESIGN_RESEARCH_MAX_BYTES
-    bundle = _bundle(*found, fictional=True)
+    bundle = dr.bundle(*found, fictional=True)
     proposal = design_research_proposal(_provenance(bundle), bundle)
     with pytest.raises(DesignProposalRefused) as refused:
         apply_to_design(DESIGN, proposal, [proposal.items[0].item_id])
