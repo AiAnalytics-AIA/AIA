@@ -2,10 +2,11 @@
 status: in-progress
 chunks:
   - "[x] 0a. The audit's sixteen rules in the evidence register, CANONICAL; its checks C1-C16 and P4-P14 as a fixture"
-  - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
+  - "[ ] 0b. The canonical rule recorded in the decision package; Q5, Q6, Q7 decided by the owner from the sheets in § 4a; the kernel width on the fixed ruler and the audit's other open points put to its author; the R-smacof seam settled with engineering"
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[x] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
+  - "[ ] 1d. Stage 1 -- the relationship-evidence policy Q6 decides: evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min) as two gates, each declared and recorded per pair (F3); after the Q6 decision"
   - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
   - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
@@ -163,6 +164,110 @@ no spec declares otherwise). The register's RTS-O1 for AIA's object map. The eng
 M4, M6, M8 for the object map (answered by F7, F12, F7, F14). All of it goes through the docs
 PR (§ 9); this plan edits none of those files.
 
+## 4a. Q5, Q6, Q7 as methodology decisions (the owner's), with options and consequences
+
+The three questions the audit leaves open are not equations to approve; each is a statement
+about what the map claims, and the statistician's part is to say which formula makes that
+statement true. Rewritten on 2026-10-07 from the owner's assessment, with where AIA's code
+stands today on each. The register's `AUDIT-F2`, `AUDIT-F3` and `AUDIT-F8` carry the ids.
+
+### Q5 -- what proximity between two objects claims
+
+**Decision.** Should two objects be close because respondents' *relative* preferences for them
+move together, because respondents give them *similar absolute ratings*, or should these be two
+distinct analytical concepts shown apart?
+
+**Where AIA stands.** Chunk 2a (not yet built) follows the audit's F2: per-person min-max over
+every item the respondent rated, then Pearson. That *is* a choice of relative co-movement: the
+rescaling removes each person's level, and two objects everyone rates 9 and 9 have constant
+columns, which AIA already reports as UNKNOWN (no correlation; chunk 1a, PR #172), not as
+"close". So the canonical path answers "co-movement" by construction, and the open question is
+whether that is the intended claim and whether "rated alike" needs a concept of its own.
+
+| Option | What proximity means | Consequence down the chain (F2 -> F4 -> F6 -> F7 -> F8/F9) |
+| --- | --- | --- |
+| (a) Relative co-movement (the audit's F2 as written) | people who prefer one more than their usual also prefer the other more | a correlation-based distance (F2's Pearson after per-person min-max, then F6's δ); the map shows preference structure, not popularity; level is removed, so a universally loved and a universally disliked object can sit together if the residual preferences agree; arrows, distances and the F8/F9 scores all inherit the "co-movement" meaning |
+| (b) Absolute rating similarity | the two objects receive similar ratings | a level-sensitive paired-rating distance, never a correlation. Pearson removes each object's mean, so it cannot say "rated alike": `[1, 2, 3]` and `[8, 9, 10]` correlate perfectly at very different levels, and two identical flat profiles have no correlation at all. The candidate is the mean absolute rating difference over the respondents who rated both, normalised by the declared scale range: `d_ij = mean_k abs(x_ki - x_kj) / (max - min)`, on a 1-10 scale `/ 9`; 0 for identical ratings, 1 for maximally different, defined for flat profiles. Proximity then carries level, not ties; F8/F9 would score level; a new declared method (a distance, not F2's correlation), not a parameter |
+| (c) Two concepts, kept apart | positions from (a); level shown by a separate encoding | the audit's own shape: distance = co-movement (F6), height = mean rating (F8's default, Q7), so level is visible without entering the geometry; costs one more legend line and the discipline of never reading height as closeness |
+
+Pearson belongs to (a) only. In short: (a) co-movement -> a correlation-based distance; (b)
+absolute rating similarity -> a level-sensitive paired-rating distance; (c) both, kept apart.
+
+AIA's reading until decided: (c) -- positions represent co-movement; absolute level is shown
+separately (for example as height, Q7). It is what the audit's F2 + F8 already compose to, and it
+keeps the geometry free of the inflation the audit measured (+0.39 of spurious relation from
+rating habits). Chunk 2a builds (a) for the positions either way; (b) would be a new declared
+method, not a parameter.
+
+### Q6 -- the minimum evidence for a relationship
+
+**Decision.** What minimum pairwise sample size does AIA require before it interprets a
+relationship at all, and what uncertainty criterion must a relationship satisfy before it is
+shown as reliable? "Is 30 the number" is the wrong question: 30 is a floor, not a proof.
+
+**Where AIA stands.** Built (chunk 1a, PR #172) and already the three-state rule the assessment
+asks for: `N_ij < n_min` -> UNKNOWN; `N_ij >= n_min` and the Fisher 95 % interval includes 0 ->
+WEAK; excludes 0 -> RELIABLE. `n_min` has no default: the caller passes it (30, the audit's
+working value) and every result records it, so changing the floor is a declared parameter, not a
+code change. What is *not* decided: the floor's value, which `n` under weights, and whether a
+statistically reliable but tiny relation should be drawn at all. Those last two are **not**
+parameters the code takes today: `pair_status(r, n, n_min, confidence)` has no effect threshold,
+and `derive_pair_relations` passes `len(ok)` to both the interval and the status. Choosing either
+is new work, chunk 1d (chunk 1a is complete and is not the vehicle).
+
+**Two gates, not one.** Effect size and statistical reliability are different concepts and the
+policy keeps them apart:
+
+- *Evidence sufficiency*: enough observations (or effective observations) and the uncertainty
+  around `r`. This is the state `UNKNOWN / WEAK / RELIABLE`, unchanged in meaning.
+- *Practical materiality*: optionally, `abs(r) >= r_min`. Recorded per pair as a separate
+  `meets_effect_floor`, never folded into the state, so a tiny but precisely estimated
+  correlation is RELIABLE and is not described as substantively strong.
+
+| Option | Rule | Consequence |
+| --- | --- | --- |
+| (a) Floor + interval (as built) | UNKNOWN below n_min; WEAK if CI includes 0; RELIABLE otherwise | defensible and already in place; with N = 500 a relation of r = 0.10 is RELIABLE, so large studies show many faint arrows |
+| (b) Floor + interval + practical floor | the state as (a); beside it `meets_effect_floor = abs(r) >= r_min` (e.g. 0.10 or 0.20) | separates "distinguishable from zero" from "worth drawing" without redefining RELIABLE; one more declared number, recorded like n_min; arrows and descriptions read both gates; F4's opacity already fades faint relations, so this mostly affects arrow counts and the F8/F9 sums. New code (chunk 1d): an explicit threshold in the policy, not a reading of `pair_status` |
+| (c) Which n | the respondent count (as built, the audit's N) or Kish's effective n under weights | with weights, the count overstates the evidence and the interval is too narrow. If chosen, `derive_pair_relations` computes the pair's own Kish n from its valid respondents' weights, `n_eff = (sum w)^2 / sum w^2`, and uses the approved basis for both the floor and the interval instead of `len(ok)` (chunk 1d; `domain/evidence/support.py` has the formula). Kish's n inside the Fisher interval is itself a methodological approximation, so it is signed off explicitly, never assumed; the audit does not say (B9) |
+
+AIA's reading until decided: (a) with n_min = 30 and the respondent count, both recorded on every
+result. (b) and (c) each need chunk 1d, which lands after the Q6 decision.
+
+**The ask, as one evidence policy.** The floor, the interval criterion, the practical floor and
+the weighting question are one decision, not three: *how does survey weighting propagate through
+the point estimate (the weighted Pearson of F2, B7) and its uncertainty (which n, B9), and what
+states does a pair pass through?* The author is asked for an explicit model to accept or
+replace, as the two gates above: the evidence state UNKNOWN (insufficient evidence on the
+approved n basis) / WEAK (the interval crosses 0) / RELIABLE (it excludes 0), and beside it
+whether the pair meets the effect floor. Statistically detectable is not practically
+meaningful, and the methodology should say which one an arrow means.
+
+### Q7 -- what terrain height claims
+
+**Decision.** What statement does the default vertical dimension make: absolute evaluation
+(popularity), relational connectedness, or another metric? The hills are the most visible
+encoding on the map, and "high" must mean one thing.
+
+**Where AIA stands.** `aia-sociomap-1` defaults to the unit's T-score of the classic relation sum
+(carried, F8/F9); the audit's F8 says mean rating, pending Q7. Under F12's envelope (chunk 4b)
+height equals the metric exactly, so whatever is chosen is what the hill says. Mean rating is a
+directly observed quantity on the item's declared scale; connectedness K_i is derived from the
+geometry's own input and depends on Q5 (what a relation means) and Q6 (which pairs count).
+
+| Option | "High" means | Consequence |
+| --- | --- | --- |
+| (a) Mean rating (the audit's default) | people rated this object highly | observed, not manufactured; readable without the map; needs a rescale mode across sets with different scales (RTS-V1 none / this / all); an object loved by all but tied to nothing stands tall and isolated, which is honest |
+| (b) Connectedness K_i | this object is strongly tied to the others | height and distance then say related things, which risks reading height as closeness; depends on Q5 and Q6, so it changes when they do; undefined for an object with no known pair (B8), which must then have no hill |
+| (c) Alignment A_i | this object moves with (+) or against (-) the family | signed, so a terrain needs a zero plane; best as a colour, not a height |
+| (d) Selectable, with (a) as the default | the legend says which | what the engine already supports (`object_height_metric` is a spec field); the decision is only which is the default in reports |
+
+AIA's reading until decided: (d) with (a) as the default, which is the audit's tentative choice
+and keeps the vertical dimension observed; (b) and (c) stay selectable analytical layers.
+
+**Order.** Q5 first: it fixes the meaning of F2, and F4, F6, F7, F8 and F9 inherit it. Q6 and Q7
+can be answered after, and both are declared parameters in AIA, so the code built so far does
+not move when they are.
+
 ## 5. Approach
 
 The audit enters AIA the way its own § 9 says the MVP takes it (decision D16: today's formulas
@@ -232,6 +337,22 @@ waves (audit F6, D6 package § 3 names the same consequence). Smallest fix: chun
 (All four are reproduced by existing tests that assert the current behaviour; the v1 tests
 stay as they are, because v1 stays what it is.)
 
+**F-5 (hypothesis: one occurrence, not reproduced). A research screen test waits its full 15 s
+for the proposal dialog under the full suite's load, on a head whose web tree did not change.**
+Anchor: `apps/web/src/components/rehome/research/test-native-agents.ts:62-68 @ 387a417`
+(`NATIVE_JOB_WAIT` 15 s, `approveProposal`), failing test
+`QuestionnaireStep.test.tsx:250-260` › *reviews the native brief analysis and questionnaire
+before opening the editor*. Observed once: PR #176's Frontend job on `387a417` (run
+37632214819, 2026-10-07 13:56 UTC): `Unable to find role="button" and name "Použít návrh"`
+after 15 067 ms, 614 of 615 tests passed; the same job passed on the PR's previous head
+`8cbb322`, and `git diff 8cbb322 387a417 -- apps/web` is empty. Reproduction attempted: the
+full `npm test` on the same tree in a 4-core container passed 615 of 615 (45.9 s). Consequence:
+a red Frontend job on a PR that touched no web file. The config-cache cause of this class was
+fixed in PR #83 (OI-76); this residual has no confirmed cause and no fix is proposed, because a
+wider wait only makes the failure slower (OI-76's own conclusion). Test that would catch it:
+the repeated-run harness OI-76 used (`repeats: 60` on the file, and full suites under doubled
+load), applied to this test, to measure a rate before anything is changed.
+
 ## 8. Chunks
 
 - **0a.** Register F1-F16 in `docs/migration/sociomapping-evidence-register.json` with product
@@ -254,10 +375,20 @@ stay as they are, because v1 stays what it is.)
   object of the battery) with UNKNOWN excluded; `mean_rating` as the v3 default height.
 - **1c.** `engine.py` placeability: any constant row is NOT PLACED with the reason; count on the
   artifact; the density terrain over placed respondents only (already so).
+- **1d.** After the Q6 decision (§ 4a). `relations.py`: an explicit evidence policy -- `n_min`,
+  the confidence, the n basis (respondent count or pairwise Kish `n_eff = (sum w)^2 / sum w^2`
+  over the pair's valid respondents) and an optional `r_min` -- declared and recorded on every
+  result. `pair_status` keeps `UNKNOWN / WEAK / RELIABLE` as the evidence state on the chosen n
+  basis; `meets_effect_floor` is recorded beside it, never folded in. `derive_pair_relations`
+  stops passing `len(ok)` when the basis is Kish. Tests: a weighted pair whose count passes the
+  floor and whose effective n does not is UNKNOWN; a precisely estimated r = 0.05 is RELIABLE
+  and does not meet a 0.10 floor; with no `r_min` declared, nothing is computed for the floor.
 - **2a.** `relations.py`: `person_minmax(ratings)` over all rated items of the respondent,
   constant rows excluded; Pearson on the result; `RelationScaleCoercion.DECLARED_CORRELATION |
   DECLARED_SIMILARITY_0_1 | DECLARED_STRENGTH_1_10` with no detection; the artifact stores
-  signed r̃ and |r̃| side by side.
+  signed r̃ and |r̃| side by side. F5 is `SPECIFICATION_REQUIRED`: the audit does not write out
+  the transform from a declared 1-10 strength matrix into F6's correlation distance, so 2a
+  refuses that type (named, not guessed) until the author supplies it.
 - **2b.** `layout.py`: `fit_smacof_objects(delta, weights)` -- Torgerson start, Guttman transform,
   Stress-1, weights 0 for UNKNOWN; `DissimilarityTarget.CORRELATION_DISTANCE`;
   `MapFrameMethod.FIXED_RULER` (no rescale; the extent recorded as 2.0). Pure Python, bit-identical;
@@ -526,23 +657,69 @@ files; `layer_check` 94 rules; `exposure_check` 7 rules. Not done, and not doabl
 the audit's `code_formula_checks.py` and its outputs are still with the audit's author; the
 request below is what to send.
 
-**Request to the audit's author (chunk 0a, to be sent by the owner).** For
-`.planning/plans/sociomap-formula-corrections.md` chunk 0a we need, as files: (1)
-`NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; (2) its printed
-output, so every `[C*]` and `[P*]` number in the audit is reproducible here; (3) the simulated
-inputs behind C1, C2, C4/P4, C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and
-generators that made them; (4) if the demo dataset cannot leave, the per-check summaries it
-produced (C1's mean r and share positive, C5's stresses, C6's disparities, C8's rankings,
-C9's scores, C10's radii) as they stand. With them the fixture becomes the audit's own output
-instead of a transcription, and each of the plan's synthetic acceptance tests can be checked
-against the audit's number before it is trusted.
+**Request to the audit's author (chunk 0a and 0b, to be sent by the owner).** Revised on
+2026-10-07 after the owner's second assessment; the annotated PDF mirrors this list. Three
+groups: A, what the audit itself leaves open; B, readings AIA has taken, to confirm or correct;
+C, the evidence to reproduce the audit.
 
-Two readings to settle with the same note (raised by the Codex review of PR #173, recorded in
-the register's `AUDIT-F2` and `AUDIT-F8`): (5) F2 is silent on respondent weights; AIA keeps the
-Pearson step weighted after the per-person rescaling, as the unit's path is today, unless the
-author says otherwise. (6) F8 writes the denominator as m_P − 1 while leaving UNKNOWN pairs out
-of the sums; a fixed denominator scores an unknown pair as 0, so AIA divides by the known
-PRIMARY pairs and leaves an object with none unscored, unless the author says otherwise.
+- **A1 (Q5, F2).** What does proximity between two objects claim: relative preferences moving
+  together, similar absolute ratings, or two concepts kept apart? AIA's *provisional*
+  implementation follows the first (positions from co-movement, level as height) pending
+  methodology confirmation; it is not the answer. F4, F6, F7, F8 and F9 inherit the decision.
+- **A2 (Q6, F3, with B7 and B9).** One evidence policy: the pairwise floor before a pair is
+  interpreted at all; the uncertainty criterion before it is shown reliable; whether reliability
+  also needs a practical floor on |r|; and how survey weighting propagates through the point
+  estimate (weighted Pearson after per-person rescaling) and its uncertainty (the respondent
+  count or Kish's effective n). An explicit state model is asked for (§ 4a Q6).
+- **A3 (Q7, F8).** What does terrain height claim: absolute evaluation (mean rating, observed),
+  relational connectedness (derived, depends on Q5 and Q6), or a selectable default? AIA's
+  provisional reading: mean rating as the default, the others as layers.
+- **A4 (F10).** How should the respondent-misfit threshold for "poorly represented" be
+  calibrated and validated: absolute on the fixed ruler, calibrated on planted preference
+  structures, percentile-based, or derived from another criterion? The recommended value *and*
+  the acceptance evidence behind it, not a number alone.
+- **A5 (F6 with F11, F12).** On the fixed ruler (one map unit means the same everywhere; delta in
+  0..2) the kernel widths from the unit's +-62 frame have no meaning. Two separate kernels, each
+  with a semantic definition relative to the ruler: the object-terrain kernel (how broad each
+  object's hill is) and the respondent-density kernel (how much smoothing where people cluster).
+  They need not share a width. Blocks chunk 4b.
+- **A6 (F16).** The audit's checks covered the target defect only. If AIA's planted-ideal-point
+  recovery is to stand as the acceptance, what properties and tolerances constitute successful
+  recovery: correct relative object geometry; respondent ideal-point ordering recovered;
+  invariance to a respondent's scoring generosity; known straight-liners excluded; no degenerate
+  collapse; a deterministic result within tolerance?
+- **B8 (F8).** With the denominator fixed at m_P - 1, leaving an UNKNOWN pair out equals counting
+  it as a zero relation. AIA's reading: divide by the object's known PRIMARY pairs, an object with
+  no known pair has no score, and *the count of known pairs is stored and shown beside each
+  score* (0.75 from 2 pairs is not 0.75 from 20).
+- **B10 (F16).** R `smacof::unfolding` as the reference, the pure-Python fit as the test
+  fallback: agreement on one R fixture within a tolerance does not by itself establish the same
+  method. AIA proposes three layers for "methodologically equivalent within stated tolerance":
+  fixture parity on known examples; property tests (rotation and reflection invariance,
+  straight-liner behaviour, no collapse); recovery tests on planted ideal points. Acceptable?
+- **B11 (F8).** The SECONDARY rule as AIA has written it: context objects never enter PRIMARY
+  scores or terrain. Is that the whole boundary? May SECONDARY objects affect the PRIMARY
+  layout, respondent placement, Procrustes alignment, Stress-1 or any other derived quantity?
+  If they move PRIMARY coordinates they affect conclusions without entering a score formula.
+- **C12-C15.** `NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; its
+  printed output (every `[C*]` and `[P*]` number); the simulated inputs behind C1, C2, C4/P4,
+  C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and generators; if the demo dataset
+  cannot leave, the per-check summaries as they stand (C1's mean r and share positive, C5's
+  stresses, C6's disparities, C8's rankings, C9's scores, C10's radii). The chain a canonical
+  rule should have: methodology claim -> executable validation -> frozen fixture -> CI test ->
+  implementation. Today the fixture is a transcription of the PDF, marked as such.
+
+**Governance of the register while these are open.** Authority and completeness are two
+things. Every audit rule is `CANONICAL` in authority (its label: it overrides every other
+source); that does not make every formula implementation-complete. The register's
+`canonical.completeness` says which, per rule: `SPECIFIED` (formula and meaning fully
+specified), `PENDING_PARAMETER` (the formula is fixed; a number is open: F3's floor and
+practical floor, F10's threshold, F11's and F12's kernel widths, F16's tolerance),
+`PENDING_SEMANTICS` (what the rule claims is open: F2 under Q5 and the weighting, F8 under Q7,
+the denominator and the SECONDARY boundary) or `SPECIFICATION_REQUIRED` (part of the formula is
+not written out, so an implementer would have to invent methodology: F5's 1-10 strength
+transform). The test refuses anything but `SPECIFIED` without a named question, so a
+provisional AIA reading cannot pass for a finished methodological decision.
 
 **1a and 1c went before 0a** (2026-10-07, PR #172, another session). 0a was thought blocked on the
 PDFs' pages; they were in hand, so 0a landed next (PR #173), and its merge with #172 registers
@@ -570,6 +747,9 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   as not canonical for AIA's object map; the audit's F-rules (chunk 0a) labelled CANONICAL.
 - `.planning/open-items.md`: the four findings of § 7 numbered; OI-13's "withheld" corrected;
   OI-15's recipe reused by chunk 4c.
+- `CLAUDE.md` § 7 Known flakes: an entry for F-5 above in the required shape, once a second
+  occurrence or a measured rate confirms it; `.planning/open-items.md` OI-76: the 2026-10-07
+  occurrence on PR #176 as a residual of the class after PR #83.
 - `AGENTS.md`: nothing yet.
 - `docs/architecture/research-journey.md`, `population.md` and `data-model.md`: after I0-I5
   land, document the frozen dimension/audience/population/map bindings, input roles, actual
