@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { deepResearch, research, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
+import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { deepResearchRunOrb } from "@/lib/activity-orb";
 import { AiButton, Button } from "../ui";
 import { useResearch } from "./context";
 
@@ -35,6 +37,7 @@ export function DeepResearchPanel() {
   }, [frame.studyId]);
 
   const current = runs.find((job) => job.run_id === selected) ?? null;
+  const running = current ? deepResearchRunOrb(current.steps) : null;
   useEffect(() => {
     if (!current || current.is_terminal) return;
     const id = setInterval(() => { void refresh().catch((e: unknown) => setError(message(e))); }, POLL_MS);
@@ -77,7 +80,10 @@ export function DeepResearchPanel() {
       ) : <p className="mt-3 text-sm text-ink-muted">Zatím bez běhů.</p>}
       {current ? (
         <div className="mt-4 space-y-2 text-sm">
-          <p role="status">Stav: {current.phase} · {current.status}</p>
+          <p role="status" className="flex items-center gap-2">
+            {running ? <ActivityOrb orb={running} /> : null}
+            Stav: {current.phase} · {current.status}
+          </p>
           {current.steps.filter((step) => step.waiting_reason || step.error_message).map((step) => <p key={step.node_key} className="text-status-fault">{step.node_key}: {step.waiting_reason ?? step.error_message}</p>)}
           {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.retry(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Opakovat běh</Button> : null}
           {!current.is_terminal && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}

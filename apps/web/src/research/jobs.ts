@@ -5,6 +5,8 @@
 // themselves are AIA's research agent jobs (/api/v1/studies/{id}/research/agent-jobs,
 // lib/research-agent-jobs.ts); the 18.6.6 unit's own job runner is gone (ADR 0018).
 
+import type { Orb } from "@/lib/activity-orb";
+
 export type Telemetry = {
   elapsed_seconds?: number;
   hard_seconds?: number;
@@ -105,4 +107,6 @@ export type JobUpdate = {
   meta: ReturnType<typeof jobMeta> | null;
   paused: string | null;
   startedAt: number;
+  /** The orb while a model works on the job's step, else null (lib/activity-orb.ts). */
+  orb: Orb | null;
 };
