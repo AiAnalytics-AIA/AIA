@@ -86,19 +86,37 @@ environment when it starts, and the database only for fan-out coordination.
    - A pin that does not hash to its own content fails the run closed.
    - The worker still reads no settings from the database.
 
-5. **Settings that shape the method are part of reuse identity.**
-   - The digest of the method-shaping settings enters every reuse key that crosses runs: track,
-     verification, synthesis, brief and, later, the dataset. Those settings are the presets, the
-     caps, the request limits, the register and the weights.
-   - So a changed cap or limit never reuses work made under the old one. Wiring this moves the
-     harness once, to 3, as ADR 0021 decision 7 requires for a method change.
+5. **Settings that shape the method or what is admitted are part of reuse identity.**
+   - The digest of every setting the catalogue marks as shaping a result enters every reuse key
+     that crosses runs: track, verification, synthesis, brief and, later, the dataset.
+   - Those settings are of two kinds, and both count:
+     - how a run plans, spends and scores: the presets, the caps, the request limits, the source
+       tiers, the register and the weights;
+     - what a run may admit: the extraction denylist, the personal-data patterns and the record
+       presets. A stored artifact is reused by its key without its gates being re-applied, so a
+       capture or dataset made before a host was denied, or a pattern added, must not match a
+       key made after.
+   - So a changed cap, limit or admission policy never reuses work made under the old one.
+     Wiring this moves the harness once, to 3, as ADR 0021 decision 7 requires for a method
+     change.
    - Settings that do not shape a result do not move any key: the provider's price, retention,
      a terms URL.
+   - Whether a setting shapes a result is declared once, in the catalogue (`method`), and tested
+     there, not listed again in prose.
 
-6. **Live needs approval; offline does not.**
-   - A composition with a live route (chunk 27), and the start of a run that would use one,
-     refuse unless every setting required for live is APPROVED. The refusal names each missing
-     setting.
+6. **Live needs approval; offline does not. The check is the run's, not the process's.**
+   - Settings and approvals belong to an organization, while the worker's composition is
+     process-wide and built before any run exists. So the composition builds a live route from
+     the deployment alone (its switches, secrets and route), and approval is never checked
+     there: no organization's state decides what another's runs may do, and the worker starts
+     whatever is approved.
+   - The check runs against the run's own organization, twice:
+     - at enqueue, `DeepResearchRuns` refuses a run that would use a live route unless every
+       setting required for live is APPROVED in the enqueuing organization, naming each missing
+       setting;
+     - in the worker, before any live call, a step refuses (parks) when the run's pinned
+       settings (decision 4) do not record every required setting as approved. A pin is
+       evidence of the approval at enqueue, so the worker still reads no settings store.
    - Recorded and offline runs use the effective values and label proposed ones as proposed.
      That is how development continues before the sign-off.
    - Chunk 1 becomes "every required setting approved on the page", with the record kept in the
