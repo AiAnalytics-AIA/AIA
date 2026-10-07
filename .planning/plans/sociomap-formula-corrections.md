@@ -195,6 +195,15 @@ statistically reliable but tiny relation should be drawn at all.
 AIA's reading until decided: (a) with n_min = 30 and the respondent count, both recorded on every
 result; (b) and (c) are parameters the same code can take once the owner sets them.
 
+**The ask, as one evidence policy.** The floor, the interval criterion, the practical floor and
+the weighting question are one decision, not three: *how does survey weighting propagate through
+the point estimate (the weighted Pearson of F2, B7) and its uncertainty (which n, B9), and what
+states does a pair pass through?* The author is asked for an explicit state model to accept or
+replace, for example: UNKNOWN (insufficient evidence) / WEAK (the interval crosses 0) /
+RELIABLE-SMALL (the interval excludes 0 but |r| is below a substantive threshold) / RELIABLE
+(excludes 0 and meets it). Statistically detectable is not practically meaningful, and the
+methodology should say which one an arrow means.
+
 ### Q7 -- what terrain height claims
 
 **Decision.** What statement does the default vertical dimension make: absolute evaluation
@@ -379,23 +388,66 @@ files; `layer_check` 94 rules; `exposure_check` 7 rules. Not done, and not doabl
 the audit's `code_formula_checks.py` and its outputs are still with the audit's author; the
 request below is what to send.
 
-**Request to the audit's author (chunk 0a, to be sent by the owner).** For
-`.planning/plans/sociomap-formula-corrections.md` chunk 0a we need, as files: (1)
-`NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; (2) its printed
-output, so every `[C*]` and `[P*]` number in the audit is reproducible here; (3) the simulated
-inputs behind C1, C2, C4/P4, C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and
-generators that made them; (4) if the demo dataset cannot leave, the per-check summaries it
-produced (C1's mean r and share positive, C5's stresses, C6's disparities, C8's rankings,
-C9's scores, C10's radii) as they stand. With them the fixture becomes the audit's own output
-instead of a transcription, and each of the plan's synthetic acceptance tests can be checked
-against the audit's number before it is trusted.
+**Request to the audit's author (chunk 0a and 0b, to be sent by the owner).** Revised on
+2026-10-07 after the owner's second assessment; the annotated PDF mirrors this list. Three
+groups: A, what the audit itself leaves open; B, readings AIA has taken, to confirm or correct;
+C, the evidence to reproduce the audit.
 
-Two readings to settle with the same note (raised by the Codex review of PR #173, recorded in
-the register's `AUDIT-F2` and `AUDIT-F8`): (5) F2 is silent on respondent weights; AIA keeps the
-Pearson step weighted after the per-person rescaling, as the unit's path is today, unless the
-author says otherwise. (6) F8 writes the denominator as m_P − 1 while leaving UNKNOWN pairs out
-of the sums; a fixed denominator scores an unknown pair as 0, so AIA divides by the known
-PRIMARY pairs and leaves an object with none unscored, unless the author says otherwise.
+- **A1 (Q5, F2).** What does proximity between two objects claim: relative preferences moving
+  together, similar absolute ratings, or two concepts kept apart? AIA's *provisional*
+  implementation follows the first (positions from co-movement, level as height) pending
+  methodology confirmation; it is not the answer. F4, F6, F7, F8 and F9 inherit the decision.
+- **A2 (Q6, F3, with B7 and B9).** One evidence policy: the pairwise floor before a pair is
+  interpreted at all; the uncertainty criterion before it is shown reliable; whether reliability
+  also needs a practical floor on |r|; and how survey weighting propagates through the point
+  estimate (weighted Pearson after per-person rescaling) and its uncertainty (the respondent
+  count or Kish's effective n). An explicit state model is asked for (§ 4a Q6).
+- **A3 (Q7, F8).** What does terrain height claim: absolute evaluation (mean rating, observed),
+  relational connectedness (derived, depends on Q5 and Q6), or a selectable default? AIA's
+  provisional reading: mean rating as the default, the others as layers.
+- **A4 (F10).** How should the respondent-misfit threshold for "poorly represented" be
+  calibrated and validated: absolute on the fixed ruler, calibrated on planted preference
+  structures, percentile-based, or derived from another criterion? The recommended value *and*
+  the acceptance evidence behind it, not a number alone.
+- **A5 (F6 with F11, F12).** On the fixed ruler (one map unit means the same everywhere; delta in
+  0..2) the kernel widths from the unit's +-62 frame have no meaning. Two separate kernels, each
+  with a semantic definition relative to the ruler: the object-terrain kernel (how broad each
+  object's hill is) and the respondent-density kernel (how much smoothing where people cluster).
+  They need not share a width. Blocks chunk 4b.
+- **A6 (F16).** The audit's checks covered the target defect only. If AIA's planted-ideal-point
+  recovery is to stand as the acceptance, what properties and tolerances constitute successful
+  recovery: correct relative object geometry; respondent ideal-point ordering recovered;
+  invariance to a respondent's scoring generosity; known straight-liners excluded; no degenerate
+  collapse; a deterministic result within tolerance?
+- **B8 (F8).** With the denominator fixed at m_P - 1, leaving an UNKNOWN pair out equals counting
+  it as a zero relation. AIA's reading: divide by the object's known PRIMARY pairs, an object with
+  no known pair has no score, and *the count of known pairs is stored and shown beside each
+  score* (0.75 from 2 pairs is not 0.75 from 20).
+- **B10 (F16).** R `smacof::unfolding` as the reference, the pure-Python fit as the test
+  fallback: agreement on one R fixture within a tolerance does not by itself establish the same
+  method. AIA proposes three layers for "methodologically equivalent within stated tolerance":
+  fixture parity on known examples; property tests (rotation and reflection invariance,
+  straight-liner behaviour, no collapse); recovery tests on planted ideal points. Acceptable?
+- **B11 (F8).** The SECONDARY rule as AIA has written it: context objects never enter PRIMARY
+  scores or terrain. Is that the whole boundary? May SECONDARY objects affect the PRIMARY
+  layout, respondent placement, Procrustes alignment, Stress-1 or any other derived quantity?
+  If they move PRIMARY coordinates they affect conclusions without entering a score formula.
+- **C12-C15.** `NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; its
+  printed output (every `[C*]` and `[P*]` number); the simulated inputs behind C1, C2, C4/P4,
+  C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and generators; if the demo dataset
+  cannot leave, the per-check summaries as they stand (C1's mean r and share positive, C5's
+  stresses, C6's disparities, C8's rankings, C9's scores, C10's radii). The chain a canonical
+  rule should have: methodology claim -> executable validation -> frozen fixture -> CI test ->
+  implementation. Today the fixture is a transcription of the PDF, marked as such.
+
+**Governance of the register while these are open.** A rule can be canonical in its formula and
+still pending in a parameter or in its meaning. The register's `canonical.status` says which,
+per rule: `CANONICAL` (fully specified), `CANONICAL_PENDING_PARAMETER` (the formula is fixed; a
+number is open: F3's floor and practical floor, F10's threshold, F11's and F12's kernel widths,
+F16's tolerance) or `CANONICAL_PENDING_SEMANTICS` (what the rule claims is open: F2 under Q5 and
+the weighting, F8 under Q7, the denominator and the SECONDARY boundary). The test refuses a
+pending status without a named question, so a provisional AIA reading cannot pass for a
+finished methodological decision.
 
 **1a and 1c went before 0a** (2026-10-07, PR #172, another session). 0a was thought blocked on the
 PDFs' pages; they were in hand, so 0a landed next (PR #173), and its merge with #172 registers

@@ -107,6 +107,19 @@ def test_the_canonical_block_names_what_it_overrides() -> None:
         assert CANONICAL["checks"].get(rule_id), f"{rule_id} names no printed check"
 
 
+def test_a_pending_canonical_rule_names_its_open_question() -> None:
+    """A rule can be canonical in its formula and still pending in a parameter or its meaning.
+
+    The status says which, so a provisional AIA reading never passes for a decision.
+    """
+    canonical_ids = {r["id"] for r in REGISTER["rules"] if r["label"] == "CANONICAL"}
+    assert set(CANONICAL["status"]) == canonical_ids, "every canonical rule has a status"
+    assert set(CANONICAL["status"].values()) <= set(CANONICAL["status_values"])
+    for rule_id, status in CANONICAL["status"].items():
+        if status != "CANONICAL":
+            assert RULES[rule_id]["question"], f"{rule_id} is {status} but names no question"
+
+
 def test_every_printed_check_is_vendored_and_claimed() -> None:
     checks = AUDIT_CHECKS["checks"]
     claimed = {c for ids in CANONICAL["checks"].values() for c in ids}

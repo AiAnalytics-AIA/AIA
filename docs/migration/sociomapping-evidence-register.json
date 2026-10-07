@@ -166,7 +166,30 @@
     "C16"
    ]
   },
-  "evidence_script": "NPC/analysis/code_formula_checks.py prints every bracketed number; not received (requested from the audit's author, plan chunk 0a). The fixture holds the numbers as the audit prints them."
+  "evidence_script": "NPC/analysis/code_formula_checks.py prints every bracketed number; not received (requested from the audit's author, plan chunk 0a). The fixture holds the numbers as the audit prints them.",
+  "status_values": {
+   "CANONICAL": "the formula and its meaning are fully specified by the audit",
+   "CANONICAL_PENDING_PARAMETER": "the formula is fixed; a number it needs is open (a floor, a threshold, a kernel width, a tolerance); AIA runs on a recorded provisional value",
+   "CANONICAL_PENDING_SEMANTICS": "what the rule claims is open (an owner's decision); AIA's provisional reading is recorded beside the formula and is not the answer"
+  },
+  "status": {
+   "AUDIT-F1": "CANONICAL",
+   "AUDIT-F2": "CANONICAL_PENDING_SEMANTICS",
+   "AUDIT-F3": "CANONICAL_PENDING_PARAMETER",
+   "AUDIT-F4": "CANONICAL",
+   "AUDIT-F5": "CANONICAL",
+   "AUDIT-F6": "CANONICAL",
+   "AUDIT-F7": "CANONICAL",
+   "AUDIT-F8": "CANONICAL_PENDING_SEMANTICS",
+   "AUDIT-F9": "CANONICAL",
+   "AUDIT-F10": "CANONICAL_PENDING_PARAMETER",
+   "AUDIT-F11": "CANONICAL_PENDING_PARAMETER",
+   "AUDIT-F12": "CANONICAL_PENDING_PARAMETER",
+   "AUDIT-F13": "CANONICAL",
+   "AUDIT-F14": "CANONICAL",
+   "AUDIT-F15": "CANONICAL",
+   "AUDIT-F16": "CANONICAL_PENDING_PARAMETER"
+  }
  },
  "rules": [
   {
@@ -1341,7 +1364,7 @@
    ],
    "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value (AUDIT_PROVISIONAL_N_MIN), passed by the caller and recorded. The interval is Fisher's z with the normal approximation. n counts respondents, not weight: under a weighted design the interval read at that n may be too narrow (plan § 10, open point with Q5-Q7). Landed in chunk 1a (PR #172): the status is stored beside the 1-10 matrix; no score, layout or terrain reads it yet (1b, 2b, 4b).",
    "resolve_by": "sociomap-formula-corrections chunk 1a",
-   "question": "Q6 -- the minimum evidence for a relationship: the pairwise floor, the uncertainty criterion for RELIABLE, which n under weights (plan § 4a; the owner's evidence policy, not the number 30)"
+   "question": "Q6 -- one evidence policy (with B7 and B9): the pairwise floor, the uncertainty criterion, a practical floor on |r|, and how weighting propagates through the estimate and its uncertainty; an explicit state model asked for (plan § 4a Q6)"
   },
   {
    "id": "AUDIT-F4",
@@ -1500,11 +1523,11 @@
      "states": "The plain-language explanation, the technical evidence and why the replacement works."
     }
    ],
-   "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7; AIA's reading of 'left out': the denominator counts the known PRIMARY pairs of i (m_P - 1 minus i's UNKNOWN pairs), and an object with no known pair has no score (undefined, not 0)",
+   "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7; AIA's reading of 'left out': the denominator counts the known PRIMARY pairs of i (m_P - 1 minus i's UNKNOWN pairs), and an object with no known pair has no score (undefined, not 0); the count of known PRIMARY pairs that contributed is stored and shown beside each score",
    "applies_to": "object scores and the default object height; replaces relation_classic (metrics.py:213-224) and the T-score default height (specification.py:415). AIA has no object manager yet; the SECONDARY rule is written into the contract now.",
    "implementation": null,
    "validation": [],
-   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a).",
+   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a). The SECONDARY boundary is also open beyond scores and terrain: whether SECONDARY objects may affect the PRIMARY layout, respondent placement, Procrustes alignment, Stress-1 or any derived quantity (B11).",
    "resolve_by": "sociomap-formula-corrections chunk 1b",
    "question": "Q7 -- what terrain height claims: absolute evaluation (mean rating), relational connectedness, or selectable with a default (plan § 4a; the owner's decision)"
   },
@@ -1570,9 +1593,9 @@
    "applies_to": "the respondent map: objects fixed by F6, people placed against them. Path A's joint unfolding is retired to a comparison alternative for the panel map; supersedes SOMECS-M1 (STORM placement) for AIA's respondent map.",
    "implementation": null,
    "validation": [],
-   "uncertainty": "The misfit threshold is not given. As an interim if the barycentre must stay, the audit offers w_kj = max(0, a~_kj - mean_k a~_k.) with the explicit NOT PLACED state.",
+   "uncertainty": "The misfit threshold is not given. As an interim if the barycentre must stay, the audit offers w_kj = max(0, a~_kj - mean_k a~_k.) with the explicit NOT PLACED state. The threshold's calibration method is asked for with the value (A4).",
    "resolve_by": "sociomap-formula-corrections chunk 3",
-   "question": "plan § 4 item 4"
+   "question": "A4 -- how the misfit threshold is calibrated and validated (absolute on the ruler, planted structures, percentile, another criterion), with the acceptance evidence; not a number alone"
   },
   {
    "id": "AUDIT-F11",
@@ -1619,9 +1642,9 @@
      "what": "every respondent is placed or excluded, never both or neither"
     }
    ],
-   "uncertainty": "Landed in chunk 1c (PR #172) for the engine: every straight-liner and every respondent with fewer than two ratings is NOT PLACED with a reason and counted. Still owed: the count shown in a legend (Results has no respondent view; chunk 5) and the exclusion from lasso and comparisons, which do not exist in AIA (4d).",
+   "uncertainty": "Landed in chunk 1c (PR #172) for the engine: every straight-liner and every respondent with fewer than two ratings is NOT PLACED with a reason and counted. Still owed: the count shown in a legend (Results has no respondent view; chunk 5) and the exclusion from lasso and comparisons, which do not exist in AIA (4d). The density kernel's sigma = 9.5 is in the unit's +-62 frame and must be restated on F6's ruler (A5).",
    "resolve_by": "sociomap-formula-corrections chunk 1c",
-   "question": null
+   "question": "A5 -- the respondent-density kernel on the fixed ruler: its width defined relative to the ruler, separately from the object-terrain kernel"
   },
   {
    "id": "AUDIT-F12",
@@ -1654,7 +1677,7 @@
    "validation": [],
    "uncertainty": "sigma is given in the unit's +-62 frame (12); on F6's ruler it must be restated (plan § 4 item 3).",
    "resolve_by": "sociomap-formula-corrections chunk 4b",
-   "question": "plan § 4 item 3"
+   "question": "A5 -- the object-terrain kernel on the fixed ruler: how broad each object's hill is, defined relative to the ruler; not necessarily the density kernel's width"
   },
   {
    "id": "AUDIT-F13",
@@ -1786,7 +1809,7 @@
    "validation": [],
    "uncertainty": "The audit's checks covered the target defect only; the fitted map 'still needs a recovery test on data with known ideal points' (§ 12 F16). The tolerance between R and the Python fallback is engineering (plan § 4 item 5).",
    "resolve_by": "sociomap-formula-corrections chunk 4c",
-   "question": "plan § 4 item 5"
+   "question": "A6 and B10 -- what constitutes successful recovery (geometry, ideal-point ordering, generosity invariance, straight-liners excluded, no collapse, determinism within tolerance), and three layers for R/Python equivalence: fixture parity, property tests, recovery tests"
   }
  ]
 }
