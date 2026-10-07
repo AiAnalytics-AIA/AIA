@@ -30,7 +30,7 @@ chunks:
   - "[ ] 26. Quality evaluation: design and interpretation use cases, three arms, rubric judge, blind grade"
   - "[ ] 27. Develop activation and the live acceptance (last)"
   - "[x] 28. Purpose, target and frozen lineage (ADR 0021, AIA-83 Step 1)"
-  - "[ ] 29. Design Research integration: proposals from a design run, accepted into a revision (gate 1)"
+  - "[x] 29. Design Research integration: proposals from a design run, accepted into a revision (gate 1)"
   - "[ ] 30. Interpretation Research integration: mission from the target, then enqueue and the route"
   - "[ ] 31. The Sociomap Research Lens: an annotation sidecar beside the canonical map"
   - "[ ] 32. The report evidence graph: five evidence families, every claim's support"
@@ -68,7 +68,7 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 ```
 28 purpose / target / frozen lineage            (done: ADR 0021)
 → 23 backend: composition, switches, prices; per-kind reservations FIRST
-→ 29 Design Research integration                (proposals → gate 1 → a new revision)
+→ 29 Design Research integration                (done: proposals → gate 1 → a new revision)
 → 33–37 structured extraction                    (records from captured pages: a market's
                                                   products, prices, stores, organisations,
                                                   events, as a dataset beside the bundle;
@@ -675,6 +675,64 @@ log read; one run per preset for a fictional client within the owner's budget; r
 spend (model, search, connectors, Athena separately) recorded in § 13. Then tick the parent plan's
 chunk 13 for Class C.
 
+### Chunk 29 — Design Research integration (designed 2026-10-07)
+
+ADR 0021 decision 1: a `DESIGN_RESEARCH` run is advisory; what it found becomes a *proposal*, and
+only a person turns a proposal into a new Design Revision (ADR 0019 gate 1). The engine stays
+frozen (decision 7): no new step, no model call, no change to the bundle or its seal. The proposal
+is built **by code** from the sealed bundle the run already published.
+
+**What a proposal is.** One item per research subject of the run (`ResearchSubject`): an
+`EVIDENCE` item carrying every accepted finding of that subject exactly as `design_input`
+already exposes it (claim, verbatim quote, source, source class, confidence, whether it may
+ever reach respondents), or a `GAP` item for a subject with none. Each item has a stable id
+(`DRP-` + the bundle seal and the subject key, hashed), so the same run always proposes the same
+items. The proposal names its run, the run spec's fingerprint, the bundle artifact and seal, and
+the Design Revision it was frozen on: its baseline.
+
+**What accepting writes.** A person picks the items to take (taking some and not others is the
+"modify"; taking none is the "reject", which writes nothing). The new revision is the baseline's
+content with one AIA-owned key added or extended, `design_research` -- the accepted items keyed
+by their ids, each with its role `EXTERNAL_CONTEXT`, its findings and the provenance above -- and
+**every other key byte-for-byte unchanged**. Deep Research therefore never writes the research
+plan, questionnaire, audience, dimensions or sample plan: a person (or a design job, which already
+reads the whole design) acts on the evidence afterwards. The key is not the unit's
+`research_context` (a respondent-context toggle) and is never respondent context: that path
+re-screens against the final questionnaire on its own (`quarantine.respondent_context`).
+
+**Rules, each a refusal with a reason.**
+- Only a governed, completed `DESIGN_RESEARCH` run with a verified bundle proposes; a legacy run,
+  an interpretation run, a run without a bundle are refused.
+- The run's lineage must still resolve (`resolve_lineage`), the caller's expected revision must be
+  the lineage's revision and the Study's newest (`submit_if_current`): a proposal never lands on a
+  design it was not researched from (`stale_proposal`).
+- A bundle resting on recorded fixtures is admissible only for a fictional client
+  (`bundle.fictional_client`): recorded evidence never enters a real client's design.
+- The `design_research` block is bounded (32 KB), so the design jobs' 64 KB context
+  (`research_agents.context_snapshot`) is not pushed over by evidence a person accepted.
+- `EDIT_STUDY` and `APPROVE_GATE` on an open Study: the worker's scope cannot accept. Each
+  accept that writes is recorded once in the approval ledger (`subject_type = design_research`,
+  the selection's id), with who produced the run and who accepted.
+
+**Where the code lives.** Pure domain: `domain/deep_research/design_proposals.py` (the proposal,
+its items, `apply_to_design`), naming no writer, as `layer_check` requires of the DR domain. The
+writer is `application/design_research.py` (`DesignResearchProposals`), beside, not inside,
+`application/deep_research.py`, which `layer_check` keeps from naming a design writer; it reads
+the run through `DeepResearchRuns` and writes through `StudyDesignRepository.submit_if_current`, as
+`ResearchAgentJobs.accept` does. API: `GET …/deep-research/runs/{run_id}/design-proposal` and
+`POST …/design-proposal/accept` (`item_ids`, `expected_revision_id`), answering the new revision
+and its content so the client can write its working copy, as the agent accept does. The screen is
+chunk 24's.
+
+*Tests:* a proposal from a recorded journey run lists every subject, its findings verbatim, its
+gaps; the same run proposes the same ids; accepting a subset writes exactly those items and leaves
+every other design key unchanged; once a revision is written, a second accept from the same run is
+stale (a proposal never lands on a design it was not researched from; a new run over the new
+revision proposes again, reusing the engine's unchanged tracks) and writes nothing; an accept that
+changes nothing writes no revision and no ledger row; a stale baseline, an unknown item, an empty selection, an interpretation or legacy run, a run of
+another Study, a recorded bundle on a real client and an oversized block are refused, and none
+writes; the worker's scope cannot accept; the ledger row names producer and acceptor.
+
 ### Phase 6 — structured extraction (33–39; after 29, § 0)
 
 Recorded/offline like every chunk before 25: fictional sites with a known catalogue (one with
@@ -750,6 +808,16 @@ invented values (target: none), personal values stored (target: none), pages and
   one on 3.12.3 against 3.13.16: 0 and 0. The old one on 3.12.3 against 3.13.16: 6,073 decisions
   (2,398 files) and 127 crawl delays. The two inputs that raise on 3.12 are left out of the
   comparison and pinned by a test instead.
+
+- **Chunk 29, 2026-10-07** (`feature/dr-design-proposals`): no measurement; the proposal is
+  code over the sealed bundle and sends nothing. Over the recorded journey's first pass the
+  proposal has one item per bundle subject, evidence and gaps both present, and an accept of one
+  item writes one revision whose only change is `design_research` and one ledger row
+  (`apps/executors/tests/test_design_research_proposals.py`, 9 tests). Decided here, for the
+  owner to overrule: the accepted evidence is stored in the design (bounded to 32 KB) rather than
+  referenced, so a revision carries its own context and the design jobs read it without a
+  second lookup; a second accept from the same run is stale, so taking more evidence later is a
+  new run over the new revision, which reuses the engine's unchanged tracks.
 
 ## 14. What this plan does not do
 
@@ -867,6 +935,25 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
   stays frozen."
 - `CLAUDE.md` § 2, after chunk 37: the dataset artifact, the `crawl` and `extract` tools, and the
   extraction switch.
+
+*For the docs PR after chunk 29 merges:*
+
+- `CLAUDE.md` § 2, `domain/deep_research/`: "`design_proposals.py` a Design Research run's
+  proposal from its sealed bundle (an item per subject: its findings, or a gap) and
+  `apply_to_design`: the accepted items under the design's `design_research` key, nothing else
+  changed (chunk 29)". `application/`: "`design_research.py` DesignResearchProposals: a
+  completed Design Research run's proposal; a person's accept (EDIT_STUDY + APPROVE_GATE) into a
+  new Design Revision on the run's own baseline, recorded once per selection in the approval
+  ledger (ADR 0019 gate 1)". `routers/`, under deep research: "a Design Research run's
+  design proposal and its accept".
+- `docs/architecture/deep-research.md`: the two routes (`GET …/runs/{run_id}/design-proposal`,
+  `POST …/design-proposal/accept`) and the `design_research` design key as `EXTERNAL_CONTEXT`,
+  never respondent context.
+- ADR 0021, Consequences: "Design Research's proposals and their accept exist
+  (`deep-research-web-search.md` chunk 29): built by code from the sealed bundle, applied only by
+  a person into a new Design Revision on the run's own baseline."
+- `ARCHITECTURE.md`, the approval ledger's subjects: `design_research` beside `ai_proposal`
+  (migration `a7c3e9b1d5f2`).
 
 *For the docs PR after the robots.txt fix (§ 15, 2026-10-07) merges:*
 
