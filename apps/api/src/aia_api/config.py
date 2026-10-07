@@ -104,12 +104,23 @@ class Settings(BaseSettings):
     ai_analysis_reservation_usd: float | None = None
 
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
-    # from the same keys the worker composes it from: the research agents' reservation per
-    # request (``AIA_AI_RESEARCH_RESERVATION_USD``, primary plus one repair), whether the
-    # public Wikipedia route is on (its search and fetch are free), and the mode switches
-    # (``AIA_DEEP_RESEARCH_AGENT_DIRECTED``, ``AIA_DEEP_RESEARCH_LEAD``). Unset reservation is
-    # not zero: a study with a spend limit then does not start a Deep Research run.
-    ai_research_reservation_usd: float | None = None
+    # from the same keys the worker composes it from. Each kind of model request reserves
+    # what its own window and output limit can cost (domain/deep_research/request_limits.py),
+    # derived from the route's prices (``AIA_BEDROCK_*_USD_PER_MTOK``), the model's window
+    # (``AIA_BEDROCK_CONTEXT_WINDOW_TOKENS``), the research output limit
+    # (``AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS``) and the thinking budget
+    # (``AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS``, empty: none). Then whether the public
+    # Wikipedia route is on (its search and fetch are free), and the mode switches
+    # (``AIA_DEEP_RESEARCH_AGENT_DIRECTED``, ``AIA_DEEP_RESEARCH_LEAD``). A missing price,
+    # window or limit is not zero: a study with a spend limit then does not start a Deep
+    # Research run. The cache prices are optional, as for the worker: unset, the input rate.
+    bedrock_input_usd_per_mtok: float | None = None
+    bedrock_output_usd_per_mtok: float | None = None
+    bedrock_cache_read_usd_per_mtok: float | None = None
+    bedrock_cache_write_usd_per_mtok: float | None = None
+    bedrock_context_window_tokens: int | None = None
+    ai_research_max_output_tokens: int | None = None
+    deep_research_thinking_budget_tokens: int | None = None
     deep_research_wikipedia_enabled: bool = False
     deep_research_agent_directed: bool = False
     deep_research_lead: bool = False
@@ -132,7 +143,13 @@ class Settings(BaseSettings):
     @field_validator(
         "ai_fieldwork_reservation_usd",
         "ai_analysis_reservation_usd",
-        "ai_research_reservation_usd",
+        "bedrock_input_usd_per_mtok",
+        "bedrock_output_usd_per_mtok",
+        "bedrock_cache_read_usd_per_mtok",
+        "bedrock_cache_write_usd_per_mtok",
+        "bedrock_context_window_tokens",
+        "ai_research_max_output_tokens",
+        "deep_research_thinking_budget_tokens",
         mode="before",
     )
     @classmethod

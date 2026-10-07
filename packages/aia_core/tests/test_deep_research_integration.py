@@ -4,8 +4,8 @@ What is pinned here, in the domain:
 
 * **compatibility** -- a request and a sealed bundle captured on develop before ADR 0021
   (``fixtures/deep_research_pre_step1``, pinned by SHA256) still have the same
-  fingerprint and still verify against their seal; the engine's harness version did not
-  move;
+  fingerprint and still verify against their seal; the harness they name stays readable
+  after the harness moved for per-kind request limits (chunk 23, harness 2);
 * **orchestration identity** -- purpose, target and every material part of the lineage
   change the run-spec fingerprint, the title does not, and the engine request's own
   fingerprint is never touched by any of them;
@@ -27,7 +27,11 @@ from pydantic import ValidationError
 
 from aia_core.domain.analysis.modules import AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle
-from aia_core.domain.deep_research.contracts import HARNESS_VERSION, DeepResearchRequest
+from aia_core.domain.deep_research.contracts import (
+    HARNESS_VERSION,
+    HARNESS_VERSIONS,
+    DeepResearchRequest,
+)
 from aia_core.domain.deep_research.integration import (
     DETERMINISTIC_ARTIFACT_TYPES,
     RUN_SPEC_CONTRACT,
@@ -148,7 +152,9 @@ def test_a_request_frozen_before_adr_0021_keeps_its_fingerprint(
     """The engine request is not reshaped by the envelope: same bytes, same identity."""
     assert request_.fingerprint() == INDEX["request_fingerprint"]
     assert request_.model_dump(mode="json") == _fixture("request.json")
-    assert request_.harness_version == HARNESS_VERSION == "aia-deep-research-harness-1"
+    # Frozen under harness 1, still readable after the method moved to harness 2.
+    assert request_.harness_version == "aia-deep-research-harness-1" != HARNESS_VERSION
+    assert request_.harness_version in HARNESS_VERSIONS
     # And wrapping it changes neither.
     spec = _design(request_)
     assert spec.engine_request_fingerprint() == INDEX["request_fingerprint"]

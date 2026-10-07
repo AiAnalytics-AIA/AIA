@@ -9,12 +9,14 @@ from typing import Any, Final, TypeVar
 from aia_core.application.research import research_artifacts
 from aia_core.domain.ai_contracts import ModelCallFailed, ModelRequest, ModelResult, canonical_json
 from aia_core.domain.deep_research.agents import PROMPT_VERSION, AgentRole, model_request
+from aia_core.domain.deep_research.budgets import CallKind
 from aia_core.domain.deep_research.contracts import (
     DeepResearchRequest,
     KnowledgeSource,
     ResearchSubject,
     ResearchTrack,
 )
+from aia_core.domain.deep_research.request_limits import KindBudget, kind_of, window_fits
 from aia_core.domain.deep_research.steps import CallRecord, Gate, PlanRecord
 from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.licence import DataLineage
@@ -29,7 +31,7 @@ from sqlalchemy.orm import Session
 
 from ..ai_step import StepModelCaller
 from ..research import upstream_artifact
-from .runtime import DeepResearchConfig, DeepResearchRuntime
+from .runtime import DeepResearchRuntime
 
 _UNCONFIGURED_MESSAGE: Final = (
     "Deep Research není v tomto prostředí zapnutý. Běh čeká na plánování; nic nebylo "
@@ -88,11 +90,12 @@ def _composition_changed(what: str) -> Failed:
     )
 
 
-def _too_large(request: ModelRequest, config: DeepResearchConfig) -> int | None:
-    """The request's conservative size in bytes when it cannot fit the window, else None.
+def _too_large(request: ModelRequest, budget: KindBudget) -> int | None:
+    """The request's conservative size in bytes when it cannot fit its kind's window, else None.
 
     UTF-8 bytes of the prompt, the message and the contract bound the input from
-    above; with the output and one repair's worth, it must fit. Never trimmed.
+    above; with the output and one repair's worth, it must fit the window of its kind
+    (``request_limits``), never more than the model's. Never trimmed.
     """
     size = len(
         (
@@ -101,7 +104,9 @@ def _too_large(request: ModelRequest, config: DeepResearchConfig) -> int | None:
             + canonical_json(request.agent.schema)
         ).encode()
     )
-    if size + 5 * config.max_output_tokens + 2048 > config.context_window_tokens:
+    if not window_fits(
+        size, window_tokens=budget.window_tokens, output_tokens=budget.output_tokens
+    ):
         return size
     return None
 
@@ -192,7 +197,9 @@ class _Step:
             context=context,
             runtime_version=self._build.sha or "",
             provider=runtime.config.provider,
-            reservation_usd=runtime.config.reservation_usd,
+            # Every request names its kind's reservation (``_send``); this is the most
+            # any kind holds, never one a request would take unasked.
+            reservation_usd=runtime.config.largest_reservation_usd,
             limiter=runtime.model_slots,
         )
 
@@ -238,7 +245,7 @@ class _Step:
             data_class=data_class,
             lineage=lineage,
             policy_version=cfg.policy_version,
-            max_output_tokens=cfg.max_output_tokens,
+            max_output_tokens=cfg.budget(kind_of(role)).output_tokens,
             thinking_budget_tokens=cfg.thinking_budget_tokens,
             contract=contract,
         )
@@ -253,22 +260,23 @@ class _Step:
         data_class: DataClass,
     ) -> _Answer:
         """Send a built request (see :meth:`_ask`), or say which gate refused it."""
-        cfg = runtime.config
-        size = _too_large(request, cfg)
+        kind: CallKind = kind_of(role)
+        budget = runtime.config.budget(kind)
+        size = _too_large(request, budget)
         if size is not None:
             return _Answer(
                 None,
                 None,
                 Gate.CONTEXT_WINDOW,
                 "context_too_large",
-                f"{size} bytes of request and {cfg.max_output_tokens} tokens of output "
-                f"do not fit {cfg.context_window_tokens} tokens",
+                f"{size} bytes of request and {budget.output_tokens} tokens of output "
+                f"do not fit the {kind.value} window of {budget.window_tokens} tokens",
             )
         try:
             caller.preflight(request)
         except ModelCallFailed as exc:
             return _Answer(None, None, Gate.MODEL_ROUTE, exc.reason, str(exc))
-        result = caller.invoke(request)
+        result = caller.invoke(request, reservation_usd=budget.reservation_usd)
         assert result.output is not None
         return _Answer(result.output, _call_record(role, request, result, data_class))
 

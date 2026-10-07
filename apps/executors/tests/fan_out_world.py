@@ -295,7 +295,7 @@ def runtime_for(
             policy_version=settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             fan_out=fan_out,

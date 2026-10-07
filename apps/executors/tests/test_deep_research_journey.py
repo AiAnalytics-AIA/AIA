@@ -17,8 +17,10 @@ uses a Class C route, as develop has.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
+import sys
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -32,8 +34,10 @@ from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.ai_contracts import Delivery
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
+from aia_core.domain.deep_research.agents import AgentRole
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import (
+    HARNESS_VERSION,
     Channel,
     ClientTerm,
     EvidenceOrigin,
@@ -54,6 +58,13 @@ from aia_core.domain.deep_research.quarantine import (
     RecordedEvidenceRefused,
     require_live_evidence,
     respondent_context,
+)
+from aia_core.domain.deep_research.request_limits import (
+    RESEARCH_KINDS,
+    ModelPrices,
+    RequestLimits,
+    kind_budgets,
+    kind_of,
 )
 from aia_core.domain.deep_research.synthesis import SynthesisStatus
 from aia_core.domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolOutcome
@@ -81,6 +92,7 @@ from aia_executors.deep_research import (
     StepToolMeter,
     deep_research_registry,
 )
+from aia_executors.deep_research import runtime as deep_research_runtime_module
 from aia_executors.deep_research_recorded import recorded_retrieval, recorded_runtime
 from aia_executors.deep_research_runtime import deep_research_runtime
 from aia_worker.executor import CancellationRequested
@@ -461,7 +473,7 @@ def recorded(
             policy_version=policy or settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             thinking_budget_tokens=thinking,
@@ -858,10 +870,23 @@ def test_a_recorded_run_thinks_when_configured_and_keeps_none_of_the_reasoning(
         assert body["additionalModelRequestFields"] == {
             "thinking": {"type": "enabled", "budget_tokens": 2048}
         }
-        assert body["inferenceConfig"] == {"maxTokens": 8192}  # no sampling setting
+        # No sampling setting; each kind's answer limit with the thinking budget on top,
+        # never beyond the research limit (request_limits).
+        kind = kind_of(AgentRole(RecordedAgents._role(request)))
+        assert body["inferenceConfig"] == {"maxTokens": runtime.config.budget(kind).output_tokens}
         assert body["toolConfig"]["toolChoice"] == {"auto": {}}
         name = body["toolConfig"]["tools"][0]["toolSpec"]["name"]
         assert f"Answer only by calling the tool {name}" in body["system"][0]["text"]
+    # The research limit for the few, the answer limit and the thinking for the many.
+    assert {
+        RecordedAgents._role(r): r.body["inferenceConfig"]["maxTokens"] for r in agents.requests
+    } == {
+        "planner": 8192,
+        "internal_investigator": 6144 + 2048,
+        "web_investigator": 6144 + 2048,
+        "verifier": 4096 + 2048,
+        "synthesizer": 8192,
+    }
     assert runtime.versions()["thinking_budget_tokens"] == "2048"
     assert REASONING not in _stored_text(research, run_id, store)
 
@@ -906,6 +931,86 @@ def test_a_thinking_pass_reuses_no_track_a_pass_without_thinking_researched(
     _run, bundle = read(world, run_id, store)
     assert bundle.counts["tracks_reused"] == 0
     assert not any(t.reused for t in bundle.tracks)
+
+
+# --------------------------------------------------------------------------- #
+# Harness 2: per-kind request limits are a method change (chunk 23)
+# --------------------------------------------------------------------------- #
+
+HARNESS_ONE = "aia-deep-research-harness-1"
+
+
+def _as_harness_one(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The engine as it was before per-kind request limits: harness 1 in every module that
+    names the harness, and every kind of request at the model's window and the whole
+    research output limit."""
+    for module in list(sys.modules.values()):
+        if (module.__name__ or "").startswith(("aia_core", "aia_executors")) and getattr(
+            module, "HARNESS_VERSION", None
+        ) == HARNESS_VERSION:
+            monkeypatch.setattr(module, "HARNESS_VERSION", HARNESS_ONE)
+    whole = {kind: RequestLimits(window_tokens=None, answer_tokens=None) for kind in RESEARCH_KINDS}
+    monkeypatch.setattr(
+        deep_research_runtime_module, "kind_budgets", functools.partial(kind_budgets, limits=whole)
+    )
+
+
+def test_an_identical_run_under_the_new_limits_reuses_nothing_made_under_the_old(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    approve_knowledge(research)
+    _as_harness_one(monkeypatch)
+    old_agents = RecordedAgents(ANSWERS)
+    old_run = start(research)
+    assert drain(worker(research, database_url, store, build, recorded(research, old_agents))) == 6
+    _run, old = read(research, old_run, store)
+    assert {r.body["inferenceConfig"]["maxTokens"] for r in old_agents.requests} == {8192}
+    monkeypatch.undo()
+
+    new_agents = RecordedAgents(ANSWERS)
+    new_run = start(research)  # the same design, preset and knowledge
+    assert new_run != old_run
+    assert drain(worker(research, database_url, store, build, recorded(research, new_agents))) == 6
+    _run, new = read(research, new_run, store)
+    assert new.request_fingerprint != old.request_fingerprint
+    # Nothing method-dependent crosses: every track, verification and the brief again.
+    assert new.counts["tracks_reused"] == 0 and not any(t.reused for t in new.tracks)
+    assert new.counts["verification_batches_reused"] == 0
+    assert new_agents.roles() == old_agents.roles()
+    assert {t.artifact_id for t in new.tracks}.isdisjoint({t.artifact_id for t in old.tracks})
+    assert {r.body["inferenceConfig"]["maxTokens"] for r in new_agents.requests} == {
+        8192,
+        6144,
+        4096,
+    }
+
+
+def test_a_request_frozen_under_harness_one_is_never_executed_under_harness_two(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    approve_knowledge(research)
+    _as_harness_one(monkeypatch)
+    run_id = start(research)  # frozen, not yet planned, when the method moved
+    monkeypatch.undo()
+
+    agents = RecordedAgents(ANSWERS)
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    result = w.run_once()
+    assert result is not None and result.ending == "failed"
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    assert run["metadata"]["harness_version"] == HARNESS_ONE
+    [plan] = [s for s in run["steps"] if s["status"] is StepRunStatus.FAILED]
+    assert plan["attempts"][0]["error"]["reason"] == "harness_changed"
+    assert agents.requests == [], "nothing was asked for a request of another method"
 
 
 @pytest.mark.parametrize(
@@ -1054,7 +1159,7 @@ def test_the_recorded_composition_refuses_outside_local_and_test(
                     policy_version="p",
                     max_output_tokens=1,
                     context_window_tokens=1,
-                    reservation_usd=1.0,
+                    prices=ModelPrices(3.0, 15.0),
                     fictional_client_ids=frozenset(),
                 ),
                 fixture=WEB,

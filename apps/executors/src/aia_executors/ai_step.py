@@ -163,23 +163,28 @@ class StepModelCaller:
         """Would ``request`` be allowed out? Raises ``ModelCallFailed``; spends nothing."""
         return self._gateway.preflight(request, self._execution_context(_NoJournal(), None))
 
-    def invoke(self, request: ModelRequest) -> ModelResult:
+    def invoke(self, request: ModelRequest, *, reservation_usd: float | None = None) -> ModelResult:
         """Reserve, send through the gateway, settle once. Raises ``StepFailed`` on failure.
 
-        ``BudgetExceeded`` from the reservation and every ``StopExecution`` propagate
-        untouched: the worker turns them into a budget park, an abandoned attempt, a
-        released attempt or a discarded result. With a limiter, the request first
-        waits for a model slot (see the module docstring).
+        ``reservation_usd`` is what this one request holds when it is not the caller's:
+        a step whose requests are of different kinds names each one's (Deep Research,
+        ``request_limits``). ``BudgetExceeded`` from the reservation and every
+        ``StopExecution`` propagate untouched: the worker turns them into a budget park,
+        an abandoned attempt, a released attempt or a discarded result. With a limiter,
+        the request first waits for a model slot (see the module docstring).
         """
+        amount = self._reservation_usd if reservation_usd is None else reservation_usd
+        if amount <= 0:
+            raise ValueError("a metered request needs a positive reservation")
         if self._limiter is None:
-            return self._invoke(request)
+            return self._invoke(request, amount)
         try:
             slot = self._limiter.hold(
                 holder_attempt_id=self._context.step.attempt_id,
                 checkpoint=self._context.checkpoint,
             )
             with slot:
-                return self._invoke(request)
+                return self._invoke(request, amount)
         except ModelSlotsBusy as busy:
             raise StepFailed(
                 FailureClass.PROVIDER_CAPACITY,
@@ -192,9 +197,9 @@ class StepModelCaller:
                 },
             ) from busy
 
-    def _invoke(self, request: ModelRequest) -> ModelResult:
+    def _invoke(self, request: ModelRequest, amount_usd: float) -> ModelResult:
         call = self._context.reserve(
-            amount_usd=self._reservation_usd,
+            amount_usd=amount_usd,
             provider=self._provider,
             reason=f"{request.agent.agent_id}:{request.agent.version}",
         )

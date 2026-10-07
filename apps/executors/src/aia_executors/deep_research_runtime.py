@@ -36,13 +36,18 @@ AIA_DEEP_RESEARCH_MODEL_CONCURRENCY     required with fan-out, refused without i
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``
 and ``AIA_AI_RESEARCH_AGENTS_ENABLED``, :mod:`aia_executors.ai_runtime`): its agents
 name ``RESEARCH_REASONING`` and ``CRITIC``, the two capabilities bound only then, and
-it uses their output limit and their per-request reservation (primary plus one
-schema repair, checked there against the model's ceilings). The worker refuses to
+it uses their output limit as the most any request may write. The worker refuses to
 start otherwise -- a switch that silently did nothing would be a guess.
 
-Thinking is part of the output limit, as Claude counts it: thinking and answer
-together stay within ``AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS``, so the per-request
-reservation (checked against two calls at that limit) already covers it. With
+Each kind of request has its own window, output limit and reservation (primary plus
+one schema repair), derived from the route's prices, the model's window and that
+output limit (``domain/deep_research/request_limits.py``); nothing about them is
+configured, and ``AIA_AI_RESEARCH_RESERVATION_USD`` is the design jobs' alone. The API
+prices a run's ceiling by the same rule from the same keys.
+
+Thinking is part of the output limit, as Claude counts it: with thinking on, each
+kind's answer limit gains the thinking budget, never beyond
+``AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS``, and its reservation is sized on the sum. With
 thinking on, the output tool cannot be forced; the gateway offers it with
 ``auto``, tells the agent to answer through it, and repairs an answer in text
 like any schema violation. No other agent thinks: the key is Deep Research's.
@@ -291,7 +296,7 @@ def deep_research_runtime(
             policy_version=settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             provider=Provider.AWS_BEDROCK,
             material_approvals=settings.material_approvals,

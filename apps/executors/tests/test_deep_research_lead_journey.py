@@ -41,6 +41,7 @@ from aia_core.domain.deep_research.lead import (
     Allotment,
     lead_track_id,
 )
+from aia_core.domain.deep_research.request_limits import ModelPrices
 from aia_core.domain.deep_research.steps import (
     InvestigationRecord,
     LeadPlanRecord,
@@ -255,7 +256,7 @@ def led(world: ResearchWorld, agents: RecordedAgents) -> DeepResearchRuntime:
             policy_version=settings.policy_version,
             max_output_tokens=settings.research_max_output_tokens,
             context_window_tokens=settings.context_window_tokens,
-            reservation_usd=settings.research_reservation_usd,
+            prices=settings.model_prices(),
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
             agent_directed=True,
@@ -694,7 +695,7 @@ def test_the_lead_switch_is_off_unless_set_and_on_records_the_mode(
             policy_version="p",
             max_output_tokens=1,
             context_window_tokens=1,
-            reservation_usd=1.0,
+            prices=ModelPrices(3.0, 15.0),
             fictional_client_ids=frozenset(),
             lead=True,
         )
