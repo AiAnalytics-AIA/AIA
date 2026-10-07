@@ -299,6 +299,22 @@ waves (audit F6, D6 package § 3 names the same consequence). Smallest fix: chun
 (All four are reproduced by existing tests that assert the current behaviour; the v1 tests
 stay as they are, because v1 stays what it is.)
 
+**F-5 (hypothesis: one occurrence, not reproduced). A research screen test waits its full 15 s
+for the proposal dialog under the full suite's load, on a head whose web tree did not change.**
+Anchor: `apps/web/src/components/rehome/research/test-native-agents.ts:62-68 @ 387a417`
+(`NATIVE_JOB_WAIT` 15 s, `approveProposal`), failing test
+`QuestionnaireStep.test.tsx:250-260` › *reviews the native brief analysis and questionnaire
+before opening the editor*. Observed once: PR #176's Frontend job on `387a417` (run
+37632214819, 2026-10-07 13:56 UTC): `Unable to find role="button" and name "Použít návrh"`
+after 15 067 ms, 614 of 615 tests passed; the same job passed on the PR's previous head
+`8cbb322`, and `git diff 8cbb322 387a417 -- apps/web` is empty. Reproduction attempted: the
+full `npm test` on the same tree in a 4-core container passed 615 of 615 (45.9 s). Consequence:
+a red Frontend job on a PR that touched no web file. The config-cache cause of this class was
+fixed in PR #83 (OI-76); this residual has no confirmed cause and no fix is proposed, because a
+wider wait only makes the failure slower (OI-76's own conclusion). Test that would catch it:
+the repeated-run harness OI-76 used (`repeats: 60` on the file, and full suites under doubled
+load), applied to this test, to measure a rate before anything is changed.
+
 ## 8. Chunks
 
 - **0a.** Register F1-F16 in `docs/migration/sociomapping-evidence-register.json` with product
@@ -475,6 +491,9 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   as not canonical for AIA's object map; the audit's F-rules (chunk 0a) labelled CANONICAL.
 - `.planning/open-items.md`: the four findings of § 7 numbered; OI-13's "withheld" corrected;
   OI-15's recipe reused by chunk 4c.
+- `CLAUDE.md` § 7 Known flakes: an entry for F-5 above in the required shape, once a second
+  occurrence or a measured rate confirms it; `.planning/open-items.md` OI-76: the 2026-10-07
+  occurrence on PR #176 as a residual of the class after PR #83.
 - `AGENTS.md`: nothing yet.
 - From chunk 1a: `CLAUDE.md` map, `domain/sociomap/relations.py`: "pair status (audit F3):
   UNKNOWN / RELIABLE / WEAK from the rater count and the Fisher-z interval"; `research_sociomap.py`:
