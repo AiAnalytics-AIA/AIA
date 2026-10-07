@@ -34,6 +34,13 @@ chunks:
   - "[ ] 30. Interpretation Research integration: mission from the target, then enqueue and the route"
   - "[ ] 31. The Sociomap Research Lens: an annotation sidecar beside the canonical map"
   - "[ ] 32. The report evidence graph: five evidence families, every claim's support"
+  - "[ ] 33. Structured capture: schema.org data, microdata, OpenGraph and HTML tables kept beside a snapshot"
+  - "[ ] 34. Records: schemas and presets, cells grounded in captures, identity by code, the personal-data screen"
+  - "[ ] 35. Extractors: code first (structured data, tables), the light-model extractor second, every value verbatim"
+  - "[ ] 36. Inventory subjects: the lead asks for records, investigators choose hosts, code admits and crawls them"
+  - "[ ] 37. The run's dataset: sealed beside the bundle, cited by findings, exported, proposed to Client Knowledge"
+  - "[ ] 38. Pages that need a browser: headless rendering behind its own switch (after 37)"
+  - "[ ] 39. Extraction accuracy: record precision and recall on known catalogues (with 25)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -62,6 +69,10 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 28 purpose / target / frozen lineage            (done: ADR 0021)
 → 23 backend: composition, switches, prices; per-kind reservations FIRST
 → 29 Design Research integration                (proposals → gate 1 → a new revision)
+→ 33–37 structured extraction                    (records from captured pages: a market's
+                                                  products, prices, stores, organisations,
+                                                  events, as a dataset beside the bundle;
+                                                  recorded/offline like the rest)
 → 30 Interpretation Research integration        (mission from the target → engine request →
                                                   enable enqueue → result-side route)
 → 31 Sociomap Research Lens                      (a sidecar; see the invariant below)
@@ -71,6 +82,19 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 → 25/26 accuracy and quality evaluation          (design and interpretation use cases)
 → 27 live activation                             (last; needs chunk 1's sign-offs)
 ```
+
+**Structured extraction (33–39, added 2026-10-07 at the owner's request).** When the research
+needs an inventory rather than a figure -- every product in a category, every price a retailer
+shows, every store, organisation or event in a market -- the same run extracts records from the
+pages it captures: a dataset whose every cell is a value found in a captured page, beside the
+bundle and cited by its findings. It is part of this engine, not a second one: the same lead,
+investigators, gate, transport, crawler, snapshots, grounding, budgets and fan-out (§§ 5, 8.9).
+It runs after 29 because a market's inventory is first of all design context (what exists, what
+it costs, who sells it) and later a benchmark for interpretation (30). The owner's choices: a
+dataset and evidence; the agents choose which hosts to scrape and code admits them; static pages
+first, a browser later (38); hundreds of pages per run (§ 9). Because it adds steps, artifacts
+and request kinds to the frozen engine, it opens ADR 0021 decision 7 for exactly these chunks,
+under a new harness (§ 16).
 
 The Sociomap invariant, with its actors named so it cannot be inverted: **Interpretation Research may read the frozen canonical Sociomap. Deep Research and external evidence are never inputs to the canonical Sociomap calculation.**
 The Lens (31) is a sidecar beside the frozen map; an externally enriched map would be a separate,
@@ -102,7 +126,10 @@ public databases, Common Crawl's archive), screens thousands of pages with a che
 every network call itself. Every finding is a quote AIA captured; every number carries its unit,
 period, geography, population and denominator, is traced to its primary publisher, attacked by an
 independent verifier, and scored for confidence by code, not by a model. What could not be
-reached is reported as a gap, with what it would take a person to close it.
+reached is reported as a gap, with what it would take a person to close it. When the question is
+an inventory -- what is on the market, at what price, where -- the run also **extracts records**
+from what it captured, code first and a light model only where code cannot, and returns them as a
+**dataset**: every cell a value in a page AIA captured, every record's identity decided by code.
 
 ## 2. The problem today
 
@@ -119,6 +146,11 @@ reached is reported as a gap, with what it would take a person to close it.
   follows a page to the source it cites.
 - **Documents refused.** `ALLOWED_CONTENT_TYPES` is HTML and plain text
   (`domain/deep_research/web.py:50`); most official statistics and industry studies are PDF or XLSX.
+- **Structure is thrown away, and nothing returns records.** A page keeps its visible text: every
+  `<script>`, and so every schema.org JSON-LD block, is skipped
+  (`infrastructure/web_retrieval.py:196` @ `d2e038a`), microdata is not read, and an HTML table
+  becomes running text. A run's only output is quoted findings; there is no record or dataset, so
+  "every product on the market" cannot be asked.
 - **A number is checked only as digits.** Grounding checks that a claim's numbers occur in its
   quote (`domain/deep_research/grounding.py:190-192`), not that its unit, period, geography or
   denominator are the source's.
@@ -142,6 +174,10 @@ reached is reported as a gap, with what it would take a person to close it.
 5. **Confidence is computed, never self-reported.**
 6. **Precision before breadth.** Fewer numbers, each exactly right and traced to its publisher,
    beat many approximate ones.
+7. **A record cell is a value in a page AIA captured, or it is nothing.** Code extracts first
+   (structured data, tables); a model extracts only where code cannot, and only values that occur
+   verbatim in the page. Identity, deduplication and normalisation are code; no model computes or
+   merges a number.
 
 ## 4. Boundaries (non-negotiable)
 
@@ -153,10 +189,20 @@ reached is reported as a gap, with what it would take a person to close it.
   rotating addresses or proxies to evade a rate limit;
 - the dark web or Tor; pirate mirrors;
 - collecting personal data: extraction keeps legal-entity and aggregate facts and drops
-  person-level data before storage (GDPR);
-- republishing: snapshots stay internal; a report quotes short excerpts with their source;
+  person-level data before storage (GDPR). A record schema has no personal field (no person's
+  name, e-mail, phone or home address), and every extracted value passes a code screen that drops
+  and counts e-mails, phone numbers and person-level values before anything is stored;
+- republishing: snapshots and extracted datasets stay internal; a report quotes short excerpts
+  and aggregates with their source, never a site's catalogue wholesale;
 - Class A or B material in any query or URL: Class C only until an EU-processing search route and
   D6 exist.
+
+**Hosts chosen by agents, admitted by code.** For an inventory the agents choose which hosts to
+crawl (the owner's choice, 2026-10-07); code admits a host only if its `robots.txt` allows the
+paths, it is not on the operator's denylist (hosts whose terms forbid automated collection, kept
+as versioned data with the date and source of each entry), and its pages show no login, paywall,
+CAPTCHA or registration barrier (`detect_barrier`, a block here rather than a signal). A run
+admits a capped number of hosts; every page is paced per host and journaled like any fetch.
 
 A source only those routes would reach becomes an **acquisition gap** (§ 8.6): what it is, who
 publishes it, why it was unreachable, and how a person could obtain it (buy it, ask the publisher,
@@ -173,18 +219,21 @@ upload it to Client Knowledge, where it becomes usable like any approved source)
 | Filter | code | tens of thousands → ~2,000 | deduplicated, ranked candidates |
 | Triage | light model, parallel | ~2,000 pages | relevant pages with candidate quotes, per sub-question |
 | Investigate | strong model, 20–50 investigators | waves of 3–5 per subject | grounded findings, leads followed, gaps |
+| Extract (inventory subjects) | code, then the light model | the admitted hosts' pages, hundreds per run (§ 9) | records, every cell grounded; a dataset per subject |
 | Verify | strong model, independent | every finding the brief would use | supported, overstated, unsupported, superseded |
 | Synthesize | strong model | 1 | the brief: answers, conflicts, gaps, acquisition gaps |
 
-Standard and Deep presets (§ 9) skip triage and the crawlers and run fewer investigators.
+Standard and Deep presets (§ 9) skip triage and the crawlers and run fewer investigators; an
+inventory subject crawls its admitted hosts at Deep and Exhaustive only, within § 9's page caps.
 
 ### 5.2 Agents
 
 | Role | Model | Contract (closed, versioned) | Can |
 |---|---|---|---|
-| Lead researcher | strongest on the EU route (own policy entry) | `ResearchPlan`, `Wave`, `Replan` | plan, size, delegate, move budget, open tracks for gaps and conflicts |
-| Investigator | strong | `InvestigatorTurn` | propose up to 5 actions a turn; propose evidence and leads |
+| Lead researcher | strongest on the EU route (own policy entry) | `ResearchPlan`, `Wave`, `Replan` | plan, size, delegate, move budget, open tracks for gaps and conflicts; mark a subject an inventory and give it a record schema |
+| Investigator | strong | `InvestigatorTurn` | propose up to 5 actions a turn; propose evidence and leads; on an inventory task, propose hosts to crawl |
 | Triage reader | light (`RESEARCH_TRIAGE`) | `TriageVerdict` | judge one page; propose ≤ 3 candidate quotes |
+| Extractor | light (`RESEARCH_TRIAGE`'s entry, request kind `extractor`) | `RecordProposal` | propose records for one page under the subject's schema, each value a verbatim span; send nothing |
 | Verifier | strong, independent prompt | `Verification` | attack one finding; propose a search for a newer or primary figure |
 | Synthesizer | strong | `SynthesisProposal` (extended) | write the brief from accepted evidence only |
 
@@ -201,6 +250,8 @@ Stored runs stay readable under their own contract and prompt versions.
 | `ladder` | the acquisition ladder for a needed source (§ 7) | several |
 | `dataset` | a connector query (DataStat, NKOD, Eurostat, …) | the connector's route |
 | `archive` | a dated archived copy of a dead or moved page (Wayback CDX, Common Crawl) | the archive's route |
+| `crawl` | an inventory task's host, proposed by the investigator and admitted by code (§ 4): sitemap, listings and pagination, within the task's page cap | public fetch |
+| `extract` | records from a captured page (`S<n>`) under the subject's schema: structured data and tables by code, the extractor for the rest | none, local; the extractor's request |
 
 The model never writes a URL: it names refs code created, or a publisher and a description code
 resolves. Every query string, and every URL's path and query, is classified like a query.
@@ -230,6 +281,8 @@ next: up to 5 of, sent concurrently
   chase   {name, what, from: S<n>}
   ladder  {lead, purpose}
   dataset {connector, query, purpose}
+  crawl   {host, why}                 # inventory tasks only; code admits the host (§ 4)
+  extract {ref: S<n>}                 # inventory tasks only; records under the subject's schema
   finish  {gaps: [{need, why, tried}]}
 ```
 
@@ -244,7 +297,9 @@ why an action was refused; which leads the ladder resolved or exhausted.
 **Stop rule** (before every turn): evidence target met; saturation (no newly grounded evidence for
 `saturation_window` turns; weak searches do not count); allowance spent (searches, opens, turns,
 reservation); `finish`; an uncertain delivery (journal closed, never resent); the same refusal
-reason three times (`STOP_REFUSALS`).
+reason three times (`STOP_REFUSALS`). An inventory task also stops when its admitted hosts are
+crawled out or its page cap is spent, and on record saturation: no new record identity for
+`saturation_window` turns.
 
 ## 7. The acquisition ladder
 
@@ -346,6 +401,43 @@ number with its full measure, source, tier, primary or secondary and confidence;
 they were resolved; gaps; acquisition gaps. Every number cites its evidence id; the prose-number
 coverage check applies.
 
+### 8.9 Records and datasets (chunks 33–37)
+
+**Schemas.** An inventory subject carries a `RecordSchema`: named fields of closed types -- text,
+identifier (GTIN/EAN, IČO, a host's own product id), money (value and currency), quantity (a § 8.1
+measure), URL, date, enum, address of a business -- each marked identity or not, and none
+personal. Versioned presets cover the common inventories (product, price observation, store or
+branch, organisation, event, listing); the lead may propose another schema, which code checks
+against the same rules. A schema is frozen in the run's plan.
+
+**Structured capture.** Beside every captured HTML page, code keeps what the page states in
+structure: schema.org JSON-LD (`Product`, `Offer`, `AggregateOffer`, `ItemList`, `Place`,
+`LocalBusiness`, `Organization`, `Event`), microdata, OpenGraph, and HTML tables as grids with
+their header cells. It is a sidecar keyed by the snapshot id: the snapshot's text, id and every
+existing fingerprint stay what they are.
+
+**Extraction, in order.** (1) Structured data mapped to the schema by code; (2) tables mapped by
+code, a header to a field; (3) the extractor, only for fields still empty, each value accepted
+only if it occurs verbatim in the page's text (located like a quote) and refused and counted
+otherwise. A cell records its snapshot id and either its structured-data path, its table cell or
+its text span, and how it was extracted.
+
+**Identity and consolidation, by code.** A record's identity is its identifier when it has one,
+else its canonical URL, else its normalised identity fields; duplicates across pages and hosts
+merge into one record whose differing values are kept side by side with their sources (a price
+seen at two retailers is two observations, never an average). Money keeps its currency and the
+page's date; a quantity its unit and scale (§ 8.1).
+
+**The dataset.** Per inventory subject, a sealed `deep_research_dataset` artifact beside the
+bundle: the schema, the records and cells, per-host coverage (pages crawled, records found,
+refusals by reason), the personal-data screen's counts and gaps, with a seal like the bundle's.
+It reaches the rest of the run as dataset sources (`DatasetResult`, chunked to its cell cap), so
+investigators, the verifier and the brief cite a cell through `ground_cell` like any connector's
+table. It is exported to CSV and XLSX for a researcher, never client-facing (ADR 0019 gate 3), and
+may be proposed to Client Knowledge as a DATASET that a person accepts (gate 1). It is evidence
+like the rest of the run: never a design, a respondent fact or an input to the canonical Sociomap
+(ADR 0021).
+
 ## 9. Presets and cost (estimates; measured in chunks 25–26)
 
 A turn reads up to about 8,000 tokens of page text, about $0.04 at the develop policy's prices;
@@ -356,6 +448,11 @@ multi-agent research uses about 15× the tokens of chat (Anthropic's measurement
 | Standard | 1 lead; ≤ 12 tracks; per track 8 searches, 20 opens, 15 turns | no | about $5–7 | minutes |
 | Deep | 1 lead, 3 re-plans; ≤ 20 tracks; per track 15 searches, 40 opens, 30 turns | no | about $12–18 | under an hour |
 | Exhaustive | 1 lead, subject leads; 20–50 investigators | yes | about $60–100 | 1–3 hours |
+
+Inventory subjects (proposed, DR-5): none at Standard; at Deep at most 3 admitted hosts, 300 pages
+and 100 per host; at Exhaustive at most 6 hosts, 500 pages and 200 per host ("hundreds of pages
+per run", the owner's choice). Extractor requests count as their own request kind
+(`request_limits`); code extraction costs nothing.
 
 Effort scaling inside a preset (Anthropic's rules): a simple fact, 1 track and 3–10 tool calls; a
 comparison, 2–4 tracks of 10–15 calls; complex research, more than 10 tracks with divided
@@ -392,8 +489,8 @@ terms with their date.
 ## 11. Chunks
 
 Each chunk is one PR into `develop`, green on `make verify`, with this file ticked and its
-measurements in § 13. Chunks 2–24 build and test offline on recorded doubles (each connector chunk
-starts with a written check of its terms); only 25–27 send anything. Within a phase, chunks may run
+measurements in § 13. Chunks 2–24 and 28–39 build and test offline on recorded doubles (each connector
+chunk starts with a written check of its terms); only 25–27 send anything. Within a phase, chunks may run
 in parallel unless an order is stated.
 
 ### Phase 0 — decide
@@ -403,7 +500,11 @@ amendment (§ 16); Brave on a plan that grants storage and AI use (plan, terms U
 failed-request billing, retention, recorded here); D8 for the key (chunk 4's proposal or Secrets
 Manager); run budgets per preset; the lead's model and the light model's ADR 0010 policy entries; a
 Bedrock quota request for chunk 21; the snapshot retention period; the tiers, the register and the
-confidence weights (§§ 8.6–8.7). *Done when:* each item is recorded in § 13 with a date.
+confidence weights (§§ 8.6–8.7); for structured extraction (§§ 4, 8.9): `robots.txt` as the
+machine-readable form of a site's terms together with the operator's denylist, the record presets
+and the personal-data screen's rules, the inventory caps (§ 9), the extractor on the light
+model's entry, and the retention of extracted datasets. *Done when:* each item is recorded in
+§ 13 with a date.
 
 ### Phase 1 — retrieval foundations (chunk 2 first)
 
@@ -508,7 +609,9 @@ procurement notices grounded by notice id.
 
 **17. Focused crawler.** `SiteCrawl`: sitemap, then breadth-first inside one host; page, depth and
 time caps; `robots.txt` and crawl-delay; a per-host rate; snapshots into the run cache. *Tests:* a
-fictional site with a crawler trap and an off-host redirect.
+fictional site with a crawler trap and an off-host redirect. (Built; not yet called. Chunk 36 calls
+it for inventory hosts, which code admits by § 4 rather than by tier: "authoritative" was only the
+caller's choice, never a check.)
 
 **18. Common Crawl.** Athena over the URL index from AIA's AWS account (IAM scoped to the public
 bucket and a results bucket; cost metered from bytes scanned); archived pages by WARC byte range;
@@ -538,15 +641,18 @@ never raises the ceiling; an Exhaustive run over the limit asks.
 
 **23. Composition, switches, prices; Settings.** `AIA_DEEP_RESEARCH_WEB_SEARCH` (`off` | `brave`),
 `AIA_DEEP_RESEARCH_AGENT_DIRECTED`, `AIA_DEEP_RESEARCH_LEAD`, `AIA_DEEP_RESEARCH_CONNECTORS` (a list),
-`AIA_DEEP_RESEARCH_CRAWL`, `AIA_DEEP_RESEARCH_COMMON_CRAWL`, `AIA_DEEP_RESEARCH_TRIAGE`; dated prices
+`AIA_DEEP_RESEARCH_CRAWL`, `AIA_DEEP_RESEARCH_COMMON_CRAWL`, `AIA_DEEP_RESEARCH_TRIAGE`,
+`AIA_DEEP_RESEARCH_EXTRACTION` (needs the crawl, the public fetch's contact address and the
+denylist; composed once 33–37 land); dated prices
 for each paid route; every route `approved_for={CLASS_C_INTERNAL}`. Anything missing or invalid
 stops the worker at start, naming the key. Settings shows each as configured or off, never
 "connected" (`apps/web/src/lib/ai-runtime.ts`).
 
 **24. The Deep Research screen.** The plan; live progress (stage, tracks, counts, spend so far);
 findings with measure, source, tier, primary or secondary, confidence and verdict; conflicts; gaps;
-acquisition gaps with how to obtain each; the transcript per track; cancel at any point, keeping
-what was captured; the snapshot retention job.
+acquisition gaps with how to obtain each; the transcript per track; each inventory's dataset
+(records, every cell's source, per-host coverage, export); cancel at any point, keeping what was
+captured; the snapshot and dataset retention job.
 
 ### Phase 5 — proof
 
@@ -569,11 +675,62 @@ log read; one run per preset for a fictional client within the owner's budget; r
 spend (model, search, connectors, Athena separately) recorded in § 13. Then tick the parent plan's
 chunk 13 for Class C.
 
+### Phase 6 — structured extraction (33–39; after 29, § 0)
+
+Recorded/offline like every chunk before 25: fictional sites with a known catalogue (one with
+JSON-LD, one with only tables, one paginated listing, one behind a login, one disallowed by
+`robots.txt`, one carrying personal data). A new harness version, since a run can now return
+records (ADR 0021 decision 7, § 16).
+
+**33. Structured capture.** JSON-LD, microdata, OpenGraph and HTML tables kept as a sidecar keyed
+by the snapshot id (§ 8.9), parsed from the same response by the public fetch; size and depth
+bounded; untrusted like any page text (`detect_instructions`). *Tests:* each form parsed from a
+fictional page; the snapshot's text, id and every fingerprint unchanged with and without the
+sidecar; a malformed or oversized block refused and counted.
+
+**34. Records.** `RecordSchema` and its presets, `RecordCell`/`Record`, identity and consolidation
+rules, the personal-data screen, the sealed `deep_research_dataset`; the artifact type disjoint
+from the deterministic ones (checked at import, ADR 0021). Pure domain. *Tests:* a personal field
+refused in a schema; an e-mail or phone value dropped and counted; two pages of one product
+merge by GTIN, two retailers' prices stay two observations; the seal detects tampering.
+
+**35. Extractors.** Structured data and tables mapped to a schema by code; the extractor
+(`RecordProposal`, request kind `extractor` in `request_limits`) for the fields left, each value
+located verbatim or refused. *Tests:* a JSON-LD catalogue extracted with no model request; a table
+page extracted with none; an invented value refused; a retry replays without paying twice.
+
+**36. Inventory subjects.** The lead marks a subject an inventory and gives its schema;
+investigators propose hosts (`crawl`), code admits them (§ 4: `robots.txt`, denylist, barrier
+block, the run's host cap) and crawls them with `SiteCrawl` (listing pages, pagination, product
+pages; sitemap first), fanned out per host (chunk 21); `extract` on the captured pages; the stop
+rule's record saturation; extractor reservations and the inventory caps (§ 9) in the run's cost
+ceiling (`run_cost`). *Tests:* a login-walled host and a `robots.txt`-disallowed host never
+crawled; a denylisted host refused before any request; the page caps held; a paginated listing
+followed to its last page within the cap.
+
+**37. The run's dataset.** Consolidation and sealing per inventory subject; the dataset beside
+the bundle and in the run's provenance (ADR 0021); its cells as dataset sources the investigators,
+verifier and brief cite; the API's read and CSV/XLSX export, found only through the Study; a
+Client Knowledge DATASET proposal a person accepts. *Tests:* a brief number grounded to a dataset
+cell; a second identical run reuses every page and record; nothing personal in storage.
+
+**38. Pages that need a browser.** Headless rendering behind `AIA_DEEP_RESEARCH_BROWSER`, through
+the same gate, transport rules, `robots.txt` and caps; no logins, no form submission, no CAPTCHA
+solving; the rendered DOM captured like any page. After 37, and only if 39 shows static pages
+miss what matters.
+
+**39. Extraction accuracy.** On fictional catalogues with known contents, then (with 25) on a few
+public Czech catalogues recorded before any run: record precision and recall, cell accuracy,
+invented values (target: none), personal values stored (target: none), pages and money per record.
+
 ## 12. Dependencies
 
 - Tool spend in the ledger (deep-research.md chunk 4) before chunk 25 spends money.
 - The AI runtime and research agents on develop (ai-research-activation.md chunk 4).
 - Chunk 2 before every agent chunk (9–13, 20).
+- Structured extraction: 33 before 35; 34 before 35–37; 36 after 17 (built) and 21; 37 after 36;
+  38 after 37 and 39's first measurements; its switch joins chunk 23's composition, and nothing
+  live before chunk 1 records § 4's extraction items and 27 activates.
 
 ## 13. Measurements and decisions log
 
@@ -593,6 +750,12 @@ chunk 13 for Class C.
 - Anything on § 4's never list.
 - Production. Develop only, fictional studies only, as ADR 0010 accepts.
 - Freshness of reused tracks (deep-research.md § 12 item 6).
+- Crawling at large scale (tens of thousands of pages, a market-wide index of our own): Common
+  Crawl's archive (18) is the route to breadth; our own crawling stays hundreds of pages per run.
+- Submitting forms, logging in, solving CAPTCHAs or reaching any account-only price, even with a
+  browser (38).
+- A client-facing dataset: extracted datasets stay internal until a client-facing report contract
+  and ADR 0019 gate 3 exist.
 
 ## 15. Findings
 
@@ -607,6 +770,20 @@ chunk 13 for Class C.
   household share can enter a brief as a share of adults unless the verifier happens to catch it.
   Smallest fix and the test that catches it: chunk 7 (`MEASURE_NOT_IN_SOURCE`; its first test is
   this case). Today's verifier (`Verdict.OVERSTATED`) is the only line of defence.
+- **Structured data is discarded at capture** (2026-10-07). `_SKIP` drops every `<script>`
+  (`infrastructure/web_retrieval.py:196` @ `d2e038a`), so schema.org JSON-LD -- the form most
+  catalogues publish product, price and availability in -- never reaches a snapshot; microdata is
+  not read and HTML tables are flattened. Consequence: an inventory could only be read back out of
+  running text by a model. Fix: chunk 33's sidecar (snapshot text and ids unchanged). Test: chunk
+  33's first test, a fictional product page whose price is only in JSON-LD.
+- **"Authoritative hosts" is a docstring, not a check** (`application/site_crawl.py:1-6` @
+  `d2e038a`): `SiteCrawl` accepts any host `CrawlScope` accepts. Harmless while nothing calls it;
+  chunk 36 states the admission rule in code (§ 4) before anything does.
+- **A barrier is detected, not refused** (`domain/deep_research/acquisition.py:466`
+  `detect_barrier` @ `d2e038a`): the gate fetches a login or paywall page and only the ladder
+  ignores it. For inventory hosts, chunk 36 makes it a block on admission.
+- **No general personal-data filter exists** for pages: only the ARES and procurement connectors
+  keep field allowlists. Chunk 34's screen is the first for page-derived values.
 
 ## 16. Doc follow-up
 
@@ -627,3 +804,14 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
 - `CLAUDE.md` § 2: the `web_retrieval.py` and `deep_research_runtime.py` entries corrected; after
   chunk 23, the new routes, connectors and switches.
 - `docs/architecture/deep-research.md` § 12 item 1: point to this plan.
+- ADR 0017 amendment (after chunk 1), one more sentence: "Where the research needs an inventory,
+  the run extracts records from the pages it captures -- structured data and tables by code, a
+  light model only for values found verbatim in the page -- into a sealed dataset beside the
+  bundle, whose every cell cites its capture; agents choose the hosts, code admits them by
+  `robots.txt`, an operator denylist and the absence of any access barrier, and drops personal
+  data before storage."
+- ADR 0021 decision 7: "Opened once for structured extraction (`deep-research-web-search.md`
+  chunks 33–39, the owner's request, 2026-10-07) under a new harness; the rest of the boundary
+  stays frozen."
+- `CLAUDE.md` § 2, after chunk 37: the dataset artifact, the `crawl` and `extract` tools, and the
+  extraction switch.
