@@ -187,6 +187,22 @@ def test_the_method_digest_moves_with_a_cap_and_not_with_a_price_or_a_retention(
     assert len({base.digest(), cap.digest(), price.digest(), retention.digest()}) == 4
 
 
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("extraction.denylist", ["shop.example"]),
+        ("extraction.personal_data_patterns", [r"\bcustomer-\d+\b"]),
+        ("extraction.record_presets", "approved"),
+    ],
+)
+def test_the_method_digest_moves_with_each_admission_policy(key: str, value: object) -> None:
+    # A stored capture or dataset is reused by its key, without its gates applied again: what a
+    # run may admit must therefore move the key, or a newly denied host's capture is reused.
+    assert definition(key).method
+    changed = effective({key: approved(value)})
+    assert changed.method_digest() != effective({}).method_digest()
+
+
 def test_live_needs_every_required_setting_approved_and_a_table_approved_as_approved() -> None:
     nothing = effective({}).missing_for_live()
     required = tuple(d.key for d in CATALOGUE if d.required_for_live)
