@@ -45,7 +45,7 @@ chunks:
   - "[x] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
   - "[ ] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
-  - "[ ] 44. Live needs approval: a live route refuses until every required setting is approved"
+  - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -100,7 +100,8 @@ the denylist, personal-data patterns, record presets -- is a setting with a prop
 code's constant today), which an Admin approves on a Settings tab. Approved values are what runs:
 a run pins its effective settings at enqueue. Switches, secrets and the model route stay in the
 deployment; rails stay code. Offline runs use the effective values (proposed ones labelled);
-anything live refuses until every required setting is approved (44, with 27).
+a run that would go live is refused, at enqueue and again before any live call, until its own
+organization has approved every required setting (44, with 27).
 
 **Structured extraction (33–39, added 2026-10-07 at the owner's request).** When the research
 needs an inventory rather than a figure -- every product in a category, every price a retailer
@@ -756,7 +757,8 @@ constant, and whether live requires it. A value is validated by code; a cap only
 `effective(stored)` resolves each key to its approved value or its default, with its origin, and
 a digest; `method_digest` covers only the method-shaping keys. *Tests:* every default equals the
 constant it replaces; a value out of bounds or of the wrong type refused; a secret-like key cannot
-be catalogued; the method digest moves with a cap and not with a price or a retention.
+be catalogued; the method digest moves with a cap and with each admission policy (denylist,
+personal-data patterns, record presets) and not with a price or a retention.
 
 **41. The store and the service.** Tables `deep_research_setting_versions` and
 `deep_research_setting_approvals` (migration), `DeepResearchSettingsRepository` (ADR 0020's shape:
@@ -781,13 +783,19 @@ where it took constants; the method digest joins every reuse key that crosses ru
 moves to 3 once; the API's cost ceiling reads the same resolution. *Tests:* with nothing stored,
 every request, fingerprint and count equals harness 2's except the harness string (reproduced by
 setting it back); an approval changes only runs enqueued after it; a lowered cap reuses no track
-made under the old one; a pin that does not hash to itself fails the run closed.
+made under the old one, and a host added to the denylist or a personal-data pattern added reuses
+no capture or dataset made before it; a pin that does not hash to itself fails the run closed.
 
-**44. Live needs approval.** Every live route's composition (chunk 23's switches) and the start of
-a run that would use one refuse until every setting required for live is approved, naming the
-missing keys; offline and recorded runs unaffected. Lands with or before chunk 27. *Tests:* a live
-composition with one required setting unapproved refuses at start with its key; approving it
-admits the next start; withdrawing it refuses again.
+**44. Live needs approval.** Checked against the run's organization, never at composition: the
+worker's composition is process-wide and built before any run, so it builds a live route from the
+deployment alone and reads no approval (ADR 0022 decision 6). `DeepResearchRuns` refuses to enqueue
+a run that would use a live route until every setting required for live is approved in the
+enqueuing organization, naming the missing keys; before any live call, a step parks a run whose pin
+does not record every required setting as approved. Offline and recorded runs unaffected. Lands
+with or before chunk 27. *Tests:* a start with one required setting unapproved is refused with its
+key; approving it admits the next start; withdrawing it refuses again; a worker composed with a
+live route starts with nothing approved anywhere; two organizations, one approved and one
+not: only the approved one's run is enqueued; a pin missing an approval parks before any call.
 
 ## 12. Dependencies
 
