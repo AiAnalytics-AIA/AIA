@@ -167,28 +167,30 @@
    ]
   },
   "evidence_script": "NPC/analysis/code_formula_checks.py prints every bracketed number; not received (requested from the audit's author, plan chunk 0a). The fixture holds the numbers as the audit prints them.",
-  "status_values": {
-   "CANONICAL": "the formula and its meaning are fully specified by the audit",
-   "CANONICAL_PENDING_PARAMETER": "the formula is fixed; a number it needs is open (a floor, a threshold, a kernel width, a tolerance); AIA runs on a recorded provisional value",
-   "CANONICAL_PENDING_SEMANTICS": "what the rule claims is open (an owner's decision); AIA's provisional reading is recorded beside the formula and is not the answer"
+  "completeness_values": {
+   "SPECIFIED": "the formula and its meaning are fully specified by the audit: an implementer invents nothing",
+   "PENDING_PARAMETER": "the formula is fixed; a number it needs is open (a floor, a threshold, a kernel width, a tolerance); AIA runs on a recorded provisional value",
+   "PENDING_SEMANTICS": "what the rule claims is open (an owner's decision); AIA's provisional reading is recorded beside the formula and is not the answer",
+   "SPECIFICATION_REQUIRED": "part of the formula is not written out (a transform, a step), so an implementer would have to invent methodology; that part is refused, named, until the author supplies it"
   },
-  "status": {
-   "AUDIT-F1": "CANONICAL",
-   "AUDIT-F2": "CANONICAL_PENDING_SEMANTICS",
-   "AUDIT-F3": "CANONICAL_PENDING_PARAMETER",
-   "AUDIT-F4": "CANONICAL",
-   "AUDIT-F5": "CANONICAL",
-   "AUDIT-F6": "CANONICAL",
-   "AUDIT-F7": "CANONICAL",
-   "AUDIT-F8": "CANONICAL_PENDING_SEMANTICS",
-   "AUDIT-F9": "CANONICAL",
-   "AUDIT-F10": "CANONICAL_PENDING_PARAMETER",
-   "AUDIT-F11": "CANONICAL_PENDING_PARAMETER",
-   "AUDIT-F12": "CANONICAL_PENDING_PARAMETER",
-   "AUDIT-F13": "CANONICAL",
-   "AUDIT-F14": "CANONICAL",
-   "AUDIT-F15": "CANONICAL",
-   "AUDIT-F16": "CANONICAL_PENDING_PARAMETER"
+  "completeness_scope": "Authority and completeness are separate: every rule here is CANONICAL in authority (its label), and this says whether it can be implemented without inventing methodology.",
+  "completeness": {
+   "AUDIT-F1": "SPECIFIED",
+   "AUDIT-F2": "PENDING_SEMANTICS",
+   "AUDIT-F3": "PENDING_PARAMETER",
+   "AUDIT-F4": "SPECIFIED",
+   "AUDIT-F5": "SPECIFICATION_REQUIRED",
+   "AUDIT-F6": "SPECIFIED",
+   "AUDIT-F7": "SPECIFIED",
+   "AUDIT-F8": "PENDING_SEMANTICS",
+   "AUDIT-F9": "SPECIFIED",
+   "AUDIT-F10": "PENDING_PARAMETER",
+   "AUDIT-F11": "PENDING_PARAMETER",
+   "AUDIT-F12": "PENDING_PARAMETER",
+   "AUDIT-F13": "SPECIFIED",
+   "AUDIT-F14": "SPECIFIED",
+   "AUDIT-F15": "SPECIFIED",
+   "AUDIT-F16": "PENDING_PARAMETER"
   }
  },
  "rules": [
@@ -1364,7 +1366,7 @@
    ],
    "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value (AUDIT_PROVISIONAL_N_MIN), passed by the caller and recorded. The interval is Fisher's z with the normal approximation. n counts respondents, not weight: under a weighted design the interval read at that n may be too narrow (plan § 10, open point with Q5-Q7). Landed in chunk 1a (PR #172): the status is stored beside the 1-10 matrix; no score, layout or terrain reads it yet (1b, 2b, 4b).",
    "resolve_by": "sociomap-formula-corrections chunk 1a",
-   "question": "Q6 -- one evidence policy (with B7 and B9): the pairwise floor, the uncertainty criterion, a practical floor on |r|, and how weighting propagates through the estimate and its uncertainty; an explicit state model asked for (plan § 4a Q6)"
+   "question": "Q6 -- one evidence policy (with B7 and B9): the pairwise floor, the uncertainty criterion, a practical floor on |r|, and how weighting propagates through the estimate and its uncertainty; asked as two gates, evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min); Kish n inside the Fisher interval signed off, not assumed; whichever is chosen lands as chunk 1d (plan § 4a Q6)"
   },
   {
    "id": "AUDIT-F4",
@@ -1430,7 +1432,7 @@
    "validation": [],
    "uncertainty": "The conversion T for 'strength 1-10' into F6's correlation distance is not written out; a correlation goes through F2-F4 and F6.",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
-   "question": null
+   "question": "F5's transform: how a declared 'strength 1-10' matrix becomes F6's correlation distance; the audit names the type and leaves the mapping unwritten (to the audit's author, chunk 0b; until then the type is refused, named, plan chunk 2a)"
   },
   {
    "id": "AUDIT-F6",

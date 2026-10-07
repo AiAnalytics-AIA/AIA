@@ -107,17 +107,22 @@ def test_the_canonical_block_names_what_it_overrides() -> None:
         assert CANONICAL["checks"].get(rule_id), f"{rule_id} names no printed check"
 
 
-def test_a_pending_canonical_rule_names_its_open_question() -> None:
-    """A rule can be canonical in its formula and still pending in a parameter or its meaning.
+def test_a_canonical_rule_that_is_not_fully_specified_names_its_open_question() -> None:
+    """Authority is not completeness: a rule the audit governs can still lack a parameter, its
+    meaning, or part of its formula.
 
-    The status says which, so a provisional AIA reading never passes for a decision.
+    Completeness says which, so a provisional AIA reading -- or a transform an implementer would
+    have to invent -- never passes for a finished specification.
     """
     canonical_ids = {r["id"] for r in REGISTER["rules"] if r["label"] == "CANONICAL"}
-    assert set(CANONICAL["status"]) == canonical_ids, "every canonical rule has a status"
-    assert set(CANONICAL["status"].values()) <= set(CANONICAL["status_values"])
-    for rule_id, status in CANONICAL["status"].items():
-        if status != "CANONICAL":
-            assert RULES[rule_id]["question"], f"{rule_id} is {status} but names no question"
+    completeness = CANONICAL["completeness"]
+    assert set(completeness) == canonical_ids, "every canonical rule has a completeness"
+    assert set(completeness.values()) <= set(CANONICAL["completeness_values"])
+    # The authority's own word is not a completeness state: the two are not to be confused.
+    assert "CANONICAL" not in CANONICAL["completeness_values"]
+    for rule_id, state in completeness.items():
+        if state != "SPECIFIED":
+            assert RULES[rule_id]["question"], f"{rule_id} is {state} but names no question"
 
 
 def test_every_printed_check_is_vendored_and_claimed() -> None:
