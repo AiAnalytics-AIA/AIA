@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { research, researchAgents, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
 import type { JobUpdate } from "@/research/jobs";
@@ -68,6 +68,27 @@ it("freezes a Study revision, follows the job, and writes nothing until review",
   await waitFor(() => expect(project.title).toBe("Proposed"));
   expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
   expect(analysis).toMatchObject({ objectives: ["A"], _brief_signature: briefFingerprint(project as Parameters<typeof briefFingerprint>[0]) });
+});
+it("keeps a run that started before the hook's mount effect ran", async () => {
+  // A click can land between React's commit and its passive effects (QuestionnaireStep's
+  // flake): a layout effect runs in that gap, so the run starts before the mount effect.
+  let release = () => {};
+  vi.mocked(research.submitDesign).mockReturnValue(new Promise((resolve) => {
+    release = () => resolve({ revision_id: "REV-1" } as Awaited<ReturnType<typeof research.submitDesign>>);
+  }));
+  function Early() {
+    const agents = useResearchAgents("STU-1", store, onUpdate);
+    const { run } = agents;
+    useLayoutEffect(() => { running = run("analyze_brief", {}, "Brief"); }, [run]);
+    return <><p>{agents.busy ? "busy" : "idle"}</p>{agents.dialog}</>;
+  }
+  render(<Early />);
+  expect(screen.getByText("busy")).toBeTruthy();
+  await act(async () => { release(); });
+  fireEvent.click(await screen.findByText("Použít návrh"));
+  await act(async () => { await running; });
+  expect(researchAgents.accept).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1", "REV-1");
+  expect(screen.getByText("idle")).toBeTruthy();
 });
 it("a second click resumes the same unbilled runtime park without editing the brief", async () => {
   vi.mocked(researchAgents.start).mockResolvedValue({

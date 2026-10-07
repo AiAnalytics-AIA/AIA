@@ -41,9 +41,13 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     } });
   }), []);
 
+  // React may run this effect after the first click: the screen is committed and
+  // clickable before its passive effects flush. A mount that reset the state would
+  // clear the busy flag and the open review of a run that already began, leaving it
+  // waiting on a dialog nobody sees. The previous study's state is cleared when it is
+  // left, in the cleanup, so the mount only starts its own work.
   useEffect(() => {
     const owner = new AbortController(); lifetime.current = owner;
-    setRecent([]); setNotice(null); setReview(null); setBusy(false);
     refresh().then(async (jobs) => {
       if (owner.signal.aborted || active.current) return;
       const running = jobs.find((j) => !j.is_terminal && !j.needs_attention && !j.status.startsWith("WAITING"));
@@ -62,6 +66,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     return () => {
       owner.abort(); active.current?.abort(); active.current = null;
       pendingDecision.current?.(false); pendingDecision.current = null;
+      setRecent([]); setNotice(null); setReview(null); setBusy(false);
     };
   }, [studyId, refresh, onUpdate]);
 
