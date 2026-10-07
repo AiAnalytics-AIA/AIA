@@ -1,11 +1,11 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] 0a. The audit's sixteen rules in the evidence register, DOCUMENTED; its checks C1-C16 and P4-P14 as fixtures"
+  - "[x] 0a. The audit's sixteen rules in the evidence register, CANONICAL; its checks C1-C16 and P4-P14 as a fixture"
   - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
-  - "[ ] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
-  - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
-  - "[ ] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
+  - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
+  - "[x] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
+  - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
   - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
   - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
@@ -27,8 +27,8 @@ chunks:
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
 **Owner:** method owner (QED Group; the audit is by Aram Bahbouh, status 6 October 2026) ·
-**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; no code yet) ·
-**Base:** `develop` @ `579b7ab`.
+**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (chunks 0a, 1a, 1b and 1c landed, § 8a and § 10) ·
+**Initial audit base:** `develop` @ `579b7ab`; **latest integration review:** `develop @ 08fdb26a`.
 
 **Source.** `NPC_Sociomapa_Faulty_Formulas.pdf` (EN) and `NPC_Sociomapa_Chybne_Vzorce.pdf` (CS),
 30 pages each, the same document in two languages. Received 2026-10-07; not vendored. Cited
@@ -86,7 +86,14 @@ says F16's full proposal was not tested ("the fitted map still needs a recovery 
 known ideal points", § 12 F16), and says nothing about respondent weights, the data class or the
 client gate -- AIA's own rules there stand.
 
-## 2. Where AIA stands: three computations
+## 2. Initial audit baseline: three computations
+
+Sections 2, 3 and 7 retain the anchored initial audit at `579b7ab`; they are not a current
+completion ledger. Chunks 0a, 1a, 1b and 1c have since landed (PRs #172, #173 and #179).
+Pair status and PRIMARY scores now accompany the legacy map, all straight-liners are excluded
+from its layout, and cache identity includes the engine implementation version. The legacy
+relation matrix, classic height and layout still remain. Current progress is in § 8a and § 10;
+the application integration review is in § 8.1.
 
 | Path | Objects placed by | Respondents placed by | Fit | Height | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -124,7 +131,7 @@ the defect nor the capability exists in AIA, the rule binds when it is built.
 | F13 report terrain = sum of hills | a cluster of three equal objects peaks 2.7× an isolated one | Nothing outside `compute_terrain` computes a surface (`report_docx/`, `application/sociomapping_report.py`, `apps/web` all read the artifact); no AIA surface is rendered anywhere today | **MET** by construction | one formula in domain; chunk 4b adds the test that no renderer sums anything |
 | F14 area tests on the positioning variables, 24 uncorrected tests | 5 of 6 "significant" on pure noise; 44 % false alarms on random splits | No lasso, no regions, no `compare_area` (`route-visualization` `NOT_IN_AIA`); engine plan chunk 8 (M8: which t, chi-square, multiplicity) is where regions land; `domain/evidence/` gates every client-facing number | **ABSENT** -- binds chunk 8 | test V \ V_position only, label the positioning variables "differs by construction", Holm at α = 0.05, Cohen's d with its interval first. **This answers M8's multiplicity question** |
 | F15 "main differences" in raw units | a six-year age gap outranks a complete gender split | absent, as F14 | **ABSENT** -- binds chunk 8 | \|d\| for numbers, \|h\| = \|2 arcsin √π_A − 2 arcsin √π_B\| for categories, max over categories |
-| F16 unfolding targets stretched per respondent, one global scale | (9,9,9,10) and (1,1,1,10) get identical targets; (5,5,5,5) → "very close" to all | The unit's `fit_python_unfolding` is refused (OI-13; the plan found it present at `sociomap.py:53`). A's `aia_rowcond_unfolding_v1`: δ = scale_top − rating (`layout.py:237`, a constant multiple of the audit's δ_kj, equivalent under the free row scale) ✓; per-respondent slope b_k ✓; **no intercept c_k**; collapse prevented by a global normalisation, not smacof's penalty; straight-liners partly excluded (F11). R smacof refused (OI-15; `domain/` is pure Python by rule) | **PARTIAL** | b_k and c_k per respondent, straight-liners out, λ·pen(U, V) as in `smacof::unfolding`; the audit prefers R and calls Python "a test fallback" -- AIA's answer is a pure-Python fit validated against an R fixture, not an R runtime (§ 4) |
+| F16 unfolding targets stretched per respondent, one global scale | (9,9,9,10) and (1,1,1,10) get identical targets; (5,5,5,5) → "very close" to all | The unit's `fit_python_unfolding` is refused (OI-13; the plan found it present at `sociomap.py:53`). A's `aia_rowcond_unfolding_v1`: δ = scale_top − rating (`layout.py:237`, a constant multiple of the audit's δ_kj, equivalent under the free row scale) ✓; per-respondent slope b_k ✓; **no intercept c_k**; collapse prevented by a global normalisation, not smacof's penalty; straight-liners partly excluded (F11). R smacof refused in the existing path (OI-15; `domain/` is pure Python by rule) | **PARTIAL** | b_k and c_k per respondent, straight-liners out, λ·pen(U, V) as in `smacof::unfolding`; the canonical audit prefers R and calls Python "a test fallback". Resolve the R runtime behind an adapter, corrected fixtures and recovery tolerances in § 4 and chunk 4c; the pure-domain boundary does not authorize replacing the chosen method |
 
 **Count.** CARRIED 8 (F2, F3, F4, F5, the F6 frame, F8, F9, F12), PARTIAL 5 (F1, F7, F10, F11,
 F16), MET 1 (F13), ABSENT 2 (F14, F15). Path B already meets F1, F5, the data side of F4 and
@@ -228,7 +235,7 @@ stay as they are, because v1 stays what it is.)
 ## 8. Chunks
 
 - **0a.** Register F1-F16 in `docs/migration/sociomapping-evidence-register.json` with product
-  `NPC-AUDIT`, page, formula, replacement and label DOCUMENTED; the register test keeps every
+  `NPC-AUDIT`, page, formula, replacement and label CANONICAL; the register test keeps every
   implemented rule pointing at code and a test. Ask the owner for `code_formula_checks.py` and
   its printed `[C*]` / `[P*]` outputs; vendor them under
   `packages/aia_core/tests/fixtures/sociomapping_sources/` as the audit's fixtures.
@@ -309,9 +316,11 @@ completion of the application journey. These chunks implement the canonical deci
 do not reopen them. Existing client-delivery and evidence gates remain separate from accepting
 the source methodology.
 
-**Review baseline:** PR 171 head `d0017457`; integration checked against `develop @ 4dce18fc`.
-The compiler, fieldwork producer, dimension UI and existing Sociomap adapter cited below are
-unchanged between those refs. The disconnects are pre-existing, not introduced by this plan.
+**Review baseline:** PR 171 head `d0017457`; initial integration review `develop @ 4dce18fc`,
+refreshed against `develop @ 08fdb26a` on 2026-10-07. The compiler, fieldwork producer,
+dimension UI, fieldwork contract and run-start/retry code cited below are unchanged. The
+Sociomap adapter now adds pair statuses and PRIMARY scores but still reads a single battery
+and selects the legacy preset at execution. The disconnects remain pre-existing.
 
 ### Evidence: where the current journey stops carrying the user's choices
 
@@ -320,11 +329,11 @@ unchanged between those refs. The disconnects are pre-existing, not introduced b
 | Questionnaire and tracked objects | `domain/research_design.py:76-140 @ 4dce18fc` declares question types/scales and batteries with object ids, family and scale. `domain/fieldwork.py:75-128` carries answers, missing values, respondent/donor ids, weights and a spec fingerprint. These are the right foundations. |
 | Selected study dimensions | `apps/web/src/research/persona.ts:120-150` saves `persona_dimensions.approved`; client additions come from knowledge item ids/titles (`:45-74`). `ResearchSpecification` has no dimension field (`domain/research_design.py:123-140`), and `compile_design` never copies the selection (`:375-389`). The UI choice does not reach the executed respondent contract. |
 | Population and audience | The compiler retains source mode, strategy and only `has_filters` (`research_design.py:383-386`); readiness warns filters/custom audiences are not applied (`:462-469`). `apps/executors/src/aia_executors/ai_fieldwork.py:118-123` makes a fictional roster from sample size and a spec-derived seed, not the selected population and audience. |
-| Full rating context | `domain/research_sociomap.py:133-152` extracts one battery's answers. Putting `person_minmax` there without a study-wide input would violate F2: pp. 4 and 22 explicitly require all rated items and reject active-family-only normalization. |
-| Map roles and comparison descriptors | `SpecObject` has id/label and `SpecBattery` family/scale, but no PRIMARY/SECONDARY role or map lens (`research_design.py:97-119`). `FieldworkRespondent` has no general descriptor snapshot (`fieldwork.py:80-87`). A selected dimension's label is not a measured or materialized respondent value. |
+| Full rating context | `domain/research_sociomap.py:292-320 @ 08fdb26a` still extracts one battery's answers. Putting `person_minmax` there without a study-wide input would violate F2: pp. 4 and 22 explicitly require all rated items and reject active-family-only normalization. Open PR #183 starts the cross-battery adapter; its remaining integration work is recorded below. |
+| Map roles and comparison descriptors | `ObjectRole` and `primary_scores` now exist, but the adapter explicitly declares every tracked object PRIMARY (`research_sociomap.py:312-316 @ 08fdb26a`). `SpecObject`/`SpecBattery` still have no role or map lens (`research_design.py:97-119`), and `FieldworkRespondent` has no general descriptor snapshot (`fieldwork.py:80-87`). A selected dimension's label is not a measured or materialized respondent value. |
 | Readiness and invalidation | Structural readiness passes an existing battery as Sociomap input (`research_design.py:453-457`), while the allowed study sample starts at 20 (`:62`) and F3's working pair minimum is about 30. The impact model already includes dimensions, audience and population snapshot as fieldwork inputs (`domain/pipeline.py:275-295`), but the execution compiler drops some of them. |
 
-**Reproduction (2026-10-07, no model calls):** compile otherwise identical valid studies with
+**Reproduction (2026-10-07, repeated at `08fdb26a`, no model calls):** compile otherwise identical valid studies with
 `persona_dimensions.approved = ["finance"]` versus `["ekologie"]`. Both compile without errors
 and their specifications and fingerprints are equal. Repeat with audience filters 18-29 versus
 60-80: both compile to the same audience, `{source_mode: population, strategy: population,
@@ -421,7 +430,7 @@ the artifact reader recomputes it (`models.py:492-505`). In-memory changing that
 2 to 3 makes an unchanged old payload fail with `ArtifactIntegrityError`. Add version-aware
 hashing/reading rather than replacing the old contract. `application/research.py:225-267,
 299-305` currently freezes no Sociomap method at start/retry; the executor chooses the preset
-when it executes (`apps/executors/src/aia_executors/research.py:449-463`). Pin the selected spec
+when it executes (`apps/executors/src/aia_executors/research.py:429-476 @ 08fdb26a`). Pin the selected spec
 or comparison set at enqueue and preserve it on retry. Explicitly treat historical runs with no
 selection as legacy v1. Preserve the canonical artifact/battery/object identifiers used by
 ADR 0021, or version every affected consumer.
@@ -450,6 +459,97 @@ region files with `sociomapping-engine.md`; synchronize its competing v3 claim t
 plan/docs follow-up. The implementer reports engine progress and application integration
 progress separately. Do not mark the full journey complete because only the formulas pass.
 
+### Current changes and open-PR coordination (2026-10-07)
+
+**Merged through `develop @ 08fdb26a`.** PR #172 supplies pair status and complete straight-line
+exclusion; PR #173 registers the canonical audit; PR #179 adds `ObjectRole` and PRIMARY
+alignment/connectedness. Reuse their public contracts in I2/I3; do not implement them again.
+No I0-I5 chunk is complete: the study compiler still has no role/dimension contract, the
+producer still has no applied audience, and the complete corrected map has not reached Results.
+`SOCIOMAP_VERSION = aia-research-sociomap-3` is the research body version, not spec/artifact v3
+or the future `aia-sociomap-2` preset (`domain/research_sociomap.py:72-77 @ 08fdb26a`).
+
+**I4 is partly supported, not finished.** `_sociomap_fingerprint` now includes the engine
+implementation version and the research body version (`executors/research.py:429-445 @
+08fdb26a`; `test_a_changed_engine_is_not_handed_the_previous_engines_map`). This
+prevents cross-engine cache reuse. It does not freeze the chosen method at enqueue: the preset
+and engine are still resolved by executing code, and version-aware historical spec readers
+remain pending. Retain those I4 tests after reusing the new fingerprint helper.
+
+**Deep Research changes.** PR #178 accepts selected Design Research evidence into a new Design
+Revision through `DesignResearchProposals.accept` (`application/design_research.py:87-135 @
+08fdb26a`); `apply_to_design` writes only `design_research`, leaving questionnaire, dimensions
+and audience unchanged (`domain/deep_research/design_proposals.py:227-277`). Accepting evidence
+does not materialize a dimension or inject it into ratings. PRs #175/#177/#180/#181 add ADR
+0022's approved policy settings and Settings surface; those settings do not select Sociomap
+methodology. I5 must preserve the accepted evidence lineage and the Interpretation Research
+sidecar boundary. Extend its recorded acceptance with an evidence-only Design Research accept:
+the dimension/audience/rating contracts stay unchanged until a person explicitly edits them.
+
+**Open PR #183, `feature/sociomap-person-minmax @ 0dae6ff6`, not merged.** Its
+`rescaled_battery_ratings` resolves declared scales across `spec.batteries` before slicing a
+family, stores `relation_rescaled`, and moves the research body to `aia-research-sociomap-4`
+(`domain/research_sociomap.py:313-349, 430-462` at that head). This addresses part of I2; reuse
+it after merge. The adapter enumerates batteries only, so I0/I2 must explicitly decide which
+standalone scale questions are rating items; a numeric descriptor must never enter by dtype.
+Test a standalone item explicitly declared as a rating alongside two batteries, and record
+the full item/scale universe, not only battery ids. PRIMARY/SECONDARY selection, frozen method
+bindings, region descriptors and the full acceptance remain I0-I5 work. Do not tick 2a or I2
+here before that PR lands. Its F1-before-F2 mixed-scale ordering is a declared implementation
+reading to reconcile with I2's source questions, not an additional owner-approved formula.
+
+**Open PR #176, `chore/sociomap-decision-sheets @ 6d1c069d`, not merged.** It records the owner's
+Q5/Q6/Q7 decision sheets and the author's parameter/semantics questions. Preserve that section
+and its evidence-register states when reconciling the plan after merge; retain I0-I5 and the
+canonical PDF identifiers too. The sheets cover the questions the source leaves open; they
+do not require reapproval of settled formulas. Neither open PR is part of the merged baseline.
+
+## 8a. Progress
+
+**0a (2026-10-07, `feature/sociomap-audit-register`).** `docs/migration/sociomapping-evidence-register.json`
+gains a `CANONICAL` label, the two audit documents (`NPC_AUDIT_EN`, `NPC_AUDIT_CS`, 30 pages,
+one pagination), sixteen rules `AUDIT-F1`..`AUDIT-F16` (each: the replacement as the formula,
+the Part I page and the § 12 page, what it applies to in AIA with the anchor it replaces, the
+chunk that implements it as `resolve_by`, the open question if the audit leaves one), and a
+`canonical` block: the owner's rule, the scope, `supersedes` (F2 → RTS-O1; F3 → AIA-D2;
+F4 → RTS-A1; F6 → AIA-H8, AIA-H9; F7 → SOMECS-H3; F10 → SOMECS-M1; F12 → SOMECS-M2;
+F14 → SOMECS-T1; each superseded rule's `uncertainty` now says so) and `checks`, the printed
+evidence each rule rests on. The audit's twenty checks (C1-C16, P4, P10, P12, P14) and its
+"checked and found sound" list are transcribed, number by number, into
+`packages/aia_core/tests/fixtures/sociomapping_sources/npc_audit_checks.json`; nothing was
+recomputed. `test_sociomapping_evidence_register.py` keeps it true: a CANONICAL rule cites a
+canonical document and a page, everything superseded says by what, the register and the
+fixture name the same checks and each check names the rules that claim it. Measured: the
+register suite 24 passed; every `sociomap` test 421 passed, 5 skipped (the archive-backed
+parity tests, as always); `mypy` over the four source trees clean; `ruff format --check` 478
+files; `layer_check` 94 rules; `exposure_check` 7 rules. Not done, and not doable from here:
+the audit's `code_formula_checks.py` and its outputs are still with the audit's author; the
+request below is what to send.
+
+**Request to the audit's author (chunk 0a, to be sent by the owner).** For
+`.planning/plans/sociomap-formula-corrections.md` chunk 0a we need, as files: (1)
+`NPC/analysis/code_formula_checks.py` as run for the 6 October 2026 status; (2) its printed
+output, so every `[C*]` and `[P*]` number in the audit is reproducible here; (3) the simulated
+inputs behind C1, C2, C4/P4, C10/P10, C11, C12/P12, C13, C14/P14 and C16, or the seeds and
+generators that made them; (4) if the demo dataset cannot leave, the per-check summaries it
+produced (C1's mean r and share positive, C5's stresses, C6's disparities, C8's rankings,
+C9's scores, C10's radii) as they stand. With them the fixture becomes the audit's own output
+instead of a transcription, and each of the plan's synthetic acceptance tests can be checked
+against the audit's number before it is trusted.
+
+Two readings to settle with the same note (raised by the Codex review of PR #173, recorded in
+the register's `AUDIT-F2` and `AUDIT-F8`): (5) F2 is silent on respondent weights; AIA keeps the
+Pearson step weighted after the per-person rescaling, as the unit's path is today, unless the
+author says otherwise. (6) F8 writes the denominator as m_P − 1 while leaving UNKNOWN pairs out
+of the sums; a fixed denominator scores an unknown pair as 0, so AIA divides by the known
+PRIMARY pairs and leaves an object with none unscored, unless the author says otherwise.
+
+**1a and 1c went before 0a** (2026-10-07, PR #172, another session). 0a was thought blocked on the
+PDFs' pages; they were in hand, so 0a landed next (PR #173), and its merge with #172 registers
+F3 as implemented by `relations:pair_status` with the chance-band test as its source example,
+and F11 by `engine:_placeability`. Both rules keep what is still owed: F11's count in a legend
+that does not exist yet (chunk 5), F3's final N_min (Q6).
+
 ## 9. Doc follow-up
 
 - `CLAUDE.md` map, `domain/sociomap/`: the v2 members once they exist (`pair_status`,
@@ -477,8 +577,40 @@ progress separately. Do not mark the full journey complete because only the form
 - `CLAUDE.md` / `ARCHITECTURE.md`: record the new typed contracts and version-aware readers,
   composition ownership and enforcement only once implemented; preserve pure-domain and
   population-loader boundaries. This plan is the record until the dedicated docs PR lands.
+- From chunk 1a: `CLAUDE.md` map, `domain/sociomap/relations.py`: "pair status (audit F3):
+  UNKNOWN / RELIABLE / WEAK from the rater count and the Fisher-z interval"; `research_sociomap.py`:
+  "each pair's signed r, rater count, interval and status beside the unit's 1-10 matrix".
+  `sociomapa-deterministic-engine.md` § 8: a row S8 -- reference: a pair under five raters is 5.5,
+  drawn as a medium relation; production: the unit's matrix kept for `aia-sociomap-1`, every pair
+  carrying its status, UNKNOWN below `n_min`; tests
+  `test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half`,
+  `test_below_n_min_a_pair_is_unknown_whatever_its_number_says`.
+- From chunk 1c: `sociomapa-deterministic-engine.md` § 2, the pipeline line "placeable rows
+  (≥ 2 ratings, not all at the top)" becomes "placeable rows (≥ 2 ratings, not a straight-liner
+  at any score)"; § 6, `excluded_respondents` "with no recoverable position, straight-liners
+  included"; § 8, a row S9 -- reference: an unplaceable respondent is put on an invented ring
+  (audit F11); production: every straight-liner excluded with its reason, out of the density
+  terrain, still counted in `support_n`; tests `test_a_straight_liner_below_the_top_is_not_placed`,
+  `test_straight_liners_do_not_move_anyone_else`. `CLAUDE.md` map, `executors/research.py`: "a
+  stored Sociomap is reused only under the same engine implementation version".
+- From chunk 1b: `CLAUDE.md` map, a line under `domain/sociomap/` for `metrics.py` (it has none
+  today): "metrics.py  object metrics and the normaliser (F5, F6); `primary_scores`: alignment and
+  connectedness over the PRIMARY objects, UNKNOWN pairs out of the sums and the denominator, an
+  object with none unscored (audit F8)"; `research_sociomap.py`: "... and each object's alignment
+  and connectedness (`object_scores`)". `sociomapa-deterministic-engine.md`: § 2 pipeline, beside
+  the object metrics, "alignment / connectedness over PRIMARY (audit F8), stored by the research
+  step, read by no height yet"; § 5 a note that `aia-sociomap-1`'s default height stays the
+  classic T-score and the audit's provisional default (mean rating, Q7) arrives with spec v3; § 8 a
+  row S10 -- reference: the classic score `sum_j (s_ij + s_ji)`, mostly the constant `11 (m - 1)`,
+  a 5.5-stamped pair counted as medium, context objects in the sum; production: `relation_classic`
+  kept for `aia-sociomap-1`, and `primary_scores` beside it over PRIMARY objects with UNKNOWN
+  pairs left out; tests `test_the_scores_are_the_audits_formula_on_a_hand_computed_example`,
+  `test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic`. (The
+  envelope-terrain row this plan's § 9 first called S10 takes the next free number.)
+  `.planning/overview.md` / D6 v2 note: AIA's reading of F8's denominator (known PRIMARY pairs,
+  unscored with none) is put to the audit's author with Q7.
 
-## 10. Review outcome
+## 10. Progress and review outcome
 
 2026-10-07: application integration reviewed against `develop @ 4dce18fc`; I0-I5 added at the
 user's request. The canonical formulas fit the intended architecture, but the current
@@ -486,3 +618,123 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Chunk 1a -- pair status (F3), 2026-10-07
+
+What landed, on `feature/sociomap-pair-status`:
+
+- `domain/sociomap/relations.py`: `PairStatus` (UNKNOWN / RELIABLE / WEAK), `pair_status(r, n,
+  n_min, confidence)`, `fisher_interval`, `null_band` (the audit's chance band) and
+  `AUDIT_PROVISIONAL_N_MIN = 30`. `n_min` and the confidence have no defaults: the caller passes
+  them and the result records them.
+- `domain/research_sociomap.py`: `derive_pair_relations` -- the unit's weighted Pearson, signed,
+  with `n`, `interval` and `status` per pair; nothing stamped (fewer than two raters or a constant
+  column → `r = None`, UNKNOWN). `derive_relation_matrix` is unchanged in behaviour and still EXACT
+  against the unit's capture (it now shares the weighted moments with the new function, same
+  operation order). The stored body's `relation` block gains `r`, `n`, `interval`, `status`,
+  `n_min`, `confidence`, `status_counts`, `status_rule` and a `matrix_caveat` on the 1-10 matrix.
+- `SOCIOMAP_VERSION` `aia-research-sociomap-1` → `-2`: the executor fingerprints its input with
+  it, so a run stored under `-1` (without the statuses) is not reused as if it had them.
+
+At the 1a landing no score, layout or terrain read the status. Since then 1b reads it for
+PRIMARY scores; layout and terrain still do not (2b, 4b); the engine
+artifact (`compute_sociomap`) is unchanged, so `aia-sociomap-1` still lays out over the unit's
+matrix. The status is visible in the stored body only; Results shows nothing new (chunk 5).
+
+Measured on the captured case `A01_full_questionnaire` (450 respondents, 5 objects): 10 pairs, 9
+RELIABLE, 1 WEAK, 0 UNKNOWN; every signed `r` equals the unit's `(strength − 1) / 4.5 − 1` to 1e-12.
+
+**Open point for the audit's author (with Q5-Q7).** `n` counts respondents, not weight. Under a
+weighted design the Fisher interval read at that `n` is narrower than the weighted correlation
+warrants (Kish's effective n, which `domain/evidence/support.py` already computes for
+aggregation, would widen it). The audit's F3 does not say which `n`; chunk 1a uses the count, as
+the audit's N does, and records the choice in `status_rule`. Unanswered, this is a hypothesis
+about over-confidence, not a finding.
+
+Checks run: `ruff check`, `ruff format --check`, `mypy --strict` (all three trees), `make
+layer_check`, `make exposure_check`, `make test` on Python 3.12 as CI (4,969 + 331 + 54 + 295
+passed, 0 failed). `make web_design` and `make test-web` were not
+run: no web file changed, and `apps/web` has no installed packages in the session's container.
+
+### Chunk 1c -- straight-liners not placed (F11), 2026-10-07
+
+Finding F-2 is fixed. `domain/sociomap/engine.py` `_placeability` excludes every respondent whose
+rated objects all share one score, at the top of the scale or anywhere else (`max == min` over
+the rated cells, so missing cells do not hide one). Each gets its reason in
+`excluded_respondents`, stays out of the layout and the density terrain, is counted in the
+warning, and still counts in `mean_rating` and `support_n`. A battery of nothing but
+straight-liners has no map (`UnfoldingDesignError`, fail closed).
+
+**Why this changes `aia-sociomap-1` and does not break the rule that v1 stays what it is.** The
+placeability rule belongs to `aia_rowcond_unfolding_v1`, AIA's own layout, not to the unit:
+the engine document says the layout is not a port, and the reference's layout fixture (F4) is
+refused. No reference fixture F1-F9 goes through it, so v1 still computes exactly what F1-F9
+pin. The old rule excluded only the top-of-scale case; this is the same rule without the
+special case.
+
+`ENGINE_IMPLEMENTATION_VERSION` 1.1.0 → 1.2.0, since the output changes for any input with a
+straight-liner below the top. The layout golden (`AIA1_rowcond_unfolding_on_f4_ratings.json`) was
+regenerated with `tools/sociomap_golden.py`: only its version field changed, because F4's 24
+respondents include no straight-liner. Neither does the captured research case A01 (450
+respondents), so no stored research map's numbers move.
+
+The research step's reuse fingerprint now includes the engine version
+(`apps/executors/src/aia_executors/research.py` `_sociomap_fingerprint`). Before, a newer build
+could be handed a map the previous engine drew for the same dataset and spec, because the
+artifact repository reuses by input fingerprint.
+
+Measured: twenty identical straight-liners and one with a missing cell, added to an eight-person
+design, leave every other respondent's coordinates, the object coordinates and the density
+terrain bit-identical (`test_straight_liners_do_not_move_anyone_else`).
+
+
+Checks run: `ruff check`, `ruff format --check`, `mypy --strict`, `make layer_check`, `make
+exposure_check`, `tools/sociomap_golden.py --check`, `make test` on Python 3.12 (4,973 + 331 + 54 +
+296 passed, 0 failed).
+
+### Chunk 1b -- alignment and connectedness over PRIMARY objects (F8), 2026-10-07
+
+What landed, on `feature/sociomap-alignment-connectedness`:
+
+- `domain/sociomap/metrics.py`: `primary_scores(object_ids, r, status, roles)` → `PrimaryScores`
+  (per PRIMARY object: `alignment`, `connectedness`, `known_pairs` -- the denominator -- and
+  `unknown_partners`; plus `primary`, `secondary`, `excluded_pairs` and the rule id
+  `audit-f8-known-primary-pairs-v1`); `alignment(...)` and `connectedness(...)` as by-id views;
+  `ObjectRole` (PRIMARY / SECONDARY); `AUDIT_PROVISIONAL_DEFAULT_HEIGHT = MEAN_RATING` (the
+  audit's provisional answer to Q7). `roles` must declare every object: nothing defaults to
+  PRIMARY, and an undeclared or unknown id is refused. Only PRIMARY x PRIMARY cells are read; an
+  UNKNOWN pair's number never is; a RELIABLE or WEAK pair must carry r in [-1, 1] and both halves
+  of a pair must agree. UNKNOWN pairs are out of the sums and the denominator; an object with no
+  known pair is `None`, never 0 (the reading put to the author in § 8a item 6).
+- `domain/research_sociomap.py`: each set's stored body gains `object_scores` (every object of a
+  tracked set declared PRIMARY, since there is no object manager). `SOCIOMAP_VERSION` `-2` → `-3`:
+  the executor fingerprints its input with it, so a body stored under `-2` (without the scores)
+  is not reused as if it had them.
+- Register `AUDIT-F8`: `implementation` and eight `validation` entries.
+
+What it does not do: no height, terrain or Results surface reads the scores. `relation_classic`
+and the T-score height stay `aia-sociomap-1`'s, unchanged; mean rating becomes a declared
+default only with spec v3 (2d), and the new scores become `ObjectMetric` members there too, so
+no v1 spec can select a metric v1 does not compute. The audit's C8 numbers come from its demo,
+which we do not have; the SECONDARY test is synthetic (a context object moves the classic
+score's top object to the bottom and leaves every PRIMARY score bit-identical).
+
+Measured on the captured case `A01_full_questionnaire` (450 respondents, 5 objects): every pair
+known, each object's scores the mean of its four signed / absolute r to 1e-12. With the first
+object's ratings kept for 20 respondents only, its four pairs are UNKNOWN, it is unscored, and
+the other four are scored over three pairs.
+
+Checks run: `ruff check`, `ruff format --check` (547 files), `mypy --strict` over the four source
+trees (295 files, clean), `make layer_check` (94 rules), `make exposure_check` (7 rules), the
+evidence-register suite (24 passed), every `sociomap` test (473 passed, 5 skipped: the
+archive-backed parity tests), `make test` on Python 3.12 (4,992 + 331 + 54 + 296 passed, 0
+failed). `tsc --noEmit`, `make web_design` and `make test-web` were not run: no web file
+changed, and `apps/web` has no installed packages in the session's container.
+
+### Application integration refresh, 2026-10-07
+
+Reconciled PR #182 with `develop @ 08fdb26a`, preserving the completed 0a/1a/1b/1c chunks
+and their measured progress. Re-ran both compiler probes: different dimensions and age
+filters still produce equal execution specifications and fingerprints. Added coordination
+for open PRs #176 and #183, and separated cache invalidation already implemented from
+method pinning still pending. I0-I5 remain open. The initial audit tables retain their dated
+baseline; the current integration evidence above identifies changed code explicitly.

@@ -1395,3 +1395,154 @@ def report_ledger(evidence_row: Any, field_book: Any, joint_status: Any) -> Any:
         )
 
     return build
+
+
+# --------------------------------------------------------------------------- #
+# Deep Research: sealed bundles from two fictional subjects
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def deep_research_bundles() -> Any:
+    """Builders for a sealed Deep Research bundle over one question and one object.
+
+    The same shapes ``test_deep_research_bundle_and_quarantine.py`` builds for itself,
+    shared here as a fixture (AGENTS.md: no imports between test modules).
+    """
+    from types import SimpleNamespace
+
+    from aia_core.domain.deep_research.bundle import TrackRecord, seal_bundle
+    from aia_core.domain.deep_research.contracts import (
+        HARNESS_VERSION,
+        BriefDigest,
+        Channel,
+        DeepResearchRequest,
+        EvidenceItem,
+        EvidenceType,
+        FrozenKnowledge,
+        RecommendedUse,
+        ResearchSubject,
+        RetrievalMode,
+        SourceKind,
+        StopReason,
+        SubjectKind,
+        TrackStatus,
+        subject_key,
+    )
+    from aia_core.domain.deep_research.merge import AcceptedEvidence, RespondentUse, ScoreRecord
+    from aia_core.domain.residency import DataClass
+
+    question = ResearchSubject(
+        key=subject_key(SubjectKind.QUESTION, "Proč lidé kupují rostlinné nápoje?"),
+        kind=SubjectKind.QUESTION,
+        text="Proč lidé kupují rostlinné nápoje?",
+        origin="research_plan.research_questions[0]",
+    )
+    obj = ResearchSubject(
+        key=subject_key(SubjectKind.OBJECT, "Aroma"),
+        kind=SubjectKind.OBJECT,
+        text="Aroma",
+        origin="tracked_objects[0]",
+    )
+    web_q, web_o = "DRT-W-" + question.key, "DRT-W-" + obj.key
+
+    def track(track_id: str, subject: ResearchSubject) -> TrackRecord:
+        return TrackRecord.model_validate(
+            {
+                "track_id": track_id,
+                "subject_key": subject.key,
+                "channel": Channel.WEB,
+                "fingerprint": "a" * 64,
+                "status": TrackStatus.COMPLETED,
+                "stop_reason": StopReason.SATURATED,
+                "detail": "",
+                "reused": False,
+                "artifact_id": "ART-1",
+                "retrieval_mode": RetrievalMode.RECORDED,
+                "queries": (),
+                "snapshot_ids": (),
+                "evidence_ids": (),
+                "quarantined_ids": (),
+                "model_requests": 1,
+                "search_calls": 1,
+                "fetches": 2,
+                "credits": 3,
+                "model_cost_usd": 0.01,
+                "tool_cost_usd": 0.0,
+            }
+        )
+
+    def accepted(n: int, claim: str, *, track: str = web_q) -> AcceptedEvidence:
+        item = EvidenceItem.model_validate(
+            {
+                "evidence_id": f"EV-{n:016x}",
+                "track_id": track,
+                "subject_key": question.key if track == web_q else obj.key,
+                "channel": Channel.WEB,
+                "source_kind": SourceKind.WEB_PAGE,
+                "source_ref": "SNP-" + str(n).zfill(24),
+                "source_url": f"https://www.czso.cz/{n}",
+                "source_title": "t",
+                "claim": claim,
+                "quote": claim,
+                "quote_span": (0, len(claim)),
+                "evidence_type": EvidenceType.OFFICIAL_REPORT,
+                "source_date": "2025-01-01",
+                "geography": "CZ",
+                "population": "",
+                "topics": ("trh",),
+                "data_class": DataClass.CLASS_C_INTERNAL,
+                "agent_outcome_overlap": False,
+                "agent_recommended_use": RecommendedUse.CONTEXT_ONLY,
+                "agent_source_quality": 0.9,
+            }
+        )
+        return AcceptedEvidence(
+            evidence=item,
+            score=ScoreRecord(
+                source_class="OFFICIAL_STATISTICS",
+                base=0.95,
+                age="recent",
+                age_adjustment=0.0,
+                score=0.95,
+                geography="CZ",
+                table_version="aia-source-table-1",
+            ),
+            respondent_use=RespondentUse.ELIGIBLE,
+            respondent_exclusion=None,
+            merged_ids=(),
+            confirmations=(),
+            confidence=0.9,
+            verifier_reason="ok",
+        )
+
+    def bundle(*found: AcceptedEvidence, fictional: bool = False) -> Any:
+        request = DeepResearchRequest(
+            harness_version=HARNESS_VERSION,
+            design_revision_id="REV-1",
+            design_revision=1,
+            preset="QUICK",
+            channels=(Channel.WEB,),
+            brief=BriefDigest(title="t", goal="g", decision_use="d", briefing=""),
+            subjects=(question, obj),
+            questionnaire=(),
+            knowledge=FrozenKnowledge(items=(), omitted_ids=(), retrieval_limit=200),
+            client_terms=(),
+        )
+        return seal_bundle(
+            request=request,
+            subjects=(question, obj),
+            versions={"harness": HARNESS_VERSION},
+            tracks=(track(web_q, question), track(web_o, obj)),
+            accepted=found,
+            quarantined=(),
+            snapshots=(),
+            synthesis=None,
+            fictional_client=fictional,
+            counts={"model_requests": 2},
+            spend_usd={"model": 0.02, "tools": 0.0},
+        )
+
+    return SimpleNamespace(
+        QUESTION=question, OBJECT=obj, WEB_O=web_o, accepted=accepted, bundle=bundle
+    )

@@ -40,7 +40,7 @@ from aia_core.domain.research_design import (
 )
 from aia_core.domain.research_sociomap import SOCIOMAP_VERSION, research_sociomaps
 from aia_core.domain.research_sociomapping import SOCIOMAPPING_VERSION, research_sociomappings
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
+from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, ENGINE_IMPLEMENTATION_VERSION
 from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
@@ -426,6 +426,24 @@ class AggregateExecutor(_Step):
         return _produced(step, artifact, created, AGGREGATE, data_origin=origin)
 
 
+def _sociomap_fingerprint(dataset_sha: str, spec: ResearchSpecification) -> str:
+    """What a stored Sociomap was computed from, for reuse.
+
+    The engine's implementation version is part of it: an engine whose output
+    changed (1.2.0 stopped placing straight-liners) must not be handed a map the
+    previous one drew for the same dataset and spec.
+    """
+    return fingerprint(
+        {
+            "dataset": dataset_sha,
+            "sociomap": SOCIOMAP_VERSION,
+            "preset": AIA_SOCIOMAP_V1.fingerprint(),
+            "engine": ENGINE_IMPLEMENTATION_VERSION,
+            "spec": spec.fingerprint(),
+        }
+    )
+
+
 class SociomapExecutor(_Step):
     """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6)."""
 
@@ -455,14 +473,7 @@ class SociomapExecutor(_Step):
                 step,
                 payload={"kind": SOCIOMAP, "sociomap": result},
                 artifact_type=SOCIOMAP,
-                input_fingerprint=fingerprint(
-                    {
-                        "dataset": dataset_sha,
-                        "sociomap": SOCIOMAP_VERSION,
-                        "preset": AIA_SOCIOMAP_V1.fingerprint(),
-                        "spec": spec.fingerprint(),
-                    }
-                ),
+                input_fingerprint=_sociomap_fingerprint(dataset_sha, spec),
                 depends_on=[spec_id, dataset_id],
                 metadata={
                     "data_origin": origin,

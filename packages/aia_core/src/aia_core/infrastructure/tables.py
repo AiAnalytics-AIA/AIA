@@ -1129,7 +1129,8 @@ class ApprovalDecisionRow(Base):
     study_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
     # What was decided on: a workflow gate, an artifact sign-off, a budget lift, a spend
-    # confirmation, or the accept of an AI proposal (subject_id = the agent job's run id).
+    # confirmation, the accept of an AI proposal (subject_id = the agent job's run id), or the
+    # accept of a Design Research proposal (subject_id = the selection's id, run_id = the run).
     subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
     subject_id: Mapped[str] = mapped_column(String(64), nullable=False)
 
@@ -1161,7 +1162,7 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         CheckConstraint(
-            "subject_type in ('gate','artifact','budget','spend','ai_proposal')",
+            "subject_type in ('gate','artifact','budget','spend','ai_proposal','design_research')",
             name="approval_subject_type_known",
         ),
         CheckConstraint(
@@ -1584,6 +1585,79 @@ class PromptActivationRow(Base):
             ],
         ),
         Index("ix_ai_prompt_activations_prompt", "organization_id", "prompt_id", "activation_id"),
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Deep Research settings (ADR 0022, plan chunk 41)
+# --------------------------------------------------------------------------- #
+
+
+class DeepResearchSettingVersionRow(Base):
+    """One proposed value of a Deep Research setting. Immutable (ADR 0022).
+
+    A version is never updated or deleted: a change is a new row, so what a run pinned can
+    always be read back. ``version_number`` counts per organization and setting from 1; the
+    code's proposed default is not a row. ``value`` holds ``{"value": ...}``, already
+    validated against the catalogue (``domain.deep_research.settings``).
+    """
+
+    __tablename__ = "deep_research_setting_versions"
+
+    version_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    value: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    value_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Where the value comes from: a terms page, a quota letter, a decision document.
+    source_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    note: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "setting_key", "version_number", name="uq_dr_setting_version"
+        ),
+        CheckConstraint("version_number >= 1", name="dr_setting_version_positive"),
+        Index("ix_dr_setting_versions_key", "organization_id", "setting_key", "version_number"),
+    )
+
+
+class DeepResearchSettingApprovalRow(Base):
+    """Which version of a setting is in force for an organization. Append-only.
+
+    The newest row for a setting wins. ``version_number`` NULL means the code's proposed
+    default: withdrawing an approval is a new row, never a delete, so the record of what was
+    in force, approved by whom and when, is complete. A run does not read this table: it
+    pinned its settings when it was enqueued.
+    """
+
+    __tablename__ = "deep_research_setting_approvals"
+
+    approval_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    setting_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    version_number: Mapped[int | None] = mapped_column(Integer)
+    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "setting_key", "version_number"],
+            [
+                "deep_research_setting_versions.organization_id",
+                "deep_research_setting_versions.setting_key",
+                "deep_research_setting_versions.version_number",
+            ],
+        ),
+        Index("ix_dr_setting_approvals_key", "organization_id", "setting_key", "approval_id"),
     )
 
 

@@ -280,3 +280,35 @@ def test_no_composition_can_hand_the_ai_runtime_a_producer(
             build=build,
             producers={FieldworkSource.AI_RUNTIME: lambda spec: None},  # type: ignore[arg-type,return-value]
         )
+
+
+def test_a_changed_engine_is_not_handed_the_previous_engines_map(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reuse is by input fingerprint; the engine's version is part of it.
+
+    Engine 1.2.0 stopped placing straight-liners (plan sociomap-formula-corrections,
+    chunk 1c). Without the version in the fingerprint, a newer build would get the
+    map the previous engine drew for the same dataset and spec back from storage.
+    """
+    from aia_core.domain.research_design import compile_design
+    from aia_executors import research as research_module
+
+    spec, problems = compile_design(
+        {
+            "n": 40,
+            "sections": [
+                {
+                    "type": "object_battery",
+                    "object_family": "značky",
+                    "objects": ["A", "B", "C"],
+                    "scale": [1, 10],
+                }
+            ],
+        }
+    )
+    assert spec is not None, problems
+    before = research_module._sociomap_fingerprint("dataset-sha", spec)
+    assert research_module._sociomap_fingerprint("dataset-sha", spec) == before
+    monkeypatch.setattr(research_module, "ENGINE_IMPLEMENTATION_VERSION", "9.9.9")
+    assert research_module._sociomap_fingerprint("dataset-sha", spec) != before

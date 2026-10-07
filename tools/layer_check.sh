@@ -210,6 +210,23 @@ forbid "executors never touch the prompt tables" \
   'Prompt(Version|Activation)Row' \
   "$EXECUTORS"
 
+# Deep Research's policy values are data an Admin approves (ADR 0022). Their rows are written
+# and read only through their repository, which validates every value against the catalogue,
+# refuses anyone who may not administer, keeps versions immutable and audits every change.
+forbid "the Deep Research settings tables are touched only by their repository" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$CORE" \
+  tables.py deep_research_settings_repository.py
+forbid "the API never touches the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$API"
+forbid "the worker never touches the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$WORKER"
+forbid "executors never touch the Deep Research settings tables" \
+  'DeepResearchSetting(Version|Approval)Row' \
+  "$EXECUTORS"
+
 # Fan-out's shared state (Deep Research chunk 21): one request per host at a time and at
 # most N model requests in flight, across every worker process. Written in short
 # transactions of their own by one module; a write anywhere else -- inside an attempt's
@@ -326,6 +343,16 @@ forbid "the Deep Research domain never writes a design or a research run's resul
 forbid "the Deep Research service never writes a design or a research run's results" \
   "$DR_WRITES" \
   "$CORE/application/deep_research.py"
+# A Design Research proposal becomes a design only through a person's accept
+# (ADR 0021 decision 1, ADR 0019 gate 1; deep-research-web-search.md chunk 29):
+# ``apply_to_design`` is called by the accept service and nowhere else.
+forbid "only the person's accept applies a Design Research proposal to a design" \
+  'apply_to_design' \
+  "$CORE" \
+  design_research.py design_proposals.py
+forbid "no executor, worker or route applies a Design Research proposal itself" \
+  'apply_to_design' \
+  apps
 # The focused crawler (plan chunk 17) reaches the web only through the retrieval
 # gate it is given: classified, egress-checked, reserved, journaled, robots.txt and
 # pacing kept by the gate's transport. An import of infrastructure or of an HTTP

@@ -17,6 +17,13 @@ Two deliberate departures from the reference, both fail-closed:
 
 Standard deviations use the **population** divisor (``/ n``), as the reference
 does in both functions.
+
+The audit *NPC Sociomapa: faulty formulas in the code* (F8) replaces the
+classic score: :func:`primary_scores` computes **alignment** and
+**connectedness** over the PRIMARY objects, from each pair's signed correlation
+and its status (F3), with UNKNOWN pairs left out. The classic score and its
+T-score stay, by name, for ``aia-sociomap-1`` (plan
+``sociomap-formula-corrections``, chunk 1b).
 """
 
 from __future__ import annotations
@@ -26,21 +33,32 @@ import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Any, Final
+
+from .relations import PairStatus
 
 __all__ = [
+    "AUDIT_PROVISIONAL_DEFAULT_HEIGHT",
     "METRIC_BOUNDS",
     "NORMALIZATION_LABELS_CS",
+    "PRIMARY_SCORE_RULE",
     "TSCORE_ZERO_VARIANCE",
     "ZERO_VARIANCE_EPSILON",
     "NormalizationMode",
     "Normalizer",
     "ObjectMetric",
+    "ObjectRole",
+    "PrimaryObjectScore",
+    "PrimaryScores",
     "UnknownMetricBounds",
+    "alignment",
     "bounds_for",
     "build_normalizer",
+    "connectedness",
     "object_metric",
     "object_rating_summaries",
     "population_mean_sd",
+    "primary_scores",
     "relation_classic",
     "tscore",
 ]
@@ -289,3 +307,245 @@ def object_metric(
     if chosen is ObjectMetric.RELATION_CLASSIC:
         return classic
     return tscore(classic)
+
+
+# ------------------------------------------- alignment and connectedness (F8) --
+#
+# Audit F8: the classic score sum_j (s_ij + s_ji) over the 1-10 strengths is
+# mostly the constant 11 (m - 1), opposite relations cancel in it, a pair nobody
+# measured counts as a medium one (5.5), and a context object added to the set
+# reshuffles the ranking. Its replacement is two scores over the PRIMARY objects
+# only, read from the signed correlation and the pair's status (F3):
+#
+#     A_i = (1 / k_i) sum_{j in P, j != i, known} r_ij        in [-1, 1]
+#     K_i = (1 / k_i) sum_{j in P, j != i, known} |r_ij|      in [0, 1]
+#
+# The audit writes the denominator as m_P - 1 and leaves UNKNOWN pairs out of
+# both sums. With a fixed denominator, leaving a pair out of the sum is scoring
+# it 0 -- "not connected" -- which is unknown scored as a value (ARCHITECTURE A4,
+# CLAUDE.md § 8). AIA's reading, recorded in the evidence register's AUDIT-F8 and
+# put to the audit's author with Q7: k_i counts i's *known* PRIMARY pairs
+# (m_P - 1 minus i's UNKNOWN ones), and an object with none is unscored (None).
+
+
+class ObjectRole(StrEnum):
+    """An object's part in the scores (audit F8). AIA has no object manager yet.
+
+    The caller declares every object's role; nothing defaults to PRIMARY, so a
+    context object can never enter a PRIMARY score by being left undeclared.
+    """
+
+    #: A main object of the family: scored, and the only kind that scores others.
+    PRIMARY = "primary"
+    #: A context object: drawn for orientation, never in a PRIMARY score.
+    SECONDARY = "secondary"
+
+
+#: The default object height the audit proposes (F8: "mean rating, pending Q7").
+#: The audit's provisional value, not AIA's decision: spec contract v3 (chunk 2d)
+#: declares it; ``aia-sociomap-1`` keeps the classic T-score.
+AUDIT_PROVISIONAL_DEFAULT_HEIGHT: Final = ObjectMetric.MEAN_RATING
+
+#: The rule :func:`primary_scores` applies, recorded on every result.
+PRIMARY_SCORE_RULE: Final = "audit-f8-known-primary-pairs-v1"
+
+_PRIMARY_SCORE_RULE_TEXT: Final = (
+    "audit F8: alignment = mean signed r, connectedness = mean |r|, over i's PRIMARY "
+    "partners whose pair is not UNKNOWN (F3); UNKNOWN pairs are out of the sums and "
+    "the denominator; an object with no known pair is unscored; SECONDARY objects "
+    "never enter a PRIMARY score. The denominator reading is AIA's, put to the "
+    "audit's author with Q7"
+)
+
+
+@dataclass(frozen=True, slots=True)
+class PrimaryObjectScore:
+    """One PRIMARY object's two scores and what they were computed over.
+
+    ``known_pairs`` is the denominator ``k_i``; ``unknown_partners`` are the
+    PRIMARY objects whose pair with this one is UNKNOWN and was left out. Both
+    scores are ``None`` when ``known_pairs`` is 0: nothing is known, so nothing
+    is scored.
+    """
+
+    object_id: str
+    alignment: float | None
+    connectedness: float | None
+    known_pairs: int
+    unknown_partners: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PrimaryScores:
+    """Alignment and connectedness of every PRIMARY object (audit F8).
+
+    ``scores`` follows ``primary``'s order; SECONDARY objects have no entry.
+    ``excluded_pairs`` are the unordered PRIMARY pairs left out as UNKNOWN.
+    """
+
+    rule: str
+    primary: tuple[str, ...]
+    secondary: tuple[str, ...]
+    scores: tuple[PrimaryObjectScore, ...]
+    excluded_pairs: tuple[tuple[str, str], ...]
+
+    def alignment(self) -> dict[str, float | None]:
+        """``A_i`` by object id."""
+        return {s.object_id: s.alignment for s in self.scores}
+
+    def connectedness(self) -> dict[str, float | None]:
+        """``K_i`` by object id."""
+        return {s.object_id: s.connectedness for s in self.scores}
+
+    def to_payload(self) -> dict[str, Any]:
+        """A JSON-ready body: the scores, their denominators and the rule."""
+        return {
+            "rule": self.rule,
+            "rule_text": _PRIMARY_SCORE_RULE_TEXT,
+            "primary": list(self.primary),
+            "secondary": list(self.secondary),
+            "objects": [
+                {
+                    "id": s.object_id,
+                    "alignment": s.alignment,
+                    "connectedness": s.connectedness,
+                    "known_pairs": s.known_pairs,
+                    "unknown_partners": list(s.unknown_partners),
+                }
+                for s in self.scores
+            ],
+            "excluded_pairs": [list(p) for p in self.excluded_pairs],
+        }
+
+
+def _roles(object_ids: Sequence[str], roles: Mapping[str, ObjectRole | str]) -> list[ObjectRole]:
+    ids = list(object_ids)
+    if len(set(ids)) != len(ids):
+        raise ValueError("object ids must be unique")
+    unknown = sorted(set(roles) - set(ids))
+    if unknown:
+        raise ValueError(f"roles name objects the matrix does not have: {unknown!r}")
+    undeclared = [oid for oid in ids if oid not in roles]
+    if undeclared:
+        raise ValueError(
+            f"every object's role must be declared; nothing defaults to PRIMARY: {undeclared!r}"
+        )
+    out: list[ObjectRole] = []
+    for oid in ids:
+        try:
+            out.append(ObjectRole(roles[oid]))
+        except ValueError:
+            raise ValueError(f"object {oid!r} has an unknown role {roles[oid]!r}") from None
+    return out
+
+
+def _square_of(matrix: Sequence[Sequence[Any]], m: int, name: str) -> None:
+    if len(matrix) != m or any(len(row) != m for row in matrix):
+        raise ValueError(f"{name} must be a {m} x {m} matrix over the object ids")
+
+
+def _known_r(value: Any, a: str, b: str) -> float:
+    if (
+        value is None
+        or isinstance(value, bool)
+        or not isinstance(value, int | float)
+        or not math.isfinite(value)
+        or not -1.0 <= value <= 1.0
+    ):
+        raise ValueError(
+            f"pair ({a!r}, {b!r}) is not UNKNOWN, so its correlation must lie in [-1, 1]; "
+            f"got {value!r}"
+        )
+    return float(value)
+
+
+def _status(value: Any, a: str, b: str) -> PairStatus:
+    if value is None:
+        raise ValueError(f"pair ({a!r}, {b!r}) has no status")
+    try:
+        return PairStatus(value)
+    except ValueError:
+        raise ValueError(f"pair ({a!r}, {b!r}) has an unknown status {value!r}") from None
+
+
+def primary_scores(
+    object_ids: Sequence[str],
+    r: Sequence[Sequence[float | None]],
+    status: Sequence[Sequence[PairStatus | str | None]],
+    roles: Mapping[str, ObjectRole | str],
+) -> PrimaryScores:
+    """Alignment ``A_i`` and connectedness ``K_i`` of every PRIMARY object (audit F8).
+
+    ``r`` and ``status`` are square over ``object_ids``: each pair's signed
+    correlation and its :class:`~.relations.PairStatus`, as
+    ``research_sociomap.derive_pair_relations`` returns them. ``roles`` declares
+    every object PRIMARY or SECONDARY; an undeclared or unknown id is refused.
+
+    Only PRIMARY x PRIMARY cells are read. An UNKNOWN pair's number is never
+    read; a RELIABLE or WEAK pair must carry a correlation in [-1, 1], and the
+    two halves of every PRIMARY pair must agree. SECONDARY rows and columns are
+    not read at all, so a context object cannot move a PRIMARY score.
+    """
+    ids = list(object_ids)
+    declared = _roles(ids, roles)
+    m = len(ids)
+    _square_of(r, m, "r")
+    _square_of(status, m, "status")
+    primary = [k for k in range(m) if declared[k] is ObjectRole.PRIMARY]
+
+    known: dict[tuple[int, int], float] = {}
+    excluded: list[tuple[str, str]] = []
+    for x, i in enumerate(primary):
+        for j in primary[x + 1 :]:
+            a, b = ids[i], ids[j]
+            pair = _status(status[i][j], a, b)
+            if pair is not _status(status[j][i], b, a):
+                raise ValueError(f"pair ({a!r}, {b!r}) has two statuses")
+            if pair is PairStatus.UNKNOWN:
+                excluded.append((a, b))
+                continue
+            value = _known_r(r[i][j], a, b)
+            if _known_r(r[j][i], b, a) != value:
+                raise ValueError(f"pair ({a!r}, {b!r}) has two correlations")
+            known[(i, j)] = known[(j, i)] = value
+
+    scores: list[PrimaryObjectScore] = []
+    for i in primary:
+        values = [known[(i, j)] for j in primary if j != i and (i, j) in known]
+        k = len(values)
+        scores.append(
+            PrimaryObjectScore(
+                object_id=ids[i],
+                alignment=math.fsum(values) / k if k else None,
+                connectedness=math.fsum(abs(v) for v in values) / k if k else None,
+                known_pairs=k,
+                unknown_partners=tuple(ids[j] for j in primary if j != i and (i, j) not in known),
+            )
+        )
+    return PrimaryScores(
+        rule=PRIMARY_SCORE_RULE,
+        primary=tuple(ids[k] for k in primary),
+        secondary=tuple(ids[k] for k in range(m) if declared[k] is ObjectRole.SECONDARY),
+        scores=tuple(scores),
+        excluded_pairs=tuple(excluded),
+    )
+
+
+def alignment(
+    object_ids: Sequence[str],
+    r: Sequence[Sequence[float | None]],
+    status: Sequence[Sequence[PairStatus | str | None]],
+    roles: Mapping[str, ObjectRole | str],
+) -> dict[str, float | None]:
+    """``A_i`` of every PRIMARY object, ``None`` where it has no known pair (audit F8)."""
+    return primary_scores(object_ids, r, status, roles).alignment()
+
+
+def connectedness(
+    object_ids: Sequence[str],
+    r: Sequence[Sequence[float | None]],
+    status: Sequence[Sequence[PairStatus | str | None]],
+    roles: Mapping[str, ObjectRole | str],
+) -> dict[str, float | None]:
+    """``K_i`` of every PRIMARY object, ``None`` where it has no known pair (audit F8)."""
+    return primary_scores(object_ids, r, status, roles).connectedness()

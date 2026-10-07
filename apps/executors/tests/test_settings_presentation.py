@@ -11,13 +11,16 @@ claim nobody checked.
 
 from __future__ import annotations
 
+import dataclasses
 import re
 from pathlib import Path
 from typing import Any
 
 import aia_executors.ai_runtime as runtime
+import aia_executors.deep_research_runtime as dr_runtime
 import pytest
 from aia_executors.ai_runtime import AIRuntimeSettings
+from aia_executors.deep_research_runtime import deep_research_runtime
 
 settings_router: Any = pytest.importorskip(
     "aia_api.routers.settings", reason="the settings document lives in apps/api"
@@ -93,7 +96,9 @@ def test_every_capability_the_worker_binds_belongs_to_an_activity_the_page_lists
 
 
 def test_every_switch_the_page_names_is_read_by_the_worker_and_handed_to_the_web() -> None:
-    source = Path(runtime.__file__).read_text(encoding="utf-8")
+    source = "".join(
+        Path(module.__file__).read_text(encoding="utf-8") for module in (runtime, dr_runtime)
+    )
     compose = (ROOT / "deploy" / "develop" / "docker-compose.yml").read_text(encoding="utf-8")
     worker = compose.split("\n  worker:\n", 1)[1].split("\n  legacy-panel:", 1)[0]
     web = compose.split("\n  web:\n", 1)[1].split("\n  api:\n", 1)[0]
@@ -117,7 +122,12 @@ def test_the_master_switch_is_read_first_and_a_refused_switch_stops_the_whole_wo
     """The rule the page states (apps/web/src/lib/ai-runtime.ts), as the worker keeps it."""
     described = _described()
     master = described.switch
-    others = {s for a in described.activities for s in a.switches} - {master}
+    # The strict switches are Deep Research's, read by its own composition (the next test).
+    others = (
+        {s for a in described.activities for s in a.switches}
+        - {master}
+        - set(described.strict_switches)
+    )
     assert master == "AIA_AI_RUNTIME_ENABLED" and others
     # Off: nothing else is read, so nothing else can be wrong, and nothing runs.
     for other in others:
@@ -130,6 +140,74 @@ def test_the_master_switch_is_read_first_and_a_refused_switch_stops_the_whole_wo
     for other in others:
         with pytest.raises(runtime.AIRuntimeConfigError):
             AIRuntimeSettings.from_env({**_ENV, other: "maybe"})
+
+
+class _Signer:
+    def sign(self, *, method: str, url: str, headers: Any, body: bytes) -> dict[str, str]:
+        return dict(headers)
+
+
+class _NoTransport:
+    """Building the runtime sends nothing; a request here is a test failure."""
+
+    def send(self, *args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("the composition sent a request")
+
+
+def _compose(env: dict[str, str]) -> Any:
+    return deep_research_runtime(
+        AIRuntimeSettings.from_env(env), env=env, transport=_NoTransport(), signer=_Signer()
+    )
+
+
+def _needs(described: Any, switch: str) -> set[str]:
+    """Every switch named before ``switch`` by an activity that lists it (the page's rule)."""
+    return {
+        s
+        for a in described.activities
+        if switch in a.switches
+        for s in a.switches[: a.switches.index(switch)]
+    }
+
+
+def test_a_strict_switch_is_read_with_the_runtime_off_and_stops_the_worker_without_its_needs() -> (
+    None
+):
+    """What the page states for Deep Research's switches (apps/web/src/lib/ai-runtime.ts)."""
+    described = _described()
+    strict = described.strict_switches
+    assert strict
+    named = {s for a in described.activities for s in a.switches}
+    for switch in strict:
+        assert switch in named
+        needs = _needs(described, switch)
+        assert described.switch in needs
+        all_on = {**_ENV, **dict.fromkeys(needs | {switch}, "true")}
+        # Every need met: the composition builds.
+        assert _compose(all_on) is not None
+        # A refused value stops the worker even with the runtime off.
+        with pytest.raises(runtime.AIRuntimeConfigError):
+            _compose({described.switch: "false", switch: "maybe"})
+        # On without any one of its needs: the worker does not start.
+        for need in needs:
+            with pytest.raises(runtime.AIRuntimeConfigError):
+                _compose({**all_on, need: "false"})
+
+
+def test_the_lead_activity_binds_its_capability_exactly_when_its_switches_are_on() -> None:
+    described = _described()
+    lead = next(a for a in described.activities if "RESEARCH_LEAD" in a.capabilities)
+    on = {**_ENV, **dict.fromkeys(lead.switches, "true")}
+    composed = _compose(on)
+    assert composed is not None and composed.config.lead is True
+    without = {**on, lead.switches[-1]: "false"}
+    assert _compose(without).config.lead is False
+    # What the composition turns on (research_lead_enabled) binds exactly the lead's entry.
+    settings = AIRuntimeSettings.from_env(on)
+    assert settings is not None
+    document = dataclasses.replace(settings, research_lead_enabled=True).model_document()
+    bound = {c for policy in document["policies"] for c in policy["bindings"]}
+    assert bound - _bound(on)[1] == set(lead.capabilities)
 
 
 def test_the_worker_signs_with_the_host_role_and_no_key_exists() -> None:
