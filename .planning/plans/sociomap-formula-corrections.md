@@ -2,7 +2,7 @@
 status: planned
 chunks:
   - "[ ] 0a. The audit's sixteen rules in the evidence register, DOCUMENTED; its checks C1-C16 and P4-P14 as fixtures"
-  - "[ ] 0b. Owner decisions: Q5, Q6, Q7 from the audit; F2 against RTS-O1; the kernel width on the fixed ruler; one object-map method; R smacof against pure Python"
+  - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
   - "[ ] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[ ] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
@@ -35,8 +35,17 @@ towards the SOMECS / RTS method (the H-Model). This plan is about a different do
 of the **18.6.6 unit's** Sociomapa pipeline -- `visualization_lab.py`, `sociomap.py`,
 `ui_app.html` -- which AIA ported as `aia-sociomap-1`. The audit never mentions SOMECS, the
 H-Model or the fuzzy matrix; the engine plan never had the formulas the audit now supplies. Where
-the two agree and where they collide is in § 4; the owner's first decision (0b) is whether AIA
-carries one object-map method or two.
+the two agree and where they collide is in § 4.
+
+**Canonical.** The owner stated on 2026-10-07 that these two PDFs are *the* canonical
+methodology document and that **no prior decision overrides them**. So: where this repository
+disagrees with the audit -- the four `AIA_SOCIOMAP_V1` declarations (D6 package), the evidence
+register's RTS / SOMECS rules, the engine plan's M-questions, the fixtures that pin the ported
+formulas -- the audit wins and the other is stale until a docs PR says so. The audit is a
+specification of the panel pipeline (F1-F15) and of the research module's preference map (F16);
+the SOMECS H-Model path (B below) is not in it and is therefore not canonical. What the audit
+leaves open by its own words (Q5, Q6, Q7, the F10 threshold, the untested F16 fit) stays open and
+is its author's to answer, not ours to infer.
 
 ## 1. What the audit is, and what it is not
 
@@ -111,35 +120,28 @@ ported *on purpose* for parity with the unit and pinned by a golden fixture (F1,
 F8 under `fixtures/sociomap/`). The audit does not make those fixtures wrong: they prove the port
 is exact. It makes the ported method unapproved, which it already is (D6).
 
-## 4. Conflicts and open questions for the owner (chunk 0b)
+## 4. What the canonical rule settles, and what stays open (chunk 0b)
 
-1. **One object-map method or two.** Path A's successor under this audit places objects by
-   metric SMACOF on δ = sqrt(2(1 − r̃)) with Stress-1 (F6, F7). Path B places them by a rank fit
-   whose SOMECS objective is unknown (M2). The audit's method is fully specified and testable;
-   the H-Model's is not yet. *Proposal:* build the audit's stages as `aia-sociomap-2`, keep B
-   experimental until E1/E5 and M2 settle, and let the owner retire one. Both stay
-   `INTERNAL_ONLY` / `EXPERIMENTAL_AIA`; the client gate (OI-17) does not move.
-2. **F2 against RTS-O1.** The register reproduces RTS's object relation as plain Pearson on
-   scale-normalised answers; the audit says per-person min-max first, and chose it on 22-09-2026
-   over per-family normalisation (audit § 12 F2), with Q5 still open. The engine plan measured
-   that row normalisation changes r and refused the combination as undocumented. One rule must
-   win for AIA's object map; the fixture from E3 or the audit's `[C1]` decides nothing by itself.
-3. **The kernel width on the fixed ruler.** F6 fixes one map unit (δ ∈ [0, 2]); F12's hill keeps
-   σ in map units but the audit's σ = 12 is in the unit's ±62 frame. On the fixed ruler σ must be
-   restated (the respondent density kernel's 9.5 likewise), or the terrain is again scaled by the
-   frame. Not in the audit; needed before 4b.
-4. **Joint fit or two stages.** The audit's F6 + F10 is objects first, people against fixed
-   objects. A's unfolding fits both at once from ratings alone and uses the relation matrix only
-   for heights (OI-14). If the owner takes F6 + F10, `aia_rowcond_unfolding_v1` becomes the
-   comparison alternative and F16's slope/intercept applies only if the joint fit survives.
-5. **R smacof or pure Python.** The audit's preferred route for F16 is R `smacof::unfolding`
-   with Python as a fallback. `ARCHITECTURE.md` § 2 and the engine's reason for existing
-   (bit-identical on every host) say the opposite. *Proposal:* implement in pure Python, pin to
-   an R-produced fixture at a stated tolerance after Procrustes (the recipe OI-15 already asks
-   for), and record the tolerance on the artifact. That needs a host with CRAN once.
-6. **The audit's own Q5, Q6, Q7**, and the F10 misfit threshold, which it does not give.
-7. **The SECONDARY rule** (F8: context objects never enter PRIMARY scores or terrain) binds AIA's
-   object manager before it exists (engine doc § 12 lists it as not started).
+Before the owner's statement these were seven questions. The rule answers five of them; the
+plan records the answers so nobody re-litigates them.
+
+| # | Question as first raised | Settled by the canonical rule | Still open |
+| --- | --- | --- | --- |
+| 1 | One object-map method or two | **The audit's method is AIA's object map**: SMACOF on δ = sqrt(2 (1 − r̃)) with Stress-1 (F6, F7). Path B's H-Model is not in the audit; it stays `EXPERIMENTAL_AIA`, for comparison only, until retired. The engine plan's M2 is moot for the object map | -- |
+| 2 | F2 against register rule RTS-O1 | **F2 wins**: per-person min-max over all rated items, straight-liners excluded, then Pearson. RTS-O1 (plain Pearson on column-scaled answers) and the engine plan's refusal of row normalisation are stale for AIA's object map; the measured change in r (−0.620 → −0.426) is the habit being removed, not a reason to refuse | Q5 (co-movement vs "rated alike"), the audit's own open question |
+| 3 | The kernel width on the fixed ruler | Not in the audit: F12 keeps σ = 12 of the unit's ±62 frame, F6 fixes one map unit (δ ∈ [0, 2]) | **Open, to the audit's author**: σ for the object envelope and 9.5 for the respondent density, restated in the fixed ruler's units; until then 4b cannot land |
+| 4 | Joint fit or two stages | **Two stages** (F6 then F10): objects from the relation map, respondents as ideal points against the fixed objects, with misfit e_k. `aia_rowcond_unfolding_v1` is retired to a comparison alternative for the panel map. F16 is a separate product in the audit (the research module's preference map, `sociomap.py`); its replacement applies there, chunk 4c | the F10 misfit threshold (not given) |
+| 5 | R smacof or pure Python | The audit's route for F16 is R `smacof::unfolding`, Python "a test fallback only". That is the canonical preference. `domain/` staying pure Python is an engineering constraint, not a methodology decision, and the two are compatible: an R adapter in `infrastructure/` (failing closed when R is absent, OI-15's recipe) with the pure-Python fit as the test fallback the audit allows | the tolerance at which the Python fallback must agree with R, and whether the develop host carries R -- engineering, 0b |
+| 6 | The audit's Q5, Q6 (final N_min), Q7 (default terrain height) | -- | **Open, to the audit's author.** Until answered: N_min = 30 as the audit's working value (F3 says "≈ 30"), mean rating as the default height (F8 says "pending Q7") -- both recorded as the audit's provisional values, not AIA's |
+| 7 | The SECONDARY rule (F8) | **Binds**: context objects never enter PRIMARY scores or terrain. AIA's object manager does not exist yet; the rule is written into chunk 1b's contract now so it is there when it does | -- |
+
+**What becomes stale by this rule, and where it is said.** The D6 package's four
+declarations: § 1 target (the audit's δ is equivalent, so it survives as F16's), § 2 layout
+(replaced for the panel map by F6 + F10), § 3 frame (rejected by F6), § 4 missing policy
+(replaced by F3's pair status; `refuse` survives as the behaviour for a cell below N_min that
+no spec declares otherwise). The register's RTS-O1 for AIA's object map. The engine plan's M2,
+M4, M6, M8 for the object map (answered by F7, F12, F7, F14). All of it goes through the docs
+PR (§ 9); this plan edits none of those files.
 
 ## 5. Approach
 
@@ -148,7 +150,8 @@ stay the baseline until an approved replacement exists), and the way D6's packag
 (**REPLACE** → a new declared method with a new `methodology_version`,
 `sociomapa-methodology-decision.md` § 5):
 
-- **A new preset, not edits to the old one.** `aia-sociomap-2` on spec contract v3. Every
+- **A new preset, not edits to the old one.** `aia-sociomap-2` on spec contract v3, the
+  canonical method; `aia-sociomap-1` and path B stay only as named comparison alternatives. Every
   replacement is a new enum member beside the legacy one (`PairStatusRule`,
   `RelationScaleCoercion.DECLARED_*`, `DissimilarityTarget.CORRELATION_DISTANCE`,
   `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1`, `MapFrameMethod.FIXED_RULER`,
@@ -216,9 +219,11 @@ stay as they are, because v1 stays what it is.)
   implemented rule pointing at code and a test. Ask the owner for `code_formula_checks.py` and
   its printed `[C*]` / `[P*]` outputs; vendor them under
   `packages/aia_core/tests/fixtures/sociomapping_sources/` as the audit's fixtures.
-- **0b.** The seven items of § 4, answered in writing by the owner and recorded in
-  `sociomapa-methodology-decision.md` v2 (docs PR). Until 1 is answered, chunks 1-4 build
-  `aia-sociomap-2` beside B; nothing waits on 2-7 except 2a (F2 rule), 2b/4b (σ) and 4c.
+- **0b.** Record the canonical rule and the five settled answers of § 4 in
+  `sociomapa-methodology-decision.md` v2 (docs PR). Put the open items to the audit's author
+  in one note: Q5, Q6, Q7, the F10 misfit threshold, σ on the fixed ruler. Settle the R seam
+  with engineering (tolerance, host). Nothing waits on 0b except 4b (σ) and 4c's tolerance;
+  Q6 and Q7 run on the audit's provisional values until answered.
 - **1a.** `relations.py`: `pair_status(r, n, n_min)` → UNKNOWN / RELIABLE / WEAK with the Fisher-z
   interval; `research_sociomap.derive_relation_matrix` gains a variant that returns signed r,
   N_ij and status per pair (the 1-10 mapping and the 5.5 stamp stay only in the legacy variant).
@@ -253,10 +258,13 @@ stay as they are, because v1 stays what it is.)
 - **4b.** `terrain.py`: `TerrainMode.OBJECT_ENVELOPE`, z(q) = max_j h_j exp(−d² / 2σ²) with σ in
   the v2 ruler's units (0b item 3); a test that no module outside the engine sums or averages
   hills (grep-level, like `layer_check`).
-- **4c.** `layout.py`: `aia_rowcond_unfolding_v2` with slope and intercept per respondent and the
-  penalty, **or** v1 retired to a comparison alternative if 0b item 4 picks F6 + F10. Either way:
-  the recovery test on planted ideal points the audit asks for, and the R fixture of OI-15 as the
-  parity gate at a stated tolerance.
+- **4c.** The research module's preference map (F16, the audit's separate product): targets
+  δ_kj = (s_max − a_kj) / (s_max − s_min), per-respondent slope b_k and intercept c_k, straight-
+  liners out, the anti-degeneracy penalty as in `smacof::unfolding`; R `smacof` through an
+  adapter in `infrastructure/` (fails closed without R), the pure-Python
+  `aia_rowcond_unfolding_v2` as the test fallback, pinned to the R fixture of OI-15 at the
+  tolerance 0b sets; the recovery test on planted ideal points the audit asks for. For the panel
+  map, v1 is retired to a comparison alternative (§ 4 item 4).
 - **4d.** With sociomapping-engine chunk 8: `regions.py` tests only variables outside the
   positioning set, labels the rest "differs by construction", Holm at 0.05, d with its interval
   first, h for categories; the "main differences" ranking by |d| and |h|. Every p-value and
@@ -282,8 +290,13 @@ Order: 0a → 1a → 1b → 1c → 2a → 2b → 2c → 2d → 3 → 4a → 4b �
 - `docs/architecture/sociomapa-methodology-decision.md` v2: the four v1 declarations re-read
   against the audit (§ 3 frame: the audit rejects it; § 1 target: the audit's δ is equivalent),
   the § 4 questions with the owner's answers, `aia-sociomap-2` as the decision's subject.
-- `.planning/overview.md`: D6 reframed to "approve `aia-sociomap-2`"; M4, M6, M8 noted as
-  answered for AIA's object map by F12, F7, F14 pending the owner.
+- `.planning/overview.md`: the canonical rule as a decision row (the audit overrides every prior
+  Sociomap decision); D6 reframed to "approve `aia-sociomap-2`"; M2, M4, M6, M8 marked answered
+  for AIA's object map by the audit (F6/F7, F12, F7, F14).
+- `.planning/plans/sociomapping-engine.md` (its own PR, never this one): path B demoted to a
+  comparison alternative; M2, M4, M6, M8 closed for the object map; chunk 8 to take F14/F15.
+- `docs/migration/sociomapping-evidence-register.json`: RTS-O1 and the RTS / SOMECS rules marked
+  as not canonical for AIA's object map; the audit's F-rules (chunk 0a) labelled CANONICAL.
 - `.planning/open-items.md`: the four findings of § 7 numbered; OI-13's "withheld" corrected;
   OI-15's recipe reused by chunk 4c.
 - `AGENTS.md`: nothing yet.
