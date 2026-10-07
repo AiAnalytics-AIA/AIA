@@ -37,6 +37,7 @@ from aia_core.application.deep_research import (
     RunSpecCorrupt,
     governed_record,
 )
+from aia_core.application.design_research import DesignResearchProposals
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.contracts import Channel
@@ -48,6 +49,7 @@ from aia_core.domain.deep_research.request_limits import (
     ModelPrices,
     kind_budgets,
 )
+from aia_core.domain.design import DesignRejected
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
@@ -59,7 +61,7 @@ from ..config import Settings
 from ..dependencies import ArtifactStoreDep, SessionDep, StudyScopeDep
 from ..schemas.projects import ErrorResponse
 from ..schemas.runs import RunEventResponse
-from .research import _cost_refused
+from .research import DesignRevisionResponse, _cost_refused, _revision
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -102,6 +104,16 @@ class DeepResearchRetry(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+
+
+class DesignProposalAccept(BaseModel):
+    """A person's accept of a Design Research proposal: the items taken, on which baseline."""
+
+    model_config = ConfigDict(extra="forbid")
+    item_ids: list[Annotated[str, Field(pattern=r"^DRP-[0-9a-f]{24}$")]] = Field(
+        min_length=1, max_length=500
+    )
+    expected_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
 
 
 class DeepResearchStep(BaseModel):
@@ -240,6 +252,10 @@ def _errors(session: SessionDep) -> Iterator[None]:
     except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
+        ) from exc
+    except DesignRejected as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
     except InterpretationNotReady as exc:
         raise HTTPException(
@@ -458,6 +474,50 @@ def provenance(
         return (
             DeepResearchRuns(session, scope).provenance(run_id, store=store).model_dump(mode="json")
         )
+    raise AssertionError("unreachable")
+
+
+@router.get("/runs/{run_id}/design-proposal", response_model=dict[str, Any])
+def design_proposal(
+    run_id: RunId, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """What a completed Design Research run proposes, from its own sealed bundle (chunk 29).
+
+    One item per subject: its accepted findings, or a gap. 409 ``proposal_not_ready`` before
+    the run completes, ``not_design_research`` for a legacy or interpretation run.
+    """
+    with _errors(session):
+        scope.require(Permission.EDIT_STUDY)
+        return (
+            DesignResearchProposals(session, scope)
+            .proposal(run_id, store=store)
+            .model_dump(mode="json")
+        )
+    raise AssertionError("unreachable")
+
+
+@router.post("/runs/{run_id}/design-proposal/accept", response_model=DesignRevisionResponse)
+def accept_design_proposal(
+    run_id: RunId,
+    body: DesignProposalAccept,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> DesignRevisionResponse:
+    """A person takes the chosen items into a new Design Revision (ADR 0019 gate 1).
+
+    Answers the revision with its content, for the working copy. 409 ``stale_proposal`` when
+    the expected revision is not the one the run researched or not the Study's newest,
+    ``inadmissible``, ``unknown_item``, ``block_too_large``; 403 without gate authority.
+    """
+    with _errors(session):
+        revision, created, content = DesignResearchProposals(session, scope).accept(
+            run_id,
+            item_ids=body.item_ids,
+            expected_revision_id=body.expected_revision_id,
+            store=store,
+        )
+        return _revision(revision, created=created, content=content)
     raise AssertionError("unreachable")
 
 

@@ -2161,6 +2161,74 @@ class WorkflowRepository:
         self._session.flush()
         return True
 
+    def record_design_research_acceptance(
+        self,
+        run_id: str,
+        *,
+        selection_id: str,
+        item_ids: list[str],
+        revision_id: str,
+        project_id: str,
+        project_revision: int,
+        artifact_id: str,
+    ) -> bool:
+        """Write a person's accept of a Design Research proposal, once per selection.
+
+        ADR 0019 gate 1 for Deep Research (``deep-research-web-search.md`` chunk 29), in the
+        same append-only ledger as an agent job's accept. A run proposes many items and a person
+        takes some of them, so the subject is the *selection*
+        (:func:`~aia_core.domain.deep_research.design_proposals.selection_id`), not the run; the
+        row also names the run, the items, the Design Revision written and the bundle artifact.
+        The caller records only an accept that wrote a new revision.
+
+        Needs ``APPROVE_GATE``, which the worker's scope does not hold. Returns ``False`` and
+        writes nothing when this selection is already recorded. The caller holds the Study row
+        lock (``StudyDesignRepository.submit_if_current``).
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        recorded = self._session.scalar(
+            select(ApprovalDecisionRow.decision_id).where(
+                ApprovalDecisionRow.study_id == self.scope.study_id,
+                ApprovalDecisionRow.subject_type == "design_research",
+                ApprovalDecisionRow.subject_id == selection_id,
+            )
+        )
+        if recorded is not None:
+            return False
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="design_research",
+                subject_id=selection_id,
+                run_id=run_id,
+                project_id=project_id,
+                project_revision=project_revision,
+                artifact_type="deep_research_bundle",
+                gate_type="design_research",
+                decision="accept",
+                comment=json.dumps(
+                    {
+                        "revision_id": revision_id,
+                        "item_ids": sorted(item_ids),
+                        "artifact_id": artifact_id,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+        return True
+
     # ------------------------------------------------------------ cancellation --
 
     def request_cancel(self, run_id: str, *, reason: str = "") -> WorkflowRunStatus:

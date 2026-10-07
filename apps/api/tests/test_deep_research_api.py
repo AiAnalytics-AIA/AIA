@@ -212,3 +212,38 @@ def test_an_interpretation_row_answers_interpretation_not_ready_and_starts_nothi
     retried = researcher.post(f"{run_url}/retry")
     assert retried.status_code == 409 and retried.json()["code"] == "interpretation_not_ready"
     assert [r["run_id"] for r in researcher.get(_url(world)).json()] == [started["run_id"]]
+
+
+def test_a_design_proposal_waits_for_the_run_and_its_accept_is_validated(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Chunk 29's routes: nothing to propose before the run completes; the accept's body is
+    checked before anything is read; under another study's path the run does not exist."""
+    revision = _revision(researcher, world)
+    started = researcher.post(
+        _url(world), json={"design_revision_id": revision, "preset_name": "QUICK"}
+    )
+    assert started.status_code == 201, started.text
+    run_url = f"{_url(world)}/{started.json()['run_id']}"
+    proposal = researcher.get(f"{run_url}/design-proposal")
+    assert proposal.status_code == 409 and proposal.json()["code"] == ("proposal_not_ready")
+    accept = {"item_ids": ["DRP-" + "0" * 24], "expected_revision_id": revision}
+    refused = researcher.post(f"{run_url}/design-proposal/accept", json=accept)
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "proposal_not_ready"
+    for body in (
+        {**accept, "item_ids": []},
+        {**accept, "item_ids": ["not-an-item"]},
+        {**accept, "expected_revision_id": "latest"},
+        {**accept, "extra": True},
+    ):
+        assert researcher.post(f"{run_url}/design-proposal/accept", json=body).status_code == 422
+    wrong_study = f"{_url(world, 'other_client')}/{started.json()['run_id']}"
+    assert other_client_lead.get(f"{wrong_study}/design-proposal").status_code == 404
+    assert (
+        other_client_lead.post(f"{wrong_study}/design-proposal/accept", json=accept).status_code
+        == 404
+    )
+    # Nothing was written: the design is still the one the run was started on.
+    revisions = researcher.get(f"{API}/studies/{world.study_id()}/design/revisions")
+    assert [r["revision_id"] for r in revisions.json()["items"]] == [revision]
