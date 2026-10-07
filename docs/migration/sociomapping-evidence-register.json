@@ -1597,9 +1597,40 @@
    ],
    "formula": "P* = SMACOF(delta, w; P_Torgerson), computed once in the backend; P_shown = argmin_{Q in rot/refl} ||P* Q - P_previous||_F (orthogonal Procrustes, no scaling), P_previous the map the user was just looking at (baseline, previous wave); every map shows its Stress-1 and a label: < 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable'",
    "applies_to": "every map shown or printed. AIA computes once and deterministically and stores stress_1 (engine.py:291); the label and the alignment layer are missing. For the object map this supersedes SOMECS-H3's accuracy as the fit shown.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map.",
+   "implementation": "aia_core.domain.sociomap.view:align_to_reference",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_every_stress_carries_the_audits_label",
+     "what": "< 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable' (p. 9)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_turned_map_is_turned_back_without_scaling",
+     "what": "the scenario jump (a quarter turn, +16 %) [C5]: the turn undone by rotation, the enlargement left visible (no scaling)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_mirrored_map_is_reflected_back",
+     "what": "Q ranges over rotations and reflections (eq. 16)"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_alignment_never_changes_the_layouts_distances_or_stress",
+     "what": "a view layer: every pairwise distance, and so Stress-1, is the layout's own; base and reference fingerprinted"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_new_object_is_turned_with_the_rest_and_does_not_steer_the_fit",
+     "what": "fitted on the common objects; an object in one map only is turned with the rest"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_two_maps_sharing_fewer_than_two_objects_are_not_aligned",
+     "what": "fewer than two common objects cannot fix a rotation: refused"
+    }
+   ],
+   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map. Landed in chunk 2c: view.stress_quality (the bands as StressQuality, the reader's words in STRESS_QUALITY_TEXT) and view.align_to_reference (rotation/reflection about the origin, fitted on the common objects; no translation, no scaling, as eq. 16 writes Q). The 'one layout' half is layout.fit_smacof_objects (2b). Neither is printed yet: the label reaches Results and the DOCX with the v2 map (chunk 5), not on aia-sociomap-1's unfolding stress, a different measure.",
    "resolve_by": "sociomap-formula-corrections chunk 2c",
    "question": null
   },

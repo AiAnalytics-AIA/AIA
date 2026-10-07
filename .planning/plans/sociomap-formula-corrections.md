@@ -9,7 +9,7 @@ chunks:
   - "[ ] 1d. Stage 1 -- the relationship-evidence policy Q6 decides: evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min) as two gates, each declared and recorded per pair (F3); after the Q6 decision"
   - "[x] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[x] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
-  - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
+  - "[x] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
   - "[ ] 2d. Spec v3 and the preset aia-sociomap-2; aia-sociomap-1 kept as the comparison alternative; artifact v3; the research step adapter"
   - "[ ] 3. Stage 3 -- the common 0-1 scale (F1); ideal-point placement against the object map, per-respondent misfit e_k and its flag (F10)"
   - "[ ] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
@@ -813,6 +813,13 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   `aia-sociomap-1` keeps its unfolding, `fit_smacof_objects` beside it on the fixed ruler, read by
   no preset until 2d; tests `test_the_map_is_never_stretched_to_a_radius`,
   `test_a_family_without_structure_keeps_its_size_and_says_so`.
+- From chunk 2c: `CLAUDE.md` map, `domain/sociomap/view.py` "drag overrides, view terrain,
+  scenarios (never write) F9" gains "; `align_to_reference` (audit F7: a map turned onto the
+  previous one by rotation/reflection only, a view) and `stress_quality` (the audit's Stress-1
+  label)". `sociomapa-deterministic-engine.md` § 8 a row -- reference: four layout copies that
+  disagree (the scenario view turns the map a quarter and enlarges it 16 %), no fit shown;
+  production: one layout (2b), aligned as a view, labelled; tests
+  `test_a_turned_map_is_turned_back_without_scaling`, `test_every_stress_carries_the_audits_label`.
 
 ## 10. Progress and review outcome
 
@@ -1036,4 +1043,28 @@ What it does not do: the plan's `DissimilarityTarget.CORRELATION_DISTANCE` and
 step read them; adding them now would let a v2 spec name a layout the v2 engine cannot run. No
 research body stores an object layout yet (2d), so `SOCIOMAP_VERSION` does not move. Results and
 the report show nothing new (chunk 5).
+
+### Chunk 2c -- one layout, aligned as a view, labelled (F7), 2026-10-07
+
+What landed, on `feature/sociomap-smacof-objects` (with 2b):
+
+- `domain/sociomap/view.py`: `stress_quality(stress_1)` -> `StressQuality` (GOOD < 0.05 <= FAIR
+  < 0.10 <= WEAK < 0.20 <= UNRELIABLE; each bound belongs to the band above it; a negative or
+  non-finite stress is refused, not labelled), with `STRESS_QUALITY_TEXT` holding the reader's words
+  ("2D picture unreliable"). `align_to_reference(points, reference)` -> `AlignedObjects`: eq. 16's
+  `argmin_Q ||P* Q - P_previous||` over rotations and reflections about the origin, fitted on the
+  objects both maps hold; no translation and no scaling (both maps come centred from the layout's
+  gauge, and Q is rotation/reflection as the audit writes it), so every distance and the Stress-1
+  are the layout's own. An object in one map only is turned with the rest; fewer than two common
+  objects are refused. `base` and `reference` fingerprint the two inputs: a view names what it
+  turned and never replaces it.
+- The existing `layout.procrustes_align` (parity comparisons) is unchanged: it centres both inputs
+  and may scale, which a reader's view must not.
+
+What it does not do: nothing prints the label yet. The plan's 2c line has it printed by the DOCX
+figure and Results, but the only map they draw is `aia-sociomap-1`'s unfolding, whose stress is
+over respondent x object cells -- a different measure from eq. 14's -- so labelling it with the
+audit's bands would be a reading the audit does not make. The label reaches the reader with the
+v2 map in chunk 5. No stored map is aligned to a previous wave until 2d stores object layouts
+and chunk 10 (engine plan) brings waves.
 

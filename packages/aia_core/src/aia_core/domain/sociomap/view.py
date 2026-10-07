@@ -25,6 +25,9 @@ Two product rules are implemented here as types rather than as discipline:
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -36,15 +39,21 @@ from .models import MetricValues, RelationMatrix, SociomapArtifact
 from .terrain import TerrainField
 
 __all__ = [
+    "STRESS_QUALITY_BANDS",
+    "STRESS_QUALITY_TEXT",
+    "AlignedObjects",
     "DisplayedMap",
     "Position",
     "RelationEdit",
     "ScenarioLayer",
     "ScenarioResult",
+    "StressQuality",
     "ViewOverrideMismatch",
     "ViewOverrides",
+    "align_to_reference",
     "apply_scenario",
     "apply_view_overrides",
+    "stress_quality",
     "view_terrain",
 ]
 
@@ -371,3 +380,114 @@ def apply_scenario(artifact: SociomapArtifact, layer: ScenarioLayer) -> Scenario
         object_metrics=metrics,
         object_terrain=terrain,
     )
+
+
+# ------------------------------------------- one layout, aligned, labelled (F7) --
+#
+# Audit F7 (p. 9, § 12 p. 24): the unit computed the layout four times with
+# different settings, so the same data gave different maps (opening the scenario
+# view turned the map a quarter and enlarged it), and no map said how far to trust
+# it. The replacement: one layout (layout.fit_smacof_objects), each new map aligned
+# to the one the reader was looking at by an orthogonal rotation or reflection --
+# no scaling -- as a view layer, and every map labelled by its Stress-1.
+
+
+class StressQuality(StrEnum):
+    """The audit's plain label for a map's Stress-1 (F7, eq. 16 note)."""
+
+    GOOD = "good"
+    FAIR = "fair"
+    WEAK = "weak"
+    #: "2D picture unreliable".
+    UNRELIABLE = "unreliable"
+
+
+#: The audit's thresholds: < 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 unreliable.
+STRESS_QUALITY_BANDS: tuple[tuple[float, StressQuality], ...] = (
+    (0.05, StressQuality.GOOD),
+    (0.10, StressQuality.FAIR),
+    (0.20, StressQuality.WEAK),
+)
+
+#: The audit's words for each label, as a reader sees them.
+STRESS_QUALITY_TEXT: dict[StressQuality, str] = {
+    StressQuality.GOOD: "good",
+    StressQuality.FAIR: "fair",
+    StressQuality.WEAK: "weak",
+    StressQuality.UNRELIABLE: "2D picture unreliable",
+}
+
+
+def stress_quality(stress_1: float) -> StressQuality:
+    """The label every map shows beside its Stress-1. A non-finite or negative value is
+    not a fit and is refused rather than labelled."""
+    if not math.isfinite(stress_1) or stress_1 < 0:
+        raise ValueError(f"Stress-1 is a finite non-negative number; got {stress_1!r}")
+    for bound, label in STRESS_QUALITY_BANDS:
+        if stress_1 < bound:
+            return label
+    return StressQuality.UNRELIABLE
+
+
+@dataclass(frozen=True, slots=True)
+class AlignedObjects:
+    """A map turned onto a reference map: a view of it, never a new layout (F7, eq. 16).
+
+    ``points`` are the input points rotated (and, if ``reflected``, mirrored) about the
+    origin by the angle that best matches the reference on the ``common`` objects; no
+    scaling and no translation, so distances -- and the Stress-1 -- are those of the
+    layout. ``rmsd`` is the remaining disagreement on the common objects, in map units.
+    ``base`` and ``reference`` fingerprint the two inputs, so a view names what it turned.
+    """
+
+    points: dict[str, Point]
+    common: tuple[str, ...]
+    angle: float
+    reflected: bool
+    rmsd: float
+    base: str
+    reference: str
+
+
+def align_to_reference(
+    points: Mapping[str, Point], reference: Mapping[str, Point]
+) -> AlignedObjects:
+    """``P_shown = argmin_{Q in rot/refl} ||P* Q - P_previous||_F`` over the common objects.
+
+    Both maps come from the layout's gauge (centred on their objects), and the audit's Q
+    is a rotation or reflection only, so nothing is translated or scaled. Objects in only
+    one map are turned with the rest and do not enter the fit. Fewer than two common
+    objects cannot fix a rotation and are refused.
+    """
+    common = tuple(sorted(set(points) & set(reference)))
+    if len(common) < 2:
+        raise ViewOverrideMismatch(
+            f"aligning needs at least two objects in both maps; they share {len(common)}"
+        )
+    best: AlignedObjects | None = None
+    for reflected in (False, True):
+        src = {k: ((x, -y) if reflected else (x, y)) for k, (x, y) in points.items()}
+        num = math.fsum(src[k][0] * reference[k][1] - src[k][1] * reference[k][0] for k in common)
+        dot = math.fsum(src[k][0] * reference[k][0] + src[k][1] * reference[k][1] for k in common)
+        theta = math.atan2(num, dot)
+        c, s = math.cos(theta), math.sin(theta)
+        turned = {k: (c * x - s * y, s * x + c * y) for k, (x, y) in src.items()}
+        rmsd = math.sqrt(
+            math.fsum(
+                (turned[k][0] - reference[k][0]) ** 2 + (turned[k][1] - reference[k][1]) ** 2
+                for k in common
+            )
+            / len(common)
+        )
+        if best is None or rmsd < best.rmsd - 1e-15:
+            best = AlignedObjects(
+                points=turned,
+                common=common,
+                angle=theta,
+                reflected=reflected,
+                rmsd=rmsd,
+                base=fingerprint({k: list(v) for k, v in sorted(points.items())}),
+                reference=fingerprint({k: list(v) for k, v in sorted(reference.items())}),
+            )
+    assert best is not None
+    return best
