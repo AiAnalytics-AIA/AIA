@@ -23,6 +23,8 @@ import pytest
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_design import ResearchSpecification, compile_design
 from aia_core.domain.research_sociomap import (
+    CONNECTEDNESS_RESAMPLES,
+    CONNECTEDNESS_SEED,
     D6_OPEN,
     PAIR_CONFIDENCE,
     MethodologyStatus,
@@ -35,7 +37,11 @@ from aia_core.domain.research_sociomap import (
     research_sociomaps,
 )
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
-from aia_core.domain.sociomap.metrics import PRIMARY_SCORE_RULE
+from aia_core.domain.sociomap.metrics import (
+    CONNECTEDNESS_100_RULE,
+    PRIMARY_SCORE_RULE,
+    RANK_WITH_TIES_RULE,
+)
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 
@@ -243,7 +249,7 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         assert obj["id"] == ids[i] and obj["known_pairs"] == m - 1
         assert obj["alignment"] == pytest.approx(sum(row) / (m - 1), abs=1e-12)
         assert obj["connectedness"] == pytest.approx(sum(map(abs, row)) / (m - 1), abs=1e-12)
-    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-4"
+    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-5"
 
 
 def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> None:
@@ -264,6 +270,13 @@ def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> Non
     assert first_score["known_pairs"] == 0 and first_score["unknown_partners"] == ids[1:]
     assert body["object_scores"]["excluded_pairs"] == [[ids[0], other] for other in ids[1:]]
     assert all(o["known_pairs"] == len(ids) - 2 for o in body["object_scores"]["objects"][1:])
+    # Unscored, so no K100 and no interval: unranked, never placed last (audit F9).
+    k100 = body["connectedness_100"]
+    first_k100 = k100["objects"][0]
+    assert first_k100["k100"] is None and first_k100["low"] is None
+    assert first_k100["high"] is None and first_k100["resamples_scored"] == 0
+    assert k100["ranking"]["unranked"] == [ids[0]]
+    assert [o["id"] for o in k100["ranking"]["objects"]] == ids[1:]
 
 
 def test_a_constant_column_has_no_correlation_rather_than_a_zero_one() -> None:
@@ -312,3 +325,26 @@ def test_pair_relations_refuse_a_ragged_matrix_or_a_diagonal_value() -> None:
         PairRelations.model_validate({**body, "n": [[3, 3, 3], [3, None, 3], [3, 3, None]]})
     with pytest.raises(ValueError, match="matrix like r"):
         PairRelations.model_validate({**body, "status": [[None, "weak"], ["weak", None]]})
+
+
+def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> None:
+    # Chunk 4a (audit F9): K100 = 100 K over r~, its 2.5 / 97.5 % interval over
+    # the declared respondent bootstraps and seed, the ranking those intervals
+    # allow; recomputed from the same dataset, bit-identical.
+    spec, dataset = _case("A01_full_questionnaire")
+    body = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)
+    k100 = body["connectedness_100"]
+    assert k100["rule"] == CONNECTEDNESS_100_RULE
+    assert (k100["resamples"], k100["seed"]) == (CONNECTEDNESS_RESAMPLES, CONNECTEDNESS_SEED)
+    assert CONNECTEDNESS_RESAMPLES == 500
+    assert k100["respondents"] == len(dataset.respondents)
+    scores = {o["id"]: o["connectedness"] for o in body["object_scores"]["objects"]}
+    for obj in k100["objects"]:
+        assert obj["k100"] == 100.0 * scores[obj["id"]]
+        assert obj["low"] <= obj["k100"] <= obj["high"], obj
+        assert obj["resamples_scored"] == CONNECTEDNESS_RESAMPLES
+    ranking = k100["ranking"]
+    assert ranking["rule"] == RANK_WITH_TIES_RULE and ranking["unranked"] == []
+    assert [o["id"] for o in ranking["objects"]] == [o["id"] for o in body["objects"]]
+    again = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)
+    assert again["connectedness_100"] == k100

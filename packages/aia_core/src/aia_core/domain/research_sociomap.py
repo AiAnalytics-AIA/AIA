@@ -19,7 +19,8 @@ PR C chunk 6. For each tracked object set of the specification:
    of the classic score (F8), over the PRIMARY objects with UNKNOWN pairs left
    out; every object of a tracked set is PRIMARY until AIA has an object
    manager (chunk 1b). Stored beside the map; the map's height is still the
-   preset's;
+   preset's. Beside them, connectedness on 0-100 with a respondent-bootstrap
+   interval and the order those intervals allow (audit F9, chunk 4a);
 4. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
    preset ``AIA_SOCIOMAP_V1`` adopted by name, with only the rating scale taken
    from the battery (a property of the data, recorded on the artifact).
@@ -45,7 +46,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecBattery
 from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
-from .sociomap.metrics import ObjectRole, primary_scores
+from .sociomap.metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ties
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.relations import (
     AUDIT_PROVISIONAL_N_MIN,
@@ -56,6 +57,8 @@ from .sociomap.relations import (
 )
 
 __all__ = [
+    "CONNECTEDNESS_RESAMPLES",
+    "CONNECTEDNESS_SEED",
     "D6_OPEN",
     "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
@@ -79,9 +82,12 @@ __all__ = [
 #: audit's alignment and connectedness (chunk 1b), so a body stored under ``2``
 #: (without them) is not reused as if it had them. ``4``: each set carries
 #: ``relation_rescaled``, every pair over each person's own 0-1 scale (audit F2,
-#: chunk 2a), and ``object_scores`` read it instead of the raw correlation. Not
-#: the engine preset (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-4"
+#: chunk 2a), and ``object_scores`` read it instead of the raw correlation.
+#: ``5``: each set carries ``connectedness_100``, the audit's F9 score with its
+#: bootstrap interval and the ranking with ties (chunk 4a), so a body stored under
+#: ``4`` (without them) is not reused as if it had them. Not the engine preset
+#: (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-5"
 #: How ``relation_rescaled`` was made, recorded on every body.
 RESCALE_RULE: Final = (
     "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
@@ -92,6 +98,12 @@ RESCALE_RULE: Final = (
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
 #: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE.
 PAIR_CONFIDENCE: Final = 0.95
+#: Audit F9's B ("e.g. 500"): respondent bootstraps behind each K100 interval.
+#: Declared here by name and recorded on every body; never shrunk silently.
+CONNECTEDNESS_RESAMPLES: Final = 500
+#: The bootstrap's seed (OI-62's generator), recorded on every body: the same
+#: dataset gives the same intervals on any host.
+CONNECTEDNESS_SEED: Final = 20261007
 
 #: PROGRESS D6: the four AIA Sociomap declarations await the methodology owner.
 #: Flipping this is a methodology decision recorded in PROGRESS, never a fix.
@@ -381,6 +393,29 @@ def battery_sociomap(
         dict.fromkeys(object_ids, ObjectRole.PRIMARY),
     )
 
+    def correlate(
+        multiplicities: Sequence[int],
+    ) -> tuple[tuple[tuple[float | None, ...], ...], tuple[tuple[PairStatus | None, ...], ...]]:
+        # A resample: each respondent's rescaled row taken as many times as drawn,
+        # as a weight multiple (the weighted Pearson of duplicated rows). The rows
+        # are rescaled once: each person's min-max is their own (F2).
+        drawn = derive_pair_relations(
+            rescaled,
+            [k * w for k, w in zip(multiplicities, weights, strict=True)],
+            n_min=AUDIT_PROVISIONAL_N_MIN,
+            confidence=PAIR_CONFIDENCE,
+        )
+        return drawn.r, drawn.status
+
+    k100 = connectedness_100(
+        object_ids,
+        dict.fromkeys(object_ids, ObjectRole.PRIMARY),
+        correlate,
+        respondents=len(rescaled),
+        resamples=CONNECTEDNESS_RESAMPLES,
+        seed=CONNECTEDNESS_SEED,
+    )
+
     low, high = battery.scale
     spec = AIA_SOCIOMAP_V1.model_copy(
         update={
@@ -437,6 +472,10 @@ def battery_sociomap(
             "status_counts": rescaled_pairs.counts(),
         },
         "object_scores": object_scores.to_payload(),
+        "connectedness_100": {
+            **k100.to_payload(),
+            "ranking": rank_with_ties(k100.intervals()).to_payload(),
+        },
         "sociomap": artifact.model_dump(mode="json"),
     }
 
