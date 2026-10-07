@@ -443,6 +443,34 @@ describe("Progress", () => {
     expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
   });
 
+  it("shows an orb beside every running step, as AI where a model thinks and as work where code runs", async () => {
+    api(listed(run({
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("preflight", "RUNNING"),
+        step("run", "RUNNING"),
+        step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+        step("analysis_executive", "RUNNABLE", { attempts_recorded: 0, started_at: null }),
+      ],
+    })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const orbs = [...list.querySelectorAll("li")].map((li) => {
+      const orb = li.querySelector<HTMLElement>("[data-orb]");
+      return [li.dataset.step, orb ? `${orb.dataset.orb}/${orb.dataset.orbInk}` : null];
+    });
+    // Preflight is code at work; AI fieldwork thinks; a queued or blocked step shows nothing.
+    expect(orbs).toEqual([["compile", null], ["preflight", "solving/running"], ["run", "listening/ai"], ["aggregate", null], ["analysis_executive", null]]);
+    for (const orb of list.querySelectorAll("[data-orb]")) expect(orb.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("shows no orb while fieldwork waits for the AI runtime", async () => {
+    api(listed(PARKED));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    expect(list.querySelector("[data-orb]")).toBeNull();
+  });
+
   it("shows the gate that parked fieldwork, so the banner's advice to check the step can be followed", async () => {
     const message = "AI respondenti nejsou pro tento výzkum povoleni: licence_undetermined. Běh čeká u sběru dat.";
     api(listed(parkedWith([

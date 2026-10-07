@@ -4,7 +4,8 @@
 // the phase, real elapsed time, the heartbeat, the provider, the cost it can
 // state (design brief §4.3). Cancel arms after five seconds, as the classic
 // progress() does, and asks first. The "AI úloha" badge (Studio v3) ties it to the
-// AI action that started it.
+// AI action that started it; while the model works on it, a thinking orb
+// (lib/activity-orb.ts) stands where the running icon stands otherwise.
 
 import { useEffect, useState } from "react";
 
@@ -12,6 +13,7 @@ import { t } from "@/i18n/t";
 import { CANCEL_ARM_MS, type JobUpdate } from "@/research/jobs";
 import { Button } from "../ui";
 import { Icon, Sparkle } from "../icons";
+import { ActivityOrb } from "@/components/brand/ActivityOrb";
 
 export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: string) => void }) {
   const [armed, setArmed] = useState(false);
@@ -36,7 +38,7 @@ export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: 
     <div role="dialog" aria-modal="true" aria-labelledby="job-title" className="fixed inset-0 z-40 flex items-center justify-center bg-surface-inverse/40 p-4">
       <div className="w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]">
         <div className="flex items-start gap-3">
-          <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />
+          {job.orb ? <ActivityOrb orb={job.orb} size={32} /> : <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />}
           <div className="min-w-0 flex-1">
             <span className="inline-flex items-center gap-1 rounded-pill bg-ai-wash px-2 py-px text-[11px] font-semibold leading-[18px] text-ai-ink">
               <Sparkle size={11} />

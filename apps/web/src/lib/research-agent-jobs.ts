@@ -1,6 +1,7 @@
 // Native Research job following. Durable identity/state live on the server.
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob } from "./api";
 import { JobError, jobMeta, type JobUpdate } from "@/research/jobs";
+import { agentJobOrb } from "./activity-orb";
 
 /**
  * The AI steps a research stage asks for, by the name the stages have always used
@@ -28,7 +29,7 @@ export function agentJobUpdate(job: ResearchAgentJob, title: string): JobUpdate 
   const last = job.steps.find((s) => s.error_message);
   return { jobId: job.run_id, title,
     phase: job.status === "COMPLETED" ? "Návrh je připravený k revizi" : waiting ? "Čeká na zásah" : "AI zpracovává návrh",
-    startedAt, paused: waiting ? last?.error_message || "Krok čeká na schválení nebo dostupnost prostředí." : null,
+    startedAt, orb: agentJobOrb(job), paused: waiting ? last?.error_message || "Krok čeká na schválení nebo dostupnost prostředí." : null,
     meta: jobMeta({ telemetry: { provider: "AWS Bedrock", actual_cost_usd: job.actual_cost_usd ?? undefined } },
       { elapsed: (Date.now() - startedAt) / 1000 }),
   };

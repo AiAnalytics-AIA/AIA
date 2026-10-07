@@ -25,6 +25,8 @@ import {
   type Study,
   research,
 } from "@/lib/api";
+import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { researchStepOrb } from "@/lib/activity-orb";
 import { saveBlob } from "@/lib/download";
 import {
   STEP_ORDER,
@@ -568,6 +570,12 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
+/** An orb beside a step while it runs (lib/activity-orb.ts), else nothing. */
+function StepOrb({ run, step }: { run: ResearchRun; step: ResearchStep }) {
+  const orb = researchStepOrb(run, step);
+  return orb ? <ActivityOrb orb={orb} /> : null;
+}
+
 export function ProgressStep() {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
@@ -623,6 +631,7 @@ export function ProgressStep() {
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
+                <StepOrb run={run} step={s} />
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {s.data_origin ? <Chip tone="fault">{s.data_origin}</Chip> : null}
               </div>
