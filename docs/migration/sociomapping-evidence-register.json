@@ -1316,9 +1316,30 @@
    ],
    "formula": "status_ij = UNKNOWN if N_ij < N_min (~ 30); RELIABLE if CI95(r_ij) excludes 0, CI95 = tanh(artanh r_ij +- 1.96 / sqrt(N_ij - 3)); WEAK otherwise. UNKNOWN pairs: layout weight w_ij = 0, no arrow, not counted in scores",
    "applies_to": "every derived relation; replaces r := 0 for N < 5 or sd = 0 and the 5.5 stamp (research_sociomap.py:116-117), which the engine's refuse policy never sees. N_ij is pairwise: the respondents who rated both i and j, which supersedes AIA-D2's complete-cases rule for the object map.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value. The interval is Fisher's z with the normal approximation.",
+   "implementation": "aia_core.domain.sociomap.relations:pair_status",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_relations.py::test_the_chance_band_is_the_audits",
+     "what": "the audit's chance band: +-0.88 at N = 5, +-0.36 at N = 30 [C2]"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half",
+     "what": "below n_min the pair is UNKNOWN where the unit wrote 5.5"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_relations.py::test_reliable_means_the_interval_excludes_zero",
+     "what": "RELIABLE iff the Fisher interval excludes 0; WEAK otherwise"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_n_min_is_the_callers_and_is_recorded",
+     "what": "n_min has no default; the stored relation records it"
+    }
+   ],
+   "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value (AUDIT_PROVISIONAL_N_MIN), passed by the caller and recorded. The interval is Fisher's z with the normal approximation. n counts respondents, not weight: under a weighted design the interval read at that n may be too narrow (plan § 10, open point with Q5-Q7). Landed in chunk 1a (PR #172): the status is stored beside the 1-10 matrix; no score, layout or terrain reads it yet (1b, 2b, 4b).",
    "resolve_by": "sociomap-formula-corrections chunk 1a",
    "question": "Q6"
   },
@@ -1580,9 +1601,25 @@
    ],
    "formula": "status_k = NOT PLACED (reason) if no preference information, e.g. 'gave every object the same score', 'rated fewer than 2 lens objects'; rho(q) = sum_{k in Placed} exp(-||q - x_k||^2 / 2 sigma^2); not-placed respondents are excluded from terrain, lasso and comparisons and shown as a count in the legend",
    "applies_to": "respondent placement and the density terrain. engine.py:72-83 excludes fewer than 2 ratings and 'every object at the top' only; a constant row below the top is placed today.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "None stated.",
+   "implementation": "aia_core.domain.sociomap.engine:_placeability",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_a_straight_liner_below_the_top_is_not_placed",
+     "what": "a constant row at any score is NOT PLACED with the reason, out of the layout and the density terrain, counted in the warnings"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_straight_liners_do_not_move_anyone_else",
+     "what": "excluding them changes no other position"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_every_respondent_is_placed_or_excluded",
+     "what": "every respondent is placed or excluded, never both or neither"
+    }
+   ],
+   "uncertainty": "Landed in chunk 1c (PR #172) for the engine: every straight-liner and every respondent with fewer than two ratings is NOT PLACED with a reason and counted. Still owed: the count shown in a legend (Results has no respondent view; chunk 5) and the exclusion from lasso and comparisons, which do not exist in AIA (4d).",
    "resolve_by": "sociomap-formula-corrections chunk 1c",
    "question": null
   },
