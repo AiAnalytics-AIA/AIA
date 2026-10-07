@@ -1287,7 +1287,7 @@
    "validation": [],
    "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a).",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
-   "question": "Q5"
+   "question": "Q5 -- what proximity between two objects claims: relative co-movement, similar absolute ratings, or two concepts kept apart (plan sociomap-formula-corrections § 4a; the owner's decision)"
   },
   {
    "id": "AUDIT-F3",
@@ -1341,7 +1341,7 @@
    ],
    "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value (AUDIT_PROVISIONAL_N_MIN), passed by the caller and recorded. The interval is Fisher's z with the normal approximation. n counts respondents, not weight: under a weighted design the interval read at that n may be too narrow (plan § 10, open point with Q5-Q7). Landed in chunk 1a (PR #172): the status is stored beside the 1-10 matrix; no score, layout or terrain reads it yet (1b, 2b, 4b).",
    "resolve_by": "sociomap-formula-corrections chunk 1a",
-   "question": "Q6"
+   "question": "Q6 -- the minimum evidence for a relationship: the pairwise floor, the uncertainty criterion for RELIABLE, which n under weights (plan § 4a; the owner's evidence policy, not the number 30)"
   },
   {
    "id": "AUDIT-F4",
@@ -1506,7 +1506,7 @@
    "validation": [],
    "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a).",
    "resolve_by": "sociomap-formula-corrections chunk 1b",
-   "question": "Q7"
+   "question": "Q7 -- what terrain height claims: absolute evaluation (mean rating), relational connectedness, or selectable with a default (plan § 4a; the owner's decision)"
   },
   {
    "id": "AUDIT-F9",

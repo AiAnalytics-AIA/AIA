@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0a. The audit's sixteen rules in the evidence register, CANONICAL; its checks C1-C16 and P4-P14 as a fixture"
-  - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
+  - "[ ] 0b. The canonical rule recorded in the decision package; Q5, Q6, Q7 decided by the owner from the sheets in § 4a; the kernel width on the fixed ruler and the audit's other open points put to its author; the R-smacof seam settled with engineering"
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
@@ -142,6 +142,84 @@ declarations: § 1 target (the audit's δ is equivalent, so it survives as F16's
 no spec declares otherwise). The register's RTS-O1 for AIA's object map. The engine plan's M2,
 M4, M6, M8 for the object map (answered by F7, F12, F7, F14). All of it goes through the docs
 PR (§ 9); this plan edits none of those files.
+
+## 4a. Q5, Q6, Q7 as methodology decisions (the owner's), with options and consequences
+
+The three questions the audit leaves open are not equations to approve; each is a statement
+about what the map claims, and the statistician's part is to say which formula makes that
+statement true. Rewritten on 2026-10-07 from the owner's assessment, with where AIA's code
+stands today on each. The register's `AUDIT-F2`, `AUDIT-F3` and `AUDIT-F8` carry the ids.
+
+### Q5 -- what proximity between two objects claims
+
+**Decision.** Should two objects be close because respondents' *relative* preferences for them
+move together, because respondents give them *similar absolute ratings*, or should these be two
+distinct analytical concepts shown apart?
+
+**Where AIA stands.** Chunk 2a (not yet built) follows the audit's F2: per-person min-max over
+every item the respondent rated, then Pearson. That *is* a choice of relative co-movement: the
+rescaling removes each person's level, and two objects everyone rates 9 and 9 have constant
+columns, which AIA already reports as UNKNOWN (no correlation; chunk 1a, PR #172), not as
+"close". So the canonical path answers "co-movement" by construction, and the open question is
+whether that is the intended claim and whether "rated alike" needs a concept of its own.
+
+| Option | What proximity means | Consequence down the chain (F2 -> F4 -> F6 -> F7 -> F8/F9) |
+| --- | --- | --- |
+| (a) Relative co-movement (the audit's F2 as written) | people who prefer one more than their usual also prefer the other more | the map shows preference structure, not popularity; level is removed, so a universally loved and a universally disliked object can sit together if the residual preferences agree; arrows, distances and the F8/F9 scores all inherit the "co-movement" meaning |
+| (b) Absolute level similarity | the two objects receive similar ratings | a map of evaluation profiles: the raw-rating Pearson the audit rejects (F2: habits inflate it) or a distance between rating profiles; proximity then mixes popularity with structure, which the audit measured as +0.39 of spurious relation; F8/F9 would score level, not ties |
+| (c) Two concepts, kept apart | positions from (a); level shown by a separate encoding | the audit's own shape: distance = co-movement (F6), height = mean rating (F8's default, Q7), so level is visible without entering the geometry; costs one more legend line and the discipline of never reading height as closeness |
+
+AIA's reading until decided: (c), because it is what the audit's F2 + F8 already compose to, and
+it keeps the geometry free of the inflation the audit measured. Chunk 2a builds (a) for the
+positions either way; (b) would be a new declared method, not a parameter.
+
+### Q6 -- the minimum evidence for a relationship
+
+**Decision.** What minimum pairwise sample size does AIA require before it interprets a
+relationship at all, and what uncertainty criterion must a relationship satisfy before it is
+shown as reliable? "Is 30 the number" is the wrong question: 30 is a floor, not a proof.
+
+**Where AIA stands.** Built (chunk 1a, PR #172) and already the three-state rule the assessment
+asks for: `N_ij < n_min` -> UNKNOWN; `N_ij >= n_min` and the Fisher 95 % interval includes 0 ->
+WEAK; excludes 0 -> RELIABLE. `n_min` has no default: the caller passes it (30, the audit's
+working value) and every result records it, so changing the floor is a declared parameter, not a
+code change. What is *not* decided: the floor's value, which `n` under weights, and whether a
+statistically reliable but tiny relation should be drawn at all.
+
+| Option | Rule | Consequence |
+| --- | --- | --- |
+| (a) Floor + interval (as built) | UNKNOWN below n_min; WEAK if CI includes 0; RELIABLE otherwise | defensible and already in place; with N = 500 a relation of r = 0.10 is RELIABLE, so large studies show many faint arrows |
+| (b) Floor + interval + practical floor | as (a), plus RELIABLE needs abs(r) >= r_min (e.g. 0.10 or 0.20) | separates "distinguishable from zero" from "worth drawing"; one more declared number, recorded like n_min; F4's opacity already fades faint relations, so this mostly affects arrow counts and the F8/F9 sums |
+| (c) Which n | the respondent count (as built, as the audit's N) or Kish's effective n under weights | with weights, the count overstates the evidence and the interval is too narrow; effective n is already computed in `domain/evidence/support.py`; the audit does not say, so this is the author's question (B9) and the owner's policy |
+
+AIA's reading until decided: (a) with n_min = 30 and the respondent count, both recorded on every
+result; (b) and (c) are parameters the same code can take once the owner sets them.
+
+### Q7 -- what terrain height claims
+
+**Decision.** What statement does the default vertical dimension make: absolute evaluation
+(popularity), relational connectedness, or another metric? The hills are the most visible
+encoding on the map, and "high" must mean one thing.
+
+**Where AIA stands.** `aia-sociomap-1` defaults to the unit's T-score of the classic relation sum
+(carried, F8/F9); the audit's F8 says mean rating, pending Q7. Under F12's envelope (chunk 4b)
+height equals the metric exactly, so whatever is chosen is what the hill says. Mean rating is a
+directly observed quantity on the item's declared scale; connectedness K_i is derived from the
+geometry's own input and depends on Q5 (what a relation means) and Q6 (which pairs count).
+
+| Option | "High" means | Consequence |
+| --- | --- | --- |
+| (a) Mean rating (the audit's default) | people rated this object highly | observed, not manufactured; readable without the map; needs a rescale mode across sets with different scales (RTS-V1 none / this / all); an object loved by all but tied to nothing stands tall and isolated, which is honest |
+| (b) Connectedness K_i | this object is strongly tied to the others | height and distance then say related things, which risks reading height as closeness; depends on Q5 and Q6, so it changes when they do; undefined for an object with no known pair (B8), which must then have no hill |
+| (c) Alignment A_i | this object moves with (+) or against (-) the family | signed, so a terrain needs a zero plane; best as a colour, not a height |
+| (d) Selectable, with (a) as the default | the legend says which | what the engine already supports (`object_height_metric` is a spec field); the decision is only which is the default in reports |
+
+AIA's reading until decided: (d) with (a) as the default, which is the audit's tentative choice
+and keeps the vertical dimension observed; (b) and (c) stay selectable analytical layers.
+
+**Order.** Q5 first: it fixes the meaning of F2, and F4, F6, F7, F8 and F9 inherit it. Q6 and Q7
+can be answered after, and both are declared parameters in AIA, so the code built so far does
+not move when they are.
 
 ## 5. Approach
 
