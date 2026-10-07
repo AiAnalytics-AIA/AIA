@@ -1,9 +1,9 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] 0a. The audit's sixteen rules in the evidence register, DOCUMENTED; its checks C1-C16 and P4-P14 as fixtures"
   - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
-  - "[ ] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
+  - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[ ] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
   - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
@@ -21,7 +21,7 @@ chunks:
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
 **Owner:** method owner (QED Group; the audit is by Aram Bahbouh, status 6 October 2026) ·
-**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; no code yet) ·
+**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; chunk 1a landed, § 10) ·
 **Base:** `develop` @ `579b7ab`.
 
 **Source.** `NPC_Sociomapa_Faulty_Formulas.pdf` (EN) and `NPC_Sociomapa_Chybne_Vzorce.pdf` (CS),
@@ -279,6 +279,12 @@ stay as they are, because v1 stays what it is.)
 Order: 0a → 1a → 1b → 1c → 2a → 2b → 2c → 2d → 3 → 4a → 4b → 4c → 4d → 5 → 6. 0b runs beside
 0a and gates 2a's rule, 2b/4b's σ and 4c.
 
+**1a went before 0a** (2026-10-07). 0a cannot land from this repository: the register's test
+requires a page for every DOCUMENTED rule, and the audit's pages and its `code_formula_checks.py`
+are with the owner, not vendored. 1a needs neither -- its check is the chance band the plan
+already quotes (± 0.88 at N = 5, ± 0.36 at N = 30) -- so it went first; 0a registers it as the
+audit's F3 rule, implementation `relations:pair_status`, when the PDFs arrive.
+
 ## 9. Doc follow-up
 
 - `CLAUDE.md` map, `domain/sociomap/`: the v2 members once they exist (`pair_status`,
@@ -300,7 +306,49 @@ Order: 0a → 1a → 1b → 1c → 2a → 2b → 2c → 2d → 3 → 4a → 4b �
 - `.planning/open-items.md`: the four findings of § 7 numbered; OI-13's "withheld" corrected;
   OI-15's recipe reused by chunk 4c.
 - `AGENTS.md`: nothing yet.
+- From chunk 1a: `CLAUDE.md` map, `domain/sociomap/relations.py`: "pair status (audit F3):
+  UNKNOWN / RELIABLE / WEAK from the rater count and the Fisher-z interval"; `research_sociomap.py`:
+  "each pair's signed r, rater count, interval and status beside the unit's 1-10 matrix".
+  `sociomapa-deterministic-engine.md` § 8: a row S8 -- reference: a pair under five raters is 5.5,
+  drawn as a medium relation; production: the unit's matrix kept for `aia-sociomap-1`, every pair
+  carrying its status, UNKNOWN below `n_min`; tests
+  `test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half`,
+  `test_below_n_min_a_pair_is_unknown_whatever_its_number_says`.
 
-## 10. Review outcome
+## 10. Progress and review outcome
 
-Not started.
+### Chunk 1a -- pair status (F3), 2026-10-07
+
+What landed, on `feature/sociomap-pair-status`:
+
+- `domain/sociomap/relations.py`: `PairStatus` (UNKNOWN / RELIABLE / WEAK), `pair_status(r, n,
+  n_min, confidence)`, `fisher_interval`, `null_band` (the audit's chance band) and
+  `AUDIT_PROVISIONAL_N_MIN = 30`. `n_min` and the confidence have no defaults: the caller passes
+  them and the result records them.
+- `domain/research_sociomap.py`: `derive_pair_relations` -- the unit's weighted Pearson, signed,
+  with `n`, `interval` and `status` per pair; nothing stamped (fewer than two raters or a constant
+  column → `r = None`, UNKNOWN). `derive_relation_matrix` is unchanged in behaviour and still EXACT
+  against the unit's capture (it now shares the weighted moments with the new function, same
+  operation order). The stored body's `relation` block gains `r`, `n`, `interval`, `status`,
+  `n_min`, `confidence`, `status_counts`, `status_rule` and a `matrix_caveat` on the 1-10 matrix.
+- `SOCIOMAP_VERSION` `aia-research-sociomap-1` → `-2`: the executor fingerprints its input with
+  it, so a run stored under `-1` (without the statuses) is not reused as if it had them.
+
+What it does not do yet: no score, layout or terrain reads the status (1b, 2b, 4b); the engine
+artifact (`compute_sociomap`) is unchanged, so `aia-sociomap-1` still lays out over the unit's
+matrix. The status is visible in the stored body only; Results shows nothing new (chunk 5).
+
+Measured on the captured case `A01_full_questionnaire` (450 respondents, 5 objects): 10 pairs, 9
+RELIABLE, 1 WEAK, 0 UNKNOWN; every signed `r` equals the unit's `(strength − 1) / 4.5 − 1` to 1e-12.
+
+**Open point for the audit's author (with Q5-Q7).** `n` counts respondents, not weight. Under a
+weighted design the Fisher interval read at that `n` is narrower than the weighted correlation
+warrants (Kish's effective n, which `domain/evidence/support.py` already computes for
+aggregation, would widen it). The audit's F3 does not say which `n`; chunk 1a uses the count, as
+the audit's N does, and records the choice in `status_rule`. Unanswered, this is a hypothesis
+about over-confidence, not a finding.
+
+Checks run: `ruff check`, `ruff format --check`, `mypy --strict` (all three trees), `make
+layer_check`, `make exposure_check`, `make test` on Python 3.12 as CI (4,969 + 331 + 54 + 295
+passed, 0 failed). `make web_design` and `make test-web` were not
+run: no web file changed, and `apps/web` has no installed packages in the session's container.
