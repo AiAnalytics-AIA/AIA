@@ -41,6 +41,11 @@ chunks:
   - "[ ] 37. The run's dataset: sealed beside the bundle, cited by findings, exported, proposed to Client Knowledge"
   - "[ ] 38. Pages that need a browser: headless rendering behind its own switch (after 37)"
   - "[ ] 39. Extraction accuracy: record precision and recall on known catalogues (with 25)"
+  - "[ ] 40. Settings catalogue (ADR 0022): every policy value typed, bounded, with its proposed default"
+  - "[ ] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
+  - "[ ] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
+  - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
+  - "[ ] 44. Live needs approval: a live route refuses until every required setting is approved"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -67,7 +72,12 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 
 ```
 28 purpose / target / frozen lineage            (done: ADR 0021)
-→ 23 backend: composition, switches, prices; per-kind reservations FIRST
+→ 23 backend, per-kind reservations             (done: #168, harness 2)
+→ 40–43 Deep Research settings (ADR 0022)       (the owner, 2026-10-07: the sign-off's values
+                                                  on a settings page, approved values in force,
+                                                  pinned per run; before 23 so its switches,
+                                                  routes and prices read them)
+→ 23 backend, the rest: composition, switches, routes, dated prices
 → 29 Design Research integration                (proposals → gate 1 → a new revision)
 → 33–37 structured extraction                    (records from captured pages: a market's
                                                   products, prices, stores, organisations,
@@ -82,6 +92,15 @@ methodological checkpoints instead (`DESIGN_RESEARCH` before the methodology fre
 → 25/26 accuracy and quality evaluation          (design and interpretation use cases)
 → 27 live activation                             (last; needs chunk 1's sign-offs)
 ```
+
+**Deep Research settings (40–44, added 2026-10-07 at the owner's request, ADR 0022).** Chunk 1's
+sign-off moves from this file's prose into the product: every policy value -- the search
+provider's terms and price, presets and caps, request limits, retention, the register and weights,
+the denylist, personal-data patterns, record presets -- is a setting with a proposed default (the
+code's constant today), which an Admin approves on a Settings tab. Approved values are what runs:
+a run pins its effective settings at enqueue. Switches, secrets and the model route stay in the
+deployment; rails stay code. Offline runs use the effective values (proposed ones labelled);
+anything live refuses until every required setting is approved (44, with 27).
 
 **Structured extraction (33–39, added 2026-10-07 at the owner's request).** When the research
 needs an inventory rather than a figure -- every product in a category, every price a retailer
@@ -503,8 +522,10 @@ Bedrock quota request for chunk 21; the snapshot retention period; the tiers, th
 confidence weights (§§ 8.6–8.7); for structured extraction (§§ 4, 8.9): `robots.txt` as the
 machine-readable form of a site's terms together with the operator's denylist, the record presets
 and the personal-data screen's rules, the inventory caps (§ 9), the extractor on the light
-model's entry, and the retention of extracted datasets. *Done when:* each item is recorded in
-§ 13 with a date.
+model's entry, and the retention of extracted datasets. *Done when:* each item that is a value
+is approved on the Deep Research settings page (chunks 40–42, ADR 0022), whose history records who
+approved it and when; the rest (the design, § 4, the ADR 0017 amendment, the quota request) are
+recorded in § 13 with a date.
 
 ### Phase 1 — retrieval foundations (chunk 2 first)
 
@@ -723,6 +744,51 @@ miss what matters.
 public Czech catalogues recorded before any run: record precision and recall, cell accuracy,
 invented values (target: none), personal values stored (target: none), pages and money per record.
 
+### Phase 7 — Deep Research settings (40–44; before the rest of 23, § 0)
+
+ADR 0022. Development continues on the proposed defaults throughout; nothing here sends anything.
+
+**40. The settings catalogue.** `domain/deep_research/settings.py` (pure): every policy value as a
+`SettingDefinition` -- key, group (provider, budgets and presets, models and limits, quotas,
+retention, sources, extraction, sign-off), type (integer, money with currency, days, URL, date,
+text, host list, per-preset table, status), unit, bounds, its proposed default taken from today's
+constant, and whether live requires it. A value is validated by code; a cap only lowers.
+`effective(stored)` resolves each key to its approved value or its default, with its origin, and
+a digest; `method_digest` covers only the method-shaping keys. *Tests:* every default equals the
+constant it replaces; a value out of bounds or of the wrong type refused; a secret-like key cannot
+be catalogued; the method digest moves with a cap and not with a price or a retention.
+
+**41. The store and the service.** Tables `deep_research_setting_versions` and
+`deep_research_setting_approvals` (migration), `DeepResearchSettingsRepository` (ADR 0020's shape:
+immutable versions, newest approval wins, `NULL` the default, `require_administer`, the
+self-approval rule, `access_audit` in the change's transaction) and `/api/v1/deep-research/settings`
+(catalogue, history, propose, approve, withdraw), organization-level. A `layer_check` rule keeps the
+rows inside the repository. *Tests:* a member is refused; a version is never updated; withdrawing
+returns the default; the self-approval setting holds; every change audited.
+
+**42. The settings page.** A Deep Research tab in Settings: each group's settings with value,
+origin (proposed default or approved, by whom, when), source link and history; propose and approve
+forms over the route; a live-readiness list naming every required setting not yet approved; the
+Settings document's Deep Research group and an `ai_runtime` activity whose switches read
+configured or off (`lib/ai-runtime.ts`), never "connected"; secrets shown only as configured or
+not. *Tests:* the panel renders the catalogue from the API; readiness lists exactly the missing
+required keys (Vitest); the document's items name their control (API vs deployment).
+
+**43. Runs pin their settings.** `DeepResearchRuns` resolves the effective settings at enqueue and
+stores them, with their digest, on the run beside the run spec; the steps read the pin, never the
+store; the engine takes presets, allowances, request limits, register and weights from the pin
+where it took constants; the method digest joins every reuse key that crosses runs, so the harness
+moves to 3 once; the API's cost ceiling reads the same resolution. *Tests:* with nothing stored,
+every request, fingerprint and count equals harness 2's except the harness string (reproduced by
+setting it back); an approval changes only runs enqueued after it; a lowered cap reuses no track
+made under the old one; a pin that does not hash to itself fails the run closed.
+
+**44. Live needs approval.** Every live route's composition (chunk 23's switches) and the start of
+a run that would use one refuse until every setting required for live is approved, naming the
+missing keys; offline and recorded runs unaffected. Lands with or before chunk 27. *Tests:* a live
+composition with one required setting unapproved refuses at start with its key; approving it
+admits the next start; withdrawing it refuses again.
+
 ## 12. Dependencies
 
 - Tool spend in the ledger (deep-research.md chunk 4) before chunk 25 spends money.
@@ -815,3 +881,9 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
   stays frozen."
 - `CLAUDE.md` § 2, after chunk 37: the dataset artifact, the `crawl` and `extract` tools, and the
   extraction switch.
+- `docs/architecture/adr/README.md`: the ADR 0022 row ("Deep Research's policy values are data an
+  Admin approves on a settings page; approved values are pinned per run; switches, secrets and the
+  model route stay in the deployment; rails stay code" -- **Proposed**), and 0020's row: "its 'not
+  decided' live-settings question taken up for Deep Research's policy values by 0022".
+- `CLAUDE.md` § 2, after chunks 41–43: the settings module, the two tables and their repository,
+  the route, the Settings tab, and "a run pins its Deep Research settings at enqueue".
