@@ -5,7 +5,7 @@ chunks:
   - "[ ] 0b. The canonical rule recorded in the decision package; the audit's own Q5, Q6, Q7 and the kernel width on the fixed ruler put to its author; the R-smacof seam settled with engineering"
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[ ] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
-  - "[ ] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
+  - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
   - "[ ] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
   - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
@@ -21,7 +21,7 @@ chunks:
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
 **Owner:** method owner (QED Group; the audit is by Aram Bahbouh, status 6 October 2026) ·
-**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; chunk 1a landed, § 10) ·
+**Engineering:** sociomapa-deterministic · **Started:** 2026-10-07 (gap analysis; chunks 1a and 1c landed, § 10) ·
 **Base:** `develop` @ `579b7ab`.
 
 **Source.** `NPC_Sociomapa_Faulty_Formulas.pdf` (EN) and `NPC_Sociomapa_Chybne_Vzorce.pdf` (CS),
@@ -314,6 +314,14 @@ audit's F3 rule, implementation `relations:pair_status`, when the PDFs arrive.
   carrying its status, UNKNOWN below `n_min`; tests
   `test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half`,
   `test_below_n_min_a_pair_is_unknown_whatever_its_number_says`.
+- From chunk 1c: `sociomapa-deterministic-engine.md` § 2, the pipeline line "placeable rows
+  (≥ 2 ratings, not all at the top)" becomes "placeable rows (≥ 2 ratings, not a straight-liner
+  at any score)"; § 6, `excluded_respondents` "with no recoverable position, straight-liners
+  included"; § 8, a row S9 -- reference: an unplaceable respondent is put on an invented ring
+  (audit F11); production: every straight-liner excluded with its reason, out of the density
+  terrain, still counted in `support_n`; tests `test_a_straight_liner_below_the_top_is_not_placed`,
+  `test_straight_liners_do_not_move_anyone_else`. `CLAUDE.md` map, `executors/research.py`: "a
+  stored Sociomap is reused only under the same engine implementation version".
 
 ## 10. Progress and review outcome
 
@@ -352,3 +360,39 @@ Checks run: `ruff check`, `ruff format --check`, `mypy --strict` (all three tree
 layer_check`, `make exposure_check`, `make test` on Python 3.12 as CI (4,969 + 331 + 54 + 295
 passed, 0 failed). `make web_design` and `make test-web` were not
 run: no web file changed, and `apps/web` has no installed packages in the session's container.
+
+### Chunk 1c -- straight-liners not placed (F11), 2026-10-07
+
+Finding F-2 is fixed. `domain/sociomap/engine.py` `_placeability` excludes every respondent whose
+rated objects all share one score, at the top of the scale or anywhere else (`max == min` over
+the rated cells, so missing cells do not hide one). Each gets its reason in
+`excluded_respondents`, stays out of the layout and the density terrain, is counted in the
+warning, and still counts in `mean_rating` and `support_n`. A battery of nothing but
+straight-liners has no map (`UnfoldingDesignError`, fail closed).
+
+**Why this changes `aia-sociomap-1` and does not break the rule that v1 stays what it is.** The
+placeability rule belongs to `aia_rowcond_unfolding_v1`, AIA's own layout, not to the unit:
+the engine document says the layout is not a port, and the reference's layout fixture (F4) is
+refused. No reference fixture F1-F9 goes through it, so v1 still computes exactly what F1-F9
+pin. The old rule excluded only the top-of-scale case; this is the same rule without the
+special case.
+
+`ENGINE_IMPLEMENTATION_VERSION` 1.1.0 → 1.2.0, since the output changes for any input with a
+straight-liner below the top. The layout golden (`AIA1_rowcond_unfolding_on_f4_ratings.json`) was
+regenerated with `tools/sociomap_golden.py`: only its version field changed, because F4's 24
+respondents include no straight-liner. Neither does the captured research case A01 (450
+respondents), so no stored research map's numbers move.
+
+The research step's reuse fingerprint now includes the engine version
+(`apps/executors/src/aia_executors/research.py` `_sociomap_fingerprint`). Before, a newer build
+could be handed a map the previous engine drew for the same dataset and spec, because the
+artifact repository reuses by input fingerprint.
+
+Measured: twenty identical straight-liners and one with a missing cell, added to an eight-person
+design, leave every other respondent's coordinates, the object coordinates and the density
+terrain bit-identical (`test_straight_liners_do_not_move_anyone_else`).
+
+
+Checks run: `ruff check`, `ruff format --check`, `mypy --strict`, `make layer_check`, `make
+exposure_check`, `tools/sociomap_golden.py --check`, `make test` on Python 3.12 (4,973 + 331 + 54 +
+296 passed, 0 failed).

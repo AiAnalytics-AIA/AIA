@@ -54,7 +54,9 @@ ARTIFACT_CONTRACT_VERSION: Literal["2"] = "2"
 # Bump it whenever any computation changes its output: the version is part of
 # the fingerprint, so artifacts from different engine behaviour never collide.
 ENGINE_IMPLEMENTATION = "aia_core.domain.sociomap"
-ENGINE_IMPLEMENTATION_VERSION = "1.1.0"
+# 1.2.0: every straight-liner is excluded, not only one at the top of the scale
+# (audit F11; plan sociomap-formula-corrections, chunk 1c).
+ENGINE_IMPLEMENTATION_VERSION = "1.2.0"
 
 Point = tuple[float, float]
 

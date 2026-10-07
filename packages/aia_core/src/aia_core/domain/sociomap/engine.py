@@ -16,9 +16,11 @@ and spec give an identical artifact, bit for bit, on any host.
 Two things the engine will not do, because each would stamp a guess:
 
 * **place a respondent it has no position information for.** A respondent with
-  fewer than two ratings, or who put every object at the top of the scale, is
-  listed in ``excluded_respondents`` with the reason and left off the map. They
-  still count towards ``mean_rating`` and ``support_n`` -- their ratings are real.
+  fewer than two ratings, or who gave every object they rated the same score --
+  at the top of the scale or anywhere else -- is listed in
+  ``excluded_respondents`` with the reason and left off the map and out of the
+  density terrain. They still count towards ``mean_rating`` and ``support_n`` --
+  their ratings are real.
 * **fill a missing relation cell** unless the spec explicitly declares the
   reference's midpoint sentinel.
 """
@@ -70,15 +72,26 @@ class SociomapInputError(ValueError):
 
 
 def _placeability(ratings: RatingsMatrix, scale_top: float) -> dict[str, str]:
+    """Respondents with no position to recover, each with the reason (audit F11).
+
+    A straight-liner -- every rated object given the same score -- prefers no
+    object to another, so no point on the map is theirs: the unfolding would put
+    them wherever equal distances to every object fit least badly, and the
+    density terrain would grow a ridge where nobody has a preference. The unit
+    invented a ring for them (audit F11); AIA placed one below the top of the
+    scale (finding F-2 of plan sociomap-formula-corrections, chunk 1c). The rule
+    is ``max == min`` over the rated objects, at any score.
+    """
     excluded: dict[str, str] = {}
     for rid, row in zip(ratings.respondent_ids, ratings.values, strict=True):
         observed = [v for v in row if v is not None]
         if len(observed) < 2:
             excluded[rid] = f"rated {len(observed)} object(s); a position needs at least 2"
-        elif all(v == scale_top for v in observed):
+        elif max(observed) == min(observed):
+            where = "at the top of the scale" if observed[0] == scale_top else f"{observed[0]:g}"
             excluded[rid] = (
-                "rated every object at the top of the scale; no object is nearer than "
-                "another, so there is no position to recover"
+                f"rated every object the same ({where}): a straight-liner prefers no object "
+                "to another, so there is no position to recover"
             )
     return excluded
 
