@@ -809,6 +809,14 @@ admits the next start; withdrawing it refuses again.
   tracks, 4 workers and 4 model slots investigate in 11.0 s against 32.6 s on one worker, with
   every planned round checkpointed.
 
+- **Chunk 5 follow-up, 2026-10-07** (robots.txt off the standard library, § 15): 30,000 fuzzed
+  robots.txt files from 58 line shapes (groups, blank lines, `*`/`$`, percent-encoding, `//`
+  paths, schemes, crawl delays) × 6 of 39 URLs each, seed 11. The new `RobotsPolicy` against the
+  old one on Python 3.12.3: 0 of 180,000 decisions and 0 of 30,000 crawl delays differ. The new
+  one on 3.12.3 against 3.13.16: 0 and 0. The old one on 3.12.3 against 3.13.16: 6,073 decisions
+  (2,398 files) and 127 crawl delays. The two inputs that raise on 3.12 are left out of the
+  comparison and pinned by a test instead.
+
 ## 14. What this plan does not do
 
 - Class B queries. They would research better; they need an EU-processing search route, D6 and
@@ -851,6 +859,50 @@ admits the next start; withdrawing it refuses again.
 - **No general personal-data filter exists** for pages: only the ARES and procurement connectors
   keep field allowlists. Chunk 34's screen is the first for page-derived values.
 
+- **The robots.txt decision changed with the Python interpreter** (2026-10-07).
+  1. *Claim:* `RobotsPolicy` asked `urllib.robotparser` for its second, stricter reading, and that
+     module's answer changes between Python patch releases: 3.13.8 changed its normalisation
+     (gh-138515), 3.13.14 replaced its first-match algorithm with RFC 9309's (gh-138907: longest
+     match, allow on a tie, merged groups, `*` and `$`), and 3.13.0 changed `urlunparse`, which
+     it re-joins paths with (gh-85110: `//x` becomes `////x`). On 3.13.14 or later the stricter
+     reading the chunk 5 decision relies on was gone.
+  2. *Anchor:* `domain/deep_research/robots.py:240-246` (parse, crawl delay) and `:282`
+     (`can_fetch`) @ `4dce18f`.
+  3. *Reproduction:* on Python 3.13.14 or later, `pytest
+     packages/aia_core/tests/test_deep_research_robots.py` @ `4dce18f` fails 3 of 20
+     (`test_groups_for_the_same_agent_are_merged`,
+     `test_the_most_specific_rule_wins_and_allow_wins_a_tie`,
+     `test_where_the_standard_library_is_stricter_its_answer_stands`); all pass on 3.12. One line:
+     `RobotsPolicy.parse("User-agent: *\nDisallow: /\nAllow: /public\n").refusal("https://stats.example/public/a")`
+     is `"robots_disallowed"` on 3.12.3 and `None` on 3.13.16.
+  4. *Consequence:* a worker on 3.13.14+ requests pages the conservative policy refuses (`/public/a`
+     above), and CI cannot see it: it runs 3.12 (`.github/workflows/ci.yml:22`), as the develop
+     image does (`deploy/docker/python.Dockerfile:16`), while `requires-python = ">=3.12"` allows
+     either. Latent on develop today; live for anyone running the suite on 3.13.
+  5. *Fix:* AIA owns the second reading. `_FirstMatchReading` ports Python 3.12's `parse`,
+     `can_fetch` and `crawl_delay`, and re-joins URLs with its own `_join`; `urllib.parse` only
+     splits them. No `urllib.robotparser` import is left. Measured identical to the old code on
+     3.12 and across interpreters (§ 13). *Trade-off:* about 160 lines that freeze a 1996
+     reading's quirks (blank lines end a group; a group named by a substring of the token
+     applies), kept because they are where the second reading is stricter.
+  6. *Tests:* the three above, now the same on every interpreter; the stdlib-asserting lines in
+     them now assert the same of `_FirstMatchReading`, and the third is renamed
+     `test_where_the_first_match_reading_is_stricter_its_answer_stands` with its assertion kept
+     and a substring-agent case added. New: `test_the_decision_does_not_ask_the_standard_librarys_parser`
+     (fails if any `RobotFileParser` method is called) and
+     `test_a_path_starting_with_two_slashes_is_compared_as_written` (fails on 3.13 if
+     `urlunparse` replaces `_join`).
+- **A host's robots.txt could make the parse raise** (2026-10-07). On Python 3.12 (CI and the
+  develop image) `Crawl-delay: ²` (`isdigit` but not `int`) or `Disallow: //[x` (`urlparse`:
+  "Invalid IPv6 URL") raised `ValueError` out of `RobotsPolicy.parse` (`robots.py:243` @
+  `4dce18f`), and `_read_robots` catches only `ToolCallFailed` and `FetchRefused`
+  (`infrastructure/web_retrieval_live.py:472` @ `4dce18f`). Reproduction: on 3.12,
+  `policy_for_response(200, "User-agent: *\nCrawl-delay: ²\n".encode())` raises. Consequence: a
+  fetch from that host fails with an unclassified `ValueError` instead of a reading or a
+  journaled refusal. How a track reports it was not traced (hypothesis beyond the transport).
+  Fix: the port ignores both lines, as 3.13.15 (gh-153417) and 3.13.8 (gh-138432) do. Test:
+  `test_a_file_the_old_parser_could_not_read_is_read`.
+
 ## 16. Doc follow-up
 
 *Applied 2026-10-06 by the ADR 0021 synchronisation PR, except the ADR 0017 amendment text, which
@@ -887,3 +939,42 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
   decided' live-settings question taken up for Deep Research's policy values by 0022".
 - `CLAUDE.md` § 2, after chunks 41–43: the settings module, the two tables and their repository,
   the route, the Settings tab, and "a run pins its Deep Research settings at enqueue".
+
+*For the docs PR after the robots.txt fix (§ 15, 2026-10-07) merges:*
+
+- `.planning/open-items.md`: the two robots.txt findings in § 15, each with its OI number, and
+  both closed by that PR.
+- `AGENTS.md`, a new section:
+
+  ```markdown
+  ## A standard-library parser's answer can change in a patch release (robots.txt, 2026-10-07)
+
+  CI pins Python 3.12, and `requires-python = ">=3.12"`. `urllib.robotparser` read
+  robots.txt by the 1996 first-match draft until Python 3.13.14 (gh-138907) gave it RFC 9309's
+  algorithm, in a *patch* release; 3.13.8 (gh-138515) had already changed its normalisation,
+  and 3.13.0 (gh-85110) changed `urllib.parse.urlunparse` (`//x` re-joins as `////x`). A
+  policy that asks the module, or re-joins with `urlunparse`, changes answer with the
+  interpreter, and a CI pinned to one version cannot see it. AIA's "never less strict than the
+  first-match reading" guarantee was silently gone on 3.13.14+
+  (`test_deep_research_robots.py`, 3 failures there).
+
+  ```python
+  # WRONG: the second opinion is whatever this interpreter's stdlib believes today
+  from urllib.robotparser import RobotFileParser
+  stdlib = RobotFileParser()
+  stdlib.parse(lines)
+  if not stdlib.can_fetch(AGENT_TOKEN, url):
+      return ROBOTS_DISALLOWED
+
+  # RIGHT: the reading is AIA's code, frozen and tested; urllib.parse only splits URLs
+  first_match = _FirstMatchReading.parse(lines)          # a port of 3.12's reading
+  if not first_match.allows(AGENT_TOKEN, url):           # re-joins with its own _join
+      return ROBOTS_DISALLOWED
+  ```
+
+  The rule: when a decision is policy (what may be fetched, what is admitted), own the
+  algorithm and pin it with tests. Use the standard library for formats (splitting a URL,
+  decoding), not for judgements. To check that a port is faithful, compare decisions on fuzzed
+  input against the original on the interpreter that has it, then across interpreters
+  (`deep-research-web-search.md` § 13: 0 of 180,000 differ).
+  ```
