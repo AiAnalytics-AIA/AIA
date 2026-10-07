@@ -1282,10 +1282,10 @@
     }
    ],
    "formula": "a~_ki = (a_ki - min_l a_kl) / (max_l a_kl - min_l a_kl), l over all items respondent k rated (not just the active family); k excluded if max_l a_kl = min_l a_kl; r~_ij = Pearson(a~_.i, a~_.j)",
-   "applies_to": "AIA's object map (aia-sociomap-2): the relation between two objects. Supersedes RTS-O1 (plain Pearson on scale-normalised answers) and the engine plan's refusal of row normalisation for the object map; the raw weighted Pearson of research_sociomap.py:119-127 is retired.",
+   "applies_to": "AIA's object map (aia-sociomap-2): the relation between two objects. Supersedes RTS-O1 (plain Pearson on scale-normalised answers) and the engine plan's refusal of row normalisation for the object map; the raw weighted Pearson of research_sociomap.py:119-127 is retired. The audit is silent on respondent weights: the unit's Pearson is weighted (the population weight 'vaha', research_sociomap.py derive_relation_matrix) and the engine plan's M7 found no source that weights a Sociomap. Where the audit is silent AIA's existing rule stands, so chunk 2a keeps the Pearson step weighted after the per-person rescaling, as path A is today, and records the weighting on the result; an unweighted map would describe the raw sample, not the weighted population.",
    "implementation": null,
    "validation": [],
-   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected.",
+   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a).",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
    "question": "Q5"
   },
@@ -1500,11 +1500,11 @@
      "states": "The plain-language explanation, the technical evidence and why the replacement works."
     }
    ],
-   "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7",
+   "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7; AIA's reading of 'left out': the denominator counts the known PRIMARY pairs of i (m_P - 1 minus i's UNKNOWN pairs), and an object with no known pair has no score (undefined, not 0)",
    "applies_to": "object scores and the default object height; replaces relation_classic (metrics.py:213-224) and the T-score default height (specification.py:415). AIA has no object manager yet; the SECONDARY rule is written into the contract now.",
    "implementation": null,
    "validation": [],
-   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice.",
+   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a).",
    "resolve_by": "sociomap-formula-corrections chunk 1b",
    "question": "Q7"
   },

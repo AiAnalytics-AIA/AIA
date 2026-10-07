@@ -312,6 +312,13 @@ C9's scores, C10's radii) as they stand. With them the fixture becomes the audit
 instead of a transcription, and each of the plan's synthetic acceptance tests can be checked
 against the audit's number before it is trusted.
 
+Two readings to settle with the same note (raised by the Codex review of PR #173, recorded in
+the register's `AUDIT-F2` and `AUDIT-F8`): (5) F2 is silent on respondent weights; AIA keeps the
+Pearson step weighted after the per-person rescaling, as the unit's path is today, unless the
+author says otherwise. (6) F8 writes the denominator as m_P − 1 while leaving UNKNOWN pairs out
+of the sums; a fixed denominator scores an unknown pair as 0, so AIA divides by the known
+PRIMARY pairs and leaves an object with none unscored, unless the author says otherwise.
+
 **1a and 1c went before 0a** (2026-10-07, PR #172, another session). 0a was thought blocked on the
 PDFs' pages; they were in hand, so 0a landed next (PR #173), and its merge with #172 registers
 F3 as implemented by `relations:pair_status` with the chance-band test as its source example,
