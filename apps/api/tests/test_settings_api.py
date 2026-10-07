@@ -9,6 +9,10 @@ import pytest
 from aia_core.domain import ai_respondent
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.ai_respondent import Block, Item, respondent_agent
+from aia_core.domain.deep_research.agents import AgentRole, agent_definition
+from aia_core.domain.deep_research.contracts import HARNESS_VERSION as DR_HARNESS_VERSION
+from aia_core.domain.deep_research.settings import CATALOGUE_VERSION
+from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS
 from aia_core.domain.evidence import REFERENCE_THRESHOLDS
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.providers import (
@@ -266,6 +270,7 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
         "providers",
         "credential",
         "switch",
+        "strict_switches",
         "activities",
         "unused_capabilities",
     }
@@ -291,7 +296,17 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
         "AIA_AI_RUNTIME_ENABLED",
         "AIA_AI_RESEARCH_AGENTS_ENABLED",
         "AIA_AI_ANALYSIS_ENABLED",
+        "AIA_DEEP_RESEARCH_ENABLED",
+        "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
+        "AIA_DEEP_RESEARCH_LEAD",
     }
+    # Deep Research's switches are read whatever the runtime's switch says.
+    assert runtime["strict_switches"] == [
+        "AIA_DEEP_RESEARCH_ENABLED",
+        "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
+        "AIA_DEEP_RESEARCH_LEAD",
+    ]
+    assert set(runtime["strict_switches"]) <= switches
     raw = owner.get(f"{API}/settings").text
     for internal in ("AIA_AI_ROUTE_ID", "USD_PER_MTOK", "AIA_AI_FICTIONAL_CLIENT_IDS"):
         assert internal not in raw
@@ -302,7 +317,13 @@ def test_the_runtime_is_bedrock_from_code_and_claims_no_connection(owner: TestCl
 def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
     """The capabilities, versions and step kinds are the domain's own, not a copy."""
     activities = _activities(owner.get(f"{API}/settings").json())
-    assert list(activities) == ["respondent_fieldwork", "design_agents", "research_analysis"]
+    assert list(activities) == [
+        "respondent_fieldwork",
+        "design_agents",
+        "research_analysis",
+        "deep_research",
+        "deep_research_lead",
+    ]
 
     fieldwork = activities["respondent_fieldwork"]
     agent = respondent_agent(Block(0, (Item("q1", "open", "Proč?"),)), max_output_tokens=100)
@@ -351,6 +372,33 @@ def test_each_activity_is_what_its_agents_ask_for(owner: TestClient) -> None:
     assert analysis["switches"] == ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_ANALYSIS_ENABLED"]
     assert analysis["actions"] == []
 
+    # Deep Research: what its agents ask for, the lead's own entry apart behind its switch.
+    lead_roles = {AgentRole.LEAD, AgentRole.LEAD_REPLAN}
+    asked_by = {
+        role: agent_definition(role, max_output_tokens=100).capability.value for role in AgentRole
+    }
+    research = activities["deep_research"]
+    assert set(research["capabilities"]) == {
+        c for role, c in asked_by.items() if role not in lead_roles
+    }
+    assert research["step_kind"] == DEEP_RESEARCH_KINDS["plan"]
+    assert research["versions"] == [
+        {"name": "harness", "value": DR_HARNESS_VERSION},
+        {"name": "settings", "value": CATALOGUE_VERSION},
+    ]
+    assert research["switches"] == [
+        "AIA_AI_RUNTIME_ENABLED",
+        "AIA_AI_RESEARCH_AGENTS_ENABLED",
+        "AIA_DEEP_RESEARCH_ENABLED",
+    ]
+    lead = activities["deep_research_lead"]
+    assert set(lead["capabilities"]) == {asked_by[r] for r in lead_roles}
+    assert lead["switches"] == [
+        *research["switches"],
+        "AIA_DEEP_RESEARCH_AGENT_DIRECTED",
+        "AIA_DEEP_RESEARCH_LEAD",
+    ]
+
     used = {c for a in activities.values() for c in a["capabilities"]}
     unused = owner.get(f"{API}/settings").json()["ai_runtime"]["unused_capabilities"]
     assert unused == [c.value for c in ModelCapability if c.value not in used]
@@ -371,3 +419,23 @@ def test_the_runtime_needs_a_signed_in_member(client: TestClient, world: Any) ->
     response = client.get(f"{API}/settings")
     assert response.status_code == 401
     assert "ai_runtime" not in response.text
+
+
+def test_deep_research_says_how_its_values_are_set_and_what_no_value_changes(
+    researcher: TestClient,
+) -> None:
+    """The group points at the approval route; the rails are invariants, not settings."""
+    group = _groups(researcher.get(f"{API}/settings").json())["deep_research"]
+    assert {k: i["control"] for k, i in group.items()} == {
+        "deep_research_settings": "API",
+        "deep_research_catalogue": "CODE",
+        "deep_research_harness": "CODE",
+        "deep_research_switches_in_deployment": "INVARIANT",
+        "deep_research_public_sources_only": "INVARIANT",
+        "deep_research_grounded_findings": "INVARIANT",
+    }
+    assert group["deep_research_settings"]["source"] == (
+        "PUT /api/v1/deep-research/settings/{key}/approval"
+    )
+    assert group["deep_research_catalogue"]["value"] == CATALOGUE_VERSION
+    assert group["deep_research_harness"]["value"] == DR_HARNESS_VERSION
