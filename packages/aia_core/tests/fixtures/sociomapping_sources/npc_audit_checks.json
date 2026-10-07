@@ -1,0 +1,525 @@
+{
+ "provenance": {
+  "documents": [
+   "NPC_AUDIT_EN",
+   "NPC_AUDIT_CS"
+  ],
+  "status": "6 October 2026",
+  "how": "Transcribed by hand from the audit's text (Part I pp. 3-18, Part II pp. 20-28). Every number is as the audit prints it; nothing here was recomputed.",
+  "evidence_script": "NPC/analysis/code_formula_checks.py, which calls the unit's own Python functions directly and line-faithful Python ports of the ui_app.html JavaScript (the layout port reproduces the real backend output to 5e-6 map units, [C5]). Not received; requested from the audit's author.",
+  "data": "The canonical demo dataset of the unit (1,500 respondents, 22 objects) plus simulated data where the truth is known. The unit's visualization_lab.py and sociomap.py are byte-identical to the 18.6.6 FINAL manifest; ui_app.html is the Workspace 19.0 overlay (audit § 10).",
+  "caveat": "A check is evidence about the unit's formulas and about the replacement's behaviour on the audit's data. It becomes an AIA acceptance test only once AIA reproduces it on synthetic data of its own (plan sociomap-formula-corrections § 5); until then it pins what the audit measured."
+ },
+ "checks": {
+  "C15": {
+   "page": 21,
+   "formula_ids": [
+    "AUDIT-F1"
+   ],
+   "data": "a test file with satisfaction (1-10), household_size (1-6), children (0-3) and likert5 (1-5)",
+   "what": "detect_rating_columns accepts every one of the four columns as a rating object",
+   "printed": {
+    "columns_accepted": [
+     "satisfaction",
+     "household_size",
+     "children",
+     "likert5"
+    ],
+    "respondent_weight_midpoint": 5
+   }
+  },
+  "C1": {
+   "page": 22,
+   "formula_ids": [
+    "AUDIT-F2"
+   ],
+   "data": "six independent objects, personal generosity sd 1.2, true taste sd 1.5 (theory: r -> 0.39); the demo dataset; the audit's 22-09-2026 simulation",
+   "what": "rating habits alone make unrelated objects correlate; per-person rescaling removes the habit and leaves a small negative baseline",
+   "printed": {
+    "theory_inflation": 0.39,
+    "mean_r_six_independent_objects_raw": 0.394,
+    "strength_1_10_shown": 7.28,
+    "strength_no_relation": 5.5,
+    "demo_mean_raw_r": 0.028,
+    "demo_share_of_pairs_positive": 0.74,
+    "audit_2026_09_22_simulation_mean_r": 0.31,
+    "baseline_after_centring_m6": -0.2,
+    "baseline_after_minmax_m6": -0.09,
+    "demo_22_items_after_centring": -0.048,
+    "demo_22_items_theory": "-1/21"
+   }
+  },
+  "C2": {
+   "page": 22,
+   "formula_ids": [
+    "AUDIT-F3"
+   ],
+   "data": "two perfectly co-moving objects rated by four people; the chance band of r under no relation",
+   "what": "N < 5 is written as strength 5.5, r = 0, no p; the chance band shows why five is far too few and why the N = 5 rule is a cliff",
+   "printed": {
+    "four_raters_strength": 5.5,
+    "four_raters_r": 0.0,
+    "four_raters_p": null,
+    "chance_band_95": {
+     "N5": 0.88,
+     "N10": 0.63,
+     "N30": 0.36,
+     "N100": 0.2
+    },
+    "chance_band_formula": "tanh(1.96 / sqrt(N - 3))",
+    "cliff": "N = 4 forced to 0; N = 5 can be +-0.9"
+   }
+  },
+  "C3": {
+   "page": 23,
+   "formula_ids": [
+    "AUDIT-F4"
+   ],
+   "data": "the arrow opacity formula on three correlations",
+   "what": "a strong opposite relation gets the faintest arrow and 'no relation' a medium one; v <= 0 never filters a pair because s >= 1",
+   "printed": {
+    "opacity_at_r": {
+     "-0.9": 0.28,
+     "0": 0.56,
+     "+0.9": 0.85
+    },
+    "strongest_mode_picks_top_3_by_s": true
+   }
+  },
+  "C7": {
+   "page": 23,
+   "formula_ids": [
+    "AUDIT-F5"
+   ],
+   "data": "one supplied matrix cell under the two scale branches",
+   "what": "the same correlation maps to different strengths depending on whether any other cell is negative",
+   "printed": {
+    "r_0_30": {
+     "no_negative_cell": 3.7,
+     "one_cell_minus_0_1": 6.85
+    },
+    "r_0_50": {
+     "no_negative_cell": 5.5,
+     "one_cell_minus_0_1": 7.75
+    },
+    "r_0_50_under_first_reading": "sits at the F4 'no relation' midpoint"
+   }
+  },
+  "C4": {
+   "page": 24,
+   "formula_ids": [
+    "AUDIT-F6"
+   ],
+   "data": "a strongly related family (r from -0.82 to +0.59) and a weakly related one (r from -0.09 to +0.08)",
+   "what": "after the strongest-pair target and the rescale both families span the same picture",
+   "printed": {
+    "strong_family_map_distances": [
+     27.6,
+     75.8
+    ],
+    "weak_family_map_distances": [
+     23.0,
+     72.5
+    ]
+   }
+  },
+  "P4": {
+   "page": 24,
+   "formula_ids": [
+    "AUDIT-F6"
+   ],
+   "data": "the same two families",
+   "what": "before the rescale the targets differ; under the fixed ruler the weak family's targets all sit near sqrt(2) and its Stress-1 says there is no structure to draw",
+   "printed": {
+    "before_rescale_targets": {
+     "weak": [
+      14,
+      20
+     ],
+     "strong": [
+      14,
+      50
+     ]
+    },
+    "fixed_ruler_targets": {
+     "weak": [
+      1.36,
+      1.48
+     ],
+     "strong": [
+      0.91,
+      1.91
+     ]
+    },
+    "stress_1": {
+     "weak": 0.307,
+     "strong": 0.067
+    },
+    "rejected_alternative": "|r| as a distance (22-09-2026): it puts opposites together"
+   }
+  },
+  "C5": {
+   "page": 24,
+   "formula_ids": [
+    "AUDIT-F7"
+   ],
+   "data": "12 demo objects; a clean family; scenario mode entered with zero edits; the layout port against the backend",
+   "what": "the relaxation rule converges to the SMACOF optimum given enough iterations; 500 iterations stop short; scenario mode rotates and enlarges the map",
+   "printed": {
+    "relaxation_vs_smacof_stress_1": {
+     "demo_12_objects": [
+      0.296,
+      0.296
+     ],
+     "clean_family": [
+      0.06,
+      0.06
+     ]
+    },
+    "not_converged_after_500_iterations": 0.348,
+    "optimum": 0.296,
+    "scenario_jump_map_units": {
+     "mean": 44.5,
+     "max": 58.8
+    },
+    "scenario_rotation_deg": 90,
+    "scenario_enlargement": 1.158,
+    "scenario_enlargement_formula": "44/38",
+    "port_reproduces_backend_to_map_units": 5e-06
+   }
+  },
+  "C6": {
+   "page": 24,
+   "formula_ids": [
+    "AUDIT-F7"
+   ],
+   "data": "the research report's HTML and PNG maps of the demo data for 6, 9 and 12 objects",
+   "what": "the two report maps of one study disagree, and the HTML's quality label belongs to the PNG's map",
+   "printed": {
+    "procrustes_disparity_html_vs_png": {
+     "6": 0.86,
+     "9": 0.89,
+     "12": 0.68
+    },
+    "html_label_stress": 0.297,
+    "html_own_stress": 0.337,
+    "demo_stress_1_about": 0.3,
+    "kruskal_poor_threshold": 0.2
+   }
+  },
+  "C8": {
+   "page": 25,
+   "formula_ids": [
+    "AUDIT-F8"
+   ],
+   "data": "six PRIMARY demo objects, then three SECONDARY objects added",
+   "what": "context objects reshuffle the PRIMARY ranking; absolute normalisation of the classic score is flat by construction",
+   "printed": {
+    "ranking_primary_only": [
+     0,
+     5,
+     2,
+     3,
+     4,
+     1
+    ],
+    "ranking_with_secondary": [
+     1,
+     5,
+     2,
+     0,
+     3,
+     4
+    ],
+    "absolute_heights_span": [
+     0.56,
+     0.575
+    ],
+    "absolute_heights_share_of_scale": 0.015,
+    "minimum_reachable_score": 16,
+    "minimum_reachable_formula": "2 (m - 1)"
+   }
+  },
+  "C9": {
+   "page": 25,
+   "formula_ids": [
+    "AUDIT-F9"
+   ],
+   "data": "m = 3 objects in the panel's convention; the audit's own demo scores; m = 2",
+   "what": "the normative score always spreads the same whatever the data, and the panel and the report give different numbers",
+   "printed": {
+    "m3_spread_points": [
+     21.2,
+     24.5
+    ],
+    "demo_scores_panel": [
+     35.9,
+     58.3,
+     55.7
+    ],
+    "demo_scores_report": [
+     38.5,
+     56.8,
+     54.7
+    ],
+    "m2_both_objects": 50
+   }
+  },
+  "C10": {
+   "page": 25,
+   "formula_ids": [
+    "AUDIT-F10"
+   ],
+   "data": "300 respondents on 1-5 items; four profiles on four objects; 22 demo objects on radius 42; a 3-object lens",
+   "what": "the barycentre with weights max(0, a - 5) never counts a 1-5 rating, maps very different profiles to one point and crowds everyone into the middle",
+   "printed": {
+    "undetermined_on_1_5_items": "300 of 300",
+    "profiles_mapped_to_origin": [
+     [
+      10,
+      10,
+      10,
+      10
+     ],
+     [
+      10,
+      1,
+      10,
+      1
+     ],
+     [
+      6,
+      6,
+      6,
+      6
+     ]
+    ],
+    "median_respondent_radius": 7.8,
+    "object_radius": 42,
+    "inner_share": 0.19,
+    "lens_3_objects_share_with_zero_weight": 0.036
+   }
+  },
+  "P10": {
+   "page": 26,
+   "formula_ids": [
+    "AUDIT-F10"
+   ],
+   "data": "four planted profiles placed as ideal points",
+   "what": "the ideal-point placement separates the profiles and flags the contradictory one instead of hiding it in the middle",
+   "printed": {
+    "loves_A_and_B": {
+     "position": "between A and B",
+     "misfit": 0.39
+    },
+    "mildly_likes_A": {
+     "position": "slightly towards A",
+     "misfit": 0.1
+    },
+    "loves_opposite_A_and_C": {
+     "position": "central",
+     "misfit": 0.71
+    },
+    "loves_all_equally": "not placed"
+   }
+  },
+  "C11": {
+   "page": 26,
+   "formula_ids": [
+    "AUDIT-F11"
+   ],
+   "data": "low-rating data (mean 4.6), 800 respondents; a 3-object lens on the demo data",
+   "what": "unplaceable respondents are parked on a ring that adds a fake ridge to the terrain, or keep a stale position labelled POSITIONED",
+   "printed": {
+    "parked_on_ring": "196 of 800",
+    "ring_ridge_share_of_max_density": 0.18,
+    "lens_stale_positions": 54,
+    "lens_stale_median_radius": 12.0,
+    "lens_stale_status": "POSITIONED"
+   }
+  },
+  "C12": {
+   "page": 26,
+   "formula_ids": [
+    "AUDIT-F12"
+   ],
+   "data": "a lone high object; a high object 14 units from a low one; a single object on the grid",
+   "what": "the weighted-mean terrain is a plateau that ends in a cliff and is diluted by neighbours",
+   "printed": {
+    "lone_object_full_height_to_units": 46,
+    "undefined_from_units": 47,
+    "high_next_to_low_peak": 0.66,
+    "single_object_grid_full_height_share": 0.43,
+    "single_object_grid_undefined_share": 0.57
+   }
+  },
+  "P12": {
+   "page": 27,
+   "formula_ids": [
+    "AUDIT-F12"
+   ],
+   "data": "the same configurations under the envelope",
+   "what": "each object is a hill of exactly its own height, fading smoothly, equal scores equal peaks",
+   "printed": {
+    "peak_next_to_low_neighbour": 1.0,
+    "profile_at_units": {
+     "0": 1.0,
+     "7": 0.84,
+     "30": 0.04,
+     "46": 0.001
+    }
+   }
+  },
+  "C13": {
+   "page": 27,
+   "formula_ids": [
+    "AUDIT-F13"
+   ],
+   "data": "four objects of identical score, one isolated and three clustered",
+   "what": "the report's sum of hills makes a cluster 2.7x higher than an isolated object of the same score",
+   "printed": {
+    "isolated_peak": 1.09,
+    "cluster_of_three_peak": 2.99,
+    "ratio": 2.7
+   }
+  },
+  "C14": {
+   "page": 27,
+   "formula_ids": [
+    "AUDIT-F14",
+    "AUDIT-F15"
+   ],
+   "data": "pure noise with a left/right lasso; random non-map splits with 6 and 14 variables; an age vs gender example",
+   "what": "testing the positioning variables and 24 uncorrected tests report differences that are not there; raw-unit ranking puts an age gap above a complete gender split",
+   "printed": {
+    "noise_lasso_significant": "5 of 6",
+    "noise_lasso_cohen_d_up_to": 1.6,
+    "random_split_false_alarm_share": {
+     "6_variables": 0.27,
+     "6_variables_theory": 0.26,
+     "14_variables": 0.44
+    },
+    "ranking_example": {
+     "age_score": 6.0,
+     "gender_score": 0.3
+    }
+   }
+  },
+  "P14": {
+   "page": 27,
+   "formula_ids": [
+    "AUDIT-F14"
+   ],
+   "data": "the same noise and random splits under the proposal; the same age vs gender example under F15",
+   "what": "with the positioning variables excluded and Holm applied the false alarms disappear; on Cohen's scale the gender split ranks first",
+   "printed": {
+    "noise_significant": "0 of 9",
+    "random_split_false_alarm_share": {
+     "before": 0.44,
+     "after": 0.06
+    },
+    "gender_h": 3.14,
+    "gender_h_formula": "pi",
+    "age_d": 2.12,
+    "age_d_formula": "6/2.83"
+   }
+  },
+  "C16": {
+   "page": 28,
+   "formula_ids": [
+    "AUDIT-F16"
+   ],
+   "data": "three rating rows on four objects through the unit's per-row target stretch",
+   "what": "'likes all four' and 'hates three' get identical targets, and an all-equal row is told it is very close to everything",
+   "printed": {
+    "targets": {
+     "9,9,9,10": [
+      1,
+      1,
+      1,
+      0.05
+     ],
+     "1,1,1,10": [
+      1,
+      1,
+      1,
+      0.05
+     ],
+     "5,5,5,5": [
+      0.05,
+      0.05,
+      0.05,
+      0.05
+     ]
+    }
+   }
+  }
+ },
+ "checked_and_found_sound": [
+  {
+   "formula": "Welch t, Welch-Satterthwaite df, 95 % CI of the mean difference",
+   "where": "visualization_lab.py:272-279",
+   "note": "correct; the problem is how it is used (F14)"
+  },
+  {
+   "formula": "Cohen's d with pooled SD",
+   "where": "visualization_lab.py:276",
+   "note": "standard"
+  },
+  {
+   "formula": "relaxation update rule",
+   "where": "all layout copies",
+   "note": "converges to the SMACOF optimum given enough iterations [C5]; the defects are F6/F7"
+  },
+  {
+   "formula": "classical-MDS start + stress fit in fit_relational_landscape",
+   "where": "sociomap.py:459-503",
+   "note": "sound and absolute; D = 0.12 + 0.88 (1 - r) / 2 is defensible, sqrt(2 (1 - r)) recommended for consistency with F6"
+  },
+  {
+   "formula": "weighted Pearson arithmetic",
+   "where": "sociomap.py:414-418",
+   "note": "correct arithmetic; the issues are F2/F3"
+  },
+  {
+   "formula": "orthographic projection",
+   "where": "ui_app.html:2051",
+   "note": "correct rotation"
+  },
+  {
+   "formula": "bilinear interpolation of terrain",
+   "where": "ui_app.html:2050",
+   "note": "correct"
+  },
+  {
+   "formula": "contours (marching squares)",
+   "where": "ui_app.html:2053",
+   "note": "correct"
+  },
+  {
+   "formula": "normalisers rozsah, sigma, percentile",
+   "where": "ui_app.html:2047",
+   "note": "correct as defined"
+  },
+  {
+   "formula": "overlap jitter r = 1.55 sqrt(u)",
+   "where": "visualization_lab.py:76-80",
+   "note": "uniform on a disc; display only"
+  },
+  {
+   "formula": "GMM model choice by BIC, normalised entropy, bootstrap ARI",
+   "where": "sociomap.py:166-199",
+   "note": "standard"
+  },
+  {
+   "formula": "standardised segment profile difference",
+   "where": "sociomap.py:202-217",
+   "note": "descriptive; fine"
+  },
+  {
+   "formula": "'white space' score = density x distance to nearest object",
+   "where": "sociomap.py:220-241",
+   "note": "labelled a heuristic in the code; not tested numerically"
+  }
+ ]
+}

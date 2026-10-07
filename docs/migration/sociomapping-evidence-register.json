@@ -6,7 +6,8 @@
   "REPRODUCED_FROM_EXAMPLE": "a worked example in a source is reproduced by the implementation",
   "INFERRED": "a source states the rule in part; the rest is read from its examples or screens",
   "PROPOSED": "AIA's choice where no source speaks",
-  "OPEN": "needed and not yet determined; nothing implements it"
+  "OPEN": "needed and not yet determined; nothing implements it",
+  "CANONICAL": "stated in the canonical methodology document (the NPC Sociomapa audit); by the owner's rule of 2026-10-07 it overrides every other source and every prior decision where they disagree"
  },
  "validation_kinds": {
   "SOURCE_EXAMPLE": "reproduces numbers a source prints",
@@ -63,7 +64,109 @@
    "title": "AIA Sociomapping Mathematics, Statistics and Processing Export (EN, 2026-10-03)",
    "pages": null,
    "product": "LEGACY_AIA"
+  },
+  "NPC_AUDIT_EN": {
+   "title": "NPC Sociomapa: faulty formulas in the code (EN, Aram Bahbouh, status 6 October 2026)",
+   "pages": 30,
+   "product": "NPC_AUDIT"
+  },
+  "NPC_AUDIT_CS": {
+   "title": "NPC Sociomapa: chybne vzorce v kodu (CZ, Aram Bahbouh, stav 6. rijna 2026)",
+   "pages": 30,
+   "product": "NPC_AUDIT"
   }
+ },
+ "canonical": {
+  "rule": "The owner stated on 2026-10-07 that NPC_AUDIT_EN / NPC_AUDIT_CS are the canonical methodology document and that no prior decision overrides them. A rule labelled CANONICAL wins over any other rule it disagrees with; the superseded rule stays as the record of what its own product (RTS, SOMECS, QED, AIA) does.",
+  "documents": [
+   "NPC_AUDIT_EN",
+   "NPC_AUDIT_CS"
+  ],
+  "scope": "AIA's object and respondent maps and the research module's preference map (plan sociomap-formula-corrections). Path B (the experimental H-Model) stays EXPERIMENTAL_AIA for comparison only.",
+  "supersedes": {
+   "AUDIT-F2": [
+    "RTS-O1"
+   ],
+   "AUDIT-F3": [
+    "AIA-D2"
+   ],
+   "AUDIT-F4": [
+    "RTS-A1"
+   ],
+   "AUDIT-F6": [
+    "AIA-H8",
+    "AIA-H9"
+   ],
+   "AUDIT-F7": [
+    "SOMECS-H3"
+   ],
+   "AUDIT-F10": [
+    "SOMECS-M1"
+   ],
+   "AUDIT-F12": [
+    "SOMECS-M2"
+   ],
+   "AUDIT-F14": [
+    "SOMECS-T1"
+   ]
+  },
+  "checks_fixture": "packages/aia_core/tests/fixtures/sociomapping_sources/npc_audit_checks.json",
+  "checks": {
+   "AUDIT-F1": [
+    "C15"
+   ],
+   "AUDIT-F2": [
+    "C1"
+   ],
+   "AUDIT-F3": [
+    "C2"
+   ],
+   "AUDIT-F4": [
+    "C3"
+   ],
+   "AUDIT-F5": [
+    "C7"
+   ],
+   "AUDIT-F6": [
+    "C4",
+    "P4"
+   ],
+   "AUDIT-F7": [
+    "C5",
+    "C6"
+   ],
+   "AUDIT-F8": [
+    "C8"
+   ],
+   "AUDIT-F9": [
+    "C9"
+   ],
+   "AUDIT-F10": [
+    "C10",
+    "P10"
+   ],
+   "AUDIT-F11": [
+    "C11"
+   ],
+   "AUDIT-F12": [
+    "C12",
+    "P12"
+   ],
+   "AUDIT-F13": [
+    "C13"
+   ],
+   "AUDIT-F14": [
+    "C14",
+    "P14"
+   ],
+   "AUDIT-F15": [
+    "C14"
+   ],
+   "AUDIT-F16": [
+    "C16"
+   ]
+  },
+  "evidence_script": "NPC/analysis/code_formula_checks.py prints every bracketed number; not received (requested from the audit's author, plan chunk 0a). The fixture holds the numbers as the audit prints them."
  },
  "rules": [
   {
@@ -204,7 +307,7 @@
      "what": "a column of equal answers has no correlation on every scale 1-2..1-11 at 2..15 respondents; equality is decided on the answers, not on a rounded mean"
     }
    ],
-   "uncertainty": "'Correlation' is not named; Pearson reproduces the example to two decimals, Spearman does not (0.95, 0.32, 0.00; tested). Behaviour on incomplete answers is not documented because RTS requires every answer. A constant column has no correlation; that is arithmetic, not a documented RTS rule.",
+   "uncertainty": "'Correlation' is not named; Pearson reproduces the example to two decimals, Spearman does not (0.95, 0.32, 0.00; tested). Behaviour on incomplete answers is not documented because RTS requires every answer. A constant column has no correlation; that is arithmetic, not a documented RTS rule. Not canonical for AIA's maps: superseded by AUDIT-F2 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": null,
    "question": "M5"
   },
@@ -629,7 +732,7 @@
      "what": "ordered and unordered pairs agree for symmetric matrices"
     }
    ],
-   "uncertainty": "Which list entry belongs to the displayed matrix is not shown (the list is scrolled to its top at 0.074 %), so the match is consistent, not conclusive. Sign shown positive; ties undocumented.",
+   "uncertainty": "Which list entry belongs to the displayed matrix is not shown (the list is scrolled to its top at 0.074 %), so the match is consistent, not conclusive. Sign shown positive; ties undocumented. Not canonical for AIA's maps: superseded by AUDIT-F7 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "Run 'Matrix Model Estimation' for n = 10 to completion and save its CSV (SOMECS Input p. 21): per-matrix Spearman values with their coordinates settle the definition exactly. Or export the H-Model positions and the displayed accuracy of the help's drinks example.",
    "question": "M2"
   },
@@ -757,7 +860,7 @@
    "applies_to": "H-Model fitting",
    "implementation": null,
    "validation": [],
-   "uncertainty": "SOMECS's fitting objective and optimiser are not documented. What is known is how fit is reported (SOMECS-H3) and read (QED-H2), not how a layout is searched for. Under AIA's evaluator SOMECS's fig. 22 layout scores 0.786 (0.783-0.793 across the screenshot's rounding), a provisional comparison score; classical MDS (0.661) and the best of 20 nonmetric MDS runs (0.743) are baselines of the configurations tested (tools/somecs_estimation_experiment.py). The gap is consistent with an objective closer to rank agreement, and equally with more starts, another optimiser, manual adjustment or a different evaluator; one layout of one matrix cannot identify an algorithm. AIA's h_model_candidate_v1 is an experimental AIA candidate, not SOMECS's method. See docs/architecture/sociomapping-hmodel.md § 4.",
+   "uncertainty": "SOMECS's fitting objective and optimiser are not documented. What is known is how fit is reported (SOMECS-H3) and read (QED-H2), not how a layout is searched for. Under AIA's evaluator SOMECS's fig. 22 layout scores 0.786 (0.783-0.793 across the screenshot's rounding), a provisional comparison score; classical MDS (0.661) and the best of 20 nonmetric MDS runs (0.743) are baselines of the configurations tested (tools/somecs_estimation_experiment.py). The gap is consistent with an objective closer to rank agreement, and equally with more starts, another optimiser, manual adjustment or a different evaluator; one layout of one matrix cannot identify an algorithm. AIA's h_model_candidate_v1 is an experimental AIA candidate, not SOMECS's method. See docs/architecture/sociomapping-hmodel.md § 4. Not canonical for AIA's maps: superseded by AUDIT-F6 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "SOMECS's objective: exports E1/E5 or the method owner (plan M2) can narrow it; none is expected to identify it uniquely. AIA's candidate: build and evaluate per docs/architecture/sociomapping-hmodel.md § 4 -- provisional comparison on fig. 22 with its rounding band, MDS baselines, perfect fit only on planted data constructed to admit it, many independent matrices (asymmetric and tied included) fixed in advance.",
    "question": "M2"
   },
@@ -792,7 +895,7 @@
      "what": "pooled accuracy and per-point order conflict on asymmetric data"
     }
    ],
-   "uncertainty": "An AIA proposal, not SOMECS's method: SOMECS's objective is unknown (AIA-H8). On SOMECS Input fig. 22 it reaches 0.859 against SOMECS's displayed 0.786 (a provisional comparison under AIA's evaluator, not a target). For asymmetric relations, maximising the pooled accuracy can lower per-point fits that a layout respecting each row's order (QED-H2) would keep at 1 (tested): which criterion governs is the method owner's question (plan M2).",
+   "uncertainty": "An AIA proposal, not SOMECS's method: SOMECS's objective is unknown (AIA-H8). On SOMECS Input fig. 22 it reaches 0.859 against SOMECS's displayed 0.786 (a provisional comparison under AIA's evaluator, not a target). For asymmetric relations, maximising the pooled accuracy can lower per-point fits that a layout respecting each row's order (QED-H2) would keep at 1 (tested): which criterion governs is the method owner's question (plan M2). Not canonical for AIA's maps: superseded by AUDIT-F6 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "Method owner: is the H-Model's goal the pooled rank agreement SOMECS reports, or each point's own order (QED-H2)? Exports E1/E5 compare SOMECS's layouts with the candidate's.",
    "question": "M2"
   },
@@ -832,7 +935,7 @@
      "what": "two skipped answers: 6 of 8 respondents kept, per-object counts recorded"
     }
    ],
-   "uncertainty": "RTS requires every answer, so it never meets the case; SOMECS fills an empty field with 0 (SOMECS-D1), which AIA does not do. Pairwise deletion would use more data but let each correlation rest on different respondents. The choice is AIA's and is recorded on every result.",
+   "uncertainty": "RTS requires every answer, so it never meets the case; SOMECS fills an empty field with 0 (SOMECS-D1), which AIA does not do. Pairwise deletion would use more data but let each correlation rest on different respondents. The choice is AIA's and is recorded on every result. Not canonical for AIA's maps: superseded by AUDIT-F3 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "Method owner: complete respondents, pairwise, or another policy (M5).",
    "question": "M5"
   },
@@ -1041,7 +1144,7 @@
    "applies_to": "STORM and WIND maps",
    "implementation": null,
    "validation": [],
-   "uncertainty": "Which t-test (pooled or Welch) and the chi-square's table construction are not stated.",
+   "uncertainty": "Which t-test (pooled or Welch) and the chi-square's table construction are not stated. Not canonical for AIA's maps: superseded by AUDIT-F14 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "A SOMECS region test on the drinks example with its p-values exported.",
    "question": "M8"
   },
@@ -1074,7 +1177,7 @@
    "applies_to": "RTS designs",
    "implementation": null,
    "validation": [],
-   "uncertainty": "The significance test and level for negative object correlations are not stated.",
+   "uncertainty": "The significance test and level for negative object correlations are not stated. Not canonical for AIA's maps: superseded by AUDIT-F4 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": null,
    "question": "M12"
   },
@@ -1095,7 +1198,7 @@
    "applies_to": "STORM maps",
    "implementation": null,
    "validation": [],
-   "uncertainty": "The placement rule is not given. RTS does not place respondents.",
+   "uncertainty": "The placement rule is not given. RTS does not place respondents. Not canonical for AIA's maps: superseded by AUDIT-F10 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "SOMECS STORM map of the help's drinks data with subject positions exported.",
    "question": "M3"
   },
@@ -1116,9 +1219,574 @@
    "applies_to": "WIND maps",
    "implementation": null,
    "validation": [],
-   "uncertainty": "Exponent, radius and grid not given.",
+   "uncertainty": "Exponent, radius and grid not given. Not canonical for AIA's maps: superseded by AUDIT-F12 (the owner's rule of 2026-10-07, plan sociomap-formula-corrections § 4).",
    "resolve_by": "SOMECS WIND map image of a 3-element matrix with heights 0, 0.5, 1 at known positions; read the colours along a line.",
    "question": "M4"
+  },
+  {
+   "id": "AUDIT-F1",
+   "title": "Only declared rating items are objects, all on a common 0-1 scale",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 3,
+     "section": "Part I, F1: Which columns count as ratings",
+     "states": "Use only the questions the questionnaire declares as rating scales, and put them all on a common 0-1 scale."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 3,
+     "section": "Part I, F1: Which columns count as ratings",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 21,
+     "section": "Part II, § 12 F1",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "c is a rating object <=> type(c) = rating, as declared in the questionnaire; a~_kc = (a_kc - s_min_c) / (s_max_c - s_min_c) in [0, 1], s_min_c and s_max_c the item's declared scale ends",
+   "applies_to": "every Sociomap input: the objects are the design's declared items with their declared scale ends; nothing is detected from a column's values. Path A takes the declared set and scale (research_sociomap.py) but uses raw ratings; path B normalises by the scale (RTS-N1).",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "None stated. The audit adds that without a declaration the panel must ask the user to confirm a detected list rather than use it silently; AIA detects nothing.",
+   "resolve_by": "sociomap-formula-corrections chunk 3 (the common 0-1 scale on path A)",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F2",
+   "title": "Per-person min-max over all rated items, then Pearson",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 4,
+     "section": "Part I, F2: Pearson correlation on raw ratings",
+     "states": "Put each person on their own scale (their lowest rating becomes 0, their highest 1) before comparing objects."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 4,
+     "section": "Part I, F2: Pearson correlation on raw ratings",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 22,
+     "section": "Part II, § 12 F2",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "a~_ki = (a_ki - min_l a_kl) / (max_l a_kl - min_l a_kl), l over all items respondent k rated (not just the active family); k excluded if max_l a_kl = min_l a_kl; r~_ij = Pearson(a~_.i, a~_.j)",
+   "applies_to": "AIA's object map (aia-sociomap-2): the relation between two objects. Supersedes RTS-O1 (plain Pearson on scale-normalised answers) and the engine plan's refusal of row normalisation for the object map; the raw weighted Pearson of research_sociomap.py:119-127 is retired. The audit is silent on respondent weights: the unit's Pearson is weighted (the population weight 'vaha', research_sociomap.py derive_relation_matrix) and the engine plan's M7 found no source that weights a Sociomap. Where the audit is silent AIA's existing rule stands, so chunk 2a keeps the Pearson step weighted after the per-person rescaling, as path A is today, and records the weighting on the result; an unweighted map would describe the raw sample, not the weighted population.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a).",
+   "resolve_by": "sociomap-formula-corrections chunk 2a",
+   "question": "Q5"
+  },
+  {
+   "id": "AUDIT-F3",
+   "title": "A pair with too little data is UNKNOWN, never 'no relation'",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 5,
+     "section": "Part I, F3: Too little data is written down as 'no relation'",
+     "states": "Mark such pairs as unknown, require about 30 people, and treat a link as reliable only when its margin of error excludes zero."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 5,
+     "section": "Part I, F3: Too little data is written down as 'no relation'",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 22,
+     "section": "Part II, § 12 F3",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "status_ij = UNKNOWN if N_ij < N_min (~ 30); RELIABLE if CI95(r_ij) excludes 0, CI95 = tanh(artanh r_ij +- 1.96 / sqrt(N_ij - 3)); WEAK otherwise. UNKNOWN pairs: layout weight w_ij = 0, no arrow, not counted in scores",
+   "applies_to": "every derived relation; replaces r := 0 for N < 5 or sd = 0 and the 5.5 stamp (research_sociomap.py:116-117), which the engine's refuse policy never sees. N_ij is pairwise: the respondents who rated both i and j, which supersedes AIA-D2's complete-cases rule for the object map.",
+   "implementation": "aia_core.domain.sociomap.relations:pair_status",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_relations.py::test_the_chance_band_is_the_audits",
+     "what": "the audit's chance band: +-0.88 at N = 5, +-0.36 at N = 30 [C2]"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half",
+     "what": "below n_min the pair is UNKNOWN where the unit wrote 5.5"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_relations.py::test_reliable_means_the_interval_excludes_zero",
+     "what": "RELIABLE iff the Fisher interval excludes 0; WEAK otherwise"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_n_min_is_the_callers_and_is_recorded",
+     "what": "n_min has no default; the stored relation records it"
+    }
+   ],
+   "uncertainty": "N_min's final value depends on Q6; 30 is the audit's working value (AUDIT_PROVISIONAL_N_MIN), passed by the caller and recorded. The interval is Fisher's z with the normal approximation. n counts respondents, not weight: under a weighted design the interval read at that n may be too narrow (plan § 10, open point with Q5-Q7). Landed in chunk 1a (PR #172): the status is stored beside the 1-10 matrix; no score, layout or terrain reads it yet (1b, 2b, 4b).",
+   "resolve_by": "sociomap-formula-corrections chunk 1a",
+   "question": "Q6"
+  },
+  {
+   "id": "AUDIT-F4",
+   "title": "Strength is |r|, direction is the sign; arrows only for RELIABLE pairs",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 6,
+     "section": "Part I, F4: The 1-10 strength scale and the arrows",
+     "states": "Show the strength of a relation and its direction separately, and draw arrows only for reliable relations."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 6,
+     "section": "Part I, F4: The 1-10 strength scale and the arrows",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 22,
+     "section": "Part II, § 12 F4",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "display strength = |r~_ij|; colour = sign(r~_ij); alpha_ij = 0.2 + 0.7 |r~_ij|; an arrow is drawn only if status_ij = RELIABLE (F3); the distance used for the layout is a separate quantity (F6)",
+   "applies_to": "the display of relations (Results, the report). The 1-10 strength s = 1 + 9 (r + 1) / 2 (research_sociomap.py:127; relations.py:181-182 for positions) and the arrows drawn by it are retired. Supersedes RTS-A1's arrow rules for AIA's object map.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "None stated.",
+   "resolve_by": "sociomap-formula-corrections chunk 2a (data) and 5 (display)",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F5",
+   "title": "A supplied matrix declares its type; nothing is guessed",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 7,
+     "section": "Part I, F5: Guessing what a supplied matrix means",
+     "states": "The upload must declare what its numbers are; nothing is guessed."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 7,
+     "section": "Part I, F5: Guessing what a supplied matrix means",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 23,
+     "section": "Part II, § 12 F5",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "s = T_kappa(x); x = NaN => UNKNOWN; kappa in {correlation, similarity 0-1, strength 1-10}, declared and stored with the upload; the import refuses a matrix without it",
+   "applies_to": "any relation matrix entering the engine (RelationSpec.scale_coercion). The value-branch detection of relations.py:95-100 stays only as the named legacy option of aia-sociomap-1. AIA has no upload route yet; the rule binds it when built.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The conversion T for 'strength 1-10' into F6's correlation distance is not written out; a correlation goes through F2-F4 and F6.",
+   "resolve_by": "sociomap-formula-corrections chunk 2a",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F6",
+   "title": "Object distance = sqrt(2 (1 - r)), SMACOF, no rescale to a radius",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 8,
+     "section": "Part I, F6: Target distance scaled to the family's strongest pair",
+     "states": "Use a fixed ruler, the standard correlation distance sqrt(2 (1 - r)), and do not stretch the map."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 8,
+     "section": "Part I, F6: Target distance scaled to the family's strongest pair",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 23,
+     "section": "Part II, § 12 F6",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "delta_ij = sqrt(2 (1 - r~_ij)) in [0, 2] (0 identical, 1.41 unrelated, 2 opposite); min_P sigma(P) = sum_{i<j} w_ij (||p_i - p_j|| - delta_ij)^2, w_ij = 1 if RELIABLE or WEAK, 0 if UNKNOWN, by SMACOF from a Torgerson start; Stress-1 = sqrt(sum w (||p_i - p_j|| - delta_ij)^2 / sum w delta_ij^2); no rescaling to a fixed radius: one map unit means the same everywhere",
+   "applies_to": "AIA's object map. Supersedes the strongest-pair target, the fixed-radius frame (map_frame max_abs_to_extent 45, engine.py:232-238; D6 package § 3) and, for the object map, the H-Model path (AIA-H8, AIA-H9), which stays experimental for comparison only.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The kernel widths of F12 and of the respondent density (sigma = 12 and 9.5 in the unit's +-62 frame) are not restated for this ruler (plan § 4 item 3).",
+   "resolve_by": "sociomap-formula-corrections chunk 2b",
+   "question": "plan § 4 item 3"
+  },
+  {
+   "id": "AUDIT-F7",
+   "title": "One layout, aligned to the previous map, with its Stress-1 and a label",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 9,
+     "section": "Part I, F7: Four copies of the layout that disagree, and a fit no one sees",
+     "states": "Compute the layout once, align each new map to the previous one, and show a quality label on every map."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 9,
+     "section": "Part I, F7: Four copies of the layout that disagree, and a fit no one sees",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 24,
+     "section": "Part II, § 12 F7",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "P* = SMACOF(delta, w; P_Torgerson), computed once in the backend; P_shown = argmin_{Q in rot/refl} ||P* Q - P_previous||_F (orthogonal Procrustes, no scaling), P_previous the map the user was just looking at (baseline, previous wave); every map shows its Stress-1 and a label: < 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable'",
+   "applies_to": "every map shown or printed. AIA computes once and deterministically and stores stress_1 (engine.py:291); the label and the alignment layer are missing. For the object map this supersedes SOMECS-H3's accuracy as the fit shown.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map.",
+   "resolve_by": "sociomap-formula-corrections chunk 2c",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F8",
+   "title": "Alignment and connectedness over PRIMARY objects; mean rating as the default height",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 10,
+     "section": "Part I, F8: The classic score (Celkove relacni skore)",
+     "states": "Replace it with two scores over the main (PRIMARY) objects only: alignment (with or against the family) and connectedness (how strongly tied)."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 10,
+     "section": "Part I, F8: The classic score (Celkove relacni skore)",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 24,
+     "section": "Part II, § 12 F8",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "A_i = (1 / (m_P - 1)) sum_{j in P, j != i} r~_ij in [-1, 1]; K_i = (1 / (m_P - 1)) sum_{j in P, j != i} |r~_ij| in [0, 1]; P the active PRIMARY objects; UNKNOWN pairs (F3) left out of both sums; SECONDARY objects never enter PRIMARY scores or terrain; default terrain height = mean rating, pending Q7; AIA's reading of 'left out': the denominator counts the known PRIMARY pairs of i (m_P - 1 minus i's UNKNOWN pairs), and an object with no known pair has no score (undefined, not 0)",
+   "applies_to": "object scores and the default object height; replaces relation_classic (metrics.py:213-224) and the T-score default height (specification.py:415). AIA has no object manager yet; the SECONDARY rule is written into the contract now.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice. The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a).",
+   "resolve_by": "sociomap-formula-corrections chunk 1b",
+   "question": "Q7"
+  },
+  {
+   "id": "AUDIT-F9",
+   "title": "Connectedness on a fixed 0-100 scale with a bootstrap interval",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 11,
+     "section": "Part I, F9: The normative score (Normativni relacni skore)",
+     "states": "Use connectedness on a fixed 0-100 scale with a margin of error, and rank objects only when their margins do not overlap."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 11,
+     "section": "Part I, F9: The normative score (Normativni relacni skore)",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 25,
+     "section": "Part II, § 12 F9",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "K100_i = 100 K_i; [K_lo_i, K_hi_i] = 2.5 % / 97.5 % quantiles of K100_i over B respondent bootstraps (e.g. B = 500); rank i above j only if their intervals do not overlap, otherwise show them as tied",
+   "applies_to": "the normative score's replacement; tscore (metrics.py:226-231, the population-sd curve) is retired.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "B is 'e.g. 500'; the resampling unit is the respondent. The generator is AIA's own (OI-62), not NumPy's stream.",
+   "resolve_by": "sociomap-formula-corrections chunk 4a",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F10",
+   "title": "Respondents as ideal points against the fixed object map, with a misfit",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 12,
+     "section": "Part I, F10: Respondent position: weight max(0, a - 5) and barycentre",
+     "states": "Place each respondent where their preferred distances to all objects are best met, and flag respondents the map cannot represent well."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 12,
+     "section": "Part I, F10: Respondent position: weight max(0, a - 5) and barycentre",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 25,
+     "section": "Part II, § 12 F10",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "x_k = argmin_x sum_{j in P} (||x - y_j|| - delta_kj)^2, delta_kj = D (1 - a~_kj), D = 2 (the F6 ruler's diameter: a hated object is 'a map away'); e_k = sqrt(sum_j (||x_k - y_j|| - delta_kj)^2 / sum_j delta_kj^2); straight-liners NOT PLACED (F11); respondents with e_k above a threshold are drawn but flagged 'poorly represented'",
+   "applies_to": "the respondent map: objects fixed by F6, people placed against them. Path A's joint unfolding is retired to a comparison alternative for the panel map; supersedes SOMECS-M1 (STORM placement) for AIA's respondent map.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The misfit threshold is not given. As an interim if the barycentre must stay, the audit offers w_kj = max(0, a~_kj - mean_k a~_k.) with the explicit NOT PLACED state.",
+   "resolve_by": "sociomap-formula-corrections chunk 3",
+   "question": "plan § 4 item 4"
+  },
+  {
+   "id": "AUDIT-F11",
+   "title": "A respondent who cannot be placed is NOT PLACED, with a reason, and out of everything",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 13,
+     "section": "Part I, F11: Respondents who cannot be placed",
+     "states": "Mark them 'not placed' with a reason, leave them out of the terrain, selections and comparisons, and show their count."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 13,
+     "section": "Part I, F11: Respondents who cannot be placed",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 26,
+     "section": "Part II, § 12 F11",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "status_k = NOT PLACED (reason) if no preference information, e.g. 'gave every object the same score', 'rated fewer than 2 lens objects'; rho(q) = sum_{k in Placed} exp(-||q - x_k||^2 / 2 sigma^2); not-placed respondents are excluded from terrain, lasso and comparisons and shown as a count in the legend",
+   "applies_to": "respondent placement and the density terrain. engine.py:72-83 excludes fewer than 2 ratings and 'every object at the top' only; a constant row below the top is placed today.",
+   "implementation": "aia_core.domain.sociomap.engine:_placeability",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_a_straight_liner_below_the_top_is_not_placed",
+     "what": "a constant row at any score is NOT PLACED with the reason, out of the layout and the density terrain, counted in the warnings"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_straight_liners_do_not_move_anyone_else",
+     "what": "excluding them changes no other position"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_engine.py::test_every_respondent_is_placed_or_excluded",
+     "what": "every respondent is placed or excluded, never both or neither"
+    }
+   ],
+   "uncertainty": "Landed in chunk 1c (PR #172) for the engine: every straight-liner and every respondent with fewer than two ratings is NOT PLACED with a reason and counted. Still owed: the count shown in a legend (Results has no respondent view; chunk 5) and the exclusion from lasso and comparisons, which do not exist in AIA (4d).",
+   "resolve_by": "sociomap-formula-corrections chunk 1c",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F12",
+   "title": "Object terrain = the max-envelope of Gaussian hills, each of its object's height",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 14,
+     "section": "Part I, F12: Object terrain as a weighted average",
+     "states": "Draw each object as its own hill, exactly as high as its score, fading smoothly to zero."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 14,
+     "section": "Part I, F12: Object terrain as a weighted average",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 26,
+     "section": "Part II, § 12 F12",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "z(q) = max_{j in P} h_j exp(-||q - y_j||^2 / 2 sigma^2)",
+   "applies_to": "the object terrain; replaces the kernel-weighted mean with its cutoff cliff (terrain.py:251-253, 264). Answers the engine plan's M4 for AIA's object map and supersedes SOMECS-M2 there.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "sigma is given in the unit's +-62 frame (12); on F6's ruler it must be restated (plan § 4 item 3).",
+   "resolve_by": "sociomap-formula-corrections chunk 4b",
+   "question": "plan § 4 item 3"
+  },
+  {
+   "id": "AUDIT-F13",
+   "title": "The report draws the same terrain as the panel, from the same code",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 15,
+     "section": "Part I, F13: Report terrain as a sum of hills",
+     "states": "Use the same hill formula as the panel (F12), from the same code."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 15,
+     "section": "Part I, F13: Report terrain as a sum of hills",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 27,
+     "section": "Part II, § 12 F13",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2): the F12 envelope from one backend implementation; never a sum of hills",
+   "applies_to": "every rendered surface. AIA has one terrain implementation (compute_terrain) and no renderer computes a surface of its own: met by construction, to be kept by a test.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "None stated.",
+   "resolve_by": "sociomap-formula-corrections chunk 4b",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F14",
+   "title": "Region tests: positioning variables excluded, Holm correction, effect size first",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 16,
+     "section": "Part I, F14: Significance tests in the area comparison",
+     "states": "Test only variables that played no part in positioning, and correct for the number of tests (Holm)."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 16,
+     "section": "Part I, F14: Significance tests in the area comparison",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 27,
+     "section": "Part II, § 12 F14",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "V_test = V \\ V_position; reject H_(k) iff p_(l) <= alpha / (|V_test| - l + 1) for all l <= k (Holm), alpha = 0.05; V_position (the active lens ratings) shown descriptively, labelled 'differs by construction'; Cohen's d with its interval reported first, the p-value secondary",
+   "applies_to": "the area / region comparison, not in AIA yet (route-visualization NOT_IN_AIA); binds sociomapping-engine chunk 8 and this plan's 4d. Supersedes SOMECS-T1 on multiplicity and answers the engine plan's M8.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "Welch's t, its Welch-Satterthwaite df and the 95 % CI of the mean difference are 'checked and found sound' (§ 13); the chi-square construction for discrete characteristics is not addressed.",
+   "resolve_by": "sociomap-formula-corrections chunk 4d",
+   "question": "M8"
+  },
+  {
+   "id": "AUDIT-F15",
+   "title": "Differences ranked on one effect-size scale",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 17,
+     "section": "Part I, F15: The 'main differences' ranking",
+     "states": "Rank all differences on one unit-free effect-size scale (Cohen's d for numbers, h for categories)."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 17,
+     "section": "Part I, F15: The 'main differences' ranking",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 28,
+     "section": "Part II, § 12 F15",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "numeric: |d| = |x_A - x_B| / s_pooled; categorical: |h| = |2 arcsin sqrt(pi_A) - 2 arcsin sqrt(pi_B)| per category, max over categories; both on Cohen's scale, 0.2 small, 0.5 medium, 0.8 large",
+   "applies_to": "the 'main differences' list of the area comparison, with F14.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "None stated.",
+   "resolve_by": "sociomap-formula-corrections chunk 4d",
+   "question": null
+  },
+  {
+   "id": "AUDIT-F16",
+   "title": "Preference-map targets on the original scale; true row-conditional unfolding",
+   "product": "NPC_AUDIT",
+   "label": "CANONICAL",
+   "sources": [
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 18,
+     "section": "Part I, F16: Unfolding targets stretched per respondent",
+     "states": "Keep the original scale and give each person their own scale adjustment inside the model (true row-conditional unfolding)."
+    },
+    {
+     "document": "NPC_AUDIT_CS",
+     "page": 18,
+     "section": "Part I, F16: Unfolding targets stretched per respondent",
+     "states": "The same statement in Czech; the two documents share their pagination."
+    },
+    {
+     "document": "NPC_AUDIT_EN",
+     "page": 28,
+     "section": "Part II, § 12 F16",
+     "states": "The plain-language explanation, the technical evidence and why the replacement works."
+    }
+   ],
+   "formula": "delta_kj = (s_max - a_kj) / (s_max - s_min); min_{U, V, {b_k, c_k}} sum_{k not in SL} sum_j (b_k ||u_k - v_j|| + c_k - delta_kj)^2 + lambda pen(U, V); b_k, c_k the per-respondent slope and intercept; SL the straight-liners, excluded; pen and lambda as in smacof::unfolding (omega, lambda); preferred route R smacof, the Python path a test fallback only",
+   "applies_to": "the research module's preference map (the unit's sociomap.py fit_python_unfolding, refused in AIA as OI-13). AIA's aia_rowcond_unfolding_v1 has the slope b_k but no intercept c_k and a global normalisation instead of the penalty.",
+   "implementation": null,
+   "validation": [],
+   "uncertainty": "The audit's checks covered the target defect only; the fitted map 'still needs a recovery test on data with known ideal points' (§ 12 F16). The tolerance between R and the Python fallback is engineering (plan § 4 item 5).",
+   "resolve_by": "sociomap-formula-corrections chunk 4c",
+   "question": "plan § 4 item 5"
   }
  ]
 }
