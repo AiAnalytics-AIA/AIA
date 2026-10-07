@@ -36,10 +36,12 @@ from typing import Final
 
 __all__ = [
     "AUDIT_PROVISIONAL_N_MIN",
+    "DECLARED_TYPE_REFUSED",
     "MIN_RELATION_OBJECTS",
     "AmbiguousCoercion",
     "CoercionBranch",
     "DeclaredRelationType",
+    "DeclaredTypeUnspecified",
     "PairStatus",
     "PersonScaled",
     "RelationScaleError",
@@ -231,14 +233,27 @@ class DeclaredRelationType(StrEnum):
     CORRELATION = "correlation"
     #: A similarity in [0, 1].
     SIMILARITY_0_1 = "similarity_0_1"
-    #: A strength already on the 1-10 scale.
+    #: A strength on the 1-10 scale. Named, and refused: the audit names the type and
+    #: leaves its transform into F6's correlation distance unwritten (register AUDIT-F5,
+    #: SPECIFICATION_REQUIRED), so a conversion here would be invented methodology.
     STRENGTH_1_10 = "strength_1_10"
+
+
+class DeclaredTypeUnspecified(RelationScaleError):
+    """A declared matrix type whose conversion the canonical audit does not write out."""
 
 
 _DECLARED_RANGE: Final = {
     DeclaredRelationType.CORRELATION: (-1.0, 1.0),
     DeclaredRelationType.SIMILARITY_0_1: (0.0, 1.0),
-    DeclaredRelationType.STRENGTH_1_10: (1.0, 10.0),
+}
+#: Why each refused declared type is refused, for the error and the spec check.
+DECLARED_TYPE_REFUSED: Final = {
+    DeclaredRelationType.STRENGTH_1_10: (
+        "a declared 'strength 1-10' matrix has no specified transform into F6's correlation "
+        "distance (audit F5, register AUDIT-F5: SPECIFICATION_REQUIRED, to the audit's author); "
+        "it is refused by name, not guessed"
+    ),
 }
 
 
@@ -247,11 +262,14 @@ def coerce_declared_1_10(
 ) -> Matrix:
     """The matrix on the 1-10 scale by its declared type, never by its values (audit F5).
 
-    Correlation ``1 + 9 (x + 1) / 2``, similarity ``1 + 9 x``, strength unchanged: the
-    reference's three conversions, chosen by the declaration instead of guessed. A
-    non-finite cell or a cell outside the declared type's range is refused (no 5.5,
-    no clipping); the diagonal is forced to ``0.0`` as in the reference.
+    Correlation ``1 + 9 (x + 1) / 2``, similarity ``1 + 9 x``: the reference's
+    conversions, chosen by the declaration instead of guessed. A non-finite cell or a cell
+    outside the declared type's range is refused (no 5.5, no clipping); the diagonal is
+    forced to ``0.0`` as in the reference. A declared strength 1-10 is refused by name
+    (:class:`DeclaredTypeUnspecified`): its transform is not written out.
     """
+    if declared in DECLARED_TYPE_REFUSED:
+        raise DeclaredTypeUnspecified(DECLARED_TYPE_REFUSED[declared])
     rows = _square(matrix)
     low, high = _DECLARED_RANGE[declared]
     out: list[tuple[float, ...]] = []
@@ -268,10 +286,8 @@ def coerce_declared_1_10(
                 )
             if declared is DeclaredRelationType.CORRELATION:
                 coerced.append(1.0 + 9.0 * ((v + 1.0) / 2.0))
-            elif declared is DeclaredRelationType.SIMILARITY_0_1:
-                coerced.append(1.0 + 9.0 * v)
             else:
-                coerced.append(v)
+                coerced.append(1.0 + 9.0 * v)
         out.append(tuple(coerced))
     return tuple(out)
 

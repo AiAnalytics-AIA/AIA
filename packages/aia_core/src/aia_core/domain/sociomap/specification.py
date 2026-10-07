@@ -94,6 +94,8 @@ class RelationScaleCoercion(StrEnum):
     #: 1-10 scale by its own conversion, and a cell outside its range is refused.
     DECLARED_CORRELATION = "declared_correlation"
     DECLARED_SIMILARITY_0_1 = "declared_similarity_0_1"
+    #: Named and refused by ``require_supported``: its transform is not written out
+    #: (register AUDIT-F5, SPECIFICATION_REQUIRED).
     DECLARED_STRENGTH_1_10 = "declared_strength_1_10"
 
 
@@ -338,6 +340,11 @@ def require_supported(spec: SociomapSpec) -> None:
         rel = spec.relation
         if not _member(RelationScaleCoercion, rel.scale_coercion):
             problems["relation.scale_coercion"] = f"unknown coercion {rel.scale_coercion!r}"
+        elif rel.scale_coercion == RelationScaleCoercion.DECLARED_STRENGTH_1_10:
+            problems["relation.scale_coercion"] = (
+                "declared_strength_1_10 has no specified transform (audit F5, register AUDIT-F5: "
+                "SPECIFICATION_REQUIRED); it is refused until the audit's author writes it out"
+            )
         if not _member(PositionProjection, rel.position_projection):
             problems["relation.position_projection"] = (
                 f"unknown projection {rel.position_projection!r}"

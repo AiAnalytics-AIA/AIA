@@ -22,6 +22,7 @@ from aia_core.domain.sociomap.engine import SociomapInputError
 from aia_core.domain.sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from aia_core.domain.sociomap.relations import (
     DeclaredRelationType,
+    DeclaredTypeUnspecified,
     RelationScaleError,
     coerce_declared_1_10,
     coerce_relation_scale_1_10,
@@ -174,7 +175,6 @@ def test_the_same_correlation_means_the_same_strength_whatever_the_other_cells()
         (DeclaredRelationType.CORRELATION, -1.0, 1.0),
         (DeclaredRelationType.CORRELATION, 1.0, 10.0),
         (DeclaredRelationType.SIMILARITY_0_1, 0.5, 5.5),
-        (DeclaredRelationType.STRENGTH_1_10, 7.25, 7.25),
     ],
 )
 def test_each_declared_type_has_its_own_conversion(
@@ -189,8 +189,7 @@ def test_each_declared_type_has_its_own_conversion(
     [
         (DeclaredRelationType.CORRELATION, 1.2),
         (DeclaredRelationType.SIMILARITY_0_1, -0.1),
-        (DeclaredRelationType.STRENGTH_1_10, 11.0),
-        (DeclaredRelationType.STRENGTH_1_10, math.nan),
+        (DeclaredRelationType.SIMILARITY_0_1, math.nan),
         (DeclaredRelationType.CORRELATION, math.inf),
     ],
 )
@@ -198,9 +197,7 @@ def test_a_cell_the_declared_type_cannot_hold_is_refused_not_clipped(
     declared: DeclaredRelationType, x: float
 ) -> None:
     with pytest.raises(RelationScaleError, match="refused"):
-        coerce_declared_1_10(
-            _matrix(0.5 if declared is not DeclaredRelationType.STRENGTH_1_10 else 5.0, x), declared
-        )
+        coerce_declared_1_10(_matrix(0.5, x), declared)
 
 
 def _inputs(relation: list[list[float | None]]) -> SociomapInputs:
@@ -249,9 +246,21 @@ def test_the_engine_refuses_a_cell_its_declared_type_cannot_hold() -> None:
 
 def test_a_declared_type_takes_no_midpoint_sentinel() -> None:
     spec = _declared_spec(
-        RelationScaleCoercion.DECLARED_STRENGTH_1_10,
+        RelationScaleCoercion.DECLARED_SIMILARITY_0_1,
         RelationMissingPolicy.REFERENCE_MIDPOINT_SENTINEL,
     )
     with pytest.raises(UnsupportedMethodology) as refused:
         require_supported(spec)
     assert "relation.missing_data_policy" in str(refused.value)
+
+
+def test_a_declared_strength_is_refused_by_name_until_its_transform_is_written() -> None:
+    """Register AUDIT-F5 is SPECIFICATION_REQUIRED: the audit names a 'strength 1-10' matrix
+    type and does not write out its transform into F6's distance, so converting it would be
+    invented methodology. It is refused by name in the conversion and in the spec check."""
+    with pytest.raises(DeclaredTypeUnspecified, match="AUDIT-F5"):
+        coerce_declared_1_10(_matrix(5.0, 5.0), DeclaredRelationType.STRENGTH_1_10)
+    with pytest.raises(UnsupportedMethodology) as refused:
+        require_supported(_declared_spec(RelationScaleCoercion.DECLARED_STRENGTH_1_10))
+    assert "relation.scale_coercion" in str(refused.value)
+    assert "SPECIFICATION_REQUIRED" in str(refused.value)
