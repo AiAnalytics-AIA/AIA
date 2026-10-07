@@ -23,6 +23,7 @@ from .observability import (
 )
 from .routers import (
     deep_research,
+    deep_research_settings,
     health,
     projects,
     research,
@@ -130,6 +131,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(workspace.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)
+    app.include_router(deep_research_settings.router, prefix=API_PREFIX)
     app.include_router(settings_router.router, prefix=API_PREFIX)
     app.include_router(system_prompts.router, prefix=API_PREFIX)
     return app
