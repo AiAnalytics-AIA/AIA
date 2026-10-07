@@ -5,6 +5,11 @@ sources with pages, formula, input type, implementation, validation and uncertai
 test keeps it honest: implementations exist, validating tests exist, a rule called
 reproduced has a source example behind it, an own test never stands in for source evidence,
 and every rule id an output records is in the register.
+
+The canonical block: the NPC Sociomapa audit is the canonical methodology document (the
+owner's rule of 2026-10-07). A rule labelled CANONICAL cites it; what it supersedes says so;
+every check the audit printed for it is in the vendored fixture, and nothing in the fixture
+is orphaned.
 """
 
 from __future__ import annotations
@@ -42,10 +47,12 @@ REPO = Path(__file__).resolve().parents[3]
 REGISTER = json.loads(
     (REPO / "docs/migration/sociomapping-evidence-register.json").read_text("utf-8")
 )
+CANONICAL = REGISTER["canonical"]
+AUDIT_CHECKS = json.loads((REPO / CANONICAL["checks_fixture"]).read_text("utf-8"))
 RULES = {rule["id"]: rule for rule in REGISTER["rules"]}
 LABELS = set(REGISTER["labels"])
 KINDS = set(REGISTER["validation_kinds"])
-PRODUCTS = {"RTS", "SOMECS", "QED", "LEGACY_AIA", "AIA"}
+PRODUCTS = {"RTS", "SOMECS", "QED", "LEGACY_AIA", "AIA", "NPC_AUDIT"}
 FIELDS = {
     "id", "title", "product", "label", "sources", "formula", "applies_to",
     "implementation", "validation", "uncertainty", "resolve_by", "question",
@@ -67,9 +74,15 @@ def test_labels_are_backed_by_what_they_claim() -> None:
     for rule in REGISTER["rules"]:
         kinds = {v["kind"] for v in rule["validation"]}
         assert kinds <= KINDS, rule["id"]
-        if rule["label"] in {"DOCUMENTED", "REPRODUCED_FROM_EXAMPLE", "INFERRED"}:
+        if rule["label"] in {"DOCUMENTED", "REPRODUCED_FROM_EXAMPLE", "INFERRED", "CANONICAL"}:
             paged = [s for s in rule["sources"] if s["page"] is not None]
             assert paged, f"{rule['id']} cites no page"
+        if rule["label"] == "CANONICAL":
+            documents = {s["document"] for s in rule["sources"]}
+            assert documents <= set(CANONICAL["documents"]), (
+                f"{rule['id']} cites a non-canonical source"
+            )
+            assert rule["product"] == "NPC_AUDIT", rule["id"]
         if rule["label"] == "REPRODUCED_FROM_EXAMPLE":
             assert "SOURCE_EXAMPLE" in kinds, f"{rule['id']} is called reproduced without one"
         if rule["label"] == "OPEN":
@@ -79,6 +92,36 @@ def test_labels_are_backed_by_what_they_claim() -> None:
             assert rule["uncertainty"], f"{rule['id']} must say what is uncertain"
         if rule["implementation"] is not None:
             assert rule["validation"], f"{rule['id']} is implemented but never checked"
+
+
+def test_the_canonical_block_names_what_it_overrides() -> None:
+    assert set(CANONICAL["documents"]) <= set(REGISTER["documents"])
+    canonical_ids = {r["id"] for r in REGISTER["rules"] if r["label"] == "CANONICAL"}
+    assert canonical_ids, "the audit's rules are registered"
+    for new, olds in CANONICAL["supersedes"].items():
+        assert new in canonical_ids, f"{new} supersedes but is not canonical"
+        for old in olds:
+            assert old in RULES and RULES[old]["label"] != "CANONICAL", old
+            assert new in RULES[old]["uncertainty"], f"{old} does not say it is superseded by {new}"
+    for rule_id in canonical_ids:
+        assert CANONICAL["checks"].get(rule_id), f"{rule_id} names no printed check"
+
+
+def test_every_printed_check_is_vendored_and_claimed() -> None:
+    checks = AUDIT_CHECKS["checks"]
+    claimed = {c for ids in CANONICAL["checks"].values() for c in ids}
+    assert claimed == set(checks), "the register and the fixture name the same checks"
+    pages = {d: REGISTER["documents"][d]["pages"] for d in CANONICAL["documents"]}
+    for check_id, check in checks.items():
+        assert 1 <= check["page"] <= min(pages.values()), check_id
+        assert check["printed"], f"{check_id} records nothing"
+        for rule_id in check["formula_ids"]:
+            assert check_id in CANONICAL["checks"][rule_id], (
+                f"{check_id} is not listed under {rule_id}"
+            )
+    for rule_id, ids in CANONICAL["checks"].items():
+        for check_id in ids:
+            assert rule_id in checks[check_id]["formula_ids"], f"{rule_id} claims {check_id}"
 
 
 def test_implementations_exist() -> None:
