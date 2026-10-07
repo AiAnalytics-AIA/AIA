@@ -30,8 +30,10 @@ from ..domain.deep_research.design_proposals import (
     selection_id,
 )
 from ..domain.design import DesignRejected, DesignRevision
+from ..domain.research_agents import context_snapshot
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import WorkflowRunStatus
+from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.workflow_repository import WorkflowRepository
@@ -112,6 +114,7 @@ class DesignResearchProposals:
             content = apply_to_design(baseline, proposal, item_ids)
         except DesignProposalRefused as exc:
             raise DesignRejected(str(exc), reason=exc.reason) from exc
+        self._require_design_jobs_keep_working(baseline, content)
         revision, created = designs.submit_if_current(
             content=content, source_stage=SOURCE_STAGE, expected_revision_id=expected_revision_id
         )
@@ -128,3 +131,28 @@ class DesignResearchProposals:
                 artifact_id=proposal.evidence_bundle_artifact_id,
             )
         return revision, created, content
+
+    def _require_design_jobs_keep_working(
+        self, baseline: dict[str, Any], content: dict[str, Any]
+    ) -> None:
+        """Refuse an accept that would push the design past what a design job can read.
+
+        Every design job starts from :func:`~aia_core.domain.research_agents.context_snapshot`,
+        the whole design plus the Study's approved knowledge inside a 64 KB budget. The
+        block's own bound cannot see the rest of the design, so the snapshot a job would
+        build is built here, before and after. A baseline already over the budget is not
+        made worse in kind by evidence beside it, and is not this accept's to refuse.
+        """
+        knowledge = ClientKnowledgeRepository(self.session).for_study(self.scope)
+        try:
+            context_snapshot(baseline, knowledge)
+        except ValueError:
+            return
+        try:
+            context_snapshot(content, knowledge)
+        except ValueError as exc:
+            raise DesignRejected(
+                "accepting these items would leave the design too large for the design "
+                "jobs' context; accept fewer items",
+                reason="design_context_too_large",
+            ) from exc

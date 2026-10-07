@@ -730,8 +730,10 @@ re-screens against the final questionnaire on its own (`quarantine.respondent_co
   design it was not researched from (`stale_proposal`).
 - A bundle resting on recorded fixtures is admissible only for a fictional client
   (`bundle.fictional_client`): recorded evidence never enters a real client's design.
-- The `design_research` block is bounded (32 KB), so the design jobs' 64 KB context
-  (`research_agents.context_snapshot`) is not pushed over by evidence a person accepted.
+- The `design_research` block is bounded (32 KB), and an accept that would push the whole design
+  past the design jobs' 64 KB context (`research_agents.context_snapshot`, built with the Study's
+  knowledge before and after) is refused (`design_context_too_large`); a baseline already over it
+  is not this accept's to refuse (Codex review on #178).
 - `EDIT_STUDY` and `APPROVE_GATE` on an open Study: the worker's scope cannot accept. Each
   accept that writes is recorded once in the approval ledger (`subject_type = design_research`,
   the selection's id), with who produced the run and who accepted.

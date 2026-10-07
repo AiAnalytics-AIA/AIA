@@ -246,3 +246,54 @@ def test_a_run_that_has_not_completed_proposes_nothing(
     with research.sessions() as session, pytest.raises(DesignRejected) as refused:
         DesignResearchProposals(session, research.lead_scope(session)).proposal(run_id, store=store)
     assert refused.value.reason == "proposal_not_ready"
+
+
+def test_an_accept_that_would_overflow_the_design_jobs_context_is_refused(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    """The block's own bound cannot see the rest of the design: a design just under the
+    design jobs' 64 KB context is refused an accept that would push it over, and nothing is
+    written (Codex review on #178)."""
+    from aia_core.domain.research_agents import CONTEXT_MAX_BYTES, context_snapshot
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+    from test_deep_research_journey import (  # type: ignore[import-not-found]
+        ANSWERS,
+        RecordedAgents,
+        approve_knowledge,
+        drain,
+        recorded,
+        start,
+        worker,
+    )
+
+    approve_knowledge(research)
+    with research.sessions() as session:
+        knowledge = ClientKnowledgeRepository(session).for_study(research.lead_scope(session))
+    used = len(
+        json.dumps(
+            context_snapshot(DESIGN, knowledge),
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode()
+    )
+    # Leave 300 bytes: less than any one evidence item's entry needs.
+    padded = {**DESIGN, "notes": "x" * (CONTEXT_MAX_BYTES - used - 300 - len(',"notes":""'))}
+    context_snapshot(padded, knowledge)  # the baseline still fits
+    runtime = recorded(research, RecordedAgents(ANSWERS), contents=(padded,))
+    w = worker(research, database_url, store, build, runtime)
+    run_id = start(research, padded)
+    assert drain(w) == 6
+    journey = Journey(
+        world=research, agents=RecordedAgents(ANSWERS), worker=w, runtime=runtime, run_id=run_id
+    )
+    baseline = _baseline(journey)
+    proposal = _proposal(journey, store)
+    taken = [next(i.item_id for i in proposal.items if i.kind is ItemKind.EVIDENCE)]
+    with pytest.raises(DesignRejected) as refused:
+        _accept(journey, store, taken)
+    assert refused.value.reason == "design_context_too_large"
+    assert _latest(research) == baseline and _ledger(research) == []
