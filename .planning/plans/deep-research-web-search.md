@@ -51,7 +51,7 @@ chunks:
   - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
-  - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
+  - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -697,6 +697,12 @@ cell-grounded share; conflicts found and resolved; quarantines by reason; search
 money per accepted finding; a rubric score from a separate judge model (factual accuracy, citation
 accuracy, completeness, source quality, tool efficiency); a researcher's blind grade. Each step
 becomes a default only if it wins; the owner sets the presets from these numbers.
+*A fourth arm (chunk 50):* Google's Gemini Deep Research, run by a person through Google's own
+interface on the questions whose topic is public and fictional-client only -- never a client's
+question, brief or name, which would leave AIA's egress gate. Its report is graded blind beside
+ours on the same rubric and grade: citation accuracy is checked by the person opening each cited
+page, since it has no sealed snapshot; money is what the person's plan charged, stated as such. It
+is a measuring stick, never a route: no code calls it, and § 10's verdict on answer engines stands.
 
 **27. Develop activation and the live acceptance.** Parameters set, deployed, the worker's start-up
 log read; one run per preset for a fictional client within the owner's budget; run ids, counts and
@@ -1148,6 +1154,9 @@ it every agent-directed track's fingerprint: tracks stored before it are not reu
 **50. A commercial comparison arm.** Chunk 26's arms gain Google's Gemini Deep Research, run by a
 person on the public fictional topics only (never a client's), its report graded blind beside ours
 on the same rubric. It is a measuring stick, not a route: § 10's verdict on answer engines stands.
+
+*Landed 2026-10-08* (`feature/dr-search-playbooks`): plan text only, in chunk 26's arms. Nothing
+in code calls Gemini; the arm runs when chunk 26 does.
 
 ## 12. Dependencies
 
