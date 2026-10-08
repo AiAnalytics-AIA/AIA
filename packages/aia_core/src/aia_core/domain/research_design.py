@@ -33,6 +33,7 @@ from typing import Any, Final, Literal
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from .pipeline import fingerprint
+from .sociomap.metrics import ObjectRole
 
 __all__ = [
     "COMPILER_VERSION",
@@ -84,6 +85,10 @@ class SpecQuestion(_Frozen):
     scale: tuple[int, int] | None = None
     allow_dont_know: bool = False
     has_filter: bool = False
+    #: The design declared this scale question a Sociomap rating item (``sociomap_rating``):
+    #: it enters every person's min-max (audit F2) beside the tracked sets' items. Never
+    #: inferred from the type: a numeric question is a descriptor unless declared.
+    rating_item: bool = False
 
     @model_validator(mode="after")
     def _shape(self) -> SpecQuestion:
@@ -91,6 +96,8 @@ class SpecQuestion(_Frozen):
             raise ValueError(f"{self.id}: a choice question needs at least two options")
         if self.typ == "skala" and self.scale is None:
             raise ValueError(f"{self.id}: a scale question needs its scale")
+        if self.rating_item and self.typ != "skala":
+            raise ValueError(f"{self.id}: only a scale question can be a rating item")
         return self
 
 
@@ -115,9 +122,34 @@ class SpecBattery(_Frozen):
     objects: tuple[SpecObject, ...]
     familiarity_required: bool
     output_type: str
+    #: The objects the design declared context (SECONDARY, ``context_objects``): mapped and
+    #: related, never in a PRIMARY score or the object terrain (audit F8). Every other
+    #: object is PRIMARY.
+    context_objects: tuple[str, ...] = ()
+    #: Whether the design declared the roles at all; ``False`` is "every object PRIMARY
+    #: because nothing was declared", which the artifact says.
+    roles_declared: bool = False
+
+    @model_validator(mode="after")
+    def _roles(self) -> SpecBattery:
+        ids = {o.id for o in self.objects}
+        unknown = sorted(set(self.context_objects) - ids)
+        if unknown:
+            raise ValueError(f"{self.id}: context objects that are not in the set: {unknown}")
+        if self.context_objects and set(self.context_objects) == ids:
+            raise ValueError(f"{self.id}: a set needs at least one PRIMARY object")
+        return self
 
     def question_id(self, obj: SpecObject) -> str:
         return f"{self.id}_obj_{obj.id}"
+
+    def object_roles(self) -> dict[str, str]:
+        """Every object's role by id: SECONDARY if declared context, else PRIMARY."""
+        context = set(self.context_objects)
+        return {
+            o.id: (ObjectRole.SECONDARY if o.id in context else ObjectRole.PRIMARY).value
+            for o in self.objects
+        }
 
 
 class ResearchSpecification(_Frozen):
@@ -131,7 +163,22 @@ class ResearchSpecification(_Frozen):
     audience: dict[str, Any]
 
     def fingerprint(self) -> str:
-        return fingerprint(self.model_dump(mode="json"))
+        """The specification's identity. A declaration a design does not make (a rating
+        item, object roles) is left out, so a specification compiled before those
+        declarations existed keeps the fingerprint it always had."""
+        body = self.model_dump(mode="json")
+        for question in body["questions"]:
+            if not question["rating_item"]:
+                del question["rating_item"]
+        for battery in body["batteries"]:
+            if not battery["roles_declared"]:
+                del battery["roles_declared"]
+                del battery["context_objects"]
+        return fingerprint(body)
+
+    def rating_questions(self) -> tuple[SpecQuestion, ...]:
+        """The standalone scale questions the design declared Sociomap rating items."""
+        return tuple(q for q in self.questions if q.rating_item)
 
     def battery_questions(self) -> tuple[str, ...]:
         return tuple(b.question_id(o) for b in self.batteries for o in b.objects)
@@ -255,6 +302,16 @@ def _question(
                 )
             )
             return None
+    rating_item = raw.get("sociomap_rating") is True
+    if rating_item and typ != "skala":
+        problems.append(
+            CompileProblem(
+                code="rating_item_not_scale",
+                where=qid,
+                message=f"{qid}: položkou pro Sociomapu může být jen škálová otázka.",
+            )
+        )
+        return None
     return SpecQuestion(
         id=qid,
         section_id=section_id,
@@ -264,6 +321,7 @@ def _question(
         scale=scale,
         allow_dont_know=allow_dont_know,
         has_filter=bool(_text(raw.get("filtr"))),
+        rating_item=rating_item,
     )
 
 
@@ -313,6 +371,34 @@ def _battery(
         SpecObject(id=_unique(_slug(label, "o"), used), label=label) for label in labels
     )
     output_type = _text(raw.get("output_type") or "pozicni_mapa")
+    roles_declared = "context_objects" in raw
+    declared = raw.get("context_objects") if roles_declared else []
+    context_labels = [
+        _text(x) for x in (declared if isinstance(declared, list) else []) if _text(x)
+    ]
+    by_label = {o.label: o.id for o in objects}
+    unknown = [label for label in context_labels if label not in by_label]
+    if roles_declared and not isinstance(declared, list):
+        unknown = [str(declared)]
+    if unknown:
+        problems.append(
+            CompileProblem(
+                code="unknown_context_object",
+                where=section_id,
+                message=f"{title}: kontextové položky nejsou v sadě: {', '.join(unknown)}.",
+            )
+        )
+        return None
+    context = tuple(dict.fromkeys(by_label[label] for label in context_labels))
+    if context and len(context) == len(objects):
+        problems.append(
+            CompileProblem(
+                code="no_primary_object",
+                where=section_id,
+                message=f"{title}: sada potřebuje alespoň jednu hlavní (ne kontextovou) položku.",
+            )
+        )
+        return None
     return SpecBattery(
         id=section_id,
         title=title,
@@ -325,6 +411,8 @@ def _battery(
         output_type=output_type
         if output_type in {"pozicni_mapa", "segmentace", "lovebrand", "test_konceptu"}
         else "pozicni_mapa",
+        context_objects=context,
+        roles_declared=roles_declared,
     )
 
 
