@@ -4,10 +4,15 @@ Every run says why it ran, what it researched and which immutable state it rests
 (ADR 0021): ``purpose``, ``target`` and ``lineage`` on each run, and
 ``GET …/runs/{run_id}/provenance`` for what a later consumer cites. A start that names no
 ``purpose`` -- the deployed client's shape -- is a new ``DESIGN_RESEARCH`` run, recorded
-``purpose_source: LEGACY_DEFAULT``; only ``DESIGN_RESEARCH`` may be started here.
-Interpretation Research is frozen but never enqueued until chunk 30 (409
-``interpretation_not_ready``, e.g. on the retry of such a row). A run stored before ADR 0021 reads
-``integration_contract: legacy-unversioned`` with no purpose.
+``purpose_source: LEGACY_DEFAULT``; only ``DESIGN_RESEARCH`` may be started there.
+``POST …/runs/interpretation`` starts ``INTERPRETATION_RESEARCH`` over one result of this
+Study (a typed target: a question's or a battery object's result, an analysis module, a
+Sociomap, one of its objects or a pair of them): its lineage is pinned and its mission built
+from the target by code (plan ``deep-research-web-search.md`` chunk 30). A target of another
+Study is 404; an entity its artifact does not hold, or a design target, 422. Its retry
+re-freezes the stored target and answers 409 ``lineage_changed`` when the result no longer
+reads as pinned. A run stored before ADR 0021 reads ``integration_contract:
+legacy-unversioned`` with no purpose.
 
 A start or a retry on a Study with a spend limit asks first (ADR 0019 gate 2): the
 server works out the run's cost ceiling from the deployment's prices
@@ -28,7 +33,7 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
-    InterpretationNotReady,
+    InterpretationMissionMismatch,
     LineageChanged,
     NothingToResearch,
     ResearchTargetInvalid,
@@ -41,7 +46,11 @@ from aia_core.application.design_research import DesignResearchProposals
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
 from aia_core.domain.deep_research.contracts import Channel
-from aia_core.domain.deep_research.integration import LEGACY_UNVERSIONED, PurposeSource
+from aia_core.domain.deep_research.integration import (
+    LEGACY_UNVERSIONED,
+    PurposeSource,
+    ResearchTargetRef,
+)
 from aia_core.domain.deep_research.planning import UnknownPreset
 from aia_core.domain.deep_research.request_limits import (
     RESEARCH_KINDS,
@@ -89,6 +98,27 @@ class DeepResearchStart(BaseModel):
     title: str | None = Field(default=None, max_length=200)
     #: What the person confirms the run can cost at most. Read only when the study has a
     #: limit the run's ceiling reaches; the server works the ceiling out and holds this to it.
+    confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+
+    @field_validator("channels")
+    @classmethod
+    def _unique_channels(cls, value: tuple[Channel, ...]) -> tuple[Channel, ...]:
+        if len(set(value)) != len(value):
+            raise ValueError("channels must be distinct")
+        return value
+
+
+class InterpretationStart(BaseModel):
+    """Interpretation Research over one result of this Study (ADR 0021, chunk 30)."""
+
+    model_config = ConfigDict(extra="forbid")
+    #: The exact result: a research run of this Study and the artifact and entity it names.
+    target: ResearchTargetRef
+    preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
+    channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
+    #: A person's name for the run: shown, never part of its identity.
+    title: str | None = Field(default=None, max_length=200)
+    #: As for a design run: read only when the study's limit is reached by the ceiling.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
 
     @field_validator("channels")
@@ -257,7 +287,7 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
-    except InterpretationNotReady as exc:
+    except InterpretationMissionMismatch as exc:
         raise HTTPException(
             status_code=409, detail={"code": exc.code, "message": str(exc)}
         ) from exc
@@ -357,6 +387,44 @@ def start(
             purpose_source=(
                 PurposeSource.EXPLICIT if body.purpose is not None else PurposeSource.LEGACY_DEFAULT
             ),
+            title=body.title,
+        )
+        if not started.created:
+            response.status_code = 200
+        else:
+            response.headers["Location"] = (
+                f"/api/v1/studies/{scope.study_id}/deep-research/runs/{started.run_id}"
+            )
+        return _response(runs.get(started.run_id), scope, created=started.created)
+    raise AssertionError("unreachable")
+
+
+@router.post("/runs/interpretation", response_model=DeepResearchRun, status_code=201)
+def start_interpretation(
+    body: InterpretationStart,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    response: Response,
+) -> DeepResearchRun:
+    """Start Interpretation Research over one result, answering the run as ``POST …/runs``.
+
+    201 with the run (200 when the same spec's run exists); 404 for a target that is not this
+    Study's; 422 for an entity its artifact does not hold, a design target or nothing to
+    research; the spend limit's 409s as for a design run.
+    """
+    settings = request.app.state.settings
+    with _errors(session):
+        runs = DeepResearchRuns(session, scope)
+        started = runs.start_interpretation(
+            target=body.target,
+            preset_name=body.preset_name,
+            store=store,
+            channels=body.channels,
+            prices=deep_research_prices(settings),
+            modes=(deep_research_mode(settings),),
+            confirm_cost_usd=body.confirm_cost_usd,
             title=body.title,
         )
         if not started.created:
