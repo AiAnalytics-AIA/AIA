@@ -825,7 +825,10 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   fixed from the full sample), `rank_with_ties`: an order only where intervals do not overlap,
   as a relation per pair and a rank range per object (audit F9)"; `research_sociomap.py` gains
   "; `connectedness_100` with its ranking, over `CONNECTEDNESS_RESAMPLES = 500` and
-  `CONNECTEDNESS_SEED`". `sociomapa-deterministic-engine.md` § 2: beside the F8 scores, "K100 and
+  `CONNECTEDNESS_SEED`, only when the worker's `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` is
+  on (off by default; otherwise `not_computed`)"; the executors' `registry.py` line or the
+  worker settings list gains `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` (off by default, true /
+  false only; the F9 bootstrap, ~90 s per 1,500 x 22 battery). `sociomapa-deterministic-engine.md` § 2: beside the F8 scores, "K100 and
   its interval (audit F9), stored by the research step, read by no surface yet"; § 8 a row --
   reference: the normative score `50 + 10 z` (panel ÷n, report ÷(n−1)), always winners and
   losers; production: `tscore` kept for `aia-sociomap-1`, `connectedness_100` and `rank_with_ties`
@@ -1149,6 +1152,24 @@ What landed, on `feature/sociomap-connectedness-interval` (stacked on #183, chun
   Monte Carlo error. (a) and (b) compose; neither changes a number the audit specifies.
 - Test suites: `test_research_sociomap.py` takes about 42 s (each `battery_sociomap` call on A01
   pays the 1.3 s bootstrap on top of about 2.6 s for the rest).
+
+**Kill switch (review on #186, 2026-10-08).** The bootstrap is on the hot path of every research
+run with a battery, at the cost measured above, so it ships behind
+`AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` (CLAUDE.md § 8), **off when unset** and in test.
+`aia_executors.registry.sociomap_connectedness_interval` reads it: true / false / unset only; any
+other value stops the worker naming the key, never read as either. `build_registry` passes it to
+`research_registry(..., sociomap_connectedness_interval=)` -> `SociomapExecutor`, which passes it
+by name to `research_sociomaps(spec, dataset, *, connectedness_interval)` -> `battery_sociomap`
+(keyword-only, no default in the domain, so no caller gets the cost or its absence silently).
+Off, `connectedness_100` is not called and each set records `CONNECTEDNESS_NOT_COMPUTED`
+(`{"status": "not_computed", "reason": ...}`, naming the switch); on, the block carries
+`"status": "computed"` and everything above. The flag is part of the step's input fingerprint, so
+a map stored with the switch off is never handed back as if it had the interval. Turning it on in
+`develop` is an operator's decision after (a) or (b) above; nothing reads K100 yet (chunk 5).
+Tests: `test_with_the_switch_off_the_bootstrap_never_runs_and_the_body_says_so`,
+`test_the_connectedness_interval_switch_is_off_unless_set_and_refuses_a_guess`,
+`test_a_changed_engine_is_not_handed_the_previous_engines_map` (the flag moves the fingerprint).
+The core suite's `test_research_sociomap.py` now pays the bootstrap only in the two tests about it.
 
 **Finding F-4a-1 (methodological, for the audit's author with group B of § 8a).**
 1. Claim: where an object's pairs are near zero, the audit's percentile interval for K100 lies

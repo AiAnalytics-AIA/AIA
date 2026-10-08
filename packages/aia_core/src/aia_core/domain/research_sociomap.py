@@ -57,6 +57,7 @@ from .sociomap.relations import (
 )
 
 __all__ = [
+    "CONNECTEDNESS_NOT_COMPUTED",
     "CONNECTEDNESS_RESAMPLES",
     "CONNECTEDNESS_SEED",
     "D6_OPEN",
@@ -358,8 +359,23 @@ def rescaled_battery_ratings(
     return [[scaled.values[k][c] for c in own] for k in range(len(rows))], ids
 
 
+#: What the body says where the bootstrap was not asked for (the worker's kill switch,
+#: ``AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED``): not computed, never a 0 or a guess.
+CONNECTEDNESS_NOT_COMPUTED: Final = {
+    "status": "not_computed",
+    "reason": (
+        "the respondent bootstrap (audit F9) is off in this deployment: about 90 s per "
+        "1,500 x 22 set at B = 500; AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED turns it on"
+    ),
+}
+
+
 def battery_sociomap(
-    battery: SpecBattery, dataset: FieldworkDataset, *, rated_with: Sequence[SpecBattery]
+    battery: SpecBattery,
+    dataset: FieldworkDataset,
+    *,
+    rated_with: Sequence[SpecBattery],
+    connectedness_interval: bool,
 ) -> dict[str, Any]:
     """One tracked set's relation matrix and its Sociomap, as an internal artifact body.
 
@@ -407,14 +423,21 @@ def battery_sociomap(
         )
         return drawn.r, drawn.status
 
-    k100 = connectedness_100(
-        object_ids,
-        dict.fromkeys(object_ids, ObjectRole.PRIMARY),
-        correlate,
-        respondents=len(rescaled),
-        resamples=CONNECTEDNESS_RESAMPLES,
-        seed=CONNECTEDNESS_SEED,
-    )
+    connectedness: dict[str, Any] = dict(CONNECTEDNESS_NOT_COMPUTED)
+    if connectedness_interval:
+        k100 = connectedness_100(
+            object_ids,
+            dict.fromkeys(object_ids, ObjectRole.PRIMARY),
+            correlate,
+            respondents=len(rescaled),
+            resamples=CONNECTEDNESS_RESAMPLES,
+            seed=CONNECTEDNESS_SEED,
+        )
+        connectedness = {
+            "status": "computed",
+            **k100.to_payload(),
+            "ranking": rank_with_ties(k100.intervals()).to_payload(),
+        }
 
     low, high = battery.scale
     spec = AIA_SOCIOMAP_V1.model_copy(
@@ -472,22 +495,31 @@ def battery_sociomap(
             "status_counts": rescaled_pairs.counts(),
         },
         "object_scores": object_scores.to_payload(),
-        "connectedness_100": {
-            **k100.to_payload(),
-            "ranking": rank_with_ties(k100.intervals()).to_payload(),
-        },
+        "connectedness_100": connectedness,
         "sociomap": artifact.model_dump(mode="json"),
     }
 
 
-def research_sociomaps(spec: ResearchSpecification, dataset: FieldworkDataset) -> dict[str, Any]:
-    """Every tracked set's Sociomap. A specification without one has none, and says so."""
+def research_sociomaps(
+    spec: ResearchSpecification, dataset: FieldworkDataset, *, connectedness_interval: bool
+) -> dict[str, Any]:
+    """Every tracked set's Sociomap. A specification without one has none, and says so.
+
+    ``connectedness_interval`` is the worker's kill switch for the F9 bootstrap, passed
+    by name: off, each set records :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
+    """
     return {
         "sociomap_version": SOCIOMAP_VERSION,
         "methodology_status": _methodology_status().value,
         "data_origin": dataset.origin.value if dataset.origin else None,
         "batteries": [
-            battery_sociomap(b, dataset, rated_with=spec.batteries) for b in spec.batteries
+            battery_sociomap(
+                b,
+                dataset,
+                rated_with=spec.batteries,
+                connectedness_interval=connectedness_interval,
+            )
+            for b in spec.batteries
         ],
         "note": None if spec.batteries else "Návrh nemá sledovanou sadu; Sociomapa nevznikla.",
     }

@@ -426,7 +426,9 @@ class AggregateExecutor(_Step):
         return _produced(step, artifact, created, AGGREGATE, data_origin=origin)
 
 
-def _sociomap_fingerprint(dataset_sha: str, spec: ResearchSpecification) -> str:
+def _sociomap_fingerprint(
+    dataset_sha: str, spec: ResearchSpecification, *, connectedness_interval: bool
+) -> str:
     """What a stored Sociomap was computed from, for reuse.
 
     The engine's implementation version is part of it: an engine whose output
@@ -440,12 +442,25 @@ def _sociomap_fingerprint(dataset_sha: str, spec: ResearchSpecification) -> str:
             "preset": AIA_SOCIOMAP_V1.fingerprint(),
             "engine": ENGINE_IMPLEMENTATION_VERSION,
             "spec": spec.fingerprint(),
+            # A body stored with the bootstrap off is not reused as if it had the interval.
+            "connectedness_interval": connectedness_interval,
         }
     )
 
 
 class SociomapExecutor(_Step):
-    """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6)."""
+    """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6).
+
+    ``connectedness_interval`` is the kill switch for the F9 respondent bootstrap, off
+    unless the composition turns it on (``AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED``):
+    it costs about 90 s per 1,500 x 22 set inside this step.
+    """
+
+    def __init__(
+        self, *, store: ArtifactStore, build: BuildIdentity, connectedness_interval: bool = False
+    ) -> None:
+        super().__init__(store=store, build=build)
+        self._connectedness_interval = connectedness_interval
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
@@ -464,7 +479,9 @@ class SociomapExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = research_sociomaps(spec, dataset)
+        result = research_sociomaps(
+            spec, dataset, connectedness_interval=self._connectedness_interval
+        )
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -473,7 +490,9 @@ class SociomapExecutor(_Step):
                 step,
                 payload={"kind": SOCIOMAP, "sociomap": result},
                 artifact_type=SOCIOMAP,
-                input_fingerprint=_sociomap_fingerprint(dataset_sha, spec),
+                input_fingerprint=_sociomap_fingerprint(
+                    dataset_sha, spec, connectedness_interval=self._connectedness_interval
+                ),
                 depends_on=[spec_id, dataset_id],
                 metadata={
                     "data_origin": origin,
@@ -574,9 +593,11 @@ def research_registry(
     build: BuildIdentity,
     producers: Mapping[FieldworkSource, DatasetProducer] | None = None,
     ai_runtime: AIDatasetProducer | None = None,
+    sociomap_connectedness_interval: bool = False,
 ) -> dict[str, Any]:
     """The research step kinds -> executors. ``producers`` only from the workbench;
-    ``ai_runtime`` only from a composition whose AI runtime is configured."""
+    ``ai_runtime`` only from a composition whose AI runtime is configured;
+    ``sociomap_connectedness_interval`` only where the deployment turns the F9 bootstrap on."""
     return {
         RESEARCH_KINDS["compile"]: CompileExecutor(store=store, build=build),
         RESEARCH_KINDS["preflight"]: PreflightExecutor(store=store, build=build),
@@ -584,6 +605,8 @@ def research_registry(
             store=store, build=build, producers=producers, ai_runtime=ai_runtime
         ),
         RESEARCH_KINDS["aggregate"]: AggregateExecutor(store=store, build=build),
-        RESEARCH_KINDS["sociomap"]: SociomapExecutor(store=store, build=build),
+        RESEARCH_KINDS["sociomap"]: SociomapExecutor(
+            store=store, build=build, connectedness_interval=sociomap_connectedness_interval
+        ),
         SOCIOMAPPING_STEP_KIND: SociomappingExecutor(store=store, build=build),
     }
