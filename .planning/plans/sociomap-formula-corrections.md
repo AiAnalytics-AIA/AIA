@@ -8,8 +8,8 @@ chunks:
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
   - "[ ] 1d. Stage 1 -- the relationship-evidence policy Q6 decides: evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min) as two gates, each declared and recorded per pair (F3); after the Q6 decision"
   - "[x] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
-  - "[ ] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
-  - "[ ] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
+  - "[x] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
+  - "[x] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
   - "[ ] 2d. Spec v3 and the preset aia-sociomap-2; aia-sociomap-1 kept as the comparison alternative; artifact v3; the research step adapter"
   - "[ ] 3. Stage 3 -- the common 0-1 scale (F1); ideal-point placement against the object map, per-respondent misfit e_k and its flag (F10)"
   - "[ ] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
@@ -805,6 +805,21 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   weighted Pearson on raw ratings (the habit inflates r, +0.394 for six independent objects);
   production: the unit's matrix kept for `aia-sociomap-1`'s layout, `relation_rescaled` beside it;
   test `test_the_rating_habit_inflates_raw_r_and_the_rescaling_removes_it`.
+- From chunk 2b: `CLAUDE.md` map, `domain/sociomap/layout.py` "declared layout registry;
+  aia_rowcond_unfolding_v1" gains "; `fit_smacof_objects` (audit F6: objects alone on the fixed
+  ruler sqrt(2 (1 - r~)), weighted SMACOF from a Torgerson start, UNKNOWN pairs weight 0, Stress-1,
+  never rescaled)". `sociomapa-deterministic-engine.md` § 8 a row -- reference: targets
+  `14 + 46 (1 - m / m_max)` and the map stretched to radius 38 or 44 (four copies, F7); production:
+  `aia-sociomap-1` keeps its unfolding, `fit_smacof_objects` beside it on the fixed ruler, read by
+  no preset until 2d; tests `test_the_map_is_never_stretched_to_a_radius`,
+  `test_a_family_without_structure_keeps_its_size_and_says_so`.
+- From chunk 2c: `CLAUDE.md` map, `domain/sociomap/view.py` "drag overrides, view terrain,
+  scenarios (never write) F9" gains "; `align_to_reference` (audit F7: a map turned onto the
+  previous one by rotation/reflection only, a view) and `stress_quality` (the audit's Stress-1
+  label)". `sociomapa-deterministic-engine.md` § 8 a row -- reference: four layout copies that
+  disagree (the scenario view turns the map a quarter and enlarges it 16 %), no fit shown;
+  production: one layout (2b), aligned as a view, labelled; tests
+  `test_a_turned_map_is_turned_back_without_scaling`, `test_every_stress_carries_the_audits_label`.
 
 ## 10. Progress and review outcome
 
@@ -995,3 +1010,61 @@ out over the unit's matrix as before; Results and the DOCX show nothing new (chu
 Checks run: `ruff check`, `ruff format --check` (543 files), `mypy --strict` (300 files, clean),
 `make layer_check` (100 rules), `make exposure_check` (7 rules), the evidence-register suite (24
 passed), every `sociomap` test and the new `test_sociomap_person_minmax.py` (24 tests).
+
+### Chunk 2b -- objects on a fixed ruler by SMACOF (F6), 2026-10-07
+
+What landed, on `feature/sociomap-smacof-objects` (stacked on #183, chunk 2a):
+
+- `domain/sociomap/layout.py`: `correlation_distance(r) = sqrt(2 (1 - r))` (eq. 13; refuses r
+  outside [-1, 1]), `correlation_distances(r, known)` (targets from signed r~, `None` where the
+  pair is not known), and `fit_smacof_objects(delta, *, max_iterations, tolerance)` -> `ObjectLayout`
+  (points, Stress-1 by eq. 14 over the known pairs, raw stress, known pairs, iterations, converged,
+  `start_fill`). Weighted SMACOF: Torgerson start (double-centred squared targets, top two
+  eigenvectors by the module's Jacobi), Guttman transforms `X <- V^+ B(X) X` with
+  `V^+ = (V + 11^T/m)^-1 - 11^T/m` (Gauss-Jordan), stop on a relative raw-stress improvement below
+  `tolerance`; then the unfolding's gauge (centroid, principal axes, third-moment reflection) --
+  translation, rotation, reflection only, **never a rescale**. `max_iterations` and `tolerance`
+  have no defaults. Refused: fewer than three objects, an asymmetric, negative or non-finite target,
+  a known-pair graph that does not connect every object.
+- One choice the audit leaves open, recorded on every layout: an UNKNOWN pair's squared target
+  in the Torgerson *start* is the mean of the known ones (`start_fill`; `None` when every pair is
+  known). It shapes only where the iteration begins; the stress weights the pair 0.
+
+Measured (`test_sociomap_smacof_objects.py`): a planted 8-point configuration recovered to
+Stress-1 ~ 1e-16 in 3 iterations, and with two UNKNOWN pairs in 26; twelve objects whose
+correlations are cos(a - b) land on radius 1.000000 (the unit would have stretched them to 38);
+twelve near-independent objects (r in [-0.09, 0.08], every target 1.35-1.47) Stress-1 0.335 --
+"2D picture unreliable", the audit's own run reports 0.307 on its data -- within radius 1.03,
+where a strong family of the same size spans 1.26. The audit's demo optimum (0.296, [C5]) and
+the families of [C4]/[P4] are not reproducible without its data.
+
+What it does not do: the plan's `DissimilarityTarget.CORRELATION_DISTANCE` and
+`MapFrameMethod.FIXED_RULER` spec members move to 2d with spec v3, where the engine and the research
+step read them; adding them now would let a v2 spec name a layout the v2 engine cannot run. No
+research body stores an object layout yet (2d), so `SOCIOMAP_VERSION` does not move. Results and
+the report show nothing new (chunk 5).
+
+### Chunk 2c -- one layout, aligned as a view, labelled (F7), 2026-10-07
+
+What landed, on `feature/sociomap-smacof-objects` (with 2b):
+
+- `domain/sociomap/view.py`: `stress_quality(stress_1)` -> `StressQuality` (GOOD < 0.05 <= FAIR
+  < 0.10 <= WEAK < 0.20 <= UNRELIABLE; each bound belongs to the band above it; a negative or
+  non-finite stress is refused, not labelled), with `STRESS_QUALITY_TEXT` holding the reader's words
+  ("2D picture unreliable"). `align_to_reference(points, reference)` -> `AlignedObjects`: eq. 16's
+  `argmin_Q ||P* Q - P_previous||` over rotations and reflections about the origin, fitted on the
+  objects both maps hold; no translation and no scaling (both maps come centred from the layout's
+  gauge, and Q is rotation/reflection as the audit writes it), so every distance and the Stress-1
+  are the layout's own. An object in one map only is turned with the rest; fewer than two common
+  objects are refused. `base` and `reference` fingerprint the two inputs: a view names what it
+  turned and never replaces it.
+- The existing `layout.procrustes_align` (parity comparisons) is unchanged: it centres both inputs
+  and may scale, which a reader's view must not.
+
+What it does not do: nothing prints the label yet. The plan's 2c line has it printed by the DOCX
+figure and Results, but the only map they draw is `aia-sociomap-1`'s unfolding, whose stress is
+over respondent x object cells -- a different measure from eq. 14's -- so labelling it with the
+audit's bands would be a reading the audit does not make. The label reaches the reader with the
+v2 map in chunk 5. No stored map is aligned to a previous wave until 2d stores object layouts
+and chunk 10 (engine plan) brings waves.
+

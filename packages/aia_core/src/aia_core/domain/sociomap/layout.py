@@ -76,16 +76,21 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, field_validator
 
 __all__ = [
+    "CORRELATION_DISTANCE_MAX",
     "LAYOUT_ALGORITHMS",
     "AlgorithmStatus",
     "LayoutAlgorithm",
     "LayoutAlgorithmInfo",
     "LayoutUnavailable",
+    "ObjectLayout",
     "ProcrustesFit",
     "UnfoldingDesignError",
     "UnfoldingParameters",
     "UnfoldingResult",
+    "correlation_distance",
+    "correlation_distances",
     "fit_rowcond_unfolding",
+    "fit_smacof_objects",
     "procrustes_align",
     "require_layout_algorithm",
     "scale_top_dissimilarity",
@@ -645,3 +650,234 @@ def procrustes_align(
     if best is None:  # unreachable: the loop always runs twice
         raise RuntimeError("procrustes produced no fit")
     return best
+
+
+# ---------------------------------------------- objects on a fixed ruler (F6) --
+#
+# Audit F6 (p. 8, § 12 p. 23-24): the unit measured every target distance against
+# the family's strongest pair and then stretched the map to a fixed radius, so a
+# barely related family looked as structured as a strongly related one and no two
+# maps compared. The replacement places the objects alone, from their relations:
+#
+#     delta_ij = sqrt(2 (1 - r~_ij))  in [0, 2]     0 identical, sqrt 2 unrelated, 2 opposite
+#     min_P  sigma(P) = sum_{i<j} w_ij (||p_i - p_j|| - delta_ij)^2
+#     Stress-1 = sqrt( sum w (||p_i - p_j|| - delta_ij)^2 / sum w delta_ij^2 )
+#
+# w_ij = 1 for a RELIABLE or WEAK pair, 0 for an UNKNOWN one (F3); SMACOF from a
+# Torgerson (classical-scaling) start; **no rescale to a radius**: one map unit is
+# one unit of correlation distance everywhere, so a family without structure is
+# shown as one (its Stress-1 says so) and maps compare across families and waves.
+
+
+#: The audit's fixed ruler: the largest correlation distance (two opposite objects).
+CORRELATION_DISTANCE_MAX: float = 2.0
+
+
+def correlation_distance(r: float) -> float:
+    """``sqrt(2 (1 - r))``: the exact distance between two standardised variables (F6)."""
+    if not math.isfinite(r) or not -1.0 <= r <= 1.0:
+        raise ValueError(f"a correlation lies in [-1, 1]; got {r!r}")
+    return math.sqrt(max(0.0, 2.0 * (1.0 - r)))
+
+
+@dataclass(frozen=True, slots=True)
+class ObjectLayout:
+    """The objects' map on the fixed ruler, and how far to trust it (audit F6, F7).
+
+    ``points`` are in correlation-distance units, centred on the objects' centroid,
+    rotated onto their principal axes and reflected by their third moment -- the same
+    gauge as the unfolding -- and **never rescaled**. ``stress_1`` is the audit's
+    eq. 14 over the pairs with weight 1; ``known_pairs`` counts them. ``start_fill`` is
+    the value the Torgerson start used for an UNKNOWN pair's squared distance (the mean
+    of the known ones), recorded because it is the one choice the audit leaves open: it
+    shapes only the start, never the stress, which weights an UNKNOWN pair 0.
+    """
+
+    points: tuple[Point, ...]
+    stress_1: float
+    raw_stress: float
+    known_pairs: int
+    iterations: int
+    converged: bool
+    start_fill: float | None
+
+
+def correlation_distances(
+    r: Sequence[Sequence[float | None]], known: Sequence[Sequence[bool]]
+) -> list[list[float | None]]:
+    """F6's targets from signed correlations: ``None`` where a pair is not known (F3).
+
+    ``known[i][j]`` is whether the pair's status lets it pull (RELIABLE or WEAK); a known
+    pair must carry a correlation. The diagonal is ``0.0``.
+    """
+    m = len(r)
+    if len(known) != m or any(len(row) != m for row in (*r, *known)):
+        raise ValueError(f"r and known must both be {m} x {m}")
+    out: list[list[float | None]] = [[None] * m for _ in range(m)]
+    for i in range(m):
+        out[i][i] = 0.0
+        for j in range(m):
+            if i == j or not known[i][j]:
+                continue
+            value = r[i][j]
+            if value is None:
+                raise ValueError(f"pair ({i}, {j}) is known but has no correlation")
+            out[i][j] = correlation_distance(value)
+    return out
+
+
+def _solve(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
+    """``a^-1 b`` by Gauss-Jordan elimination with partial pivoting (``a`` non-singular)."""
+    n = len(a)
+    aug = [a[i][:] + b[i][:] for i in range(n)]
+    width = len(aug[0])
+    for col in range(n):
+        pivot = max(range(col, n), key=lambda k: (abs(aug[k][col]), -k))
+        if abs(aug[pivot][col]) < 1e-14:
+            raise UnfoldingDesignError("the weight graph is singular; the objects cannot be placed")
+        aug[col], aug[pivot] = aug[pivot], aug[col]
+        lead = aug[col][col]
+        aug[col] = [v / lead for v in aug[col]]
+        for k in range(n):
+            if k != col and aug[k][col] != 0.0:
+                factor = aug[k][col]
+                aug[k] = [vk - factor * vc for vk, vc in zip(aug[k], aug[col], strict=True)]
+    return [row[n:width] for row in aug]
+
+
+def _object_stress(
+    points: Sequence[Point], delta: Sequence[Sequence[float | None]]
+) -> tuple[float, float]:
+    """(raw stress, Stress-1) over the known pairs, eq. 13-14."""
+    m = len(points)
+    num: list[float] = []
+    den: list[float] = []
+    for i in range(m):
+        for j in range(i + 1, m):
+            t = delta[i][j]
+            if t is None:
+                continue
+            d = math.hypot(points[i][0] - points[j][0], points[i][1] - points[j][1])
+            num.append((d - t) ** 2)
+            den.append(t * t)
+    raw = math.fsum(num)
+    total = math.fsum(den)
+    return raw, (math.sqrt(raw / total) if total > 0 else 0.0)
+
+
+def fit_smacof_objects(
+    delta: Sequence[Sequence[float | None]], *, max_iterations: int, tolerance: float
+) -> ObjectLayout:
+    """Place objects from their target distances by weighted SMACOF (audit F6, F7).
+
+    ``delta`` is symmetric with a zero diagonal; ``None`` is an UNKNOWN pair, weight 0.
+    Torgerson start (classical scaling of the squared targets, an UNKNOWN pair's
+    squared target filled with the mean of the known ones for the start only), then
+    Guttman transforms ``X <- V^+ B(X) X`` until raw stress falls by less than
+    ``tolerance`` (relative) or ``max_iterations`` pass. Each step cannot raise raw
+    stress (majorisation). Fewer than three objects, an asymmetric or negative target,
+    or a known-pair graph that does not connect every object is refused: an object with
+    no known pair to the rest has no position on the same map.
+    """
+    m = len(delta)
+    if m < 3:
+        raise UnfoldingDesignError(f"an object map needs at least three objects; got {m}")
+    if max_iterations < 1 or not tolerance > 0:
+        raise ValueError("max_iterations must be >= 1 and tolerance > 0")
+    for i in range(m):
+        if len(delta[i]) != m:
+            raise ValueError(f"delta must be {m} x {m}")
+        for j in range(m):
+            a, b = delta[i][j], delta[j][i]
+            if (a is None) != (b is None) or (
+                a is not None and b is not None and (a != b or a < 0 or not math.isfinite(a))
+            ):
+                raise ValueError(f"delta must be symmetric, finite and non-negative at ({i}, {j})")
+    w = [[i != j and delta[i][j] is not None for j in range(m)] for i in range(m)]
+    reached, frontier = {0}, [0]
+    while frontier:
+        i = frontier.pop()
+        for j in range(m):
+            if w[i][j] and j not in reached:
+                reached.add(j)
+                frontier.append(j)
+    if len(reached) != m:
+        raise UnfoldingDesignError(
+            f"objects {sorted(set(range(m)) - reached)} have no chain of known pairs to the "
+            "rest; they cannot be placed on the same map"
+        )
+    known_values = [
+        float(t) ** 2 for i in range(m) for j in range(i + 1, m) if (t := delta[i][j]) is not None
+    ]
+    fill = math.fsum(known_values) / len(known_values) if known_values else 0.0
+    start_fill = fill if len(known_values) < m * (m - 1) // 2 else None
+    # Torgerson: double-centred squared targets, top two eigenvectors.
+    d2 = [
+        [
+            0.0 if i == j else (fill if (t := delta[i][j]) is None else float(t) ** 2)
+            for j in range(m)
+        ]
+        for i in range(m)
+    ]
+    row_mean = [math.fsum(row) / m for row in d2]
+    grand = math.fsum(row_mean) / m
+    bmat = [
+        [-0.5 * (d2[i][j] - row_mean[i] - row_mean[j] + grand) for j in range(m)] for i in range(m)
+    ]
+    values, vectors = _jacobi_eigen(bmat)
+    scales = [math.sqrt(max(values[a], 0.0)) for a in range(2)]
+    x: list[Point] = [(vectors[i][0] * scales[0], vectors[i][1] * scales[1]) for i in range(m)]
+    # V^+ for the weights: (V + 11^T / m)^-1 - 11^T / m (Borg & Groenen eq. 8.25 form).
+    v = [[0.0] * m for _ in range(m)]
+    for i in range(m):
+        for j in range(m):
+            if w[i][j]:
+                v[i][j] = -1.0
+                v[i][i] += 1.0
+    shifted = [[v[i][j] + 1.0 / m for j in range(m)] for i in range(m)]
+    identity = [[1.0 if i == j else 0.0 for j in range(m)] for i in range(m)]
+    inv = _solve(shifted, identity)
+    v_plus = [[inv[i][j] - 1.0 / m for j in range(m)] for i in range(m)]
+    raw, _ = _object_stress(x, delta)
+    iterations, converged = 0, False
+    for iterations in range(1, max_iterations + 1):  # noqa: B007 - read after the loop
+        bx = [[0.0] * m for _ in range(m)]
+        for i in range(m):
+            for j in range(m):
+                t = delta[i][j]
+                if i == j or t is None:
+                    continue
+                d = math.hypot(x[i][0] - x[j][0], x[i][1] - x[j][1])
+                bx[i][j] = -float(t) / d if d > 1e-12 else 0.0
+            bx[i][i] = -math.fsum(bx[i][j] for j in range(m) if j != i)
+        bxx = [
+            (
+                math.fsum(bx[i][k] * x[k][0] for k in range(m)),
+                math.fsum(bx[i][k] * x[k][1] for k in range(m)),
+            )
+            for i in range(m)
+        ]
+        x = [
+            (
+                math.fsum(v_plus[i][k] * bxx[k][0] for k in range(m)),
+                math.fsum(v_plus[i][k] * bxx[k][1] for k in range(m)),
+            )
+            for i in range(m)
+        ]
+        new_raw, _ = _object_stress(x, delta)
+        improved = raw - new_raw
+        raw = new_raw
+        if improved <= tolerance * max(raw, 1e-300):
+            converged = True
+            break
+    _, points, _ = _fix_gauge([], x)
+    raw, stress = _object_stress(points, delta)
+    return ObjectLayout(
+        points=tuple(points),
+        stress_1=stress,
+        raw_stress=raw,
+        known_pairs=sum(1 for i in range(m) for j in range(i + 1, m) if w[i][j]),
+        iterations=iterations,
+        converged=converged,
+        start_fill=start_fill,
+    )
