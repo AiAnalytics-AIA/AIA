@@ -50,7 +50,7 @@ chunks:
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
   - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
-  - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
+  - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
 ---
 # Deep Research — wide, precise, and defensible
@@ -1133,6 +1133,17 @@ statistics (ČSÚ, Eurostat), registers (ARES, procurement), scholarship (OpenAl
 industry press, the publisher's own site -- rendered from the reputation register into the
 investigator's prompt as hints. Code still decides what may leave; a hint names no URL the model
 could send. A prompt version.
+
+*Landed 2026-10-08* (`feature/dr-search-playbooks`): `domain/deep_research/playbooks.py`
+(`PLAYBOOK_VERSION = "aia-playbooks-1"`, six kinds of evidence: official statistics, ministries and
+regulators, public registers, scholarship, industry bodies, the press), rendered by
+`render_playbooks(REPUTATION_REGISTER_V1)` into the investigator's prompt, now version 3. Publishers
+are named only from the register, by canonical name and a short variant. A name that reads as an
+address is left out, and the press is a kind named by no title: follow it to the number's origin.
+No hint carries a host, a URL or a query (`test_deep_research_playbooks.py`). The rendered hints are
+pinned by hash, so a register change that moves them cannot ship under the old prompt version. Like
+the register, the hints are proposed. A new prompt version changes `INVESTIGATOR_VERSION` and with
+it every agent-directed track's fingerprint: tracks stored before it are not reused.
 
 **50. A commercial comparison arm.** Chunk 26's arms gain Google's Gemini Deep Research, run by a
 person on the public fictional topics only (never a client's), its report graded blind beside ours

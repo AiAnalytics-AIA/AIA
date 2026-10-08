@@ -407,7 +407,7 @@ def test_new_text_is_shown_once_bounded_and_flagged() -> None:
 
 
 def test_the_investigator_version_names_every_rule_it_depends_on() -> None:
-    assert INVESTIGATOR_VERSION.startswith("aia-investigator-1/investigator-turn-2/prompt-2/")
+    assert INVESTIGATOR_VERSION.startswith("aia-investigator-1/investigator-turn-2/prompt-3/")
     assert "aia-stated-measures-1" in INVESTIGATOR_VERSION
     assert INVESTIGATOR_VERSION.endswith("/aia-acquisition-ladder-1")
 

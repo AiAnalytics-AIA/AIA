@@ -86,6 +86,8 @@ from .lead import (
     ResearchPlan,
     TaskKind,
 )
+from .playbooks import render_playbooks
+from .reputation import REPUTATION_REGISTER_V1
 from .synthesizer import BRIEF_PROMPT_VERSION, BRIEF_TASK, BriefProposal
 from .verifier import VERIFIER_PROMPT_VERSION, VERIFIER_TASK, Verification
 
@@ -131,7 +133,8 @@ PROMPT_VERSION: Final = "1"
 
 #: The investigator's own prompt version: it is not one of the five above.
 #: 2: the ``ladder`` action (plan chunk 10).
-INVESTIGATOR_PROMPT_VERSION: Final = "2"
+#: 3: where each kind of evidence is usually found (:mod:`.playbooks`, plan chunk 49).
+INVESTIGATOR_PROMPT_VERSION: Final = "3"
 
 #: The investigator's output contract, :class:`InvestigatorTurn`. A new action kind
 #: is an additive change under a new version; a stored turn keeps its own.
@@ -496,6 +499,7 @@ Zjištění (evidence) navrhuj jen z textu, který máš před sebou; source_id 
 summary je stručné shrnutí toho, co tah zjistil, pro vedoucího výzkumu. Do leads zapiš zdroje,
 které potřebuješ a nemáš (need, publisher nebo null, why).
 """
+    + render_playbooks(REPUTATION_REGISTER_V1)
     + _EVIDENCE
     + _MEASURES
     + _LEAKAGE
