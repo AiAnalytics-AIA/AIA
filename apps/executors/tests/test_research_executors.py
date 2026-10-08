@@ -292,6 +292,7 @@ def test_a_changed_engine_is_not_handed_the_previous_engines_map(
     map the previous engine drew for the same dataset and spec back from storage.
     """
     from aia_core.domain.research_design import compile_design
+    from aia_core.domain.research_sociomap import LEGACY_METHODS
     from aia_executors import research as research_module
 
     spec, problems = compile_design(
@@ -311,7 +312,7 @@ def test_a_changed_engine_is_not_handed_the_previous_engines_map(
 
     def fingerprint(*, interval: bool = False) -> str:
         return research_module._sociomap_fingerprint(
-            "dataset-sha", spec, connectedness_interval=interval
+            "dataset-sha", spec, methods=LEGACY_METHODS, connectedness_interval=interval
         )
 
     before = fingerprint()

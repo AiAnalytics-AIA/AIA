@@ -22,8 +22,12 @@ PR C chunk 6. For each tracked object set of the specification:
    preset's. Beside them, connectedness on 0-100 with a respondent-bootstrap
    interval and the order those intervals allow (audit F9, chunk 4a);
 4. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
-   preset ``AIA_SOCIOMAP_V1`` adopted by name, with only the rating scale taken
-   from the battery (a property of the data, recorded on the artifact).
+   spec the run pinned when it was started (:class:`SociomapMethod`), with only the
+   rating scale taken from the battery (a property of the data, recorded on the
+   artifact). The module's preset is what a *new* run pins; a run executes the spec
+   it pinned, whatever the preset has become since, and a run stored before methods
+   were pinned is read as ``aia-sociomap-1`` (:data:`LEGACY_METHODS`), the method that
+   computed it (plan ``sociomap-formula-corrections`` § 8.2, I0 and I4).
 
 **Integration is not exposure.** The preset carries four AIA methodology
 declarations that PROGRESS D6 has not approved, so every Sociomap this module
@@ -41,11 +45,19 @@ from collections.abc import Sequence
 from enum import StrEnum
 from typing import Any, Final, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .fieldwork import FieldworkDataset
+from .pipeline import fingerprint
 from .research_design import ResearchSpecification, SpecBattery
-from .sociomap import AIA_SOCIOMAP_V1, compute_sociomap
+from .sociomap import (
+    AIA_SOCIOMAP_V1,
+    SociomapSpec,
+    compute_sociomap,
+    read_spec,
+    require_supported,
+    spec_payload,
+)
 from .sociomap.metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ties
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.relations import (
@@ -61,16 +73,22 @@ __all__ = [
     "CONNECTEDNESS_RESAMPLES",
     "CONNECTEDNESS_SEED",
     "D6_OPEN",
+    "LEGACY_METHODS",
     "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
     "RESCALE_RULE",
     "SOCIOMAP_VERSION",
     "MethodologyStatus",
     "PairRelations",
+    "SociomapMethod",
+    "SociomapMethodsInvalid",
     "SociomapNotApproved",
     "battery_sociomap",
+    "default_methods",
     "derive_pair_relations",
     "derive_relation_matrix",
+    "methods_fingerprint",
+    "read_methods",
     "require_client_facing",
     "rescaled_battery_ratings",
     "research_sociomaps",
@@ -86,9 +104,11 @@ __all__ = [
 #: chunk 2a), and ``object_scores`` read it instead of the raw correlation.
 #: ``5``: each set carries ``connectedness_100``, the audit's F9 score with its
 #: bootstrap interval and the ranking with ties (chunk 4a), so a body stored under
-#: ``4`` (without them) is not reused as if it had them. Not the engine preset
+#: ``4`` (without them) is not reused as if it had them. ``6``: the body names the
+#: methods the run pinned (``methods``) and each set's map is computed under the
+#: pinned spec, not the module's preset (plan § 8.2, S1). Not the engine preset
 #: (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-5"
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-6"
 #: How ``relation_rescaled`` was made, recorded on every body.
 RESCALE_RULE: Final = (
     "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
@@ -129,6 +149,104 @@ def require_client_facing(sociomap: dict[str, Any]) -> None:
             "this Sociomap is INTERNAL_ONLY: its methodology (PROGRESS D6) is not approved "
             "for client use"
         )
+
+
+class SociomapMethodsInvalid(ValueError):
+    """A run's pinned methods cannot be read, or are not a set this module computes."""
+
+
+class SociomapMethod(BaseModel):
+    """One Sociomap method a run pinned when it was started: its id and its whole spec.
+
+    The spec is stored, not its name: a run executes exactly the methodology it was
+    started under, even after the module's preset changes. ``spec_fingerprint`` is the
+    spec's own and is re-checked on every read, so an edited pin is refused rather than
+    computed. The battery's rating scale is filled in at execution (a property of the
+    data, recorded on the artifact), as it always was.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    method_id: str = Field(min_length=1, max_length=100)
+    spec: dict[str, Any]
+    spec_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @classmethod
+    def of(cls, spec: SociomapSpec) -> SociomapMethod:
+        """The pin for ``spec``: its methodology version, its stored form, its fingerprint."""
+        return cls(
+            method_id=spec.methodology_version,
+            spec=spec_payload(spec),
+            spec_fingerprint=spec.fingerprint(),
+        )
+
+    def resolve(self) -> SociomapSpec:
+        """The pinned spec, verified against its fingerprint and its id, and computable.
+
+        Raises :class:`SociomapMethodsInvalid` for a pin that does not read, does not hash
+        to its fingerprint or names another method, and
+        :class:`~.sociomap.specification.UnsupportedMethodology` for a spec this engine
+        cannot compute: nothing substitutes another method.
+        """
+        try:
+            spec = read_spec(self.spec)
+        except (ValueError, ValidationError) as exc:
+            raise SociomapMethodsInvalid(
+                f"{self.method_id}: the pinned spec does not read: {exc}"
+            ) from exc
+        if spec.fingerprint() != self.spec_fingerprint:
+            raise SociomapMethodsInvalid(
+                f"{self.method_id}: the pinned spec does not match its recorded fingerprint"
+            )
+        if spec.methodology_version != self.method_id:
+            raise SociomapMethodsInvalid(
+                f"the pin names {self.method_id!r} but holds {spec.methodology_version!r}"
+            )
+        require_supported(spec)
+        return spec
+
+
+#: How a run stored before methods were pinned is read: ``aia-sociomap-1``, the preset
+#: that computed every such run. Never back-filled onto the stored run.
+LEGACY_METHODS: Final = (SociomapMethod.of(AIA_SOCIOMAP_V1),)
+
+
+def default_methods() -> tuple[SociomapMethod, ...]:
+    """What a new run pins: today ``aia-sociomap-1`` alone, the shipped picture."""
+    return LEGACY_METHODS
+
+
+def methods_fingerprint(methods: Sequence[SociomapMethod]) -> str:
+    """One identity for a pinned set, in its order."""
+    return fingerprint([m.model_dump(mode="json") for m in methods])
+
+
+def read_methods(value: Any) -> tuple[SociomapMethod, ...]:
+    """A run's pinned methods from its stored form; ``None`` (a run stored before pins) is
+    :data:`LEGACY_METHODS`.
+
+    The set must be one this module computes: at least one method, no id twice, and
+    exactly one spec of contract 2, whose map is the set's ``sociomap`` (the picture the
+    Results and the report draw until chunk 5). Raises :class:`SociomapMethodsInvalid`.
+    """
+    if value is None:
+        return LEGACY_METHODS
+    if not isinstance(value, list | tuple) or not value:
+        raise SociomapMethodsInvalid("a run pins at least one Sociomap method")
+    try:
+        methods = tuple(SociomapMethod.model_validate(v) for v in value)
+    except ValidationError as exc:
+        raise SociomapMethodsInvalid(f"a pinned method does not read: {exc}") from exc
+    ids = [m.method_id for m in methods]
+    if len(set(ids)) != len(ids):
+        raise SociomapMethodsInvalid(f"a method is pinned twice: {ids}")
+    contract_2 = [m for m in methods if m.spec.get("contract_version") == "2"]
+    if len(contract_2) != 1:
+        raise SociomapMethodsInvalid(
+            "exactly one contract-2 method draws a set's map until chunk 5; pinned "
+            f"{[m.method_id for m in contract_2]}"
+        )
+    return methods
 
 
 def _methodology_status() -> MethodologyStatus:
@@ -376,12 +494,14 @@ def battery_sociomap(
     *,
     rated_with: Sequence[SpecBattery],
     connectedness_interval: bool,
+    map_spec: SociomapSpec,
 ) -> dict[str, Any]:
     """One tracked set's relation matrix and its Sociomap, as an internal artifact body.
 
     ``rated_with`` are every tracked set of the specification: the declared rating items
     each respondent's own scale is read over (audit F2: all the items they rated, not only
-    this family).
+    this family). ``map_spec`` is the run's pinned contract-2 spec; only its rating scale
+    is replaced, by the battery's.
     """
     object_ids = [o.id for o in battery.objects]
     qids = [battery.question_id(o) for o in battery.objects]
@@ -440,9 +560,9 @@ def battery_sociomap(
         }
 
     low, high = battery.scale
-    spec = AIA_SOCIOMAP_V1.model_copy(
+    spec = map_spec.model_copy(
         update={
-            "ratings": AIA_SOCIOMAP_V1.ratings.model_copy(
+            "ratings": map_spec.ratings.model_copy(
                 update={"rating_scale_min": float(low), "rating_scale_max": float(high)}
             )
         }
@@ -465,7 +585,7 @@ def battery_sociomap(
         "objects": [{"id": o.id, "label": o.label} for o in battery.objects],
         "methodology_status": _methodology_status().value,
         "methodology_decision": "PROGRESS D6: the four AIA Sociomap declarations, open",
-        "preset": AIA_SOCIOMAP_V1.methodology_version,
+        "preset": map_spec.methodology_version,
         "rating_scale": [low, high],
         "relation": {
             "source": RELATION_SOURCE,
@@ -501,15 +621,28 @@ def battery_sociomap(
 
 
 def research_sociomaps(
-    spec: ResearchSpecification, dataset: FieldworkDataset, *, connectedness_interval: bool
+    spec: ResearchSpecification,
+    dataset: FieldworkDataset,
+    *,
+    methods: Sequence[SociomapMethod],
+    connectedness_interval: bool,
 ) -> dict[str, Any]:
     """Every tracked set's Sociomap. A specification without one has none, and says so.
 
-    ``connectedness_interval`` is the worker's kill switch for the F9 bootstrap, passed
-    by name: off, each set records :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
+    ``methods`` are the run's pinned methods (:func:`read_methods`); each is resolved --
+    verified and checked computable -- before any number, so a pin this engine cannot
+    compute fails here by name. ``connectedness_interval`` is the worker's kill switch for
+    the F9 bootstrap, passed by name: off, each set records
+    :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
     """
+    pinned = read_methods([m.model_dump(mode="json") for m in methods])
+    resolved = [(m, m.resolve()) for m in pinned]
+    map_spec = next(s for m, s in resolved if m.spec.get("contract_version") == "2")
     return {
         "sociomap_version": SOCIOMAP_VERSION,
+        "methods": [
+            {"method_id": m.method_id, "spec_fingerprint": m.spec_fingerprint} for m in pinned
+        ],
         "methodology_status": _methodology_status().value,
         "data_origin": dataset.origin.value if dataset.origin else None,
         "batteries": [
@@ -518,6 +651,7 @@ def research_sociomaps(
                 dataset,
                 rated_with=spec.batteries,
                 connectedness_interval=connectedness_interval,
+                map_spec=map_spec,
             )
             for b in spec.batteries
         ],

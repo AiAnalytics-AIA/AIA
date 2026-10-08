@@ -32,8 +32,9 @@ unfolding -- so version 2 replaces it; no version-1 spec was ever executable.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -49,6 +50,7 @@ from .terrain import TERRAIN66_OBJECT, TERRAIN66_RESPONDENT, TerrainParameters
 
 __all__ = [
     "AIA_SOCIOMAP_V1",
+    "SPEC_CONTRACTS",
     "SPEC_CONTRACT_VERSION",
     "DissimilarityTarget",
     "LayoutSpec",
@@ -63,13 +65,21 @@ __all__ = [
     "RelationSpec",
     "SociomapSpec",
     "TerrainSpec",
+    "UnknownSpecContract",
     "UnsupportedMethodology",
+    "read_spec",
     "require_supported",
+    "spec_payload",
 ]
 
 # Version of this *contract* (the shape of a spec), distinct from
 # ``SociomapSpec.methodology_version`` (which methodology the spec describes).
 SPEC_CONTRACT_VERSION = "2"
+#: Every spec contract this engine reads. A stored spec names its contract
+#: (:func:`spec_payload`) and is read under that one (:func:`read_spec`), never under
+#: the newest: a later contract is a new model beside this one, so a spec stored under
+#: an earlier contract keeps its fields and its fingerprint byte for byte.
+SPEC_CONTRACTS: Final = (SPEC_CONTRACT_VERSION,)
 
 
 class DissimilarityTarget(StrEnum):
@@ -269,6 +279,34 @@ class SociomapSpec(_Frozen):
         return fingerprint(
             {"contract_version": SPEC_CONTRACT_VERSION, **self.model_dump(mode="json")}
         )
+
+
+class UnknownSpecContract(ValueError):
+    """A stored spec names a contract this engine does not read, or names none."""
+
+
+def spec_payload(spec: SociomapSpec) -> dict[str, Any]:
+    """A spec as it is stored: its contract named beside its body.
+
+    The contract is stated, not inferred from the fields present, so a reader can never
+    take a spec of one contract for another's.
+    """
+    return {"contract_version": SPEC_CONTRACT_VERSION, "spec": spec.model_dump(mode="json")}
+
+
+def read_spec(payload: Mapping[str, Any]) -> SociomapSpec:
+    """The spec :func:`spec_payload` stored, read under the contract it names.
+
+    Raises :class:`UnknownSpecContract` for a contract this engine does not read (or a
+    payload naming none) and pydantic's ``ValidationError`` for a body that does not
+    validate under its own contract.
+    """
+    contract = payload.get("contract_version")
+    if contract not in SPEC_CONTRACTS:
+        raise UnknownSpecContract(
+            f"no Sociomap spec contract {contract!r}; this engine reads {list(SPEC_CONTRACTS)}"
+        )
+    return SociomapSpec.model_validate(payload.get("spec"))
 
 
 def _assert_json_scalar_tree(value: Any, path: str) -> None:
