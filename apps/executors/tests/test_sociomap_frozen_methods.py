@@ -14,8 +14,8 @@ import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain import research_sociomap
 from aia_core.domain.fieldwork import FieldworkSource
-from aia_core.domain.research_sociomap import LEGACY_METHODS, SociomapMethod
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, SociomapSpec
+from aia_core.domain.research_sociomap import SociomapMethod, default_methods
+from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V2, SociomapSpec
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
@@ -125,7 +125,8 @@ def _extent(body: dict[str, Any]) -> float:
 def test_a_new_run_pins_the_default_and_records_it(world: Any) -> None:
     run_id = _start(world)
     run = _run(world, run_id)
-    pinned = [m.model_dump(mode="json") for m in LEGACY_METHODS]
+    pinned = [m.model_dump(mode="json") for m in default_methods()]
+    assert [m["method_id"] for m in pinned] == ["aia-sociomap-1", "aia-sociomap-2"]
     assert run["metadata"]["sociomap_methods"] == pinned
     with world.sessions() as session:
         step = session.scalars(
@@ -152,8 +153,11 @@ def test_the_run_computes_its_pin_after_the_module_preset_changes(
     body = _sociomap(world, store, run_id)
     assert _extent(body) == AIA_SOCIOMAP_V1.layout.map_frame.extent == 45.0
     assert body["methods"] == [
-        {"method_id": "aia-sociomap-1", "spec_fingerprint": AIA_SOCIOMAP_V1.fingerprint()}
+        {"method_id": m.method_id, "spec_fingerprint": m.spec_fingerprint}
+        for m in (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V2))
     ]
+    (battery,) = body["batteries"]
+    assert set(battery["maps"]) == {"aia-sociomap-2"}
 
 
 def test_a_run_pinned_to_another_spec_computes_that_spec_and_is_another_run(
@@ -221,13 +225,13 @@ def test_a_pin_that_does_not_verify_fails_the_step_by_name(world: Any, worker: W
         step = session.scalars(
             select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "sociomap")
         ).one()
-        (method,) = step.input_json["methods"]
+        method, *rest = step.input_json["methods"]
         edited = {**method, "spec": {**method["spec"]}}
         edited["spec"]["spec"] = {
             **method["spec"]["spec"],
             "terrain": {**method["spec"]["spec"]["terrain"], "normalization": "absolute"},
         }
-        step.input_json = {"methods": [edited]}
+        step.input_json = {"methods": [edited, *rest]}
         session.commit()
     _drain(worker)
     step_out = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "sociomap")
@@ -235,3 +239,26 @@ def test_a_pin_that_does_not_verify_fails_the_step_by_name(world: Any, worker: W
     error = step_out["attempts"][-1]["error"]
     assert error["code"] == "sociomap_method_invalid"
     assert "fingerprint" in error["message"]
+
+
+def test_a_restart_after_the_default_changes_returns_the_run_and_pays_nothing(
+    world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Taking the default is not identity: a revision started under an earlier default is
+    not started again (with its AI fieldwork paid again) because the default moved."""
+    from aia_core.domain.research_sociomap import LEGACY_METHODS
+
+    monkeypatch.setattr("aia_core.application.research.default_methods", lambda: LEGACY_METHODS)
+    first = _start(world)
+    monkeypatch.undo()
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision_id = _run(world, first)["metadata"]["design_revision_id"]
+        again = ResearchRuns(session, scope).start(
+            design_revision_id=revision_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE
+        )
+        session.commit()
+    assert again.run_id == first and not again.created
+    assert [m["method_id"] for m in _run(world, first)["metadata"]["sociomap_methods"]] == [
+        "aia-sociomap-1"
+    ]
