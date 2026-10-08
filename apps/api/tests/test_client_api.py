@@ -593,3 +593,62 @@ def test_the_questionnaire_template_is_aias_workbook_for_any_reader_of_the_study
     )
     # Any member reads it, another client's lead included (ADR 0019).
     assert other_client_lead.get(url).status_code == 200
+
+
+def test_accepting_a_stale_knowledge_edit_returns_409_and_preserves_the_correction(
+    researcher: TestClient, world: Any
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    original = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Original"})
+    assert original.status_code == 201
+    item_id = original.json()["item_id"]
+    proposed = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FACT", "title": "Older proposal", "item_id": item_id, "base_revision": 1},
+    )
+    assert proposed.status_code == 201 and proposed.json()["base_revision"] == 1
+    correction = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Correction", "item_id": item_id, "base_revision": 1},
+    )
+    assert correction.status_code == 201 and correction.json()["revision"] == 2
+    decision = f"{base}/proposals/{proposed.json()['proposal_id']}/decision"
+    refused = researcher.post(decision, json={"approve": True})
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "stale_revision"
+    assert refused.json()["details"] == {"expected_revision": 1, "current_revision": 2}
+    [item] = researcher.get(base).json()
+    assert (item["title"], item["revision"]) == ("Correction", 2)
+    pending = researcher.get(f"{base}/proposals", params={"status": "PROPOSED"}).json()
+    assert [p["proposal_id"] for p in pending] == [proposed.json()["proposal_id"]]
+    assert pending[0]["decided_by"] is None and pending[0]["revision"] is None
+    history = researcher.get(f"{base}/items/{item_id}/revisions").json()
+    assert [(r["revision"], r["title"]) for r in history] == [(1, "Original"), (2, "Correction")]
+    assert researcher.post(decision, json={"approve": False}).status_code == 200
+
+
+@pytest.mark.parametrize("from_study", [False, True], ids=["client", "study"])
+def test_a_known_stale_base_returns_409_before_creating_a_knowledge_edit(
+    researcher: TestClient, world: Any, from_study: bool
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    original = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Original"})
+    assert original.status_code == 201
+    item_id = original.json()["item_id"]
+    path = (
+        f"{API}/studies/{world.study_id()}/knowledge-proposals"
+        if from_study
+        else f"{base}/proposals"
+    )
+    refused = researcher.post(
+        path, json={"kind": "FACT", "title": "Stale", "item_id": item_id, "base_revision": 99}
+    )
+    assert refused.status_code == 409 and refused.json()["code"] == "stale_revision"
+    assert refused.json()["details"] == {"expected_revision": 99, "current_revision": 1}
+    assert len(researcher.get(f"{base}/proposals").json()) == 1
+    assert (
+        researcher.post(
+            path, json={"kind": "FACT", "title": "Invalid", "item_id": item_id, "base_revision": 0}
+        ).status_code
+        == 422
+    )

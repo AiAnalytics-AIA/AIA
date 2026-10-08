@@ -16,6 +16,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.knowledge import (
+    KnowledgeConflict,
     KnowledgeItem,
     KnowledgeKind,
     KnowledgeProposal,
@@ -39,6 +40,7 @@ from .tables import (
     ClientKnowledgeItemRow,
     ClientKnowledgeProposalRow,
     ClientKnowledgeRevisionRow,
+    ClientRow,
     as_utc,
     utcnow,
 )
@@ -82,6 +84,7 @@ def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
         origin=ProposalOrigin.STUDY if row.study_id else ProposalOrigin.CLIENT,
         study_id=row.study_id,
         item_id=row.item_id,
+        base_revision=row.base_revision,
         kind=KnowledgeKind(row.kind),
         title=row.title,
         summary=row.summary,
@@ -249,6 +252,21 @@ class ClientKnowledgeRepository:
 
     # -------------------------------------------------------------- proposals
 
+    def _lock_client(self, organization_id: str, client_id: str) -> None:
+        # All writes take this lock first: client -> proposal -> item. It also
+        # serializes the client's append-only context revision allocation.
+        row = self._session.scalar(
+            select(ClientRow)
+            .where(
+                ClientRow.organization_id == organization_id,
+                ClientRow.client_id == client_id,
+            )
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+
     def _add_proposal(
         self,
         *,
@@ -262,27 +280,39 @@ class ClientKnowledgeRepository:
         content: dict[str, Any],
         provenance: dict[str, Any],
         item_id: str | None,
+        base_revision: int | None,
     ) -> KnowledgeProposal:
         if not title.strip():
             raise ValueError("a proposal needs a title")
+        if base_revision is not None and (item_id is None or base_revision < 1):
+            raise ValueError("a base revision requires an existing item and must be positive")
+        self._lock_client(organization_id, client_id)
         if item_id is not None:
             target = self._session.scalar(
-                select(ClientKnowledgeItemRow).where(
+                select(ClientKnowledgeItemRow)
+                .where(
                     ClientKnowledgeItemRow.item_id == item_id,
                     ClientKnowledgeItemRow.organization_id == organization_id,
                     ClientKnowledgeItemRow.client_id == client_id,
                 )
+                .execution_options(populate_existing=True)
             )
             if target is None:
                 raise ScopeDenied("not found", reason="unknown_item")
             if target.kind != kind.value:
                 raise ValueError("a revision keeps the item's kind")
+            if base_revision is not None and base_revision != target.current_revision:
+                raise KnowledgeConflict(
+                    expected_revision=base_revision, current_revision=target.current_revision
+                )
+            base_revision = target.current_revision
         row = ClientKnowledgeProposalRow(
             proposal_id=new_knowledge_proposal_id(),
             organization_id=organization_id,
             client_id=client_id,
             study_id=study_id,
             item_id=item_id,
+            base_revision=base_revision,
             kind=kind.value,
             title=title.strip(),
             summary=summary,
@@ -306,6 +336,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A study offers a finding for reuse. Changes nothing until someone approves it."""
         scope = _study(scope)
@@ -321,6 +352,7 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance={**(provenance or {}), "study_id": scope.study_id},
             item_id=item_id,
+            base_revision=base_revision,
         )
 
     def propose(
@@ -333,6 +365,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A proposal made in the client workspace itself (a source added, a term defined)."""
         scope = _client(scope)
@@ -348,6 +381,7 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance=provenance or {},
             item_id=item_id,
+            base_revision=base_revision,
         )
 
     # --------------------------------------------------------------- decisions
@@ -362,6 +396,7 @@ class ClientKnowledgeRepository:
         """
         scope = _client(scope)
         scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
+        self._lock_client(scope.organization_id, scope.client_id)
         row = self._session.scalar(
             select(ClientKnowledgeProposalRow)
             .where(
@@ -370,6 +405,7 @@ class ClientKnowledgeRepository:
                 ClientKnowledgeProposalRow.client_id == scope.client_id,
             )
             .with_for_update()
+            .execution_options(populate_existing=True)
         )
         if row is None:
             raise ScopeDenied("not found", reason="unknown_proposal")
@@ -392,6 +428,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A person adds or edits knowledge in the client workspace; it takes effect now.
 
@@ -417,6 +454,7 @@ class ClientKnowledgeRepository:
                 content=content,
                 provenance=provenance,
                 item_id=item_id,
+                base_revision=base_revision,
             )
         proposal = self._add_proposal(
             organization_id=scope.organization_id,
@@ -429,6 +467,7 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance={**(provenance or {}), "authored": "person"},
             item_id=item_id,
+            base_revision=base_revision,
         )
         row = self._session.scalar(
             select(ClientKnowledgeProposalRow)
@@ -455,6 +494,9 @@ class ClientKnowledgeRepository:
     ) -> KnowledgeProposal:
         """Record the decision on a proposal row and, if approved, apply it."""
         now = utcnow()
+        # Validate/apply before making the decision dirty: a caught conflict must
+        # not be committable as an approval through SQLAlchemy's autoflush.
+        revision = self._apply(scope, row, now) if approve else None
         row.decided_by = scope.actor_id
         row.decided_at = now
         row.decision_note = note
@@ -462,7 +504,7 @@ class ClientKnowledgeRepository:
             row.status = ProposalStatus.REJECTED.value
         else:
             row.status = ProposalStatus.APPROVED.value
-            row.revision = self._apply(scope, row, now)
+            row.revision = revision
         self._session.add(
             AccessAuditRow(
                 organization_id=scope.organization_id,
@@ -513,12 +555,19 @@ class ClientKnowledgeRepository:
                 select(ClientKnowledgeItemRow)
                 .where(
                     ClientKnowledgeItemRow.item_id == proposal.item_id,
+                    ClientKnowledgeItemRow.organization_id == scope.organization_id,
                     ClientKnowledgeItemRow.client_id == scope.client_id,
                 )
                 .with_for_update()
+                .execution_options(populate_existing=True)
             )
             if existing is None:
                 raise ScopeDenied("not found", reason="unknown_item")
+            if proposal.base_revision != existing.current_revision:
+                raise KnowledgeConflict(
+                    expected_revision=proposal.base_revision,
+                    current_revision=existing.current_revision,
+                )
             item = existing
             revision = item.current_revision + 1
             item.title = proposal.title
