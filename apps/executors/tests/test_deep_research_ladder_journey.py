@@ -29,6 +29,10 @@ from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
 from aia_core.infrastructure.dataset_connectors import RecordedDatasetConnector
 from aia_core.infrastructure.storage import InMemoryArtifactStore
+from deep_research_fixtures import (
+    ALMOND,
+    ANSWERS,
+)
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     TURNS,
     ScriptedInvestigator,
@@ -38,8 +42,6 @@ from test_deep_research_investigator_journey import (  # type: ignore[import-not
     track_result,
 )
 from test_deep_research_journey import (  # type: ignore[import-not-found]
-    ALMOND,
-    ANSWERS,
     ResearchWorld,
     drain,
     read,

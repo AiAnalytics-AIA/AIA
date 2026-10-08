@@ -69,14 +69,16 @@ from aia_executors import workbench
 from aia_executors.deep_research import deep_research_registry
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
-from sqlalchemy import select
-from test_deep_research_journey import (  # type: ignore[import-not-found]
+from deep_research_fixtures import (
     ANSWERS,
     DESIGN_2,
     RecordedAgents,
+    recorded,
+)
+from sqlalchemy import select
+from test_deep_research_journey import (  # type: ignore[import-not-found]
     ResearchWorld,
     approve_knowledge,
-    recorded,
     research,  # noqa: F401  (the fixture)
 )
 

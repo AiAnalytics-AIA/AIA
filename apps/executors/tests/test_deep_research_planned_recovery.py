@@ -41,17 +41,19 @@ from aia_core.infrastructure.web_retrieval import RecordedFetchTransport, Record
 from aia_executors.deep_research import DeepResearchRuntime
 from aia_worker.worker import Worker
 from conftest import _truncate  # type: ignore[import-not-found]
+from deep_research_fixtures import (
+    ANSWERS,
+    RecordedAgents,
+    recorded,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from test_deep_research_journey import (  # type: ignore[import-not-found]
-    ANSWERS,
-    RecordedAgents,
     ResearchWorld,
     approve_knowledge,
     drain,
     make_research_world,
     read,
-    recorded,
     start,
     tool_events,
     worker,

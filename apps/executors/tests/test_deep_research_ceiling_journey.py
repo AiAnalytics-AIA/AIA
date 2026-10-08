@@ -26,6 +26,9 @@ from aia_core.domain.deep_research.request_limits import kind_of
 from aia_core.domain.deep_research.tooling import ToolOutcome
 from aia_core.infrastructure.tables import AIUsageEventRow, BudgetReservationRow
 from aia_executors.deep_research import DeepResearchRuntime
+from deep_research_fixtures import (
+    RecordedAgents,
+)
 from sqlalchemy import select
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     Directed,
@@ -33,7 +36,6 @@ from test_deep_research_investigator_journey import (  # type: ignore[import-not
 )
 from test_deep_research_journey import (  # type: ignore[import-not-found]
     Journey,
-    RecordedAgents,
     ResearchWorld,
     pass_one,  # noqa: F401  (a fixture)
     research,  # noqa: F401  (a fixture)

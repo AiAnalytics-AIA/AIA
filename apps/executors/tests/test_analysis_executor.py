@@ -33,6 +33,7 @@ from aia_core.application.analysis_results import (
     SourcesRefused,
     reconstruct_run,
 )
+from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
@@ -48,10 +49,21 @@ from aia_core.domain.analysis.steps import (
     analysis_step_definitions,
     analysis_step_inputs,
 )
+from aia_core.domain.deep_research.contracts import Channel, EvidenceOrigin, RetrievalMode
+from aia_core.domain.deep_research.grounding import locate_quote, normalise_text
+from aia_core.domain.deep_research.integration import (
+    AnalysisModuleTarget,
+    DeepResearchPurpose,
+    InterpretationLineage,
+    SociomapTarget,
+)
+from aia_core.domain.deep_research.quarantine import RecordedEvidenceRefused, require_live_evidence
+from aia_core.domain.deep_research.workflow import deep_research_steps
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface, ViolationCode
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.residency import DataClass
+from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -86,6 +98,7 @@ from aia_executors.analysis import (
     AnalysisConfig,
     analysis_registry,
 )
+from aia_executors.deep_research import DeepResearchRuntime
 from aia_executors.registry import registry_for
 from aia_executors.report import REPORT_ARTIFACT_TYPE
 from aia_executors.workbench import workbench_registry_for
@@ -395,6 +408,7 @@ def run_with(
         env: dict[str, str] | None = None,
         config: AnalysisConfig | None = None,
         ai_fieldwork: bool = False,
+        deep_research: DeepResearchRuntime | None = None,
     ) -> Worker:
         settings = AIRuntimeSettings.from_env(env if env is not None else _env(world))
         assert settings is not None
@@ -414,6 +428,7 @@ def run_with(
                 ai_runtime=build_ai_fieldwork(
                     settings, build=build, transport=transport, signer=Signer()
                 ),
+                deep_research=deep_research,
             )
             if ai_fieldwork
             else workbench_registry_for(store=store, build=build)
@@ -536,6 +551,296 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert {d.artifact_type for d in dependencies} == {ANALYSIS_MODULE_ARTIFACT}
     assert document.startswith(b"PK")
     assert lint_docx(document) == []
+
+
+@pytest.mark.parametrize(
+    ("n", "report_ready", "include_deep_research"),
+    [
+        pytest.param(60, False, False, id="insufficient-support"),
+        pytest.param(150, True, False, id="internal-report"),
+        pytest.param(150, True, True, id="deep-research-and-internal-report"),
+    ],
+)
+def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    n: int,
+    report_ready: bool,
+    include_deep_research: bool,
+    deep_research_fixture: Any,
+    record_property: Callable[[str, object], None],
+) -> None:
+    """The application-owned chain must connect AI answers, a real map and the report.
+
+    The earlier AI fixture builds its graph directly and has no object battery;
+    the application-owned report fixture uses deterministic fixture fieldwork.
+    This exercises the connection with only the external transport replaced.
+    Deep Research uses the same frozen design and worker; its review-only bundle
+    stays sealed; interpretation executes over the resulting map and an admitted module.
+    """
+    design = {
+        **DESIGN,
+        "n": n,
+        "sections": [
+            *DESIGN["sections"],
+            {
+                "type": "object_battery",
+                "title": "Service concepts",
+                "object_type": "services",
+                "objects": ["Service A", "Service B", "Service C"],
+                "object_question": "How do you rate",
+            },
+        ],
+    }
+    if include_deep_research:
+        design = {
+            **deep_research_fixture.DESIGN_2,
+            "n": n,
+            "sections": [
+                deep_research_fixture.DESIGN_2["sections"][0],
+                {
+                    **deep_research_fixture.DESIGN_2["sections"][1],
+                    "object_family": "nápoje",
+                    "scale": [1, 10],
+                },
+            ],
+        }
+    approval = MaterialApproval(
+        sha256=material_sha256(design),
+        data_class=DataClass.CLASS_C_INTERNAL,
+        provenance="generated wholly by this test",
+    )
+    env = _env(world, AIA_AI_MATERIAL_CLASSIFICATIONS=f"[{approval.model_dump_json()}]")
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=design, source_stage="run"
+        )
+        session.commit()
+
+    record_property("design_revision_id", revision.revision_id)
+    record_property("design_content_sha256", revision.content_sha256)
+    record_property("fixture_origin", "SYNTHETIC_AI_FICTIONAL_AND_RECORDED_WEB")
+    models = ScriptedModels()
+    agents = deep_research_fixture.RecordedAgents(deep_research_fixture.ANSWERS)
+    deep_runtime = (
+        deep_research_fixture.recorded(
+            world, agents, approved_for=deep_research_fixture.DEVELOP_ROUTE, contents=(design,)
+        )
+        if include_deep_research
+        else None
+    )
+    worker = run_with(models, env=env, ai_fieldwork=True, deep_research=deep_runtime)
+    deep_run_id = None
+    bundle_seal = None
+    if include_deep_research:
+        with world.sessions() as session:
+            runs = DeepResearchRuns(session, world.lead_scope(session))
+            deep_run_id = runs.start(
+                design_revision_id=revision.revision_id,
+                preset_name="QUICK",
+                channels=(Channel.WEB,),
+            ).run_id
+            session.commit()
+        assert _drain(worker) == ["completed"] * len(deep_research_steps())
+        with world.sessions() as session:
+            scope = world.lead_scope(session)
+            runs = DeepResearchRuns(session, scope)
+            deep_run = runs.get(deep_run_id)
+            bundle = runs.bundle(deep_run_id, store=store)
+            provenance = runs.provenance(deep_run_id, store=store)
+            assert deep_run["status"] is WorkflowRunStatus.COMPLETED
+            assert all(step["status"] is StepRunStatus.SUCCEEDED for step in deep_run["steps"])
+            assert bundle.verify() and bundle.accepted and bundle.snapshots
+            assert bundle.design_revision_id == revision.revision_id
+            assert bundle.origins == (EvidenceOrigin.RECORDED_FIXTURE,)
+            assert bundle.fictional_client and not bundle.client_facing
+            assert provenance.purpose is DeepResearchPurpose.DESIGN_RESEARCH
+            assert provenance.lineage.design_revision_id == revision.revision_id
+            assert provenance.lineage.design_content_sha256 == revision.content_sha256
+            bundle_seal = bundle.sha256
+            assert provenance.evidence_bundle_seal == bundle_seal
+            record_property("design_research_run_id", deep_run_id)
+            record_property("design_research_bundle_id", provenance.evidence_bundle_artifact_id)
+            record_property("design_research_bundle_seal", bundle_seal)
+            for accepted in bundle.accepted:
+                item = accepted.evidence
+                snapshot = runs.snapshot(deep_run_id, item.source_ref, store=store)
+                assert snapshot.retrieval_mode is RetrievalMode.RECORDED
+                assert locate_quote(snapshot.text, normalise_text(item.quote)) == item.quote_span
+                assert item.source_url in (snapshot.url, snapshot.final_url)
+            designs = StudyDesignRepository(session, scope)
+            assert designs.content(revision.revision_id) == design
+            assert designs.latest() == revision
+        assert agents.requests
+        with pytest.raises(RecordedEvidenceRefused):
+            require_live_evidence(bundle)
+
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.AI_RUNTIME,
+            analysis_enabled=True,
+        )
+        session.commit()
+
+    record_property("research_run_id", started.run_id)
+    endings = _drain(worker)
+    back = _reconstruct(world, store, started.run_id)
+    expected = ["completed"] * 13 + ["completed" if report_ready else "failed"]
+    assert endings == expected, (
+        _unfinished(world, started.run_id),
+        {module.value: result.violations for module, result in back.modules.items()},
+    )
+    run = _run(world, started.run_id)
+    steps = {step["node_key"]: step for step in run["steps"]}
+    record_property("sociomap_artifact_id", steps["sociomap"]["output"]["artifact_id"])
+    assert len(models.requests) >= design["n"]
+    if not report_ready:
+        assert run["status"] is WorkflowRunStatus.FAILED
+        assert steps["sociomap"]["status"] is StepRunStatus.SUCCEEDED
+        assert not back.complete
+        assert models.asked == [], "unsupported evidence must be refused before analysis calls"
+        assert all(result.outcome is ModuleOutcomeKind.BLOCKED for result in back.modules.values())
+        assert all(
+            any(v.code is ViolationCode.SUPPORT_SUPPRESSED for v in result.violations)
+            for result in back.modules.values()
+        )
+        assert steps["report"]["attempts"][-1]["error"]["reason"] == "report_inputs_refused"
+        with world.sessions() as session:
+            stored = research_artifacts(session, world.lead_scope(session), store).recent(limit=100)
+        assert REPORT_ARTIFACT_TYPE not in {artifact.artifact_type for artifact in stored}
+        return
+
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    assert sorted(models.asked) == sorted((module, 1) for module in MODULES)
+    assert back.complete
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        dataset = repo.read_json(steps["run"]["output"]["artifact_id"])
+        mapped = repo.read_json(steps["sociomap"]["output"]["artifact_id"])["sociomap"]
+        report_id = steps["report"]["output"]["artifact_id"]
+        report = repo.get(report_id)
+        document = repo.read(report_id)
+        dependencies = repo.dependencies(report_id)
+
+    assert dataset["dataset"]["origin"] == "SYNTHETIC_AI_FICTIONAL"
+    assert len(dataset["dataset"]["respondents"]) == design["n"]
+    assert mapped["methodology_status"] == "INTERNAL_ONLY"
+    assert len(mapped["batteries"]) == 1
+    battery = mapped["batteries"][0]
+    assert len(battery["sociomap"]["layout"]["object_xy"]) == 3
+    assert battery["sociomap"]["layout"]["respondent_ids"]
+    assert battery["object_scores"]["primary"] == [obj["id"] for obj in battery["objects"]]
+    pinned = run["metadata"]["sociomap_methods"]
+    assert mapped["methods"] == [
+        {"method_id": method["method_id"], "spec_fingerprint": method["spec_fingerprint"]}
+        for method in pinned
+    ]
+    v2 = read_artifact(battery["maps"]["aia-sociomap-2"])
+    assert isinstance(v2, SociomapArtifactV3)
+    assert v2.support.respondents == n
+    assert v2.spec.fingerprint() == next(
+        method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-2"
+    )
+    assert report.artifact_type == REPORT_ARTIFACT_TYPE
+    assert report.metadata["run_id"] == started.run_id
+    assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
+    assert report.metadata["synthetic"] is True and report.is_approved is False
+    assert {dep.artifact_id for dep in dependencies} == {
+        steps[analysis_node_key(module)]["output"]["artifact_id"] for module in AnalysisModuleId
+    }
+    assert document.startswith(b"PK") and lint_docx(document) == []
+    record_property("report_artifact_id", report_id)
+    record_property("report_sha256", report.sha256)
+    record_property("report_review_state", report.metadata["review_state"])
+
+    if include_deep_research:
+        assert deep_run_id is not None
+        deep_calls = len(agents.requests)
+        fieldwork_analysis_calls = len(models.requests)
+        with world.sessions() as session:
+            scope = world.lead_scope(session)
+            runs = DeepResearchRuns(session, scope)
+            assert runs.bundle(deep_run_id, store=store).sha256 == bundle_seal
+            provenance = runs.provenance(deep_run_id, store=store)
+            # The current internal report consumes analysis modules, not this review bundle.
+            assert provenance.evidence_bundle_artifact_id not in {
+                dep.artifact_id for dep in dependencies
+            }
+            target = SociomapTarget(
+                kind="SOCIOMAP",
+                research_run_id=started.run_id,
+                sociomap_artifact_id=steps["sociomap"]["output"]["artifact_id"],
+                battery_id=battery["battery_id"],
+            )
+            frozen = runs.freeze_interpretation(target=target, preset_name="QUICK", store=store)
+            assert isinstance(frozen.lineage, InterpretationLineage)
+            assert frozen.lineage.research_run_id == started.run_id
+            assert frozen.lineage.design.design_revision_id == revision.revision_id
+            repo = research_artifacts(session, scope, store)
+            assert {
+                pin.node_key: (pin.artifact_id, pin.sha256) for pin in frozen.lineage.artifacts
+            } == {
+                node: (
+                    steps[node]["output"]["artifact_id"],
+                    repo.get(steps[node]["output"]["artifact_id"]).sha256,
+                )
+                for node in ("compile", "run", "aggregate", "sociomap")
+            }
+            assert [run["run_id"] for run in runs.runs()] == [deep_run_id]
+        interpretation_ids = []
+        module_target = AnalysisModuleTarget(
+            kind="ANALYSIS_MODULE",
+            research_run_id=started.run_id,
+            analysis_artifact_id=steps[analysis_node_key(AnalysisModuleId.OBJECTS)]["output"][
+                "artifact_id"
+            ],
+            module_id=AnalysisModuleId.OBJECTS,
+        )
+        for result_target in (target, module_target):
+            with world.sessions() as session:
+                runs = DeepResearchRuns(session, world.lead_scope(session))
+                frozen = runs.freeze_interpretation(
+                    target=result_target, preset_name="QUICK", store=store, channels=(Channel.WEB,)
+                )
+                assert frozen.engine_request.subjects
+                assert all(
+                    subject.origin.startswith(f"interpretation:{result_target.kind}:")
+                    for subject in frozen.engine_request.subjects
+                )
+                interpreted = runs.start_interpretation(
+                    target=result_target, preset_name="QUICK", store=store, channels=(Channel.WEB,)
+                )
+                interpretation_ids.append(interpreted.run_id)
+                session.commit()
+            assert _drain(worker) == ["completed"] * len(deep_research_steps())
+            with world.sessions() as session:
+                runs = DeepResearchRuns(session, world.lead_scope(session))
+                assert runs.get(interpreted.run_id)["status"] is WorkflowRunStatus.COMPLETED
+                evidence = runs.bundle(interpreted.run_id, store=store)
+                assert evidence.verify() and evidence.accepted
+                provenance = runs.provenance(interpreted.run_id, store=store)
+                assert provenance.purpose is DeepResearchPurpose.INTERPRETATION_RESEARCH
+                assert provenance.target == result_target
+                assert provenance.lineage == frozen.lineage
+                assert runs.resolve_lineage(interpreted.run_id, store=store) == frozen.lineage
+                record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
+                record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
+                record_property(
+                    f"interpretation_{result_target.kind}_lineage", frozen.lineage.model_dump_json()
+                )
+        with world.sessions() as session:
+            scope = world.lead_scope(session)
+            runs = DeepResearchRuns(session, scope)
+            assert {run["run_id"] for run in runs.runs()} == {deep_run_id, *interpretation_ids}
+            assert runs.bundle(deep_run_id, store=store).sha256 == bundle_seal
+            assert research_artifacts(session, scope, store).get(report_id).sha256 == report.sha256
+        assert len(agents.requests) > deep_calls
+        assert len(models.requests) == fieldwork_analysis_calls
+        assert worker.run_once() is None
 
 
 def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(

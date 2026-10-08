@@ -170,3 +170,11 @@ def make_worker(
         )
 
     return build
+
+
+@pytest.fixture
+def deep_research_fixture() -> Any:
+    """Recorded design/agent/runtime helpers; tests never import another test module."""
+    import deep_research_fixtures
+
+    return deep_research_fixtures
