@@ -1364,6 +1364,35 @@ fireEvent.click(tile);
 await screen.findByRole("button", { name: /Nový produkt/, pressed: true }, { timeout: 5_000 });
 ```
 
+**A mount effect must not reset state that an event handler may already own.**
+The same gap runs the other way: a click can land after the commit and before its
+passive effects, so a handler can start work that the mount effect then undoes.
+`useResearchAgents`' mount effect began with `setReview(null); setBusy(false)`. A
+click on the freshly drawn screen started `run()`, which opened the review dialog;
+then the mount effect ran and closed it, while the decision promise stayed
+pending, so the job never settled. `QuestionnaireStep.test.tsx` › *reviews the
+native brief analysis…* waited its full 15 s about one run in ten under load: 8 of
+72 parallel runs failed, each with the mount effect logged after the review
+opened; 0 of 90 after the fix (#184, `296c330`). A longer wait does not help:
+nothing is slow, the job is stuck. Outside a test the same order clears a running
+job's busy flag and re-enables its buttons. A first mount already starts from
+`useState`'s initial values; clearing belongs to the cleanup, when the old
+subject is left.
+
+```ts
+// WRONG: the mount clears what a click in the same commit already set
+useEffect(() => {
+  setReview(null); setBusy(false);
+  refresh();
+  return () => { owner.abort(); };
+}, [studyId]);
+// RIGHT: the mount only starts its own work; leaving the study clears its state
+useEffect(() => {
+  refresh();
+  return () => { owner.abort(); setReview(null); setBusy(false); };
+}, [studyId]);
+```
+
 **What a job's continuation sets is not on screen when what its store drew is.**
 A store update (`useSyncExternalStore`) renders straight away; a `useState` update
 made after an `await` is an ordinary update, which React's scheduler renders in a

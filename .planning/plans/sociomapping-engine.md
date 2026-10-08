@@ -22,7 +22,7 @@ chunks:
   - "[x] I3. API: the artifact through the run (researchers only) and the report's status and download"
   - "[x] I4. Results page: 3D and top view, rotation, zoom, legend, object details, fit diagnostics, method, download"
   - "[x] I5. Workbench journey on fictional data: run -> map -> report, screenshots, the report opened"
-  - "[ ] 7. Spec v3, preset sociomapping-somecs-1, engine and research adapter wiring, artifact v3, ledgers"
+  - "[ ] 7. Spec contract 4 (or an extension of contract 3), preset sociomapping-somecs-1, engine and research adapter wiring, its artifact contract, ledgers"
   - "[ ] 8. Regions and statistics (E8, M8)"
   - "[ ] 9. Overlays as view layers: arrows (RTS rules), shortest path, combine maps, coherence contours"
   - "[ ] 10. Time: positions taken from a reference map, wave alignment, time-series frames, animation"
@@ -229,8 +229,14 @@ Shape (checked against develop @ `70ff89d` and PR 116 @ `7c1e012`, unmerged):
   stage and lists the rest as pending with what blocks them; each new stage joins it and its
   test. Done when R1 reaches a rendered 3-D map and a report page with every intermediate
   and fit diagnostic shown.
-- **7-12.** As before: wiring and artifact v3, regions, overlays, time, the Results UI from the
-  artifact, the report and the client gate.
+- **7-12.** As before: wiring and its artifact contract, regions, overlays, time, the Results UI
+  from the artifact, the report and the client gate. **Contract 3 is taken** (2026-10-08): spec
+  and artifact contract 3 are `aia-sociomap-2`, the formula audit's object map
+  (`SociomapSpecV3`, `SociomapArtifactV3`; plan `sociomap-formula-corrections.md` chunk 2d), and a
+  stored payload is read by the contract it names. `sociomapping-somecs-1` therefore takes
+  contract 4, or extends contract 3 with members contract 3 refuses today; either way contracts 2
+  and 3 are not edited. Since the audit is canonical for AIA's object map, path B here is a
+  comparison alternative, not the object map's method.
 
 ## Progress
 

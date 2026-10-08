@@ -173,19 +173,20 @@ deterministic research truth.*
   on. The report (evidence families POPULATION/RESPONDENT, DETERMINISTIC, SOCIOMAP, DEEP_RESEARCH,
   CLIENT_KNOWLEDGE) and the Research Lens can cite `DeepResearchProvenance` without reaching
   into the engine.
-- **Interpretation Research is frozen, never executed, until chunk 30.** Its target resolution,
-  lineage freeze, run-spec construction and provenance contract exist now. Enqueueing is refused
-  at the one enqueue boundary (`DeepResearchRuns._enqueue`, `interpretation_not_ready`), and a
-  stored interpretation row is never retried. The reason: its engine request would still be the
-  design-derived one, so a run would be labelled as interpreting a result while researching the
-  design's subjects. Chunk 30 derives the research mission from the exact target, builds the
-  engine request from it, and then enables enqueueing together with the result-side route. No
-  knowingly mislabelled output exists in AIA.
+- **Interpretation Research enqueues and executes since `deep-research-web-search.md` chunk 30**
+  (PR #193, `67af44e`). Its engine request's subjects are the target's mission, built by code
+  (`domain/deep_research/interpretation.py`) from the pinned specification and the Design
+  Revision the producing run executed, never from a respondent number. The enqueue boundary
+  (`DeepResearchRuns._enqueue`) refuses a spec whose subjects do not all carry its own target's
+  origin (`interpretation_mission_mismatch`); a retry re-freezes the stored target and is
+  `lineage_changed` when a pin no longer reads as pinned. Until chunk 30 the boundary refused
+  every interpretation spec (`interpretation_not_ready`, now removed), so no knowingly
+  mislabelled output was ever produced.
 
   | | target resolution | lineage freeze | run spec | provenance contract | enqueue | execute |
   |---|---|---|---|---|---|---|
   | `DESIGN_RESEARCH` | yes | yes | yes | yes | yes | yes |
-  | `INTERPRETATION_RESEARCH` (Step 1) | yes | yes | yes | yes | **no** | **no** |
+  | `INTERPRETATION_RESEARCH` (since chunk 30) | yes | yes | yes | yes | yes | yes |
 - A start after this ADR over a revision that already had a pre-ADR run is a new run (a new key):
   the honest cost of not pretending the old run was governed.
 

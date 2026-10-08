@@ -13,6 +13,39 @@ is client-deliverable** (§6).
 | Reference | `AiAnalytics-AIA/AIA-reference` @ `678e298`: `sociomapping-reference-contract.md`, fixtures F1–F9 |
 | Engineering detail | [sociomapa-deterministic-engine.md](sociomapa-deterministic-engine.md) |
 
+## v2 (2026-10-08): the decision's subject is `aia-sociomap-2`
+
+The formula audit ([`sociomap-formula-corrections.md`](../../.planning/plans/sociomap-formula-corrections.md))
+is canonical for AIA's object map, and overrides every earlier Sociomap decision where they
+disagree. D6 is therefore to approve **`aia-sociomap-2`**, not `aia-sociomap-1`:
+
+| | |
+| --- | --- |
+| Spec | `AIA_SOCIOMAP_V2`, `methodology_version = "aia-sociomap-2"`, spec contract 3 |
+| Spec fingerprint | `3f1c01221492f883ce715b5763a3815ae2a8f4c1e5456f3c581a9f67838d6b43` |
+| Engine | `domain/sociomap/engine_v2.py`, `compute_object_map` @ `71bf294` |
+| What it covers | the object map only (F1–F3, F6–F9); respondent placement and terrain are not in contract 3 yet |
+
+Every new research run pins both methods and computes both; both are `INTERNAL_ONLY`, and
+Results and the report draw only `aia-sociomap-1` until chunk 5.
+
+The four `aia-sociomap-1` declarations below, re-read against the audit:
+
+- **§1 dissimilarity target.** For the object map the audit's correlation distance
+  `sqrt(2 (1 − r~))` (F6) replaces it; AIA's δ stays only as `aia-sociomap-1`'s.
+- **§2 layout.** For the object map the audit's SMACOF on a fixed ruler (F6, F7) replaces the
+  unfolding; respondent placement (F10) is not built.
+- **§3 map frame.** The audit rejects stretching a map to an extent (F7); contract 3 declares
+  `fixed_ruler`.
+- **§4 missing relation policy.** Agreed in substance: an unknown pair is UNKNOWN and weighs
+  nothing (F3), never 5.5.
+
+Still open for the owner, not answered here: the audit's provisional `n_min` 30 and the pair
+evidence basis (Q6), the default height and F8's denominator (Q7), finding F-4a-1, and
+finding F-S3-1 (a context object moves PRIMARY r~ under F2). The approval line for the v1
+declarations below stays as it was; a decision on `aia-sociomap-2` approves its fingerprint as
+a whole (§5).
+
 ## What is not in question
 
 Everything else in the preset is **recovered reference behaviour, verified

@@ -274,6 +274,19 @@ confirm it passes before committing.
   unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
   PROGRESS D6 is open; every client-facing surface, export or report calls
   `require_client_facing`, which refuses it and fails closed on a missing status.
+- **A stored method is read by the contract it names; contracts are added beside
+  each other, never edited.** A Sociomap spec and artifact carry their contract
+  number (`read_spec` / `spec_payload`, `read_artifact`): contract 2 is
+  `aia-sociomap-1`, unchanged and still fingerprinted `9d4dffea…`; contract 3 is
+  `aia-sociomap-2`, the formula audit's object map. A payload naming no contract or
+  an unknown one is refused, never read as the nearest. A research run pins the
+  methods it computes (`SociomapMethod`: id, the spec as stored, its fingerprint)
+  when it starts; the executor computes the pin, never the module's current preset;
+  a retry keeps the original's pins; a run stored before pins existed reads as
+  `aia-sociomap-1`. Only a method set the caller *chooses* changes a run's identity,
+  so changing the default never re-pays for a revision's fieldwork. The same rule
+  holds for Deep Research's envelope (ADR 0021): a run's purpose, target and lineage
+  wrap the unchanged engine request.
 - **A native run's analysis is internal, and an outcome is re-admitted whenever it is
   read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
   items become evidence fields only from what the run recorded

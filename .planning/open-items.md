@@ -3042,7 +3042,7 @@ deleted, never budgeted for (#166 recorded it as such).
 
 ---
 
-## OI-88 · Limitation · Interpretation Research is frozen, never executed, until chunk 30
+## OI-88 · Limitation, closed · Interpretation Research is frozen, never executed, until chunk 30
 
 **Claim.** Interpretation execution is intentionally unavailable until chunk 30, because
 target-derived research subjects and mission do not yet exist. ADR 0021's result-side freeze
@@ -3066,4 +3066,110 @@ validation and the provenance contract are available to build on.
 the exact target, build the engine request from it, then enable enqueueing and the result-side
 route together.
 
-**Status.** Open, by design (ADR 0021 Step 1).
+**Status.** Closed by chunk 30 (PR #193, merged at `67af44e`). The mission is built by
+`interpretation_mission` (`packages/aia_core/src/aia_core/domain/deep_research/interpretation.py:176
+@ 67af44e`) from the pinned specification and the Design Revision only, and the enqueue boundary
+checks it (`application/deep_research.py:560 @ 67af44e`, `require_interpretation_mission`).
+Tests: `test_deep_research_lineage.py::test_interpretation_enqueues_its_mission_and_runs_to_a_sealed_bundle`,
+`::test_a_design_derived_request_under_an_interpretation_label_is_refused`,
+`::test_design_and_interpretation_share_the_engines_reusable_tracks`. The three tests named under
+Reproduction were replaced by these when the guard was lifted.
+
+---
+
+## OI-89 · Finding, closed · A research agent run started before the hook's mount effect lost its review
+
+**Claim.** `useResearchAgents`' mount effect reset `review`, `busy` and `notice`, so a click
+landing between React's commit and its passive effects started a run whose review dialog the
+effect then closed, leaving the decision promise pending and the job never settled.
+
+**Anchor.** The reset moved into the effect's cleanup:
+`apps/web/src/components/rehome/research/useResearchAgents.tsx:69 @ 67af44e` (fix `296c330`,
+PR #184).
+
+**Reproduction.** `QuestionnaireStep.test.tsx` › *reviews the native brief analysis…*, six
+single-test runs in parallel on a 4-core container: 8 of 72 failed before the fix (each with the
+mount effect logged after `askReview`), 0 of 90 after; 50 of 50 sequential runs pass.
+
+**Consequence.** In the test, a 15 s wait for *Použít návrh* that ran out. Outside it, the same
+order cleared a running job's busy flag and re-enabled its buttons.
+
+**Fix.** Landed: clear the state in the cleanup, when the study is left; a first mount starts from
+`useState`'s initial values. Recorded in `AGENTS.md` (*A mount effect must not reset state that
+an event handler may already own*).
+
+**Status.** Closed by PR #184 (`7a2673a`). The test that catches it is the one above, unchanged.
+
+---
+
+## OI-90 · Question · Declaring a context object moves the PRIMARY relations under F2
+
+**Claim.** The integration plan's I2 acceptance line "adding context objects alone does not
+change PRIMARY scores or terrain" cannot hold under the audit's F2, which rescales each person
+over *every* item they rated, context objects included.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_sociomap.py:270 @ 67af44e`
+(`rating_universe`); `packages/aia_core/src/aia_core/domain/sociomap/relations.py:319 @ 67af44e`
+(`person_minmax`); the audit's F2 (p. 22).
+
+**Reproduction.** Add a sixth object to `DESIGN` in
+`packages/aia_core/tests/test_sociomap_rating_universe.py` and declare it in `context_objects`:
+the five PRIMARY objects' r~ move, because the new item moves people's bounds.
+
+**Consequence.** Declaring a context object is not a free presentation choice: it changes the
+relations the PRIMARY scores are read from.
+
+**Fix.** Not engineering's: either F2's universe excludes SECONDARY items (a change to F2), or the
+line reads "a context object's own pairs never enter a PRIMARY score", which holds and is tested.
+For the audit's author, with group B of the plan's § 8a
+([sociomap-formula-corrections](plans/sociomap-formula-corrections.md), slice S3, F-S3-1).
+
+**Test.** The second reading: `test_sociomap_rating_universe.py::test_a_context_object_has_no_score_and_scores_nobody`.
+
+---
+
+## OI-91 · Limitation · A study's selected dimensions and audience filters are recorded, not applied
+
+**Claim.** `persona_dimensions.approved` and `audience.filters` reach the run's specification as
+`SpecSelection` with `applied: false`, but nothing selects the run's respondents by them, because
+no dimension materialization or population binding exists in AIA.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_design.py:159,166 @ 67af44e`
+(`SELECTION_NOT_APPLIED`, `SpecSelection`).
+
+**Reproduction.** `packages/aia_core/tests/test_research_selection.py::test_the_selection_says_it_was_not_applied`;
+`::test_readiness_names_the_dimensions_it_will_not_apply`.
+
+**Consequence.** Two designs differing only in a dimension or an age filter are two
+specifications and two runs, but their respondents are drawn alike; readiness WARNs which
+dimensions will not be applied, and the specification says so.
+
+**Fix.** Dimension materialization and a population binding for the run (I1 of
+[sociomap-formula-corrections](plans/sociomap-formula-corrections.md) § 8.1), never reconstructed
+inside the Sociomap.
+
+**Status.** Open; I1 stays open until it lands.
+
+---
+
+## OI-92 · Question · K100's percentile interval sits above its point near zero
+
+**Claim.** Where an object's pairs are near zero, the audit's percentile bootstrap interval for
+K100 lies above the full sample's K100, often excluding it, because K is a mean of |r| and a
+resample's duplicated rows add noise that |.| folds upward.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/sociomap/metrics.py:724 @ 67af44e`
+(`connectedness_100`).
+
+**Reproduction.** `packages/aia_core/tests/test_sociomap_connectedness_100.py::test_near_zero_the_percentile_interval_sits_above_its_point`
+(200 respondents, 20 independent objects, B = 100: 10 of 20 intervals wholly above their point,
+none below).
+
+**Consequence.** A weakly connected object is shown with a margin that does not contain its own
+score. Nothing reads K100 yet (chunk 5).
+
+**Fix.** Not engineering's: a bias-corrected (BCa) or basic bootstrap interval, or a debiased K,
+is a methodology change to F9. For the audit's author with group B
+([sociomap-formula-corrections](plans/sociomap-formula-corrections.md), chunk 4a, F-4a-1).
+
+**Test.** The reproduction above.
