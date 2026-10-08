@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import dataclasses
+from collections.abc import Mapping, Sequence
 
 from aia_core.domain.deep_research.agents import (
     PROMPT_VERSION,
@@ -22,6 +23,7 @@ from aia_core.domain.deep_research.contracts import (
 from aia_core.domain.deep_research.merge import (
     MERGE_RULES_VERSION,
     Candidate,
+    SourceFacts,
     TrackEvidence,
     apply_verdicts,
     excerpt_window,
@@ -37,6 +39,7 @@ from aia_core.domain.deep_research.steps import (
     TrackResult,
     VerificationBatch,
     VerifyRecord,
+    WorkStandingRecord,
     run_scoped,
 )
 from aia_core.domain.deep_research.tracing import TraceSource, trace_findings
@@ -58,6 +61,8 @@ from aia_core.domain.deep_research.verifier import (
     ClaimJudgement,
     Verification,
 )
+from aia_core.domain.deep_research.works import WorkStatusRecord
+from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 
 from ..research import upstream_artifact
@@ -72,6 +77,7 @@ from ._shared import (
     _unconfigured,
 )
 from .runtime import DeepResearchRuntime
+from .standing import work_standings
 
 __all__ = ["MergeExecutor", "VerifyExecutor"]
 
@@ -108,15 +114,31 @@ class MergeExecutor(_Step):
                 return _produced(existing, reused=True)
             investigation = self._read(repo, investigation_id, InvestigationRecord)
             results = [self._read(repo, e.artifact_id, TrackResult) for e in investigation.tracks]
+        kept = [r for r in results if r.status is not TrackStatus.BLOCKED]
+        # The cited works' standing, asked outside any transaction (chunk 46).
+        standings = work_standings(
+            context=context,
+            step=step,
+            runtime=runtime,
+            plan=plan,
+            dois=[s.doi for r in kept for s in r.sources if s.doi is not None],
+            repo=lambda session: self._repo(session, context),
+            put=lambda repo, record, k: self._store_standing(repo, step, record, k),
+            find=lambda repo, k: self._found_standing(repo, step, k),
+            clock=runtime.clock,
+        )
+        with context.transaction() as (session, workflow):
+            repo = self._repo(session, context)
             merged = merge_evidence(
                 [
                     TrackEvidence(
                         track_id=r.track.track_id,
                         evidence=r.evidence,
-                        sources={s.ref: s.facts() for s in r.sources},
+                        sources={
+                            s.ref: _with_standing(s.facts(), s.doi, standings) for s in r.sources
+                        },
                     )
-                    for r in results
-                    if r.status is not TrackStatus.BLOCKED
+                    for r in kept
                 ],
                 questionnaire=plan.request.questionnaire,
                 table=runtime.source_table,
@@ -138,6 +160,26 @@ class MergeExecutor(_Step):
             quarantined=len(record.quarantined),
         )
         return _produced(artifact, reused=not created)
+
+    def _store_standing(
+        self, repo: ArtifactRepository, step: StepInput, record: WorkStandingRecord, key: str
+    ) -> None:
+        self._put(repo, step, payload=record, kind="work_standing", key=key)
+
+    def _found_standing(
+        self, repo: ArtifactRepository, step: StepInput, key: str
+    ) -> WorkStandingRecord | None:
+        found = self._find(repo, step, "work_standing", key)
+        return None if found is None else self._read(repo, found.artifact_id, WorkStandingRecord)
+
+
+def _with_standing(
+    facts: SourceFacts, doi: str | None, standings: Mapping[str, WorkStatusRecord]
+) -> SourceFacts:
+    """A source's facts with its work's standing, when its DOI was asked about."""
+    if doi is None or doi not in standings:
+        return facts
+    return dataclasses.replace(facts, work_status=standings[doi])
 
 
 def _refused_detail(

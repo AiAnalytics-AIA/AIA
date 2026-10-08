@@ -46,6 +46,7 @@ from .contracts import (
 )
 from .legacy import canonical_url, deterministic_target_overlap, similarity
 from .sources import SourceScore, SourceTable, score_knowledge_source, score_web_source
+from .works import WORKS_VERSION, WorkStatusRecord
 
 __all__ = [
     "CONFIRMATION_BONUS",
@@ -65,7 +66,8 @@ __all__ = [
     "verification_batches",
 ]
 
-MERGE_RULES_VERSION: Final = "aia-merge-1"
+#: Carries the works rule's version: what a retraction quarantines (chunk 46).
+MERGE_RULES_VERSION: Final = f"aia-merge-2/{WORKS_VERSION}"
 #: The unit's claim-similarity threshold for "the same finding" (research_context.py:360).
 SIMILAR: Final = 0.42
 #: Confidence added per independent confirmation, for at most two.
@@ -141,6 +143,9 @@ class SourceFacts:
     url: str | None
     published: date | None
     retrieved: date | None
+    #: The cited work's standing, when the source named a DOI and an index was asked
+    #: (chunk 46); ``None`` when nobody asked.
+    work_status: WorkStatusRecord | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -202,7 +207,28 @@ def merge_evidence(
     scored: list[tuple[EvidenceItem, SourceScore]] = []
     for track in tracks:
         for item in track.evidence:
-            score = _score(item, track.sources.get(item.source_ref), table)
+            facts = track.sources.get(item.source_ref)
+            standing = facts.work_status if facts is not None else None
+            if standing is not None and standing.quarantines:
+                # A retracted work is a known bad source, whatever its host scores.
+                notice = next((n for n in standing.notices if n.notice_doi), None)
+                quarantined.append(
+                    QuarantinedEvidence(
+                        evidence_id=item.evidence_id,
+                        track_id=item.track_id,
+                        reason=QuarantineReason.RETRACTED_SOURCE,
+                        detail=(
+                            f"{standing.doi} is {standing.status.value} "
+                            f"(per {', '.join(standing.checked_by)}"
+                            + (f"; notice {notice.notice_doi}" if notice else "")
+                            + ")"
+                        )[:500],
+                        claim=item.claim,
+                        source_ref=item.source_ref,
+                    )
+                )
+                continue
+            score = _score(item, facts, table)
             if not score.acceptable:
                 quarantined.append(
                     QuarantinedEvidence(

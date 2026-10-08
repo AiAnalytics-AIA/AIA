@@ -281,6 +281,32 @@ IČO with letters is refused. Licence `None`. The fixture
 (`…/fixtures/dataset_connectors/procurement_notice_fictional.json`) is fictional; **no real
 answer has been captured.**
 
+## 7a. Crossref and OpenAlex: a cited work's retraction (chunk 46)
+
+**Method, 2026-10-08.** `api.crossref.org` and `api.openalex.org` were refused by the network
+egress proxy (`CONNECT` 403); no live answer was seen. Two documentation files were read **as
+bytes** from `raw.githubusercontent.com`: OurResearch's `openalex-docs@main`
+(`api-entities/works/work-object/README.md`) and Crossref's `rest-api-doc@master`
+(`api_format.md`).
+
+| Fact | Status | Source |
+|---|---|---|
+| A `Work` has `is_retracted`, a boolean, "True if we know this work has been retracted", identified from the Retraction Watch database | VERIFIED | `openalex-docs@main`, `work-object/README.md` |
+| Crossref's `Update` object: `updated` (a Partial Date, `date-parts` with only the year required), `DOI`, `type` (e.g. `retraction`, `correction`), `label` optional; a work's `update-to` is an array of them | VERIFIED | `rest-api-doc@master`, `api_format.md` |
+| `GET https://api.crossref.org/works/{doi}` answers `{"status", "message-type": "work", "message": {...}}`; `mailto=` asks the polite pool | UNVERIFIED (Crossref's README, search excerpt) | github.com/CrossRef/rest-api-doc |
+| A retracted work lists its notices under `message["updated-by"]`, each an `Update` with a `source` (`publisher` or `retraction-watch`); the notice itself carries `update-to` | UNVERIFIED (Crossref blog "Retraction Watch retractions now in the Crossref API"; Crossref's Retraction Watch documentation; its GitLab tutorial) | crossref.org, crossref.gitlab.io |
+| The update types beyond `retraction` and `correction` (`withdrawal`, `removal`, `partial_retraction`, `expression_of_concern`, `corrigendum`, `erratum`, `addendum`, `clarification`) | UNVERIFIED (the schema's list as third parties quote it) | none first-hand |
+
+**What chunk 46 built on it.** `CrossrefConnector` (`crossref-works-1`, one GET to
+`api.crossref.org`, `doi:<DOI>` only, `mailto` the deployment's contact, kept out of the stored
+URL): one row per `updated-by` entry, an update type no table maps read as `unknown`, never
+guessed; an answer for another DOI, or `updated-by` in another shape, is refused. OpenAlex's DOI
+lookup asks `is_retracted` too and states it as a note (`true`, `false`, or `not stated`). The
+merge step asks both about each distinct DOI a run's sources name in their own metadata
+(`domain/deep_research/works.py`); the most severe status either states stands; neither
+answering is `UNKNOWN`. **No real answer of either has been captured**; the live acceptance
+(chunk 27) checks the unverified rows against one.
+
 ## 8. The shared contract (every connector)
 
 - `domain/deep_research/datasets.py`: `DatasetQuery` (connector, dataset id, filters by

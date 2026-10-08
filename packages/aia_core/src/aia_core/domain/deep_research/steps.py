@@ -59,6 +59,7 @@ from .planning import DepthPreset
 from .synthesis import SynthesisCheck
 from .verification import VerificationReview
 from .verifier import ClaimJudgement
+from .works import WorkStatusRecord
 
 __all__ = [
     "AllowanceRecord",
@@ -87,6 +88,7 @@ __all__ = [
     "UrlCaptureRecord",
     "VerificationBatch",
     "VerifyRecord",
+    "WorkStandingRecord",
     "run_scoped",
     "tally",
 ]
@@ -308,6 +310,12 @@ class SourceFactsRecord(_Closed):
     url: str | None
     published: date | None
     retrieved: date | None
+    #: The DOI the source names as its own (chunk 46), what the merge asks the indexes
+    #: about; absent from the stored form when ``None``, like ``work_status``.
+    doi: str | None = Field(default=None, max_length=320)
+    #: The cited work's standing (chunk 46); absent from the stored form when nobody
+    #: asked, so a track stored before has the bytes it had.
+    work_status: WorkStatusRecord | None = None
 
     def facts(self) -> SourceFacts:
         return SourceFacts(
@@ -316,7 +324,26 @@ class SourceFactsRecord(_Closed):
             url=self.url,
             published=self.published,
             retrieved=self.retrieved,
+            work_status=self.work_status,
         )
+
+    @model_serializer(mode="wrap")
+    def _omit_absent(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict):
+            if self.work_status is None:
+                data.pop("work_status", None)
+            if self.doi is None:
+                data.pop("doi", None)
+        return data
+
+
+class WorkStandingRecord(_Closed):
+    """One DOI's standing as this run's merge read it (chunk 46), stored as it returned."""
+
+    kind: Literal["deep_research_work_standing"]
+    doi: str = Field(max_length=320)
+    standing: WorkStatusRecord
 
 
 class TrackResult(_Closed):

@@ -376,7 +376,7 @@ forbid "only the archive policy issues an archive permit" \
 # The public dataset and archive connectors are composed in one place, with their
 # fee-free Class C routes (plan chunk 23b): Deep Research's live composition. The
 # procurement connector has no live source and is composed nowhere.
-DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
+DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|CrossrefConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
 for composition in "$API" "$WORKER" deploy; do
   forbid "no composition but Deep Research's live one registers a dataset connector ($composition)" \
     "$DATASET_CONNECTORS" \

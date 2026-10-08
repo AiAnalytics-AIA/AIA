@@ -747,6 +747,7 @@ class AgentDirectedTrack:
                     url=self._stored[s.snapshot_id].snapshot.final_url,
                     published=self._stored[s.snapshot_id].published,
                     retrieved=self._stored[s.snapshot_id].snapshot.retrieved_at.date(),
+                    doi=self._stored[s.snapshot_id].snapshot.doi,
                 )
                 for s in self._state.refs.sources
             ),

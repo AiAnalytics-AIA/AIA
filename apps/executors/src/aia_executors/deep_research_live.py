@@ -14,7 +14,8 @@ call (a priced route needs tool spend charged to the study, plan
   open-access copy -- is reached this way.
 - **The public dataset connectors** (``connector_accesses``, chunks 14-16): ČSÚ
   DataStat, the national open-data catalogue, Eurostat, OpenAlex, ARES and the Wayback
-  CDX index, each pinned to its own host.
+  CDX index, each pinned to its own host; and Crossref, which the merge asks whether a
+  cited work was retracted (chunk 46).
 
 Its editorial status is provisional and all resulting evidence stays internal. This
 composition does not approve client-data queries: every route is approved for
@@ -33,6 +34,7 @@ from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
 from aia_core.infrastructure.dataset_ares import ARES_HOST, AresConnector
 from aia_core.infrastructure.dataset_connectors import DatasetConnector
+from aia_core.infrastructure.dataset_crossref import CROSSREF_HOST, CrossrefConnector
 from aia_core.infrastructure.dataset_datastat import DATASTAT_HOST, DataStatConnector
 from aia_core.infrastructure.dataset_eurostat import EUROSTAT_HOST, EurostatConnector
 from aia_core.infrastructure.dataset_nkod import NKOD_HOST, NkodConnector
@@ -193,6 +195,12 @@ def _connector_specs() -> dict[str, tuple[str, str, ResidencyZone, _Build]]:
             "application/json",
             ResidencyZone.NON_EU,
             lambda t, r, c: OpenAlexConnector(transport=t, resolver=r, mailto=c),
+        ),
+        "crossref": (
+            CROSSREF_HOST,
+            "application/json",
+            ResidencyZone.NON_EU,
+            lambda t, r, c: CrossrefConnector(transport=t, resolver=r, mailto=c),
         ),
         "wayback": (
             WAYBACK_HOST,
