@@ -31,7 +31,7 @@ chunks:
   - "[ ] 27. Develop activation and the live acceptance (last)"
   - "[x] 28. Purpose, target and frozen lineage (ADR 0021, AIA-83 Step 1)"
   - "[x] 29. Design Research integration: proposals from a design run, accepted into a revision (gate 1)"
-  - "[ ] 30. Interpretation Research integration: mission from the target, then enqueue and the route"
+  - "[x] 30. Interpretation Research integration: mission from the target, then enqueue and the route"
   - "[ ] 31. The Sociomap Research Lens: an annotation sidecar beside the canonical map"
   - "[ ] 32. The report evidence graph: five evidence families, every claim's support"
   - "[ ] 33. Structured capture: schema.org data, microdata, OpenGraph and HTML tables kept beside a snapshot"
@@ -817,6 +817,35 @@ lineage; the route answers 201, 404 for another Study's run, 422 for an entity t
 not hold; the spend-limit confirmation applies; the design-proposal route still refuses an
 interpretation run.
 
+**Chunk 30 -- landed (2026-10-08).** The mission:
+`domain/deep_research/interpretation.py:176` @ `68d284e` (`interpretation_mission`, built from the
+pinned `compile` specification and the Design Revision only: the aggregate, analysis and Sociomap
+payloads are not passed to it, so no respondent number can reach a subject); origins
+`interpretation:<KIND>:<research run>/<ids>[#part]`, an over-long entity named by its SHA256. The
+boundary: `application/deep_research.py:560` @ `68d284e` (`require_interpretation_mission`,
+`interpretation.py:300`; refusal `interpretation_mission_mismatch`, 409, which also refuses a design
+spec holding an interpretation subject). The retry: `deep_research.py:641-693` @ `68d284e`
+(`resolve_lineage` first, then the stored target re-frozen and its lineage compared; the store is
+required). The route: `routers/deep_research.py:403` @ `68d284e`. Tests:
+`test_deep_research_interpretation.py` (each kind's exact subjects, determinism, no digit in any
+subject, the enqueue rule, the 300-character origin bound),
+`test_deep_research_lineage.py::test_interpretation_enqueues_its_mission_and_runs_to_a_sealed_bundle`,
+`::test_every_result_targets_mission_holds_no_respondent_number`,
+`::test_a_design_derived_request_under_an_interpretation_label_is_refused`,
+`::test_a_retry_refreezes_the_stored_target_never_a_newer_result`,
+`::test_a_retry_whose_result_no_longer_reads_as_pinned_starts_nothing`,
+`::test_design_and_interpretation_share_the_engines_reusable_tracks`, and
+`test_deep_research_interpretation_api.py` (201/200, 404, 422, spend confirmation recorded once,
+the retry route, the design-proposal route's `not_design_research`). *Measured:* a
+`SOCIOMAP_OBJECT` interpretation after a design run over the same revision reused both of the
+object's tracks (internal and web, recorded journey) and bought neither; the run completes in the
+six steps with a bundle that verifies. *Behaviour changed deliberately:* a design run and an
+interpretation run over one revision are no longer one engine request (reuse is per track); the
+row-level retry test now answers `lineage_changed`; `InterpretationNotReady` is gone. *Not done:*
+an `ANALYSIS_MODULE` target is covered in the domain only -- no workflow in the tests runs the
+analysis modules, so no service or API test freezes one; the screen is chunk 24's; the docs
+follow-up is § 16.
+
 ### Phase 6 — structured extraction (33–39; after 29, § 0)
 
 Recorded/offline like every chunk before 25: fictional sites with a known catalogue (one with
@@ -1096,6 +1125,35 @@ waits for chunk 1 as it said.* For the docs PR after chunk 0 merges:
   a person into a new Design Revision on the run's own baseline."
 - `ARCHITECTURE.md`, the approval ledger's subjects: `design_research` beside `ai_proposal`
   (migration `a7c3e9b1d5f2`).
+
+*For the docs PR after chunk 30 merges:*
+
+- ADR 0021, Consequences: the table's `INTERPRETATION_RESEARCH` row becomes "yes" for enqueue and
+  execute, and the bullet "Interpretation Research is frozen, never executed, until chunk 30 …"
+  is replaced by: "Interpretation Research enqueues and executes since
+  `deep-research-web-search.md` chunk 30: its engine request's subjects are the target's
+  mission, built by code (`domain/deep_research/interpretation.py`) from the pinned
+  specification and the Design Revision the producing run executed, never from a respondent
+  number; the enqueue boundary refuses a spec whose subjects do not carry its own target's
+  origin (`interpretation_mission_mismatch`); a retry re-freezes the stored target and is
+  `lineage_changed` when a pin no longer reads as pinned."
+- `.planning/open-items.md`: OI-88 closed by chunk 30 (the anchors in its landed note).
+- `CLAUDE.md` § 2, `domain/deep_research/`: "`interpretation.py` an Interpretation Research
+  run's mission: subjects built by code from its target, the pinned specification and the
+  Design Revision (no respondent number), each with an `interpretation:<KIND>:<entity>`
+  origin; `require_interpretation_mission`, the enqueue boundary's check (chunk 30)".
+  `application/deep_research.py`: replace "`_enqueue`, the one enqueue boundary, refuses every
+  INTERPRETATION_RESEARCH spec until chunk 30 (start_interpretation and a stored row's retry:
+  interpretation_not_ready, OI-88)" with "`_enqueue`, the one enqueue boundary, refuses a spec
+  whose request is not its own purpose's (an interpretation request holds only its target's
+  mission: `interpretation_mission_mismatch`); an interpretation retry re-freezes the stored
+  target, `lineage_changed` when a pin moved". `routers/`, under deep research: "Interpretation
+  Research's start (`POST …/deep-research/runs/interpretation`)".
+- `docs/architecture/deep-research.md`: the route `POST …/runs/interpretation` (`target`,
+  `preset_name`, `channels`, `confirm_cost_usd`, `title`; 201/200, 404 another Study's result,
+  422 an entity the artifact does not hold), the mission table (§ 11 chunk 30 above) and the
+  error codes `interpretation_mission_mismatch` and `lineage_changed`; `interpretation_not_ready`
+  no longer exists.
 
 *For the docs PR after the robots.txt fix (§ 15, 2026-10-07) merges:*
 
