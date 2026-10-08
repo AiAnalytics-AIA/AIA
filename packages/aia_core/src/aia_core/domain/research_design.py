@@ -39,6 +39,7 @@ __all__ = [
     "COMPILER_VERSION",
     "DONT_KNOW",
     "SAMPLE_SIZE_BOUNDS",
+    "SELECTION_NOT_APPLIED",
     "TRACKED_SET_LIMITS",
     "CheckStatus",
     "CompileProblem",
@@ -48,6 +49,7 @@ __all__ = [
     "SpecBattery",
     "SpecObject",
     "SpecQuestion",
+    "SpecSelection",
     "assess_readiness",
     "compile_design",
     "prepare",
@@ -152,6 +154,33 @@ class SpecBattery(_Frozen):
         }
 
 
+#: Why a selection is recorded but not applied: nothing in AIA can apply it yet.
+SELECTION_NOT_APPLIED: Final = (
+    "no dimension materialization or population binding exists in AIA yet: the selected "
+    "dimensions and audience filters are recorded with the run and are not applied to its "
+    "respondents (plan sociomap-formula-corrections § 8.2, I1)"
+)
+
+
+class SpecSelection(_Frozen):
+    """The respondent context the design selected: its dimensions and audience filters.
+
+    Recorded so that two designs differing only here never compile to one specification,
+    and so the run says what it was asked for. ``applied`` is whether the run's
+    respondents were drawn under it; no source can do that yet, so it is ``False`` with
+    the reason, never a claim that the selection shaped the data.
+    """
+
+    #: ``persona_dimensions.approved`` as the design stores it: ids, in order, once each.
+    #: An empty approval is empty: the screen's recommended refill is not invented here.
+    dimensions: tuple[str, ...]
+    #: ``audience.filters`` with every empty value (``[]``, ``""``, ``null``, ``{}``) left
+    #: out, keys sorted: what restricts the audience, and nothing that does not.
+    audience_filters: dict[str, Any]
+    applied: bool
+    reason: str
+
+
 class ResearchSpecification(_Frozen):
     """What a research run executes, compiled from one Design Revision."""
 
@@ -161,6 +190,8 @@ class ResearchSpecification(_Frozen):
     questions: tuple[SpecQuestion, ...]
     batteries: tuple[SpecBattery, ...]
     audience: dict[str, Any]
+    #: What the design selected for its respondents; ``None`` when it selected nothing.
+    selection: SpecSelection | None = None
 
     def fingerprint(self) -> str:
         """The specification's identity. A declaration a design does not make (a rating
@@ -174,6 +205,8 @@ class ResearchSpecification(_Frozen):
             if not battery["roles_declared"]:
                 del battery["roles_declared"]
                 del battery["context_objects"]
+        if body["selection"] is None:
+            del body["selection"]
         return fingerprint(body)
 
     def rating_questions(self) -> tuple[SpecQuestion, ...]:
@@ -462,6 +495,7 @@ def compile_design(
     n = raw_n if isinstance(raw_n, int) and not isinstance(raw_n, bool) else None
     raw_audience = content.get("audience")
     audience: dict[str, Any] = raw_audience if isinstance(raw_audience, dict) else {}
+    selection = _selection(content, audience)
     spec = ResearchSpecification(
         compiler_version=COMPILER_VERSION,
         title=_text(content.get("title")) or "Výzkum",
@@ -473,8 +507,47 @@ def compile_design(
             "strategy": _text(audience.get("strategy")) or "population",
             "has_filters": bool(audience.get("filters")),
         },
+        selection=selection,
     )
     return spec, ()
+
+
+def _filter_value(value: Any) -> Any:
+    """A filter value with its empty parts left out; ``None`` when nothing is left."""
+    if isinstance(value, dict):
+        kept = {
+            str(k): v for k, raw in sorted(value.items()) if (v := _filter_value(raw)) is not None
+        }
+        return kept or None
+    if isinstance(value, list | tuple):
+        kept_items = [v for raw in value if (v := _filter_value(raw)) is not None]
+        return kept_items or None
+    if isinstance(value, str):
+        return value.strip() or None
+    if value is None or isinstance(value, bool | int | float):
+        return value
+    return str(value)
+
+
+def _selection(content: dict[str, Any], audience: dict[str, Any]) -> SpecSelection | None:
+    """The design's selected dimensions and audience filters, or ``None`` for neither."""
+    persona = content.get("persona_dimensions")
+    approved = persona.get("approved") if isinstance(persona, dict) else None
+    dimensions = tuple(
+        dict.fromkeys(
+            _text(d) for d in (approved if isinstance(approved, list) else []) if _text(d)
+        )
+    )
+    raw_filters = audience.get("filters")
+    filters = _filter_value(raw_filters) if isinstance(raw_filters, dict) else None
+    if not dimensions and not filters:
+        return None
+    return SpecSelection(
+        dimensions=dimensions,
+        audience_filters=filters or {},
+        applied=False,
+        reason=SELECTION_NOT_APPLIED,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -547,6 +620,14 @@ def assess_readiness(spec: ResearchSpecification) -> Readiness:
     else:
         check("sociomap_input", CheckStatus.WARN, "Bez sledované sady nevznikne Sociomapa.")
 
+    if spec.selection is not None and spec.selection.dimensions:
+        check(
+            "dimensions",
+            CheckStatus.WARN,
+            "Vybrané dimenze ("
+            + ", ".join(spec.selection.dimensions)
+            + ") jsou uložené s během, ale AIA je zatím na respondenty neuplatní.",
+        )
     if spec.audience.get("has_filters") or spec.audience.get("source_mode") != "population":
         check(
             "audience",

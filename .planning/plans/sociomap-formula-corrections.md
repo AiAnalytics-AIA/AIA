@@ -940,6 +940,27 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S4 -- the selection reaches the specification (I1, in part), 2026-10-08
+
+What landed, on `feature/sociomap-selection-in-spec` (stacked on S3):
+
+- `domain/research_design.py`: `SpecSelection` (`dimensions`: `persona_dimensions.approved` as
+  stored, in order, once each, never the screen's recommended refill; `audience_filters`: the
+  filters with every empty value left out, keys sorted; `applied: False` with
+  `SELECTION_NOT_APPLIED`), `ResearchSpecification.selection` (`None` when the design selects
+  nothing, and then left out of the fingerprint, so such a specification keeps develop's
+  fingerprint), and a readiness WARN naming the dimensions that will not be applied.
+
+The 2026-10-07 reproduction is now a test: finance vs ekologie, and an age filter 18-29 vs 60-80,
+compile to different specifications (`test_research_selection.py`, 10). Because the fictional
+roster's seed derives from the specification's fingerprint (`ai_fieldwork.py:95`), a changed
+selection also changes the fictional run's identity; that is all it changes.
+
+Not done, and not doable here: applying either selection to a roster. That needs dimension
+materialization and a population binding, which § 8.1 names as a dependency and forbids
+reconstructing inside Sociomap. So I1 stays open: identity and honesty landed, application did
+not.
+
 ### Slice S3 -- the declared rating universe and object roles (I2), 2026-10-08
 
 What landed, on `feature/sociomap-rating-universe` (stacked on S2):
