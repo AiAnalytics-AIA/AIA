@@ -1735,9 +1735,65 @@
    ],
    "formula": "K100_i = 100 K_i; [K_lo_i, K_hi_i] = 2.5 % / 97.5 % quantiles of K100_i over B respondent bootstraps (e.g. B = 500); rank i above j only if their intervals do not overlap, otherwise show them as tied",
    "applies_to": "the normative score's replacement; tscore (metrics.py:226-231, the population-sd curve) is retired.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "B is 'e.g. 500'; the resampling unit is the respondent. The generator is AIA's own (OI-62), not NumPy's stream.",
+   "implementation": "aia_core.domain.sociomap.metrics:connectedness_100",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_k100_is_a_hundred_times_connectedness_and_its_interval_contains_it",
+     "what": "K100 = 100 K over a planted family; the 2.5 / 97.5 % interval contains it and is a margin, not the scale"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_intervals_that_do_not_overlap_are_ordered",
+     "what": "rank i above j where the intervals do not overlap"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_intervals_that_overlap_or_touch_are_tied",
+     "what": "otherwise shown as tied; touching intervals overlap (closed intervals, AIA's reading)"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_the_interval_is_the_linear_quantile_of_the_resampled_scores_by_hand",
+     "what": "the interval replayed by hand from OI-62's generator and the type 7 quantile"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_the_quantile_and_the_generator_are_aggregations",
+     "what": "the quantile rule and the generator are research_aggregate's, value for value"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_the_same_seed_is_bit_identical_and_another_seed_is_not",
+     "what": "deterministic: the same seed bit-identical, another seed other bounds and the same K100"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_an_unscored_object_has_no_interval_and_is_unranked",
+     "what": "an object with no known pair has no K100, no interval, and is unranked, never last"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_a_resample_that_cannot_compute_a_pair_does_not_score_its_objects",
+     "what": "a resample missing one of an object's pairs does not score it (never 0, never over fewer pairs); counted in resamples_scored"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_a_pair_the_full_sample_calls_unknown_stays_out_of_every_resample",
+     "what": "pair status fixed from the full sample: a resample's own statuses are not read"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_connectedness_100.py::test_overlap_is_not_transitive_so_there_are_no_tie_groups",
+     "what": "a relation per pair and a rank range per object, because overlap is not transitive"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_body_carries_connectedness_100_with_its_declared_draw",
+     "what": "the research step stores K100, its interval over B = 500 and the declared seed, and the ranking; recomputed bit-identical"
+    }
+   ],
+   "uncertainty": "B is 'e.g. 500'; AIA declares 500 (research_sociomap.CONNECTEDNESS_RESAMPLES) with a declared seed, both recorded on every body. The resampling unit is the respondent, every respondent of the sample a cluster. The generator is AIA's own (OI-62), not NumPy's stream; the quantile is aggregation's linear (type 7) rule. Readings where the audit is silent: pair status (F3) is fixed from the full sample, so every resample averages the same known pairs; a resample in which one of them has no correlation does not score that object and is counted (resamples_scored); intervals that touch overlap (tied); since overlap is not transitive the ranking is a relation per pair and a rank range per object, not tie groups. K_i inherits F8's open semantics (Q7, the denominator reading). tscore stays, unchanged, for aia-sociomap-1; nothing reads K100 for a height or a surface yet (chunk 5). The bootstrap (about 90 s per 1,500 x 22 battery) runs only when the worker's AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED is on, off by default; otherwise each set records connectedness_100 as not_computed, and the flag is part of the step's fingerprint. Landed in chunk 4a.",
    "resolve_by": "sociomap-formula-corrections chunk 4a",
    "question": null
   },

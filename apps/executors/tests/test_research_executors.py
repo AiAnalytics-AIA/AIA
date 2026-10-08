@@ -308,7 +308,43 @@ def test_a_changed_engine_is_not_handed_the_previous_engines_map(
         }
     )
     assert spec is not None, problems
-    before = research_module._sociomap_fingerprint("dataset-sha", spec)
-    assert research_module._sociomap_fingerprint("dataset-sha", spec) == before
+
+    def fingerprint(*, interval: bool = False) -> str:
+        return research_module._sociomap_fingerprint(
+            "dataset-sha", spec, connectedness_interval=interval
+        )
+
+    before = fingerprint()
+    assert fingerprint() == before
+    # A map stored without F9's interval is never handed back once the switch is on.
+    assert fingerprint(interval=True) != before
     monkeypatch.setattr(research_module, "ENGINE_IMPLEMENTATION_VERSION", "9.9.9")
-    assert research_module._sociomap_fingerprint("dataset-sha", spec) != before
+    assert fingerprint() != before
+
+
+def test_the_connectedness_interval_switch_is_off_unless_set_and_refuses_a_guess() -> None:
+    """Audit F9's bootstrap (~90 s per 1,500 x 22 battery) runs only behind
+    AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED (CLAUDE.md § 8)."""
+    from aia_executors import research as research_module
+    from aia_executors.registry import (
+        SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY as KEY,
+    )
+    from aia_executors.registry import (
+        sociomap_connectedness_interval as switch,
+    )
+
+    assert switch({}) is False
+    assert switch({KEY: ""}) is False and switch({KEY: "false"}) is False
+    assert switch({KEY: "true"}) is True and switch({KEY: " ON "}) is True
+    with pytest.raises(ValueError, match=KEY):
+        switch({KEY: "maybe"})
+    store, build = InMemoryArtifactStore(), BuildIdentity(sha=None)
+    for on in (False, True):
+        step = registry_for(store=store, build=build, sociomap_connectedness_interval=on)[
+            "research_sociomap"
+        ]
+        assert isinstance(step, research_module.SociomapExecutor)
+        assert step._connectedness_interval is on
+    default = registry_for(store=store, build=build)["research_sociomap"]
+    assert isinstance(default, research_module.SociomapExecutor)
+    assert default._connectedness_interval is False

@@ -23,6 +23,9 @@ import pytest
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_design import ResearchSpecification, compile_design
 from aia_core.domain.research_sociomap import (
+    CONNECTEDNESS_NOT_COMPUTED,
+    CONNECTEDNESS_RESAMPLES,
+    CONNECTEDNESS_SEED,
     D6_OPEN,
     PAIR_CONFIDENCE,
     MethodologyStatus,
@@ -35,7 +38,11 @@ from aia_core.domain.research_sociomap import (
     research_sociomaps,
 )
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1
-from aia_core.domain.sociomap.metrics import PRIMARY_SCORE_RULE
+from aia_core.domain.sociomap.metrics import (
+    CONNECTEDNESS_100_RULE,
+    PRIMARY_SCORE_RULE,
+    RANK_WITH_TIES_RULE,
+)
 from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 
@@ -72,7 +79,7 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
     captured = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
     spec, dataset = _case(captured["case_id"])
     battery = next(b for b in spec.batteries if b.id == captured["battery_id"])
-    ours = battery_sociomap(battery, dataset, rated_with=(battery,))
+    ours = battery_sociomap(battery, dataset, rated_with=(battery,), connectedness_interval=False)
     assert [o["id"] for o in ours["objects"]] == captured["object_ids"]
     for mine, theirs in zip(ours["relation"]["matrix"], captured["matrix"], strict=True):
         for a, b in zip(mine, theirs, strict=True):
@@ -83,7 +90,7 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
 
 def test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(spec, dataset)
+    result = research_sociomaps(spec, dataset, connectedness_interval=False)
     assert D6_OPEN and result["methodology_status"] == MethodologyStatus.INTERNAL_ONLY.value
     assert result["data_origin"] == "SYNTHETIC_FIXTURE"
     (one,) = result["batteries"]
@@ -96,12 +103,12 @@ def test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only() -> 
     assert artifact["spec"]["layout"] == AIA_SOCIOMAP_V1.layout.model_dump(mode="json")
     assert artifact["layout"]["converged"] is True
     # Deterministic: the same dataset draws the same map.
-    assert research_sociomaps(spec, dataset) == result
+    assert research_sociomaps(spec, dataset, connectedness_interval=False) == result
 
 
 def test_no_client_facing_surface_may_render_it_while_d6_is_open() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(spec, dataset)
+    result = research_sociomaps(spec, dataset, connectedness_interval=False)
     for sociomap in (result, *result["batteries"]):
         with pytest.raises(SociomapNotApproved, match="INTERNAL_ONLY"):
             require_client_facing(sociomap)
@@ -126,7 +133,10 @@ def test_the_battery_scale_is_the_datas_and_is_recorded() -> None:
     )
     assert spec is not None, problems
     one = battery_sociomap(
-        spec.batteries[0], synthetic_dataset(spec, seed=3), rated_with=spec.batteries
+        spec.batteries[0],
+        synthetic_dataset(spec, seed=3),
+        rated_with=spec.batteries,
+        connectedness_interval=False,
     )
     assert one["rating_scale"] == [1, 5]
     assert one["sociomap"]["spec"]["ratings"]["rating_scale_max"] == 5.0
@@ -142,7 +152,7 @@ def test_too_few_common_ratings_is_the_units_neutral_relation() -> None:
 
 def test_a_design_without_a_tracked_set_has_no_sociomap_and_says_so() -> None:
     spec, dataset = _case("A02_indicative_support")
-    result = research_sociomaps(spec, dataset)
+    result = research_sociomaps(spec, dataset, connectedness_interval=False)
     assert result["batteries"] == [] and "Sociomapa nevznikla" in result["note"]
     assert result["methodology_status"] == "INTERNAL_ONLY"
 
@@ -193,7 +203,9 @@ def test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_hal
 
 def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    relation = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)["relation"]
+    relation = battery_sociomap(
+        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+    )["relation"]
     m = len(relation["matrix"])
     for i in range(m):
         for j in range(m):
@@ -208,7 +220,9 @@ def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> 
 
 def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    relation = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)["relation"]
+    relation = battery_sociomap(
+        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+    )["relation"]
     assert relation["n_min"] == AUDIT_PROVISIONAL_N_MIN == 30
     assert relation["confidence"] == 0.95
     assert "audit F3" in relation["status_rule"] and "Q6" in relation["status_rule"]
@@ -230,7 +244,9 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
     # The scores read r~, the relation after each person's rating habit is removed
     # (audit F8 over F2, chunk 2a), not the raw correlation.
     spec, dataset = _case("A01_full_questionnaire")
-    body = battery_sociomap(spec.batteries[0], dataset, rated_with=spec.batteries)
+    body = battery_sociomap(
+        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+    )
     scores, relation = body["object_scores"], body["relation_rescaled"]
     assert relation["status_counts"]["unknown"] == 0
     ids = [o["id"] for o in body["objects"]]
@@ -243,7 +259,10 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         assert obj["id"] == ids[i] and obj["known_pairs"] == m - 1
         assert obj["alignment"] == pytest.approx(sum(row) / (m - 1), abs=1e-12)
         assert obj["connectedness"] == pytest.approx(sum(map(abs, row)) / (m - 1), abs=1e-12)
-    assert research_sociomaps(spec, dataset)["sociomap_version"] == "aia-research-sociomap-4"
+    assert (
+        research_sociomaps(spec, dataset, connectedness_interval=False)["sociomap_version"]
+        == "aia-research-sociomap-5"
+    )
 
 
 def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> None:
@@ -257,13 +276,20 @@ def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> Non
         for k, r in enumerate(dataset.respondents)
     ]
     thinned = dataset.model_copy(update={"respondents": tuple(respondents)})
-    body = battery_sociomap(battery, thinned, rated_with=(battery,))
+    body = battery_sociomap(battery, thinned, rated_with=(battery,), connectedness_interval=True)
     ids = [o["id"] for o in body["objects"]]
     first_score = body["object_scores"]["objects"][0]
     assert first_score["alignment"] is None and first_score["connectedness"] is None
     assert first_score["known_pairs"] == 0 and first_score["unknown_partners"] == ids[1:]
     assert body["object_scores"]["excluded_pairs"] == [[ids[0], other] for other in ids[1:]]
     assert all(o["known_pairs"] == len(ids) - 2 for o in body["object_scores"]["objects"][1:])
+    # Unscored, so no K100 and no interval: unranked, never placed last (audit F9).
+    k100 = body["connectedness_100"]
+    first_k100 = k100["objects"][0]
+    assert first_k100["k100"] is None and first_k100["low"] is None
+    assert first_k100["high"] is None and first_k100["resamples_scored"] == 0
+    assert k100["ranking"]["unranked"] == [ids[0]]
+    assert [o["id"] for o in k100["ranking"]["objects"]] == ids[1:]
 
 
 def test_a_constant_column_has_no_correlation_rather_than_a_zero_one() -> None:
@@ -312,3 +338,50 @@ def test_pair_relations_refuse_a_ragged_matrix_or_a_diagonal_value() -> None:
         PairRelations.model_validate({**body, "n": [[3, 3, 3], [3, None, 3], [3, 3, None]]})
     with pytest.raises(ValueError, match="matrix like r"):
         PairRelations.model_validate({**body, "status": [[None, "weak"], ["weak", None]]})
+
+
+def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> None:
+    # Chunk 4a (audit F9): K100 = 100 K over r~, its 2.5 / 97.5 % interval over
+    # the declared respondent bootstraps and seed, the ranking those intervals
+    # allow; recomputed from the same dataset, bit-identical.
+    spec, dataset = _case("A01_full_questionnaire")
+    body = battery_sociomap(
+        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=True
+    )
+    k100 = body["connectedness_100"]
+    assert k100["status"] == "computed" and k100["rule"] == CONNECTEDNESS_100_RULE
+    assert (k100["resamples"], k100["seed"]) == (CONNECTEDNESS_RESAMPLES, CONNECTEDNESS_SEED)
+    assert CONNECTEDNESS_RESAMPLES == 500
+    assert k100["respondents"] == len(dataset.respondents)
+    scores = {o["id"]: o["connectedness"] for o in body["object_scores"]["objects"]}
+    for obj in k100["objects"]:
+        assert obj["k100"] == 100.0 * scores[obj["id"]]
+        assert obj["low"] <= obj["k100"] <= obj["high"], obj
+        assert obj["resamples_scored"] == CONNECTEDNESS_RESAMPLES
+    ranking = k100["ranking"]
+    assert ranking["rule"] == RANK_WITH_TIES_RULE and ranking["unranked"] == []
+    assert [o["id"] for o in ranking["objects"]] == [o["id"] for o in body["objects"]]
+    again = battery_sociomap(
+        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=True
+    )
+    assert again["connectedness_100"] == k100
+
+
+def test_with_the_switch_off_the_bootstrap_never_runs_and_the_body_says_so(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The F9 bootstrap is 500 resamples per battery (~90 s at 1,500 x 22), so the worker
+    # runs it only behind AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED (CLAUDE.md § 8).
+    # Off, it is not called at all, and every set records why it has no interval.
+    import aia_core.domain.research_sociomap as module
+
+    def _refuse(*_: object, **__: object) -> object:
+        raise AssertionError("the bootstrap ran with the switch off")
+
+    monkeypatch.setattr(module, "connectedness_100", _refuse)
+    spec, dataset = _case("A01_full_questionnaire")
+    result = research_sociomaps(spec, dataset, connectedness_interval=False)
+    for body in result["batteries"]:
+        assert body["connectedness_100"] == CONNECTEDNESS_NOT_COMPUTED
+        assert body["connectedness_100"]["status"] == "not_computed"
+        assert body["object_scores"]["objects"]  # the point scores are still there

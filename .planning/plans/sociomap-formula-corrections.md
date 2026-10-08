@@ -12,7 +12,7 @@ chunks:
   - "[x] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
   - "[ ] 2d. Spec v3 and the preset aia-sociomap-2; aia-sociomap-1 kept as the comparison alternative; artifact v3; the research step adapter"
   - "[ ] 3. Stage 3 -- the common 0-1 scale (F1); ideal-point placement against the object map, per-respondent misfit e_k and its flag (F10)"
-  - "[ ] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
+  - "[x] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
   - "[ ] 4b. Stage 4 -- terrain as the max-envelope of hills, one formula for every surface (F12, F13)"
   - "[ ] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16)"
   - "[ ] 4d. Stage 4 -- region tests: positioning variables excluded, Holm, Cohen's d and h ranking (F14, F15), with sociomapping-engine chunk 8"
@@ -820,6 +820,23 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
   disagree (the scenario view turns the map a quarter and enlarges it 16 %), no fit shown;
   production: one layout (2b), aligned as a view, labelled; tests
   `test_a_turned_map_is_turned_back_without_scaling`, `test_every_stress_carries_the_audits_label`.
+- From chunk 4a: `CLAUDE.md` map, the `metrics.py` line gains "; `connectedness_100`: K100 =
+  100 K with a respondent-bootstrap interval (B and seed declared, OI-62's generator, pair status
+  fixed from the full sample), `rank_with_ties`: an order only where intervals do not overlap,
+  as a relation per pair and a rank range per object (audit F9)"; `research_sociomap.py` gains
+  "; `connectedness_100` with its ranking, over `CONNECTEDNESS_RESAMPLES = 500` and
+  `CONNECTEDNESS_SEED`, only when the worker's `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` is
+  on (off by default; otherwise `not_computed`)"; the executors' `registry.py` line or the
+  worker settings list gains `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` (off by default, true /
+  false only; the F9 bootstrap, ~90 s per 1,500 x 22 battery). `sociomapa-deterministic-engine.md` § 2: beside the F8 scores, "K100 and
+  its interval (audit F9), stored by the research step, read by no surface yet"; § 8 a row --
+  reference: the normative score `50 + 10 z` (panel ÷n, report ÷(n−1)), always winners and
+  losers; production: `tscore` kept for `aia-sociomap-1`, `connectedness_100` and `rank_with_ties`
+  beside it; tests `test_intervals_that_overlap_or_touch_are_tied`,
+  `test_overlap_is_not_transitive_so_there_are_no_tie_groups`. `.planning/open-items.md`: finding
+  F-4a-1 (§ 10, chunk 4a) numbered, and put to the audit's author with group B of § 8a (a
+  percentile interval for a mean of |r| sits above its point near zero); the bootstrap's cost
+  (89 s for one 1,500 x 22 battery) as an open engineering item.
 
 ## 10. Progress and review outcome
 
@@ -1068,3 +1085,118 @@ audit's bands would be a reading the audit does not make. The label reaches the 
 v2 map in chunk 5. No stored map is aligned to a previous wave until 2d stores object layouts
 and chunk 10 (engine plan) brings waves.
 
+### Chunk 4a -- connectedness 0-100 with a respondent-bootstrap interval (F9), 2026-10-07
+
+What landed, on `feature/sociomap-connectedness-interval` (stacked on #183, chunk 2a):
+
+- `domain/sociomap/metrics.py`: `connectedness_100(object_ids, roles, correlate, *, respondents,
+  resamples, seed)` -> `Connectedness100` (per PRIMARY object `k100 = 100 K_i`, `low`, `high`,
+  `resamples_scored`, `known_pairs`; plus `resamples`, `seed`, `generator`, `quantiles`,
+  `respondents` and the rule id `audit-f9-connectedness-100-respondent-bootstrap-v1`).
+  `resamples` and `seed` have no default; a bool, zero or negative is refused. `K_i` is
+  `primary_scores`' connectedness (1b), so F8's PRIMARY set and UNKNOWN rule hold inside every
+  resample. `rank_with_ties(intervals)` -> `TiedRanking` (rule
+  `audit-f9-rank-where-intervals-do-not-overlap-v1`). `linear_quantile`, `PairCorrelator`,
+  `RankRelation`, `RankedObject`, `ConnectednessInterval`.
+- `domain/research_sociomap.py`: each set's body gains `connectedness_100` (the payload plus its
+  `ranking`), over `CONNECTEDNESS_RESAMPLES = 500` and `CONNECTEDNESS_SEED = 20261007`, module
+  constants declared by name and recorded on the body. The correlator it passes is
+  `derive_pair_relations` over the rows `rescaled_battery_ratings` already put on each person's
+  own scale, with weight x multiplicity (the weighted Pearson of duplicated rows): rescaling is
+  per person, so a drawn row is rescaled once, not per resample. `SOCIOMAP_VERSION` `-4` -> `-5`,
+  because the executor fingerprints its input with it and a body stored under `-4` (without the
+  intervals) must not be reused as if it had them.
+- Register `AUDIT-F9`: `implementation` and eleven `validation` entries; completeness stays
+  `SPECIFIED` (the formula is the audit's; the readings below sit in `uncertainty`, and K inherits
+  F8's open semantics there).
+
+**Readings chosen where the audit is silent** (recorded in the rule text and the register):
+
+1. *Pair status is fixed from the full sample.* The bootstrap measures the variability of one
+   statistic, K_i over the full sample's known PRIMARY pairs, so every resample averages that same
+   set; a resample's own statuses are not read (a full-sample UNKNOWN pair stays out even where a
+   resample could compute it). The alternative, recomputing status per resample, would let the
+   denominator move between resamples and make the interval a mixture of different statistics.
+2. *A resample that cannot compute one of an object's known pairs does not score that object*
+   (constant column there, or nobody drawn who rated both). Not 0, not K over fewer pairs; it is
+   left out of that object's quantiles and `resamples_scored` says how many remained. An object
+   unscored in the full sample has no K100, no interval and no resamples.
+3. *Generator and quantile are aggregation's* (OI-62): `random.Random(seed).random()`, index
+   `min(floor(u n), n - 1)`, and `research_aggregate._quantile`'s linear rule (`np.quantile`'s
+   default, type 7), reimplemented as `linear_quantile` because the Sociomap package imports
+   nothing outside itself, and pinned value for value to `_quantile` and to the generator's name
+   (`test_the_quantile_and_the_generator_are_aggregations`). Every respondent of the sample is a
+   cluster, including one who rated nothing in the family (the sample's size and composition).
+4. *Ranking shape.* Overlap is not transitive (a ~ b, b ~ c, c above a), so there are no tie
+   groups and no single rank: `TiedRanking` gives, per object, `outranks` / `outranked_by` /
+   `tied_with` and a rank range `rank_best = 1 + |outranked_by|`, `rank_worst = ranked -
+   |outranks|`, plus `relation(a, b)` -> ABOVE / BELOW / TIED. Closed intervals: touching
+   (`low_i == high_j`) is overlap, so tied. Objects keep the input's order; objects without an
+   interval are `unranked`, never last.
+
+**Measured cost** (this container, Python 3.12, pure Python):
+
+- Captured case `A01_full_questionnaire` (450 respondents, 5 objects, 1 battery), B = 500: the
+  bootstrap alone 1.22-1.30 s (three runs); `battery_sociomap` as a whole 3.9 s.
+- Synthetic 1,500 respondents x 22 objects (independent tastes, a generosity habit, integer 1-10,
+  per-person min-max), B = 500: **89.3 s and 92.8 s** (two runs), 0.18 s per correlation pass
+  (`derive_pair_relations` over 231 pairs; 0.25 s for one pass alone on uniform data). That is
+  per battery: a specification with four such batteries adds about six minutes to the research
+  step. **B stays declared at 500**; nothing shrinks it. The trade-off, for engineering with the
+  owner: (a) a bootstrap-specific correlation pass -- each pair's common-rater index and the five
+  weighted sums computed over the drawn respondents only, the full sample still through
+  `derive_pair_relations` -- estimated 3-5x faster, not bit-identical to `derive_pair_relations`
+  (summation order), so it would be pinned to it within 1e-12 by a test and named on the body;
+  (b) the bootstrap as its own research step (or one per battery) so it runs in parallel and
+  retries on its own; (c) a smaller B is the owner's call, not engineering's, and would record its
+  Monte Carlo error. (a) and (b) compose; neither changes a number the audit specifies.
+- Test suites: `test_research_sociomap.py` takes about 42 s (each `battery_sociomap` call on A01
+  pays the 1.3 s bootstrap on top of about 2.6 s for the rest).
+
+**Kill switch (review on #186, 2026-10-08).** The bootstrap is on the hot path of every research
+run with a battery, at the cost measured above, so it ships behind
+`AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` (CLAUDE.md § 8), **off when unset** and in test.
+`aia_executors.registry.sociomap_connectedness_interval` reads it: true / false / unset only; any
+other value stops the worker naming the key, never read as either. `build_registry` passes it to
+`research_registry(..., sociomap_connectedness_interval=)` -> `SociomapExecutor`, which passes it
+by name to `research_sociomaps(spec, dataset, *, connectedness_interval)` -> `battery_sociomap`
+(keyword-only, no default in the domain, so no caller gets the cost or its absence silently).
+Off, `connectedness_100` is not called and each set records `CONNECTEDNESS_NOT_COMPUTED`
+(`{"status": "not_computed", "reason": ...}`, naming the switch); on, the block carries
+`"status": "computed"` and everything above. The flag is part of the step's input fingerprint, so
+a map stored with the switch off is never handed back as if it had the interval. Turning it on in
+`develop` is an operator's decision after (a) or (b) above; nothing reads K100 yet (chunk 5).
+Tests: `test_with_the_switch_off_the_bootstrap_never_runs_and_the_body_says_so`,
+`test_the_connectedness_interval_switch_is_off_unless_set_and_refuses_a_guess`,
+`test_a_changed_engine_is_not_handed_the_previous_engines_map` (the flag moves the fingerprint).
+The core suite's `test_research_sociomap.py` now pays the bootstrap only in the two tests about it.
+
+**Finding F-4a-1 (methodological, for the audit's author with group B of § 8a).**
+1. Claim: where an object's pairs are near zero, the audit's percentile interval for K100 lies
+   above the full sample's K100, often excluding it. 2. Anchor: the rule, `metrics.py`
+   `connectedness_100` (this chunk); the cause is K being a mean of |r|: a resample's duplicated
+   rows add noise that |.| folds upward. 3. Reproduction:
+   `test_sociomap_connectedness_100.py::test_near_zero_the_percentile_interval_sits_above_its_point`
+   (200 respondents, 20 independent objects, B = 100: 10 of 20 intervals wholly above their point,
+   none below). On the 1,500 x 22 synthetic at B = 500: 3 of 22 exclude the point, all from above,
+   and the point sits on average at 14 % of its interval's width from the low end. In typical data
+   with real relations (A01; the planted two-taste family) every interval contains its point.
+   4. Consequence: a weakly connected object is shown with a margin that does not contain its own
+   score; rankings among weak objects are still read from overlap, but the interval misdescribes
+   the estimate. 5. Smallest fix: not ours to choose -- a bias-corrected (BCa) or basic bootstrap
+   interval, or a debiased K, is a methodology change to F9; AIA keeps the audit's percentile
+   interval and records this. 6. The test above is the one that catches it.
+
+What it does not do: no height, terrain, Results or DOCX surface reads K100 or the ranking (chunk
+5); `tscore` and `relation_classic` stay `aia-sociomap-1`'s, unchanged; the seed is a module
+constant, not a spec field, until spec v3 (2d) has a place for it (§ 8's 4a line says "a spec
+field"; the constant is recorded on every body meanwhile). Pair status in the resamples does not
+use Kish's n (1d).
+
+Checks run: `ruff check`, `ruff format --check` (490 files), `mypy --strict` over the four source
+trees (300 files, clean; `tsc --noEmit` fails on missing `apps/web` packages in the container, not
+on this change), `make layer_check` (100 rules), `make exposure_check` (7 rules), `tools/progress.py
+--check` (44 plans), the new `test_sociomap_connectedness_100.py` (13 passed), every `sociomap` /
+register test (544 passed, 5 skipped: archive-backed parity), and on Python 3.12 the core suite
+(5,090 passed, 205 skipped), API + worker (400 passed, 8 skipped), executors (308 passed, 2
+skipped); 0 failed. `make web_design` and `make test-web` not run: no web file changed.

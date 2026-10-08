@@ -15,6 +15,10 @@ The fictional synthetic source is only in ``aia_executors.workbench``, which
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
+from typing import Final
+
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
@@ -31,7 +35,32 @@ from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
 from .sociomapping_report import sociomapping_report_registry
 
-__all__ = ["build_registry", "registry_for"]
+__all__ = [
+    "SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY",
+    "build_registry",
+    "registry_for",
+    "sociomap_connectedness_interval",
+]
+
+SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY: Final = "AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED"
+_TRUE: Final = {"1", "true", "yes", "on"}
+_FALSE: Final = {"0", "false", "no", "off", ""}
+
+
+def sociomap_connectedness_interval(env: Mapping[str, str]) -> bool:
+    """Whether the sociomap step runs F9's respondent bootstrap (off when unset).
+
+    It is 500 resamples per battery -- about 90 s for 1,500 respondents x 22 objects --
+    so it ships behind a switch (CLAUDE.md § 8). A value that is not true or false
+    stops the worker rather than being read as either.
+    """
+    raw = env.get(SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY)
+    value = (raw or "").strip().lower()
+    if value in _TRUE:
+        return True
+    if value in _FALSE:
+        return False
+    raise ValueError(f"{SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY}={raw!r} is not true or false")
 
 
 def registry_for(
@@ -42,6 +71,7 @@ def registry_for(
     research_agent: StepExecutor | None = None,
     analysis: StepExecutor | None = None,
     deep_research: DeepResearchRuntime | None = None,
+    sociomap_connectedness_interval: bool = False,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
@@ -55,13 +85,19 @@ def registry_for(
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
         **report_registry(store=store, build=build),
         **sociomapping_report_registry(store=store, build=build),
-        **research_registry(store=store, build=build, ai_runtime=ai_runtime),
+        **research_registry(
+            store=store,
+            build=build,
+            ai_runtime=ai_runtime,
+            sociomap_connectedness_interval=sociomap_connectedness_interval,
+        ),
     }
 
 
 def build_registry() -> dict[str, StepExecutor]:
     """The factory named by ``AIA_WORKER_EXECUTORS``; reads the environment."""
     build = BuildIdentity.from_env()
+    connectedness_interval = sociomap_connectedness_interval(os.environ)
     settings = AIRuntimeSettings.from_env()
     store = build_artifact_store(StorageSettings.from_env())
     agent = None
@@ -96,4 +132,5 @@ def build_registry() -> dict[str, StepExecutor]:
         deep_research=deep_research_runtime(settings),
         build=build,
         ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
+        sociomap_connectedness_interval=connectedness_interval,
     )

@@ -23,13 +23,17 @@ classic score: :func:`primary_scores` computes **alignment** and
 **connectedness** over the PRIMARY objects, from each pair's signed correlation
 and its status (F3), with UNKNOWN pairs left out. The classic score and its
 T-score stay, by name, for ``aia-sociomap-1`` (plan
-``sociomap-formula-corrections``, chunk 1b).
+``sociomap-formula-corrections``, chunk 1b). Its F9 replaces the normative
+score: :func:`connectedness_100` puts connectedness on 0-100 with a respondent-
+bootstrap interval, and :func:`rank_with_ties` orders objects only where those
+intervals do not overlap (chunk 4a).
 """
 
 from __future__ import annotations
 
 import bisect
 import math
+import random
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -39,26 +43,39 @@ from .relations import PairStatus
 
 __all__ = [
     "AUDIT_PROVISIONAL_DEFAULT_HEIGHT",
+    "CONNECTEDNESS_100_RULE",
+    "CONNECTEDNESS_BOOTSTRAP_GENERATOR",
+    "CONNECTEDNESS_QUANTILES",
     "METRIC_BOUNDS",
     "NORMALIZATION_LABELS_CS",
     "PRIMARY_SCORE_RULE",
+    "RANK_WITH_TIES_RULE",
     "TSCORE_ZERO_VARIANCE",
     "ZERO_VARIANCE_EPSILON",
+    "Connectedness100",
+    "ConnectednessInterval",
     "NormalizationMode",
     "Normalizer",
     "ObjectMetric",
     "ObjectRole",
+    "PairCorrelator",
     "PrimaryObjectScore",
     "PrimaryScores",
+    "RankRelation",
+    "RankedObject",
+    "TiedRanking",
     "UnknownMetricBounds",
     "alignment",
     "bounds_for",
     "build_normalizer",
     "connectedness",
+    "connectedness_100",
+    "linear_quantile",
     "object_metric",
     "object_rating_summaries",
     "population_mean_sd",
     "primary_scores",
+    "rank_with_ties",
     "relation_classic",
     "tscore",
 ]
@@ -549,3 +566,375 @@ def connectedness(
 ) -> dict[str, float | None]:
     """``K_i`` of every PRIMARY object, ``None`` where it has no known pair (audit F8)."""
     return primary_scores(object_ids, r, status, roles).connectedness()
+
+
+# --------------------------- connectedness 0-100 with its interval (F9) --
+#
+# Audit F9: the normative score 50 + 10 z always makes winners and losers,
+# whatever the data. Its replacement is connectedness on a fixed scale with a
+# margin of error, and an order only where the margins say so:
+#
+#     K100_i = 100 K_i
+#     [K_lo_i, K_hi_i] = 2.5 % / 97.5 % quantiles of K100_i over B respondent
+#                        bootstraps (clusters = respondents)
+#     rank i above j only if their intervals do not overlap; otherwise tied
+#
+# Readings AIA takes where the audit is silent, recorded on every result and in
+# the evidence register's AUDIT-F9:
+#
+# * **Pair status is fixed from the full sample.** K_i is a mean over i's known
+#   PRIMARY pairs (F8); the bootstrap measures how that statistic varies, so the
+#   set of pairs it averages is the full sample's in every resample. A pair the
+#   full sample calls UNKNOWN stays out; a resample's own count never
+#   reclassifies one, and a resample's statuses are not read.
+# * **A resample that cannot compute one of i's pairs does not score i.** Where a
+#   full-sample known pair has no correlation in a resample (a column constant
+#   there, or nobody drawn who rated both), K_i over fewer pairs would be another
+#   statistic, and 0 would be unknown scored as a value (CLAUDE.md § 8). That
+#   resample is left out of i's interval, and each object records how many
+#   resamples scored it.
+# * **The generator and the quantile are aggregation's** (OI-62):
+#   ``random.Random(seed).random()``, respondent index ``floor(u * n)``, and the
+#   linear quantile ``np.quantile`` uses by default (type 7), the rule
+#   ``research_aggregate`` applies to its intervals. Every respondent of the
+#   sample is a cluster, including one who rated nothing in the family: the
+#   resample has the sample's size and composition, so its rater counts vary.
+
+#: The rule :func:`connectedness_100` applies, recorded on every result.
+CONNECTEDNESS_100_RULE: Final = "audit-f9-connectedness-100-respondent-bootstrap-v1"
+#: OI-62's generator, named as ``research_aggregate.BOOTSTRAP_GENERATOR`` names it.
+CONNECTEDNESS_BOOTSTRAP_GENERATOR: Final = "python-random-mt19937:floor(u*m)"
+#: The audit's interval: the 2.5 % and 97.5 % quantiles.
+CONNECTEDNESS_QUANTILES: Final = (0.025, 0.975)
+#: The rule :func:`rank_with_ties` applies, recorded on every ranking.
+RANK_WITH_TIES_RULE: Final = "audit-f9-rank-where-intervals-do-not-overlap-v1"
+
+_CONNECTEDNESS_100_RULE_TEXT: Final = (
+    "audit F9: K100 = 100 x connectedness (F8, over the PRIMARY objects, UNKNOWN pairs "
+    "out); the interval is the 2.5 % / 97.5 % linear (type 7) quantiles of K100 over "
+    "`resamples` respondent bootstraps drawn by random.Random(seed).random(), index "
+    "floor(u * n) (OI-62). Pair status is fixed from the full sample; a resample in "
+    "which one of an object's known pairs has no correlation does not score that object "
+    "and is counted out of its interval (`resamples_scored`); an object unscored in the "
+    "full sample has no interval"
+)
+_RANK_WITH_TIES_RULE_TEXT: Final = (
+    "audit F9: i is above j only when i's interval lies wholly above j's (low_i > high_j); "
+    "intervals that overlap or touch are tied. Overlap is not transitive, so the result "
+    "is a relation per pair and a rank range per object (best = 1 + objects surely above "
+    "it, worst = ranked objects - objects surely below it), never one rank or one tie group; "
+    "an object without an interval is unranked"
+)
+
+#: ``correlate(multiplicities)``: each pair's signed correlation and status over the
+#: respondents, respondent ``k`` taken ``multiplicities[k]`` times (0: not drawn).
+PairCorrelator = Callable[
+    [Sequence[int]],
+    tuple[Sequence[Sequence[float | None]], Sequence[Sequence[PairStatus | str | None]]],
+]
+
+
+def linear_quantile(sorted_values: Sequence[float], q: float) -> float:
+    """The linear quantile of already sorted values: ``np.quantile``'s default (type 7).
+
+    The rule ``research_aggregate`` applies to its bootstrap intervals (a test pins
+    the two to each other); written here because the Sociomap package imports
+    nothing outside itself.
+    """
+    if not sorted_values:
+        raise ValueError("a quantile needs at least one value")
+    h = (len(sorted_values) - 1) * q
+    lo = math.floor(h)
+    hi = min(lo + 1, len(sorted_values) - 1)
+    return sorted_values[lo] + (sorted_values[hi] - sorted_values[lo]) * (h - lo)
+
+
+@dataclass(frozen=True, slots=True)
+class ConnectednessInterval:
+    """One PRIMARY object's ``K100`` and its bootstrap interval (audit F9).
+
+    ``k100`` is ``100 K_i`` of the full sample, ``None`` when the object has no
+    known pair (F8: unscored); ``low`` and ``high`` are then ``None`` too.
+    ``resamples_scored`` counts the resamples whose quantiles make the interval:
+    an interval from fewer than the declared resamples says so here.
+    ``known_pairs`` is the full sample's denominator, the set every resample averages.
+    """
+
+    object_id: str
+    k100: float | None
+    low: float | None
+    high: float | None
+    resamples_scored: int
+    known_pairs: int
+
+    @property
+    def interval(self) -> tuple[float, float] | None:
+        """``(low, high)``, or ``None`` when there is none."""
+        if self.low is None or self.high is None:
+            return None
+        return (self.low, self.high)
+
+
+@dataclass(frozen=True, slots=True)
+class Connectedness100:
+    """Every PRIMARY object's ``K100`` with its interval, and how it was drawn (audit F9)."""
+
+    rule: str
+    resamples: int
+    seed: int
+    generator: str
+    quantiles: tuple[float, float]
+    respondents: int
+    scores: tuple[ConnectednessInterval, ...]
+
+    def intervals(self) -> dict[str, tuple[float, float] | None]:
+        """Each object's interval by id; ``None`` where it has none."""
+        return {s.object_id: s.interval for s in self.scores}
+
+    def to_payload(self) -> dict[str, Any]:
+        """A JSON-ready body: the scores, their intervals, the draw and the rule."""
+        return {
+            "rule": self.rule,
+            "rule_text": _CONNECTEDNESS_100_RULE_TEXT,
+            "resamples": self.resamples,
+            "seed": self.seed,
+            "generator": self.generator,
+            "quantiles": list(self.quantiles),
+            "respondents": self.respondents,
+            "objects": [
+                {
+                    "id": s.object_id,
+                    "k100": s.k100,
+                    "low": s.low,
+                    "high": s.high,
+                    "resamples_scored": s.resamples_scored,
+                    "known_pairs": s.known_pairs,
+                }
+                for s in self.scores
+            ],
+        }
+
+
+def _positive_int(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise ValueError(f"{name} must be a positive integer; got {value!r}")
+    return value
+
+
+def connectedness_100(
+    object_ids: Sequence[str],
+    roles: Mapping[str, ObjectRole | str],
+    correlate: PairCorrelator,
+    *,
+    respondents: int,
+    resamples: int,
+    seed: int,
+) -> Connectedness100:
+    """``K100_i = 100 K_i`` with its respondent-bootstrap interval (audit F9).
+
+    ``correlate`` returns each pair's signed correlation and status over the
+    ``respondents``, each taken as many times as the multiplicities it is given.
+    The full sample is ``correlate([1] * respondents)``. The caller passes the
+    correlator that made the stored relation (``research_sociomap`` passes
+    ``derive_pair_relations`` over the per-person-rescaled rows, weight times
+    multiplicity), so every resample is computed exactly as the full sample is.
+    ``K_i`` is :func:`primary_scores`' connectedness.
+
+    ``resamples`` (the audit's B) and ``seed`` have no default and are recorded.
+    Each resample draws ``respondents`` indices with replacement. The section's
+    notes give the pair-status reading and what a resample that cannot compute
+    a pair does.
+    """
+    n = _positive_int(respondents, "respondents")
+    b = _positive_int(resamples, "resamples")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(f"seed must be an integer; got {seed!r}")
+    ids = list(object_ids)
+    m = len(ids)
+    full_r, full_status = correlate([1] * n)
+    full = primary_scores(ids, full_r, full_status, roles)
+    denominators = {s.object_id: s.known_pairs for s in full.scores}
+    draws: dict[str, list[float]] = {
+        s.object_id: [] for s in full.scores if s.connectedness is not None
+    }
+
+    rng = random.Random(seed)
+    for _ in range(b if draws else 0):
+        multiplicities = [0] * n
+        for _ in range(n):
+            multiplicities[min(int(rng.random() * n), n - 1)] += 1
+        r_b, _statuses_not_read = correlate(multiplicities)
+        _square_of(r_b, m, "a resample's r")
+        # The full sample's statuses; a known pair this resample cannot compute is
+        # made UNKNOWN, so primary_scores never reads a missing number, and the
+        # object it belongs to is then not scored by this resample (below).
+        status_b = [
+            [
+                PairStatus.UNKNOWN if i != j and r_b[i][j] is None else full_status[i][j]
+                for j in range(m)
+            ]
+            for i in range(m)
+        ]
+        for s in primary_scores(ids, r_b, status_b, roles).scores:
+            if (
+                s.object_id in draws
+                and s.connectedness is not None
+                and s.known_pairs == denominators[s.object_id]
+            ):
+                draws[s.object_id].append(100.0 * s.connectedness)
+
+    low_q, high_q = CONNECTEDNESS_QUANTILES
+    out: list[ConnectednessInterval] = []
+    for s in full.scores:
+        values = sorted(draws.get(s.object_id, ()))
+        out.append(
+            ConnectednessInterval(
+                object_id=s.object_id,
+                k100=None if s.connectedness is None else 100.0 * s.connectedness,
+                low=linear_quantile(values, low_q) if values else None,
+                high=linear_quantile(values, high_q) if values else None,
+                resamples_scored=len(values),
+                known_pairs=s.known_pairs,
+            )
+        )
+    return Connectedness100(
+        rule=CONNECTEDNESS_100_RULE,
+        resamples=b,
+        seed=seed,
+        generator=CONNECTEDNESS_BOOTSTRAP_GENERATOR,
+        quantiles=CONNECTEDNESS_QUANTILES,
+        respondents=n,
+        scores=tuple(out),
+    )
+
+
+class RankRelation(StrEnum):
+    """What two intervals let a ranking say about their objects (audit F9)."""
+
+    #: The first object's interval lies wholly above the second's.
+    ABOVE = "above"
+    #: The first object's interval lies wholly below the second's.
+    BELOW = "below"
+    #: The intervals overlap or touch: no order is claimed.
+    TIED = "tied"
+
+
+@dataclass(frozen=True, slots=True)
+class RankedObject:
+    """One object's place in a ranking with ties (audit F9).
+
+    ``outranks`` are the objects whose interval lies wholly below this one's,
+    ``outranked_by`` those wholly above, ``tied_with`` the rest of the ranked
+    objects. ``rank_best`` and ``rank_worst`` bound the rank the intervals allow:
+    ``1 + len(outranked_by)`` and ``ranked - len(outranks)``. Equal bounds mean
+    the rank is settled.
+    """
+
+    object_id: str
+    interval: tuple[float, float]
+    outranks: tuple[str, ...]
+    outranked_by: tuple[str, ...]
+    tied_with: tuple[str, ...]
+    rank_best: int
+    rank_worst: int
+
+
+@dataclass(frozen=True, slots=True)
+class TiedRanking:
+    """An order only where the intervals do not overlap (audit F9).
+
+    ``objects`` keeps the input's order (no order is implied by it); ``unranked``
+    are the objects that had no interval. Overlap is not transitive -- A can be
+    tied with B and B with C while A is above C -- so there are no tie groups:
+    read :meth:`relation` for a pair, ``rank_best`` / ``rank_worst`` for an object.
+    """
+
+    rule: str
+    objects: tuple[RankedObject, ...]
+    unranked: tuple[str, ...]
+
+    def relation(self, a: str, b: str) -> RankRelation:
+        """What the ranking says about ``a`` against ``b``; both must be ranked."""
+        entry = {o.object_id: o for o in self.objects}
+        if a not in entry or b not in entry:
+            raise KeyError(f"both objects must be ranked; got {a!r}, {b!r}")
+        if a == b:
+            raise ValueError("an object is not ranked against itself")
+        if b in entry[a].outranks:
+            return RankRelation.ABOVE
+        if b in entry[a].outranked_by:
+            return RankRelation.BELOW
+        return RankRelation.TIED
+
+    def to_payload(self) -> dict[str, Any]:
+        """A JSON-ready body: each object's relations and rank range, and the rule."""
+        return {
+            "rule": self.rule,
+            "rule_text": _RANK_WITH_TIES_RULE_TEXT,
+            "objects": [
+                {
+                    "id": o.object_id,
+                    "interval": list(o.interval),
+                    "outranks": list(o.outranks),
+                    "outranked_by": list(o.outranked_by),
+                    "tied_with": list(o.tied_with),
+                    "rank_best": o.rank_best,
+                    "rank_worst": o.rank_worst,
+                }
+                for o in self.objects
+            ],
+            "unranked": list(self.unranked),
+        }
+
+
+def _checked_interval(object_id: str, value: Any) -> tuple[float, float]:
+    try:
+        low, high = value
+    except (TypeError, ValueError):
+        raise ValueError(f"{object_id!r}: an interval is (low, high); got {value!r}") from None
+    for bound in (low, high):
+        if isinstance(bound, bool) or not isinstance(bound, int | float):
+            raise ValueError(f"{object_id!r}: interval bounds must be numbers; got {value!r}")
+        if not math.isfinite(bound):
+            raise ValueError(f"{object_id!r}: interval bounds must be finite; got {value!r}")
+    if low > high:
+        raise ValueError(f"{object_id!r}: interval low exceeds high; got {value!r}")
+    return (float(low), float(high))
+
+
+def rank_with_ties(intervals: Mapping[str, tuple[float, float] | None]) -> TiedRanking:
+    """Rank ``i`` above ``j`` only where their intervals do not overlap (audit F9).
+
+    ``intervals`` maps each object to its ``(low, high)`` -- as
+    :meth:`Connectedness100.intervals` returns them -- or ``None`` when it has
+    none; such an object is unranked, never placed last. Intervals that touch
+    (``low_i == high_j``) overlap and are tied: the audit's "do not overlap" is
+    read with closed intervals.
+    """
+    ranked = {
+        oid: _checked_interval(oid, value) for oid, value in intervals.items() if value is not None
+    }
+    ids = list(ranked)
+    total = len(ids)
+    objects: list[RankedObject] = []
+    for a in ids:
+        low_a, high_a = ranked[a]
+        outranks = tuple(b for b in ids if b != a and low_a > ranked[b][1])
+        outranked_by = tuple(b for b in ids if b != a and ranked[b][0] > high_a)
+        tied_with = tuple(b for b in ids if b != a and b not in outranks and b not in outranked_by)
+        objects.append(
+            RankedObject(
+                object_id=a,
+                interval=ranked[a],
+                outranks=outranks,
+                outranked_by=outranked_by,
+                tied_with=tied_with,
+                rank_best=1 + len(outranked_by),
+                rank_worst=total - len(outranks),
+            )
+        )
+    return TiedRanking(
+        rule=RANK_WITH_TIES_RULE,
+        objects=tuple(objects),
+        unranked=tuple(oid for oid, value in intervals.items() if value is None),
+    )
