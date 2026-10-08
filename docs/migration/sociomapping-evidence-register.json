@@ -1523,9 +1523,50 @@
    ],
    "formula": "delta_ij = sqrt(2 (1 - r~_ij)) in [0, 2] (0 identical, 1.41 unrelated, 2 opposite); min_P sigma(P) = sum_{i<j} w_ij (||p_i - p_j|| - delta_ij)^2, w_ij = 1 if RELIABLE or WEAK, 0 if UNKNOWN, by SMACOF from a Torgerson start; Stress-1 = sqrt(sum w (||p_i - p_j|| - delta_ij)^2 / sum w delta_ij^2); no rescaling to a fixed radius: one map unit means the same everywhere",
    "applies_to": "AIA's object map. Supersedes the strongest-pair target, the fixed-radius frame (map_frame max_abs_to_extent 45, engine.py:232-238; D6 package § 3) and, for the object map, the H-Model path (AIA-H8, AIA-H9), which stays experimental for comparison only.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The kernel widths of F12 and of the respondent density (sigma = 12 and 9.5 in the unit's +-62 frame) are not restated for this ruler (plan § 4 item 3).",
+   "implementation": "aia_core.domain.sociomap.layout:fit_smacof_objects",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_ruler_is_the_distance_between_standardised_variables",
+     "what": "delta = sqrt(2 (1 - r)): 0 identical, sqrt 2 unrelated, 2 opposite (p. 8)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_map_is_never_stretched_to_a_radius",
+     "what": "no rescaling to a fixed radius: cos(a - b) correlations land on radius 1 exactly"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_a_family_without_structure_keeps_its_size_and_says_so",
+     "what": "a weak family's targets crowd near 1.41 and its Stress-1 is >= 0.20; it is not stretched to a strong family's size [C4/P4, stated: the audit's own families are not vendored]"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_an_unknown_pair_pulls_nothing",
+     "what": "w = 0 for an UNKNOWN pair (F3): its number moves nothing"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_a_planted_configuration_is_recovered_exactly",
+     "what": "planted points recovered to Stress-1 < 1e-4 from the Torgerson start"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_each_iteration_never_raises_the_stress",
+     "what": "SMACOF majorisation: raw stress non-increasing"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_the_same_input_gives_the_same_bits",
+     "what": "deterministic, bit-identical"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_smacof_objects.py::test_objects_with_no_chain_of_known_pairs_are_refused",
+     "what": "an object with no known pair to the rest is refused, not placed"
+    }
+   ],
+   "uncertainty": "The kernel widths of F12 and of the respondent density (sigma = 12 and 9.5 in the unit's +-62 frame) are not restated for this ruler (plan § 4 item 3). Landed in chunk 2b as layout.fit_smacof_objects with correlation_distance(s); one choice the audit leaves open is recorded on every layout (ObjectLayout.start_fill): an UNKNOWN pair's squared target in the Torgerson start is the mean of the known ones, which shapes only the start, never the stress. The audit's optimum 0.296 on its demo and the families of [C4]/[P4] are not reproducible without its data. No spec, preset or research body uses the layout yet (chunk 2d).",
    "resolve_by": "sociomap-formula-corrections chunk 2b",
    "question": "plan § 4 item 3"
   },
@@ -1556,9 +1597,40 @@
    ],
    "formula": "P* = SMACOF(delta, w; P_Torgerson), computed once in the backend; P_shown = argmin_{Q in rot/refl} ||P* Q - P_previous||_F (orthogonal Procrustes, no scaling), P_previous the map the user was just looking at (baseline, previous wave); every map shows its Stress-1 and a label: < 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable'",
    "applies_to": "every map shown or printed. AIA computes once and deterministically and stores stress_1 (engine.py:291); the label and the alignment layer are missing. For the object map this supersedes SOMECS-H3's accuracy as the fit shown.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map.",
+   "implementation": "aia_core.domain.sociomap.view:align_to_reference",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_every_stress_carries_the_audits_label",
+     "what": "< 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable' (p. 9)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_turned_map_is_turned_back_without_scaling",
+     "what": "the scenario jump (a quarter turn, +16 %) [C5]: the turn undone by rotation, the enlargement left visible (no scaling)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_mirrored_map_is_reflected_back",
+     "what": "Q ranges over rotations and reflections (eq. 16)"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_alignment_never_changes_the_layouts_distances_or_stress",
+     "what": "a view layer: every pairwise distance, and so Stress-1, is the layout's own; base and reference fingerprinted"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_a_new_object_is_turned_with_the_rest_and_does_not_steer_the_fit",
+     "what": "fitted on the common objects; an object in one map only is turned with the rest"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_alignment_quality.py::test_two_maps_sharing_fewer_than_two_objects_are_not_aligned",
+     "what": "fewer than two common objects cannot fix a rotation: refused"
+    }
+   ],
+   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map. Landed in chunk 2c: view.stress_quality (the bands as StressQuality, the reader's words in STRESS_QUALITY_TEXT) and view.align_to_reference (rotation/reflection about the origin, fitted on the common objects; no translation, no scaling, as eq. 16 writes Q). The 'one layout' half is layout.fit_smacof_objects (2b). Neither is printed yet: the label reaches Results and the DOCX with the v2 map (chunk 5), not on aia-sociomap-1's unfolding stress, a different measure.",
    "resolve_by": "sociomap-formula-corrections chunk 2c",
    "question": null
   },
