@@ -554,7 +554,8 @@ forbid "the API never issues a population-operator grant" \
 
 # --- Sociomap: computable is not deliverable --------------------------------
 #
-# AIA_SOCIOMAP_V1 is a preset a study adopts by naming it -- it is not an
+# AIA_SOCIOMAP_V1 and AIA_SOCIOMAP_V2 are presets a run adopts by pinning them
+# (research_sociomap.default_methods, recorded on the run) -- neither is an
 # approved client methodology (docs/architecture/sociomapa-methodology-decision.md).
 # If an application service, worker, route or client could reference it, it
 # could fill in a missing spec, and an engineering choice would become client
@@ -562,19 +563,19 @@ forbid "the API never issues a population-operator grant" \
 # defined), its tests and the golden-fixture tool, it may not appear at all.
 # See sociomapa-deterministic-engine.md §13.
 forbid "application code never substitutes the Sociomap preset" \
-  'AIA_SOCIOMAP_V1' \
+  'AIA_SOCIOMAP_V[0-9]+' \
   "$CORE/application/"
 forbid "infrastructure never substitutes the Sociomap preset" \
-  'AIA_SOCIOMAP_V1' \
+  'AIA_SOCIOMAP_V[0-9]+' \
   "$CORE/infrastructure/"
 forbid "the API never substitutes the Sociomap preset" \
-  'AIA_SOCIOMAP_V1' \
+  'AIA_SOCIOMAP_V[0-9]+' \
   "$API"
 forbid "workers never substitute the Sociomap preset" \
-  'AIA_SOCIOMAP_V1' \
+  'AIA_SOCIOMAP_V[0-9]+' \
   apps/worker
 forbid "the web client never names the Sociomap preset" \
-  'AIA_SOCIOMAP_V1' \
+  'AIA_SOCIOMAP_V[0-9]+' \
   apps/web/src
 
 # --- Tests: the signal is never deleted ------------------------------------

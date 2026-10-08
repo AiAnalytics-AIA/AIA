@@ -50,11 +50,16 @@ def _planted(n: int, m: int, seed: int, *, row_scales: bool, missing: bool) -> d
 # --------------------------------------------------------------- registry --
 
 
-def test_exactly_one_algorithm_is_implemented() -> None:
+def test_the_implemented_algorithms_are_the_unfolding_and_the_object_map() -> None:
+    # aia_smacof_objects_v1 is contract 3's object layout; contract 2 refuses it by name
+    # (test_sociomap_object_map.py::test_contract_2_refuses_contract_3s_members).
     implemented = [
         a for a, i in LAYOUT_ALGORITHMS.items() if i.status is AlgorithmStatus.IMPLEMENTED
     ]
-    assert implemented == [LayoutAlgorithm.AIA_ROWCOND_UNFOLDING_V1]
+    assert implemented == [
+        LayoutAlgorithm.AIA_ROWCOND_UNFOLDING_V1,
+        LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1,
+    ]
     assert set(LAYOUT_ALGORITHMS) == set(LayoutAlgorithm)
 
 
