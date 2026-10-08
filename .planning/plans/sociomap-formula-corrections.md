@@ -940,6 +940,24 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S5 -- support told apart from collection (I3, in part), 2026-10-08
+
+What landed, on `feature/sociomap-support-readiness` (stacked on S4), beside what S2 already put
+in the artifact (`support`: respondents, placed, not placed, Kish's effective n, donors, the
+weighting rule; NOT_MAPPABLE for every pair UNKNOWN or a disconnected family):
+
+- `domain/research_design.py`: a `sociomap_support` readiness check for a design with a tracked
+  set. A sample below the audit's provisional `n_min` (30) -- the policy lets one start at 20 --
+  is a WARN that no pair can be known and the object map will be NOT_MAPPABLE; otherwise a PASS
+  that says the real support of each pair is the map's to report. It warns before anything is
+  paid for; it does not refuse the run.
+
+Tests: `test_research_selection.py` (n = 20, 29: WARN; 30: PASS; no tracked set: no check).
+
+Not done, and why: descriptors beside the answers and the frozen positioning-variable set need
+I1's materialization (descriptors with definition and source versions do not exist yet); region
+exclusions and Holm / d / h are chunk 4d's. I3 stays open.
+
 ### Slice S4 -- the selection reaches the specification (I1, in part), 2026-10-08
 
 What landed, on `feature/sociomap-selection-in-spec` (stacked on S3):

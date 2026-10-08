@@ -119,3 +119,32 @@ def test_readiness_names_the_dimensions_it_will_not_apply() -> None:
     assert readiness.ready  # recorded and said, not a reason to refuse the run
     _, plain = prepare(DESIGN)
     assert not [c for c in plain.checks if c.id == "dimensions"]
+
+
+@pytest.mark.parametrize(
+    ("n", "status"), [(20, CheckStatus.WARN), (29, CheckStatus.WARN), (30, CheckStatus.PASS)]
+)
+def test_readiness_tells_a_sample_too_small_for_any_pair_from_one_that_can_collect(
+    n: int, status: CheckStatus
+) -> None:
+    """Plan § 8.2, I3: 20 respondents can be collected (the policy's floor) but no pair can
+    reach the audit's provisional n_min of 30, so the object map would be NOT_MAPPABLE."""
+    _, readiness = prepare({**DESIGN, "n": n})
+    (check,) = [c for c in readiness.checks if c.id == "sociomap_support"]
+    assert check.status is status
+    assert readiness.ready  # said before anything is paid for; not a refusal
+
+
+def test_without_a_tracked_set_there_is_no_support_to_check() -> None:
+    _, readiness = prepare(
+        {
+            "n": 20,
+            "sections": [
+                {
+                    "type": "questions",
+                    "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+                }
+            ],
+        }
+    )
+    assert not [c for c in readiness.checks if c.id == "sociomap_support"]
