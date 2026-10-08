@@ -940,6 +940,29 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S6 -- the recorded acceptance (I5, in part), 2026-10-08
+
+What landed, on `feature/sociomap-acceptance` (stacked on S5):
+`apps/executors/tests/test_sociomap_acceptance.py` drives one fictional study through the real
+application and worker path (compile, readiness, fieldwork, aggregate, Sociomap) with: two object
+families on different scales (1-10 and 1-5), a declared standalone rating item on 1-7, an
+undeclared numeric question, a context object, two selected dimensions, an age filter, ten
+planted missing answers and one planted straight-liner (the fictional synthetic source, edited
+by the test's own producer). It reads the stored specification, dataset and Sociomap back through
+the Study and checks: the selection recorded and not applied; one rating universe for both
+families with each item's declared scale, the undeclared question outside it; the straight-liner
+the only respondent not placed; both families MAPPED (drinks Stress-1 0.081 fair, moments 0.119
+weak); the context object SECONDARY; the first drink's height resting on 110 of 120; the map
+agreeing with the body's own relations and scores; `INTERNAL_ONLY`. Replay: the map recomputed
+from the stored specification, dataset and pins equals the stored body. Then three new revisions
+(a dimension, an audience filter, the rating item's scale) each compile to another specification
+and start another run, and the first run's pins and stored map are unchanged.
+
+Not covered, and why: Results and the report draw only the v1 map (chunk 5), so "both render the
+same stored geometry" is not provable yet; the Interpretation Research sidecar is Deep Research
+chunk 30/31, not on this stack; the selection is recorded, not applied (S4). I5 stays open until
+chunk 5 and I1's application land.
+
 ### Slice S5 -- support told apart from collection (I3, in part), 2026-10-08
 
 What landed, on `feature/sociomap-support-readiness` (stacked on S4), beside what S2 already put
