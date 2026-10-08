@@ -48,6 +48,7 @@ from .measures import MEASURES_VERSION, check_measures, check_stated_measures, c
 
 __all__ = [
     "GROUNDING_VERSION",
+    "INSTRUCTIONS_VERSION",
     "INSTRUCTION_PATTERNS",
     "MAX_QUOTE_CHARS",
     "MIN_QUOTE_CHARS",
@@ -61,9 +62,14 @@ __all__ = [
     "normalise_text",
 ]
 
+#: The instruction detector's version (plan chunk 45); carried by GROUNDING_VERSION, so a
+#: track grounded under another detector is grounded again.
+INSTRUCTIONS_VERSION: Final = "aia-instructions-2"
+
 #: The grounding rules' version; part of every track and merge fingerprint.
-#: It carries the measures vocabulary's version: a vocabulary change regrounds.
-GROUNDING_VERSION: Final = f"aia-grounding-2/{MEASURES_VERSION}"
+#: It carries the measures vocabulary's and the instruction detector's versions: a change
+#: to either regrounds.
+GROUNDING_VERSION: Final = f"aia-grounding-3/{MEASURES_VERSION}/{INSTRUCTIONS_VERSION}"
 
 #: A shorter quote matches too easily to prove anything ("the market").
 MIN_QUOTE_CHARS: Final = 20
@@ -117,48 +123,120 @@ def locate_quote(source_text: str, quote: str) -> tuple[int, int] | None:
     return (at, at + len(needle)) if at >= 0 else None
 
 
+# Any characters within one sentence, line breaks included: a page's text keeps the
+# breaks of its HTML, and an instruction split over three lines is still one.
+_S = r"[^.!?]{0,80}?"
+#: Who an instruction to a model is addressed to, in English and Czech.
+_ADDRESSEE = (
+    r"(ai|a\.i\.|llms?|language models?|chatbots?|(ai )?assistants?|ai (agents?|systems?|"
+    r"reviewers?|models?)|automated (fact[- ]?checkers?|reviewers?|systems?|agents?)|"
+    r"jazykov\w* model\w*|umělá inteligence|umělé inteligenc\w*|ai systém\w*|"
+    r"automatizovan\w* (ověřovatel\w*|recenzent\w*|systém\w*)|asistent\w*)"
+)
 #: Prompt-injection patterns, by id. Case-insensitive; a match anywhere in a source.
 INSTRUCTION_PATTERNS: Final[dict[str, re.Pattern[str]]] = {
     "ignore_instructions": re.compile(
-        r"\b(ignore|disregard|forget|override)\b[^.\n]{0,60}"
-        r"\b(previous|prior|above|earlier|all|any|your)\b[^.\n]{0,60}"
-        r"\b(instructions?|prompts?|rules?|directions?|guidelines?)\b",
+        rf"\b(ignore|disregard|forget|override)\b{_S}"
+        rf"\b(previous|prior|above|earlier|all|any|your)\b{_S}"
+        r"\b(instructions?|prompts?|rules?|directions?|guidelines?)\b"
+        rf"|\b(ignore|disregard|forget)\b{_S}\b(what you were told|you were told)\b",
         re.I,
     ),
     "ignore_instructions_cs": re.compile(
-        r"\b(ignoruj(te)?|zapomeň(te)?|nedbej(te)?|přepiš(te)?)\b[^.\n]{0,60}"
-        r"\b(předchozí|všechny|dřívější|své)\b"
-        r"[^.\n]{0,60}\b(instrukce|pokyny|pravidla)\b",
+        rf"\b(ignoruj(te)?|zapomeň(te)?|nedbej(te)?|přepiš(te)?)\b{_S}"
+        r"\b(předchozí\w*|všechn\w*|dřívější\w*|sv\w*)\b"
+        rf"{_S}\b(instrukc\w*|pokyn\w*|pravid\w*)",
         re.I,
     ),
     "role_override": re.compile(
-        r"\b(you are now|from now on,? you|pretend to be|act as (an?|the) (ai|assistant|model))\b",
+        r"\b(you are now (an?|the|my|our)\b|from now on,? you\b|pretend to be|"
+        r"act as (an?|the) (ai|assistant|model)\b|od teď jsi\b|od nynějška jsi\b)",
         re.I,
     ),
     "system_prompt": re.compile(
-        r"(\bsystem prompt\b|\bsystem message\b|\bdeveloper message\b|<\s*/?\s*system\s*>)",
+        r"(\bsystem prompt\b|\b(your|this) system message\b|\bdeveloper message\b|"
+        r"<\s*/?\s*system\s*>|\bsystémov\w* prompt\w*\b)",
         re.I,
     ),
     "tool_call": re.compile(
         r"(\"(tool_use|tool_calls|function_call)\"|\btoolUse\b|<\s*/?\s*tool_call\b)", re.I
     ),
     "verdict_override": re.compile(
-        r"\b(mark|label|treat|classify|rate)\b[^.\n]{0,60}\b(this|these|all|every)\b[^.\n]{0,60}"
-        r"\b(claims?|findings?|sources?|evidence)\b[^.\n]{0,60}"
-        r"\b(supported|verified|accepted|trusted|reliable)\b",
+        # The verb as an order: at a sentence's start, after "please", a modal, an
+        # addressee, or chained to another order by "and"/"then".
+        r"(^|[.!?:\n]|\bplease\b|\b(should|must|shall|and|then)\b|" + _ADDRESSEE + r"[,:]?)\s*"
+        rf"\b(mark|label|treat|classify|rate|accept|approve)\b{_S}"
+        r"\b(this|these|all|every|them|it)\b"
+        rf"({_S}\b(claims?|findings?|sources?|evidence|figures?|numbers?|page)\b)?"
+        rf"{_S}\b(supported|verified|accepted|trusted|reliable|correct|final|primary)\b"
+        rf"|\b(accept|approve)\b{_S}\bwithout (further )?(checking|verification|review)\b",
+        re.I | re.M,
+    ),
+    "verdict_override_cs": re.compile(
+        # Imperatives only: "označte" asks; "úřad označí" and "redakce označuje" describe.
+        rf"\b(označ(te)?|považuj(te)?|přijm(i|ěte)|schval(te)?)\b{_S}"
+        r"\b(ověřen\w*|spolehliv\w*|konečn\w*|důvěryhodn\w*|správn\w*)",
         re.I,
     ),
     "exfiltration": re.compile(
-        r"\b(send|post|upload|reveal|print)\b[^.\n]{0,60}"
-        r"\b(api keys?|credentials?|passwords?|secrets?|tokens?|system prompt)\b",
+        rf"\b(send|post|upload|reveal|print|share)\b{_S}"
+        r"\b(api keys?|credentials?|passwords?|secrets?|tokens?|system prompt)\b"
+        rf"|\b(vypiš|pošli|odhal|zobraz|sděl)\w*\b{_S}"
+        r"\b(systémov\w* prompt\w*|přístupov\w* klíč\w*|hesl\w*|přihlašovací\w*)",
+        re.I,
+    ),
+    "addressed_to_model": re.compile(
+        r"\b(note|notice|instructions?|message|oznámení|pokyny?)\s+(to|for|pro)\s+"
+        r"(any\s+|all\s+)?" + _ADDRESSEE + r"\b"
+        r"|\bif you are (an? )?" + _ADDRESSEE + r"\b"
+        r"|\bpokud (jste|jsi) " + _ADDRESSEE + r"\b"
+        r"|\bpro " + _ADDRESSEE + r"\s*:"
+        r"|<!--[^>]{0,40}\b(llm|ai|assistant|model|gpt|claude|gemini)\b"
+        r"|^\s*" + _ADDRESSEE + r"\s*:",
+        re.I | re.M,
+    ),
+    "search_steer": re.compile(
+        rf"\b(search|look up|google|find)\b{_S}\b(your|the) client'?s?\b"
+        rf"|\b(vyhledej\w*|najdi\w*|dohledej\w*)\b{_S}\b(svého|tvého|vašeho)? ?klient\w*",
+        re.I,
+    ),
+    "output_suppression": re.compile(
+        rf"\b(when|while|before) (you )?(summari[sz]|answer|respond|writ|report)\w*{_S}"
+        r"\b(do not|don'?t|never|avoid|omit)\b"
+        rf"|\bpři (shrnutí|odpovědi|psaní)\b{_S}\b(neuváděj\w*|nezmiňuj\w*|vynech\w*)",
         re.I,
     ),
 }
 
+#: A warning that an act is never to be done is not an instruction to do it: "never send
+#: your password by email". Checked in the words just before the match.
+_NEGATED: Final = re.compile(r"\b(never|don'?t|do not|nikdy|ne\w*te)\s*\S*\s*$", re.I)
+#: The patterns a preceding negation disarms.
+_NEGATABLE: Final = frozenset({"exfiltration"})
+
+
+def _hits(pid: str, pattern: re.Pattern[str], text: str) -> bool:
+    for match in pattern.finditer(text):
+        if pid in _NEGATABLE and _NEGATED.search(text[max(0, match.start() - 24) : match.start()]):
+            continue
+        return True
+    return False
+
 
 def detect_instructions(text: str) -> tuple[str, ...]:
-    """The ids of every instruction pattern ``text`` contains, sorted; empty when none."""
-    return tuple(sorted(pid for pid, rx in INSTRUCTION_PATTERNS.items() if rx.search(text)))
+    """The ids of every instruction pattern ``text`` contains, sorted; empty when none.
+
+    Read after NFKC and the same punctuation folding quotes are matched under, line
+    breaks kept (two patterns read a line's start): full-width or ligature letters are
+    the same words to a model as to grounding.
+
+    A tripwire, not the boundary (plan chunk 45, measured): on a held-out set it caught 4
+    of 15 hostile pages. What keeps a hostile page out of the evidence is that an
+    unknown host scores below acceptance, every quote must be in its own track's capture,
+    and every query a model proposes after reading a page passes the gate.
+    """
+    text = unicodedata.normalize("NFKC", text).translate(_FOLD)
+    return tuple(sorted(pid for pid, rx in INSTRUCTION_PATTERNS.items() if _hits(pid, rx, text)))
 
 
 @dataclass(frozen=True, slots=True)
