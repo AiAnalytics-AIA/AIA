@@ -380,6 +380,29 @@ in `apps/api/src/aia_api/routers/workspace.py`:
   - *submits nothing when the save before it fails, and says why* (a 500).
   - Its commit reports both failing on `7b9e9dc`.
 
+### 4.2a What the Sociomap reads from a Design Revision (2026-10-08)
+
+Implemented on `develop` @ `67af44e` (`domain/research_design.py`, `domain/research_sociomap.py`;
+plan `sociomap-formula-corrections.md` § 8.2, S1–S6). Each declaration a design does not make is
+left out of the specification's fingerprint, so a specification compiled before keeps its
+fingerprint (`test_a_design_without_the_declarations_keeps_develops_fingerprint`).
+
+| Design key | Specification | Read by |
+|---|---|---|
+| a scale question's `sociomap_rating: true` | `SpecQuestion.rating_item`, `ResearchSpecification.rating_questions()`; any other question type is `rating_item_not_scale`; a value not exactly `true` declares nothing | `rating_universe`: every tracked set's items, then the declared questions, each on its declared scale -- F2 for both methods. An undeclared numeric question never enters it |
+| an object battery's `context_objects` (labels) | `SpecBattery.context_objects`, `roles_declared`, `object_roles()`: SECONDARY by label, the rest PRIMARY; an unknown label or a non-list is `unknown_context_object`, every object context is `no_primary_object` | the F8 scores, K100 and the object map: a context object has no score and scores nobody, and is still placed |
+| `persona_dimensions.approved`, `audience.filters` | `SpecSelection` (`dimensions` as stored, in order, once each; filters without empty values, keys sorted), `applied: false` with `SELECTION_NOT_APPLIED` | **recorded, not applied**: no dimension materialization or population binding exists, so a run's respondents are not selected by it. A changed selection is another specification and another run; readiness WARNs `dimensions` naming what will not be applied |
+
+Readiness adds `sociomap_support` for a design with a tracked set: a WARN below the audit's
+provisional `n_min` (30) that no pair can be known and the object map will be NOT_MAPPABLE, else a
+PASS that the real support of each pair is the map's to report. It does not refuse the run. The
+map's own `support` block (respondents, placed, not placed, Kish's effective n, donors, the
+weighting rule) is the measured answer.
+
+No screen declares `sociomap_rating` or `context_objects` yet (chunk 5/11), and Results and the
+report draw only `aia-sociomap-1`. The end-to-end proof is
+`apps/executors/tests/test_sociomap_acceptance.py`.
+
 ### 4.3 What #74 changes, if it merges
 
 - **The research stages run on AIA alone.**

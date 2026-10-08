@@ -76,8 +76,11 @@ apps/
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
                             readiness with the run's cost ceiling and the study's spend limit, and native
-                            agent-jobs beneath each Study), scope (PUT /studies/{id}/spend-confirm sets
-                            the limit; any member creates a client, its status stays the Admin's),
+                            agent-jobs beneath each Study), deep research (a Study's Deep Research
+                            runs; Interpretation Research's start, POST …/deep-research/runs/
+                            interpretation, over a result of the Study's own run), scope
+                            (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
+                            client, its status stays the Admin's),
                             settings (the read-only settings document: every control and how it is set;
                             the access group states membership_is_access and offers no grant;
                             ai_runtime, what powers AIA's model calls from code; ai_history, the
@@ -138,7 +141,10 @@ apps/
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
     research.py             The research steps: compile, preflight, fieldwork (parks without a
-                            source), aggregate, sociomap; every artifact on the owned design project
+                            source), aggregate, sociomap; every artifact on the owned design project;
+                            the sociomap step computes the run's pinned methods (none: legacy;
+                            sociomap_method_invalid for a pin that does not verify) and is reused
+                            only under the same engine version and pins
     research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
                             provenance artifact; no automatic write or retry
     ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
@@ -198,6 +204,10 @@ packages/aia_core/src/aia_core/
                             DeepResearchRunSpec (its fingerprint keys the run; the engine request's
                             does not move), DeepResearchProvenance; neither purpose may write a
                             design or a deterministic artifact
+      interpretation.py     an Interpretation Research run's mission: subjects built by code from
+                            its target, the pinned specification and the Design Revision (no
+                            respondent number), each with an interpretation:<KIND>:<entity> origin;
+                            require_interpretation_mission, the enqueue boundary's check (chunk 30)
       tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome
       legacy.py             18.6.6 research_context leakage screen + merge, EXACT (unit captures)
       grounding.py          a quote must be in a source the same track retrieved; numbers too
@@ -221,7 +231,11 @@ packages/aia_core/src/aia_core/
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
     design.py               A Study's Design Revision: immutable content, provenance, the owner tag
-    research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules
+    research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules;
+                            the Sociomap's declarations (sociomap_rating on a scale question,
+                            context_objects on a battery: SECONDARY), SpecSelection (the dimensions
+                            and audience filters recorded, applied: false), sociomap_support (WARN
+                            below n_min 30); a declaration not made is out of the fingerprint
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
     fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
@@ -229,7 +243,12 @@ packages/aia_core/src/aia_core/
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
     research_sociomap.py    The unit's relation matrix -> compute_sociomap; INTERNAL_ONLY while D6
-                            is open; require_client_facing refuses it
+                            is open; require_client_facing refuses it. Beside it each pair's signed r,
+                            n, interval and status, relation_rescaled (F2), object_scores (F8), K100
+                            only with AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED; rating_universe
+                            (every set's items + the declared rating questions); SociomapMethod,
+                            default_methods (aia-sociomap-1 + -2), read_methods, LEGACY_METHODS: a
+                            run computes the methods it pinned; each battery's contract-3 maps
     research.py             A run's phase in words (queued … cancelled), from the engine's state
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
@@ -261,13 +280,26 @@ packages/aia_core/src/aia_core/
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
     sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
-      specification.py      SociomapSpec v2 (no defaults) + require_supported
-      relations.py          scale coercion, mutual projection, ipsatization   F1-F3
-      layout.py             declared layout registry; aia_rowcond_unfolding_v1
-      metrics.py            object metrics, T-score, normaliser               F5-F6
+      specification.py      SociomapSpec v2 (contract 2, AIA_SOCIOMAP_V1) and SociomapSpecV3
+                            (contract 3, AIA_SOCIOMAP_V2, the audit's object map), no defaults,
+                            require_supported each; read_spec / spec_payload read a stored spec by
+                            the contract it names, never another
+      relations.py          scale coercion, mutual projection, ipsatization   F1-F3; pair_status
+                            (audit F3: UNKNOWN / RELIABLE / WEAK), person_minmax (F2),
+                            coerce_declared_1_10 (F5: a declared matrix type, never detected)
+      pairs.py              derive_pair_relations (signed r, n, interval, status) and the unit's
+                            derive_relation_matrix
+      layout.py             declared layout registry; aia_rowcond_unfolding_v1;
+                            fit_smacof_objects (audit F6: objects on the fixed ruler, never rescaled)
+      metrics.py            object metrics, T-score, normaliser               F5-F6; primary_scores
+                            (audit F8, PRIMARY only, UNKNOWN pairs out); connectedness_100 and
+                            rank_with_ties (F9: an order only where intervals part)
       terrain.py            respondent density / object weighted mean         F7-F8
       engine.py, models.py  the pipeline and the v2 artifact
-      view.py               drag overrides, view terrain, scenarios (never write) F9
+      engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
+                            support); read_artifact reads either contract, refuses any other
+      view.py               drag overrides, view terrain, scenarios (never write) F9;
+                            align_to_reference (a view), stress_quality (the audit's label)
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
       model.py              The document: metadata, sections, every block — numbers only as refs
@@ -306,17 +338,19 @@ packages/aia_core/src/aia_core/
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader;
                             start/retry ask when the run's cost ceiling reaches the study's spend
-                            limit, and record the yes (ADR 0019 gate 2); ResearchAgentJobs.accept: a
+                            limit, and record the yes (ADR 0019 gate 2); start pins the Sociomap
+                            methods, a retry keeps the original's; ResearchAgentJobs.accept: a
                             person applies an agent's proposal (APPROVE_GATE), recorded (gate 1)
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
                             run, every artifact pinned and verified, never the latest);
                             start/get/runs/events/cancel/retry (a retry never re-chooses its
-                            target); _enqueue, the one enqueue boundary, refuses every
-                            INTERPRETATION_RESEARCH spec until chunk 30 (start_interpretation and
-                            a stored row's retry: interpretation_not_ready, OI-88); legacy runs
-                            read legacy-unversioned; the bundle
+                            target); _enqueue, the one enqueue boundary, refuses a spec whose
+                            request is not its own purpose's (an interpretation request holds only
+                            its target's mission: interpretation_mission_mismatch); an
+                            interpretation retry re-freezes the stored target, lineage_changed
+                            when a pin moved; legacy runs read legacy-unversioned; the bundle
                             (seal verified), its snapshots and provenance only through the run
     web_retrieval.py        RetrievalGate: the ONLY way a query or URL leaves -- classify, egress,
                             metering, reserve, journal the dispatch, call, journal the outcome

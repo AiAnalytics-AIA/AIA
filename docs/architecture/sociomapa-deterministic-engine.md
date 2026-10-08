@@ -1,7 +1,9 @@
 # Sociomapa deterministic engine — what is ported, what is declared, what is refused
 
-**Status:** engine implemented (`ENGINE_IMPLEMENTATION_VERSION = "1.1.0"`), spec
-and artifact contract **version 2**. Ported against golden fixtures F1–F9 from
+**Status:** engine implemented (`ENGINE_IMPLEMENTATION_VERSION = "1.2.0"`), spec
+and artifact contract **version 2** (`aia-sociomap-1`); since 2026-10-08 a second
+method, **`aia-sociomap-2`** (spec and artifact contract **3**, the formula audit's
+object map, §5a), is computed beside it. Both are `INTERNAL_ONLY` (D6, §13). Ported against golden fixtures F1–F9 from
 `AiAnalytics-AIA/AIA-reference` @ `678e298ad9ca0263da53cc8920d153fdfb956c93`.
 **Not ported, and refused:** the reference's two layout algorithms — see §4.
 **R numerical parity is not claimed** and cannot be until `REF-GAP-SOCIO-R-SMACOF`
@@ -42,7 +44,8 @@ recompute them.
 SociomapInputs
   ratings  (respondents × objects, None = unrated)
     → range check against the declared scale          refused, never clipped
-    → placeable rows (≥ 2 ratings, not all at the top) others excluded, with a reason
+    → placeable rows (≥ 2 ratings, not a straight-liner at any score)
+                                                       others excluded, with a reason
     → dissimilarity  δ = scale_top − rating
     → aia_rowcond_unfolding_v1                         gauge-fixed coordinates, stress
     → map frame  max |coord| → extent                   terrain-grid units
@@ -55,6 +58,36 @@ SociomapInputs
                    object weighted mean σ = 12, spec's height metric      F8
 → SociomapArtifact
 ```
+
+Beside it, stored by the research step (`domain/research_sociomap.py`) and read by no
+surface yet: each pair's signed r, rater count, Fisher-z interval and status (audit F3:
+UNKNOWN below `n_min`, never stamped 5.5); each pair after the rating habit is removed
+(`relation_rescaled`, audit F2); alignment and connectedness over the PRIMARY objects
+(`object_scores`, audit F8); K100 with its bootstrap interval (audit F9), only when the
+worker's `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` is on. The relation step's scale
+coercion is either the reference's detection (`aia-sociomap-1`, fixture F1) or a declared
+matrix type (`DECLARED_*`, audit F5; a declared strength 1–10 is refused by name).
+
+`aia-sociomap-2` (`domain/sociomap/engine_v2.py`, `compute_object_map`) is its own chain
+over `ObjectMapInputs`:
+
+```
+ObjectMapInputs  the rating universe (every tracked set's items + the declared standalone
+                 rating questions, each on its declared scale), raw ratings, weights,
+                 the mapped objects with their items and roles (PRIMARY / SECONDARY)
+  → F1 each item onto 0–1 by its own declared ends          refused off scale
+  → F2 person_minmax: each person's own 0–1 over every item they rated; straight-liners
+       not placed (counted in heights and support)
+  → F3/F4 derive_pair_relations: signed r~, n, interval, status; UNKNOWN weight 0
+  → F6/F7 sqrt(2 (1 − r~)) on a fixed ruler, weighted SMACOF from a Torgerson start,
+       Stress-1 with its band; never rescaled to a radius
+  → F8 primary_scores    → F9 connectedness_100 (when asked)
+→ SociomapArtifactV3     MAPPED, or NOT_MAPPABLE with its reason (too few objects, no
+                         known pair, a disconnected known-pair graph, a singular fit)
+```
+
+Respondent placement and terrain are not part of contract 3 yet: the spec declares them
+`None` and the artifact carries them as `not_computed` with the reason.
 
 `ipsatize` (F3) is ported and tested, and the spec carries an `ipsatize` flag,
 but the one implemented dissimilarity target reads a rating's position on the
@@ -175,6 +208,38 @@ The fingerprint is a SHA256 over the contract version and every field;
 `test_every_field_changes_the_fingerprint` and
 `test_spec_has_no_hidden_defaults` (every path, every depth) pin both rules.
 
+## 5a. `SociomapSpecV3`: contract 3, `aia-sociomap-2`
+
+Contracts are added beside each other, never edited: a stored spec is read by the contract
+it names (`read_spec` / `spec_payload`, `SPEC_CONTRACTS`; none or another is
+`UnknownSpecContract`). Contract 2 is unchanged and `AIA_SOCIOMAP_V1` keeps its fingerprint
+`9d4dffea…` (`test_the_v1_preset_fingerprint_has_not_moved`). Contract 3's members
+`DissimilarityTarget.CORRELATION_DISTANCE`, `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1` and
+`MapFrameMethod.FIXED_RULER` are refused by contract 2 by name
+(`test_contract_2_refuses_contract_3s_members`).
+
+| Section | Preset `AIA_SOCIOMAP_V2` (`3f1c0122…`) | Source |
+| --- | --- | --- |
+| `ratings` | `declared_ends_0_1` (F1), `person_minmax_all_rated` (F2) | audit F1, F2 |
+| `relation` | `weighted_pearson`, basis `respondent_count`, `n_min` 30, confidence 0.95 | audit F3 (`n_min` provisional, Q6; Kish's n is chunk 1d's) |
+| `layout` | `aia_smacof_objects_v1`, `correlation_distance`, 5,000 iterations, tolerance 1e-12, `fixed_ruler` | audit F6, F7; iterations and tolerance AIA declarations |
+| `scores` | height `mean_rating_0_1`; the F8 PRIMARY scores beside it | audit F8 (default height provisional, Q7) |
+| `connectedness` | K100, B = 500, seed 20261007 | audit F9; OI-62's generator |
+| `respondent_placement`, `terrain` | `None` (refused if declared: not computable yet) | chunk 3, 4b |
+
+`require_supported` for contract 3 names each refused field
+(`test_contract_3_refuses_what_it_cannot_compute_by_name`).
+
+**A run pins its methods.** `ResearchRuns.start` resolves `default_methods()`
+(`aia-sociomap-1` and `aia-sociomap-2`) into `SociomapMethod`s (id, the whole spec as
+stored, its fingerprint) on the run's metadata and the `sociomap` step's input; the
+executor computes the pin, never the module preset, and fails the step with
+`sociomap_method_invalid` for a pin that does not verify. A retry pins what the retried run
+pinned; a run stored before pins existed reads as `aia-sociomap-1` (`LEGACY_METHODS`). Only a
+set the caller *chooses* over the default changes the run's identity, so re-starting a
+revision after the default changed returns the run that exists and pays for no fieldwork
+(`test_a_restart_after_the_default_changes_returns_the_run_and_pays_nothing`).
+
 ## 6. `SociomapArtifact` v2
 
 | Field | Meaning |
@@ -193,6 +258,14 @@ No timestamp and no host detail in the body: either would make identical
 computations on two machines look different. `to_payload` / `from_payload`
 round-trips and refuses a tampered body. Storage is
 `ArtifactRepository.put_json(payload=artifact.to_payload(), …)`; no new table.
+
+`SociomapArtifactV3` (`models_v3.py`, contract 3) is read by its own model: relations with
+`abs_r`, `not_placed`, `outcome` with its reason, the layout with Stress-1 and its band,
+scores, heights, K100, `roles`, `items` (the rating universe with each item's scale), and
+`support` (respondents, placed, not placed, Kish's effective n over the placed, distinct
+donors, the weighting rule in words). `read_artifact` reads contract 2 exactly as before,
+contract 3 by its model, and refuses anything else. In the research body each battery
+carries the contract-3 payloads under `maps`, keyed by method id.
 
 ## 7. View and scenario layers
 
@@ -221,6 +294,16 @@ round-trips and refuses a tampered body. Storage is
 | S5 | sentinel/branch order ambiguous for a matrix mixing NaN with a [0,1]/[-1,1] scale | refused (`AmbiguousCoercion`) — the fixture only covers orders that agree | `test_coercion_refuses_the_unrecovered_sentinel_order` |
 | S6 | absolute normalisation against any metric's `metricDef66` bounds | only where bounds were recovered (`density`: none); `mean_rating` is bounded by the spec's declared rating scale, 1–10 in the preset | `test_absolute_bounds_are_used_only_where_recovered`, `test_absolute_normalisation_uses_a_declared_non_default_scale` |
 | S7 | terrain with no source (an empty filter) is fitted to the all-zero grid, called constant, and lifted to 0.5 everywhere | flat at 0: no source, no terrain | `test_empty_terrain_is_flat_at_zero_not_a_plateau` |
+| S8 | a pair under five raters is 5.5, drawn as a medium relation | the unit's matrix kept for `aia-sociomap-1`; every pair carries its status, UNKNOWN below `n_min` (audit F3) | `test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_half`, `test_below_n_min_a_pair_is_unknown_whatever_its_number_says` |
+| S9 | an unplaceable respondent is put on an invented ring (audit F11) | every straight-liner excluded with its reason, out of the density terrain, still counted in `support_n` | `test_a_straight_liner_below_the_top_is_not_placed`, `test_straight_liners_do_not_move_anyone_else` |
+| S10 | the classic score `Σ_j (s_ij + s_ji)`, mostly the constant `11 (m − 1)`, a 5.5-stamped pair counted as medium, context objects in the sum | `relation_classic` kept for `aia-sociomap-1`; `primary_scores` beside it over PRIMARY objects, UNKNOWN pairs out (audit F8) | `test_the_scores_are_the_audits_formula_on_a_hand_computed_example`, `test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic` |
+| S11 | a supplied matrix's scale guessed from its values (r = 0.30 is 3.70 or 6.85) | `aia-sociomap-1` keeps the guess for fixture F1; `DECLARED_*` converts by the declaration and refuses what the type cannot hold (audit F5) | `test_the_same_correlation_means_the_same_strength_whatever_the_other_cells`, `test_the_engine_converts_by_the_declared_type_and_records_it` |
+| S12 | weighted Pearson on raw ratings: the rating habit inflates r (+0.394 for six independent objects) | the unit's matrix kept for `aia-sociomap-1`'s layout; `relation_rescaled` beside it; `aia-sociomap-2` maps r~ (audit F2) | `test_the_rating_habit_inflates_raw_r_and_the_rescaling_removes_it`, `test_the_rating_habit_is_removed_through_the_engine` |
+| S13 | targets `14 + 46 (1 − m / m_max)`, the map stretched to radius 38 or 44 (four copies, F7) | `aia-sociomap-1` keeps its unfolding; `aia-sociomap-2` places objects by SMACOF on the fixed ruler, never stretched (audit F6, F7) | `test_the_map_is_never_stretched_to_a_radius`, `test_a_family_without_structure_keeps_its_size_and_says_so`, `test_the_ruler_is_fixed_a_weak_family_is_drawn_small` |
+| S14 | four layout copies that disagree (the scenario view turns the map a quarter and enlarges it 16 %), no fit shown | one layout, aligned to the previous by rotation/reflection only, as a view (`align_to_reference`); every Stress-1 labelled (`stress_quality`) | `test_a_turned_map_is_turned_back_without_scaling`, `test_every_stress_carries_the_audits_label` |
+| S15 | the normative score `50 + 10 z` (panel ÷n, report ÷(n−1)), always winners and losers | `tscore` kept for `aia-sociomap-1`; `connectedness_100` with a bootstrap interval and `rank_with_ties` beside it: an order only where intervals part (audit F9) | `test_intervals_that_overlap_or_touch_are_tied`, `test_overlap_is_not_transitive_so_there_are_no_tie_groups` |
+
+The envelope terrain (audit F12) takes the next free number when chunk 4b lands.
 
 ## 9. Performance
 
@@ -267,6 +350,12 @@ in §5, packaged for the owner in
 dependencies: reconstruction by inference has stopped. Not started: saved
 segments, A/B comparison, object manager, request arrows, time series — each
 needs its reference behaviour read first.
+
+**The formula audit is a source** for `aia-sociomap-2` and the rows S8–S15: where it and an
+earlier Sociomap decision disagree on AIA's object map, the audit wins
+([`.planning/plans/sociomap-formula-corrections.md`](../../.planning/plans/sociomap-formula-corrections.md)).
+Its provisional values (`n_min` 30, Q6; the default height, Q7) and AIA's readings put to its
+author are recorded there.
 
 ## 13. Computable is not deliverable
 

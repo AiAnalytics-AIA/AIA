@@ -42,9 +42,33 @@ are unchanged; the spec's own fingerprint keys the run, and a design run and an 
 run over one engine input share the engine's reusable work. `DeepResearchProvenance` names the
 sealed bundle (artifact id, row SHA256, seal) beside purpose, target and lineage, without
 touching the bundle. A run stored before ADR 0021 reads `legacy-unversioned`.
-**Interpretation Research is frozen, never enqueued, until chunk 30**: its target, lineage and
-spec are built and validated now, and `_enqueue` refuses its spec (`interpretation_not_ready`),
-because its engine request would still research the design's subjects (OI-88). Neither purpose
+**Interpretation Research enqueues and executes since chunk 30** (PR #193, `67af44e`; OI-88
+closed). Its engine request's subjects are the target's *mission*, built by code
+(`domain/deep_research/interpretation.py`, `interpretation_mission`) from the pinned `compile`
+specification and the Design Revision the producing run executed; the brief, questionnaire,
+knowledge and client terms are frozen from that revision as for a design run. Every subject's
+`origin` is `interpretation:<KIND>:<entity>`, so the bundle says what each track researched; the
+origin is in no track fingerprint. **No respondent number enters a mission**: a subject names
+what a result is about, never a share, mean, coordinate or relation strength.
+
+| Target | Subjects |
+|---|---|
+| `RESULT_QUESTION` | one `QUESTION`: the survey question's text, framed as the context and benchmarks of its answer |
+| `RESULT_BATTERY_OBJECT` | one `OBJECT`: the object's label; one `QUESTION`: the battery's question about it |
+| `ANALYSIS_MODULE` | `research_questions`: each research question of the design; `objects`: each tracked object; any other module: one `QUESTION` framing the study's goal for it |
+| `SOCIOMAP` | one `OBJECT` per object of the battery; one `QUESTION`: what links them for its family |
+| `SOCIOMAP_OBJECT` | one `OBJECT`: the object's label |
+| `SOCIOMAP_RELATIONSHIP` | one `QUESTION`: what connects the two objects; one `OBJECT` for each |
+
+The route is `POST /api/v1/studies/{study_id}/deep-research/runs/interpretation` (`target`,
+`preset_name`, `channels`, `confirm_cost_usd`, `title`): 201 with the run, 200 when the same
+spec's run exists, 404 for a target that is not this Study's, 422 for an entity its artifact
+does not hold, a design target, or nothing to research. `_enqueue`, the one enqueue boundary,
+refuses a spec whose request is not its own purpose's (`require_interpretation_mission`):
+an interpretation request holds only its target's mission, and a design request carries no
+interpretation origin, else 409 `interpretation_mission_mismatch`. A retry of an interpretation
+run re-freezes the stored target and answers 409 `lineage_changed` when a pin no longer reads as
+pinned; it never re-chooses its target. `interpretation_not_ready` no longer exists. Neither purpose
 writes a design or a deterministic artifact (`require_may_write`, a `layer_check` rule).
 
 | Phase | Who decides | What it produces |
