@@ -63,6 +63,7 @@ __all__ = [
     "OpenAccessCopy",
     "OpenAlexConnector",
     "open_access_copies",
+    "openalex_retracted",
 ]
 
 OPENALEX_CONNECTOR_ID: Final = "openalex-works-1"
@@ -88,6 +89,8 @@ _WORK_FIELDS: Final = (
     "open_access",
     "best_oa_location",
     "locations",
+    # Whether OpenAlex holds the work retracted (chunk 46); a root field of a Work.
+    "is_retracted",
 )
 _LIST_FIELDS: Final = ("id", "doi", "title", "publication_year", "open_access")
 #: A DOI as this connector will put it in a path: ``10.<registrant>/<suffix>``; OpenAlex
@@ -263,6 +266,30 @@ class OpenAlexConnector:
         )
 
 
+#: The note a DOI lookup's answer states the work's retraction in, read back by
+#: :func:`openalex_retracted`; the value is ``true``, ``false`` or ``not stated``.
+_RETRACTED_NOTE: Final = "Retracted (is_retracted): "
+
+
+def _flag(value: Any) -> str:
+    """OpenAlex's boolean as stated; anything that is not a boolean is not stated."""
+    return (
+        {True: "true", False: "false"}.get(value, "not stated")
+        if isinstance(value, bool)
+        else "not stated"
+    )
+
+
+def openalex_retracted(result: DatasetResult) -> bool | None:
+    """Whether a DOI lookup's answer says the work is retracted; ``None`` if it does not say."""
+    if result.connector_id != OPENALEX_CONNECTOR_ID or not result.dataset_id.startswith("doi:"):
+        raise ValueError("not an OpenAlex DOI lookup")
+    for note in result.notes:
+        if note.startswith(_RETRACTED_NOTE):
+            return {"true": True, "false": False}.get(note.removeprefix(_RETRACTED_NOTE))
+    return None
+
+
 def _work_table(doc: Mapping[str, Any], *, doi: str) -> dict[str, Any]:
     """A ``Work`` as a table of its locations; refused if it is another work or another shape."""
     answered = doc.get("doi")
@@ -284,6 +311,7 @@ def _work_table(doc: Mapping[str, Any], *, doi: str) -> dict[str, Any]:
         f"Open-access status (open_access.oa_status): "
         f"{_text(open_access.get('oa_status')) or 'not stated'}",
         f"Open-access URL (open_access.oa_url): {_text(open_access.get('oa_url')) or 'none'}",
+        f"{_RETRACTED_NOTE}{_flag(doc.get('is_retracted'))}",
     ]
     if best is not None and best not in locations:
         notes.append("The best open-access location is not among the work's locations.")

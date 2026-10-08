@@ -37,10 +37,12 @@ AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT  one e-mail address: pages are then fetch
                                         needs the Wikipedia search. Unset: Wikipedia's
                                         pages only, as before
 AIA_DEEP_RESEARCH_CONNECTORS            comma-separated: datastat, nkod, eurostat,
-                                        openalex, ares, wayback -- the public dataset
-                                        connectors the ladder may query (chunks 14-16,
-                                        23b); needs the public fetch's contact. Unset or
-                                        empty: none
+                                        openalex, ares, crossref, wayback -- the public
+                                        dataset connectors the ladder may query
+                                        (chunks 14-16, 23b); crossref and openalex are
+                                        also what the merge asks whether a cited work
+                                        was retracted (chunk 46); needs the public
+                                        fetch's contact. Unset or empty: none
 ======================================  ============================================
 
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``

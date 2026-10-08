@@ -25,6 +25,7 @@ from aia_core.infrastructure.dataset_openalex import (
     OpenAccessCopy,
     OpenAlexConnector,
     open_access_copies,
+    openalex_retracted,
 )
 from aia_core.infrastructure.web_retrieval import (
     FetchedResponse,
@@ -104,7 +105,8 @@ def test_a_doi_is_one_singleton_get_asking_only_for_the_fields_it_reads() -> Non
     assert parse_qsl(parts.query) == [
         (
             "select",
-            "id,doi,title,publication_year,type,open_access,best_oa_location,locations",
+            "id,doi,title,publication_year,type,open_access,best_oa_location,locations,"
+            "is_retracted",
         ),
         ("mailto", CONTACT),
     ]
@@ -301,3 +303,19 @@ def test_the_connector_requires_a_live_transport() -> None:
             resolver=RecordedResolver(hosts={}),
             mailto=None,
         )
+
+
+@pytest.mark.parametrize(
+    ("flag", "read"), [(True, True), (False, False), (None, None), ("yes", None)]
+)
+def test_a_doi_lookup_says_whether_openalex_holds_the_work_retracted(
+    flag: Any, read: bool | None
+) -> None:
+    """Chunk 46: OpenAlex's is_retracted, read as stated; anything else is not stated."""
+    doc = json.loads(WORK)
+    if flag is None:
+        doc.pop("is_retracted", None)
+    else:
+        doc["is_retracted"] = flag
+    connector, _ = _connector(_answer(json.dumps(doc).encode()))
+    assert openalex_retracted(connector.query(_query()).result) is read

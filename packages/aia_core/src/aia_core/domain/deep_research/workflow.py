@@ -76,6 +76,9 @@ ARTIFACT_TYPES: Final[dict[str, str]] = {
     # Fan-out (chunk 21): a URL the run captured, by canonical URL, naming the
     # snapshot's content address -- the run's cache across its track steps.
     "url_capture": "deep_research_url_capture",
+    # A cited work's standing (chunk 46): each DOI the merge asked about, this run's own,
+    # stored as it returns so a merge that runs again asks nothing twice.
+    "work_standing": "deep_research_work_standing",
     # A planned web track's rounds (this run's own): each search, each fetch, each
     # round once its fetches resolved, and each round's investigator answer -- every
     # external outcome durable before the next call, so a step that runs again

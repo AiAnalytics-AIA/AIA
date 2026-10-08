@@ -47,7 +47,7 @@ chunks:
   - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
-  - "[ ] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
+  - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
   - "[ ] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
   - "[ ] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
@@ -1074,6 +1074,19 @@ work carries the status in its snapshot; grounding quarantines a finding resting
 (`RETRACTED_SOURCE`); a correction is shown, not quarantined. *Tests:* recorded OpenAlex and
 Crossref answers; a retracted work's finding quarantined with its notice; an unknown status is
 unknown (never "not retracted"); nothing changes for a source without a DOI.
+
+*Landed 2026-10-08* (`feature/dr-retracted-sources`): `domain/deep_research/works.py`
+(`normalise_doi`, `WorkStatus`, `resolve_status`: the most severe status any index states stands;
+no answer is `UNKNOWN`, never "not retracted"); a page's own DOI from its metadata
+(`citation_doi`, `dc.identifier`, `prism.doi`, `bepress_citation_doi`) on its snapshot and its
+source facts, omitted when absent; `infrastructure/dataset_crossref.py` (`updated-by`, **unverified**:
+neither Crossref nor OpenAlex could be reached from the build environment, so the interface is
+written from Crossref's documentation and checked live at chunk 27); OpenAlex's DOI lookup asks
+`is_retracted`; the merge step asks each distinct DOI once per run (at most 40), storing each
+answer before the next (`WorkStandingRecord`), a lookup left in flight read as unknown and never
+re-sent; `RETRACTED_SOURCE` quarantines a retracted or withdrawn work's findings, a correction or a
+concern does not. `MERGE_RULES_VERSION` carries `WORKS_VERSION`. Through the worker:
+`test_a_finding_resting_on_a_retracted_work_is_quarantined_at_merge`, both ways.
 
 **47. The coverage ledger.** What a run looked at, in the order a reader asks: searches sent and
 their hits; pages opened, refused (`robots.txt`, class, host, barrier) and failed; sources captured;

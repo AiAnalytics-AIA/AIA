@@ -684,6 +684,7 @@ class InvestigateExecutor(_Step):
                     url=s.snapshot.final_url,
                     published=s.published,
                     retrieved=s.snapshot.retrieved_at.date(),
+                    doi=s.snapshot.doi,
                 )
                 for s in stored.values()
             ),

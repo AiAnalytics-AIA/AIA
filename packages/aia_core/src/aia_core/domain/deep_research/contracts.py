@@ -452,6 +452,10 @@ class SourceSnapshot(_Closed):
     #: Absent from the serialised form when ``None``, so every page snapshot stored
     #: before tables existed has the same bytes and the same hash it had.
     dataset: DatasetResult | None = None
+    #: The DOI the page names as its own in its metadata (``citation_doi`` and the like),
+    #: normalised; what a retraction lookup asks about (chunk 46). Absent from the
+    #: serialised form when ``None``, so every snapshot stored before has its bytes.
+    doi: str | None = Field(default=None, max_length=320)
 
     @model_validator(mode="after")
     def _dataset_is_its_text(self) -> SourceSnapshot:
@@ -476,6 +480,8 @@ class SourceSnapshot(_Closed):
                 data.pop("archive", None)
             if self.dataset is None:
                 data.pop("dataset", None)
+            if self.doi is None:
+                data.pop("doi", None)
         return data
 
 
@@ -608,6 +614,8 @@ class QuarantineReason(StrEnum):
     #: A newer figure of the same measure from the same publisher was captured and
     #: verified (plan § 8.4; agent-directed mode, ``verification.py``).
     SUPERSEDED = "superseded"
+    #: The source is a work an index lists as retracted or withdrawn (chunk 46, ``works``).
+    RETRACTED_SOURCE = "retracted_source"
 
 
 class QuarantinedEvidence(_Closed):

@@ -83,7 +83,7 @@ def test_each_listed_connector_is_composed_on_its_own_free_class_c_route(
         research,
         **WIKI,
         AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT=CONTACT,
-        AIA_DEEP_RESEARCH_CONNECTORS="datastat, nkod,eurostat,openalex,ares,wayback",
+        AIA_DEEP_RESEARCH_CONNECTORS="datastat, nkod,eurostat,openalex,ares,crossref,wayback",
     )
     assert [d.connector.connector_id for d in runtime.datasets] == [
         "csu-datastat-1",
@@ -91,6 +91,7 @@ def test_each_listed_connector_is_composed_on_its_own_free_class_c_route(
         "eurostat-statistics-1",
         "openalex-works-1",
         "ares-subject-1",
+        "crossref-works-1",
     ]
     assert [a.connector.connector_id for a in runtime.archives] == ["wayback-cdx-1"]
     for access in (*runtime.datasets, *runtime.archives):
@@ -101,6 +102,7 @@ def test_each_listed_connector_is_composed_on_its_own_free_class_c_route(
     zones = {d.connector.connector_id: d.route.route.zone for d in runtime.datasets}
     assert zones["csu-datastat-1"] is ResidencyZone.EU
     assert zones["openalex-works-1"] is ResidencyZone.NON_EU
+    assert zones["crossref-works-1"] is ResidencyZone.NON_EU
     # The connectors' routes are part of every web track's inputs.
     identity = runtime.inputs().web_retrieval
     assert [row[1] for row in identity["datasets"]] == sorted(

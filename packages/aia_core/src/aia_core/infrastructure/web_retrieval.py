@@ -68,6 +68,7 @@ from ..domain.deep_research.web import (
     check_url,
     max_body_bytes,
 )
+from ..domain.deep_research.works import normalise_doi
 from .document_text import read_web_document
 
 __all__ = [
@@ -203,6 +204,15 @@ _BLOCK: Final = frozenset(
         "h1", "h2", "h3", "h4", "h5", "h6", "dd", "dt", "figcaption",
     }
 )  # fmt: skip
+#: The metadata a scholarly page names its own DOI in (Highwire/Google Scholar, Dublin
+#: Core, PRISM, bepress): the work the page *is*, never one it cites (chunk 46).
+_DOI_META: Final = (
+    "citation_doi",
+    "dc.identifier",
+    "dc.identifier.doi",
+    "prism.doi",
+    "bepress_citation_doi",
+)
 _DATE_META: Final = (
     "article:published_time",
     "og:published_time",
@@ -224,6 +234,8 @@ class _Extractor(HTMLParser):
         self.parts: list[str] = []
         self.title_parts: list[str] = []
         self.dates: list[str] = []
+        #: Candidate DOIs from the page's own metadata, in document order.
+        self.dois: list[str] = []
         #: (href, anchor text parts) per ``<a href>``, in document order.
         self.anchors: list[tuple[str, list[str]]] = []
         #: (href, declared type, title) per ``<link rel="alternate">``.
@@ -256,6 +268,8 @@ class _Extractor(HTMLParser):
             name = values.get("property") or values.get("name") or values.get("itemprop") or ""
             if name.lower() in _DATE_META and values.get("content"):
                 self.dates.append(values["content"])
+            if name.lower() in _DOI_META and values.get("content"):
+                self.dois.append(values["content"])
         elif tag == "time" and values.get("datetime"):
             self.dates.append(values["datetime"])
         if tag in _BLOCK:
@@ -441,6 +455,7 @@ def page_snapshot(
     links: tuple[SnapshotLink, ...] = ()
     layout: DocumentLayout | None = None
     published: date | None = None
+    doi: str | None = None
     if media in DOCUMENT_MEDIA_TYPES:
         document = _read_document(body, media, content_type)
         title, kept, layout = document.title, document.text, document.layout
@@ -465,6 +480,7 @@ def page_snapshot(
             text = normalise_text("".join(parser.parts))
             published = _first_date(parser.dates)
             links = _links(parser, final_url)
+            doi = next((d for d in map(normalise_doi, parser.dois) if d is not None), None)
         kept = text[:MAX_TEXT_CHARS]
         truncated = len(text) > MAX_TEXT_CHARS
     text_sha = hashlib.sha256(kept.encode("utf-8")).hexdigest()
@@ -504,6 +520,7 @@ def page_snapshot(
         links=links,
         document=layout,
         archive=archive,
+        doi=doi,
     )
     return FetchedPage(snapshot=snapshot, published=published)
 

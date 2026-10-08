@@ -273,8 +273,8 @@ def _openalex() -> RecordedDatasetConnector:
     )
 
 
-def _with_openalex(runtime: Any, connector: RecordedDatasetConnector) -> Any:
-    route = ToolRoute(
+def _dataset_route(adapter_id: str) -> ToolRoute:
+    return ToolRoute(
         route=ProviderRoute(
             route_id="recorded-dataset-query",
             provider="recorded",
@@ -285,11 +285,16 @@ def _with_openalex(runtime: Any, connector: RecordedDatasetConnector) -> Any:
             approved_for=frozenset({DataClass.CLASS_C_INTERNAL}),
         ),
         tool=ToolKind.DATASET_QUERY,
-        adapter_id=OPENALEX,
+        adapter_id=adapter_id,
         retrieval_mode=RetrievalMode.RECORDED,
         price_usd_per_call=0.0,
     )
-    return dataclasses.replace(runtime, datasets=(DatasetAccess(route=route, connector=connector),))
+
+
+def _with_openalex(runtime: Any, connector: RecordedDatasetConnector) -> Any:
+    return dataclasses.replace(
+        runtime, datasets=(DatasetAccess(route=_dataset_route(OPENALEX), connector=connector),)
+    )
 
 
 SCHOLARLY_TURNS: list[dict[str, Any]] = [
@@ -359,3 +364,102 @@ def test_a_dataset_route_without_web_retrieval_is_refused(
     runtime = _with_openalex(directed(research, ScriptedInvestigator(ANSWERS)), _openalex())
     with pytest.raises(ValueError, match="need web retrieval"):
         dataclasses.replace(runtime, retrieval=None)
+
+
+# --------------------------------------------------------------------------- #
+# A finding on a retracted work is quarantined at merge (plan chunk 46)
+# --------------------------------------------------------------------------- #
+
+CROSSREF = "crossref-works-1"
+
+
+def _crossref(retracted: bool) -> RecordedDatasetConnector:
+    """Crossref, recorded: the table's DOI with a retraction notice, or with none."""
+    rows = (
+        [
+            {
+                "key": "u1",
+                "label": "1. retraction",
+                "values": [
+                    "retraction",
+                    "retracted",
+                    "10.5555/notice.1",
+                    "retraction-watch",
+                    "2026-01-05",
+                ],
+            }
+        ]
+        if retracted
+        else []
+    )
+    return RecordedDatasetConnector(
+        connector_id=CROSSREF,
+        exchanges={
+            f"doi:{DOI}": {
+                "result": {
+                    "title": f"Crossref record of {DOI}",
+                    "publisher": "Crossref (with Retraction Watch)",
+                    "source_url": f"https://api.crossref.example/works/{DOI}",
+                    "columns": [
+                        {"key": k, "label": k}
+                        for k in ("type", "status", "notice_doi", "source", "updated")
+                    ],
+                    "rows": rows,
+                },
+                "raw": "{}",
+            }
+        },
+    )
+
+
+def _table_names_its_doi(tmp: Any) -> Any:
+    """The investigator journey's web, with the office's table naming its own DOI."""
+    from test_deep_research_investigator_journey import WEB  # type: ignore[import-not-found]
+
+    web = json.loads(WEB.read_text(encoding="utf-8"))
+    page = web["pages"][TABLE]
+    page["body"] = page["body"].replace(
+        "</title>", f'</title><meta name="citation_doi" content="https://doi.org/{DOI}">', 1
+    )
+    path = tmp / "web_with_doi.json"
+    path.write_text(json.dumps(web, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("retracted", [True, False])
+def test_a_finding_resting_on_a_retracted_work_is_quarantined_at_merge(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    tmp_path: Any,
+    retracted: bool,
+) -> None:
+    turns = json.loads(json.dumps(TURNS))
+    turns[ALMOND] = ALMOND_TURNS
+    agents = ScriptedInvestigator(ANSWERS, turns=turns)
+    crossref = _crossref(retracted)
+    base = directed(research, agents, fixture=_table_names_its_doi(tmp_path))
+    runtime = dataclasses.replace(
+        base,
+        datasets=(
+            DatasetAccess(route=_dataset_route(OPENALEX), connector=_openalex()),
+            DatasetAccess(route=_dataset_route(CROSSREF), connector=crossref),
+        ),
+    )
+    run_id = start_web(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+
+    # The merge asked Crossref about the table's DOI once, however many tracks cited it.
+    assert crossref.calls == [f"doi:{DOI}"]
+    _run, bundle = read(research, run_id, store)
+    on_table = [a for a in bundle.accepted if a.evidence.source_url == TABLE]
+    reasons = {q.reason for q in bundle.quarantined}
+    if retracted:
+        assert on_table == []
+        assert "retracted_source" in {r.value for r in reasons}
+        (q,) = [q for q in bundle.quarantined if q.reason.value == "retracted_source"][:1]
+        assert DOI in q.detail and "10.5555/notice.1" in q.detail
+    else:
+        assert on_table, "a work with no notice stands"
+        assert "retracted_source" not in {r.value for r in reasons}
