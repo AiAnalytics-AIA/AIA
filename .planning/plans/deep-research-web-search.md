@@ -757,6 +757,66 @@ changes nothing writes no revision and no ledger row; a stale baseline, an unkno
 another Study, a recorded bundle on a real client and an oversized block are refused, and none
 writes; the worker's scope cannot accept; the ledger row names producer and acceptor.
 
+### Chunk 30 — Interpretation Research integration (designed 2026-10-08)
+
+ADR 0021 left `INTERPRETATION_RESEARCH` frozen, never enqueued, because its engine request was
+still the design's: a run would be labelled as interpreting a result while researching the
+design's subjects (OI-88). Chunk 30 derives the run's **mission** from the exact target, builds
+the engine request from it, and then enables enqueueing, the result-side retry and the route.
+Taken on 2026-10-08 before 33-37 at the owner's request: nothing in 30 reads a record or a
+dataset, so the order in § 0 is a preference, not a dependency.
+
+**The engine stays frozen (ADR 0021 decision 7).** No step, artifact type, request field,
+harness version, bundle field or seal changes. The mission is expressed in the request's
+existing fields: `subjects` (code-built from the target, below) and the unchanged `brief`,
+`questionnaire`, `knowledge` and `client_terms` frozen from the Design Revision the producing
+run executed (`freeze`, as today). A different target is a different subject set, so a
+different request fingerprint and a different run; two targets with the same subjects share the
+engine's reusable tracks, as two purposes over one request already do.
+
+**What the mission is, by target (pure: `domain/deep_research/interpretation.py`).** Each
+subject's `origin` names the target (`interpretation:<KIND>:<entity>`), so the bundle says what
+each track was researching. Texts are Czech, as the design's subjects are.
+
+| Target | Subjects |
+|---|---|
+| `RESULT_QUESTION` | one `QUESTION`: the survey question's text (from the pinned `compile` specification), framed as the context and benchmarks of its answer |
+| `RESULT_BATTERY_OBJECT` | one `OBJECT`: the object's label; one `QUESTION`: the battery's question about that object |
+| `ANALYSIS_MODULE` | `research_questions`: each research question of the design; `objects`: each tracked object of the specification; any other module: one `QUESTION` framing the study's goal for that module |
+| `SOCIOMAP` | one `OBJECT` per object of the battery; one `QUESTION`: what links the battery's objects for its family |
+| `SOCIOMAP_OBJECT` | one `OBJECT`: the object's label |
+| `SOCIOMAP_RELATIONSHIP` | one `QUESTION`: what connects the two objects; one `OBJECT` for each |
+
+**No respondent number enters a mission.** A subject names what the result is *about*, never
+what respondents answered: an observed share, a mean, a coordinate or a relation strength is
+not in any subject text. Comparing external evidence with a result is code's work downstream,
+reading both (the Lens, 31; the report graph, 32). This keeps fictional figures out of web
+queries and keeps a real client's results inside the class rule that already holds every query
+written from a real client's design (`design_class`, DR-2b): Class A, never sent.
+
+**Enqueue, retry, route.**
+- `freeze_interpretation` builds the request from the mission; an empty mission is
+  `NothingToResearch`. `_enqueue` stops refusing interpretation specs: the boundary's check
+  becomes "every subject of the request carries this target's interpretation origin"
+  (`require_interpretation_mission`), so a spec whose request was frozen any other way -- the
+  design's subjects under an interpretation label -- is still refused, without reading a store.
+- `retry` of an interpretation run re-freezes the **stored target** (never re-chosen) with the
+  store; its lineage must be the stored lineage, pin for pin, or the retry is `LineageChanged`
+  and starts nothing.
+- API: `POST …/deep-research/runs/interpretation` (`target`, `preset_name`, `channels`,
+  `confirm_cost_usd`, `title`), answering the run as `POST …/runs` does; the retry route takes
+  the artifact store for an interpretation row. Spend limit, cost ceiling and confirmation as for
+  a design run.
+
+*Tests:* each target kind's mission, deterministic (same target, same subjects); no subject
+holds a digit that came from the result payload; the request's subjects differ from the design
+run's for the same revision; a spec with a design-derived request under an interpretation
+purpose is refused at enqueue; enqueue and the plan step through the recorded journey for one
+result target; idempotent per spec; retry re-freezes the stored target and refuses a changed
+lineage; the route answers 201, 404 for another Study's run, 422 for an entity the artifact does
+not hold; the spend-limit confirmation applies; the design-proposal route still refuses an
+interpretation run.
+
 ### Phase 6 — structured extraction (33–39; after 29, § 0)
 
 Recorded/offline like every chunk before 25: fictional sites with a known catalogue (one with
