@@ -16,6 +16,7 @@ from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
 from aia_core.domain.deep_research.brief import BRIEF_VERSION
 from aia_core.domain.deep_research.budgets import CallKind
+from aia_core.domain.deep_research.calibration import VERIFIER_CALIBRATION
 from aia_core.domain.deep_research.classification import CLASSIFIER_VERSION
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1, ConfidenceWeights
 from aia_core.domain.deep_research.contracts import HARNESS_VERSION, Channel
@@ -218,6 +219,8 @@ class DeepResearchRuntime:
             # the rules and register it is verified by, and the brief's rules and weights.
             versions["investigator"] = self._investigator()
             versions["verification"] = VERIFICATION_RULES_VERSION
+            # What is known of the independent verifier's error rates (chunk 48).
+            versions["verifier_calibration"] = VERIFIER_CALIBRATION
             versions["register"] = self.register.version if self.register is not None else "none"
             versions["brief"] = BRIEF_VERSION
             versions["confidence_weights"] = self.weights.version

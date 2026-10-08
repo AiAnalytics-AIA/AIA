@@ -49,7 +49,7 @@ chunks:
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
   - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
-  - "[ ] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
+  - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
 ---
@@ -1112,6 +1112,21 @@ bad finding accepted) and false-alarm rate (a good one quarantined), against pro
 (miss < 0.15, false alarm < 0.10, chunk 1 to approve). With a recorded verifier the runner proves
 only the tooling and says so; the verifier stays `NOT_CALIBRATED` in the bundle's versions until a
 live run is recorded in § 13 (with 25).
+
+*Landed 2026-10-08* (`feature/dr-verifier-calibration`): `domain/deep_research/calibration.py`
+(`GoldSet`, `VerifierAnswers`, `calibrate`, `CALIBRATION_VERSION = "aia-verifier-calibration-1"`) and
+`tools/dr_accuracy.py calibrate --gold --answers --out`. The gold set
+(`packages/aia_core/tests/fixtures/deep_research_verifier/gold.json`, `verifier-gold-fictional-1`,
+pinned `4f09c32e…` in `test_deep_research_calibration.py`) is 28 fictional rows: 12 supported,
+6 overstated, 6 unsupported, 4 superseded. Each row is shaped exactly as `verification.verifier_item`
+shows a candidate (tested), and code's own supersession rules supersede the four superseded rows and
+no supported one (tested). A miss is a bad row judged supported; a false alarm is a good row set
+aside, or not judged at all, as code applies it. Each rate carries its Wilson 95 % upper bound, because
+with 12 good rows a perfect score still only bounds the false-alarm rate below 0.24. `RECORDED`
+answers report `TOOLING_ONLY`; only `LIVE` answers (their model named) meet or miss the proposed
+thresholds. Every agent-directed run records `versions["verifier_calibration"] = "NOT_CALIBRATED"`
+(`VERIFIER_CALIBRATION`): a person changes it, with the live measurement entered in § 13 (chunk 25).
+The runner calls no model.
 
 **49. Search playbooks.** For each subject kind, where its evidence is usually found -- official
 statistics (ČSÚ, Eurostat), registers (ARES, procurement), scholarship (OpenAlex), trade and

@@ -964,6 +964,8 @@ def test_the_independent_verifier_reviews_each_candidate_with_its_measures_and_s
     [accepted] = [a for a in bundle.accepted if a.evidence.claim == TABLE_CLAIM]
     assert accepted.confirmations == ()
     assert bundle.versions["verification"] == VERIFICATION_RULES_VERSION
+    # Until a live measurement is recorded, every directed run says the verifier is unmeasured.
+    assert bundle.versions["verifier_calibration"] == "NOT_CALIBRATED"
     assert bundle.versions["register"] == "test-register-dr-1"
 
 
