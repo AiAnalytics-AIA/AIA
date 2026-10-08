@@ -1,15 +1,15 @@
 ---
 status: in-progress
 chunks:
-  - "[x] 1. Reconcile historical A1 proof with merged develop 9edc30b9"
+  - "[x] 1. Reconcile historical A1 proof with merged develop 09b75227"
   - "[x] 2. Share recorded fixtures and verify native fieldwork, both maps and stored report"
   - "[x] 3. Execute both Deep Research purposes over the same frozen design/result lineage"
   - "[x] 4. Complete refreshed PostgreSQL checks and prepare the publication candidate"
-  - "[ ] 5. Publish, pass CI, review and integrate; reconcile shared documentation separately"
+  - "[ ] 5. Verify the merged-base refresh, pass CI, review and integrate; reconcile shared documentation separately"
 ---
 # Connected research assurance (AIA-90)
 
-Owner: Codex. Started: 2026-10-08. Publication base: develop `9edc30b9`.
+Owner: Codex. Started: 2026-10-08. Publication base: develop `09b75227`.
 Parent: [AIA-90](https://makli.atlassian.net/browse/AIA-90); bounded A1 proof in
 [draft PR #195](https://github.com/AiAnalytics-AIA/AIA/pull/195).
 
@@ -98,3 +98,14 @@ and design checks pass. Python/web lint pass.
 Publish AIA-90 first, then verify AIA-88 on this base. CI, human review,
 integration and the shared docs-only reconciliation remain outstanding. No
 reference skip is reported as a successful comparison.
+
+## Merged-base follow-up
+
+Draft [PR #200](https://github.com/AiAnalytics-AIA/AIA/pull/200) is published.
+During publication, PRs #195, #197 and #198 merged. The branch is now refreshed
+onto `09b75227b9d204c7381519267bb6225b117971ce`; the historical 9edc30b9
+counts above remain labelled with their original base. The earlier #198
+combination already passed all 342 executor and 12 knowledge tests on PostgreSQL.
+The complete PostgreSQL pre-commit sequence and GitHub CI are being repeated
+on the refreshed publication candidate. The knowledge fix is stacked on this
+PR and must follow it in the merge order.
