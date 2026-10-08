@@ -86,6 +86,7 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
         rated_with=(battery,),
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=False,
     )
     assert [o["id"] for o in ours["objects"]] == captured["object_ids"]
@@ -149,6 +150,7 @@ def test_the_battery_scale_is_the_datas_and_is_recorded() -> None:
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=False,
     )
     assert one["rating_scale"] == [1, 5]
@@ -222,6 +224,7 @@ def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> 
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=False,
     )["relation"]
     m = len(relation["matrix"])
@@ -244,6 +247,7 @@ def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=False,
     )["relation"]
     assert relation["n_min"] == AUDIT_PROVISIONAL_N_MIN == 30
@@ -273,6 +277,7 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=False,
     )
     scores, relation = body["object_scores"], body["relation_rescaled"]
@@ -291,7 +296,7 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)[
             "sociomap_version"
         ]
-        == "aia-research-sociomap-7"
+        == "aia-research-sociomap-8"
     )
 
 
@@ -312,6 +317,7 @@ def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> Non
         rated_with=(battery,),
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=True,
     )
     ids = [o["id"] for o in body["objects"]]
@@ -388,6 +394,7 @@ def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> N
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=True,
     )
     k100 = body["connectedness_100"]
@@ -409,6 +416,7 @@ def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> N
         rated_with=spec.batteries,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
         connectedness_interval=True,
     )
     assert again["connectedness_100"] == k100

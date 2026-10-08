@@ -940,6 +940,52 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S3 -- the declared rating universe and object roles (I2), 2026-10-08
+
+What landed, on `feature/sociomap-rating-universe` (stacked on S2):
+
+- `domain/research_design.py`: `SpecQuestion.rating_item` (the design's `sociomap_rating: true`
+  on a scale question; any other type is the compile problem `rating_item_not_scale`; a value
+  that is not exactly `true` declares nothing), `SpecBattery.context_objects` and
+  `roles_declared` (the design's `context_objects`, by label: an unknown label or a non-list is
+  `unknown_context_object`, every object context is `no_primary_object`), `object_roles()`,
+  `ResearchSpecification.rating_questions()`. A declaration a design does not make is left out of
+  the specification's fingerprint, so every specification compiled before keeps its fingerprint
+  (`test_a_design_without_the_declarations_keeps_develops_fingerprint`, pinned to
+  `b3bb6cb3…`, what develop's compiler gave).
+- `domain/research_sociomap.py`: `rating_universe(rated_with, rating_questions)` -- every object
+  of every tracked set, then every declared standalone rating question, each with its declared
+  scale -- read by both `relation_rescaled` (v1's body) and the object map, so F2 is one rule in
+  both; the roles are the specification's in the scores, K100 and the object map; the body records
+  `relation_rescaled.rating_questions` and `roles` (`declared`, `by_object`).
+  `SOCIOMAP_VERSION` `-7` -> `-8`.
+
+Tests: `test_sociomap_rating_universe.py` (14): the compiler's declarations and refusals; the
+fingerprint unchanged without them and moved with them; a declared rating question moving every
+person's bounds (r~ moves, the unit's raw matrix does not) and recorded with its 1-5 scale; an
+undeclared numeric question changing nothing; a context object with no score, scoring nobody,
+still placed on the map; `research_sociomaps` reading the specification's declarations.
+
+**Finding F-S3-1 (for the audit's author, with § 8a's group B).** 1. Claim: § 8.1 I2's
+acceptance line "adding context objects alone does not change PRIMARY scores or terrain" cannot
+hold under F2 as the audit writes it. 2. Anchor: the audit's F2 (p. 22: each person's min-max
+over *all* items rated) and `rating_universe` (this slice). 3. Reproduction: add a sixth object
+to `DESIGN` in `test_sociomap_rating_universe.py` and declare it context: the five PRIMARY
+objects' r~ move, because the new item moves people's bounds. 4. Consequence: declaring a context
+object is not a free presentation choice; it changes the relations the PRIMARY scores are read
+from. 5. Smallest fix: not engineering's -- either F2's universe excludes SECONDARY items (a
+change to F2) or the acceptance line is read as "a context object's own pairs never enter a
+PRIMARY score", which is what holds and is tested. 6. The test that pins the second reading:
+`test_a_context_object_has_no_score_and_scores_nobody`.
+
+Declared reading: § 8.1 I2 asks to "record which items determine each person's normalization
+bounds". The artifact records the universe (every item that can bound a person, with its scale);
+which two items bound each person is re-derivable from the stored raw ratings, and is not
+duplicated per respondent.
+
+Not yet: no screen declares `sociomap_rating` or `context_objects` (chunk 5/11 surfaces); the
+mixed-scale order (F1 before F2) stays 2a's declared reading.
+
 ### Slice S2 -- `aia-sociomap-2`, the audit's object map (chunk 2d), 2026-10-08
 
 What landed, on `feature/sociomap-v2-object-map` (stacked on S1):

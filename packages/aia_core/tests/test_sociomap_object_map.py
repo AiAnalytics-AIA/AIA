@@ -519,6 +519,7 @@ def test_the_research_body_stores_the_object_map_beside_the_v1_map() -> None:
         connectedness_interval=False,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(AIA_SOCIOMAP_V2,),
+        rating_questions=(),
     )
     assert body["sociomap"]["kind"] == "sociomap" and body["sociomap"]["contract_version"] == "2"
     art = read_artifact(body["maps"]["aia-sociomap-2"])
@@ -532,8 +533,8 @@ def test_the_research_body_stores_the_object_map_beside_the_v1_map() -> None:
 
 def test_the_object_map_reads_every_set_the_specification_rates() -> None:
     a, b, data = _study(13, 240)
-    alone = object_map_inputs(a, data, (a,), [1.0] * 240)  # type: ignore[arg-type]
-    both = object_map_inputs(a, data, (a, b), [1.0] * 240)  # type: ignore[arg-type]
+    alone = object_map_inputs(a, data, (a,), [1.0] * 240, rating_questions=())  # type: ignore[arg-type]
+    both = object_map_inputs(a, data, (a, b), [1.0] * 240, rating_questions=())  # type: ignore[arg-type]
     assert len(alone.items) == 5 and len(both.items) == 8
     one = compute_object_map(alone, AIA_SOCIOMAP_V2, connectedness_interval=False)
     two = compute_object_map(both, AIA_SOCIOMAP_V2, connectedness_interval=False)
@@ -549,6 +550,7 @@ def test_with_the_switch_on_the_bootstrap_is_paid_once_and_matches() -> None:
         connectedness_interval=True,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(AIA_SOCIOMAP_V2,),
+        rating_questions=(),
     )
     alone = battery_sociomap(
         a,
@@ -557,6 +559,7 @@ def test_with_the_switch_on_the_bootstrap_is_paid_once_and_matches() -> None:
         connectedness_interval=True,
         map_spec=AIA_SOCIOMAP_V1,
         object_maps=(),
+        rating_questions=(),
     )
     art = read_artifact(on["maps"]["aia-sociomap-2"])
     assert isinstance(art, SociomapArtifactV3)
@@ -602,7 +605,7 @@ def test_research_sociomaps_names_both_pinned_methods() -> None:
     assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-2"]
     (set_body,) = body["batteries"]
     assert set(set_body["maps"]) == {"aia-sociomap-2"}
-    assert body["sociomap_version"] == "aia-research-sociomap-7"
+    assert body["sociomap_version"] == "aia-research-sociomap-8"
     pins = {m.method_id: m for m in default_methods()}
     assert pins["aia-sociomap-2"] == SociomapMethod.of(AIA_SOCIOMAP_V2)
 
