@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="0.453" timestamp="2026-10-08T12:05:58.837360+02:00"><testcase classname="tests.test_client_knowledge_review_probe" name="test_a_pending_edit_can_replace_a_newer_accepted_correction" time="0.318" /><testcase classname="tests.test_client_knowledge_review_probe" name="test_a_dimension_can_be_accepted_with_no_definition_or_values" time="0.010" /></testsuite></testsuites>
