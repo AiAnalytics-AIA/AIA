@@ -133,7 +133,8 @@ def test_a_run_says_why_what_and_on_which_design_and_the_old_shape_still_starts(
     )
     assert named.status_code == 200 and named.json()["run_id"] == job["run_id"]
 
-    # The result-side start is not this route's yet; nothing else is a purpose.
+    # The result-side start is its own route (``…/runs/interpretation``); nothing else is a
+    # purpose here.
     for purpose in ("INTERPRETATION_RESEARCH", "ANYTHING"):
         refused = researcher.post(_url(world), json={**legacy_shape, "purpose": purpose})
         assert refused.status_code == 422, purpose
@@ -144,14 +145,13 @@ def test_a_run_says_why_what_and_on_which_design_and_the_old_shape_still_starts(
     assert provenance.json()["code"] == "bundle_not_ready"
 
 
-def test_an_interpretation_row_answers_interpretation_not_ready_and_starts_nothing(
+def test_an_interpretation_row_whose_result_is_gone_answers_lineage_changed(
     researcher: TestClient, world: Any, app: Any
 ) -> None:
-    """ADR 0021 Step 1: Interpretation Research is frozen, never enqueued, until chunk 30.
-
-    No route creates an interpretation run, so the row is written at the repository level
-    (a historical or future row): its retry is 409 ``interpretation_not_ready`` and no run
-    is created."""
+    """An interpretation row pinned to results that do not read as pinned (written at the
+    repository level, over artifacts that do not exist): its retry re-freezes the stored
+    target (chunk 30), finds the lineage changed, answers 409 ``lineage_changed`` and
+    creates no run."""
     revision = _revision(researcher, world)
     started = researcher.post(
         _url(world),
@@ -210,7 +210,7 @@ def test_an_interpretation_row_answers_interpretation_not_ready_and_starts_nothi
     assert shown["purpose"] == "INTERPRETATION_RESEARCH" and shown["target"]["kind"] == "SOCIOMAP"
     assert researcher.post(f"{run_url}/cancel").status_code == 200
     retried = researcher.post(f"{run_url}/retry")
-    assert retried.status_code == 409 and retried.json()["code"] == "interpretation_not_ready"
+    assert retried.status_code == 409 and retried.json()["code"] == "lineage_changed"
     assert [r["run_id"] for r in researcher.get(_url(world)).json()] == [started["run_id"]]
 
 

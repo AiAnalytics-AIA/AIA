@@ -11,12 +11,17 @@ pinned:
   freezes to the same lineage;
 * a target of another Study or client, an artifact the run did not produce, an entity the
   artifact does not hold and a corrupt artifact are all refused;
-* **Interpretation Research is frozen, never enqueued, until chunk 30**: the enqueue
-  boundary refuses its spec, and a persisted interpretation row is never retried -- no run,
-  no model or retrieval call;
-* a design run and an interpretation spec share one engine identity and differ in run
-  identity; provenance round-trips and resolves to the original immutable inputs; nothing
-  wrote a design or a deterministic research artifact.
+* **Interpretation Research researches its target's mission** (chunk 30): its engine request
+  is the design run's in everything but its subjects, which are built by code from the
+  target and carry no respondent number; it enqueues idempotently per spec and runs through
+  the real worker to a sealed bundle; a request frozen any other way -- the design's subjects
+  under an interpretation label -- is refused at the enqueue boundary, and starts nothing;
+* a retry re-freezes the stored target, never re-chosen, and is refused when the result no
+  longer reads as pinned;
+* a design run and an interpretation run differ in engine and run identity, and share the
+  engine's reusable tracks where their subjects coincide; provenance round-trips and
+  resolves to the original immutable inputs; nothing wrote a design or a deterministic
+  research artifact.
 """
 
 from __future__ import annotations
@@ -28,7 +33,7 @@ from typing import Any
 import pytest
 from aia_core.application.deep_research import (
     DeepResearchRuns,
-    InterpretationNotReady,
+    InterpretationMissionMismatch,
     LineageChanged,
     ResearchTargetInvalid,
     ResearchTargetNotFound,
@@ -51,8 +56,6 @@ from aia_core.domain.deep_research.integration import (
 )
 from aia_core.domain.deep_research.workflow import (
     ARTIFACT_TYPES,
-    DEEP_RESEARCH,
-    deep_research_steps,
 )
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.scope import StudyStatus
@@ -62,7 +65,6 @@ from aia_core.infrastructure.storage import InMemoryArtifactStore, IntegrityErro
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import ProjectArtifactRow, UserRow
 from aia_core.infrastructure.web_retrieval import RecordedSearch
-from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors import workbench
 from aia_executors.deep_research import deep_research_registry
 from aia_worker.settings import WorkerSettings
@@ -195,6 +197,18 @@ def _sociomap_object(
     )
 
 
+def _payload(world: World, artifact_id: str) -> Any:
+    with world.research.sessions() as session:
+        return research_artifacts(
+            session, world.research.lead_scope(session), world.store
+        ).read_json(artifact_id)
+
+
+def _label(world: World, target: SociomapObjectTarget) -> str:
+    (battery,) = _payload(world, target.sociomap_artifact_id)["sociomap"]["batteries"]
+    return str(next(o["label"] for o in battery["objects"] if o["id"] == target.object_id))
+
+
 def _freeze(world: World, target: Any, scope: Any | None = None) -> Any:
     for runs in world.runs(scope):
         return runs.freeze_interpretation(target=target, preset_name="QUICK", store=world.store)
@@ -230,10 +244,17 @@ def test_interpretation_pins_the_exact_result_and_the_design_it_executed(results
         design_revision=revision.revision,
         design_content_sha256=revision.content_sha256,
     )
-    # The engine request is the one the design side freezes over that revision: unchanged.
+    # The engine request is the one the design side freezes over that revision in everything
+    # but its subjects: those are the target's mission (chunk 30).
     for runs in results.runs():
         design = runs.freeze_design(design_revision_id=results.revision_id, preset_name="QUICK")
-    assert spec.engine_request == design.engine_request
+    subjects = {"subjects"}
+    assert spec.engine_request.model_dump(exclude=subjects) == design.engine_request.model_dump(
+        exclude=subjects
+    )
+    assert spec.engine_request.subjects != design.engine_request.subjects
+    assert [s.text for s in spec.engine_request.subjects] == [_label(results, target)]
+    assert spec.engine_request_fingerprint() != design.engine_request_fingerprint()
     assert spec.fingerprint() != design.fingerprint()
 
 
@@ -325,7 +346,7 @@ def test_a_newer_result_is_another_lineage_never_a_silent_retarget(results: Worl
 
 
 def test_the_same_target_always_freezes_to_the_same_lineage(results: World) -> None:
-    """What a retry will re-freeze from chunk 30: the stored target, to the same lineage."""
+    """What a retry re-freezes: the stored target, to the same lineage."""
     target = _sociomap_object(results)
     first = _freeze(results, target)
     _revision, _newer = _research_run(results.research, NEWER_DESIGN)  # a newer result exists
@@ -344,63 +365,143 @@ def _deep_research_runs(world: World) -> list[str]:
     raise AssertionError("unreachable")
 
 
-def _store_interpretation_row(world: World, spec: Any) -> str:
-    """A persisted ``INTERPRETATION_RESEARCH`` row, written at the repository level.
-
-    No current code path creates one (the enqueue boundary refuses the spec): this stands
-    for a historical or future row, so the test asks what happens *if such a row exists*
-    without proving that the application can make it.
-    """
-    with world.research.sessions() as session:
-        scope = world.research.lead_scope(session)
-        project_id = StudyDesignRepository(session, scope).project_id()
-        assert project_id is not None
-        request = spec.engine_request
-        steps = deep_research_steps()
-        workflows = WorkflowRepository(session, scope)
-        run_id = workflows.create_run(
-            project_id=project_id,
-            project_revision=request.design_revision,
-            workflow_type=DEEP_RESEARCH,
-            steps=steps,
-            idempotency_key=f"{DEEP_RESEARCH}:spec:{spec.fingerprint()}:simulated",
-            metadata={
-                "design_revision_id": request.design_revision_id,
-                "design_revision": request.design_revision,
-                "request_fingerprint": request.fingerprint(),
-                "preset": request.preset,
-                "channels": [c.value for c in request.channels],
-                **run_spec_metadata(spec, purpose_source=PurposeSource.EXPLICIT),
-            },
-            fingerprints={s.node_key: request.fingerprint() for s in steps},
+def _start(world: World, target: Any, **kwargs: Any) -> Any:
+    """Start, and commit: the loop runs to its end, so ``runs()`` commits."""
+    started = None
+    for runs in world.runs():
+        started = runs.start_interpretation(
+            target=target, preset_name="QUICK", store=world.store, **kwargs
         )
-        workflows.request_cancel(run_id, reason="simulated")
-        session.commit()
-        return run_id
+    assert started is not None
+    return started
 
 
-def test_interpretation_execution_fails_closed_until_target_subjects_exist(
+def _cancelled(world: World, target: Any) -> str:
+    """An interpretation run, started and cancelled before the worker claims anything."""
+    run_id = str(_start(world, target).run_id)
+    for runs in world.runs():
+        runs.cancel(run_id, reason="test")
+    return run_id
+
+
+def _numbers(value: Any) -> set[str]:
+    """Every number a payload holds, as it could be written: 0.4271, 0,4271, 87."""
+    if isinstance(value, bool):
+        return set()
+    if isinstance(value, int | float):
+        text = repr(value)
+        return {text, text.replace(".", ",")}
+    if isinstance(value, dict):
+        return set().union(*(_numbers(v) for v in value.values()), set())
+    if isinstance(value, list | tuple):
+        return set().union(*(_numbers(v) for v in value), set())
+    return set()
+
+
+def test_interpretation_enqueues_its_mission_and_runs_to_a_sealed_bundle(results: World) -> None:
+    """Chunk 30: enqueue, the plan step and the rest of the graph through the real worker."""
+    target = _sociomap_object(results)
+    spec = _freeze(results, target)
+    started = _start(results, target, title="Výklad")
+    assert started.created
+    # Idempotent per spec: the same target again is the run that exists.
+    again = _start(results, target)
+    assert (again.run_id, again.created) == (started.run_id, False)
+    assert _deep_research_runs(results) == [started.run_id]
+    for runs in results.runs():
+        run = runs.get(started.run_id)
+    meta = run["metadata"]
+    assert meta["purpose"] == "INTERPRETATION_RESEARCH" and meta["title"] == "Výklad"
+    assert meta["request_fingerprint"] == spec.engine_request_fingerprint()
+    assert meta["run_spec_fingerprint"] == spec.fingerprint()
+    assert meta["subjects"] == len(spec.engine_request.subjects) == 1
+
+    assert results.drain() == 6
+    for runs in results.runs():
+        run = runs.get(started.run_id)
+        bundle = runs.bundle(started.run_id, store=results.store)
+        provenance = runs.provenance(started.run_id, store=results.store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+    # The plan step took the stored request as it is: the bundle is that request's.
+    assert bundle.request_fingerprint == spec.engine_request_fingerprint()
+    # The bundle says what each track researched: this target's object, by its origin.
+    assert [(s.kind.value, s.text, s.origin) for s in bundle.subjects] == [
+        (
+            "OBJECT",
+            _label(results, target),
+            f"interpretation:SOCIOMAP_OBJECT:{results.research_run_id}/"
+            f"{target.battery_id}/{target.object_id}",
+        )
+    ]
+    assert provenance.purpose.value == "INTERPRETATION_RESEARCH"
+    assert provenance.target == target and provenance.lineage == spec.lineage
+
+
+def test_every_result_targets_mission_holds_no_respondent_number(results: World) -> None:
+    aggregate = results.artifact(None, "aggregate")
+    sociomap = _sociomap_object(results)
+    objects = [
+        o["id"]
+        for o in _payload(results, sociomap.sociomap_artifact_id)["sociomap"]["batteries"][0][
+            "objects"
+        ]
+    ]
+    run = results.research_run_id
+    targets: list[Any] = [
+        ResultQuestionTarget(
+            kind="RESULT_QUESTION",
+            research_run_id=run,
+            aggregate_artifact_id=aggregate,
+            question_id="q1",
+        ),
+        ResultBatteryObjectTarget(
+            kind="RESULT_BATTERY_OBJECT",
+            research_run_id=run,
+            aggregate_artifact_id=aggregate,
+            battery_id=sociomap.battery_id,
+            object_id=objects[0],
+        ),
+        SociomapTarget(
+            kind="SOCIOMAP",
+            research_run_id=run,
+            sociomap_artifact_id=sociomap.sociomap_artifact_id,
+            battery_id=sociomap.battery_id,
+        ),
+        sociomap,
+        SociomapRelationshipTarget(
+            kind="SOCIOMAP_RELATIONSHIP",
+            research_run_id=run,
+            sociomap_artifact_id=sociomap.sociomap_artifact_id,
+            battery_id=sociomap.battery_id,
+            source_object_id=objects[0],
+            target_object_id=objects[1],
+        ),
+    ]
+    results_numbers = _numbers(_payload(results, aggregate)) | _numbers(
+        _payload(results, sociomap.sociomap_artifact_id)
+    )
+    distinctive = {n for n in results_numbers if sum(ch.isdigit() for ch in n) >= 2}
+    assert distinctive  # the results do hold shares, means and relation strengths
+    for target in targets:
+        texts = [s.text for s in _freeze(results, target).engine_request.subjects]
+        assert texts, target.kind
+        # The design's texts have no digit, so any digit here would be a result's.
+        assert not any(ch.isdigit() for text in texts for ch in text), texts
+        assert not any(n in text for n in distinctive for text in texts)
+
+
+def test_a_design_derived_request_under_an_interpretation_label_is_refused(
     results: World,
 ) -> None:
-    """ADR 0021 Step 1: the target and its lineage resolve; nothing is enqueued (OI-88)."""
-    target = _sociomap_object(results)
-    for runs in results.runs():
-        with pytest.raises(InterpretationNotReady):
-            runs.start_interpretation(target=target, preset_name="QUICK", store=results.store)
-    assert _deep_research_runs(results) == []
-    # Scope, lineage and target are checked first: a foreign target is not "not ready".
-    for runs in results.runs(_sibling_scope(results.research)):
-        with pytest.raises(ResearchTargetNotFound):
-            runs.start_interpretation(target=target, preset_name="QUICK", store=results.store)
-
-
-def test_the_enqueue_boundary_refuses_any_interpretation_spec(results: World) -> None:
-    """The invariant lives where every run is created, not only in the public start."""
+    """OI-88: the enqueue boundary holds the mission rule, not only the public start."""
     spec = _freeze(results, _sociomap_object(results))
     for runs in results.runs():
-        with pytest.raises(InterpretationNotReady):
+        design = runs.freeze_design(design_revision_id=results.revision_id, preset_name="QUICK")
+    mislabelled = DeepResearchRunSpec(**{**dict(spec), "engine_request": design.engine_request})
+    for runs in results.runs():
+        with pytest.raises(InterpretationMissionMismatch):
             runs._enqueue(
-                spec,
+                mislabelled,
                 purpose_source=PurposeSource.EXPLICIT,
                 retry_of=None,
                 prices=None,
@@ -408,14 +509,43 @@ def test_the_enqueue_boundary_refuses_any_interpretation_spec(results: World) ->
                 confirm_cost_usd=None,
             )
     assert _deep_research_runs(results) == []
+    # Scope, lineage and target are checked first: a foreign target is not this Study's.
+    for runs in results.runs(_sibling_scope(results.research)):
+        with pytest.raises(ResearchTargetNotFound):
+            runs.start_interpretation(
+                target=_sociomap_object(results), preset_name="QUICK", store=results.store
+            )
 
 
-def test_an_interpretation_row_is_never_retried_until_chunk_30(results: World) -> None:
-    spec = _freeze(results, _sociomap_object(results))
-    row = _store_interpretation_row(results, spec)
+def test_a_retry_refreezes_the_stored_target_never_a_newer_result(results: World) -> None:
+    target = _sociomap_object(results)
+    row = _cancelled(results, target)
+    _revision, _newer = _research_run(results.research, NEWER_DESIGN)  # a newer result exists
+    results.drain()
+    for runs in results.runs():
+        with pytest.raises(ValueError, match="artifact store"):
+            runs.retry(row)
+        retried = runs.retry(row, store=results.store)
+    assert retried.created and retried.run_id != row
+    for runs in results.runs():
+        original, again = runs.get(row)["metadata"], runs.get(retried.run_id)["metadata"]
+    assert again["retry_of"] == row
+    for key in ("purpose", "purpose_source", "target", "lineage", "request_fingerprint"):
+        assert again[key] == original[key], key
+    assert sorted(_deep_research_runs(results)) == sorted([row, retried.run_id])
+
+
+def test_a_retry_whose_result_no_longer_reads_as_pinned_starts_nothing(results: World) -> None:
+    target = _sociomap_object(results)
+    row = _cancelled(results, target)
+    with results.research.sessions() as session:
+        artifact = session.get(ProjectArtifactRow, target.sociomap_artifact_id)
+        assert artifact is not None
+        artifact.status = "SUPERSEDED"
+        session.commit()
     asked, searched = len(results.agents.requests), len(results.search_calls())
     for runs in results.runs():
-        with pytest.raises(InterpretationNotReady):
+        with pytest.raises(LineageChanged):
             runs.retry(row, store=results.store)
     assert _deep_research_runs(results) == [row]  # no new workflow run
     assert results.drain() == 0  # nothing to claim
@@ -424,7 +554,7 @@ def test_an_interpretation_row_is_never_retried_until_chunk_30(results: World) -
 
 def test_a_result_that_no_longer_reads_as_pinned_is_refused(results: World) -> None:
     target = _sociomap_object(results)
-    row = _store_interpretation_row(results, _freeze(results, target))
+    row = _cancelled(results, target)
     for runs in results.runs():
         assert runs.resolve_lineage(row, store=results.store) == _freeze(results, target).lineage
     with results.research.sessions() as session:  # the pinned row no longer says what it did
@@ -498,18 +628,34 @@ def test_a_corrupt_pinned_artifact_fails_closed(results: World) -> None:
 # --------------------------------------------------------------------------- the frozen engine
 
 
-def test_design_and_interpretation_share_one_engine_identity(results: World) -> None:
+def test_design_and_interpretation_share_the_engines_reusable_tracks(results: World) -> None:
     """Orchestration identity is not engine-work identity. A design run and an interpretation
-    spec over one revision have one engine request -- and so the step fingerprints the
-    engine reuses by -- and two run identities. Reuse across runs itself is the journey's
-    (``test_a_second_pass_reuses_unchanged_tracks_and_measures_what_it_bought``, unchanged)."""
+    run over one revision are two engine requests (their subjects differ, chunk 30) and two
+    run identities; a mission subject whose text is a design subject's -- an object's label
+    -- has the same track fingerprint (the origin is not in it), so the interpretation run
+    takes the design run's completed track instead of researching it again."""
     for runs in results.runs():
         design = runs.start(design_revision_id=results.revision_id, preset_name="QUICK")
-    interpretation = _freeze(results, _sociomap_object(results))
+    results.drain()
+    target = _sociomap_object(results)
+    interpretation = _freeze(results, target)
     for runs in results.runs():
         d_meta = runs.get(design.run_id)["metadata"]
-    assert d_meta["request_fingerprint"] == interpretation.engine_request_fingerprint()
+        d_bundle = runs.bundle(design.run_id, store=results.store)
+    assert d_meta["request_fingerprint"] != interpretation.engine_request_fingerprint()
     assert d_meta["run_spec_fingerprint"] != interpretation.fingerprint()
+
+    started = _start(results, target)
+    results.drain()
+    for runs in results.runs():
+        i_bundle = runs.bundle(started.run_id, store=results.store)
+    designed = {t.track_id: t for t in d_bundle.tracks}
+    shared = [t for t in i_bundle.tracks if t.track_id in designed]
+    assert shared and len(shared) == len(i_bundle.tracks)  # the object's own tracks
+    completed = [t for t in shared if designed[t.track_id].status.value == "COMPLETED"]
+    assert completed  # the design run researched the object to the end on some channel
+    for track in completed:
+        assert track.reused and track.artifact_id == designed[track.track_id].artifact_id
 
 
 def test_provenance_round_trips_and_resolves_to_the_original_inputs(results: World) -> None:
@@ -535,8 +681,8 @@ def test_provenance_round_trips_and_resolves_to_the_original_inputs(results: Wor
         # And its lineage still resolves to the inputs it was frozen on.
         assert runs.resolve_lineage(design.run_id, store=results.store) == provenance.lineage
 
-    # Interpretation: frozen, never enqueued -- its spec and what a run would store of it
-    # round-trip exactly, and resolve to the same pinned inputs.
+    # Interpretation: its spec and what its run stores of it round-trip exactly, and
+    # resolve to the same pinned inputs.
     spec = _freeze(results, _sociomap_object(results))
     assert DeepResearchRunSpec.model_validate_json(spec.model_dump_json()) == spec
     stored = {
@@ -573,8 +719,9 @@ def test_neither_purpose_wrote_a_design_or_any_deterministic_artifact(results: W
     target = _sociomap_object(results)
     for runs in results.runs():
         design = runs.start(design_revision_id=results.revision_id, preset_name="QUICK")
-        with pytest.raises(InterpretationNotReady):
-            runs.start_interpretation(target=target, preset_name="QUICK", store=results.store)
+        interpretation = runs.start_interpretation(
+            target=target, preset_name="QUICK", store=results.store
+        )
     _freeze(results, target)
     results.drain()
     assert research_state() == before
@@ -582,6 +729,6 @@ def test_neither_purpose_wrote_a_design_or_any_deterministic_artifact(results: W
         written = {
             r.artifact_type
             for r in session.scalars(select(ProjectArtifactRow)).all()
-            if r.artifact_metadata.get("run_id") == design.run_id
+            if r.artifact_metadata.get("run_id") in (design.run_id, interpretation.run_id)
         }
     assert written and written <= set(ARTIFACT_TYPES.values())
