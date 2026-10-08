@@ -210,3 +210,18 @@ def test_the_request_cannot_name_the_ceiling(researcher: TestClient, world: Any)
     revision = _revision(researcher, world)
     named = _start(researcher, world, revision, ceiling_usd=0.01)
     assert named.status_code == 422
+
+
+def test_listed_connectors_are_stated_free_beside_a_search_route(settings: Settings) -> None:
+    """Chunk 23b: the connectors the worker composes cost nothing per call, and say so."""
+    from aia_core.domain.deep_research.budgets import CallKind
+
+    from aia_api.routers.deep_research import deep_research_prices
+
+    off = settings.model_copy(update={"deep_research_wikipedia_enabled": True})
+    listed = off.model_copy(update={"deep_research_connectors": "datastat,wayback"})
+    alone = settings.model_copy(update={"deep_research_connectors": "datastat"})
+    assert deep_research_prices(off)[CallKind.CONNECTOR].state == "off"
+    assert deep_research_prices(alone)[CallKind.CONNECTOR].state == "off"
+    connector = deep_research_prices(listed)[CallKind.CONNECTOR]
+    assert (connector.state, connector.usd) == ("priced", 0.0)

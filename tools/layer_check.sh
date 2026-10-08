@@ -373,14 +373,22 @@ forbid "only the archive policy issues an archive permit" \
   'ArchivePermit\(' \
   packages/aia_core/src \
   archive.py
-# The public dataset and archive connectors are registered by no composition until
-# the Deep Research composition chunk (plan chunk 23) records their routes and prices.
+# The public dataset and archive connectors are composed in one place, with their
+# fee-free Class C routes (plan chunk 23b): Deep Research's live composition. The
+# procurement connector has no live source and is composed nowhere.
 DATASET_CONNECTORS='DataStatConnector|NkodConnector|EurostatConnector|OpenAlexConnector|WaybackCdxConnector|AresConnector|ProcurementNoticeConnector'
-for composition in "$API" "$WORKER" "$EXECUTORS" deploy; do
-  forbid "no composition registers a dataset connector yet ($composition)" \
+for composition in "$API" "$WORKER" deploy; do
+  forbid "no composition but Deep Research's live one registers a dataset connector ($composition)" \
     "$DATASET_CONNECTORS" \
     "$composition"
 done
+forbid "only deep_research_live.py composes a dataset connector ($EXECUTORS)" \
+  "$DATASET_CONNECTORS" \
+  "$EXECUTORS" \
+  deep_research_live.py
+forbid "no composition registers the procurement connector: it has no live source" \
+  'ProcurementNoticeConnector' \
+  "$EXECUTORS"
 # The recorded procurement notice source is the same kind of double, defined only
 # beside the procurement connector and refused everywhere the others are.
 RECORDED_NOTICES='RecordedNoticeSource'
