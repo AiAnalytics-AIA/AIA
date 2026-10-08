@@ -53,8 +53,20 @@ from .models import (
     SociomapArtifact,
     SociomapInputs,
 )
-from .relations import coerce_relation_scale_1_10, coercion_branch, mutual_relation_for_position
-from .specification import RelationMissingPolicy, SociomapSpec, require_supported
+from .relations import (
+    DeclaredRelationType,
+    coerce_declared_1_10,
+    coerce_relation_scale_1_10,
+    coercion_branch,
+    mutual_from_1_10,
+    mutual_relation_for_position,
+)
+from .specification import (
+    RelationMissingPolicy,
+    RelationScaleCoercion,
+    SociomapSpec,
+    require_supported,
+)
 from .terrain import TerrainField, TerrainMode, TerrainParameters, TerrainSource, compute_terrain
 
 __all__ = [
@@ -106,7 +118,19 @@ def _check_scale(ratings: RatingsMatrix, lo: float, hi: float) -> None:
                 )
 
 
-def _derive_relation(matrix: RelationMatrix, policy: RelationMissingPolicy) -> RelationDerivation:
+#: Audit F5: a declared matrix type and the conversion it names.
+_DECLARED: dict[RelationScaleCoercion, DeclaredRelationType] = {
+    RelationScaleCoercion.DECLARED_CORRELATION: DeclaredRelationType.CORRELATION,
+    RelationScaleCoercion.DECLARED_SIMILARITY_0_1: DeclaredRelationType.SIMILARITY_0_1,
+    RelationScaleCoercion.DECLARED_STRENGTH_1_10: DeclaredRelationType.STRENGTH_1_10,
+}
+
+
+def _derive_relation(
+    matrix: RelationMatrix,
+    policy: RelationMissingPolicy,
+    coercion: RelationScaleCoercion = RelationScaleCoercion.REFERENCE_COERCE_1_10,
+) -> RelationDerivation:
     raw: list[list[float]] = []
     substituted: list[tuple[str, str]] = []
     ids = matrix.entity_ids
@@ -127,6 +151,18 @@ def _derive_relation(matrix: RelationMatrix, policy: RelationMissingPolicy) -> R
                     "5.5 substitution instead"
                 )
         raw.append(cells)
+    declared = _DECLARED.get(coercion)
+    if declared is not None:
+        try:
+            coerced = coerce_declared_1_10(raw, declared)
+        except ValueError as exc:
+            raise SociomapInputError(str(exc)) from exc
+        return RelationDerivation(
+            coercion_branch=f"declared_{declared.value}",
+            coerced=RelationMatrix(entity_ids=ids, values=coerced),
+            position_input=RelationMatrix(entity_ids=ids, values=mutual_from_1_10(coerced)),
+            substituted_cells=tuple(substituted),
+        )
     return RelationDerivation(
         coercion_branch=coercion_branch(raw).value,
         coerced=RelationMatrix(entity_ids=ids, values=coerce_relation_scale_1_10(raw)),
@@ -253,7 +289,9 @@ def compute_sociomap(inputs: SociomapInputs, spec: SociomapSpec) -> SociomapArti
     relation = None
     if spec.relation is not None and inputs.object_relation is not None:
         relation = _derive_relation(
-            inputs.object_relation, RelationMissingPolicy(spec.relation.missing_data_policy)
+            inputs.object_relation,
+            RelationMissingPolicy(spec.relation.missing_data_policy),
+            RelationScaleCoercion(spec.relation.scale_coercion),
         )
     metrics = _object_metrics(ratings, relation)
     normalization = NormalizationMode(spec.terrain.normalization)

@@ -1308,9 +1308,40 @@
    ],
    "formula": "a~_ki = (a_ki - min_l a_kl) / (max_l a_kl - min_l a_kl), l over all items respondent k rated (not just the active family); k excluded if max_l a_kl = min_l a_kl; r~_ij = Pearson(a~_.i, a~_.j)",
    "applies_to": "AIA's object map (aia-sociomap-2): the relation between two objects. Supersedes RTS-O1 (plain Pearson on scale-normalised answers) and the engine plan's refusal of row normalisation for the object map; the raw weighted Pearson of research_sociomap.py:119-127 is retired. The audit is silent on respondent weights: the unit's Pearson is weighted (the population weight 'vaha', research_sociomap.py derive_relation_matrix) and the engine plan's M7 found no source that weights a Sociomap. Where the audit is silent AIA's existing rule stands, so chunk 2a keeps the Pearson step weighted after the per-person rescaling, as path A is today, and records the weighting on the result; an unweighted map would describe the raw sample, not the weighted population.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a).",
+   "implementation": "aia_core.domain.sociomap.relations:person_minmax",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_the_rating_habit_inflates_raw_r_and_the_rescaling_removes_it",
+     "what": "six independent objects, sd_g = 1.2, sd_t = 1.5, integer 1-10: raw mean r +0.394 and -0.090 after min-max, the audit's numbers [C1] (3,000 respondents, seed 1)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_generous_and_a_strict_rater_who_like_the_same_things_look_the_same",
+     "what": "a generous and a strict rater with the same preferences become identical (p. 4)"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_persons_scale_spans_every_item_they_rated_not_only_the_family_mapped",
+     "what": "l runs over every item k rated, not only the active family; a straight-liner within one family is placed when they rated others differently"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_each_rating_is_placed_between_the_persons_own_lowest_and_highest",
+     "what": "the formula on a hand-computed pair of rows; unrated cells stay unrated"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
+     "what": "max = min (one value, one item or none) is excluded, never 0/0"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_body_carries_alignment_and_connectedness_over_every_object_as_primary",
+     "what": "the research step stores relation_rescaled and the F8 scores read it"
+    }
+   ],
+   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a). Landed in chunk 2a: research_sociomap stores relation_rescaled (signed r~ and |r~| with n, interval and status) beside the unit's matrix, each rating first on its item's declared 0-1 scale (F1 eq. 3) so items with different ends compare, over every tracked set of the specification; the F8 scores read r~. No layout reads r~ yet (2b); aia-sociomap-1 still lays out over the unit's matrix.",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
    "question": "Q5 -- what proximity between two objects claims: relative co-movement, similar absolute ratings, or two concepts kept apart (plan sociomap-formula-corrections § 4a; the owner's decision)"
   },
@@ -1428,9 +1459,40 @@
    ],
    "formula": "s = T_kappa(x); x = NaN => UNKNOWN; kappa in {correlation, similarity 0-1, strength 1-10}, declared and stored with the upload; the import refuses a matrix without it",
    "applies_to": "any relation matrix entering the engine (RelationSpec.scale_coercion). The value-branch detection of relations.py:95-100 stays only as the named legacy option of aia-sociomap-1. AIA has no upload route yet; the rule binds it when built.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The conversion T for 'strength 1-10' into F6's correlation distance is not written out; a correlation goes through F2-F4 and F6.",
+   "implementation": "aia_core.domain.sociomap.relations:coerce_declared_1_10",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_the_same_correlation_means_the_same_strength_whatever_the_other_cells",
+     "what": "r = 0.30 is 3.70 or 6.85 under detection and 6.85 both times when declared a correlation [C7]"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_each_declared_type_has_its_own_conversion",
+     "what": "correlation and similarity 0-1 each by its own conversion"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_cell_the_declared_type_cannot_hold_is_refused_not_clipped",
+     "what": "out of range or non-finite is refused, never clipped or 5.5"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_the_engine_converts_by_the_declared_type_and_records_it",
+     "what": "RelationScaleCoercion.DECLARED_* in the engine; the branch recorded as declared_<type>; the reference preset unchanged"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_declared_type_takes_no_midpoint_sentinel",
+     "what": "a missing cell under a declared type is unknown: the 5.5 sentinel policy is refused by require_supported"
+    },
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_declared_strength_is_refused_by_name_until_its_transform_is_written",
+     "what": "the 'strength 1-10' type the audit names without a transform is refused by name, never converted (SPECIFICATION_REQUIRED)"
+    }
+   ],
+   "uncertainty": "The conversion T for 'strength 1-10' into F6's correlation distance is not written out; a correlation goes through F2-F4 and F6. Landed in chunk 2a: RelationScaleCoercion.DECLARED_CORRELATION and DECLARED_SIMILARITY_0_1 convert onto the v1 engine's 1-10 scale by their declaration; DECLARED_STRENGTH_1_10 is named and refused (coerce_declared_1_10 raises DeclaredTypeUnspecified, require_supported refuses the spec) until the author writes its transform out. The correlation distance of F6 is chunk 2b's. No upload route exists, so no matrix is declared by anyone yet.",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
    "question": "F5's transform: how a declared 'strength 1-10' matrix becomes F6's correlation distance; the audit names the type and leaves the mapping unwritten (to the audit's author, chunk 0b; until then the type is refused, named, plan chunk 2a)"
   },

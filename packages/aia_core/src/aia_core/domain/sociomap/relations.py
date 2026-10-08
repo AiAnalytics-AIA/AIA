@@ -29,24 +29,32 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from statistics import NormalDist
 from typing import Final
 
 __all__ = [
     "AUDIT_PROVISIONAL_N_MIN",
+    "DECLARED_TYPE_REFUSED",
     "MIN_RELATION_OBJECTS",
     "AmbiguousCoercion",
     "CoercionBranch",
+    "DeclaredRelationType",
+    "DeclaredTypeUnspecified",
     "PairStatus",
+    "PersonScaled",
     "RelationScaleError",
+    "coerce_declared_1_10",
     "coerce_relation_scale_1_10",
     "coercion_branch",
     "fisher_interval",
     "ipsatize",
+    "mutual_from_1_10",
     "mutual_relation_for_position",
     "null_band",
     "pair_status",
+    "person_minmax",
 ]
 
 # ``_coerce_relation_scale_1_10`` refuses fewer than three objects.
@@ -184,7 +192,16 @@ def mutual_relation_for_position(matrix: Sequence[Sequence[float]]) -> Matrix:
     auditable projection rule" -- and direction remains visible in the coerced
     matrix, which is kept alongside this one.
     """
-    raw = coerce_relation_scale_1_10(matrix)
+    return mutual_from_1_10(coerce_relation_scale_1_10(matrix))
+
+
+def mutual_from_1_10(raw: Sequence[Sequence[float]]) -> Matrix:
+    """The position projection of an already harmonised 1-10 matrix (F2's second half).
+
+    :func:`mutual_relation_for_position` applies it to the reference's coercion and
+    the declared types (:func:`coerce_declared_1_10`) to theirs; the arithmetic is one
+    function, so both paths project alike.
+    """
     n = len(raw)
     out: list[tuple[float, ...]] = []
     for i in range(n):
@@ -197,6 +214,132 @@ def mutual_relation_for_position(matrix: Sequence[Sequence[float]]) -> Matrix:
             row.append(min(max((mutual - 1.0) / 9.0, 0.0), 1.0))
         out.append(tuple(row))
     return tuple(out)
+
+
+# --------------------------------------------------- declared matrix types --
+#
+# Audit F5: the reference guesses what a supplied matrix's numbers mean from the
+# numbers themselves (no negative cell -> similarity, else correlation, else a
+# 1-10 strength), so the same r = 0.30 is 3.7 in one study and 6.85 in another.
+# The replacement: the matrix type is declared with the matrix and stored with it,
+# and the conversion follows the declaration. Nothing is detected, nothing is
+# clipped, and a cell the declared type cannot hold is refused by name.
+
+
+class DeclaredRelationType(StrEnum):
+    """What a supplied relation matrix's numbers are, as declared with it (audit F5)."""
+
+    #: A correlation in [-1, 1].
+    CORRELATION = "correlation"
+    #: A similarity in [0, 1].
+    SIMILARITY_0_1 = "similarity_0_1"
+    #: A strength on the 1-10 scale. Named, and refused: the audit names the type and
+    #: leaves its transform into F6's correlation distance unwritten (register AUDIT-F5,
+    #: SPECIFICATION_REQUIRED), so a conversion here would be invented methodology.
+    STRENGTH_1_10 = "strength_1_10"
+
+
+class DeclaredTypeUnspecified(RelationScaleError):
+    """A declared matrix type whose conversion the canonical audit does not write out."""
+
+
+_DECLARED_RANGE: Final = {
+    DeclaredRelationType.CORRELATION: (-1.0, 1.0),
+    DeclaredRelationType.SIMILARITY_0_1: (0.0, 1.0),
+}
+#: Why each refused declared type is refused, for the error and the spec check.
+DECLARED_TYPE_REFUSED: Final = {
+    DeclaredRelationType.STRENGTH_1_10: (
+        "a declared 'strength 1-10' matrix has no specified transform into F6's correlation "
+        "distance (audit F5, register AUDIT-F5: SPECIFICATION_REQUIRED, to the audit's author); "
+        "it is refused by name, not guessed"
+    ),
+}
+
+
+def coerce_declared_1_10(
+    matrix: Sequence[Sequence[float]], declared: DeclaredRelationType
+) -> Matrix:
+    """The matrix on the 1-10 scale by its declared type, never by its values (audit F5).
+
+    Correlation ``1 + 9 (x + 1) / 2``, similarity ``1 + 9 x``: the reference's
+    conversions, chosen by the declaration instead of guessed. A non-finite cell or a cell
+    outside the declared type's range is refused (no 5.5, no clipping); the diagonal is
+    forced to ``0.0`` as in the reference. A declared strength 1-10 is refused by name
+    (:class:`DeclaredTypeUnspecified`): its transform is not written out.
+    """
+    if declared in DECLARED_TYPE_REFUSED:
+        raise DeclaredTypeUnspecified(DECLARED_TYPE_REFUSED[declared])
+    rows = _square(matrix)
+    low, high = _DECLARED_RANGE[declared]
+    out: list[tuple[float, ...]] = []
+    for i, row in enumerate(rows):
+        coerced: list[float] = []
+        for j, v in enumerate(row):
+            if i == j:
+                coerced.append(0.0)
+                continue
+            if not math.isfinite(v) or not low <= v <= high:
+                raise RelationScaleError(
+                    f"cell ({i}, {j}) = {v!r} is not a {declared.value} value "
+                    f"in [{low}, {high}]; it is refused, not guessed or clipped"
+                )
+            if declared is DeclaredRelationType.CORRELATION:
+                coerced.append(1.0 + 9.0 * ((v + 1.0) / 2.0))
+            else:
+                coerced.append(1.0 + 9.0 * v)
+        out.append(tuple(coerced))
+    return tuple(out)
+
+
+# ------------------------------------------------- per-person rescaling (F2) --
+#
+# Audit F2: Pearson on raw ratings measures rating habits as well as relations --
+# a generous rater rates everything high, a strict one everything low, and with a
+# personal generosity of variance s_g^2 beside a true taste of variance s_t^2 two
+# unrelated objects correlate at s_g^2 / (s_g^2 + s_t^2) > 0. The replacement puts
+# each person on their own scale first: their lowest rating 0, their highest 1,
+# over *all* the items they rated, not only the family being mapped; a person who
+# gave every item one score carries no preference and is left out.
+
+
+@dataclass(frozen=True, slots=True)
+class PersonScaled:
+    """Ratings on each respondent's own 0-1 scale, and who could not be put on one.
+
+    ``values`` has the input's shape; an excluded respondent's row is all ``None``.
+    ``excluded`` lists the excluded rows by index: a row whose rated items all share
+    one value (``max == min``), which includes a row with one rated item or none.
+    """
+
+    values: tuple[tuple[float | None, ...], ...]
+    excluded: tuple[int, ...]
+
+
+def person_minmax(values: Sequence[Sequence[float | None]]) -> PersonScaled:
+    """Each respondent's ratings on their own scale, lowest 0 and highest 1 (audit F2).
+
+    ``a~_ki = (a_ki - min_l a_kl) / (max_l a_kl - min_l a_kl)``, ``l`` over every item
+    in the row the respondent rated (``None`` is unrated and stays ``None``). The
+    columns are the caller's choice, and the audit's rule is that they are all the
+    items the respondent rated, not only the family mapped. A row with no spread is
+    excluded (``max == min``): it has no preference to rescale, and a 0/0 would be a
+    stamp. Non-finite ratings are refused.
+    """
+    rows: list[tuple[float | None, ...]] = []
+    excluded: list[int] = []
+    for k, row in enumerate(values):
+        rated = [float(v) for v in row if v is not None]
+        if any(not math.isfinite(v) for v in rated):
+            raise ValueError(f"respondent row {k} holds a non-finite rating")
+        low, high = (min(rated), max(rated)) if rated else (0.0, 0.0)
+        if not rated or high == low:
+            excluded.append(k)
+            rows.append(tuple(None for _ in row))
+            continue
+        span = high - low
+        rows.append(tuple(None if v is None else (float(v) - low) / span for v in row))
+    return PersonScaled(values=tuple(rows), excluded=tuple(excluded))
 
 
 def ipsatize(
