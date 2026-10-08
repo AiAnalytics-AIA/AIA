@@ -846,6 +846,89 @@ an `ANALYSIS_MODULE` target is covered in the domain only -- no workflow in the 
 analysis modules, so no service or API test freezes one; the screen is chunk 24's; the docs
 follow-up is § 16.
 
+### Chunk 23 — the rest of the backend: every built route composed (designed 2026-10-08)
+
+**Why now.** The owner, 2026-10-08: "we need to reach as much data and information as possible."
+The engine reaches far more than any deployment composes. At `develop @ 4d8f07d`:
+
+- `DeepResearchRuntime` (`exec/deep_research/runtime.py:120-147`) carries one `retrieval` and
+  nothing else, and both gates a step builds (`investigate.py:295`, `plan.py:192`) pass only it.
+  The gate's `archive`, `datasets` and `archives` (`application/web_retrieval.py:532-572`) are
+  reached by tests alone. So the connectors (14–16), Wayback (15) and Common Crawl (18) are
+  unreachable in every composition, recorded included, and `runtime.ladder` is never set, so the
+  ladder never has a register's data interfaces or a crawl to ask.
+- The only live route is Czech Wikipedia (`deep_research_live.py`). `PublicHttpsTransport`
+  (any public host, `robots.txt`, chunk 5) is constructed nowhere; Brave (chunk 3) has no route.
+- `tools/layer_check.sh:376-382` forbids every composition from naming a connector "until chunk 23
+  records their routes and prices".
+
+**Decided here, for the owner to overrule.** Switches, the key and every route's price come from
+the deployment, as the Bedrock route's do (ADR 0022 decision 6: the composition is process-wide
+and reads no approval). The approved settings (`provider.search.*`, chunks 40–42) are what chunk
+44 compares a live run against before it is enqueued; a run pinning them is chunk 43. So 23 does
+not wait for 43, and nothing here makes a run go live: every switch is off by default, and live
+activation stays chunk 27, after chunk 1.
+
+**Slices, one PR each, in order:**
+
+- **23a. The runtime carries every route.** `DeepResearchRuntime` gains `archive`
+  (`ArchiveRetrieval | None`), `datasets` and `archives` (`tuple[DatasetAccess, ...]`); every gate
+  a step builds receives them; the recorded composition may be given recorded connectors and a
+  recorded archive. A route a composition does not give changes no fingerprint: the track inputs
+  name the dataset and archive routes only when there are some. *Tests:* through the real worker
+  on recorded exchanges, an agent-directed track's `dataset` action reaches a recorded connector
+  and an `archive` action a recorded archive; with none given, every fingerprint equals today's.
+- **23b. Free reach: any public host, the connectors, the archive.** Everything that costs
+  nothing per call. `AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT` (one e-mail address) turns the fetch
+  route into `PublicHttpsTransport` (any public host, every hop checked, `robots.txt` and
+  crawl-delay obeyed, chunk 5), beside the search route the deployment has (Wikipedia today);
+  `AIA_DEEP_RESEARCH_CONNECTORS`, a list of `datastat`, `nkod`, `eurostat`, `openalex`, `ares`,
+  `wayback` (procurement has no live source, `dataset_procurement.py:9-15`, and is refused by
+  name), each over `HostPinnedHttpsTransport` to its own host, paced under fan-out, Class C,
+  fee-free, and needing a live search route (the gate refuses mixed modes) and the contact
+  (OpenAlex's `mailto`); the ladder gets the reputation register's data interfaces.
+  `layer_check`'s connector rule narrows to "only `deep_research_runtime.py` composes a
+  connector". *Tests:* each name builds its connector on its own route; an unknown or unbuildable
+  name, or a connector without the contact or a search route, stops the worker naming the key; a
+  private address and a `robots.txt` disallow refused through the composed fetcher; with the keys
+  unset nothing changes.
+- **23c. Tool spend charged to the study.** The prerequisite for any priced route, found
+  2026-10-08: `StepToolMeter` has a zero ceiling and does not charge the study
+  (`exec/deep_research/runtime.py`), so the gate refuses every call on a route with a price
+  (`tool_metering_unavailable`, `application/web_retrieval.py:614`). This is `deep-research.md`
+  chunk 4 (tool usage in the ledger, one migration), taken up here: a priced tool call reserves
+  against the study's budget before it leaves and settles once, like a model request.
+- **23d. Brave.** `AIA_DEEP_RESEARCH_WEB_SEARCH` = `off` (default) | `wikipedia` | `brave`,
+  replacing `AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED` (still read, refused beside the new key).
+  `brave` needs `AIA_DEEP_RESEARCH_BRAVE_API_KEY` (a credential reference; the key is never read
+  into settings), `AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000`, `AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF` and
+  the public fetch: search `NON_EU` (§ 10), Class C only, priced per call; the API prices the
+  ceiling from the same keys. *Tests:* every missing or invalid key stops the worker naming it; a
+  Class B query refused before it leaves; the key in no route, identity, log line or document.
+- **23e. Common Crawl.** `AIA_DEEP_RESEARCH_COMMON_CRAWL` with `common_crawl_settings` (all
+  `AIA_DEEP_RESEARCH_COMMON_CRAWL_*` keys required; `us-east-1`, `NON_EU`, Class C): the Athena
+  index and the archive fetcher, the ladder's crawls; priced at the scan cutoff in the API too.
+  The `us-east-1` exception stays chunk 1's sign-off, and the bucket, workgroup and IAM an
+  operator's (`docs/architecture/deep-research-common-crawl.md:122-135`).
+- **23f. Develop wiring.** `env.example`, `docker-compose.yml` (worker and API), `write-env.sh`
+  reading the Brave key from SSM `SecureString` (chunk 4), the Settings document's switches. Every
+  switch stays `false` on develop until chunk 27.
+
+Not in 23: triage on the light model (its policy entry is chunk 1's), the focused crawl and
+extraction (36–38 call them), documents (6).
+
+**Landed, 2026-10-08** (`feature/dr-web-composition`): **23a** -- `DeepResearchRuntime.archive`,
+`datasets`, `archives`, handed to both gates; a route joins `web_identity()` only when given
+(`test_dataset_routes_join_a_track_s_inputs_only_when_given`); through the worker, a DOI lead
+resolved by a recorded OpenAlex connector reaches the open-access table by rung 7
+(`test_a_dataset_route_the_composition_gives_is_one_the_ladder_reaches`, which fails with the
+gate wiring removed: the connector is never asked). **23b** -- `public_retrieval` and
+`connector_accesses` (`deep_research_live.py`), the two keys and their refusals
+(`deep_research_runtime.py`), the ladder given the register when the public fetch is on, the API
+stating listed connectors free, Compose and `env.example` carrying both keys (unset on develop);
+`test_deep_research_public_reach.py` (10). Building a route sends nothing; nothing here was
+run against a live host.
+
 ### Phase 6 — structured extraction (33–39; after 29, § 0)
 
 Recorded/offline like every chunk before 25: fictional sites with a known catalogue (one with

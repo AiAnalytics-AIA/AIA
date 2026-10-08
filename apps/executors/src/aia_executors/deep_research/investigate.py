@@ -300,6 +300,9 @@ class InvestigateExecutor(_Step):
             class_a_texts=_class_a_texts(plan.request),
             clock=runtime.clock,
             cache=cache,
+            archive=runtime.archive,
+            datasets=runtime.datasets,
+            archives=runtime.archives,
         )
 
     def _stored(

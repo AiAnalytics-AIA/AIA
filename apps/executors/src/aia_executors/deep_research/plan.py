@@ -196,6 +196,9 @@ class PlanExecutor(_Step):
                 client_terms=request.client_terms,
                 class_a_texts=_class_a_texts(request),
                 clock=runtime.clock,
+                archive=runtime.archive,
+                datasets=runtime.datasets,
+                archives=runtime.archives,
             )
             refusal = gate.refusal_for_class(dclass)
             if refusal is not None:

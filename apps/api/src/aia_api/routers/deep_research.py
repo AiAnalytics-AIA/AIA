@@ -231,11 +231,12 @@ def deep_research_prices(settings: Settings) -> DeepResearchPrices:
 
     Each kind of research agent's request reserves its own kind's amount
     (:func:`deep_research_budgets`, as ``aia_executors.deep_research_runtime`` composes
-    them); with a key missing, every model kind is unknown. The only retrieval a
-    deployment composes is the public Wikipedia route, priced at zero
-    (``aia_executors.deep_research_live``); off, nothing is searched. Triage, the focused
-    crawl, the connectors and Common Crawl are composed by no deployment yet (chunk 23
-    wires them with their dated prices), so nothing is sent on them.
+    them); with a key missing, every model kind is unknown. The retrieval a deployment
+    composes is fee-free (``aia_executors.deep_research_live``): the public Wikipedia
+    search, its pages or any public host's, and the listed public dataset connectors;
+    off, nothing is searched. Triage, the focused crawl and Common Crawl are composed by
+    no deployment yet (chunk 23 wires them with their dated prices), so nothing is sent
+    on them.
     """
     budgets = deep_research_budgets(settings)
     model = {
@@ -253,7 +254,12 @@ def deep_research_prices(settings: Settings) -> DeepResearchPrices:
             CallKind.FETCH: web,
             CallKind.TRIAGE: off,
             CallKind.CRAWL_FETCH: off,
-            CallKind.CONNECTOR: off,
+            CallKind.CONNECTOR: (
+                RoutePrice.per_call(0.0)
+                if settings.deep_research_wikipedia_enabled
+                and settings.deep_research_connectors.strip()
+                else off
+            ),
             CallKind.URL_INDEX_QUERY: off,
             CallKind.ARCHIVE_FETCH: off,
         }

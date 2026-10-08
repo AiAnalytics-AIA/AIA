@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     ai_research_max_output_tokens: int | None = None
     deep_research_thinking_budget_tokens: int | None = None
     deep_research_wikipedia_enabled: bool = False
+    # The public dataset connectors the worker composes (``AIA_DEEP_RESEARCH_CONNECTORS``,
+    # chunk 23b): fee-free, so stated free when listed rather than off. The worker checks
+    # the names; here only whether any is listed matters to the ceiling.
+    deep_research_connectors: str = ""
     deep_research_agent_directed: bool = False
     deep_research_lead: bool = False
 

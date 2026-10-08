@@ -31,6 +31,16 @@ AIA_DEEP_RESEARCH_MODEL_CONCURRENCY     required with fan-out, refused without i
                                         on the route (1-256). Below the account's quota
                                         for the route's model; proposed 4, pending the
                                         quota request (plan chunk 1). No default
+AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT  one e-mail address: pages are then fetched from
+                                        any public host, robots.txt obeyed, the address
+                                        in every request's user agent (plan chunk 23b);
+                                        needs the Wikipedia search. Unset: Wikipedia's
+                                        pages only, as before
+AIA_DEEP_RESEARCH_CONNECTORS            comma-separated: datastat, nkod, eurostat,
+                                        openalex, ares, wayback -- the public dataset
+                                        connectors the ladder may query (chunks 14-16,
+                                        23b); needs the public fetch's contact. Unset or
+                                        empty: none
 ======================================  ============================================
 
 Enabled, it needs the AI runtime with research agents (``AIA_AI_RUNTIME_ENABLED``
@@ -82,6 +92,7 @@ import os
 from collections.abc import Mapping
 from typing import Final
 
+from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.domain.ai_contracts import THINKING_MIN_BUDGET_TOKENS
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
@@ -90,25 +101,36 @@ from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.fan_out_coordination import ModelSlots, SharedHostPacer
 from aia_core.infrastructure.model_adapters import BedrockSigner
 from aia_core.infrastructure.model_adapters.transport import HttpTransport
+from aia_core.infrastructure.web_retrieval_live import public_user_agent
 from sqlalchemy.orm import Session, sessionmaker
 
 from .ai_runtime import AIRuntimeConfigError, AIRuntimeSettings, build_gateway
 from .deep_research import DeepResearchConfig, DeepResearchRuntime
-from .deep_research_live import wikipedia_retrieval
+from .deep_research_live import (
+    CONNECTORS,
+    UNAVAILABLE_CONNECTORS,
+    connector_accesses,
+    public_retrieval,
+    wikipedia_retrieval,
+)
 
 __all__ = [
     "AGENT_DIRECTED_KEY",
+    "CONNECTORS_KEY",
     "ENABLED_KEY",
     "FAN_OUT_KEY",
     "LEAD_KEY",
     "MODEL_CONCURRENCY_KEY",
+    "PUBLIC_FETCH_CONTACT_KEY",
     "THINKING_KEY",
     "agent_directed",
+    "connectors",
     "deep_research_enabled",
     "deep_research_runtime",
     "fan_out",
     "lead",
     "model_concurrency",
+    "public_fetch_contact",
     "thinking_budget",
 ]
 
@@ -119,6 +141,8 @@ AGENT_DIRECTED_KEY: Final = "AIA_DEEP_RESEARCH_AGENT_DIRECTED"
 LEAD_KEY: Final = "AIA_DEEP_RESEARCH_LEAD"
 FAN_OUT_KEY: Final = "AIA_DEEP_RESEARCH_FAN_OUT"
 MODEL_CONCURRENCY_KEY: Final = "AIA_DEEP_RESEARCH_MODEL_CONCURRENCY"
+PUBLIC_FETCH_CONTACT_KEY: Final = "AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT"
+CONNECTORS_KEY: Final = "AIA_DEEP_RESEARCH_CONNECTORS"
 
 _TRUE: Final = frozenset({"1", "true", "yes", "on"})
 _FALSE: Final = frozenset({"0", "false", "no", "off", ""})
@@ -184,6 +208,38 @@ def model_concurrency(env: Mapping[str, str] | None = None) -> int | None:
     return value
 
 
+def public_fetch_contact(env: Mapping[str, str] | None = None) -> str | None:
+    """The public fetch's contact address, read strictly: unset or empty is none."""
+    env = os.environ if env is None else env
+    raw = (env.get(PUBLIC_FETCH_CONTACT_KEY) or "").strip()
+    if not raw:
+        return None
+    try:
+        public_user_agent(raw)
+    except ValueError as exc:
+        raise AIRuntimeConfigError(
+            f"{PUBLIC_FETCH_CONTACT_KEY} must be one plain e-mail address"
+        ) from exc
+    return raw
+
+
+def connectors(env: Mapping[str, str] | None = None) -> tuple[str, ...]:
+    """The listed connectors, read strictly: names the composition knows, each once."""
+    env = os.environ if env is None else env
+    raw = (env.get(CONNECTORS_KEY) or "").split(",")
+    names = tuple(n.strip().lower() for n in raw if n.strip())
+    if len(names) != len(set(names)):
+        raise AIRuntimeConfigError(f"{CONNECTORS_KEY} lists a connector twice")
+    for name in names:
+        if name in UNAVAILABLE_CONNECTORS:
+            raise AIRuntimeConfigError(f"{CONNECTORS_KEY}: {name}: {UNAVAILABLE_CONNECTORS[name]}")
+        if name not in CONNECTORS:
+            raise AIRuntimeConfigError(
+                f"{CONNECTORS_KEY}: {name!r} is not a connector ({', '.join(CONNECTORS)})"
+            )
+    return names
+
+
 def _coordination_sessions(env: Mapping[str, str]) -> sessionmaker[Session]:
     """The fan-out coordination's own engine, on the worker's database."""
     url = (env.get("DATABASE_URL") or "").strip()
@@ -243,6 +299,18 @@ def deep_research_runtime(
     planned_by_lead = lead(values)
     fanned_out = fan_out(values)
     slots_limit = model_concurrency(values)
+    contact = public_fetch_contact(values)
+    listed = connectors(values)
+    if contact is not None and not use_wikipedia:
+        raise AIRuntimeConfigError(
+            f"{PUBLIC_FETCH_CONTACT_KEY} needs {WIKIPEDIA_KEY}: pages are fetched beside a "
+            "search route, and Wikipedia's is the one a deployment has"
+        )
+    if listed and contact is None:
+        raise AIRuntimeConfigError(
+            f"{CONNECTORS_KEY} needs {PUBLIC_FETCH_CONTACT_KEY}: a connector rides beside the "
+            "public fetch, and OpenAlex's polite pool is asked with the same contact"
+        )
     if planned_by_lead and not directed:
         raise AIRuntimeConfigError(
             f"{LEAD_KEY} needs {AGENT_DIRECTED_KEY}: the lead plans agent-directed tracks"
@@ -285,8 +353,16 @@ def deep_research_runtime(
         sessions = coordination or _coordination_sessions(values)
         slots = ModelSlots(sessions, pool=f"bedrock:{settings.route_id}", limit=slots_limit)
         pacer = SharedHostPacer(sessions)
-    retrieval, table = (
-        wikipedia_retrieval(pacer=pacer) if use_wikipedia else (None, SOURCE_TABLE_V1)
+    if not use_wikipedia:
+        retrieval, table = None, SOURCE_TABLE_V1
+    elif contact is not None:
+        retrieval, table = public_retrieval(contact, pacer=pacer)
+    else:
+        retrieval, table = wikipedia_retrieval(pacer=pacer)
+    datasets, archives = (
+        connector_accesses(listed, contact=contact, pacer=pacer)
+        if listed and contact is not None
+        else ((), ())
     )
     if planned_by_lead:
         settings = dataclasses.replace(settings, research_lead_enabled=True)
@@ -311,4 +387,10 @@ def deep_research_runtime(
         # (chunk 12); the planned mode never reads it.
         register=REPUTATION_REGISTER_V1 if directed else None,
         model_slots=slots,
+        datasets=datasets,
+        archives=archives,
+        # The ladder resolves publishers by the register only where it can then reach
+        # them (chunk 23b); without the public fetch it keeps its defaults, and every
+        # fingerprint is the one it had before.
+        ladder=LadderConfig(register=REPUTATION_REGISTER_V1) if contact is not None else None,
     )
