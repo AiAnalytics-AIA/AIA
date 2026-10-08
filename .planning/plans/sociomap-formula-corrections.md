@@ -702,10 +702,11 @@ does not compute, by name, rather than computing it on a guess.
   (`DissimilarityTarget.CORRELATION_DISTANCE`, `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1`,
   `MapFrameMethod.FIXED_RULER`) refused by contract 2's `require_supported` and admitted by
   contract 3's; the K100 seed and B as spec fields; `research_sociomap` building each pinned
-  method per battery under `methods`; `SOCIOMAP_VERSION` `-6` -> `-7`; `layer_check` extended to
+  method per battery under `maps`; `SOCIOMAP_VERSION` `-6` -> `-7`; `layer_check` extended to
   the preset name. *Tests:* every number the v2 artifact holds equals the 2a/2b/1b/4a function's
-  on the same input; F2's inflation measured through the engine; a planted configuration recovered;
-  `NOT_MAPPABLE` for each named cause; v1's fixtures F1-F9 unchanged.
+  on the same input; F2's inflation measured through the engine; `NOT_MAPPABLE` for each named
+  cause; v1's fixtures F1-F9 unchanged. (A planted configuration's recovery is 2b's own test of
+  `fit_smacof_objects`; through the engine the layout is checked equal to that function's.)
 - **S3 -- I2: the study-wide rating universe and roles.** `SpecQuestion.rating_item`,
   `SpecBattery.object_roles` / `roles_declared`; the universe built once per specification and
   recorded on the body (items, scales, which items bound each person's min-max); F1 and F2 kept
@@ -939,6 +940,129 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S4 -- the selection reaches the specification (I1, in part), 2026-10-08
+
+What landed, on `feature/sociomap-selection-in-spec` (stacked on S3):
+
+- `domain/research_design.py`: `SpecSelection` (`dimensions`: `persona_dimensions.approved` as
+  stored, in order, once each, never the screen's recommended refill; `audience_filters`: the
+  filters with every empty value left out, keys sorted; `applied: False` with
+  `SELECTION_NOT_APPLIED`), `ResearchSpecification.selection` (`None` when the design selects
+  nothing, and then left out of the fingerprint, so such a specification keeps develop's
+  fingerprint), and a readiness WARN naming the dimensions that will not be applied.
+
+The 2026-10-07 reproduction is now a test: finance vs ekologie, and an age filter 18-29 vs 60-80,
+compile to different specifications (`test_research_selection.py`, 10). Because the fictional
+roster's seed derives from the specification's fingerprint (`ai_fieldwork.py:95`), a changed
+selection also changes the fictional run's identity; that is all it changes.
+
+Not done, and not doable here: applying either selection to a roster. That needs dimension
+materialization and a population binding, which § 8.1 names as a dependency and forbids
+reconstructing inside Sociomap. So I1 stays open: identity and honesty landed, application did
+not.
+
+### Slice S3 -- the declared rating universe and object roles (I2), 2026-10-08
+
+What landed, on `feature/sociomap-rating-universe` (stacked on S2):
+
+- `domain/research_design.py`: `SpecQuestion.rating_item` (the design's `sociomap_rating: true`
+  on a scale question; any other type is the compile problem `rating_item_not_scale`; a value
+  that is not exactly `true` declares nothing), `SpecBattery.context_objects` and
+  `roles_declared` (the design's `context_objects`, by label: an unknown label or a non-list is
+  `unknown_context_object`, every object context is `no_primary_object`), `object_roles()`,
+  `ResearchSpecification.rating_questions()`. A declaration a design does not make is left out of
+  the specification's fingerprint, so every specification compiled before keeps its fingerprint
+  (`test_a_design_without_the_declarations_keeps_develops_fingerprint`, pinned to
+  `b3bb6cb3…`, what develop's compiler gave).
+- `domain/research_sociomap.py`: `rating_universe(rated_with, rating_questions)` -- every object
+  of every tracked set, then every declared standalone rating question, each with its declared
+  scale -- read by both `relation_rescaled` (v1's body) and the object map, so F2 is one rule in
+  both; the roles are the specification's in the scores, K100 and the object map; the body records
+  `relation_rescaled.rating_questions` and `roles` (`declared`, `by_object`).
+  `SOCIOMAP_VERSION` `-7` -> `-8`.
+
+Tests: `test_sociomap_rating_universe.py` (14): the compiler's declarations and refusals; the
+fingerprint unchanged without them and moved with them; a declared rating question moving every
+person's bounds (r~ moves, the unit's raw matrix does not) and recorded with its 1-5 scale; an
+undeclared numeric question changing nothing; a context object with no score, scoring nobody,
+still placed on the map; `research_sociomaps` reading the specification's declarations.
+
+**Finding F-S3-1 (for the audit's author, with § 8a's group B).** 1. Claim: § 8.1 I2's
+acceptance line "adding context objects alone does not change PRIMARY scores or terrain" cannot
+hold under F2 as the audit writes it. 2. Anchor: the audit's F2 (p. 22: each person's min-max
+over *all* items rated) and `rating_universe` (this slice). 3. Reproduction: add a sixth object
+to `DESIGN` in `test_sociomap_rating_universe.py` and declare it context: the five PRIMARY
+objects' r~ move, because the new item moves people's bounds. 4. Consequence: declaring a context
+object is not a free presentation choice; it changes the relations the PRIMARY scores are read
+from. 5. Smallest fix: not engineering's -- either F2's universe excludes SECONDARY items (a
+change to F2) or the acceptance line is read as "a context object's own pairs never enter a
+PRIMARY score", which is what holds and is tested. 6. The test that pins the second reading:
+`test_a_context_object_has_no_score_and_scores_nobody`.
+
+Declared reading: § 8.1 I2 asks to "record which items determine each person's normalization
+bounds". The artifact records the universe (every item that can bound a person, with its scale);
+which two items bound each person is re-derivable from the stored raw ratings, and is not
+duplicated per respondent.
+
+Not yet: no screen declares `sociomap_rating` or `context_objects` (chunk 5/11 surfaces); the
+mixed-scale order (F1 before F2) stays 2a's declared reading.
+
+### Slice S2 -- `aia-sociomap-2`, the audit's object map (chunk 2d), 2026-10-08
+
+What landed, on `feature/sociomap-v2-object-map` (stacked on S1):
+
+- `domain/sociomap/specification.py`: contract 3, `SociomapSpecV3` (ratings F1/F2, pair evidence
+  F3 with `n_min`/`confidence`/basis, the object layout F6/F7 with its stopping rule and the fixed
+  ruler, the height F8, K100's B and seed F9, and `respondent_placement` / `terrain` declared
+  `None`), its own `require_supported` rules (each refusal names its field; a placement or a
+  terrain is refused, not ignored), and `AIA_SOCIOMAP_V2` (`3f1c0122…`). New members
+  `DissimilarityTarget.CORRELATION_DISTANCE`, `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1`,
+  `MapFrameMethod.FIXED_RULER` are refused by contract 2 by name. `read_spec` / `spec_payload`
+  read and write either contract.
+- `domain/sociomap/pairs.py`: `derive_pair_relations`, `PairRelations` and the unit's
+  `derive_relation_matrix`, moved unchanged from `research_sociomap` (re-exported there).
+- `domain/sociomap/models_v3.py`: `ObjectMapInputs` (the rating universe with each item's
+  declared scale, raw ratings, weights, the mapped objects with their items and roles),
+  `SociomapArtifactV3` (relations with `abs_r`, `not_placed`, `outcome` MAPPED / NOT_MAPPABLE
+  with its reason, the layout with Stress-1 and its band, scores, heights, K100, `support`
+  (respondents, placed, not placed, Kish's effective n over the placed, distinct donors, and the
+  weighting rule in words -- I3's "document the treatment of weights and donors", in the
+  artifact from its first version so no later field breaks reading a stored one), and
+  `respondents` / `terrain` as `not_computed` blocks with their reasons), `read_artifact` (reads
+  contract 2 exactly as before, contract 3 by its own model, anything else refused).
+- `domain/sociomap/engine_v2.py`: `compute_object_map`, composing `person_minmax`,
+  `derive_pair_relations`, `correlation_distances` + `fit_smacof_objects`, `stress_quality`,
+  `primary_scores` and `connectedness_100`. NOT_MAPPABLE for too few objects, no known pair,
+  a disconnected known-pair graph (the unreached objects named) or a singular fit.
+- `domain/research_sociomap.py`: `default_methods()` pins `aia-sociomap-1` and `aia-sociomap-2`;
+  `read_methods` admits contract-3 methods beside the one contract-2 map; each battery's body
+  gains `maps` (the contract-3 payloads by method id) via `object_map_inputs` over every set of
+  the specification; K100 is copied from the object map when its bootstrap is the body's own
+  (same universe, rows, weights, roles, n_min, confidence, B, seed), so the switch on pays it
+  once. `SOCIOMAP_VERSION` `-6` -> `-7`.
+- `tools/layer_check.sh`: the preset rule covers `AIA_SOCIOMAP_V[0-9]+`.
+- `application/research.py`: only a set the caller *chooses* over the default changes the run's
+  identity. S1's rule (any set but the legacy one adds its fingerprint to the key) would have made
+  every start after this change a new run: re-starting a revision that already ran would have
+  paid for its AI fieldwork again (`ai_fieldwork` datasets are never reused across attempts).
+  Now a start that takes the default returns the run that exists, with the methods it pinned
+  (`test_a_restart_after_the_default_changes_returns_the_run_and_pays_nothing`).
+
+`docs/migration/parity-matrix.json`: the `sociomapping.core` gate names the registry test by its
+new name (two algorithms are implemented now; contract 2 refuses the object layout by name).
+
+Tests: `test_sociomap_object_map.py` (33, the last the support block): the preset fingerprints; contract 2 refusing contract
+3's members; contract 3 refusing nine named fields; every artifact number equal to the landed
+functions' on one input; F2's inflation through the engine (six independent objects, 3,000
+respondents: mean r~ -0.09, the map labelled unreliable and drawn within radius 1.1); a weak family
+drawn smaller than a strong one; a straight-liner not placed but counted in the heights; each
+NOT_MAPPABLE cause; F1 across a 1-5 and a 1-10 item; the bootstrap equal to `connectedness_100`
+called directly; round trip and tamper refused; a contract-2 artifact read as before; the body's
+`maps` agreeing with its own `relation_rescaled` and `object_scores`; K100 paid once.
+
+Not yet: Results and the report draw v1 only (chunk 5); respondents and terrain (3, 4b); roles
+other than PRIMARY and standalone rating items (S3).
+
 ### Slice S1 -- the methods a run pins (I0, I4 in part), 2026-10-08
 
 What landed, on `feature/sociomap-frozen-method`:

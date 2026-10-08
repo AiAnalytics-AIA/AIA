@@ -135,19 +135,23 @@ def test_a_persons_scale_spans_every_item_they_rated_not_only_the_family_mapped(
     # at 4/9 of this person's own range.
     person = _Respondent("R1", {**_answers(a, [5, 5]), **_answers(b, [1, 5])})
     flat = _Respondent("R2", {**_answers(a, [7, 7]), **_answers(b, [4, 4])})
-    rows, excluded = rescaled_battery_ratings(a, _Dataset([person, flat]), (a, b))  # type: ignore[arg-type]
+    rows, excluded = rescaled_battery_ratings(
+        a, _Dataset([person, flat]), (a, b), rating_questions=()
+    )  # type: ignore[arg-type]
     assert rows[0] == [pytest.approx(4 / 9), pytest.approx(4 / 9)]
     # 7 on 1-10 is 2/3 and 4 on 1-5 is 3/4: different, so R2 is not a straight-liner
     # over everything they rated, though they are within each family.
     assert excluded == []
-    only_a, excluded_a = rescaled_battery_ratings(a, _Dataset([person, flat]), (a,))  # type: ignore[arg-type]
+    only_a, excluded_a = rescaled_battery_ratings(
+        a, _Dataset([person, flat]), (a,), rating_questions=()
+    )  # type: ignore[arg-type]
     assert excluded_a == ["R1", "R2"] and only_a == [[None, None], [None, None]]
 
 
 def test_the_set_mapped_must_be_one_of_the_sets_it_is_rated_with() -> None:
     a, b = _battery("a", 2, (1, 10)), _battery("b", 2, (1, 10))
     with pytest.raises(ValueError, match="not among"):
-        rescaled_battery_ratings(a, _Dataset([]), (b,))  # type: ignore[arg-type]
+        rescaled_battery_ratings(a, _Dataset([]), (b,), rating_questions=())  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------- F5: declared matrix types

@@ -3392,7 +3392,7 @@
      "kind": "production_contract",
      "requires": [],
      "tests": [
-      "packages/aia_core/tests/test_sociomap_layout.py::test_exactly_one_algorithm_is_implemented",
+      "packages/aia_core/tests/test_sociomap_layout.py::test_the_implemented_algorithms_are_the_unfolding_and_the_object_map",
       "packages/aia_core/tests/test_sociomap_layout.py::test_legacy_algorithms_fail_closed_and_say_why",
       "packages/aia_core/tests/test_sociomap_layout.py::test_there_is_no_auto_or_alias",
       "packages/aia_core/tests/test_sociomap_engine.py::test_unsupported_methodology_fails_closed"

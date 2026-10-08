@@ -12,7 +12,8 @@ algorithm is a spec field, looked up in :data:`LAYOUT_ALGORITHMS`, and an
 algorithm this engine cannot run raises :class:`LayoutUnavailable` naming why.
 There is no ``auto``, no probing and no fallback.
 
-Three algorithms are known:
+Four algorithms are known (the fourth, ``aia_smacof_objects_v1``, places objects alone
+and is described with :func:`fit_smacof_objects` below):
 
 ``python_weighted_unfolding``
     The reference's Python branch (fixture F4). **Not implemented**: its source
@@ -105,6 +106,10 @@ class LayoutAlgorithm(StrEnum):
     """Layout algorithm identifiers. Values are recorded in specs and artifacts."""
 
     AIA_ROWCOND_UNFOLDING_V1 = "aia_rowcond_unfolding_v1"
+    #: Audit F6/F7: the objects alone, by weighted SMACOF on the correlation distance,
+    #: on the fixed ruler (:func:`fit_smacof_objects`). Contract 3 only: a contract-2
+    #: spec places respondents and objects together and refuses it.
+    AIA_SMACOF_OBJECTS_V1 = "aia_smacof_objects_v1"
     LEGACY_PYTHON_WEIGHTED_UNFOLDING = "python_weighted_unfolding"
     LEGACY_R_SMACOF_UNFOLDING = "r_smacof_unfolding"
 
@@ -132,6 +137,12 @@ LAYOUT_ALGORITHMS: dict[LayoutAlgorithm, LayoutAlgorithmInfo] = {
         AlgorithmStatus.IMPLEMENTED,
         parity="none claimed; pinned by its own golden fixture",
         reason="AIA row-conditional metric unfolding, specified in this module",
+    ),
+    LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1: LayoutAlgorithmInfo(
+        LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1,
+        AlgorithmStatus.IMPLEMENTED,
+        parity="none claimed; the audit's F6/F7 formulas, pinned by planted configurations",
+        reason="weighted SMACOF of the objects from a Torgerson start, specified in this module",
     ),
     LayoutAlgorithm.LEGACY_PYTHON_WEIGHTED_UNFOLDING: LayoutAlgorithmInfo(
         LayoutAlgorithm.LEGACY_PYTHON_WEIGHTED_UNFOLDING,

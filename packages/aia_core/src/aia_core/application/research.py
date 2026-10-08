@@ -35,7 +35,6 @@ from ..domain.research_agents import (
 )
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
 from ..domain.research_sociomap import (
-    LEGACY_METHODS,
     SociomapMethod,
     default_methods,
     methods_fingerprint,
@@ -211,9 +210,10 @@ class ResearchRuns:
         The run pins its Sociomap methods here, each with its whole spec
         (``sociomap_methods``; :func:`~aia_core.domain.research_sociomap.default_methods`
         when not given): the ``sociomap`` step computes exactly those, whatever the
-        module's preset becomes before it runs or is retried. A set other than the
-        legacy one is part of the run's identity, so the same revision under two sets is
-        two runs.
+        module's preset becomes before it runs or is retried. A set the caller chooses over
+        the default is part of the run's identity, so the same revision under two chosen
+        sets is two runs; taking the default is not, so a start over a revision that has a
+        run (made under an earlier default) returns that run and pays for nothing again.
 
         Idempotent: the same revision starts one run, and so does retrying the
         same run -- a double submission gets the run that already exists. Needs
@@ -252,8 +252,11 @@ class ResearchRuns:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
-        if methods != LEGACY_METHODS:
-            # The legacy set keeps the key every earlier run has; any other is new identity.
+        if sociomap_methods is not None and methods != default_methods():
+            # Only a set the caller chose over the default is new identity. A start that
+            # takes the default keeps the key every earlier run of the revision has, so a
+            # re-start after the default changes returns the run that exists -- with the
+            # methods it pinned -- instead of paying for its fieldwork again.
             key += f":sociomap:{methods_fingerprint(methods)[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"

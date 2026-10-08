@@ -1,4 +1,9 @@
-"""Versioned Sociomapping methodology: the ``SociomapSpec`` contract, version 2.
+"""Versioned Sociomapping methodology: the ``SociomapSpec`` contract (2) and contract 3.
+
+Contract 3 (:class:`SociomapSpecV3`, preset :data:`AIA_SOCIOMAP_V2`) is the audit's object
+map and is described where it is defined, below; everything in this docstring up to there is
+contract 2's, unchanged. A stored spec names its contract (:func:`spec_payload`) and is read
+under it (:func:`read_spec`).
 
 A Sociomapa is only reproducible if every methodology choice that shaped it is
 written down. This module makes each of them an explicit, fingerprinted field:
@@ -46,24 +51,39 @@ from .layout import (
     require_layout_algorithm,
 )
 from .metrics import NormalizationMode, ObjectMetric, UnknownMetricBounds, bounds_for
+from .relations import AUDIT_PROVISIONAL_N_MIN
 from .terrain import TERRAIN66_OBJECT, TERRAIN66_RESPONDENT, TerrainParameters
 
 __all__ = [
     "AIA_SOCIOMAP_V1",
+    "AIA_SOCIOMAP_V2",
+    "FIXED_RULER_EXTENT",
     "SPEC_CONTRACTS",
+    "SPEC_CONTRACT_V3",
     "SPEC_CONTRACT_VERSION",
+    "ConnectednessSpec",
     "DissimilarityTarget",
     "LayoutSpec",
     "MapFrameMethod",
     "MapFrameSpec",
     "MetricsSpec",
+    "ObjectHeightMetric",
+    "ObjectLayoutSpec",
+    "ObjectScoresSpec",
+    "PairEvidenceBasis",
+    "PairEvidenceSpec",
+    "PersonNormalization",
     "PositionProjection",
     "RatingsMissingPolicy",
     "RatingsSpec",
+    "RatingsSpecV3",
+    "RelationEstimator",
     "RelationMissingPolicy",
     "RelationScaleCoercion",
     "RelationSpec",
+    "ScaleNormalization",
     "SociomapSpec",
+    "SociomapSpecV3",
     "TerrainSpec",
     "UnknownSpecContract",
     "UnsupportedMethodology",
@@ -79,13 +99,18 @@ SPEC_CONTRACT_VERSION = "2"
 #: (:func:`spec_payload`) and is read under that one (:func:`read_spec`), never under
 #: the newest: a later contract is a new model beside this one, so a spec stored under
 #: an earlier contract keeps its fields and its fingerprint byte for byte.
-SPEC_CONTRACTS: Final = (SPEC_CONTRACT_VERSION,)
+SPEC_CONTRACTS: Final = (SPEC_CONTRACT_VERSION, "3")
+#: Contract 3: the audit's object map (plan ``sociomap-formula-corrections`` § 8.2, S2).
+SPEC_CONTRACT_V3: Final = "3"
 
 
 class DissimilarityTarget(StrEnum):
     """How a rating becomes a dissimilarity for unfolding."""
 
     SCALE_TOP_MINUS_RATING = "scale_top_minus_rating"
+    #: Audit F6: two objects' distance is ``sqrt(2 (1 - r~))`` of their correlation over
+    #: each person's own scale. Contract 3's object layout; contract 2 refuses it.
+    CORRELATION_DISTANCE = "correlation_distance"
 
 
 class RatingsMissingPolicy(StrEnum):
@@ -133,6 +158,9 @@ class MapFrameMethod(StrEnum):
     """How layout units are mapped onto terrain-grid units."""
 
     MAX_ABS_TO_EXTENT = "max_abs_to_extent"
+    #: Audit F6: no rescale. One map unit is one unit of correlation distance, so the
+    #: extent is the ruler's own maximum (2.0, two opposite objects). Contract 3 only.
+    FIXED_RULER = "fixed_ruler"
 
 
 class _Frozen(BaseModel):
@@ -281,20 +309,224 @@ class SociomapSpec(_Frozen):
         )
 
 
+# --------------------------------------------------------------------------- #
+# Contract 3: the audit's object map (aia-sociomap-2)
+# --------------------------------------------------------------------------- #
+#
+# The audit "NPC Sociomapa: faulty formulas in the code" (canonical, plan
+# ``sociomap-formula-corrections``) fixes a chain contract 2 cannot express: each rating
+# on its item's declared 0-1 scale (F1), each person's min-max over every rating item
+# (F2), the weighted correlation of what remains with its status (F3, F4), the objects
+# alone by SMACOF on the correlation distance on a fixed ruler (F6, F7), the PRIMARY
+# scores with UNKNOWN left out and the mean rating as height (F8), K100 with its interval
+# (F9). Respondent placement (chunk 3, F10's threshold open) and the envelope terrain
+# (chunk 4b, its kernel width open) have no member yet: a spec declares them ``None`` and
+# an artifact says they were not computed. Every field is required.
+
+
+class ScaleNormalization(StrEnum):
+    """How a rating reaches a common scale before anything else (audit F1, eq. 3)."""
+
+    DECLARED_ENDS_0_1 = "declared_ends_0_1"
+
+
+class PersonNormalization(StrEnum):
+    """How each person's own use of the scale is removed (audit F2, eq. 5)."""
+
+    #: Lowest rating 0, highest 1, over every rating item the person rated; a person with
+    #: no spread is not placed (F11).
+    PERSON_MINMAX_ALL_RATED = "person_minmax_all_rated"
+
+
+class RelationEstimator(StrEnum):
+    """How a pair's relation is estimated from the person-scaled ratings."""
+
+    #: The unit's weighted Pearson correlation (the weighting is AIA's reading where the
+    #: audit is silent, register AUDIT-F2), signed, never mapped onto 1-10.
+    WEIGHTED_PEARSON = "weighted_pearson"
+
+
+class PairEvidenceBasis(StrEnum):
+    """What ``n`` a pair's status reads (chunk 1d adds the Kish effective n)."""
+
+    RESPONDENT_COUNT = "respondent_count"
+
+
+class ObjectHeightMetric(StrEnum):
+    """What an object's height is under contract 3 (audit F8: the mean rating)."""
+
+    #: The weighted mean of the object's ratings on the declared 0-1 scale (F1).
+    MEAN_RATING_0_1 = "mean_rating_0_1"
+
+
+class RatingsSpecV3(_Frozen):
+    scale_normalization: str
+    person_normalization: str
+
+
+class PairEvidenceSpec(_Frozen):
+    """How a pair's relation is estimated and what it can be said to be (F3)."""
+
+    estimator: str
+    basis: str
+    n_min: int
+    confidence: float
+
+    @field_validator("n_min", "confidence", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
+class ObjectLayoutSpec(_Frozen):
+    """The objects' map (F6, F7): its algorithm, its targets, its stopping rule, its frame."""
+
+    algorithm: str
+    dissimilarity: str
+    max_iterations: int
+    tolerance: float
+    map_frame: MapFrameSpec
+
+    @field_validator("max_iterations", "tolerance", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
+class ObjectScoresSpec(_Frozen):
+    height: str
+
+
+class ConnectednessSpec(_Frozen):
+    """K100's respondent bootstrap (F9): how many resamples, from which seed."""
+
+    resamples: int
+    seed: int
+
+    @field_validator("resamples", "seed", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
+class SociomapSpecV3(_Frozen):
+    """Every methodology decision behind one contract-3 Sociomap (the audit's object map).
+
+    ``respondent_placement`` and ``terrain`` are declared ``None``: no member is built
+    (chunks 3 and 4b wait on decisions the audit leaves to its author), and a value is
+    refused by :func:`require_supported` rather than ignored.
+    """
+
+    methodology_version: str
+    ratings: RatingsSpecV3
+    relation: PairEvidenceSpec
+    layout: ObjectLayoutSpec
+    scores: ObjectScoresSpec
+    connectedness: ConnectednessSpec
+    respondent_placement: str | None
+    terrain: str | None
+
+    @field_validator("methodology_version")
+    @classmethod
+    def _named(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("methodology_version must be stated; blank is not a default")
+        return v
+
+    def fingerprint(self) -> str:
+        """Stable SHA256 over the whole methodology, its contract included."""
+        return fingerprint({"contract_version": SPEC_CONTRACT_V3, **self.model_dump(mode="json")})
+
+
+#: The fixed ruler's extent: the largest correlation distance, two opposite objects.
+FIXED_RULER_EXTENT: Final = 2.0
+#: The smallest ``n_min`` a status can mean anything at: the Fisher interval needs four.
+_V3_N_MIN_FLOOR: Final = 4
+
+
+def _require_supported_v3(spec: SociomapSpecV3) -> None:
+    problems: dict[str, str] = {}
+    if not _member(ScaleNormalization, spec.ratings.scale_normalization):
+        problems["ratings.scale_normalization"] = (
+            f"unknown normalization {spec.ratings.scale_normalization!r}"
+        )
+    if not _member(PersonNormalization, spec.ratings.person_normalization):
+        problems["ratings.person_normalization"] = (
+            f"unknown normalization {spec.ratings.person_normalization!r}"
+        )
+    rel = spec.relation
+    if not _member(RelationEstimator, rel.estimator):
+        problems["relation.estimator"] = f"unknown estimator {rel.estimator!r}"
+    if not _member(PairEvidenceBasis, rel.basis):
+        problems["relation.basis"] = f"unknown basis {rel.basis!r} (the Kish n is chunk 1d's)"
+    if rel.n_min < _V3_N_MIN_FLOOR:
+        problems["relation.n_min"] = (
+            f"n_min {rel.n_min} is below {_V3_N_MIN_FLOOR}: the Fisher interval needs four raters"
+        )
+    if not (math.isfinite(rel.confidence) and 0.0 < rel.confidence < 1.0):
+        problems["relation.confidence"] = f"confidence must lie in (0, 1); got {rel.confidence!r}"
+    layout = spec.layout
+    try:
+        algorithm = require_layout_algorithm(layout.algorithm)
+    except LayoutUnavailable as exc:
+        problems["layout.algorithm"] = exc.reason
+    else:
+        if algorithm is not LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1:
+            problems["layout.algorithm"] = (
+                f"{algorithm.value} places respondents and objects together (contract 2); "
+                "contract 3 maps the objects alone by aia_smacof_objects_v1"
+            )
+    if layout.dissimilarity != DissimilarityTarget.CORRELATION_DISTANCE:
+        problems["layout.dissimilarity"] = (
+            f"contract 3's objects are placed on the correlation distance; got "
+            f"{layout.dissimilarity!r}"
+        )
+    if layout.max_iterations < 1:
+        problems["layout.max_iterations"] = "max_iterations must be at least 1"
+    if not (math.isfinite(layout.tolerance) and layout.tolerance > 0):
+        problems["layout.tolerance"] = "tolerance must be positive and finite"
+    if layout.map_frame.method != MapFrameMethod.FIXED_RULER:
+        problems["layout.map_frame.method"] = (
+            "contract 3 keeps the fixed ruler (audit F6): no rescale to a radius"
+        )
+    elif layout.map_frame.extent != FIXED_RULER_EXTENT:
+        problems["layout.map_frame.extent"] = (
+            f"the fixed ruler's extent is the correlation distance's maximum, "
+            f"{FIXED_RULER_EXTENT}; got {layout.map_frame.extent}"
+        )
+    if not _member(ObjectHeightMetric, spec.scores.height):
+        problems["scores.height"] = f"unknown height {spec.scores.height!r}"
+    if spec.connectedness.resamples < 1:
+        problems["connectedness.resamples"] = "resamples must be at least 1"
+    if spec.respondent_placement is not None:
+        problems["respondent_placement"] = (
+            "respondent placement is chunk 3's (ideal points, F10) and is not built: its "
+            "misfit threshold is open (plan § 4a, 0b); declare null"
+        )
+    if spec.terrain is not None:
+        problems["terrain"] = (
+            "the envelope terrain is chunk 4b's (F12, F13) and is not built: its kernel width "
+            "on the fixed ruler is open (0b); declare null"
+        )
+    if problems:
+        raise UnsupportedMethodology(problems)
+
+
 class UnknownSpecContract(ValueError):
     """A stored spec names a contract this engine does not read, or names none."""
 
 
-def spec_payload(spec: SociomapSpec) -> dict[str, Any]:
+def spec_payload(spec: SociomapSpec | SociomapSpecV3) -> dict[str, Any]:
     """A spec as it is stored: its contract named beside its body.
 
     The contract is stated, not inferred from the fields present, so a reader can never
     take a spec of one contract for another's.
     """
-    return {"contract_version": SPEC_CONTRACT_VERSION, "spec": spec.model_dump(mode="json")}
+    contract = SPEC_CONTRACT_V3 if isinstance(spec, SociomapSpecV3) else SPEC_CONTRACT_VERSION
+    return {"contract_version": contract, "spec": spec.model_dump(mode="json")}
 
 
-def read_spec(payload: Mapping[str, Any]) -> SociomapSpec:
+def read_spec(payload: Mapping[str, Any]) -> SociomapSpec | SociomapSpecV3:
     """The spec :func:`spec_payload` stored, read under the contract it names.
 
     Raises :class:`UnknownSpecContract` for a contract this engine does not read (or a
@@ -306,6 +538,8 @@ def read_spec(payload: Mapping[str, Any]) -> SociomapSpec:
         raise UnknownSpecContract(
             f"no Sociomap spec contract {contract!r}; this engine reads {list(SPEC_CONTRACTS)}"
         )
+    if contract == SPEC_CONTRACT_V3:
+        return SociomapSpecV3.model_validate(payload.get("spec"))
     return SociomapSpec.model_validate(payload.get("spec"))
 
 
@@ -347,22 +581,32 @@ class UnsupportedMethodology(ValueError):
 
 
 _RELATION_METRICS = frozenset({ObjectMetric.RELATION_CLASSIC, ObjectMetric.RELATION_CLASSIC_TSCORE})
+_CONTRACT_3_ONLY: Final = (
+    "the audit's object map (aia-sociomap-2) is spec contract 3; a contract-2 spec places "
+    "respondents and objects together and cannot compute it"
+)
 
 
 def _member(enum: type[StrEnum], value: str) -> bool:
     return value in {m.value for m in enum}
 
 
-def require_supported(spec: SociomapSpec) -> None:
+def require_supported(spec: SociomapSpec | SociomapSpecV3) -> None:
     """Raise :class:`UnsupportedMethodology` unless the engine can compute ``spec``.
 
-    Call before any computation. Every problem is reported at once.
+    Call before any computation. Every problem is reported at once. Each contract is
+    checked by its own rules: a contract-2 spec never borrows contract 3's members.
     """
+    if isinstance(spec, SociomapSpecV3):
+        _require_supported_v3(spec)
+        return
     problems: dict[str, str] = {}
 
     r = spec.ratings
     if not _member(DissimilarityTarget, r.dissimilarity):
         problems["ratings.dissimilarity"] = f"unknown target {r.dissimilarity!r}"
+    elif r.dissimilarity == DissimilarityTarget.CORRELATION_DISTANCE:
+        problems["ratings.dissimilarity"] = _CONTRACT_3_ONLY
     elif r.ipsatize:
         # scale_top_minus_rating reads a rating's position on the declared scale;
         # an ipsatized value is a deviation from the respondent's mean and has no
@@ -405,6 +649,8 @@ def require_supported(spec: SociomapSpec) -> None:
     except LayoutUnavailable as exc:
         problems["layout.algorithm"] = exc.reason
     else:
+        if algorithm is LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1:
+            problems["layout.algorithm"] = _CONTRACT_3_ONLY
         if algorithm is LayoutAlgorithm.AIA_ROWCOND_UNFOLDING_V1:
             try:
                 UnfoldingParameters.model_validate(layout.parameters)
@@ -417,6 +663,8 @@ def require_supported(spec: SociomapSpec) -> None:
                 )
     if not _member(MapFrameMethod, layout.map_frame.method):
         problems["layout.map_frame.method"] = f"unknown method {layout.map_frame.method!r}"
+    elif layout.map_frame.method == MapFrameMethod.FIXED_RULER:
+        problems["layout.map_frame.method"] = _CONTRACT_3_ONLY
 
     normalization: NormalizationMode | None = None
     if _member(NormalizationMode, spec.terrain.normalization):
@@ -481,4 +729,32 @@ AIA_SOCIOMAP_V1 = SociomapSpec(
         object=TERRAIN66_OBJECT,  # reference (F8)
         normalization=NormalizationMode.RANGE,  # reference default (F7, F8)
     ),
+)
+
+
+# The audit's object map. Every value is the audit's (cited) or an AIA declaration
+# (marked); plan ``sociomap-formula-corrections`` § 8.2, S2.
+AIA_SOCIOMAP_V2 = SociomapSpecV3(
+    methodology_version="aia-sociomap-2",
+    ratings=RatingsSpecV3(
+        scale_normalization=ScaleNormalization.DECLARED_ENDS_0_1,  # audit F1, eq. 3
+        person_normalization=PersonNormalization.PERSON_MINMAX_ALL_RATED,  # audit F2, eq. 5
+    ),
+    relation=PairEvidenceSpec(
+        estimator=RelationEstimator.WEIGHTED_PEARSON,  # the unit's; weighting AIA (AUDIT-F2)
+        basis=PairEvidenceBasis.RESPONDENT_COUNT,  # audit F3; Kish is chunk 1d's (Q6)
+        n_min=AUDIT_PROVISIONAL_N_MIN,  # audit F3's provisional working minimum, pending Q6
+        confidence=0.95,  # audit F3
+    ),
+    layout=ObjectLayoutSpec(
+        algorithm=LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1,  # audit F6, F7
+        dissimilarity=DissimilarityTarget.CORRELATION_DISTANCE,  # audit F6, eq. 13
+        max_iterations=5000,  # AIA declaration
+        tolerance=1e-12,  # AIA declaration: relative raw-stress improvement
+        map_frame=MapFrameSpec(method=MapFrameMethod.FIXED_RULER, extent=FIXED_RULER_EXTENT),
+    ),
+    scores=ObjectScoresSpec(height=ObjectHeightMetric.MEAN_RATING_0_1),  # audit F8
+    connectedness=ConnectednessSpec(resamples=500, seed=20261007),  # audit F9's B; OI-62 seed
+    respondent_placement=None,  # chunk 3
+    terrain=None,  # chunk 4b
 )

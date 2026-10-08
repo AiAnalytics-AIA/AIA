@@ -40,33 +40,32 @@ Pure: no I/O.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Any, Final, Self
+from typing import Any, Final
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .fieldwork import FieldworkDataset
 from .pipeline import fingerprint
-from .research_design import ResearchSpecification, SpecBattery
+from .research_design import ResearchSpecification, SpecBattery, SpecQuestion
 from .sociomap import (
     AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V2,
+    ObjectMapInputs,
+    RatingItem,
     SociomapSpec,
+    SociomapSpecV3,
+    compute_object_map,
     compute_sociomap,
     read_spec,
     require_supported,
     spec_payload,
 )
-from .sociomap.metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ties
+from .sociomap.metrics import connectedness_100, primary_scores, rank_with_ties
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
-from .sociomap.relations import (
-    AUDIT_PROVISIONAL_N_MIN,
-    PairStatus,
-    fisher_interval,
-    pair_status,
-    person_minmax,
-)
+from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relation_matrix
+from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
 
 __all__ = [
     "CONNECTEDNESS_NOT_COMPUTED",
@@ -88,6 +87,8 @@ __all__ = [
     "derive_pair_relations",
     "derive_relation_matrix",
     "methods_fingerprint",
+    "object_map_inputs",
+    "rating_universe",
     "read_methods",
     "require_client_facing",
     "rescaled_battery_ratings",
@@ -106,9 +107,12 @@ __all__ = [
 #: bootstrap interval and the ranking with ties (chunk 4a), so a body stored under
 #: ``4`` (without them) is not reused as if it had them. ``6``: the body names the
 #: methods the run pinned (``methods``) and each set's map is computed under the
-#: pinned spec, not the module's preset (plan § 8.2, S1). Not the engine preset
-#: (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-6"
+#: pinned spec, not the module's preset (plan § 8.2, S1). ``7``: each set carries
+#: ``maps``, the run's pinned contract-3 object maps by method id (``aia-sociomap-2``,
+#: S2). ``8``: the rating universe holds the design's declared standalone rating items
+#: (``relation_rescaled.rating_questions``) and the roles are the specification's
+#: (``roles``; S3). Not the engine preset (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-8"
 #: How ``relation_rescaled`` was made, recorded on every body.
 RESCALE_RULE: Final = (
     "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
@@ -172,7 +176,7 @@ class SociomapMethod(BaseModel):
     spec_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @classmethod
-    def of(cls, spec: SociomapSpec) -> SociomapMethod:
+    def of(cls, spec: SociomapSpec | SociomapSpecV3) -> SociomapMethod:
         """The pin for ``spec``: its methodology version, its stored form, its fingerprint."""
         return cls(
             method_id=spec.methodology_version,
@@ -180,7 +184,7 @@ class SociomapMethod(BaseModel):
             spec_fingerprint=spec.fingerprint(),
         )
 
-    def resolve(self) -> SociomapSpec:
+    def resolve(self) -> SociomapSpec | SociomapSpecV3:
         """The pinned spec, verified against its fingerprint and its id, and computable.
 
         Raises :class:`SociomapMethodsInvalid` for a pin that does not read, does not hash
@@ -212,8 +216,10 @@ LEGACY_METHODS: Final = (SociomapMethod.of(AIA_SOCIOMAP_V1),)
 
 
 def default_methods() -> tuple[SociomapMethod, ...]:
-    """What a new run pins: today ``aia-sociomap-1`` alone, the shipped picture."""
-    return LEGACY_METHODS
+    """What a new run pins: ``aia-sociomap-1``, the shipped picture until chunk 5 draws
+    another, and ``aia-sociomap-2``, the audit's object map, computed beside it. Both are
+    ``INTERNAL_ONLY`` while D6 is open."""
+    return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V2))
 
 
 def methods_fingerprint(methods: Sequence[SociomapMethod]) -> str:
@@ -225,9 +231,10 @@ def read_methods(value: Any) -> tuple[SociomapMethod, ...]:
     """A run's pinned methods from its stored form; ``None`` (a run stored before pins) is
     :data:`LEGACY_METHODS`.
 
-    The set must be one this module computes: at least one method, no id twice, and
-    exactly one spec of contract 2, whose map is the set's ``sociomap`` (the picture the
-    Results and the report draw until chunk 5). Raises :class:`SociomapMethodsInvalid`.
+    The set must be one this module computes: at least one method, no id twice, exactly
+    one spec of contract 2, whose map is the set's ``sociomap`` (the picture the Results
+    and the report draw until chunk 5), and any number of contract-3 object maps, stored
+    beside it under ``maps``. Raises :class:`SociomapMethodsInvalid`.
     """
     if value is None:
         return LEGACY_METHODS
@@ -240,6 +247,9 @@ def read_methods(value: Any) -> tuple[SociomapMethod, ...]:
     ids = [m.method_id for m in methods]
     if len(set(ids)) != len(ids):
         raise SociomapMethodsInvalid(f"a method is pinned twice: {ids}")
+    unknown = [m.method_id for m in methods if m.spec.get("contract_version") not in ("2", "3")]
+    if unknown:
+        raise SociomapMethodsInvalid(f"methods of a contract this module does not read: {unknown}")
     contract_2 = [m for m in methods if m.spec.get("contract_version") == "2"]
     if len(contract_2) != 1:
         raise SociomapMethodsInvalid(
@@ -253,218 +263,51 @@ def _methodology_status() -> MethodologyStatus:
     return MethodologyStatus.INTERNAL_ONLY if D6_OPEN else MethodologyStatus.CLIENT_FACING
 
 
-_Triples = list[tuple[float, float, float]]
-
-
-def _columns(ratings: Sequence[Sequence[float | None]]) -> list[list[float]]:
-    """Object columns, an unrated cell as NaN (the unit's ``pd.to_numeric`` reading)."""
-    m = len(ratings[0]) if ratings else 0
-    cols: list[list[float]] = [[] for _ in range(m)]
-    for row in ratings:
-        for j in range(m):
-            value = row[j]
-            cols[j].append(math.nan if value is None else float(value))
-    return cols
-
-
-def _common(a: Sequence[float], b: Sequence[float], w: Sequence[float]) -> _Triples:
-    """The respondents who rated both objects with a positive finite weight."""
-    return [
-        (x, y, ww)
-        for x, y, ww in zip(a, b, w, strict=True)
-        if math.isfinite(x) and math.isfinite(y) and math.isfinite(ww) and ww > 0
-    ]
-
-
-def _weighted_moments(ok: _Triples) -> tuple[float, float, float]:
-    """Weighted variances of both columns and their covariance, as the unit computes them."""
-    sw = sum(ww for _, _, ww in ok) or 1.0
-    ma = sum(ww * a for a, _, ww in ok) / sw
-    mb = sum(ww * b for _, b, ww in ok) / sw
-    va = sum(ww * (a - ma) ** 2 for a, _, ww in ok) / sw
-    vb = sum(ww * (b - mb) ** 2 for _, b, ww in ok) / sw
-    cov = sum(ww * (a - ma) * (b - mb) for a, b, ww in ok) / sw
-    return va, vb, cov
-
-
-def _clamped_correlation(va: float, vb: float, cov: float) -> float:
-    # ``** 0.5``, not ``math.sqrt``: the unit's operation, kept for EXACT parity;
-    # typeshed types float ** float as Any, so the result is narrowed here.
-    spread: float = (va * vb) ** 0.5
-    corr = cov / max(spread, 1e-12)
-    return max(-1.0, min(1.0, corr))
-
-
-def derive_relation_matrix(
-    ratings: Sequence[Sequence[float | None]], weights: Sequence[float]
-) -> tuple[list[list[float]], list[float | None]]:
-    """``sociomap.py`` ``derive_relation_matrix``: relations and scores from ratings.
-
-    ``ratings[r][j]`` is respondent ``r``'s rating of object ``j`` (``None`` unrated).
-    Returns the symmetric 1-10 relation matrix with a zero diagonal, and each
-    object's weighted mean rating (``None`` where nobody rated it).
-
-    This is the unit's formula, kept EXACT for ``aia-sociomap-1``: fewer than
-    five common ratings is stamped 5.5 and a constant column reads as r = 0,
-    both drawn as a medium relation (audit F3, F4). Read
-    :func:`derive_pair_relations` for what each cell can be said to be.
-    """
-    cols = _columns(ratings)
-    m = len(cols)
-    w = [x if math.isfinite(x) else 1.0 for x in weights]
-
-    scores: list[float | None] = []
-    for j in range(m):
-        pairs = [(x, ww) for x, ww in zip(cols[j], w, strict=True) if math.isfinite(x) and ww > 0]
-        scores.append(
-            sum(x * ww for x, ww in pairs) / sum(ww for _, ww in pairs) if pairs else None
-        )
-
-    relation = [[0.0] * m for _ in range(m)]
-    for i in range(m):
-        for j in range(i + 1, m):
-            ok = _common(cols[i], cols[j], w)
-            if len(ok) < 5:
-                rel = 5.5
-            else:
-                corr = _clamped_correlation(*_weighted_moments(ok))
-                rel = 1.0 + 9.0 * ((corr + 1.0) / 2.0)
-            relation[i][j] = relation[j][i] = float(min(10.0, max(1.0, rel)))
-    return relation, scores
-
-
-Interval = tuple[float, float]
-
-
-class PairRelations(BaseModel):
-    """Every object pair's correlation and what it can be said to be (audit F3).
-
-    Square matrices over the battery's objects, in order. The diagonal is not a
-    pair and is ``None`` in every matrix. ``r`` is the signed weighted Pearson
-    correlation over the respondents who rated both objects, or ``None`` where
-    there is none to compute; ``n`` counts those respondents; ``interval`` is the
-    Fisher-z interval at ``confidence`` (``None`` below four raters); ``status``
-    is :func:`~.sociomap.relations.pair_status` at ``n_min``.
-    """
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    r: tuple[tuple[float | None, ...], ...]
-    n: tuple[tuple[int | None, ...], ...]
-    interval: tuple[tuple[Interval | None, ...], ...]
-    status: tuple[tuple[PairStatus | None, ...], ...]
-    n_min: int
-    confidence: float
-
-    @model_validator(mode="after")
-    def _square_and_pairwise(self) -> Self:
-        m = len(self.r)
-        for name in ("r", "n", "interval", "status"):
-            matrix = getattr(self, name)
-            if len(matrix) != m or any(len(row) != m for row in matrix):
-                raise ValueError(f"{name} must be a {m} x {m} matrix like r")
-            if any(matrix[i][i] is not None for i in range(m)):
-                raise ValueError(f"{name}: the diagonal is not a pair and must be None")
-        return self
-
-    def counts(self) -> dict[str, int]:
-        """How many unordered pairs carry each status."""
-        out = dict.fromkeys((s.value for s in PairStatus), 0)
-        m = len(self.status)
-        for i in range(m):
-            for j in range(i + 1, m):
-                status = self.status[i][j]
-                if status is not None:
-                    out[status.value] += 1
-        return out
-
-
-def derive_pair_relations(
-    ratings: Sequence[Sequence[float | None]],
-    weights: Sequence[float],
-    *,
-    n_min: int,
-    confidence: float,
-) -> PairRelations:
-    """Each pair's signed weighted correlation, its rater count, interval and status.
-
-    The audit's reading of the unit's relation matrix (F3, and the data side of
-    F4): the same weighted Pearson correlation, signed and unmapped, with the
-    number of respondents who rated both objects and the status that number
-    gives it. Nothing is stamped: a pair with fewer than two common raters or a
-    constant column has no correlation (``None``), and a pair below ``n_min`` is
-    ``UNKNOWN`` whatever its number says. The 1-10 mapping and the 5.5 sentinel
-    stay in :func:`derive_relation_matrix`, the unit's own formula.
-
-    ``weights`` weight the correlation as the unit's ``vaha`` does; a respondent
-    whose weight is not a positive finite number rates no pair here (the unit
-    substituted 1.0 for a non-finite weight, a stamp this variant drops). ``n``
-    counts respondents, not weight: the interval reads it as the sample size with
-    no correction for unequal weights, which makes it somewhat optimistic under a
-    weighted design -- recorded for the audit's author with the plan's open
-    points. Scaling each person's ratings before the correlation (F2) is chunk
-    2a's and is applied to ``ratings`` before this call.
-    """
-    cols = _columns(ratings)
-    m = len(cols)
-    w = [float(x) for x in weights]
-    r: list[list[float | None]] = [[None] * m for _ in range(m)]
-    n: list[list[int | None]] = [[None] * m for _ in range(m)]
-    interval: list[list[Interval | None]] = [[None] * m for _ in range(m)]
-    status: list[list[PairStatus | None]] = [[None] * m for _ in range(m)]
-    for i in range(m):
-        for j in range(i + 1, m):
-            ok = _common(cols[i], cols[j], w)
-            corr: float | None = None
-            # Constancy is read from the values, not the variance: weighted
-            # arithmetic over equal values can leave a variance of 1e-32, and
-            # 0 / 1e-12 would then report "no relation" where there is no data.
-            if len({a for a, _, _ in ok}) > 1 and len({b for _, b, _ in ok}) > 1:
-                corr = _clamped_correlation(*_weighted_moments(ok))
-            r[i][j] = r[j][i] = corr
-            n[i][j] = n[j][i] = len(ok)
-            interval[i][j] = interval[j][i] = (
-                None if corr is None else fisher_interval(corr, len(ok), confidence)
-            )
-            status[i][j] = status[j][i] = pair_status(corr, len(ok), n_min, confidence)
-    return PairRelations(
-        r=tuple(tuple(row) for row in r),
-        n=tuple(tuple(row) for row in n),
-        interval=tuple(tuple(row) for row in interval),
-        status=tuple(tuple(row) for row in status),
-        n_min=n_min,
-        confidence=confidence,
-    )
-
-
 def _rating(value: Any) -> float | None:
     return float(value) if isinstance(value, int) and not isinstance(value, bool) else None
 
 
-def rescaled_battery_ratings(
-    battery: SpecBattery, dataset: FieldworkDataset, rated_with: Sequence[SpecBattery]
-) -> tuple[list[list[float | None]], list[str]]:
-    """``battery``'s ratings on each respondent's own 0-1 scale (audit F2), and who has none.
-
-    Every rating of every set in ``rated_with`` -- the specification's declared rating
-    items (audit F1) -- is first put on its own declared 0-1 scale, so items with different
-    ends compare; each respondent's lowest is then 0 and highest 1 over all of them
-    (:func:`~.sociomap.relations.person_minmax`), and ``battery``'s columns are returned.
-    A respondent whose rated items all share one value is excluded: their row is all
-    ``None`` and their id is listed.
-    """
-    if not any(b.id == battery.id for b in rated_with):
-        raise ValueError(f"battery {battery.id!r} is not among the sets it is rated with")
-    columns: list[tuple[str, int, int]] = []
-    own: list[int] = []
+def rating_universe(
+    rated_with: Sequence[SpecBattery], rating_questions: Sequence[SpecQuestion]
+) -> list[tuple[str, int, int]]:
+    """The specification's rating items, each with its declared scale: every object of every
+    tracked set, then every standalone scale question the design declared a rating item
+    (plan § 8.2, S3). Nothing enters by its type: an undeclared numeric question is a
+    descriptor, never a rating."""
+    universe: list[tuple[str, int, int]] = []
     for b in rated_with:
         low, high = b.scale
         if not high > low:
             raise ValueError(f"battery {b.id!r} declares an empty scale {b.scale!r}")
-        for obj in b.objects:
-            if b.id == battery.id:
-                own.append(len(columns))
-            columns.append((b.question_id(obj), low, high))
+        universe.extend((b.question_id(obj), low, high) for obj in b.objects)
+    for q in rating_questions:
+        if not q.rating_item or q.scale is None:
+            raise ValueError(f"{q.id} is not a declared scale rating item")
+        universe.append((q.id, q.scale[0], q.scale[1]))
+    return universe
+
+
+def rescaled_battery_ratings(
+    battery: SpecBattery,
+    dataset: FieldworkDataset,
+    rated_with: Sequence[SpecBattery],
+    *,
+    rating_questions: Sequence[SpecQuestion],
+) -> tuple[list[list[float | None]], list[str]]:
+    """``battery``'s ratings on each respondent's own 0-1 scale (audit F2), and who has none.
+
+    Every rating item of the specification (:func:`rating_universe`: the sets in
+    ``rated_with`` and the declared ``rating_questions``) is first put on its own declared
+    0-1 scale, so items with different ends compare; each respondent's lowest is then 0
+    and highest 1 over all of them (:func:`~.sociomap.relations.person_minmax`), and
+    ``battery``'s columns are returned. A respondent whose rated items all share one value
+    is excluded: their row is all ``None`` and their id is listed.
+    """
+    if not any(b.id == battery.id for b in rated_with):
+        raise ValueError(f"battery {battery.id!r} is not among the sets it is rated with")
+    columns = rating_universe(rated_with, rating_questions)
+    mine = {battery.question_id(o) for o in battery.objects}
+    own = [c for c, (qid, _, _) in enumerate(columns) if qid in mine]
     rows: list[list[float | None]] = []
     for r in dataset.respondents:
         row: list[float | None] = []
@@ -475,6 +318,39 @@ def rescaled_battery_ratings(
     scaled = person_minmax(rows)
     ids = [dataset.respondents[k].respondent_id for k in scaled.excluded]
     return [[scaled.values[k][c] for c in own] for k in range(len(rows))], ids
+
+
+def object_map_inputs(
+    battery: SpecBattery,
+    dataset: FieldworkDataset,
+    rated_with: Sequence[SpecBattery],
+    weights: Sequence[float],
+    *,
+    rating_questions: Sequence[SpecQuestion],
+) -> ObjectMapInputs:
+    """``battery``'s family over the specification's rating universe, as the object map reads
+    it: every rating item (:func:`rating_universe`) with its declared scale (audit F1, F2),
+    the raw ratings, the weights the relations are weighted by, and each object's role as
+    the specification declares it (:meth:`~.research_design.SpecBattery.object_roles`).
+    """
+    if not any(b.id == battery.id for b in rated_with):
+        raise ValueError(f"battery {battery.id!r} is not among the sets it is rated with")
+    items = [
+        RatingItem(item_id=qid, scale_min=float(low), scale_max=float(high))
+        for qid, low, high in rating_universe(rated_with, rating_questions)
+    ]
+    return ObjectMapInputs(
+        respondent_ids=tuple(r.respondent_id for r in dataset.respondents),
+        donor_ids=tuple(r.donor_id for r in dataset.respondents),
+        items=tuple(items),
+        values=tuple(
+            tuple(_rating(r.answers.get(i.item_id)) for i in items) for r in dataset.respondents
+        ),
+        weights=tuple(weights),
+        object_ids=tuple(o.id for o in battery.objects),
+        object_items=tuple(battery.question_id(o) for o in battery.objects),
+        roles=battery.object_roles(),
+    )
 
 
 #: What the body says where the bootstrap was not asked for (the worker's kill switch,
@@ -495,13 +371,17 @@ def battery_sociomap(
     rated_with: Sequence[SpecBattery],
     connectedness_interval: bool,
     map_spec: SociomapSpec,
+    object_maps: Sequence[SociomapSpecV3],
+    rating_questions: Sequence[SpecQuestion],
 ) -> dict[str, Any]:
     """One tracked set's relation matrix and its Sociomap, as an internal artifact body.
 
-    ``rated_with`` are every tracked set of the specification: the declared rating items
-    each respondent's own scale is read over (audit F2: all the items they rated, not only
-    this family). ``map_spec`` is the run's pinned contract-2 spec; only its rating scale
-    is replaced, by the battery's.
+    ``rated_with`` are every tracked set of the specification and ``rating_questions`` its
+    declared standalone rating items: together the rating universe each respondent's own
+    scale is read over (audit F2: all the items they rated, not only this family).
+    ``map_spec`` is the run's pinned contract-2 spec; only its rating scale is replaced,
+    by the battery's. ``object_maps`` are its pinned contract-3 specs: each is
+    computed over the same rating universe and stored under ``maps`` by method id.
     """
     object_ids = [o.id for o in battery.objects]
     qids = [battery.question_id(o) for o in battery.objects]
@@ -515,19 +395,17 @@ def battery_sociomap(
     pairs = derive_pair_relations(
         ratings, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
     )
-    rescaled, not_rescaled = rescaled_battery_ratings(battery, dataset, rated_with)
+    rescaled, not_rescaled = rescaled_battery_ratings(
+        battery, dataset, rated_with, rating_questions=rating_questions
+    )
+    roles = battery.object_roles()
     rescaled_pairs = derive_pair_relations(
         rescaled, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
     )
-    # Every object of a tracked set is PRIMARY: AIA has no object manager, so no
-    # set has context objects yet. Declared here, by name, not defaulted. The scores
-    # read the relation after the rating habit is removed (audit F8 reads r~, F2).
-    object_scores = primary_scores(
-        object_ids,
-        rescaled_pairs.r,
-        rescaled_pairs.status,
-        dict.fromkeys(object_ids, ObjectRole.PRIMARY),
-    )
+    # Each object's role as the specification declares it (``context_objects``; none
+    # declared: every object PRIMARY, and the body says the roles were not declared). The
+    # scores read the relation after the rating habit is removed (audit F8 reads r~, F2).
+    object_scores = primary_scores(object_ids, rescaled_pairs.r, rescaled_pairs.status, roles)
 
     def correlate(
         multiplicities: Sequence[int],
@@ -543,11 +421,39 @@ def battery_sociomap(
         )
         return drawn.r, drawn.status
 
+    maps = {
+        spec_v3.methodology_version: compute_object_map(
+            object_map_inputs(
+                battery, dataset, rated_with, weights, rating_questions=rating_questions
+            ),
+            spec_v3,
+            connectedness_interval=connectedness_interval,
+        )
+        for spec_v3 in object_maps
+    }
+    # K100 is computed once: an object map whose bootstrap is this body's -- the same
+    # universe, rows, weights, roles, n_min, confidence, B and seed -- already
+    # holds it, so it is copied rather than paid for twice (about 90 s per large set).
+    same_bootstrap = next(
+        (
+            a
+            for a in maps.values()
+            if a.connectedness_100.get("status") == "computed"
+            and a.spec.connectedness.resamples == CONNECTEDNESS_RESAMPLES
+            and a.spec.connectedness.seed == CONNECTEDNESS_SEED
+            and a.spec.relation.n_min == AUDIT_PROVISIONAL_N_MIN
+            and a.spec.relation.confidence == PAIR_CONFIDENCE
+            and a.roles == roles
+        ),
+        None,
+    )
     connectedness: dict[str, Any] = dict(CONNECTEDNESS_NOT_COMPUTED)
-    if connectedness_interval:
+    if connectedness_interval and same_bootstrap is not None:
+        connectedness = dict(same_bootstrap.connectedness_100)
+    elif connectedness_interval:
         k100 = connectedness_100(
             object_ids,
-            dict.fromkeys(object_ids, ObjectRole.PRIMARY),
+            roles,
             correlate,
             respondents=len(rescaled),
             resamples=CONNECTEDNESS_RESAMPLES,
@@ -608,15 +514,18 @@ def battery_sociomap(
         "relation_rescaled": {
             "rule": RESCALE_RULE,
             "rated_with": [b.id for b in rated_with],
+            "rating_questions": [q.id for q in rating_questions],
             "excluded_respondents": not_rescaled,
             **rescaled_pairs.model_dump(mode="json"),
             # Audit F4: how strong, whichever its direction, beside the signed r~.
             "abs_r": [[None if v is None else abs(v) for v in row] for row in rescaled_pairs.r],
             "status_counts": rescaled_pairs.counts(),
         },
+        "roles": {"declared": battery.roles_declared, "by_object": roles},
         "object_scores": object_scores.to_payload(),
         "connectedness_100": connectedness,
         "sociomap": artifact.model_dump(mode="json"),
+        "maps": {method_id: a.to_payload() for method_id, a in maps.items()},
     }
 
 
@@ -636,8 +545,9 @@ def research_sociomaps(
     :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
     """
     pinned = read_methods([m.model_dump(mode="json") for m in methods])
-    resolved = [(m, m.resolve()) for m in pinned]
-    map_spec = next(s for m, s in resolved if m.spec.get("contract_version") == "2")
+    resolved = [m.resolve() for m in pinned]
+    map_spec = next(s for s in resolved if isinstance(s, SociomapSpec))
+    object_maps = [s for s in resolved if isinstance(s, SociomapSpecV3)]
     return {
         "sociomap_version": SOCIOMAP_VERSION,
         "methods": [
@@ -652,6 +562,8 @@ def research_sociomaps(
                 rated_with=spec.batteries,
                 connectedness_interval=connectedness_interval,
                 map_spec=map_spec,
+                object_maps=object_maps,
+                rating_questions=spec.rating_questions(),
             )
             for b in spec.batteries
         ],

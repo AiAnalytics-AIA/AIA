@@ -22,6 +22,7 @@ Every function ported from the reference is tested against its golden fixture
 """
 
 from .engine import SociomapInputError, compute_sociomap
+from .engine_v2 import compute_object_map
 from .layout import (
     LAYOUT_ALGORITHMS,
     LayoutAlgorithm,
@@ -44,8 +45,19 @@ from .models import (
     SociomapArtifact,
     SociomapInputs,
 )
+from .models_v3 import (
+    ARTIFACT_CONTRACT_V3,
+    MapOutcome,
+    NotMappableReason,
+    ObjectMapInputs,
+    RatingItem,
+    SociomapArtifactV3,
+    read_artifact,
+)
 from .specification import (
     AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V2,
+    SPEC_CONTRACT_V3,
     SPEC_CONTRACT_VERSION,
     LayoutSpec,
     MapFrameSpec,
@@ -53,6 +65,7 @@ from .specification import (
     RatingsSpec,
     RelationSpec,
     SociomapSpec,
+    SociomapSpecV3,
     TerrainSpec,
     UnknownSpecContract,
     UnsupportedMethodology,
@@ -82,10 +95,13 @@ from .view import (
 
 __all__ = [
     "AIA_SOCIOMAP_V1",
+    "AIA_SOCIOMAP_V2",
+    "ARTIFACT_CONTRACT_V3",
     "ARTIFACT_CONTRACT_VERSION",
     "ENGINE_IMPLEMENTATION",
     "ENGINE_IMPLEMENTATION_VERSION",
     "LAYOUT_ALGORITHMS",
+    "SPEC_CONTRACT_V3",
     "SPEC_CONTRACT_VERSION",
     "TERRAIN66_OBJECT",
     "TERRAIN66_RESPONDENT",
@@ -96,12 +112,16 @@ __all__ = [
     "LayoutSpec",
     "LayoutUnavailable",
     "MapFrameSpec",
+    "MapOutcome",
     "MetricValues",
     "MetricsSpec",
     "NormalizationMode",
+    "NotMappableReason",
+    "ObjectMapInputs",
     "ObjectMetric",
     "Position",
     "Provenance",
+    "RatingItem",
     "RatingsMatrix",
     "RatingsSpec",
     "RelationDerivation",
@@ -111,9 +131,11 @@ __all__ = [
     "ScenarioLayer",
     "ScenarioResult",
     "SociomapArtifact",
+    "SociomapArtifactV3",
     "SociomapInputError",
     "SociomapInputs",
     "SociomapSpec",
+    "SociomapSpecV3",
     "TerrainField",
     "TerrainMode",
     "TerrainParameters",
@@ -126,7 +148,9 @@ __all__ = [
     "ViewOverrides",
     "apply_scenario",
     "apply_view_overrides",
+    "compute_object_map",
     "compute_sociomap",
+    "read_artifact",
     "read_spec",
     "require_supported",
     "spec_payload",

@@ -46,7 +46,7 @@ def test_a_stored_spec_reads_back_under_its_contract_with_its_fingerprint() -> N
     assert spec == AIA_SOCIOMAP_V1 and spec.fingerprint() == V1_FINGERPRINT
 
 
-@pytest.mark.parametrize("contract", [None, "1", "3", 2])
+@pytest.mark.parametrize("contract", [None, "1", "4", 2])
 def test_a_spec_under_a_contract_this_engine_does_not_read_is_refused(contract: Any) -> None:
     payload = {**spec_payload(AIA_SOCIOMAP_V1), "contract_version": contract}
     if contract is None:
@@ -98,8 +98,13 @@ def test_a_run_without_a_pin_reads_as_aia_sociomap_1() -> None:
     assert legacy.resolve() == AIA_SOCIOMAP_V1
 
 
-def test_today_a_new_run_pins_aia_sociomap_1_alone() -> None:
-    assert default_methods() == LEGACY_METHODS
+def test_a_new_run_pins_aia_sociomap_1_and_the_audits_object_map_beside_it() -> None:
+    from aia_core.domain.sociomap import AIA_SOCIOMAP_V2
+
+    assert default_methods() == (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V2))
+    assert read_methods([m.model_dump(mode="json") for m in default_methods()]) == (
+        default_methods()
+    )
 
 
 @pytest.mark.parametrize(
