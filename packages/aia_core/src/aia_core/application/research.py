@@ -13,6 +13,7 @@ provides.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,6 +34,13 @@ from ..domain.research_agents import (
     snapshot_hash,
 )
 from ..domain.research_design import Readiness, ResearchSpecification, prepare
+from ..domain.research_sociomap import (
+    LEGACY_METHODS,
+    SociomapMethod,
+    default_methods,
+    methods_fingerprint,
+    read_methods,
+)
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
@@ -196,8 +204,16 @@ class ResearchRuns:
         sociomapping_enabled: bool = False,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
+        sociomap_methods: Sequence[SociomapMethod] | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run pins its Sociomap methods here, each with its whole spec
+        (``sociomap_methods``; :func:`~aia_core.domain.research_sociomap.default_methods`
+        when not given): the ``sociomap`` step computes exactly those, whatever the
+        module's preset becomes before it runs or is retried. A set other than the
+        legacy one is part of the run's identity, so the same revision under two sets is
+        two runs.
 
         Idempotent: the same revision starts one run, and so does retrying the
         same run -- a double submission gets the run that already exists. Needs
@@ -222,11 +238,23 @@ class ResearchRuns:
             raise DesignNotReady(readiness)
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
+        methods = read_methods(
+            [
+                m.model_dump(mode="json")
+                for m in (default_methods() if sociomap_methods is None else sociomap_methods)
+            ]
+        )
+        for method in methods:
+            method.resolve()  # a pin the engine cannot compute is refused before any run
+        pinned = [m.model_dump(mode="json") for m in methods]
         key = f"{RESEARCH}:{revision.revision_id}"
         if analysis_enabled:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
+        if methods != LEGACY_METHODS:
+            # The legacy set keeps the key every earlier run has; any other is new identity.
+            key += f":sociomap:{methods_fingerprint(methods)[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
         confirmation: tuple[float, float] | None = None
@@ -259,11 +287,13 @@ class ResearchRuns:
                 "fieldwork_source": fieldwork_source.value,
                 "analysis_enabled": analysis_enabled,
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
+                "sociomap_methods": pinned,
                 **({"retry_of": retry_of} if retry_of else {}),
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
                 "run": {"fieldwork_source": fieldwork_source.value},
+                "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
             },
             owner=DESIGN_PROJECT_OWNER,
@@ -291,7 +321,9 @@ class ResearchRuns:
         """Start a failed or cancelled run again, as a new run linked to it.
 
         A retry spends again, so it asks again: the limit and the confirmation work as they do
-        for :meth:`start`.
+        for :meth:`start`. It pins the Sociomap methods the run it retries pinned, never the
+        current default; a run stored before methods were pinned retries as
+        ``aia-sociomap-1``, the method that computed it.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
@@ -304,6 +336,7 @@ class ResearchRuns:
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
+            sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

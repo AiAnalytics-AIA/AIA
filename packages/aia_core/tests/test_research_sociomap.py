@@ -27,6 +27,7 @@ from aia_core.domain.research_sociomap import (
     CONNECTEDNESS_RESAMPLES,
     CONNECTEDNESS_SEED,
     D6_OPEN,
+    LEGACY_METHODS,
     PAIR_CONFIDENCE,
     MethodologyStatus,
     PairRelations,
@@ -79,7 +80,13 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
     captured = json.loads((FIXTURES / name).read_text(encoding="utf-8"))
     spec, dataset = _case(captured["case_id"])
     battery = next(b for b in spec.batteries if b.id == captured["battery_id"])
-    ours = battery_sociomap(battery, dataset, rated_with=(battery,), connectedness_interval=False)
+    ours = battery_sociomap(
+        battery,
+        dataset,
+        rated_with=(battery,),
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=False,
+    )
     assert [o["id"] for o in ours["objects"]] == captured["object_ids"]
     for mine, theirs in zip(ours["relation"]["matrix"], captured["matrix"], strict=True):
         for a, b in zip(mine, theirs, strict=True):
@@ -90,7 +97,7 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
 
 def test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(spec, dataset, connectedness_interval=False)
+    result = research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
     assert D6_OPEN and result["methodology_status"] == MethodologyStatus.INTERNAL_ONLY.value
     assert result["data_origin"] == "SYNTHETIC_FIXTURE"
     (one,) = result["batteries"]
@@ -103,12 +110,15 @@ def test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only() -> 
     assert artifact["spec"]["layout"] == AIA_SOCIOMAP_V1.layout.model_dump(mode="json")
     assert artifact["layout"]["converged"] is True
     # Deterministic: the same dataset draws the same map.
-    assert research_sociomaps(spec, dataset, connectedness_interval=False) == result
+    assert (
+        research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
+        == result
+    )
 
 
 def test_no_client_facing_surface_may_render_it_while_d6_is_open() -> None:
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(spec, dataset, connectedness_interval=False)
+    result = research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
     for sociomap in (result, *result["batteries"]):
         with pytest.raises(SociomapNotApproved, match="INTERNAL_ONLY"):
             require_client_facing(sociomap)
@@ -136,6 +146,7 @@ def test_the_battery_scale_is_the_datas_and_is_recorded() -> None:
         spec.batteries[0],
         synthetic_dataset(spec, seed=3),
         rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
         connectedness_interval=False,
     )
     assert one["rating_scale"] == [1, 5]
@@ -152,7 +163,7 @@ def test_too_few_common_ratings_is_the_units_neutral_relation() -> None:
 
 def test_a_design_without_a_tracked_set_has_no_sociomap_and_says_so() -> None:
     spec, dataset = _case("A02_indicative_support")
-    result = research_sociomaps(spec, dataset, connectedness_interval=False)
+    result = research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
     assert result["batteries"] == [] and "Sociomapa nevznikla" in result["note"]
     assert result["methodology_status"] == "INTERNAL_ONLY"
 
@@ -204,7 +215,11 @@ def test_a_pair_rated_by_too_few_is_unknown_where_the_unit_stamps_five_and_a_hal
 def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> None:
     spec, dataset = _case("A01_full_questionnaire")
     relation = battery_sociomap(
-        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+        spec.batteries[0],
+        dataset,
+        rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=False,
     )["relation"]
     m = len(relation["matrix"])
     for i in range(m):
@@ -221,7 +236,11 @@ def test_the_signed_correlation_is_the_one_the_unit_mapped_onto_one_to_ten() -> 
 def test_the_stored_relation_names_its_rule_and_its_provisional_n_min() -> None:
     spec, dataset = _case("A01_full_questionnaire")
     relation = battery_sociomap(
-        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+        spec.batteries[0],
+        dataset,
+        rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=False,
     )["relation"]
     assert relation["n_min"] == AUDIT_PROVISIONAL_N_MIN == 30
     assert relation["confidence"] == 0.95
@@ -245,7 +264,11 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
     # (audit F8 over F2, chunk 2a), not the raw correlation.
     spec, dataset = _case("A01_full_questionnaire")
     body = battery_sociomap(
-        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=False
+        spec.batteries[0],
+        dataset,
+        rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=False,
     )
     scores, relation = body["object_scores"], body["relation_rescaled"]
     assert relation["status_counts"]["unknown"] == 0
@@ -260,8 +283,10 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         assert obj["alignment"] == pytest.approx(sum(row) / (m - 1), abs=1e-12)
         assert obj["connectedness"] == pytest.approx(sum(map(abs, row)) / (m - 1), abs=1e-12)
     assert (
-        research_sociomaps(spec, dataset, connectedness_interval=False)["sociomap_version"]
-        == "aia-research-sociomap-5"
+        research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)[
+            "sociomap_version"
+        ]
+        == "aia-research-sociomap-6"
     )
 
 
@@ -276,7 +301,13 @@ def test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown() -> Non
         for k, r in enumerate(dataset.respondents)
     ]
     thinned = dataset.model_copy(update={"respondents": tuple(respondents)})
-    body = battery_sociomap(battery, thinned, rated_with=(battery,), connectedness_interval=True)
+    body = battery_sociomap(
+        battery,
+        thinned,
+        rated_with=(battery,),
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=True,
+    )
     ids = [o["id"] for o in body["objects"]]
     first_score = body["object_scores"]["objects"][0]
     assert first_score["alignment"] is None and first_score["connectedness"] is None
@@ -346,7 +377,11 @@ def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> N
     # allow; recomputed from the same dataset, bit-identical.
     spec, dataset = _case("A01_full_questionnaire")
     body = battery_sociomap(
-        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=True
+        spec.batteries[0],
+        dataset,
+        rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=True,
     )
     k100 = body["connectedness_100"]
     assert k100["status"] == "computed" and k100["rule"] == CONNECTEDNESS_100_RULE
@@ -362,7 +397,11 @@ def test_the_stored_body_carries_connectedness_100_with_its_declared_draw() -> N
     assert ranking["rule"] == RANK_WITH_TIES_RULE and ranking["unranked"] == []
     assert [o["id"] for o in ranking["objects"]] == [o["id"] for o in body["objects"]]
     again = battery_sociomap(
-        spec.batteries[0], dataset, rated_with=spec.batteries, connectedness_interval=True
+        spec.batteries[0],
+        dataset,
+        rated_with=spec.batteries,
+        map_spec=AIA_SOCIOMAP_V1,
+        connectedness_interval=True,
     )
     assert again["connectedness_100"] == k100
 
@@ -380,7 +419,7 @@ def test_with_the_switch_off_the_bootstrap_never_runs_and_the_body_says_so(
 
     monkeypatch.setattr(module, "connectedness_100", _refuse)
     spec, dataset = _case("A01_full_questionnaire")
-    result = research_sociomaps(spec, dataset, connectedness_interval=False)
+    result = research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
     for body in result["batteries"]:
         assert body["connectedness_100"] == CONNECTEDNESS_NOT_COMPUTED
         assert body["connectedness_100"]["status"] == "not_computed"

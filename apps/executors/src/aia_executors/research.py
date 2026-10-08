@@ -38,9 +38,21 @@ from aia_core.domain.research_design import (
     assess_readiness,
     compile_design,
 )
-from aia_core.domain.research_sociomap import SOCIOMAP_VERSION, research_sociomaps
+from aia_core.domain.research_sociomap import (
+    LEGACY_METHODS,
+    SOCIOMAP_VERSION,
+    SociomapMethod,
+    SociomapMethodsInvalid,
+    methods_fingerprint,
+    read_methods,
+    research_sociomaps,
+)
 from aia_core.domain.research_sociomapping import SOCIOMAPPING_VERSION, research_sociomappings
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, ENGINE_IMPLEMENTATION_VERSION
+from aia_core.domain.sociomap import (
+    AIA_SOCIOMAP_V1,
+    ENGINE_IMPLEMENTATION_VERSION,
+    UnsupportedMethodology,
+)
 from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
@@ -427,19 +439,30 @@ class AggregateExecutor(_Step):
 
 
 def _sociomap_fingerprint(
-    dataset_sha: str, spec: ResearchSpecification, *, connectedness_interval: bool
+    dataset_sha: str,
+    spec: ResearchSpecification,
+    *,
+    methods: tuple[SociomapMethod, ...],
+    connectedness_interval: bool,
 ) -> str:
     """What a stored Sociomap was computed from, for reuse.
 
     The engine's implementation version is part of it: an engine whose output
     changed (1.2.0 stopped placing straight-liners) must not be handed a map the
-    previous one drew for the same dataset and spec.
+    previous one drew for the same dataset and spec. So are the run's pinned methods:
+    a map computed under one set is never handed to a run that pinned another. The
+    legacy set keeps the key it always had (the v1 preset's fingerprint).
     """
+    pins: dict[str, str] = (
+        {"preset": AIA_SOCIOMAP_V1.fingerprint()}
+        if methods == LEGACY_METHODS
+        else {"methods": methods_fingerprint(methods)}
+    )
     return fingerprint(
         {
             "dataset": dataset_sha,
             "sociomap": SOCIOMAP_VERSION,
-            "preset": AIA_SOCIOMAP_V1.fingerprint(),
+            **pins,
             "engine": ENGINE_IMPLEMENTATION_VERSION,
             "spec": spec.fingerprint(),
             # A body stored with the bootstrap off is not reused as if it had the interval.
@@ -450,6 +473,12 @@ def _sociomap_fingerprint(
 
 class SociomapExecutor(_Step):
     """Each tracked set's relation matrix and Sociomap: stored, and INTERNAL_ONLY (chunk 6).
+
+    The methods are the ones the run pinned when it was started (the step's input
+    ``methods``, ``ResearchRuns.start``); a run started before methods were pinned has
+    none and is computed as ``aia-sociomap-1``, which computed every such run. A pin
+    that does not read, or names a method this engine cannot compute, fails the step
+    by name: nothing substitutes the module's current preset.
 
     ``connectedness_interval`` is the kill switch for the F9 respondent bootstrap, off
     unless the composition turns it on (``AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED``):
@@ -479,9 +508,19 @@ class SociomapExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = research_sociomaps(
-            spec, dataset, connectedness_interval=self._connectedness_interval
-        )
+        try:
+            methods = read_methods(step.payload.get("methods"))
+            result = research_sociomaps(
+                spec,
+                dataset,
+                methods=methods,
+                connectedness_interval=self._connectedness_interval,
+            )
+        except (SociomapMethodsInvalid, UnsupportedMethodology) as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "sociomap_method_invalid", "message": str(exc)},
+            )
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -491,7 +530,10 @@ class SociomapExecutor(_Step):
                 payload={"kind": SOCIOMAP, "sociomap": result},
                 artifact_type=SOCIOMAP,
                 input_fingerprint=_sociomap_fingerprint(
-                    dataset_sha, spec, connectedness_interval=self._connectedness_interval
+                    dataset_sha,
+                    spec,
+                    methods=methods,
+                    connectedness_interval=self._connectedness_interval,
                 ),
                 depends_on=[spec_id, dataset_id],
                 metadata={

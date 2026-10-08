@@ -702,7 +702,7 @@ does not compute, by name, rather than computing it on a guess.
   (`DissimilarityTarget.CORRELATION_DISTANCE`, `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1`,
   `MapFrameMethod.FIXED_RULER`) refused by contract 2's `require_supported` and admitted by
   contract 3's; the K100 seed and B as spec fields; `research_sociomap` building each pinned
-  method per battery under `methods`; `SOCIOMAP_VERSION` `-5` -> `-6`; `layer_check` extended to
+  method per battery under `methods`; `SOCIOMAP_VERSION` `-6` -> `-7`; `layer_check` extended to
   the preset name. *Tests:* every number the v2 artifact holds equals the 2a/2b/1b/4a function's
   on the same input; F2's inflation measured through the engine; a planted configuration recovered;
   `NOT_MAPPABLE` for each named cause; v1's fixtures F1-F9 unchanged.
@@ -939,6 +939,39 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Slice S1 -- the methods a run pins (I0, I4 in part), 2026-10-08
+
+What landed, on `feature/sociomap-frozen-method`:
+
+- `domain/sociomap/specification.py`: `SPEC_CONTRACTS`, `spec_payload(spec)` (the contract named
+  beside the body) and `read_spec(payload)`, which reads a stored spec under the contract it names
+  and refuses any other or none (`UnknownSpecContract`). Contract 2 is unchanged: the v1 preset's
+  fingerprint stays `9d4dffea…` (`test_the_v1_preset_fingerprint_has_not_moved`).
+- `domain/research_sociomap.py`: `SociomapMethod` (method id, the whole spec as stored, its
+  fingerprint; `resolve()` re-reads, re-hashes, checks the id and `require_supported`),
+  `LEGACY_METHODS` (`aia-sociomap-1`, how an unpinned run reads), `default_methods()` (what a new
+  run pins: `aia-sociomap-1` alone until S2), `read_methods` (at least one, no id twice, exactly
+  one contract-2 map), `methods_fingerprint`. `battery_sociomap(..., map_spec=)` and
+  `research_sociomaps(..., methods=)` compute the pinned spec, never the module preset; the body
+  names the pinned methods; `SOCIOMAP_VERSION` `-5` -> `-6`.
+- `application/research.py`: `ResearchRuns.start(..., sociomap_methods=)` resolves and pins the
+  set on the run's metadata and as the `sociomap` step's input; a set other than the legacy one
+  adds `:sociomap:<fingerprint>` to the idempotency key (the legacy set keeps the key every
+  earlier run has); `retry` pins what the retried run pinned, an unpinned run as legacy.
+- `aia_executors/research.py`: `SociomapExecutor` reads the step's pin (none: legacy), fails the
+  step with `sociomap_method_invalid` for a pin that does not verify or that the engine cannot
+  compute, and fingerprints the pinned set for reuse (the legacy set keeps its old key).
+
+Tests: `test_sociomap_methods.py` (18: the reader, the pins, the refusals) and
+`apps/executors/tests/test_sociomap_frozen_methods.py` (6, through the worker: a new run pins and
+records the default; the module preset changed after enqueue and the run computes its pin; another
+pin is another run and computes its own spec; an unpinned stored run computes `aia-sociomap-1`; a
+retry keeps the original's pin after the default changed; an edited pin fails the step by name).
+
+Not yet: the artifact reader by contract and the v3 spec itself (S2); the selected dimensions,
+audience, population binding and rating universe in the frozen input contract (S3, S4); the API
+does not let a caller choose a set (no screen asks yet). So I0 and I4 stay open.
+
 ### Chunk 1a -- pair status (F3), 2026-10-07
 
 What landed, on `feature/sociomap-pair-status`:

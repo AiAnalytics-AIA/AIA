@@ -54,8 +54,11 @@ from .specification import (
     RelationSpec,
     SociomapSpec,
     TerrainSpec,
+    UnknownSpecContract,
     UnsupportedMethodology,
+    read_spec,
     require_supported,
+    spec_payload,
 )
 from .terrain import (
     TERRAIN66_OBJECT,
@@ -117,12 +120,15 @@ __all__ = [
     "TerrainSpec",
     "UnfoldingDesignError",
     "UnfoldingParameters",
+    "UnknownSpecContract",
     "UnsupportedMethodology",
     "ViewOverrideMismatch",
     "ViewOverrides",
     "apply_scenario",
     "apply_view_overrides",
     "compute_sociomap",
+    "read_spec",
     "require_supported",
+    "spec_payload",
     "view_terrain",
 ]
