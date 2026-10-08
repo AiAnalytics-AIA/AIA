@@ -178,7 +178,7 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Stáhnout přílohu zadani.txt" }));
     await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
-    expect(await created[0].text()).toBe("ahoj");
+    expect(new TextDecoder().decode(await created[0].arrayBuffer())).toBe("ahoj");
     expect(calls.map((c) => c.url)).toContain(`${ATTACH_PATH}/ART-1a`);
     // A record whose file never came into AIA offers no download, and says why.
     expect(screen.queryByRole("button", { name: "Stáhnout přílohu stare.pdf" })).toBeNull();
