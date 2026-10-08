@@ -46,6 +46,12 @@ chunks:
   - "[x] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
+  - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
+  - "[ ] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
+  - "[ ] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
+  - "[ ] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
+  - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
+  - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1029,6 +1035,72 @@ key; approving it admits the next start; withdrawing it refuses again; a worker 
 live route starts with nothing approved anywhere; two organizations, one approved and one
 not: only the approved one's run is enqueued; a pin missing an approval parks before any call.
 
+### Phase 8 — robustness borrowed from other deep-research tools (45–50; the owner, 2026-10-08)
+
+The owner asked, 2026-10-08, to "use the best ideas" of four public deep-research tools to make this
+one more robust. Each was read first-hand (clones at the commits named) and compared in the
+session; what follows is what fits AIA's rules, and nothing is copied: ARS is CC BY-NC 4.0, so its
+ideas may be re-implemented and its code and text may not.
+
+| Tool | What it is | Idea taken |
+|---|---|---|
+| [Weizhena/deep-research-skills](https://github.com/Weizhena/deep-research-skills) (MIT) | prompt skills: an outline of items × fields, one agent per item, JSON per item | items × fields is chunks 33–37 already; per-kind search playbooks (49) |
+| [sanjay3290/ai-skills `deep-research`](https://github.com/sanjay3290/ai-skills/tree/main/skills/deep-research) (Apache-2.0) | a client for Google's hosted Gemini Deep Research agent | a commercial comparison arm for evaluation (50), never a route (§ 10) |
+| openclaw `deep-research` (listings only; its source 404s) | a generic orchestration prompt | nothing |
+| [imbad0202/academic-research-skills](https://github.com/imbad0202/academic-research-skills) (CC BY-NC 4.0, v3.23) | a governed academic pipeline: fail-closed gates, four-index citation existence, retraction flags, gold-set calibration with FNR/FPR targets, held-out injection evals | 45, 46, 47, 48 |
+
+**This opens ADR 0021 decision 7 for 46 alone** (a new quarantine reason, retrieval of a work's
+status), at the owner's request, as chunks 33–39 opened it; 45, 47 and 48 read or measure the engine
+and change nothing in it unless a measurement finds a defect, which the decision already admits;
+49 changes the investigator's prompt and so its version.
+
+**45. Injection evaluation.** A held-out corpus of fictional pages under
+`packages/aia_core/tests/fixtures/deep_research_injection/`, each labelled: hostile (an instruction
+to the model, in English and Czech, direct, paraphrased, split across lines, in a table cell, in
+alt text or a heading, aimed at a verdict, a search, a credential or the system prompt) and benign
+look-alikes (a news story *about* prompt injection, a recipe saying "ignore the previous step", a
+manual's "system message" menu). A runner scores `detect_instructions` on the set -- recall on
+hostile, false alarms on benign -- and the set's hash is pinned. Then, through the recorded
+journey, a hostile page cannot steer: no finding grounded on it is accepted, and every action an
+investigator proposes after reading it still passes the gate (a query carrying a client term is
+refused before it leaves). *Done when:* the rates are recorded in § 13; every miss is either fixed
+in `INSTRUCTION_PATTERNS` (a defect, under decision 7) or recorded as a finding with its example.
+
+**46. Retracted sources.** A finding is only as good as its source; a retracted paper is a known
+bad one. OpenAlex's `is_retracted` is read where the connector already returns a work; a Crossref
+connector (`api.crossref.org`, fee-free, its polite pool asked with the fetch contact) reads a DOI's
+`updated-by` retraction and correction notices. A captured source whose DOI resolves to a retracted
+work carries the status in its snapshot; grounding quarantines a finding resting on it
+(`RETRACTED_SOURCE`); a correction is shown, not quarantined. *Tests:* recorded OpenAlex and
+Crossref answers; a retracted work's finding quarantined with its notice; an unknown status is
+unknown (never "not retracted"); nothing changes for a source without a DOI.
+
+**47. The coverage ledger.** What a run looked at, in the order a reader asks: searches sent and
+their hits; pages opened, refused (`robots.txt`, class, host, barrier) and failed; sources captured;
+candidate findings; quarantined, by reason; accepted; gaps and acquisition gaps -- per track and in
+total, counted by code from the run's own journal and bundle, never by a model. Read through the
+run (a view, not a new sealed field), shown beside the brief. The PRISMA flow is its model: a client
+sees what was excluded and why, not only what was kept. *Tests:* every count reconciles with the
+journal; a reused track counts as found once and costs nothing.
+
+**48. Verifier calibration.** The verifier decides what is accepted; its error rates are unknown.
+A gold set of fictional (claim, excerpt, verdict) rows -- supported, overstated, unsupported,
+superseded -- and a runner in `tools/dr_accuracy.py` that scores a verifier over it: miss rate (a
+bad finding accepted) and false-alarm rate (a good one quarantined), against proposed thresholds
+(miss < 0.15, false alarm < 0.10, chunk 1 to approve). With a recorded verifier the runner proves
+only the tooling and says so; the verifier stays `NOT_CALIBRATED` in the bundle's versions until a
+live run is recorded in § 13 (with 25).
+
+**49. Search playbooks.** For each subject kind, where its evidence is usually found -- official
+statistics (ČSÚ, Eurostat), registers (ARES, procurement), scholarship (OpenAlex), trade and
+industry press, the publisher's own site -- rendered from the reputation register into the
+investigator's prompt as hints. Code still decides what may leave; a hint names no URL the model
+could send. A prompt version.
+
+**50. A commercial comparison arm.** Chunk 26's arms gain Google's Gemini Deep Research, run by a
+person on the public fictional topics only (never a client's), its report graded blind beside ours
+on the same rubric. It is a measuring stick, not a route: § 10's verdict on answer engines stands.
+
 ## 12. Dependencies
 
 - Tool spend in the ledger (deep-research.md chunk 4) before chunk 25 spends money.
@@ -1081,7 +1153,32 @@ not: only the approved one's run is enqueued; a pin missing an approval parks be
 - A client-facing dataset: extracted datasets stay internal until a client-facing report contract
   and ADR 0019 gate 3 exist.
 
+- **Chunk 45, 2026-10-08** (`feature/dr-robustness`): the instruction detector on two fictional
+  sets (`packages/aia_core/tests/fixtures/deep_research_injection/`, pinned in
+  `test_deep_research_injection_eval.py`). Development set (30 hostile, 25 benign; EN and CS):
+  `aia-instructions-1` caught 15/30 with 6 false alarms; `aia-instructions-2`, fixed against it,
+  catches 30/30 with 2 false alarms (B01, B16: articles quoting an injection; kept, recall
+  preferred). Held-out set (15 + 15), written after and scored once: **4/15 caught, 1 false alarm**
+  (Y03, "must not share credentials"). One fix independent of the set followed -- the detector
+  now reads NFKC text, as grounding does -- and catches 5/15; the set is spent.
+
 ## 15. Findings
+
+**F-45-1 (chunk 45, 2026-10-08). The instruction detector does not generalise; it is a tripwire,
+not the boundary.** 1. Claim: on pages written after its patterns were fixed it caught 4 of 15
+instructions aimed at a model. 2. Anchor: `domain/deep_research/grounding.py` `INSTRUCTION_PATTERNS`,
+`detect_instructions` (`aia-instructions-2`). 3. Reproduction:
+`test_deep_research_injection_eval.py::test_the_held_out_rate_does_not_fall_below_what_was_measured`
+(the misses are listed by `_scored("heldout.json")`). 4. Consequence: a hostile page on a host the
+source table rates acceptable (media, a wiki, an official site's comment section) can carry text a
+model reads as an order and a finding can quote; on an unknown host it cannot, because an unknown
+host scores 0.2 against the 0.55 acceptance threshold
+(`test_a_hostile_page_the_detector_misses_still_yields_no_accepted_evidence`). 5. Smallest fix:
+none in the patterns -- more regexes fit the set they are written against. The structural answer is
+what already holds (unknown hosts below acceptance, verbatim grounding, the gate on every query,
+an independent verifier); the open part is user-written text on acceptable hosts, which the
+register's tiers (chunk 8) and the verifier's calibration (48) bound. 6. Test: the held-out ratchet
+above; a fresh measurement needs a new set, better one written by someone else (a red team).
 
 - `CLAUDE.md` § 2 says of `infrastructure/web_retrieval.py` "no live adapter exists (DR-2)" and of
   `deep_research_runtime.py` "no web retrieval exists"; `web_retrieval_live.py` and the Wikipedia

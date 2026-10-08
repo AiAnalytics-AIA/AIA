@@ -338,7 +338,10 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
 #: no measures check, as develop @ 757154e computed it, ebcebd81.... Re-pinned when the
 #: harness moved to 2 for per-kind request limits (chunk 23): under harness 1 it is
 #: b07b8d2a..., which this file reproduces with only the harness string set back.
-FINGERPRINTS_WITHOUT_THINKING = "f8ed305f9a6daf9619a22a94f9c544f7a838555aaf3052c03b7f453e49895f28"
+#: Re-pinned when the instruction detector joined the grounding rules (chunk 45,
+#: GROUNDING_VERSION aia-grounding-3/.../aia-instructions-2): with only that string set
+#: back to aia-grounding-2/aia-measures-2 it is f8ed305f..., reproduced 2026-10-08.
+FINGERPRINTS_WITHOUT_THINKING = "5ade329c1eddb09aa61941e6d6e682f13c0c3be06cb9ba6f4b8fe149aeac5f88"
 
 
 def _thinking(budget: int | None) -> TrackInputs:
