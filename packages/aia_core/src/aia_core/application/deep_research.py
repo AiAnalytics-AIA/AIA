@@ -52,7 +52,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
@@ -68,6 +68,7 @@ from ..domain.deep_research.contracts import (
     SourceSnapshot,
     digest,
 )
+from ..domain.deep_research.coverage import CoverageLedger, coverage_ledger
 from ..domain.deep_research.integration import (
     AGGREGATE_ARTIFACT,
     DATASET_ARTIFACT,
@@ -107,6 +108,7 @@ from ..domain.deep_research.planning import (
     preset,
     screen_questions,
 )
+from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
 from ..domain.research import phase_of, retryable
 from ..domain.run_cost import (
@@ -148,6 +150,12 @@ __all__ = [
     "governed_record",
     "run_spec_metadata",
 ]
+
+
+#: The event type a step's progress (tool journal entries included) is written under.
+_PROGRESS_EVENT: Final = "STEP_PROGRESS"
+#: Events read per page when the journal is gathered.
+_EVENT_PAGE: Final = 2000
 
 
 class DeepResearchRunNotFound(LookupError):
@@ -771,6 +779,27 @@ class DeepResearchRuns:
         if bundle.request_fingerprint != run["metadata"].get("request_fingerprint"):
             raise BundleNotReady("the stored bundle is not this run's request")
         return bundle
+
+    def coverage(self, run_id: str, *, store: ArtifactStore) -> CoverageLedger:
+        """What the run looked at: found, opened, refused, set aside, by reason (chunk 47).
+
+        Computed on read from the sealed bundle and the run's own tool journal; nothing
+        new is stored and the bundle's seal does not move.
+        """
+        bundle = self.bundle(run_id, store=store)
+        kinds = set(TOOL_EVENT_KINDS.values())
+        journal: list[ToolUsageEvent] = []
+        since = 0
+        while True:
+            page = self._workflows().events(run_id, since=since, limit=_EVENT_PAGE)
+            journal.extend(
+                ToolUsageEvent.model_validate(e["payload"])
+                for e in page
+                if e["event_type"] == _PROGRESS_EVENT and e["message"] in kinds
+            )
+            if len(page) < _EVENT_PAGE:
+                return coverage_ledger(bundle, journal)
+            since = int(page[-1]["event_id"])
 
     def snapshot(self, run_id: str, snapshot_id: str, *, store: ArtifactStore) -> SourceSnapshot:
         """One source a finding of this run rests on, as it was captured.

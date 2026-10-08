@@ -48,7 +48,7 @@ chunks:
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
-  - "[ ] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
+  - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
   - "[ ] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
@@ -1095,6 +1095,15 @@ total, counted by code from the run's own journal and bundle, never by a model. 
 run (a view, not a new sealed field), shown beside the brief. The PRISMA flow is its model: a client
 sees what was excluded and why, not only what was kept. *Tests:* every count reconciles with the
 journal; a reused track counts as found once and costs nothing.
+
+*Landed 2026-10-08* (`feature/dr-coverage-ledger`): `domain/deep_research/coverage.py`
+(`coverage_ledger(bundle, journal)`: queries proposed, sent and refused by reason, hits, sources
+captured, findings grounded, accepted and quarantined by reason, and per tool the journal's own
+outcomes with refusals and failures by reason; per track the same funnel), read through the run
+(`DeepResearchRuns.coverage`, `GET …/deep-research/runs/{run_id}/coverage`), never sealed. On the
+recorded journey: 8 queries proposed, 6 sent, 2 refused (`class_a_query`,
+`egress_route_not_approved_for_class`); 7 sources; 7 accepted, 6 set aside under six named reasons;
+one fetch `address_not_public` (`test_deep_research_coverage.py`). The screen that shows it is 24's.
 
 **48. Verifier calibration.** The verifier decides what is accepted; its error rates are unknown.
 A gold set of fictional (claim, excerpt, verdict) rows -- supported, overstated, unsupported,
