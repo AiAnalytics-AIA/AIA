@@ -34,6 +34,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 from .pipeline import fingerprint
 from .sociomap.metrics import ObjectRole
+from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 
 __all__ = [
     "COMPILER_VERSION",
@@ -617,6 +618,25 @@ def assess_readiness(spec: ResearchSpecification) -> Readiness:
             CheckStatus.PASS,
             f"{len(spec.batteries)} sad pro Sociomapu (interní, D6).",
         )
+        # Structural readiness to collect answers is not support for a map: a pair needs
+        # n_min respondents who rated both (audit F3), counted after missing answers and
+        # straight-liners. Below it every pair is UNKNOWN and the object map says
+        # NOT_MAPPABLE; this says so before anything is paid for (plan § 8.2, I3).
+        if spec.n is not None and spec.n < AUDIT_PROVISIONAL_N_MIN:
+            check(
+                "sociomap_support",
+                CheckStatus.WARN,
+                f"n = {spec.n} je pod {AUDIT_PROVISIONAL_N_MIN} respondenty, které potřebuje "
+                "každý pár položek (předběžná hodnota auditu): žádný vztah nebude známý a mapa "
+                "položek nevznikne.",
+            )
+        else:
+            check(
+                "sociomap_support",
+                CheckStatus.PASS,
+                f"n stačí na {AUDIT_PROVISIONAL_N_MIN} respondentů na pár, pokud odpovědi "
+                "nechybějí; skutečnou oporu každého páru uvádí mapa.",
+            )
     else:
         check("sociomap_input", CheckStatus.WARN, "Bez sledované sady nevznikne Sociomapa.")
 
