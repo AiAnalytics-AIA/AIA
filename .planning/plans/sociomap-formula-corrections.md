@@ -635,6 +635,99 @@ and its evidence-register states when reconciling the plan after merge; retain I
 canonical PDF identifiers too. The sheets cover the questions the source leaves open; they
 do not require reapproval of settled formulas. Neither open PR is part of the merged baseline.
 
+## 8.2 Execution plan for 2d with I0-I5 (2026-10-08, `develop @ 751d7ae`)
+
+**Asked by the owner on 2026-10-08:** continue on spec v3 / `aia-sociomap-2` and the input
+integration (I0-I5), the work no open methodology decision blocks. This section is the order
+and the slices; each slice is one PR into `develop`, and each ticks its chunk here when it
+lands. The math chunks that wait on 0b (3, 4b, 4c, 1d) stay waiting: the v2 map records what it
+does not compute, by name, rather than computing it on a guess.
+
+**Decisions this plan takes (engineering's, recorded so a reviewer can refuse them):**
+
+1. **Two spec contracts side by side, never a moved global.** `SociomapSpec` stays contract 2
+   with its fingerprint byte for byte (every stored v1 map keeps its hash, I4). Contract 3 is a
+   new model, `SociomapSpecV3`, read by a version-aware `read_spec(payload)` that dispatches on
+   `contract_version`; the artifact likewise (`SociomapArtifact` stays v2, `SociomapArtifactV3`
+   is new, `read_artifact(payload)` dispatches). Nothing that reads a stored v2 payload changes.
+2. **The v2 method is an object map.** `aia-sociomap-2` computes what the audit fixes and 0b
+   does not block: F1 (each item on its declared 0-1 scale), F2 (each person's min-max over the
+   whole rating universe), F3 (pair status at the audit's provisional `n_min`), F4 (signed r~
+   beside |r~|), F5 (declared type, no detection), F6/F7 (SMACOF on `sqrt(2(1 - r~))` over the
+   known pairs, fixed ruler, Stress-1 and its band), F8 (PRIMARY scores, UNKNOWN left out, mean
+   rating as height), F9 (K100 with its interval, behind the existing switch), F11 (straight-
+   liners NOT PLACED, counted). Respondent placement (chunk 3, F10's threshold open) and the
+   envelope terrain (chunk 4b, the kernel width open) are **not computed** and the artifact says
+   so with the chunk and the open question, never an empty array a reader could take for "none".
+   A family that cannot be mapped (fewer than three objects with a known pair, a known-pair graph
+   that does not connect, every pair UNKNOWN) is an explicit `NOT_MAPPABLE` outcome with its
+   reason, not an exception that fails the step and not a stretched picture.
+3. **The v2 engine lives in the Sociomap package.** `compute_sociomap_v2(inputs, spec)` is pure
+   and imports nothing outside `domain/sociomap/`. The weighted pair relations it needs
+   (`derive_pair_relations`, `PairRelations`) move from `research_sociomap.py` into
+   `sociomap/pairs.py` unchanged and are re-exported where they were, so no number moves.
+4. **A run freezes its methods at enqueue (I0, I4).** `ResearchRuns.start` records the methods
+   the run will compute -- each method id with its **whole spec**, not a name -- on the run's
+   metadata and as the `sociomap` step's input; `retry` copies them from the run it retries.
+   The executor computes from the pinned specs (validated, `require_supported`), never from the
+   module's current preset. A run with no pin (every run stored before this) is read as
+   `aia-sociomap-1` with the v1 preset, which is what computed it. New runs pin the comparison
+   set `aia-sociomap-1` + `aia-sociomap-2`: v1 stays the shipped picture until chunk 5 draws v2,
+   and v2 is computed beside it. Both are `INTERNAL_ONLY` (D6).
+5. **The rating universe is declared, never inferred (I2).** It is every battery item plus every
+   standalone `skala` question the design marks as a rating item (`sociomap_rating: true` on the
+   question); nothing enters by its dtype, and a numeric descriptor never does. Object roles come
+   from the battery (`context_objects`: the labels that are SECONDARY); with none declared, every
+   object is PRIMARY and the specification records `roles_declared: false`.
+6. **Dimensions and audience reach the specification, and say whether they were applied (I1).**
+   The compiler carries the selected dimension ids and the audience filters into
+   `ResearchSpecification` (so two designs that differ only there no longer compile to one
+   fingerprint) with `applied: false` and the reason, while no materialization or population
+   binding can apply them. Applying them to a roster needs the population and dimension-
+   materialization work; this plan does not build a loader or a fictional substitute for it.
+
+**Slices, in order (each its own PR, each builds and passes alone):**
+
+- **S1 -- I0 + I4: the contracts and the frozen method.** `sociomap/specification.py`:
+  `SociomapSpecV3` (contract 3) and `read_spec`; `research_sociomap.SociomapMethod` (method id +
+  spec payload + spec fingerprint) and `METHODS_LEGACY` / `METHODS_DEFAULT`;
+  `ResearchRuns.start(..., sociomap_methods=)` pins, `retry` copies; `SociomapExecutor` reads the
+  pin, legacy reads v1; the fingerprint for reuse covers the pinned specs. *Tests:* a stored v1
+  artifact keeps its hash and verifies; a spec payload of contract 2 reads as v2 and of 3 as v3;
+  enqueue, change the module's default, execute and retry: the pinned method is used; a run
+  without a pin computes v1; v1-only and v1+v2 runs of one design are different runs; a pinned
+  spec the engine cannot compute fails the step by name.
+- **S2 -- 2d: `aia-sociomap-2`.** `AIA_SOCIOMAP_V2` (contract 3), `compute_sociomap_v2`,
+  `SociomapArtifactV3` (`to_payload` / `read_artifact`, tamper refused), the new enum members
+  (`DissimilarityTarget.CORRELATION_DISTANCE`, `LayoutAlgorithm.AIA_SMACOF_OBJECTS_V1`,
+  `MapFrameMethod.FIXED_RULER`) refused by contract 2's `require_supported` and admitted by
+  contract 3's; the K100 seed and B as spec fields; `research_sociomap` building each pinned
+  method per battery under `methods`; `SOCIOMAP_VERSION` `-5` -> `-6`; `layer_check` extended to
+  the preset name. *Tests:* every number the v2 artifact holds equals the 2a/2b/1b/4a function's
+  on the same input; F2's inflation measured through the engine; a planted configuration recovered;
+  `NOT_MAPPABLE` for each named cause; v1's fixtures F1-F9 unchanged.
+- **S3 -- I2: the study-wide rating universe and roles.** `SpecQuestion.rating_item`,
+  `SpecBattery.object_roles` / `roles_declared`; the universe built once per specification and
+  recorded on the body (items, scales, which items bound each person's min-max); F1 and F2 kept
+  as two recorded transforms. *Tests:* §8.1 I2's list, plus a standalone rating item beside two
+  batteries.
+- **S4 -- I1: dimensions and audience in the specification.** `ResearchSpecification.dimensions`
+  and `.audience.filters`, each with `applied` and the reason; readiness names what will not be
+  applied. *Tests:* the 2026-10-07 reproduction (finance vs ekologie; 18-29 vs 60-80) now gives
+  different fingerprints; the run says the selection was not applied; nothing invents a value.
+- **S5 -- I3: support and exclusions.** Map-level sufficiency after missingness and constant
+  rows (every pair UNKNOWN, disconnected, below three placeable objects) as explicit outcomes on
+  the v2 body; the not-placed count; weights and donor provenance recorded beside the relations.
+  Descriptor snapshots and the positioning-variable set wait on I1's materialization and on 4d.
+- **S6 -- I5: the recorded acceptance.** The fictional study of § 8.1 I5 through the real
+  application and executor path to the stored artifacts and the API read, with the replay and
+  the three separate revisions (dimension, audience, rating input). Results and the report
+  drawing v2 are chunk 5's and are named as not yet covered.
+
+What this plan does not do: chunks 1d, 3, 4b, 4c, 4d (0b and the R seam); chunk 5's surfaces;
+any population loader, dimension materialization or LIVE promotion; any client-facing change
+(`require_client_facing` unchanged, OI-17).
+
 ## 8a. Progress
 
 **0a (2026-10-07, `feature/sociomap-audit-register`).** `docs/migration/sociomapping-evidence-register.json`
