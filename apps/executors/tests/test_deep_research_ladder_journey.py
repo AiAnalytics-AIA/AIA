@@ -16,8 +16,18 @@ from typing import Any
 
 import pytest
 from aia_core.application.acquisition_ladder import LadderConfig
-from aia_core.domain.deep_research.contracts import Channel, StopReason, SubjectKind, TrackStatus
+from aia_core.application.web_retrieval import DatasetAccess
+from aia_core.domain.deep_research.contracts import (
+    Channel,
+    RetrievalMode,
+    StopReason,
+    SubjectKind,
+    TrackStatus,
+)
 from aia_core.domain.deep_research.investigator import INVESTIGATOR_VERSION
+from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
+from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
+from aia_core.infrastructure.dataset_connectors import RecordedDatasetConnector
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
     TURNS,
@@ -208,3 +218,144 @@ def test_a_set_ladder_configuration_is_part_of_a_track_s_inputs(
     identity = LadderConfig(crawls=("CC-MAIN-2024-10",)).identity()
     assert configured.inputs().investigator == f"{INVESTIGATOR_VERSION}/ladder-{identity}"
     assert configured.versions()["investigator"] == configured.inputs().investigator
+
+
+# --------------------------------------------------------------------------- #
+# A dataset route the composition gives reaches the ladder (plan chunk 23a)
+# --------------------------------------------------------------------------- #
+
+OPENALEX = "openalex-works-1"
+DOI = "10.5555/fikt.2025.7"
+PAPER = "Spotřeba rostlinných nápojů 2025"
+OA_COLUMNS = [
+    "is_oa",
+    "version",
+    "license",
+    "landing_page_url",
+    "pdf_url",
+    "source",
+    "source_type",
+    "best_oa",
+]
+
+
+def _openalex() -> RecordedDatasetConnector:
+    """OpenAlex, recorded: the DOI's one open-access location is the office's table."""
+    return RecordedDatasetConnector(
+        connector_id=OPENALEX,
+        exchanges={
+            f"doi:{DOI}": {
+                "result": {
+                    "title": PAPER,
+                    "publisher": "Fiktivní vydavatel",
+                    "source_url": "https://api.openalex.example/works",
+                    "columns": [{"key": c, "label": c} for c in OA_COLUMNS],
+                    "rows": [
+                        {
+                            "key": "loc1",
+                            "label": "řádek loc1",
+                            "values": [
+                                "true",
+                                "publishedVersion",
+                                "cc-by",
+                                TABLE,
+                                None,
+                                "U",
+                                "r",
+                                "yes",
+                            ],
+                        }
+                    ],
+                },
+                "raw": "{}",
+            }
+        },
+    )
+
+
+def _with_openalex(runtime: Any, connector: RecordedDatasetConnector) -> Any:
+    route = ToolRoute(
+        route=ProviderRoute(
+            route_id="recorded-dataset-query",
+            provider="recorded",
+            zone=ResidencyZone.EU,
+            eu_processing_approved=True,
+            excluded_from_training=True,
+            retention_days=0,
+            approved_for=frozenset({DataClass.CLASS_C_INTERNAL}),
+        ),
+        tool=ToolKind.DATASET_QUERY,
+        adapter_id=OPENALEX,
+        retrieval_mode=RetrievalMode.RECORDED,
+        price_usd_per_call=0.0,
+    )
+    return dataclasses.replace(runtime, datasets=(DatasetAccess(route=route, connector=connector),))
+
+
+SCHOLARLY_TURNS: list[dict[str, Any]] = [
+    ALMOND_TURNS[0],
+    ALMOND_TURNS[1],
+    {
+        "evidence": [],
+        "summary": "Zpráva cituje studii podle DOI.",
+        "leads": [],
+        "next": [
+            _ladder(
+                need="studie, ze které čísla zprávy pocházejí",
+                title=PAPER,
+                doi=DOI,
+                source="S1",
+                purpose="primární zdroj",
+            )
+        ],
+    },
+    ALMOND_TURNS[3],
+]
+
+
+def test_a_dataset_route_the_composition_gives_is_one_the_ladder_reaches(
+    research: ResearchWorld,  # noqa: F811
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    turns = json.loads(json.dumps(TURNS))
+    turns[ALMOND] = SCHOLARLY_TURNS
+    agents = ScriptedInvestigator(ANSWERS, turns=turns)
+    openalex = _openalex()
+    runtime = _with_openalex(directed(research, agents), openalex)
+    run_id = start_web(research)
+    assert drain(worker(research, database_url, store, build, runtime)) == 6
+
+    track = tid(SubjectKind.OBJECT, ALMOND, W)
+    transcript = stored(
+        research, store, track_result(research, store, run_id, track)["transcript_artifact_id"]
+    )
+    [climb] = [a for a in transcript["turns"][2]["actions"] if a["kind"] == "ladder"]
+    # The DOI was resolved through the connector the composition gave, and its open-access
+    # copy opened through the gate: the office's table, captured as S2.
+    assert f"doi:{DOI}" in openalex.calls
+    assert climb["ladder"]["stop"] == "acquired"
+    assert climb["ladder"]["acquisition"]["rung"] == "7_scholarly_identity"
+    assert (climb["ladder"]["acquisition"]["url"], climb["source"]) == (TABLE, "S2")
+
+
+def test_dataset_routes_join_a_track_s_inputs_only_when_given(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    runtime = directed(research, ScriptedInvestigator(ANSWERS))
+    assert runtime.retrieval is not None
+    # None given (every composition before chunk 23): exactly the retrieval's identity.
+    assert runtime.inputs().web_retrieval == runtime.retrieval.identity()
+    given = _with_openalex(runtime, _openalex())
+    identity = given.inputs().web_retrieval
+    assert identity["datasets"] == [["recorded-dataset-query", OPENALEX, "RECORDED", 0.0]]
+    assert {k: v for k, v in identity.items() if k != "datasets"} == runtime.retrieval.identity()
+
+
+def test_a_dataset_route_without_web_retrieval_is_refused(
+    research: ResearchWorld,  # noqa: F811
+) -> None:
+    runtime = _with_openalex(directed(research, ScriptedInvestigator(ANSWERS)), _openalex())
+    with pytest.raises(ValueError, match="need web retrieval"):
+        dataclasses.replace(runtime, retrieval=None)

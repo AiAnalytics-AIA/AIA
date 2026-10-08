@@ -10,7 +10,7 @@ from typing import Final
 
 from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.application.model_gateway import GovernedModelGateway
-from aia_core.application.web_retrieval import WebRetrieval
+from aia_core.application.web_retrieval import ArchiveRetrieval, DatasetAccess, WebRetrieval
 from aia_core.domain.ai_contracts import check_thinking_budget
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.deep_research.agents import PROMPT_VERSION
@@ -38,6 +38,7 @@ from aia_core.domain.deep_research.tooling import (
     ToolKind,
     ToolOutcome,
     ToolReservation,
+    ToolRoute,
     ToolUsageEvent,
 )
 from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSION
@@ -144,12 +145,44 @@ class DeepResearchRuntime:
     #: Model requests in flight across every worker on the route (chunk 21): every
     #: agent request holds one slot. ``None``: unbounded here, as before fan-out.
     model_slots: ModelConcurrency | None = None
+    #: Common Crawl's URL index and archived records (plan chunk 18), which the ladder's
+    #: rung 9 asks for a dead or moved page. ``None``: no crawl to ask.
+    archive: ArchiveRetrieval | None = None
+    #: The public dataset connectors the ladder may query (chunks 14-16), each on its own
+    #: route. Empty: none.
+    datasets: tuple[DatasetAccess, ...] = ()
+    #: The archive lookups (Wayback CDX, chunk 15) the ladder may ask with a permit.
+    archives: tuple[DatasetAccess, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.retrieval is None and (self.archive or self.datasets or self.archives):
+            # The gate holds them beside web retrieval and refuses a mode that differs
+            # from it; without retrieval there is no gate to give them to.
+            raise ValueError("dataset and archive routes need web retrieval beside them")
+
+    def web_identity(self) -> dict[str, object] | None:
+        """What a web track's result depends on: the retrieval's routes, and the dataset
+        and archive routes only when this composition gives some, so a composition
+        without them fingerprints exactly as before they existed (plan chunk 23a)."""
+        if self.retrieval is None:
+            return None
+        identity: dict[str, object] = dict(self.retrieval.identity())
+        if self.datasets:
+            identity["datasets"] = sorted(_route_identity(d.route) for d in self.datasets)
+        if self.archives:
+            identity["archives"] = sorted(_route_identity(a.route) for a in self.archives)
+        if self.archive is not None:
+            identity["archive"] = [
+                _route_identity(self.archive.index_route),
+                _route_identity(self.archive.archive_route),
+            ]
+        return identity
 
     def inputs(self) -> TrackInputs:
         return TrackInputs(
             policy_version=self.config.policy_version,
             prompt_versions={Channel.INTERNAL: PROMPT_VERSION, Channel.WEB: PROMPT_VERSION},
-            web_retrieval=self.retrieval.identity() if self.retrieval is not None else None,
+            web_retrieval=self.web_identity(),
             thinking_budget_tokens=self.config.thinking_budget_tokens,
             investigator=self._investigator() if self.config.agent_directed else None,
         )
@@ -192,6 +225,11 @@ class DeepResearchRuntime:
             # Only when on: a run planned by the lead is investigated by its waves.
             versions["lead"] = LEAD_VERSION
         return versions
+
+
+def _route_identity(route: ToolRoute) -> list[object]:
+    """One route as ``WebRetrieval.identity`` names its two: id, adapter, mode, price."""
+    return [route.route_id, route.adapter_id, route.retrieval_mode.value, route.price_usd_per_call]
 
 
 # --------------------------------------------------------------------------- #
