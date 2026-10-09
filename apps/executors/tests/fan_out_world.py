@@ -48,7 +48,7 @@ from aia_executors.deep_research import (
 )
 from aia_executors.deep_research_recorded import recorded_runtime
 from aia_worker.executor import StepExecutor
-from test_deep_research_journey import RecordedAgents, Signer  # type: ignore[import-not-found]
+from deep_research_fixtures import RecordedAgents, Signer
 
 HOST_COUNT = 3
 #: One address for every fictional host: public, never contacted (recorded).

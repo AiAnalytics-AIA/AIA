@@ -33,9 +33,11 @@ from aia_core.domain.scope import WORKER_PERMISSIONS, ScopeDenied
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import ApprovalDecisionRow
+from deep_research_fixtures import (
+    DESIGN,
+)
 from sqlalchemy import select
 from test_deep_research_journey import (  # type: ignore[import-not-found]
-    DESIGN,
     Journey,
     ResearchWorld,
     pass_one,  # noqa: F401  (the fixture)
@@ -259,12 +261,14 @@ def test_an_accept_that_would_overflow_the_design_jobs_context_is_refused(
     written (Codex review on #178)."""
     from aia_core.domain.research_agents import CONTEXT_MAX_BYTES, context_snapshot
     from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
-    from test_deep_research_journey import (  # type: ignore[import-not-found]
+    from deep_research_fixtures import (
         ANSWERS,
         RecordedAgents,
+        recorded,
+    )
+    from test_deep_research_journey import (  # type: ignore[import-not-found]
         approve_knowledge,
         drain,
-        recorded,
         start,
         worker,
     )

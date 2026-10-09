@@ -86,8 +86,7 @@ from aia_executors.deep_research import DeepResearchConfig, DeepResearchRuntime
 from aia_executors.deep_research import agent_directed as agent_directed_module
 from aia_executors.deep_research_recorded import recorded_runtime
 from aia_executors.deep_research_runtime import deep_research_runtime
-from sqlalchemy import func, select
-from test_deep_research_journey import (  # type: ignore[import-not-found]
+from deep_research_fixtures import (
     ALMOND,
     ANSWERS,
     DESIGN,
@@ -97,12 +96,15 @@ from test_deep_research_journey import (  # type: ignore[import-not-found]
     Q2,
     SOY,
     TEST_ROUTE,
-    Journey,
     RecordedAgents,
-    ResearchWorld,
     Signer,
-    _take_the_lease,
     ai_settings,
+)
+from sqlalchemy import func, select
+from test_deep_research_journey import (  # type: ignore[import-not-found]
+    Journey,
+    ResearchWorld,
+    _take_the_lease,
     approve_knowledge,
     drain,
     pass_one,  # noqa: F401  (a fixture)

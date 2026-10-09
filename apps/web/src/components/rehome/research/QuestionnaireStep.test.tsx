@@ -240,7 +240,7 @@ describe("Dotazník", () => {
     const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
     await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
-    expect(await created[0].text()).toBe("PK-template");
+    expect(new TextDecoder().decode(await created[0].arrayBuffer())).toBe("PK-template");
     // No link into the unit's paths: the template and the guide are AIA's.
     const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href") || "");
     expect(hrefs.filter((h) => h.startsWith("/api/questionnaire") || h.startsWith("/files/"))).toEqual([]);

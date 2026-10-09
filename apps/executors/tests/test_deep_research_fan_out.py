@@ -45,6 +45,16 @@ from aia_executors.deep_research import DeepResearchConfig, DeepResearchRuntime
 from aia_executors.deep_research_recorded import recorded_runtime
 from aia_executors.deep_research_runtime import deep_research_runtime
 from aia_worker.worker import Worker
+from deep_research_fixtures import (
+    ANSWERS,
+    DESIGN,
+    OATS,
+    TEST_ROUTE,
+    WEB,
+    RecordedAgents,
+    Signer,
+    ai_settings,
+)
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
@@ -54,16 +64,8 @@ from test_deep_research_investigator_journey import (  # type: ignore[import-not
 )
 from test_deep_research_investigator_journey import WEB as DIRECTED_WEB
 from test_deep_research_journey import (  # type: ignore[import-not-found]
-    ANSWERS,
-    DESIGN,
-    OATS,
-    TEST_ROUTE,
-    WEB,
-    RecordedAgents,
     ResearchWorld,
-    Signer,
     _take_the_lease,
-    ai_settings,
     approve_knowledge,
     read,
     research,  # noqa: F401  (a fixture)
@@ -421,10 +423,10 @@ def test_an_agent_directed_track_step_interrupted_between_turns_replays_and_pays
 ) -> None:
     """Lost between turns 2 and 3 of Q1: its own step resumes it, buying nothing twice."""
     from aia_executors.deep_research import agent_directed as agent_directed_module
+    from deep_research_fixtures import Q1
     from test_deep_research_investigator_journey import (
         turn_events,  # type: ignore[import-not-found]
     )
-    from test_deep_research_journey import Q1  # type: ignore[import-not-found]
 
     agents = ScriptedInvestigator(ANSWERS)
     runtime = composition(research, agents, mode="directed", fan_out=True, sessions=sessions)

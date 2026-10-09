@@ -57,14 +57,7 @@ from aia_executors.deep_research import DeepResearchConfig, DeepResearchRuntime
 from aia_executors.deep_research import agent_directed as agent_directed_module
 from aia_executors.deep_research_recorded import recorded_runtime
 from aia_executors.deep_research_runtime import deep_research_runtime
-from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
-    TURNS,
-    WEB,
-    ScriptedInvestigator,
-    start_web,
-    stored,
-)
-from test_deep_research_journey import (  # type: ignore[import-not-found]
+from deep_research_fixtures import (
     ALMOND,
     ANSWERS,
     DESIGN,
@@ -73,10 +66,19 @@ from test_deep_research_journey import (  # type: ignore[import-not-found]
     Q2,
     TEST_ROUTE,
     RecordedAgents,
-    ResearchWorld,
     Signer,
-    _take_the_lease,
     ai_settings,
+)
+from test_deep_research_investigator_journey import (  # type: ignore[import-not-found]
+    TURNS,
+    WEB,
+    ScriptedInvestigator,
+    start_web,
+    stored,
+)
+from test_deep_research_journey import (  # type: ignore[import-not-found]
+    ResearchWorld,
+    _take_the_lease,
     drain,
     read,
     research,  # noqa: F401  (a fixture)
