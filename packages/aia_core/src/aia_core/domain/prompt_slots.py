@@ -6,7 +6,7 @@ either **wired** -- a stored edit is resolved when a job is queued and pinned to
 -- or listed with its baseline only, saying why it cannot be edited yet. Nothing
 claims an edit takes effect where no composition reads it.
 
-The baseline of a slot is the text the code has always sent, unchanged: for every
+The baseline of a slot is the text the current code ships: for every
 wired slot ``slot.assemble(slot.baseline_text)`` is byte-identical to that prompt
 (a test pins it). The code-owned part (``fixed_prefix``) is added around whatever a
 stored edit says, and an edit is validated against ``required_literals``.
@@ -23,9 +23,9 @@ from .ai_respondent import SYSTEM_PROMPT as RESPONDENT_SYSTEM_PROMPT
 from .analysis.prompt import _SYSTEM as ANALYSIS_TEMPLATE
 from .analysis.prompt import PROMPT_TEMPLATE_VERSION as ANALYSIS_PROMPT_VERSION
 from .deep_research.agents import AGENT_IDS as DEEP_RESEARCH_AGENT_IDS
-from .deep_research.agents import PROMPT_VERSION as DEEP_RESEARCH_PROMPT_VERSION
 from .deep_research.agents import AgentRole
 from .deep_research.agents import prompt_for as deep_research_prompt_for
+from .deep_research.agents import prompt_version_for as deep_research_prompt_version
 from .prompts import PromptPin, validate_prompt_text
 from .research_agents import (
     BASELINE_PROMPT_VERSION as RESEARCH_PROMPT_VERSION,
@@ -109,7 +109,7 @@ def _unwired_slots() -> list[PromptSlot]:
         PromptSlot(
             prompt_id=DEEP_RESEARCH_AGENT_IDS[role],
             family="deep_research",
-            baseline_version=DEEP_RESEARCH_PROMPT_VERSION,
+            baseline_version=deep_research_prompt_version(role),
             baseline_text=deep_research_prompt_for(role),
             unwired_reason=NOT_RUN_BY_ANY_COMPOSITION,
         )

@@ -12,7 +12,12 @@ from aia_core.application.research import ResearchAgentJobs
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.prompts import PromptPin
-from aia_core.domain.research_agents import FIXED_PREFIX, ResearchAction, prompt_for
+from aia_core.domain.research_agents import (
+    BASELINE_PROMPT_VERSION,
+    FIXED_PREFIX,
+    ResearchAction,
+    prompt_for,
+)
 from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import WORKER_PERMISSIONS, ScopeDenied
 from aia_core.domain.workflow import WorkflowRunStatus
@@ -487,7 +492,7 @@ def test_an_active_edit_is_what_the_model_is_sent_and_what_the_record_names(
     assert provenance["prompt_sha256"] == expected
 
 
-def test_without_an_edit_the_model_is_sent_exactly_what_it_always_was(
+def test_without_an_edit_the_model_is_sent_the_current_code_baseline(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
     run_id = start(world)
@@ -498,7 +503,10 @@ def test_without_an_edit_the_model_is_sent_exactly_what_it_always_was(
         provenance = ResearchAgentJobs(session, world.lead_scope(session)).result(
             run_id, store=store
         )["provenance"]
-    assert (provenance["prompt_version"], provenance["prompt_origin"]) == ("1", "baseline")
+    assert (provenance["prompt_version"], provenance["prompt_origin"]) == (
+        BASELINE_PROMPT_VERSION,
+        "baseline",
+    )
 
 
 def test_a_queued_job_keeps_the_prompt_it_was_queued_with(

@@ -212,7 +212,7 @@ def test_only_an_administrator_may_ask_a_job_to_run_a_draft(
     ordinary = _start(researcher, world, rev)
     assert ordinary.status_code == 201, ordinary.text
     assert (ordinary.json()["prompt_version"], ordinary.json()["prompt_origin"]) == (
-        "1",
+        "2",
         "baseline",
     )
 

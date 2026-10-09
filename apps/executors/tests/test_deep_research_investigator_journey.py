@@ -849,22 +849,18 @@ def test_the_switch_is_off_unless_set_and_on_records_the_mode(
 # Mode off: the planned journey's content, and the requests as harness 2 sends them
 # --------------------------------------------------------------------------- #
 
-#: Content pins. Pass one of ``test_deep_research_journey.py`` as
-#: feature/dr-agents-base @ a6338c3 sent it, before the agent-directed mode existed: the
-#: planner's and the web investigators' request bodies; every request with the random
-#: knowledge item ids and the evidence ids taken from them masked; and the tool journal as
-#: (tool, outcome, request fingerprint). Computed on that commit by this file's digests.
-#: Since harness 2 (per-kind request limits) the requests are **not** byte-for-byte that
-#: commit's: each body's output limit is its kind's. These pins cover everything else --
-#: prompts, contracts, payloads -- and are taken with that one field set back to a6338c3's
-#: 8,192; the field itself is pinned by the envelope pins below.
-PLANNED_WEB_REQUESTS = "1017ad3dc20c686bd75ef42060f29c88bcd2b2e480cf684617600890e5c37bf1"
-PLANNED_ALL_REQUESTS = "513c447086654ec5bc2982bbf1111fb290c54f588d5cffc2f453a18cfb3d5fc9"
+#: Prompt revision 2 content pins (2026-10-09). The planned-mode journey still
+#: records every request, with random knowledge/evidence ids masked. These digests
+#: intentionally change with the system prompts; contract and envelope checks remain.
+#: Content digests set output limits to a uniform 8192 so the separate envelope
+#: pins below continue to catch a per-role output-budget change.
+PLANNED_WEB_REQUESTS = "f66893e7d0d884918bdcf16e8933acc2df240c9aad8830ccb804f3e987b510b4"
+PLANNED_ALL_REQUESTS = "eedd3f5f3cd77fc442de728778d96d87001b5471ca9591468f34b1f7c63b6b3e"
 PLANNED_TOOL_JOURNAL = "6ee0ced884929d5e127b81601bcedfcd64f439813477bb780242845a39aac605"
-#: Envelope pins: the same two digests over the bodies exactly as harness 2 sends them,
-#: output limits included (computed on this branch, 2026-10-07).
-HARNESS_2_WEB_REQUESTS = "86511dd88cb3019443e82dc3e653a2ca0c2a44540b90a9515989403038cd4ac3"
-HARNESS_2_ALL_REQUESTS = "b826af1e88e27f94258e2af8287902fedffe9d46b04c3fd8fdb8e064b8ea7397"
+#: Envelope pins: upgraded prompts as harness 2 sends them, output limits included.
+#: The tool journal retains its prior pin: prompt wording cannot alter retrieval records.
+HARNESS_2_WEB_REQUESTS = "4f302820a62b8002e0da6522ce12ba26ff3069ac7c0f96c1356e6b88455e925c"
+HARNESS_2_ALL_REQUESTS = "3ef647b7c4840e9ce1aafaf3eb4de0f70f2013bd2dc2e15b59b2b1fd2f3017ed"
 
 
 def _masked(bodies: list[Any]) -> str:
@@ -875,7 +871,7 @@ def _sha(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def test_with_the_mode_off_the_planned_content_is_unchanged_and_its_envelope_pinned(
+def test_planned_prompt_revision_and_output_envelope_are_pinned(
     pass_one: Journey,  # noqa: F811
     store: InMemoryArtifactStore,
 ) -> None:
@@ -895,7 +891,7 @@ def test_with_the_mode_off_the_planned_content_is_unchanged_and_its_envelope_pin
         HARNESS_2_WEB_REQUESTS
     )
     assert _sha(_masked(sent)) == HARNESS_2_ALL_REQUESTS
-    # The content a6338c3 sent, unchanged: every body with only its output limit set back.
+    # Pin the upgraded content independently of the per-role output limits.
     content = [{**b, "inferenceConfig": {"maxTokens": 8192}} for b in sent]
     web = [b for b, w in zip(content, is_web, strict=True) if w]
     assert len(web) == 5

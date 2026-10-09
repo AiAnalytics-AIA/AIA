@@ -59,50 +59,65 @@ ANALYSIS_MODULES: Final[tuple[AnalysisModuleSpec, ...]] = (
     AnalysisModuleSpec(
         AnalysisModuleId.EXECUTIVE,
         1,
-        "State the decision-relevant answer to the client's question and the few findings "
-        "that carry it. Answer the question; do not describe tables.",
+        "Lead with whether the client decision can be answered. Summarize only the decisive "
+        "supported conclusions and the next necessary evidence. In a fictional test, "
+        "describe workflow and instrument adequacy, not a real-world recommendation.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.RESEARCH_QUESTIONS,
         2,
-        "Answer every research question in turn, from the evidence only. Where the evidence "
-        "cannot answer a question, say so rather than guessing.",
+        "Answer each supplied research question exactly once. State answered, partly "
+        "answerable or not answerable in prose, explaining the measured construct and the "
+        "missing evidence. Do not substitute a convenient table for the requested answer.",
         answers_research_questions=True,
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.OBJECTS,
         3,
-        "Compare the tracked objects (brands, offers, policies) on the measures in the "
-        "evidence, and say where the differences are and are not supported.",
+        "Compare only tracked objects for which evidence rows actually provide comparable "
+        "measures. Discuss supported differences and unresolved comparisons, not generic "
+        "response frequencies. With no object evidence, explain what a comparable-object "
+        "battery must supply. Do not infer map proximity or rank from unrelated rows.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.AUDIENCE,
         4,
-        "Describe the target audience as the evidence shows it, with each figure's scope.",
+        "Describe only the audience scope and attributes actually present in the payload. "
+        "Do not infer demographics, attitudes or experience from a fictional roster or "
+        "answer distribution. Distinguish the intended audience from the respondent "
+        "evidence; name missing audience attributes and selection limits.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.SEGMENTS,
         5,
-        "Describe only the segments present in the evidence table. Do not invent segments, "
-        "and do not describe a segment by a relationship the evidence does not contain.",
+        "Discuss only explicitly supplied segment evidence and supported within-segment "
+        "findings. Answer options are not validated segments. Without segment evidence, say "
+        "segmentation cannot be assessed; do not rename yes/no groups as personas or repeat "
+        "their frequencies.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.HYPOTHESES,
         6,
-        "State which study hypotheses the evidence supports, contradicts or cannot decide. "
-        "Do not infer causality.",
+        "Evaluate only hypotheses explicitly supplied in context against matching evidence: "
+        "supported, contradicted or undecided in prose. If none are supplied, say "
+        "hypotheses cannot be assessed from this payload. Do not manufacture hypotheses, "
+        "significance tests or causal explanations.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.IMPLICATIONS,
         7,
-        "Draw the implications for the client's decision that follow from the findings, "
-        "keeping each tied to the evidence it rests on.",
+        "Connect each implication to a supplied supported finding and its decision scope. "
+        "Separate what may be decided, what needs further measurement and what remains "
+        "uncertain. Fictional output supports test and design improvements only; never "
+        "advise real budgets, campaigns or staffing from it.",
     ),
     AnalysisModuleSpec(
         AnalysisModuleId.LIMITATIONS,
         8,
-        "State the limits of this evidence: that it is synthetic, modelled research; which "
-        "cells were suppressed or are indicative; and what cannot be claimed from it.",
+        "Explain the specific limits that change use of these results: fictional origin, "
+        "construct mismatch, missing object/segment evidence, suppression, indicative "
+        "support and lack of real-world validation as supplied. Separate limitations from "
+        "findings; do not repeat distributions or invent missing metadata values.",
     ),
 )
 

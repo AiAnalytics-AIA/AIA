@@ -67,7 +67,7 @@ __all__ = [
 ]
 
 #: The triage reader's prompt version; recorded on every call.
-TRIAGE_PROMPT_VERSION: Final = "1"
+TRIAGE_PROMPT_VERSION: Final = "2"
 TRIAGE_AGENT_ID: Final = "aia.deep_research.triage_reader"
 
 #: Characters of a page one triage request shows. Triage is a cheap first look: a
@@ -201,6 +201,11 @@ Rozhodni, zda stránka pomáhá odpovědět na některou z dílčích otázek st
   z dodaného textu stránky, každý nejvýše {TRIAGE_QUOTE_MAX_CHARS} znaků, s čísly, jednotkami,
   obdobím a místem tak, jak je stránka uvádí. Citace, která ve stránce není, aplikace vyřadí.
 - relevant=false: sub_question=null a quotes=[].
+Neber jako důkaz samotný titulek, navigaci ani zmínku tématu. Hledej konkrétní
+obsah odpovídající otázce včetně negace, podmínky a definice ukazatele. Zkrácený
+text neznamená, že zbytek zdroje nic neobsahuje. Relevance není souhlas s tvrzením.
+Citaci opiš v jednom souvislém úryvku; neslepuj vzdálené věty ani neopravuj pravopis.
+Před odesláním ověř přesnou podřetězcovou shodu, délku a existenci zvoleného Q-id.
 Nic nepřidávej, neshrnuj a nehodnoť zdroj; hodnocení dělá aplikace a vyšetřovatel.
 """
 

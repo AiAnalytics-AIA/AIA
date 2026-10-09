@@ -1,7 +1,7 @@
 """The prompt registry and the pin: what is editable, and that nothing else moved.
 
-The baseline is the contract with the past: wiring prompts as data must not change a
-byte the model was sent before an administrator edits anything.
+The registry must assemble exactly the current code baseline; stored task edits
+retain the code-owned rails and cannot change another slot.
 """
 
 from __future__ import annotations
@@ -107,11 +107,11 @@ def test_baseline_renders_byte_identical_to_the_prompt_the_code_always_sent(
 
 
 @pytest.mark.parametrize("action", list(ResearchAction))
-def test_no_pin_sends_the_baseline_as_version_one(action: ResearchAction) -> None:
+def test_no_pin_sends_the_current_baseline_version(action: ResearchAction) -> None:
     request = _request(action)
     assert request.system == prompt_for(action)
     assert request.agent.prompt_id == f"aia.research.{action.value}"
-    assert request.agent.prompt_version == "1"
+    assert request.agent.prompt_version == BASELINE_PROMPT_VERSION
 
 
 def test_a_stored_pin_replaces_only_the_task_and_keeps_the_rails() -> None:

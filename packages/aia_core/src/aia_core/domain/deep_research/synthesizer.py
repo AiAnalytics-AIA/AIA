@@ -40,7 +40,7 @@ __all__ = [
 ]
 
 #: The brief synthesizer's own prompt version.
-BRIEF_PROMPT_VERSION: Final = "1"
+BRIEF_PROMPT_VERSION: Final = "2"
 
 #: The brief synthesizer's output contract, :class:`BriefProposal`.
 BRIEF_CONTRACT_VERSION: Final = "brief-1"
@@ -78,8 +78,13 @@ class BriefProposal(_Closed):
     limitations: list[_Line] = Field(max_length=10)
 
 
+def _text_bound(contract: type[BaseModel], field: str) -> int:
+    """Use the same character ceiling that validates the response."""
+    return int(contract.model_json_schema()["properties"][field]["maxLength"])
+
+
 #: The task, after the common preamble (``agents.prompt_for``).
-BRIEF_TASK: Final = """Z přijatých zjištění napiš českou výzkumnou zprávu, po jednotlivých
+BRIEF_TASK: Final = f"""Z přijatých zjištění napiš českou výzkumnou zprávu, po jednotlivých
 výzkumných cílech (subjects). Dostaneš zjištění (findings) s citací, mírami čísel, vydavatelem,
 úrovní zdroje (T1 nejvyšší), tím, zda jde o primární zdroj čísla, a jistotou, kterou spočítala
 aplikace (high, medium, low); dále rozpory (conflicts) s oběma stranami a jejich pravděpodobnou
@@ -96,4 +101,25 @@ Do limitations napiš omezení zprávy bez čísel. Mezery a nedostupné zdroje 
 sama; neopakuj je. summary smí použít jen čísla ze zjištění, která citují tvoje answers.
 Externí údaje nejsou výsledky panelu ani výzkumu klienta a nesmíš je tak podat.
 Pokud dostaneš problems k předchozí verzi (previous), oprav právě je: číslo, které v citovaném
-zjištění není, odstraň nebo doplň citaci zjištění, které ho obsahuje."""
+zjištění není, odstraň nebo doplň citaci zjištění, které ho obsahuje.
+
+REDAKČNÍ POSTUP: vyber hlavní podloženou odpověď ke každému cíli, připoj její
+nejdůležitější rozsah a omezení, potom odstraň opakování. Neopisuj zjištění po jednom
+ani pracovní historii hledání. Rozliš nabídku služby, její využití a hodnocení;
+žádný z těchto ukazatelů automaticky neodpovídá na ostatní. Pokud evidence cíl
+nezodpoví, neschovávej to za související fakta. Odpověď bez přijaté evidence
+nevytvářej; mezeru sestaví aplikace. U rozporu zachovej obě strany a vysvětli
+rozdílnou definici jen pokud je doložena. Doporučení nad rámec evidence vynech.
+
+DÉLKA JE SOUČÁST KONTRAKTU: answers[].text má tvrdý strop
+{_text_bound(BriefAnswerDraft, "text")} znaků včetně mezer; míř nejvýše na 1100.
+Summary má strop {_text_bound(BriefProposal, "summary")} znaků; míř na 2200.
+Conflict_notes[].text má strop {_text_bound(ConflictNoteDraft, "text")} znaků;
+míř na 600. Každá limitations položka má strop
+{BriefProposal.model_json_schema()["properties"]["limitations"]["items"]["maxLength"]}
+znaků; míř na 220.
+Zkracuj myšlenky a počet vět před odesláním; nečekej, že aplikace delší text zkrátí.
+Vrať pouze summary, answers, conflict_notes, limitations. Seznamy jsou vždy pole,
+prázdné pole je []; answer má subject_key, text a evidence_ids přijatých zjištění.
+Nepřidávej sources, confidence, gaps ani další klíče. Při opravě vrať celý výsledek
+s opravou všech problémů včetně typů a délky, ne patch ani vysvětlení opravy."""
