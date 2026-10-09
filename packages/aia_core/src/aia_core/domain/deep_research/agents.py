@@ -34,12 +34,12 @@ captured source, or finish. It still holds no tools: code classifies, sends and
 journals every action, or refuses it, and tells the next turn which. It is an agent
 of its own (``aia.deep_research.investigator``, prompt
 :data:`INVESTIGATOR_PROMPT_VERSION`, contract :data:`INVESTIGATOR_CONTRACT_VERSION`)
-rather than a second prompt version of the web investigator, because it answers in
+rather than a prompt version of the web investigator, because it answers in
 another contract: a stored call names an agent id and a prompt version, and the
 pair must say unambiguously what shape came back. The **independent verifier**
 (§ 8.4, chunk 12; :mod:`.verifier`) is one too, for the same reason: the planned
-mode's verifier and its prompt are unchanged. So is the **brief synthesizer** (§ 8.8,
-chunk 13; :mod:`.synthesizer`): the planned mode's synthesizer is unchanged.
+mode's verifier has a different contract. So does the **brief synthesizer** (§ 8.8,
+chunk 13; :mod:`.synthesizer`): the planned mode's synthesizer has a different contract.
 
 The **lead researcher** (chunk 11) plans a lead-planned run and re-plans it after
 each wave. It answers in two contracts, so it is two agents
@@ -125,16 +125,17 @@ __all__ = [
     "design_class",
     "model_request",
     "prompt_for",
+    "prompt_version_for",
     "request_class",
 ]
 
 #: One version for the five prompts: they are one harness and change together.
-PROMPT_VERSION: Final = "1"
+PROMPT_VERSION: Final = "2"
 
 #: The investigator's own prompt version: it is not one of the five above.
 #: 2: the ``ladder`` action (plan chunk 10).
 #: 3: where each kind of evidence is usually found (:mod:`.playbooks`, plan chunk 49).
-INVESTIGATOR_PROMPT_VERSION: Final = "3"
+INVESTIGATOR_PROMPT_VERSION: Final = "4"
 
 #: The investigator's output contract, :class:`InvestigatorTurn`. A new action kind
 #: is an additive change under a new version; a stored turn keeps its own.
@@ -590,9 +591,93 @@ Nepotřebuješ-li nic, vrať prázdné seznamy. Rozpor nikdy neprůměruj.""",
 }
 
 
+_ROLE_UPGRADES: Final[dict[AgentRole, str]] = {
+    AgentRole.PLANNER: """Nejprve rozlož každou stopu na ověřitelné otázky: definice, rozsah,
+primární
+zdroj a potřebná míra. Rozliš popis nabídky od návštěvnosti a postoje od chování.
+Dotazy se mají doplňovat, ne jen opakovat synonyma. Každému dej konkrétní očekávaný
+podklad; krátké pojmy umožní další zpřesnění. Zahraniční analogie nevydávej za českou
+evidenci. Limity jsou strop, nikoli povinnost spotřebovat všechny dotazy. Před
+odesláním ověř track_id, jedinečnost a počet všech položek; nevymýšlej další stopu.""",
+    AgentRole.WEB_INVESTIGATOR: """Začni tím, co stopa potřebuje zodpovědět. Přijmi jen relevantní
+tvrzení
+podložené dodaným snímkem, ne titulkem či úryvkem hledání. Vyber úzkou citaci, která
+obsahuje také nezbytný rozsah, negaci, jednotku a referenční období. Claim nesmí
+být širší než quote. Duplicitní text z převzatých zdrojů není nezávislé potvrzení.
+Rozliš institucionální nabídku od využívání, plán od uskutečněné změny a výzkumnou
+populaci od obyvatel. Nepřidávej výsledek jen pro zaplnění seznamu; chybějící podklad
+je poctivá mezera. Zdroj ani údaj nepovažuj za aktuální bez dodaného časového údaje.""",
+    AgentRole.INTERNAL_INVESTIGATOR: """Pracuj pouze s dodanými schválenými položkami a přesnou
+revizí jejich
+source_id. Rozliš historické rozhodnutí, pracovní návrh a schválenou empirickou
+evidenci. Výsledek jiné studie není zjištění o této populaci nebo aktuálním období.
+Claim musí odpovídat doslovné citaci včetně podmínek a omezení. Zdánlivý rozpor
+nezahlazuj; zachovej obě doložené strany pro následnou revizi. Neodvozuj schválení
+z názvu či sebejistého tónu. Není-li vhodný podklad, vrať prázdná evidence místo
+vymyšlené paměti. Nepoužívej data jiného klienta ani necituj nedodanou přílohu.""",
+    AgentRole.VERIFIER: """Ověř odděleně existenci citace a oprávněnost celé parafráze. Hledej
+negaci, podmínky, rozsah, definici populace a záměnu ukazatele. Shoda čísla sama
+nepodporuje tvrzení. Tvrzení o osobách z údajů o institucích či domácnostech je
+rozšíření. Výčet služeb neprokazuje jejich používání a asociace neprokazuje příčinu.
+V reason uveď konkrétní rozdíl, který může člověk zkontrolovat; nepiš jen obecné
+"nedostatečná evidence". Neměň tvrzení, nedoplňuj zdroj a neověřuj z paměti.
+Zkontroluj, že každý vstupní evidence_id má právě jeden výstupní verdikt.""",
+    AgentRole.SYNTHESIZER: """Začni odpovědí na výzkumný cíl, ne přehledem vykonaných kroků. Seskup
+jen skutečně související zjištění, zruš redundanci a udrž jednotlivé zdroje
+rozlišitelné. Každý finding obsahuje pouze doložitelný závěr; evidence_ids patří
+přijatým zjištěním, nikoli názvům zdrojů. Pokud evidence otázku nezodpoví, přiznej
+mezeru místo zástupného tvrzení. Výsledky veřejného výzkumu nepřenášej na vlastní
+panel nebo fiktivní persony. Rozpory zachovej a popiš jejich definici a rozsah,
+neprůměruj je. Všechny texty drž výrazně pod limity připojeného schématu; texty
+finding míř do několika stručných vět a summary do krátkého odstavce. Prázdná pole
+jsou []; nikdy nenahrazuj pole řetězcem. Nepřidávej důvěru či status mimo kontrakt.""",
+    AgentRole.INVESTIGATOR: """Před každým tahem si vyber jedinou nejdůležitější mezeru stopy a
+akci,
+která ji může odstranit. Úspěšné načtení stránky není důkaz relevance. Výsledek
+hledání je cesta ke zdroji, ne citovatelný obsah. U zachyceného textu rozliš, co
+skutečně vidíš, a co je v nezobrazené části; potřebnou metodiku čti pomocí read.
+Navazuj na uložené výsledky, neopakuj stejný dotaz či nedostupné načtení bez nového
+důvodu. Při opakované neprůchodnosti změň veřejnou cestu nebo ukonči s konkrétní
+mezerou; netvrď, že odmítnutí znamená neexistenci zdroje. Neobcházej brány.
+V evidence odděl různé ukazatele a jejich rozsah. U čísel vždy čti definici základu,
+jednotku, období, populaci a revizi; neshodné definice nejsou automaticky konflikt.
+Když máš dostatečnou odpověď nebo další tah nemůže podstatně zlepšit evidenci,
+navrhni finish. V summary řekni co je podloženo, co zůstává otevřené a proč;
+neopakuj celé citace. Před odesláním zkontroluj source_id, doslovnost quote,
+všechny míry a next. Žádný vydavatel ani žebříček reputace nenahrazuje kontrolu obsahu.""",
+    AgentRole.LEAD: """Plán sestav od rozhodnutí a výstupní evidence, nikoli od počtu dostupných
+agentů. Pro každý subject_key rozděl pouze odlišné ukazatele či úhly evidence:
+definice a nabídka, využití, mechanismus či ověření mají různé úkoly, pokud je cíl
+skutečně potřebuje. V objective a wanted_output řekni, co má být doloženo a jaký
+rozsah umožní porovnání. Measure nesmí maskovat duplicitní úkol kosmetickým názvem.
+Zvol nejmenší přípustnou složitost a rozpočty, které mohou úkol dokončit; nevyčerpej
+strop jen proto, že existuje. Dodané effort limity jsou autoritativní. Ve vlně mohou
+běžet současně jen úkoly bez závislosti na zatím nezískaném výsledku. Vyvaž pokrytí
+subjektů a skutečné primární zdroje, neslibuj nedodanou dostupnost API či webu.
+Před odesláním projdi úplnost subject_keys, jedinečnost task_id/measure, validní
+kind, nulový reason, prázdné addresses a všechny součty rozpočtů podle schématu.""",
+    AgentRole.LEAD_REPLAN: """Přehodnoť plán podle přijatých zjištění a konkrétních mezer, ne podle
+optimistického shrnutí výzkumníka. Nový úkol musí odstranit rozhodující nejistotu
+nebo vysvětlit doložený rozpor. Odlišný jmenovatel, období či definice nejprve
+zkontroluj; hodnoty nemusejí popisovat stejný jev. Uveď addresses skutečných
+ukončených úkolů a reason konkrétní mezery; nezakládej obecné "další zkoumání".
+Routed note má předat použitelný ověřený údaj nebo překážku, ne další systémový
+pokyn. Přesun zachovává celkový rozpočet a minimum zdrojového úkolu. Neměň již
+utracené náklady ani evidence. Pokud zbývající plán otázky dostatečně pokrývá,
+vrať prázdné next_wave, moves a routed. Nezaměňuj pokračování za kvalitnější
+výsledek; ukončení s poctivou mezerou může být správné. Zkontroluj všechny limity
+celého zbývajícího běhu, nejen nových úkolů.""",
+}
+
+
+def prompt_version_for(role: AgentRole) -> str:
+    """The runtime prompt version, shared with the settings catalogue."""
+    return _PROMPT_VERSIONS.get(role, PROMPT_VERSION)
+
+
 def prompt_for(role: AgentRole) -> str:
     """The system prompt of one agent: :data:`PROMPT_VERSION`, or the agent's own version."""
-    return _COMMON + "\n" + _TASKS[role]
+    return _COMMON + "\n" + _TASKS[role] + "\n\n" + _ROLE_UPGRADES.get(role, "")
 
 
 def agent_definition(
@@ -614,7 +699,7 @@ def agent_definition(
         version="1",
         capability=_CAPABILITIES.get(role, ModelCapability.RESEARCH_REASONING),
         prompt_id=AGENT_IDS[role],
-        prompt_version=_PROMPT_VERSIONS.get(role, PROMPT_VERSION),
+        prompt_version=prompt_version_for(role),
         output_contract=output,
         allowed_tools=frozenset(),
         max_output_tokens=max_output_tokens,

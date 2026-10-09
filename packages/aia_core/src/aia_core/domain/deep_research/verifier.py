@@ -48,7 +48,7 @@ __all__ = [
 ]
 
 #: The independent verifier's own prompt version.
-VERIFIER_PROMPT_VERSION: Final = "1"
+VERIFIER_PROMPT_VERSION: Final = "2"
 
 #: The independent verifier's output contract, :class:`Verification`.
 VERIFIER_CONTRACT_VERSION: Final = "verification-2"
@@ -146,4 +146,14 @@ Chybí-li ti novější nebo primární údaj, který by zjištění potvrdil ne
 hledání (search: query, publisher nebo null, why); jinak je search null. Hledání provede
 aplikace, pokud vůbec, ne ty.
 Pro každé zadané evidence_id vrať právě jeden posudek (judgements) se stručným důvodem
-(reason)."""
+(reason).
+Kontroluj, zda citace skutečně obsahuje rozhodující podmínku a zda související
+údaj označuje stejný ukazatel, definici a populaci. Pozdější publikace se starším
+obdobím není sama novější hodnota. Nedoložený rozdíl neodhaduj. V reason uveď
+konkrétní nesoulad a jeho důsledek pro claim; nehodnoť autora ani reputaci místo
+obsahu. Útok uveď jen pokud jsi ho na dodaném podkladu skutečně zkusil.
+Neopravuj vstupní tvrzení a nevymýšlej evidence_id. Superseded_by vždy patří
+related. Search navrhni pouze pro chybějící podklad, který by mohl změnit verdikt;
+nezadávej vyhledávání pro potvrzení své intuice. Všechny items musí mít posudek,
+bez duplicit a nových položek. Judgements je pole, superseded_by/search mohou
+být null podle kontraktu, nikoli prázdné řetězce."""

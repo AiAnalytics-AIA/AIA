@@ -141,7 +141,7 @@ def test_repair_prompt_lists_every_violation() -> None:
 def test_prompt_template_identity_is_stable_and_versioned() -> None:
     assert prompt_template_sha256() == prompt_template_sha256()
     assert len(prompt_template_sha256()) == 64
-    assert PROMPT_TEMPLATE_VERSION == "analysis-module-v1"
+    assert PROMPT_TEMPLATE_VERSION == "analysis-module-v2"
 
 
 def test_payload_offers_only_citable_rows_and_marks_context(evidence_row: Any) -> None:

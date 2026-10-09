@@ -12,6 +12,7 @@ from sqlalchemy import select, update
 
 from aia_core.domain.prompt_slots import get_slot, slots, wired_prompt_ids
 from aia_core.domain.prompts import prompt_sha256
+from aia_core.domain.research_agents import BASELINE_PROMPT_VERSION
 from aia_core.domain.scope import OrganizationRole, ScopeDenied
 from aia_core.infrastructure.prompt_repository import (
     PromptRefused,
@@ -66,7 +67,7 @@ def test_the_resolver_reads_only_its_own_organization(scoped: Any, session: Any)
     )
     # A different organization has nothing activated: it sees the code's wording.
     pin = PromptResolver(session, other_org.organization_id).pin_for(CRITIQUE)
-    assert pin.origin == "baseline" and pin.version == "1"
+    assert pin.origin == "baseline" and pin.version == BASELINE_PROMPT_VERSION
     mine = PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE)
     assert mine.origin == "stored" and mine.text == "Vlastní kritika."
 
@@ -147,7 +148,7 @@ def test_every_change_leaves_an_audit_row_naming_who_and_what(scoped: Any, sessi
     assert created.payload["text_sha256"] == version.text_sha256
     assert (activated.action, activated.payload["from"], activated.payload["to"]) == (
         "PROMPT_ACTIVATED",
-        "1",
+        BASELINE_PROMPT_VERSION,
         "e1",
     )
     assert activated.payload["why"] == "lepší než základ"
@@ -231,7 +232,11 @@ def test_resetting_to_the_baseline_is_always_possible_and_recorded(
     author.create_version(CRITIQUE, "Jedna.", declares_no_client_data=True)
     second.activate(CRITIQUE, 1)
     state = author.activate(CRITIQUE, None, reason="zpět na základ")
-    assert (state.origin, state.version_number, state.label) == ("baseline", None, "1")
+    assert (state.origin, state.version_number, state.label) == (
+        "baseline",
+        None,
+        BASELINE_PROMPT_VERSION,
+    )
     assert state.activated_by == scoped.owner_id and state.reason == "zpět na základ"
     assert PromptResolver(session, scoped.organization_id).pin_for(CRITIQUE).origin == "baseline"
     assert [a.action for a in _audit(session)][-1] == "PROMPT_RESET_TO_BASELINE"

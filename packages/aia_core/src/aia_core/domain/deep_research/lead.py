@@ -84,7 +84,7 @@ __all__ = [
 #: The contracts :class:`ResearchPlan` and :class:`Replan`. A new field is a new version.
 LEAD_CONTRACT_VERSION: Final = "lead-plan-1"
 #: The lead's prompts (plan and re-plan change together).
-LEAD_PROMPT_VERSION: Final = "1"
+LEAD_PROMPT_VERSION: Final = "2"
 #: :data:`EFFORT_CAPS` and :data:`LEAD_LIMITS`: proposed with the presets (DR-5).
 EFFORT_CAPS_VERSION: Final = "aia-lead-effort-1-proposed"
 #: Everything a lead-planned run depends on beyond the agent-directed mode's rules.
