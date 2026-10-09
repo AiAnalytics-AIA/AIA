@@ -37,6 +37,7 @@ from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler
 from ..residency import DataClass
 from .agents import AgentRole, ExtractionProposal
 from .brief import ResearchBrief
+from .budgets import CallKind
 from .bundle import SnapshotRef
 from .contracts import (
     DeepResearchRequest,
@@ -68,6 +69,7 @@ __all__ = [
     "CallRecord",
     "Gate",
     "InvestigationRecord",
+    "KindLimitsRecord",
     "LeadPlanRecord",
     "LeadRunRecord",
     "MergeRecord",
@@ -140,6 +142,14 @@ class AllowanceRecord(_Closed):
     fetches: int = Field(ge=0)
 
 
+class KindLimitsRecord(_Closed):
+    """One kind's request limits as the run's settings pinned them; ``None`` is the
+    composition's own (``request_limits.RequestLimits``)."""
+
+    window_tokens: int | None = Field(default=None, gt=0)
+    answer_tokens: int | None = Field(default=None, gt=0)
+
+
 class PlannedTrack(_Closed):
     """What the planner proposed for one web track, as code accepted it."""
 
@@ -193,12 +203,18 @@ class PlanRecord(_Closed):
     #: of the stored form, so a plan stored before the lead existed reads and hashes
     #: exactly as it did.
     lead_plan_artifact_id: str | None = None
+    #: The request limits every step of the run sizes its model requests by, from the
+    #: settings the run pinned (chunk 43c), when they differ from the code's table. None
+    #: otherwise, and then left out, so a plan under the code's limits stores as before.
+    request_limits: dict[CallKind, KindLimitsRecord] | None = None
 
     @model_serializer(mode="wrap")
-    def _omit_no_lead(self, handler: SerializerFunctionWrapHandler) -> Any:
+    def _omit_unset(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if self.lead_plan_artifact_id is None and isinstance(data, dict):
-            data.pop("lead_plan_artifact_id", None)
+        if isinstance(data, dict):
+            for name in ("lead_plan_artifact_id", "request_limits"):
+                if getattr(self, name) is None:
+                    data.pop(name, None)
         return data
 
     def planned_for(self, track_id: str) -> PlannedTrack | None:

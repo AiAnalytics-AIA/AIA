@@ -17,7 +17,6 @@ uses a Class C route, as develop has.
 
 from __future__ import annotations
 
-import functools
 import json
 import re
 import sys
@@ -61,7 +60,6 @@ from aia_core.domain.deep_research.request_limits import (
     RESEARCH_KINDS,
     ModelPrices,
     RequestLimits,
-    kind_budgets,
     kind_of,
 )
 from aia_core.domain.deep_research.synthesis import SynthesisStatus
@@ -703,9 +701,7 @@ def _as_harness_one(monkeypatch: pytest.MonkeyPatch) -> None:
         ) == HARNESS_VERSION:
             monkeypatch.setattr(module, "HARNESS_VERSION", HARNESS_ONE)
     whole = {kind: RequestLimits(window_tokens=None, answer_tokens=None) for kind in RESEARCH_KINDS}
-    monkeypatch.setattr(
-        deep_research_runtime_module, "kind_budgets", functools.partial(kind_budgets, limits=whole)
-    )
+    monkeypatch.setattr(deep_research_runtime_module, "REQUEST_LIMITS", whole)
 
 
 def test_an_identical_run_under_the_new_limits_reuses_nothing_made_under_the_old(
@@ -839,6 +835,76 @@ def test_a_run_whose_pin_is_not_its_requests_method_is_never_executed(
     [plan] = [s for s in run["steps"] if s["status"] is StepRunStatus.FAILED]
     assert plan["attempts"][0]["error"]["reason"] == "settings_mismatch"
     assert agents.requests == []
+
+
+def _approve_setting(world: ResearchWorld, key: str, value: Any) -> None:
+    """The organization's owner proposes and approves one Deep Research setting (ADR 0022)."""
+    from aia_core.infrastructure.deep_research_settings_repository import (
+        DeepResearchSettingsRepository,
+    )
+    from aia_core.infrastructure.tables import UserRow
+
+    with world.sessions() as session:
+        owner = session.scalars(select(UserRow).where(UserRow.email == "owner@art-chain.io")).one()
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(user_id=owner.user_id, organization_id=world.organization_id)
+        )
+        repo = DeepResearchSettingsRepository(session, admin)
+        repo.approve(key, repo.propose(key, value).version_number)
+        session.commit()
+
+
+def test_an_approved_request_limit_sizes_every_request_of_its_kind_and_only_it(
+    research: ResearchWorld, database_url: str, store: InMemoryArtifactStore, build: Any
+) -> None:
+    """Chunk 43c: the run's pinned request limits are what its model requests are sized by.
+    The verifier's answer limit lowered to 2048 tokens reaches every verifier request and
+    reserves less; every other kind keeps the code's limits; the plan records the limits
+    for the steps after it; and the approval makes the same start another run."""
+    from aia_core.application.research import research_artifacts
+    from aia_core.domain.deep_research.budgets import CallKind
+    from aia_core.domain.deep_research.request_limits import REQUEST_LIMITS
+    from aia_core.domain.deep_research.steps import PlanRecord
+
+    approve_knowledge(research)
+    before = start(research)
+    _approve_setting(research, "limits.verifier.answer_tokens", 2048)
+    agents = RecordedAgents(ANSWERS)
+    runtime = recorded(research, agents)
+    run_id = start(research)
+    assert run_id != before
+    assert drain(worker(research, database_url, store, build, runtime)) >= 6
+    run, bundle = read(research, run_id, store)
+    assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+    sized = {
+        RecordedAgents._role(r): r.body["inferenceConfig"]["maxTokens"] for r in agents.requests
+    }
+    assert sized == {
+        "planner": 8192,
+        "internal_investigator": 6144,
+        "web_investigator": 6144,
+        "verifier": 2048,
+        "synthesizer": 8192,
+    }
+    pinned = runtime.config.under(
+        {**REQUEST_LIMITS, CallKind.VERIFIER: RequestLimits(112_000, 2048)}
+    )
+    assert (
+        pinned.budget(CallKind.VERIFIER).reservation_usd
+        < runtime.config.budget(CallKind.VERIFIER).reservation_usd
+    )
+    with research.sessions() as session:
+        from aia_core.infrastructure.tables import StepRunRow
+
+        plan_row = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "plan")
+        ).one()
+        artifact_id = plan_row.output_json["artifact_id"]
+        repo = research_artifacts(session, research.lead_scope(session), store)
+        plan = PlanRecord.model_validate(repo.read_json(artifact_id))
+    assert plan.request_limits is not None
+    assert plan.request_limits[CallKind.VERIFIER].answer_tokens == 2048
+    assert plan.request_limits[CallKind.INVESTIGATOR].answer_tokens == 6144
 
 
 @pytest.mark.parametrize(
