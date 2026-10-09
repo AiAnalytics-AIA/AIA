@@ -1104,6 +1104,26 @@ git add apps/web/src/... docs/...
 `npm run lint`, `npx tsc --noEmit` and `npm run build` are three different
 gates and all three are blocking.
 
+**Route modules cannot export arbitrary helpers or constants.** The production
+build rejects value exports such as `AI_SWITCHES`, `runtimeSwitch` and
+`approvedClasses` from `app/config/route.ts`, even when Vitest and a standalone
+type check pass. Keep them and `PublicConfig` in `lib/public-config.ts`; the
+route exports its `GET` handler and supported route configuration only.
+
+```ts
+// WRONG — arbitrary route exports fail Next.js production validation
+export const AI_SWITCHES = ["AIA_AI_RUNTIME_ENABLED"];
+export function runtimeSwitch(raw: string | undefined) { /* ... */ }
+// RIGHT — shared helpers live outside the route module
+import { AI_SWITCHES, runtimeSwitch } from "@/lib/public-config";
+export const dynamic = "force-dynamic";
+export function GET() { /* read the server environment through those helpers */ }
+```
+
+The Python worker-vocabulary and Compose consistency tests read the helper's
+definitions and assert that the route imports and uses them. Moving the source
+must preserve these checks as well as the response tests.
+
 **npm 10 cannot add Vitest 4 to this lockfile.** `npm install --save-dev
 vitest@^4.1.11` fails inside arborist with `Cannot read properties of null
 (reading 'edgesOut')` (`#loadPeerSet`), from a clean `node_modules` too, and
