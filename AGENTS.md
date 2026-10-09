@@ -244,6 +244,28 @@ psql "$TEST_DB" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'
 
 ## Pydantic
 
+**A new optional field changes every fingerprint already stored.** A model whose
+stored form is hashed (a methodology spec, an artifact body) cannot gain
+`field: X | None = None` alone: `model_dump` writes the `None`, so every pinned
+fingerprint moves and every stored body stops recomputing to itself. Drop the
+key while it is absent with a wrap serializer (`PairEvidenceSpec`,
+`PairRelations`, #205):
+
+```python
+# WRONG -- "effect_floor": null now appears in every dump; aia-sociomap-2 moves
+effect_floor: float | None = None
+
+# RIGHT -- absent stays absent; aia-sociomap-2 keeps 3f1c0122...
+effect_floor: float | None = None
+
+@model_serializer(mode="wrap")
+def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+    body: dict[str, Any] = handler(self)
+    if body.get("effect_floor") is None:
+        body.pop("effect_floor", None)
+    return body
+```
+
 **An after-validator never sees a boolean in an `int` field.** Lax mode coerces
 `True` to `1` *before* a `mode="after"` validator runs, so an
 `isinstance(v, bool)` check there is dead code and `max_iterations=True` becomes

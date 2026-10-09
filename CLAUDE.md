@@ -247,8 +247,9 @@ packages/aia_core/src/aia_core/
                             n, interval and status, relation_rescaled (F2), object_scores (F8), K100
                             only with AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED; rating_universe
                             (every set's items + the declared rating questions); SociomapMethod,
-                            default_methods (aia-sociomap-1 + -2), read_methods, LEGACY_METHODS: a
-                            run computes the methods it pinned; each battery's contract-3 maps
+                            default_methods (aia-sociomap-1 + -3; a run that pinned -2 keeps it),
+                            read_methods, LEGACY_METHODS: a run computes the methods it pinned;
+                            each battery's contract-3 maps
     research.py             A run's phase in words (queued … cancelled), from the engine's state
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
@@ -281,20 +282,27 @@ packages/aia_core/src/aia_core/
     workflow_templates.py   The closed set of workflow types and their step graphs
     sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
       specification.py      SociomapSpec v2 (contract 2, AIA_SOCIOMAP_V1) and SociomapSpecV3
-                            (contract 3, AIA_SOCIOMAP_V2, the audit's object map), no defaults,
+                            (contract 3: AIA_SOCIOMAP_V2, the audit's object map; AIA_SOCIOMAP_V3,
+                            the same under AIA's Q5-Q7 decisions: Kish-n pair evidence, the 0.10
+                            effect floor, the envelope terrain at provisional sigma 0.25), no defaults,
                             require_supported each; read_spec / spec_payload read a stored spec by
                             the contract it names, never another
       relations.py          scale coercion, mutual projection, ipsatization   F1-F3; pair_status
                             (audit F3: UNKNOWN / RELIABLE / WEAK), person_minmax (F2),
-                            coerce_declared_1_10 (F5: a declared matrix type, never detected)
-      pairs.py              derive_pair_relations (signed r, n, interval, status) and the unit's
+                            coerce_declared_1_10 (F5: a declared matrix type, never detected);
+                            kish_effective_n, meets_effect_floor (Q6: two gates, the floor beside
+                            the status, never inside it)
+      pairs.py              derive_pair_relations (signed r, n, interval, status; with a declared
+                            policy, each pair's Kish n and meets_effect_floor) and the unit's
                             derive_relation_matrix
       layout.py             declared layout registry; aia_rowcond_unfolding_v1;
                             fit_smacof_objects (audit F6: objects on the fixed ruler, never rescaled)
       metrics.py            object metrics, T-score, normaliser               F5-F6; primary_scores
                             (audit F8, PRIMARY only, UNKNOWN pairs out); connectedness_100 and
                             rank_with_ties (F9: an order only where intervals part)
-      terrain.py            respondent density / object weighted mean         F7-F8
+      terrain.py            respondent density / object weighted mean         F7-F8;
+                            object_envelope (audit F12/F13: max of hills, each its own height; a
+                            cell no hill reaches is null; nothing outside the engine computes one)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
                             support); read_artifact reads either contract, refuses any other
