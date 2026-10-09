@@ -5,7 +5,7 @@ chunks:
   - "[ ] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
   - "[x] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
   - "[x] 3. Brave search adapter"
-  - "[ ] 4. The search key as a credential reference"
+  - "[x] 4. The search key as a credential reference"
   - "[x] 5. Public-web fetch: any public host, robots.txt, links, run snapshot cache"
   - "[ ] 6. Documents: PDF, XLSX, CSV, read in parts, tables kept as tables"
   - "[x] 7. Measures: every number with its unit, scale, period, geography, population, denominator"
@@ -24,7 +24,7 @@ chunks:
   - "[x] 20. Triage readers on the light model"
   - "[x] 21. Fan-out: parallel tracks, per-host politeness, model concurrency"
   - "[x] 22. Presets, budgets and the run's cost ceiling"
-  - "[ ] 23. Composition, switches, prices (per-kind reservations first); Settings after the purpose model"
+  - "[x] 23. Composition, switches, prices (per-kind reservations first); Settings after the purpose model"
   - "[ ] 24. The operator surface, for both purposes (after 29–32)"
   - "[ ] 25. Accuracy evaluation on a truth set of public Czech facts"
   - "[ ] 26. Quality evaluation: design and interpretation use cases, three arms, rubric judge, blind grade"
@@ -1311,6 +1311,34 @@ unset. Every switch stays as SSM sets it: nothing here turns Brave on. Tests:
 `test_develop_host_configuration.py::test_brave_composes_from_the_hosts_env_file_and_its_key_reaches_the_worker_alone`
 and `::test_with_brave_unset_the_develop_host_composes_as_before`. Still open in 23: Common
 Crawl (23e) and its develop keys.
+
+**Chunk 4, ticked 2026-10-09**: met by 23d/23f as written above (merged in #217, `83f3c55`). The key
+is a `CredentialSource` reference, `env:AIA_DEEP_RESEARCH_BRAVE_API_KEY`
+(`infrastructure/web_retrieval_brave.py`, `BRAVE_CREDENTIAL_REF`), never the value; the owner put it
+in SSM as SecureString `aia_deep_research_brave_api_key`, `bin/write-env.sh` writes it into `.env`,
+and Compose gives it to the worker alone
+(`test_develop_host_configuration.py::test_brave_composes_from_the_hosts_env_file_and_its_key_reaches_the_worker_alone`);
+missing while the route is on, the worker stops naming it
+(`test_deep_research_brave_route.py::test_a_brave_route_that_cannot_be_composed_stops_the_worker_naming_its_key`).
+Rotation is still unanswered, as the chunk says.
+
+**Chunk 23e, 2026-10-09** (`feature/dr-common-crawl`; with it, chunk 23 is done):
+`AIA_DEEP_RESEARCH_COMMON_CRAWL` composes `deep_research_live.common_crawl_archive`. The URL index
+is `AthenaUrlIndex` over `InstanceRoleSigner(us-east-1, athena)` and `UrllibPostWire`, on route
+`common-crawl-athena-index`: `NON_EU`, Class C only, priced at the workgroup's scan cutoff billed
+(`common_crawl_settings`, every `AIA_DEEP_RESEARCH_COMMON_CRAWL_*` key required, the price date not
+in the future). The archive is `ArchiveFetcher` over `ArchiveRangeTransport(contact)` on route
+`common-crawl-archive`, fee-free. It needs a search route and the public fetch's contact, and
+`AIA_DEEP_RESEARCH_COMMON_CRAWL_CRAWLS` (1 to 6 `CC-MAIN-YYYY-WW`, none twice), given to the
+ladder's archive rung (`LadderConfig.crawls`). The priced index is a sign-off route (44) and
+reserves against the study (23c). The API prices `URL_INDEX_QUERY` from the switch and the four
+price keys (`_index_price`; unknown without one, or for a cutoff below Athena's 10 MB floor) and the
+archive free; Compose passes them, the worker every key. Nothing here was run against AWS; the
+workgroup, results bucket, `ccindex` table and role grants stay the operator's
+(`docs/architecture/deep-research-common-crawl.md` § Human actions), and the `us-east-1` exception
+stays chunk 1's sign-off. Tests: `test_deep_research_common_crawl_route.py` (16),
+`test_deep_research_spend_api.py::test_a_common_crawl_index_query_is_priced_at_its_cutoff_and_unknown_without_a_key`,
+`test_develop_host_configuration.py::test_common_crawl_composes_from_the_hosts_env_file_and_the_api_prices_it`.
 
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0
