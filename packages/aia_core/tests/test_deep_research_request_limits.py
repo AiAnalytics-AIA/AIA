@@ -133,6 +133,11 @@ LIMITS_OF_HARNESS = {
     "aia-deep-research-harness-2": (
         "b5fa86901d095f100a15934bbd7487038358a95cc143fdc7291cb5ea1216ee1a"
     ),
+    # Harness 3 (chunk 43b) moved for approved method settings, not for the table: the
+    # same limits, pinned again under the new name.
+    "aia-deep-research-harness-3": (
+        "b5fa86901d095f100a15934bbd7487038358a95cc143fdc7291cb5ea1216ee1a"
+    ),
 }
 
 

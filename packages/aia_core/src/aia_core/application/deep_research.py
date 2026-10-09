@@ -308,6 +308,9 @@ class DeepResearchRuns:
                 ],
                 knowledge=knowledge,
             ),
+            # Harness 3: the approved method settings are part of what the run is, so a
+            # changed one is another request, another run, and reuses nothing of the old.
+            settings_method=settings_in_force_for_study(self.session, self.scope).approved_method(),
         )
 
     def freeze_design(

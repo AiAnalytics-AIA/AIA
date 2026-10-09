@@ -45,7 +45,8 @@ chunks:
   - "[x] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
   - "[x] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[x] 43a. Runs pin their settings: the pin and its digests on the run at enqueue, read back verified; the plan step fails a pin that does not hash to itself"
-  - "[ ] 43b. The engine reads the pin (presets, allowances, request limits, register, weights, the API's ceiling); the method digest in every cross-run reuse key (harness 3)"
+  - "[x] 43b. The approved method digest in the engine request and every cross-run reuse key (harness 3); a pin that is not the request's method fails the run"
+  - "[ ] 43c. The engine reads the pin's values where it reads constants: presets, allowances, request limits, register, weights, and the API's ceiling"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
@@ -1210,6 +1211,23 @@ idempotency key is still the spec's alone, so a start repeated after an approval
 run already enqueued under the old pin; 43b adds the method digest to it. Tests:
 `test_deep_research_settings_pin.py` (15), `test_deep_research_journey.py::
 test_a_run_whose_settings_pin_was_altered_is_never_executed`.
+
+**Chunk 43b, 2026-10-09** (`feature/dr-settings-engine`, stacked on 43a): `HARNESS_VERSION`
+moves to `aia-deep-research-harness-3` (ADR 0022 decision 5). `DeepResearchRequest` gains
+`settings_method`, the pinned settings' method digest once any method setting is approved
+(`EffectiveSettings.approved_method`), else `None` and left out of the stored form; the
+request's `method_identity()` -- the harness, and the digest when there is one -- replaces the
+bare harness in the four cross-run reuse keys (track, both verification keys, synthesis,
+brief). A changed approved method value is therefore another request, another run (the
+idempotency key is the spec's, which holds the request's fingerprint) and reuses nothing made
+under the old one; a non-method approval (retention) changes neither. The plan step fails a
+run whose pin's method is not its request's (`settings_mismatch`). Measured: with nothing
+approved, every track fingerprint under harness 3 equals harness 2's once only the harness
+string is set back (`5ade329c...`, `test_harness_three_changes_nothing_but_its_name`); the
+request-limit table is unchanged (`b5fa8690...`, pinned under both names). Captures and
+datasets are run-scoped today, so the denylist and personal-data patterns have no cross-run
+key to join yet; they join the dataset key when one crosses runs (chunk 37). Still constants
+in the engine: presets, allowances, request limits, register, weights (43c).
 
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0

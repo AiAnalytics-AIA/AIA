@@ -341,7 +341,11 @@ def test_a_cell_is_covered_by_a_cross_or_by_both_its_tracks_completed() -> None:
 #: Re-pinned when the instruction detector joined the grounding rules (chunk 45,
 #: GROUNDING_VERSION aia-grounding-3/.../aia-instructions-2): with only that string set
 #: back to aia-grounding-2/aia-measures-2 it is f8ed305f..., reproduced 2026-10-08.
-FINGERPRINTS_WITHOUT_THINKING = "5ade329c1eddb09aa61941e6d6e682f13c0c3be06cb9ba6f4b8fe149aeac5f88"
+#: Re-pinned when the harness moved to 3 (chunk 43b: approved method settings in every
+#: reuse key): with nothing approved only the harness string differs, and under harness 2
+#: it is 5ade329c..., which test_harness_three_changes_nothing_but_its_name reproduces.
+FINGERPRINTS_WITHOUT_THINKING = "848f6bea0e23b059c993fe9ff6582495296306590a389c425aebb01d912fbc72"
+FINGERPRINTS_UNDER_HARNESS_TWO = "5ade329c1eddb09aa61941e6d6e682f13c0c3be06cb9ba6f4b8fe149aeac5f88"
 
 
 def _thinking(budget: int | None) -> TrackInputs:
@@ -358,6 +362,29 @@ def test_without_a_thinking_budget_every_fingerprint_is_the_one_it_was() -> None
     digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
     assert digest == FINGERPRINTS_WITHOUT_THINKING
     assert fingerprints == _fingerprints(_request(DESIGN))
+
+
+def test_harness_three_changes_nothing_but_its_name(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Chunk 43b's acceptance: with nothing approved, every track fingerprint is harness 2's
+    once only the harness string is set back."""
+    from aia_core.domain.deep_research import contracts
+
+    monkeypatch.setattr(contracts, "HARNESS_VERSION", "aia-deep-research-harness-2")
+    fingerprints = _fingerprints(_request(DESIGN), _thinking(None))
+    digest = hashlib.sha256(json.dumps(fingerprints, sort_keys=True).encode()).hexdigest()
+    assert digest == FINGERPRINTS_UNDER_HARNESS_TWO
+
+
+def test_approved_method_settings_move_every_track_and_defaults_move_none() -> None:
+    """Harness 3: a request carrying an approved method digest keys every track apart from
+    one without, and two digests apart from each other."""
+    base = _fingerprints(_request(DESIGN))
+    one = _fingerprints(_request(DESIGN).model_copy(update={"settings_method": "a" * 64}))
+    other = _fingerprints(_request(DESIGN).model_copy(update={"settings_method": "b" * 64}))
+    assert all(one[t] != fp for t, fp in base.items())
+    assert all(other[t] != fp for t, fp in one.items())
+    assert _request(DESIGN).settings_method is None
+    assert "settings_method" not in _request(DESIGN).model_dump(mode="json")
 
 
 def test_a_thinking_budget_is_part_of_every_track_and_its_size_matters() -> None:

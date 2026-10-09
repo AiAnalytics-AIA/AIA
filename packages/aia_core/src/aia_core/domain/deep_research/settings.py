@@ -667,6 +667,14 @@ class EffectiveSettings:
         method = {e.key: _jsonable(e.value) for e in self.values if _BY_KEY[e.key].method}
         return digest({"catalogue": CATALOGUE_VERSION, "method": method})
 
+    def approved_method(self) -> str | None:
+        """The method digest once any method setting is approved; ``None`` while every one
+        is the code's proposed default. What the engine request carries (harness 3), so a
+        run under nothing but defaults keys its work exactly as before settings existed."""
+        if any(_BY_KEY[e.key].method and e.origin is Origin.APPROVED for e in self.values):
+            return self.method_digest()
+        return None
+
     def missing_for_live(self) -> tuple[str, ...]:
         """Every setting live needs that is not approved -- or, for a status, not approved as
         ``approved`` (a table approved while still proposed is not signed off)."""

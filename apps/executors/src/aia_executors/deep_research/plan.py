@@ -85,9 +85,16 @@ class PlanExecutor(_Step):
             # a pin that does not prove itself is not run (a run enqueued before pins carries
             # none and is read as it always was).
             try:
-                read_pin(pinned)
+                settings = read_pin(pinned)
             except SettingsPinCorrupt as exc:
                 return _invalid(f"settings_{exc.reason}", str(exc))
+            if settings.approved_method() != request.settings_method:
+                # The request's method identity must be the pin's: anything else would key
+                # this run's work under settings it does not run under.
+                return _invalid(
+                    "settings_mismatch",
+                    "the request's method settings are not the ones the run pinned",
+                )
         if request.harness_version != HARNESS_VERSION:
             # Frozen for an earlier method: executed now it would run under another
             # one and be labelled with the first. It stays readable; it is not run.
