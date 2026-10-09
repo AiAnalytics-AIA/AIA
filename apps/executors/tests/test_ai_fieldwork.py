@@ -821,10 +821,15 @@ def test_the_settings_page_reads_the_switch_with_the_workers_vocabulary() -> Non
     route = (root / "apps" / "web" / "src" / "app" / "config" / "route.ts").read_text(
         encoding="utf-8"
     )
+    config = (root / "apps" / "web" / "src" / "lib" / "public-config.ts").read_text(
+        encoding="utf-8"
+    )
+    assert 'from "@/lib/public-config"' in route
+    assert "runtimeSwitch(process.env[name])" in route
 
     def spelled(name: str) -> set[str]:
-        found = re.search(rf"const {name} = new Set\(\[([^\]]*)\]\)", route)
-        assert found, f"route.ts no longer declares {name}"
+        found = re.search(rf"const {name} = new Set\(\[([^\]]*)\]\)", config)
+        assert found, f"public-config.ts no longer declares {name}"
         return set(re.findall(r'"([^"]*)"', found.group(1)))
 
     assert spelled("TRUE") == runtime._TRUE

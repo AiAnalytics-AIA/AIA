@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AI_SWITCHES, GET, approvedClasses, runtimeSwitch } from "./route";
+import { GET } from "./route";
+import { AI_SWITCHES, approvedClasses, runtimeSwitch } from "@/lib/public-config";
 
 afterEach(() => vi.unstubAllEnvs());
 
