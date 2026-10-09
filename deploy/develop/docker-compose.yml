@@ -122,6 +122,8 @@ services:
       # worker reads below, so the API can refuse a draft on any other client before a job
       # exists. Empty means no draft can be run anywhere.
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
+      # The API pins this deterministic engine and its report into newly queued runs.
+      AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: ${AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED:-false}
       # What the worker reserves per model request, read by the API too so it can say what a
       # run can cost at most before it starts (the spend confirmation, plan 5b.2). Unset means
       # the ceiling is unknown, and a study with a spend limit does not start such a run.
