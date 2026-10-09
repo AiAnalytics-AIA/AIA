@@ -46,7 +46,7 @@ from aia_core.domain.deep_research.tooling import (
 )
 from aia_core.domain.deep_research.verification import VERIFICATION_RULES_VERSION
 from aia_core.domain.providers import Provider
-from aia_worker.executor import StepContext
+from aia_worker.executor import PaidCall, StepContext
 
 from ..ai_step import ModelConcurrency
 
@@ -296,15 +296,21 @@ def _earlier_tool_entries(context: StepContext) -> list[ToolUsageEvent]:
 
 
 class StepToolMeter:
-    """The cost contract for tools, over a step's context. It never charges the study.
+    """The cost contract for tools, over a step's context.
 
     Every entry is journaled as a progress event (``TOOL_EVENT_KINDS``) -- committed
     and lease-fenced -- and the ``DISPATCHED`` entry is journaled after a
     checkpoint and **before** the call leaves, so a cancelled, stopping or
     lease-less step stops first, and a process that dies in flight leaves the
-    dispatch on record. Its ceiling is zero and it does not charge the study's
-    budget, so only a free call can be reserved at all: a priced route is refused
-    by the gate (``tool_metering_unavailable``) and, were it not, by the ledger.
+    dispatch on record.
+
+    A priced call is held against the study's budget (plan chunk 23c): reserved
+    through the step's context before anything is sent (``BudgetExceeded``
+    propagates, and the step waits for a person), marked dispatched before it
+    leaves, and settled once at what the gate charged -- the ceiling when its
+    outcome is unknown. A process that dies in flight leaves the hold to recovery,
+    which charges it as uncertain exposure, exactly as for a model call. A free
+    call holds nothing.
 
     A step that sends tool calls builds its meter with :meth:`resuming`: recovery
     reads a model call's dispatch mark but not these entries, so the meter reads
@@ -314,9 +320,10 @@ class StepToolMeter:
 
     def __init__(self, context: StepContext) -> None:
         self._context = context
-        self._ledger = InMemoryToolLedger(budget_usd=0.0)
+        self._ledger = InMemoryToolLedger(budget_usd=None)
         self._resumed = False
         self._earlier: tuple[ToolUsageEvent, ...] = ()
+        self._paid: dict[str, PaidCall] = {}
 
     @classmethod
     def resuming(cls, context: StepContext, *, clock: Callable[[], datetime]) -> StepToolMeter:
@@ -325,7 +332,8 @@ class StepToolMeter:
         Everything they journaled counts again (a track's allowance spans attempts),
         and a call one left ``DISPATCHED`` -- its process died, or its lease went, in
         flight -- is closed ``UNCERTAIN`` and journaled so: :meth:`uncertain` is then
-        true for its track, which ends ``INCOMPLETE`` without sending anything.
+        true for its track, which ends ``INCOMPLETE`` without sending anything. Its
+        money is not charged again here: recovery charged its hold.
         """
         meter = cls(context)
         earlier = _earlier_tool_entries(context)
@@ -349,14 +357,24 @@ class StepToolMeter:
 
     @property
     def charges_study_budget(self) -> bool:
-        return False
+        return True
 
     def reserve(
         self, *, tool: ToolKind, route_id: str, track_id: str, amount_usd: float
     ) -> ToolReservation:
-        return self._ledger.reserve(
+        paid = (
+            self._context.reserve_tool(
+                amount_usd=amount_usd, route_id=route_id, reason=f"{tool.value}:{route_id}"
+            )
+            if amount_usd > 0
+            else None
+        )
+        reservation = self._ledger.reserve(
             tool=tool, route_id=route_id, track_id=track_id, amount_usd=amount_usd
         )
+        if paid is not None:
+            self._paid[reservation.reservation_id] = paid
+        return reservation
 
     def _journal(self, event: ToolUsageEvent) -> None:
         self._context.progress(TOOL_EVENT_KINDS[event.outcome], **event.model_dump(mode="json"))
@@ -368,12 +386,23 @@ class StepToolMeter:
                 "a meter sends a tool call only once it holds its step's journal: "
                 "build it with StepToolMeter.resuming"
             )
+        paid = self._paid.get(event.reservation_id or "")
+        if paid is not None:
+            # Marked first: a hold whose mark is on record is charged by recovery if
+            # this process dies before the outcome; the journal follows.
+            self._context.dispatching(paid)
         self._ledger.dispatching(event)
         self._journal(event)
 
     def outcome(self, event: ToolUsageEvent) -> None:
         self._ledger.outcome(event)
         self._journal(event)
+        paid = self._paid.pop(event.reservation_id or "", None)
+        if paid is not None:
+            charge = event.ceiling_usd if event.outcome is ToolOutcome.UNCERTAIN else event.cost_usd
+            self._context.settled(
+                paid, actual_cost_usd=charge, provider_request_id=event.provider_request_id
+            )
 
     def committed_usd(self) -> float:
         return self._ledger.committed_usd()

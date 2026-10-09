@@ -1047,7 +1047,46 @@ class WorkflowRepository:
         """
         if not is_paid(provider):
             return None
+        reservation_id = self._reserve(
+            attempt_id=attempt_id,
+            worker_id=worker_id,
+            amount_usd=amount_usd,
+            payee=provider.value,
+            reason=reason,
+        )
+        self._held_attempt(attempt_id, worker_id=worker_id).provider = provider.value
+        self._session.flush()
+        return reservation_id
 
+    def reserve_tool_budget(
+        self,
+        *,
+        attempt_id: str,
+        worker_id: str,
+        amount_usd: float,
+        route_id: str,
+        reason: str = "",
+    ) -> str:
+        """Hold budget for one priced tool call (a search, a page, a query), or raise
+        :class:`BudgetExceeded`: :meth:`reserve_budget`'s check, lock and fence, for a
+        route rather than a model provider (plan ``deep-research-web-search.md`` 23c).
+
+        The hold is settled, marked dispatched and recovered exactly as a model call's:
+        a dispatched call whose outcome is unknown is charged as uncertain exposure. The
+        attempt's ``provider`` is left as it is: it names the model provider.
+        """
+        return self._reserve(
+            attempt_id=attempt_id,
+            worker_id=worker_id,
+            amount_usd=amount_usd,
+            payee=f"tool:{route_id}",
+            reason=reason,
+        )
+
+    def _reserve(
+        self, *, attempt_id: str, worker_id: str, amount_usd: float, payee: str, reason: str
+    ) -> str:
+        """The locked check and the hold behind both kinds of reservation."""
         # Attempt before study: every path that locks both takes them in this
         # order -- completion and recovery lock the attempt, then charge the
         # study -- so no two of them can wait on each other in a cycle.
@@ -1083,11 +1122,10 @@ class WorkflowRepository:
                 attempt_id=attempt_id,
                 amount_usd=requested,
                 status=ReservationStatus.RESERVED.value,
-                reason=reason or f"{step.node_key}:{provider.value}",
+                reason=reason or f"{step.node_key}:{payee}",
             )
         )
         attempt.estimated_cost_usd = requested
-        attempt.provider = provider.value
         self._session.flush()
         return reservation_id
 
