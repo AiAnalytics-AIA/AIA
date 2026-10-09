@@ -19,8 +19,9 @@ Every step is a function another chunk already landed and tested (2a ``person_mi
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
 ``primary_scores``, 4a ``connectedness_100``); this module composes them and records what
 it composed. Respondent placement (chunk 3) is not computed and the artifact says so; so is
-the terrain where the spec declares none (``aia-sociomap-2``) or the family is not mapped. A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE`
-with its reason, never an exception and never a picture.
+the terrain where the spec declares none (``aia-sociomap-2``) or the family is not mapped.
+A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE` with its reason,
+never an exception and never a picture.
 
 ``connectedness_interval`` is the deployment's kill switch for F9's bootstrap
 (``AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED``, about 90 s per 1,500 x 22 family at
