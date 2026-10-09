@@ -1300,6 +1300,18 @@ requests are not paced (its transport takes headers, `PacedTransport` does not; 
 answered failure, charged); the develop wiring and the SSM read are 23f. Tests:
 `test_deep_research_brave_route.py` (15), `test_deep_research_spend_api.py::test_brave_search_is_priced_from_its_dated_key_and_unknown_without_it`.
 
+**Chunk 23f (Brave), 2026-10-09** (`feature/dr-brave-develop`, stacked on 23d): Compose hands the
+worker `AIA_DEEP_RESEARCH_WEB_SEARCH`, the Brave key, its price and date, and the API the search
+route and the price (never the key); `env.example` lists them; `deploy/develop/README.md` § Deep
+Research on Brave search is the runbook (parameters under `/aia/develop/`, the key a
+SecureString, written by `bin/write-env.sh` as it writes every other). The owner put the key in
+SSM as `aia_deep_research_brave_api_key` (2026-10-09; the deploy log of run 83 lists the name
+`write-env.sh` wrote). The API reads a blank Brave price, as Compose passes an unset one, as
+unset. Every switch stays as SSM sets it: nothing here turns Brave on. Tests:
+`test_develop_host_configuration.py::test_brave_composes_from_the_hosts_env_file_and_its_key_reaches_the_worker_alone`
+and `::test_with_brave_unset_the_develop_host_composes_as_before`. Still open in 23: Common
+Crawl (23e) and its develop keys.
+
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0
   on the hand-labelled fictional corpus. The threshold is chunk 1's decision.

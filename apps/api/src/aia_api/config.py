@@ -159,6 +159,7 @@ class Settings(BaseSettings):
         "bedrock_context_window_tokens",
         "ai_research_max_output_tokens",
         "deep_research_thinking_budget_tokens",
+        "deep_research_brave_usd_per_1000",
         mode="before",
     )
     @classmethod

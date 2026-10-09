@@ -333,6 +333,30 @@ and anything derived from the population panel parks with `licence_undetermined`
 (`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
 prompt hash, class, lineage, every call).
 
+### Deep Research on Brave search
+
+Brave's search is a priced, live route outside the EU, Class C only
+(`aia_executors.deep_research_live.brave_retrieval`). Each search reserves its price
+against the study before it leaves and is charged once, and a start is refused (409
+`live_settings_unapproved`) until the organization has approved every setting live needs
+on **Nastavení → Deep Research** (ADR 0022 decision 6; the Wikipedia route needs no
+sign-off). To switch it on, beside the AI runtime and research agents above, create
+these parameters under `/aia/develop/`, run `bin/write-env.sh` (or deploy), and read the
+worker's start-up log: a missing or invalid key stops the worker with the key named.
+
+| Parameter | Value |
+|---|---|
+| `aia_deep_research_enabled` | `true` |
+| `aia_deep_research_web_search` | `brave` (replaces `aia_deep_research_wikipedia_enabled`: leave that `false` or unset) |
+| `aia_deep_research_public_fetch_contact` | one e-mail address: Brave's results are pages on any public host |
+| `aia_deep_research_brave_api_key` | **SecureString**: the subscription key. Only the worker receives it; it is read at each call and never logged |
+| `aia_deep_research_brave_usd_per_1000` | the plan's price per 1,000 requests, in USD |
+| `aia_deep_research_brave_prices_as_of` | the date that price was read, `YYYY-MM-DD` |
+
+To switch it off, set `aia_deep_research_web_search` to `wikipedia` or `off` and
+redeploy; a run already planned on Brave then stops with `composition_changed` rather
+than continuing on another route.
+
 ## Seed / reset
 
 ```bash
