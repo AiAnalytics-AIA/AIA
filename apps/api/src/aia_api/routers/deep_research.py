@@ -23,7 +23,7 @@ run's start does.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -53,14 +53,20 @@ from aia_core.domain.deep_research.integration import (
 )
 from aia_core.domain.deep_research.planning import UnknownPreset
 from aia_core.domain.deep_research.request_limits import (
+    REQUEST_LIMITS,
     RESEARCH_KINDS,
     KindBudget,
     ModelPrices,
+    RequestLimits,
     kind_budgets,
 )
+from aia_core.domain.deep_research.settings import request_limits
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
+from aia_core.infrastructure.deep_research_settings_repository import (
+    settings_in_force_for_study,
+)
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
@@ -199,10 +205,13 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
-def deep_research_budgets(settings: Settings) -> dict[CallKind, KindBudget] | None:
+def deep_research_budgets(
+    settings: Settings, limits: Mapping[CallKind, RequestLimits] = REQUEST_LIMITS
+) -> dict[CallKind, KindBudget] | None:
     """Each kind of model request's window, output limit and reservation, derived as the
     worker derives them (``request_limits.kind_budgets``) from the same keys; ``None`` when a
-    key it needs is missing or not a valid value -- unknown, never a guess."""
+    key it needs is missing or not a valid value -- unknown, never a guess. ``limits`` are
+    the request limits in force (the study's Deep Research settings, chunk 43c)."""
     if (
         settings.bedrock_input_usd_per_mtok is None
         or settings.bedrock_output_usd_per_mtok is None
@@ -221,12 +230,15 @@ def deep_research_budgets(settings: Settings) -> dict[CallKind, KindBudget] | No
             context_window_tokens=settings.bedrock_context_window_tokens,
             max_output_tokens=settings.ai_research_max_output_tokens,
             thinking_budget_tokens=settings.deep_research_thinking_budget_tokens,
+            limits=limits,
         )
     except ValueError:
         return None
 
 
-def deep_research_prices(settings: Settings) -> DeepResearchPrices:
+def deep_research_prices(
+    settings: Settings, limits: Mapping[CallKind, RequestLimits] = REQUEST_LIMITS
+) -> DeepResearchPrices:
     """What each kind of call a Deep Research run makes may cost, as this deployment says.
 
     Each kind of research agent's request reserves its own kind's amount
@@ -238,7 +250,7 @@ def deep_research_prices(settings: Settings) -> DeepResearchPrices:
     no deployment yet (chunk 23 wires them with their dated prices), so nothing is sent
     on them.
     """
-    budgets = deep_research_budgets(settings)
+    budgets = deep_research_budgets(settings, limits)
     model = {
         kind: RoutePrice.unknown()
         if budgets is None
@@ -263,6 +275,16 @@ def deep_research_prices(settings: Settings) -> DeepResearchPrices:
             CallKind.URL_INDEX_QUERY: off,
             CallKind.ARCHIVE_FETCH: off,
         }
+    )
+
+
+def _study_prices(
+    settings: Settings, session: SessionDep, scope: StudyContext
+) -> DeepResearchPrices:
+    """:func:`deep_research_prices` under the request limits the study's run would pin: the
+    ceiling a start is asked about is priced as the worker will reserve (chunk 43c)."""
+    return deep_research_prices(
+        settings, request_limits(settings_in_force_for_study(session, scope))
     )
 
 
@@ -387,7 +409,7 @@ def start(
             design_revision_id=body.design_revision_id,
             preset_name=body.preset_name,
             channels=body.channels,
-            prices=deep_research_prices(settings),
+            prices=_study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd,
             purpose_source=(
@@ -428,7 +450,7 @@ def start_interpretation(
             preset_name=body.preset_name,
             store=store,
             channels=body.channels,
-            prices=deep_research_prices(settings),
+            prices=_study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd,
             title=body.title,
@@ -486,7 +508,7 @@ def retry(
         runs = DeepResearchRuns(session, scope)
         started = runs.retry(
             run_id,
-            prices=deep_research_prices(settings),
+            prices=_study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
             store=store,

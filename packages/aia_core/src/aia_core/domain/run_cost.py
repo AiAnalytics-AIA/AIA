@@ -30,9 +30,11 @@ from .ai_respondent import max_blocks_per_respondent
 from .analysis import ANALYSIS_MODULES
 from .deep_research.budgets import (
     MODEL_KINDS,
+    ROUTE_ALLOWANCES,
     CallBounds,
     CallKind,
     ResearchMode,
+    RouteAllowance,
     TrackCounts,
     call_bounds,
 )
@@ -247,17 +249,24 @@ def deep_research_cost_ceiling(
     prices: DeepResearchPrices,
     *,
     modes: Collection[ResearchMode],
+    allowances: Mapping[str, RouteAllowance] = ROUTE_ALLOWANCES,
 ) -> DeepResearchCeiling:
     """The most a Deep Research run of ``depth`` over ``tracks`` can cost.
 
     ``modes`` are the modes the run may be researched in: the composition's one, when the
     caller knows it, or every mode when it does not -- the ceiling is then the highest of
     them. Unknown in any of them is unknown: a ceiling is never the cheaper of two guesses.
+    ``allowances`` are the route allowances in force (the run's settings, chunk 43c).
     """
     if not modes:
         raise ValueError("a ceiling is for at least one mode")
     ceilings = [
-        price_bounds(call_bounds(depth, tracks, mode), prices, preset=depth.name, mode=mode)
+        price_bounds(
+            call_bounds(depth, tracks, mode, allowances=allowances),
+            prices,
+            preset=depth.name,
+            mode=mode,
+        )
         for mode in ResearchMode
         if mode in modes
     ]

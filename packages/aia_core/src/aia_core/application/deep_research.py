@@ -57,7 +57,7 @@ from typing import Any, Final
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
-from ..domain.deep_research.budgets import ResearchMode, track_counts
+from ..domain.deep_research.budgets import ROUTE_ALLOWANCES, ResearchMode, track_counts
 from ..domain.deep_research.bundle import EvidenceBundle
 from ..domain.deep_research.contracts import (
     HARNESS_VERSION,
@@ -108,7 +108,12 @@ from ..domain.deep_research.planning import (
     preset,
     screen_questions,
 )
-from ..domain.deep_research.settings import EffectiveSettings, pin, read_pin
+from ..domain.deep_research.settings import (
+    EffectiveSettings,
+    pin,
+    read_pin,
+    route_allowances,
+)
 from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
 from ..domain.research import phase_of, retryable
@@ -230,14 +235,23 @@ class DeepResearchRuns:
         *,
         prices: DeepResearchPrices,
         modes: Collection[ResearchMode] = tuple(ResearchMode),
+        settings: EffectiveSettings | None = None,
     ) -> DeepResearchCeiling:
         """The most a run of ``request`` can cost: its preset's bounds, priced.
 
         ``modes`` are the modes the deployment may research in; every mode, the highest
-        ceiling, when the caller does not know the composition's switches.
+        ceiling, when the caller does not know the composition's switches. ``settings`` are
+        the ones the run pins (ADR 0022): their route allowances bound its calls; ``None``,
+        the code's table.
         """
         depth = preset(request.preset)
-        return deep_research_cost_ceiling(depth, track_counts(request, depth), prices, modes=modes)
+        return deep_research_cost_ceiling(
+            depth,
+            track_counts(request, depth),
+            prices,
+            modes=modes,
+            allowances=ROUTE_ALLOWANCES if settings is None else route_allowances(settings),
+        )
 
     def freeze(
         self,
@@ -580,7 +594,8 @@ class DeepResearchRuns:
         steps = deep_research_steps()
         # ADR 0022 decision 4: the settings in force in this Study's organization now, pinned
         # on the run; an approval after this changes only runs enqueued after it.
-        settings_pin = pin(settings_in_force_for_study(self.session, self.scope))
+        in_force = settings_in_force_for_study(self.session, self.scope)
+        settings_pin = pin(in_force)
         key = f"{DEEP_RESEARCH}:spec:{spec_fingerprint}"
         if retry_of:
             key += f":retry:{retry_of}"
@@ -594,7 +609,7 @@ class DeepResearchRuns:
                 raise CostCeilingUnknown(
                     CeilingUnknown.DEEP_RESEARCH_PRICE_MISSING, limit_usd=limit
                 )
-            ceiling = self.cost_ceiling(request, prices=prices, modes=modes)
+            ceiling = self.cost_ceiling(request, prices=prices, modes=modes, settings=in_force)
             if ceiling.total_usd is None:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(

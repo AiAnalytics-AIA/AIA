@@ -84,6 +84,7 @@ class SynthesizeExecutor(_Step):
         if isinstance(loaded, Failed):
             return loaded
         _plan_id, plan = loaded
+        runtime = self._planned_runtime(plan)
         if runtime.versions() != plan.versions:
             return _composition_changed("the composition's rules or policy")
         with context.transaction() as (session, workflow):

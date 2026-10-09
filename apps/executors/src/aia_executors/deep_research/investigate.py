@@ -112,6 +112,7 @@ class InvestigateExecutor(_Step):
         if isinstance(loaded, Failed):
             return loaded
         plan_id, plan = loaded
+        runtime = self._planned_runtime(plan)
         changed = _changed(runtime, plan)
         if changed is not None:
             return changed
@@ -979,6 +980,7 @@ class InvestigateTrackExecutor(InvestigateExecutor):
         if isinstance(loaded, Failed):
             return loaded
         _plan_id, plan = loaded
+        runtime = self._planned_runtime(plan)
         changed = _changed(runtime, plan)
         if changed is not None:
             return changed

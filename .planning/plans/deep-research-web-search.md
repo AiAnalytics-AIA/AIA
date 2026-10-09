@@ -46,7 +46,7 @@ chunks:
   - "[x] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
   - "[x] 43a. Runs pin their settings: the pin and its digests on the run at enqueue, read back verified; the plan step fails a pin that does not hash to itself"
   - "[x] 43b. The approved method digest in the engine request and every cross-run reuse key (harness 3); a pin that is not the request's method fails the run"
-  - "[ ] 43c. The engine reads the pin's values where it reads constants: presets, allowances, request limits, register, weights, and the API's ceiling"
+  - "[x] 43c. The engine reads the pin's values where it reads constants: presets, allowances, request limits, register, weights, and the API's ceiling"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
@@ -1228,6 +1228,27 @@ request-limit table is unchanged (`b5fa8690...`, pinned under both names). Captu
 datasets are run-scoped today, so the denylist and personal-data patterns have no cross-run
 key to join yet; they join the dataset key when one crosses runs (chunk 37). Still constants
 in the engine: presets, allowances, request limits, register, weights (43c).
+
+**Chunk 43c, 2026-10-09** (`feature/dr-settings-values`): the engine reads the run's settings
+where it read the code's tables. `settings.route_allowances` and `settings.request_limits`
+build the two tables from an `EffectiveSettings`, each value capped at the code's (lower-only,
+so a pin can never raise a cap) and the code's own where the catalogue holds no key; with
+nothing approved both equal `ROUTE_ALLOWANCES` and `REQUEST_LIMITS` value for value.
+`budgets.call_bounds` and `run_cost.deep_research_cost_ceiling` take `allowances`;
+`DeepResearchRuns.cost_ceiling` takes the settings, and `_enqueue` reads them once for the pin
+and the ceiling it asks about. The API prices that ceiling under the study's request limits
+(`routers/deep_research._study_prices`), so the 409 a start answers is what the worker will
+reserve. The worker: the plan step records the pinned limits on the plan
+(`PlanRecord.request_limits`, left out of the stored form when they are the code's, so a plan
+under defaults stores and hashes as before), and every step sizes its requests by them
+(`DeepResearchConfig.under`, `_Step._planned_runtime`). Request limits are method settings, so
+a changed one is already another run (43b). Presets, the register and the weights are status
+keys -- a code-owned table approved as is -- with no value to read: their approval is chunk
+44's live sign-off, not an input. `budgets.run_limit.<preset>` is read by nothing yet; chunk 44
+decides whether it refuses a start. Tests: `test_deep_research_settings_values.py` (7),
+`test_deep_research_spend_api.py::test_an_approved_request_limit_prices_the_ceiling_a_start_is_asked_about`,
+`test_deep_research_journey.py::test_an_approved_request_limit_sizes_every_request_of_its_kind_and_only_it`
+(verifier requests at 2,048 output tokens, every other kind unchanged).
 
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0

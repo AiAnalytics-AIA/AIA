@@ -2,9 +2,9 @@
 
 ADR 0022 decision 4: the run stores every setting's value and where it came from, with its
 digests, beside its run spec; the plan step reads the pin, never the store; an approval
-changes only runs enqueued after it; a pin that does not hash to itself is never run. The
-engine does not read the pin's values yet (chunk 43b): with nothing approved, a run's
-request and every step's fingerprint are what they were.
+changes only runs enqueued after it; a pin that does not hash to itself is never run. With
+nothing approved, a run's request and every step's fingerprint are what they were (the
+values the engine reads from a pin: ``test_deep_research_settings_values.py``).
 """
 
 from __future__ import annotations
