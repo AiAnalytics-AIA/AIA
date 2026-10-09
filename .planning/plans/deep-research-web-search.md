@@ -1267,6 +1267,24 @@ yet, so nothing that runs today changes. Tests: `test_deep_research_live_sign_of
 `test_deep_research_journey.py::test_a_priced_live_route_runs_only_under_a_pin_that_records_the_sign_off`
 (both ways).
 
+**Chunk 23c, 2026-10-09** (`feature/dr-tool-spend`, stacked on 44): a priced tool call is held
+against the study's budget through the reservation path a model call uses.
+`WorkflowRepository.reserve_tool_budget` is `reserve_budget`'s locked check and fence for a route
+(`payee` `tool:<route_id>`; the attempt's model `provider` is left alone); `StepContext.reserve_tool`
+returns a `PaidCall` with `provider=None`. `StepToolMeter` now says it charges the study: a priced
+reservation is held through the context before the call (a `BudgetExceeded` propagates and the
+step waits, `AWAITING_BUDGET`, with nothing sent), the hold is marked dispatched before the
+journal's `DISPATCHED` entry and the call, and the outcome settles it once at what the gate charged
+(the price when answered, the ceiling when lost, 0 when nothing left). A hold left in flight by a
+dead worker is `SETTLED_UNCERTAIN` and the step `RECOVERY_REQUIRED`, exactly as a model call's;
+the resumed meter's adopted `UNCERTAIN` closure charges nothing more to the study. The meter's
+in-memory ledger keeps no ceiling of its own (`InMemoryToolLedger(budget_usd=None)`). Not done
+here: tool calls as rows of the AI usage ledger (`deep-research.md` chunk 4, its migration); the
+progress-event journal stays the per-call record. Tests: `test_deep_research_tool_spend.py` (3,
+through the real worker: answered, lost and unsent charges, the hold marked before the call, a
+call the study cannot hold never sent), `test_workflow_engine.py::test_a_priced_tool_call_in_flight_is_recovered_like_a_model_call`
+and `::test_a_tool_hold_the_study_cannot_cover_is_refused_before_anything_is_held`.
+
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0
   on the hand-labelled fictional corpus. The threshold is chunk 1's decision.

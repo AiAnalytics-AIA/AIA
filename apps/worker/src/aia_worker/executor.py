@@ -111,10 +111,11 @@ class PaidCall:
 
     ``reservation_id`` is ``None`` for a provider with no marginal cost (a
     subscription runtime): no budget is held, and the context's metering calls
-    are checkpoints only.
+    are checkpoints only. ``provider`` is ``None`` for a priced tool call
+    (:meth:`StepContext.reserve_tool`), which names its route instead.
     """
 
-    provider: Provider
+    provider: Provider | None
     amount_usd: float
     reservation_id: str | None
 
@@ -288,6 +289,11 @@ class StepContext(Protocol):
 
     def reserve(self, *, amount_usd: float, provider: Provider, reason: str = "") -> PaidCall:
         """Hold budget for one call, or raise :class:`BudgetExceeded`."""
+        ...
+
+    def reserve_tool(self, *, amount_usd: float, route_id: str, reason: str = "") -> PaidCall:
+        """Hold budget for one priced tool call on ``route_id``, or raise
+        :class:`BudgetExceeded`. Marked, settled and recovered like :meth:`reserve`'s."""
         ...
 
     def dispatching(self, call: PaidCall, *, provider_request_id: str | None = None) -> None:
