@@ -274,3 +274,27 @@ def test_a_start_on_a_paid_live_route_is_refused_naming_what_live_still_needs(
         "routes": ["search"],
     }
     assert researcher.get(_url(world)).json() == []
+
+
+def test_brave_search_is_priced_from_its_dated_key_and_unknown_without_it(
+    settings: Settings,
+) -> None:
+    """Chunk 23d: the ceiling prices Brave's search as the worker reserves it, per request;
+    a deployment that names Brave without its price has an unknown ceiling, never a free one,
+    and its paid route is what a start asks the sign-off for (chunk 44)."""
+    from aia_core.domain.deep_research.budgets import CallKind
+
+    from aia_api.routers.deep_research import deep_research_prices
+
+    brave = settings.model_copy(
+        update={"deep_research_web_search": "brave", "deep_research_brave_usd_per_1000": 5.0}
+    )
+    search = deep_research_prices(brave)[CallKind.SEARCH]
+    assert (search.state, search.usd) == ("priced", pytest.approx(0.005))
+    assert deep_research_prices(brave)[CallKind.FETCH].usd == 0.0
+    assert deep_research_prices(brave).paid_routes() == (CallKind.SEARCH,)
+    unpriced = brave.model_copy(update={"deep_research_brave_usd_per_1000": None})
+    assert deep_research_prices(unpriced)[CallKind.SEARCH].state == "unknown"
+    wikipedia = settings.model_copy(update={"deep_research_web_search": "wikipedia"})
+    assert deep_research_prices(wikipedia).paid_routes() == ()
+    assert deep_research_prices(wikipedia)[CallKind.SEARCH].usd == 0.0
