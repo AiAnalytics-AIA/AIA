@@ -29,6 +29,7 @@ from aia_core.domain.deep_research.planning import (
     check_plan_coverage,
     preset,
 )
+from aia_core.domain.deep_research.settings import SettingsPinCorrupt, read_pin
 from aia_core.domain.deep_research.steps import (
     AllowanceRecord,
     BlockedTrack,
@@ -78,6 +79,15 @@ class PlanExecutor(_Step):
             return _invalid("request_invalid", f"the run's request does not validate: {exc}")
         if request.fingerprint() != step.input_fingerprint:
             return _invalid("request_altered", "the request is not the one the run was created for")
+        pinned = step.payload.get("settings")
+        if pinned is not None:
+            # ADR 0022 decision 4: the run runs under the settings it pinned at enqueue, and
+            # a pin that does not prove itself is not run (a run enqueued before pins carries
+            # none and is read as it always was).
+            try:
+                read_pin(pinned)
+            except SettingsPinCorrupt as exc:
+                return _invalid(f"settings_{exc.reason}", str(exc))
         if request.harness_version != HARNESS_VERSION:
             # Frozen for an earlier method: executed now it would run under another
             # one and be labelled with the first. It stays readable; it is not run.

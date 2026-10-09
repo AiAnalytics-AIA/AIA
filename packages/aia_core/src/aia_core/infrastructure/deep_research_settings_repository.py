@@ -6,7 +6,8 @@ Two faces, deliberately separate, as ADR 0020's prompt store:
   versions and its approval history. Any member of the organization may read -- these are
   policy values, not research data -- through an issued
   :class:`~aia_core.domain.scope.OrganizationContext`, which carries no client or study.
-  :meth:`~DeepResearchSettingsReader.effective` is what a run will pin at enqueue (chunk 43).
+  :meth:`~DeepResearchSettingsReader.effective` is what a run will pin at enqueue (chunk 43);
+  :func:`settings_in_force_for_study` is the same, read through the enqueuing Study's scope.
 * :class:`DeepResearchSettingsRepository` writes, and refuses anyone who may not administer
   the organization: propose a value (a new immutable version), approve a version, or withdraw
   an approval (back to the code's proposed default). Every change writes an
@@ -53,6 +54,7 @@ from aia_core.domain.deep_research.settings import (
 from aia_core.domain.scope import (
     OrganizationContext,
     SelfApprovalPolicy,
+    StudyContext,
     resolve_self_approval_policy,
 )
 
@@ -71,6 +73,7 @@ __all__ = [
     "SettingOverview",
     "SettingRefused",
     "StoredSettingVersion",
+    "settings_in_force_for_study",
 ]
 
 _MAX_SOURCE_URL = 500
@@ -192,6 +195,16 @@ def _in_force(session: Session, org: str) -> EffectiveSettings:
             f"an approved value is no longer valid ({exc}); approve a valid one or withdraw it",
             reason="approved_value_invalid",
         ) from exc
+
+
+def settings_in_force_for_study(session: Session, scope: StudyContext) -> EffectiveSettings:
+    """What the Study's organization has in force now: what a run enqueued in it pins.
+
+    Read through the Study's own resolved scope, so the enqueue boundary needs no
+    organization-administration context; only the organization's rows are read, and a Study
+    never sees another organization's settings.
+    """
+    return _in_force(session, scope.organization_id)
 
 
 def _definition(key: str) -> SettingDefinition:

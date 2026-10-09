@@ -108,6 +108,7 @@ from ..domain.deep_research.planning import (
     preset,
     screen_questions,
 )
+from ..domain.deep_research.settings import EffectiveSettings, pin, read_pin
 from ..domain.deep_research.tooling import TOOL_EVENT_KINDS, ToolUsageEvent
 from ..domain.deep_research.workflow import DEEP_RESEARCH, deep_research_steps
 from ..domain.research import phase_of, retryable
@@ -121,6 +122,7 @@ from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import ArtifactNotFound, ArtifactStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from ..infrastructure.deep_research_settings_repository import settings_in_force_for_study
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -148,6 +150,7 @@ __all__ = [
     "RunNotGoverned",
     "RunSpecCorrupt",
     "governed_record",
+    "run_settings",
     "run_spec_metadata",
 ]
 
@@ -572,6 +575,9 @@ class DeepResearchRuns:
         request_fingerprint = request.fingerprint()
         spec_fingerprint = spec.fingerprint()
         steps = deep_research_steps()
+        # ADR 0022 decision 4: the settings in force in this Study's organization now, pinned
+        # on the run; an approval after this changes only runs enqueued after it.
+        settings_pin = pin(settings_in_force_for_study(self.session, self.scope))
         key = f"{DEEP_RESEARCH}:spec:{spec_fingerprint}"
         if retry_of:
             key += f":retry:{retry_of}"
@@ -614,6 +620,7 @@ class DeepResearchRuns:
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
                 "preset_table": PRESET_TABLE_VERSION,
+                "settings_pin": settings_pin,
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
                 **run_spec_metadata(spec, purpose_source=purpose_source),
@@ -627,7 +634,9 @@ class DeepResearchRuns:
             # Each step's fingerprint is the engine request's: a re-run after a crash is
             # the same work, and the artifacts it stored are found by their own.
             fingerprints={s.node_key: request_fingerprint for s in steps},
-            step_inputs={"plan": {"request": request.model_dump(mode="json")}},
+            step_inputs={
+                "plan": {"request": request.model_dump(mode="json"), "settings": settings_pin}
+            },
         )
         if confirmation is not None and existing is None:
             assert confirm_cost_usd is not None
@@ -885,6 +894,14 @@ class DeepResearchRuns:
                     raise LineageChanged(f"{pin.artifact_id} is not the artifact pinned")
                 repo.read(pin.artifact_id)  # its bytes still hash to the pin
         return lineage
+
+
+def run_settings(metadata: dict[str, Any]) -> EffectiveSettings | None:
+    """The settings a run pinned at enqueue, verified; ``None`` for a run enqueued before
+    runs pinned them. A pin that does not hash to itself raises
+    :class:`~aia_core.domain.deep_research.settings.SettingsPinCorrupt`, never a default."""
+    stored = metadata.get("settings_pin")
+    return None if stored is None else read_pin(stored)
 
 
 def run_spec_metadata(

@@ -45,6 +45,7 @@ __all__ = [
     "CATALOGUE",
     "CATALOGUE_VERSION",
     "SECRET_WORDS",
+    "SETTINGS_PIN_CONTRACT",
     "ApprovedValue",
     "Effective",
     "EffectiveSettings",
@@ -54,9 +55,12 @@ __all__ = [
     "SettingInvalid",
     "SettingType",
     "SettingValue",
+    "SettingsPinCorrupt",
     "definition",
     "effective",
     "keys",
+    "pin",
+    "read_pin",
     "validate",
 ]
 
@@ -709,3 +713,131 @@ def effective(approved: Mapping[str, ApprovedValue]) -> EffectiveSettings:
 def keys(group: SettingGroup | None = None) -> Iterable[str]:
     """Every catalogued key, or one group's, in page order."""
     return (d.key for d in CATALOGUE if group is None or d.group is group)
+
+
+# --------------------------------------------------------------------------- #
+# The run's pin (chunk 43)
+# --------------------------------------------------------------------------- #
+
+#: The pin's own contract: moves when what a pin stores changes.
+SETTINGS_PIN_CONTRACT: Final = "aia-dr-settings-pin-1"
+
+
+class SettingsPinCorrupt(ValueError):
+    """A run's stored settings do not read, do not hash to their digest, or were pinned under
+    another catalogue. The run is failed closed: it never runs under settings it cannot prove.
+    """
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def _pin_body(settings: EffectiveSettings) -> dict[str, object]:
+    return {
+        "contract": SETTINGS_PIN_CONTRACT,
+        "catalogue": CATALOGUE_VERSION,
+        "values": [
+            {
+                "key": e.key,
+                "value": _jsonable(e.value),
+                "origin": e.origin.value,
+                "version": e.version,
+                "approved_by": e.approved_by,
+                "approved_at": None if e.approved_at is None else e.approved_at.isoformat(),
+            }
+            for e in settings.values
+        ],
+    }
+
+
+def pin(settings: EffectiveSettings) -> dict[str, object]:
+    """What a run stores of the settings in force at its enqueue (ADR 0022 decision 4).
+
+    Every key's value *and* where it came from -- an approval (its version, who, when) or the
+    code's proposed default -- so the run can later say what it ran under and whether live
+    was approved (chunk 44). ``pin_digest`` covers the whole body; ``settings_digest`` and
+    ``method_digest`` are :meth:`EffectiveSettings.digest` and
+    :meth:`EffectiveSettings.method_digest`, the values a reuse key may carry.
+    """
+    body = _pin_body(settings)
+    return {
+        **body,
+        "pin_digest": digest(body),
+        "settings_digest": settings.digest(),
+        "method_digest": settings.method_digest(),
+    }
+
+
+def read_pin(payload: object) -> EffectiveSettings:
+    """The settings a run pinned, verified, or :class:`SettingsPinCorrupt`.
+
+    The pin must name this contract and this catalogue (a pin from another catalogue is not
+    re-read under this one's keys), hold every catalogued key once with a value the key's
+    type accepts, and hash to every digest it states. Nothing is defaulted: a key missing
+    from a pin is a corrupt pin, never the code's current default.
+    """
+    if not isinstance(payload, Mapping):
+        raise SettingsPinCorrupt("pin_unreadable", "the run's settings pin is not an object")
+    if payload.get("contract") != SETTINGS_PIN_CONTRACT:
+        raise SettingsPinCorrupt(
+            "pin_unreadable", f"the run's settings pin is not {SETTINGS_PIN_CONTRACT}"
+        )
+    if payload.get("catalogue") != CATALOGUE_VERSION:
+        raise SettingsPinCorrupt(
+            "catalogue_changed",
+            f"the run pinned catalogue {payload.get('catalogue')!r}, not {CATALOGUE_VERSION}; "
+            "start a new run",
+        )
+    rows = payload.get("values")
+    if not isinstance(rows, list):
+        raise SettingsPinCorrupt("pin_unreadable", "the run's settings pin holds no values")
+    by_key: dict[str, Mapping[str, object]] = {}
+    for row in rows:
+        if not isinstance(row, Mapping) or not isinstance(row.get("key"), str):
+            raise SettingsPinCorrupt("pin_unreadable", "a pinned setting is not a keyed object")
+        key = str(row["key"])
+        if key in by_key:
+            raise SettingsPinCorrupt("pin_unreadable", f"{key} is pinned twice")
+        by_key[key] = row
+    if set(by_key) != set(_BY_KEY):
+        missing = sorted(set(_BY_KEY) - set(by_key))
+        extra = sorted(set(by_key) - set(_BY_KEY))
+        raise SettingsPinCorrupt(
+            "pin_unreadable",
+            f"the pin does not hold the catalogue: missing {missing}, extra {extra}",
+        )
+    values: list[Effective] = []
+    try:
+        for defn in CATALOGUE:
+            row = by_key[defn.key]
+            origin = Origin(str(row.get("origin")))
+            raw = row.get("value")
+            value = None if raw is None else validate_value(defn, raw, bound_by_default=False)
+            at = row.get("approved_at")
+            version = row.get("version")
+            by = row.get("approved_by")
+            values.append(
+                Effective(
+                    defn.key,
+                    value,
+                    origin,
+                    version=version if isinstance(version, int) else None,
+                    approved_by=by if isinstance(by, str) else None,
+                    approved_at=datetime.fromisoformat(at) if isinstance(at, str) else None,
+                )
+            )
+    except (SettingInvalid, ValueError) as exc:
+        raise SettingsPinCorrupt(
+            "pin_unreadable", f"a pinned setting does not read: {exc}"
+        ) from exc
+    settings = EffectiveSettings(tuple(values))
+    if (
+        digest(_pin_body(settings)) != payload.get("pin_digest")
+        or settings.digest() != payload.get("settings_digest")
+        or settings.method_digest() != payload.get("method_digest")
+    ):
+        raise SettingsPinCorrupt(
+            "pin_altered", "the run's settings pin does not hash to its own digest"
+        )
+    return settings
