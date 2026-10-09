@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deep Research accuracy on a truth set (plan ``deep-research-web-search.md`` chunk 25).
+"""Deep Research accuracy on a truth set, and its verifier's on a gold set (plan chunks 25, 48).
 
     python tools/dr_accuracy.py check --truth <set.json>
     python tools/dr_accuracy.py pin   --truth <set.json> --by <name> [--at YYYY-MM-DD]
@@ -7,6 +7,8 @@
     python tools/dr_accuracy.py score --truth <set.json> --run <bundle-or-run.json> [--run …]
                                       --out <report.json> [--preset NAME] [--pins <manifest>]
                                       [--allow-unverified] [--allow-uncommitted-pins]
+    python tools/dr_accuracy.py calibrate --gold <gold.json> --answers <answers.json>
+                                      --out <report.json>
 
 ``check`` validates a truth set and says what stands between it and a pin: the
 facts not verified, the facts without a question, value, period or place.
@@ -24,6 +26,16 @@ one exception, for fictional sets only: ``--allow-unverified`` and
 (``"kind": "deep_research_accuracy_run"``). ``--preset`` makes the command refuse a
 run of any other preset, so a mis-filed run cannot be pooled under the wrong one.
 The report (JSON) is written to ``--out``; a short summary is printed.
+
+``calibrate`` scores the independent verifier's answers over a gold set (chunk 48): its
+miss rate (a bad finding judged supported) and false-alarm rate (a good one set aside),
+each with its Wilson 95 % upper bound, against the proposed thresholds. The gold set's
+hash is pinned by ``test_deep_research_calibration.py``; answers to another version of
+it, or from another prompt or contract, are refused. ``RECORDED`` answers prove the
+tooling and say so (``TOOLING_ONLY``); only ``LIVE`` answers meet or miss the thresholds,
+and neither changes what runs record (``NOT_CALIBRATED``): a person does, with the live
+measurement in the plan's § 13. This command calls no model: live answers are produced
+elsewhere and brought here as a file.
 
 Exit status: 0 done, 2 refused (the reason on stderr). Nothing leaves the machine.
 """
@@ -45,6 +57,13 @@ from aia_core.domain.deep_research.accuracy import (
     run_from_bundle,
 )
 from aia_core.domain.deep_research.bundle import EvidenceBundle
+from aia_core.domain.deep_research.calibration import (
+    CalibrationRefused,
+    GoldSet,
+    VerifierAnswers,
+    calibrate,
+    render_calibration,
+)
 from aia_core.domain.deep_research.truth_set import (
     TruthSet,
     TruthSetPins,
@@ -192,6 +211,31 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _read_model[T: (GoldSet, VerifierAnswers)](path: Path, model: type[T], what: str) -> T:
+    try:
+        return model.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValidationError) as exc:
+        raise Refused(f"{path}: not a valid {what}: {exc}") from exc
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    gold = _read_model(Path(args.gold), GoldSet, "gold set")
+    answers = _read_model(Path(args.answers), VerifierAnswers, "verifier answers file")
+    try:
+        report = calibrate(gold, answers)
+    except CalibrationRefused as exc:
+        raise Refused(str(exc)) from exc
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    print(render_calibration(report))
+    print(f"report: {out}")
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     sub = p.add_subparsers(dest="command", required=True)
@@ -213,6 +257,11 @@ def parser() -> argparse.ArgumentParser:
     score.add_argument("--allow-unverified", action="store_true", help="fictional sets only")
     score.add_argument("--allow-uncommitted-pins", action="store_true", help="fictional only")
     score.set_defaults(func=cmd_score)
+    cal = sub.add_parser("calibrate", help="score the verifier's answers over a gold set")
+    cal.add_argument("--gold", required=True)
+    cal.add_argument("--answers", required=True)
+    cal.add_argument("--out", required=True, help="where the JSON report is written")
+    cal.set_defaults(func=cmd_calibrate)
     return p
 
 

@@ -1,0 +1,797 @@
+{
+  "schema_version": "verifier-gold-1",
+  "set_id": "verifier-gold-fictional-1",
+  "fictional": true,
+  "recorded_by": "nigelblount",
+  "recorded_at": "2026-10-08",
+  "items": [
+    {
+      "evidence_id": "G-S01",
+      "claim": "V roce 2090 nakupovalo online 64 % domácností.",
+      "quote": "V roce 2090 nakupovalo online 64 % domácností",
+      "excerpt": "Úřad dnes zveřejnil výsledky šetření. V roce 2090 nakupovalo online 64 % domácností, což je o tři body víc než o rok dříve.",
+      "measures": [
+        {
+          "value": 64,
+          "period": "Y2090",
+          "unit": "%",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "the quote states the share, the year and the households"
+    },
+    {
+      "evidence_id": "G-S02",
+      "claim": "Průměrná domácnost utratila v roce 2090 za potraviny 8 450 Kč měsíčně.",
+      "quote": "průměrné měsíční výdaje domácnosti za potraviny dosáhly 8 450 Kč",
+      "excerpt": "V roce 2090 průměrné měsíční výdaje domácnosti za potraviny dosáhly 8 450 Kč. Výdaje za bydlení byly vyšší.",
+      "measures": [
+        {
+          "value": 8450,
+          "unit": "CZK",
+          "period": "Y2090",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Měsíční výdaje domácnosti za potraviny"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [
+        {
+          "evidence_id": "G-R02",
+          "claim": "V roce 2089 utratila domácnost za potraviny 8 120 Kč měsíčně.",
+          "measures": [
+            {
+              "value": 8120,
+              "unit": "CZK",
+              "period": "Y2089",
+              "geography": "CZ",
+              "population": "HOUSEHOLDS",
+              "measure_name": "Měsíční výdaje domácnosti za potraviny"
+            }
+          ],
+          "date": "2090-03-15"
+        }
+      ],
+      "expected": "supported",
+      "why": "an older figure in related does not supersede a newer one"
+    },
+    {
+      "evidence_id": "G-S03",
+      "claim": "Internet používalo v roce 2090 91 % osob ve věku 16 až 74 let.",
+      "quote": "Internet v roce 2090 používalo 91 % osob ve věku 16–74 let",
+      "excerpt": "Z výběrového šetření vyplývá: Internet v roce 2090 používalo 91 % osob ve věku 16–74 let. Nejčastěji šlo o komunikaci.",
+      "measures": [
+        {
+          "value": 91,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "population": "PERSONS_16_74",
+          "measure_name": "Podíl osob používajících internet"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "the population is the quote's own"
+    },
+    {
+      "evidence_id": "G-S04",
+      "claim": "Míra nezaměstnanosti byla ve 2. čtvrtletí 2090 3,1 %.",
+      "quote": "obecná míra nezaměstnanosti ve 2. čtvrtletí 2090 činila 3,1 %",
+      "excerpt": "Podle výsledků šetření pracovních sil obecná míra nezaměstnanosti ve 2. čtvrtletí 2090 činila 3,1 % a meziročně se nezměnila.",
+      "measures": [
+        {
+          "value": 3.1,
+          "unit": "%",
+          "period": "2090-Q2",
+          "geography": "CZ",
+          "population": "PERSONS_15_64",
+          "measure_name": "Obecná míra nezaměstnanosti"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Trh práce 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2090-08-01"
+      },
+      "related": [
+        {
+          "evidence_id": "G-R04",
+          "claim": "Míra nezaměstnanosti byla v 1. čtvrtletí 2090 3,3 %.",
+          "measures": [
+            {
+              "value": 3.3,
+              "unit": "%",
+              "period": "2090-Q1",
+              "geography": "CZ",
+              "population": "PERSONS_15_64",
+              "measure_name": "Obecná míra nezaměstnanosti"
+            }
+          ],
+          "date": "2090-05-01"
+        }
+      ],
+      "expected": "supported",
+      "why": "every attribute is the quote's"
+    },
+    {
+      "evidence_id": "G-S05",
+      "claim": "Podle zpravodaje měl největší e-shop v roce 2090 tržní podíl 12 %.",
+      "quote": "největší e-shop měl v roce 2090 podle odhadu úřadu podíl 12 % na online tržbách",
+      "excerpt": "Trh zůstává koncentrovaný: největší e-shop měl v roce 2090 podle odhadu úřadu podíl 12 % na online tržbách. Druhý v pořadí měl 7 %.",
+      "measures": [
+        {
+          "value": 12,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "denominator": "ONLINE_SALES",
+          "basis": "estimate",
+          "measure_name": "Podíl největšího e-shopu"
+        }
+      ],
+      "source": {
+        "title": "Obchodní zpravodaj (fiktivní): E-commerce 2090",
+        "publisher": "Obchodní zpravodaj (fiktivní)",
+        "primary": "secondary",
+        "cited": [
+          "Fiktivní statistický úřad"
+        ],
+        "date": "2091-01-20"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "a secondary source citing the office supports a claim that names it as the zpravodaj's"
+    },
+    {
+      "evidence_id": "G-S06",
+      "claim": "Na konci roku 2090 bylo registrováno 450 tis. ekonomických subjektů s online prodejem.",
+      "quote": "k 31. 12. 2090 bylo registrováno 450 tis. subjektů s online prodejem",
+      "excerpt": "Registr ukazuje, že k 31. 12. 2090 bylo registrováno 450 tis. subjektů s online prodejem. Polovina z nich je neaktivní.",
+      "measures": [
+        {
+          "value": 450,
+          "unit": "ENTITIES",
+          "scale": 1000,
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Subjekty s online prodejem"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "the scale is part of the value, as the quote prints it"
+    },
+    {
+      "evidence_id": "G-S07",
+      "claim": "Spotřebitelské ceny vzrostly v březnu 2091 meziročně o 2,4 %.",
+      "quote": "spotřebitelské ceny se v březnu 2091 meziročně zvýšily o 2,4 %",
+      "excerpt": "Úřad uvedl, že spotřebitelské ceny se v březnu 2091 meziročně zvýšily o 2,4 %. Nejvíce zdražilo bydlení.",
+      "measures": [
+        {
+          "value": 2.4,
+          "unit": "%",
+          "period": "2091-03",
+          "geography": "CZ",
+          "measure_name": "Meziroční změna spotřebitelských cen"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Indexy spotřebitelských cen 2091",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-04-10"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "a year-on-year change stated as the quote states it"
+    },
+    {
+      "evidence_id": "G-S08",
+      "claim": "Úřad zveřejňuje údaje o online nákupech čtvrtletně od roku 2090.",
+      "quote": "Od roku 2090 zveřejňujeme údaje o online nákupech čtvrtletně",
+      "excerpt": "Metodická poznámka: Od roku 2090 zveřejňujeme údaje o online nákupech čtvrtletně; dříve šlo o roční údaje.",
+      "measures": [],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "a claim with no number, supported word for word"
+    },
+    {
+      "evidence_id": "G-S09",
+      "claim": "Ve 3. čtvrtletí 2090 bylo v provozu 52 tis. e-shopů.",
+      "quote": "ve 3. čtvrtletí 2090 bylo v provozu přibližně 52 tis. e-shopů",
+      "excerpt": "Odhad úřadu: ve 3. čtvrtletí 2090 bylo v provozu přibližně 52 tis. e-shopů, z toho 40 % s vlastní dopravou.",
+      "measures": [
+        {
+          "value": 52,
+          "unit": "ENTITIES",
+          "scale": 1000,
+          "period": "2090-Q3",
+          "geography": "CZ",
+          "basis": "estimate",
+          "measure_name": "E-shopy v provozu"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "an estimate stated as the quote's approximation, not a fact beyond it"
+    },
+    {
+      "evidence_id": "G-S10",
+      "claim": "Průměrná doba doručení zásilky byla podle zpravodaje 2,3 dne.",
+      "quote": "průměrná doba doručení zásilky činila v roce 2090 2,3 dne",
+      "excerpt": "Z ankety mezi dopravci vyplývá, že průměrná doba doručení zásilky činila v roce 2090 2,3 dne. Rok předtím to byly 2,6 dne.",
+      "measures": [
+        {
+          "value": 2.3,
+          "unit": "DAYS",
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Průměrná doba doručení"
+        }
+      ],
+      "source": {
+        "title": "Obchodní zpravodaj (fiktivní): Logistika 2090",
+        "publisher": "Obchodní zpravodaj (fiktivní)",
+        "primary": "undetermined",
+        "cited": [],
+        "date": "2091-02-02"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "the claim keeps the zpravodaj's attribution"
+    },
+    {
+      "evidence_id": "G-S11",
+      "claim": "Tržby e-shopů vzrostly v roce 2090 o 2,4 %.",
+      "quote": "tržby e-shopů v roce 2090 vzrostly o 2,41 %",
+      "excerpt": "Podle konečných údajů tržby e-shopů v roce 2090 vzrostly o 2,41 % proti roku 2089.",
+      "measures": [
+        {
+          "value": 2.4,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Meziroční změna tržeb e-shopů"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "rounding 2,41 to 2,4 is a coarser statement, not a different number"
+    },
+    {
+      "evidence_id": "G-S12",
+      "claim": "Zhruba třetina domácností v roce 2090 nakupovala potraviny online.",
+      "quote": "potraviny online v roce 2090 nakupovala každá třetí domácnost",
+      "excerpt": "Šetření dále ukázalo, že potraviny online v roce 2090 nakupovala každá třetí domácnost. Šlo hlavně o velká města.",
+      "measures": [],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "supported",
+      "why": "'každá třetí' and 'zhruba třetina' say the same"
+    },
+    {
+      "evidence_id": "G-O01",
+      "claim": "V roce 2090 nakupovalo online 64 % obyvatel.",
+      "quote": "V roce 2090 nakupovalo online 64 % domácností",
+      "excerpt": "Úřad dnes zveřejnil výsledky šetření. V roce 2090 nakupovalo online 64 % domácností.",
+      "measures": [
+        {
+          "value": 64,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "population": "PERSONS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "households made persons"
+    },
+    {
+      "evidence_id": "G-O02",
+      "claim": "Podíl online nákupů dlouhodobě roste.",
+      "quote": "v roce 2090 vzrostl podíl online nákupů o tři procentní body",
+      "excerpt": "Ve srovnání s rokem 2089 v roce 2090 vzrostl podíl online nákupů o tři procentní body; dřívější roky šetření nesledovalo.",
+      "measures": [],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "one year made a trend; the excerpt says earlier years were not observed"
+    },
+    {
+      "evidence_id": "G-O03",
+      "claim": "V Česku nakupovalo v roce 2090 online 72 % domácností.",
+      "quote": "V Praze nakupovalo v roce 2090 online 72 % domácností",
+      "excerpt": "Regionální výsledky: V Praze nakupovalo v roce 2090 online 72 % domácností, v ostatních krajích méně.",
+      "measures": [
+        {
+          "value": 72,
+          "period": "Y2090",
+          "unit": "%",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "Prague made the country"
+    },
+    {
+      "evidence_id": "G-O04",
+      "claim": "Aplikaci banky používá většina lidí.",
+      "quote": "mezi lidmi do 30 let používá aplikaci banky 58 %",
+      "excerpt": "Podle průzkumu mezi lidmi do 30 let používá aplikaci banky 58 %; ve starších skupinách je podíl nižší.",
+      "measures": [
+        {
+          "value": 58,
+          "unit": "%",
+          "geography": "CZ",
+          "population": "PERSONS_UNDER_30",
+          "measure_name": "Podíl uživatelů aplikace banky"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "under-30s made everyone"
+    },
+    {
+      "evidence_id": "G-O05",
+      "claim": "Připojení k internetu mají v roce 2090 všechny domácnosti.",
+      "quote": "připojení k internetu mělo v roce 2090 téměř všech 97 % domácností",
+      "excerpt": "Úřad uvádí, že připojení k internetu mělo v roce 2090 téměř všech 97 % domácností.",
+      "measures": [
+        {
+          "value": 100,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností s internetem"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "almost all made all"
+    },
+    {
+      "evidence_id": "G-O06",
+      "claim": "Maloobchodní tržby klesly v roce 2090 o 2 %.",
+      "quote": "v prodeji potravin klesly v roce 2090 tržby o 2 %",
+      "excerpt": "Maloobchod jako celek mírně rostl, ale v prodeji potravin klesly v roce 2090 tržby o 2 %.",
+      "measures": [
+        {
+          "value": 2,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Meziroční změna maloobchodních tržeb"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "overstated",
+      "why": "one branch made the whole; the excerpt says the whole grew"
+    },
+    {
+      "evidence_id": "G-U01",
+      "claim": "V roce 2090 nakupovalo online 46 % domácností.",
+      "quote": "V roce 2090 nakupovalo online 64 % domácností",
+      "excerpt": "Úřad dnes zveřejnil výsledky šetření. V roce 2090 nakupovalo online 64 % domácností.",
+      "measures": [
+        {
+          "value": 46,
+          "period": "Y2090",
+          "unit": "%",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "a different number"
+    },
+    {
+      "evidence_id": "G-U02",
+      "claim": "Na konci roku 2090 bylo registrováno 450 subjektů s online prodejem.",
+      "quote": "k 31. 12. 2090 bylo registrováno 450 tis. subjektů s online prodejem",
+      "excerpt": "Registr ukazuje, že k 31. 12. 2090 bylo registrováno 450 tis. subjektů s online prodejem.",
+      "measures": [
+        {
+          "value": 450,
+          "unit": "ENTITIES",
+          "scale": 1,
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Subjekty s online prodejem"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "a thousandfold scale lost"
+    },
+    {
+      "evidence_id": "G-U03",
+      "claim": "V roce 2090 nakupovalo online 61 % domácností.",
+      "quote": "V roce 2089 nakupovalo online 61 % domácností",
+      "excerpt": "Pro srovnání: V roce 2089 nakupovalo online 61 % domácností.",
+      "measures": [
+        {
+          "value": 61,
+          "period": "Y2090",
+          "unit": "%",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "the quote's year is 2089"
+    },
+    {
+      "evidence_id": "G-U04",
+      "claim": "Největší e-shop měl v roce 2090 12 % všech maloobchodních tržeb.",
+      "quote": "největší e-shop obsloužil v roce 2090 12 % zákazníků, kteří nakupovali online",
+      "excerpt": "Podle zpravodaje největší e-shop obsloužil v roce 2090 12 % zákazníků, kteří nakupovali online.",
+      "measures": [
+        {
+          "value": 12,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "denominator": "RETAIL_SALES",
+          "measure_name": "Podíl největšího e-shopu"
+        }
+      ],
+      "source": {
+        "title": "Obchodní zpravodaj (fiktivní): E-commerce 2090",
+        "publisher": "Obchodní zpravodaj (fiktivní)",
+        "primary": "secondary",
+        "cited": [],
+        "date": "2091-01-20"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "customers are not sales: a different base"
+    },
+    {
+      "evidence_id": "G-U05",
+      "claim": "Ceny doručení vzrostly v roce 2090 o 5 %.",
+      "quote": "spokojenost zákazníků s doručením vzrostla v roce 2090 o 5 bodů",
+      "excerpt": "Z ankety mezi zákazníky vyplývá, že spokojenost zákazníků s doručením vzrostla v roce 2090 o 5 bodů.",
+      "measures": [
+        {
+          "value": 5,
+          "unit": "%",
+          "period": "Y2090",
+          "geography": "CZ",
+          "measure_name": "Změna cen doručení"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "the quote is about satisfaction, not price"
+    },
+    {
+      "evidence_id": "G-U06",
+      "claim": "Ceny elektroniky v roce 2090 rostly.",
+      "quote": "šetření nepotvrdilo, že by ceny elektroniky v roce 2090 rostly",
+      "excerpt": "Úřad k tomu uvádí: šetření nepotvrdilo, že by ceny elektroniky v roce 2090 rostly; meziročně byly stabilní.",
+      "measures": [],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-03-15"
+      },
+      "related": [],
+      "expected": "unsupported",
+      "why": "the quote denies the claim"
+    },
+    {
+      "evidence_id": "G-X01",
+      "claim": "Míra nezaměstnanosti byla ve 4. čtvrtletí 2089 3,4 %.",
+      "quote": "obecná míra nezaměstnanosti ve 4. čtvrtletí 2089 činila 3,4 %",
+      "excerpt": "Podle šetření pracovních sil obecná míra nezaměstnanosti ve 4. čtvrtletí 2089 činila 3,4 %.",
+      "measures": [
+        {
+          "value": 3.4,
+          "unit": "%",
+          "period": "2089-Q4",
+          "geography": "CZ",
+          "population": "PERSONS_15_64",
+          "measure_name": "Obecná míra nezaměstnanosti"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Trh práce 2089",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2090-02-01"
+      },
+      "related": [
+        {
+          "evidence_id": "G-RX01",
+          "claim": "Míra nezaměstnanosti byla ve 2. čtvrtletí 2090 3,1 %.",
+          "measures": [
+            {
+              "value": 3.1,
+              "unit": "%",
+              "period": "2090-Q2",
+              "geography": "CZ",
+              "population": "PERSONS_15_64",
+              "measure_name": "Obecná míra nezaměstnanosti"
+            }
+          ],
+          "date": "2090-08-01"
+        }
+      ],
+      "expected": "superseded",
+      "why": "the same series has a later quarter from the same office"
+    },
+    {
+      "evidence_id": "G-X02",
+      "claim": "Spotřebitelské ceny vzrostly v 1. čtvrtletí 2091 o 2,6 %.",
+      "quote": "podle předběžného odhadu vzrostly spotřebitelské ceny v 1. čtvrtletí 2091 o 2,6 %",
+      "excerpt": "Rychlá informace: podle předběžného odhadu vzrostly spotřebitelské ceny v 1. čtvrtletí 2091 o 2,6 %.",
+      "measures": [
+        {
+          "value": 2.6,
+          "unit": "%",
+          "period": "2091-Q1",
+          "geography": "CZ",
+          "measure_name": "Meziroční změna spotřebitelských cen",
+          "basis": "preliminary"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Rychlá informace 1/2091",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2091-04-02"
+      },
+      "related": [
+        {
+          "evidence_id": "G-RX02",
+          "claim": "Spotřebitelské ceny vzrostly v 1. čtvrtletí 2091 o 2,4 % (konečný údaj).",
+          "measures": [
+            {
+              "value": 2.4,
+              "unit": "%",
+              "period": "2091-Q1",
+              "geography": "CZ",
+              "measure_name": "Meziroční změna spotřebitelských cen",
+              "basis": "actual"
+            }
+          ],
+          "date": "2091-05-10"
+        }
+      ],
+      "expected": "superseded",
+      "why": "the final figure of the same quarter replaces the preliminary one"
+    },
+    {
+      "evidence_id": "G-X03",
+      "claim": "V roce 2089 nakupovalo online 61 % domácností.",
+      "quote": "V roce 2089 nakupovalo online 61 % domácností",
+      "excerpt": "Výsledky šetření za rok 2089: V roce 2089 nakupovalo online 61 % domácností.",
+      "measures": [
+        {
+          "value": 61,
+          "period": "Y2089",
+          "unit": "%",
+          "geography": "CZ",
+          "population": "HOUSEHOLDS",
+          "measure_name": "Podíl domácností nakupujících online"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Zpráva o domácnostech 2089",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2090-03-15"
+      },
+      "related": [
+        {
+          "evidence_id": "G-RX03",
+          "claim": "V roce 2090 nakupovalo online 64 % domácností.",
+          "measures": [
+            {
+              "value": 64,
+              "period": "Y2090",
+              "unit": "%",
+              "geography": "CZ",
+              "population": "HOUSEHOLDS",
+              "measure_name": "Podíl domácností nakupujících online"
+            }
+          ],
+          "date": "2091-03-15"
+        }
+      ],
+      "expected": "superseded",
+      "why": "the office published the 2090 share"
+    },
+    {
+      "evidence_id": "G-X04",
+      "claim": "Průměrná měsíční mzda byla v roce 2090 odhadem 61 200 Kč.",
+      "quote": "průměrná měsíční mzda v roce 2090 činila podle odhadu 61 200 Kč",
+      "excerpt": "Úřad v prosinci uvedl, že průměrná měsíční mzda v roce 2090 činila podle odhadu 61 200 Kč.",
+      "measures": [
+        {
+          "value": 61200,
+          "unit": "CZK",
+          "period": "Y2090",
+          "geography": "CZ",
+          "population": "EMPLOYEES",
+          "basis": "estimate",
+          "measure_name": "Průměrná měsíční mzda"
+        }
+      ],
+      "source": {
+        "title": "Fiktivní statistický úřad: Odhad mezd 2090",
+        "publisher": "Fiktivní statistický úřad",
+        "primary": "primary",
+        "cited": [],
+        "date": "2090-12-10"
+      },
+      "related": [
+        {
+          "evidence_id": "G-RX04",
+          "claim": "Průměrná měsíční mzda byla v roce 2090 60 950 Kč.",
+          "measures": [
+            {
+              "value": 60950,
+              "unit": "CZK",
+              "period": "Y2090",
+              "geography": "CZ",
+              "population": "EMPLOYEES",
+              "basis": "actual",
+              "measure_name": "Průměrná měsíční mzda"
+            }
+          ],
+          "date": "2091-03-05"
+        }
+      ],
+      "expected": "superseded",
+      "why": "the actual figure of the same year replaces the estimate"
+    }
+  ]
+}
