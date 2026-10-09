@@ -49,7 +49,7 @@ export function ObjectMapView({ battery, dataOrigin }: { battery: BatteryWithMap
         <p className="text-xs text-ink-muted">{tv("research.exec.objectMap.provisional", { sigma: num(map.spec.terrain.sigma, 2) })}</p>
       ) : null}
       {map.outcome === "MAPPED" && map.layout ? (
-        <MappedView battery={battery} map={map} />
+        <MappedView key={fingerprint} battery={battery} map={map} />
       ) : (
         <p role="alert" className="text-sm text-status-fault">{tv("research.exec.objectMap.notMappable", { message: map.not_mappable?.message ?? "—" })}</p>
       )}
@@ -125,7 +125,7 @@ function MappedView({ battery, map }: { battery: BatteryWithMaps; map: ObjectMap
         <div className="touch-none select-none overflow-hidden rounded border border-border bg-surface-raised focus:outline focus:outline-2 focus:outline-[var(--focus-ring)]"
           role="region" aria-label={t("research.exec.objectMap.workspace")} tabIndex={0} onKeyDown={onKey}
           onPointerDown={onDown} onPointerMove={onMove} onPointerUp={() => { drag.current = null; }} onPointerCancel={() => { drag.current = null; }}>
-        {mode === "3d" ? <ObjectMapTerrain map={map} objects={objects} camera={camera} selected={selected} partner={pair?.id ?? null} showLinks={showLinks} onSelect={setSelected} /> : <svg
+        {mode === "3d" ? <ObjectMapTerrain map={map} objects={objects} camera={camera} selected={selected} partner={pair?.id ?? null} showLinks={showLinks} ratingScale={rating} onSelect={setSelected} /> : <svg
           viewBox={`0 0 ${MAP_VIEW.size} ${MAP_VIEW.size}`}
           role="group"
           aria-label={tv("research.exec.objectMap.mapLabel", { title: battery.title, n: objects.length })}
@@ -170,7 +170,7 @@ function MappedView({ battery, map }: { battery: BatteryWithMaps; map: ObjectMap
         </svg>}
         </div>
         {mode === "3d" ? <><p className="mt-2 text-xs text-ink-muted">{t("research.exec.objectMap.referencePlane")}</p><p className="mt-1 text-xs text-ink-muted">{t("research.exec.objectMap.cameraHelp")}</p><p className="mt-1 text-xs text-ink-muted">{t("research.exec.objectMap.labelHelp")}</p></> : null}
-        <Legend />
+        <Legend scale={rating} />
         <p className="mt-1 text-xs text-ink-muted">{t("research.exec.objectMap.howToRead")}</p>
         {map.terrain.status === "not_computed" ? <p className="mt-1 text-xs text-ink-muted">{tv("research.exec.objectMap.noTerrain", { reason: map.terrain.reason })}</p> : null}
       </div>
@@ -228,16 +228,17 @@ function MappedView({ battery, map }: { battery: BatteryWithMaps; map: ObjectMap
   );
 }
 
-function Legend() {
+function Legend({ scale }: { scale?: [number, number] }) {
+  const label = scale ? tv("research.exec.objectMap.legendOriginal", { low: num(scale[0], 0), high: num(scale[1], 0) }) : t("research.exec.objectMap.legendHeight");
   return (
-    <div className="mt-2 flex flex-col gap-1 text-xs" aria-label={t("research.exec.objectMap.legendHeight")}>
+    <div className="mt-2 flex flex-col gap-1 text-xs" aria-label={label}>
       <span className="flex items-center gap-2">
-        <span>{t("research.exec.objectMap.legendHeight")}:</span>
-        <span>0</span>
+        <span>{label}:</span>
+        <span>{scale ? num(scale[0], 0) : "0"}</span>
         <span className="flex" aria-hidden>
           {[0, 1, 2, 3, 4, 5, 6].map((k) => <span key={k} className="inline-block h-3 w-5" style={{ background: SEQ(k) }} />)}
         </span>
-        <span>1</span>
+        <span>{scale ? num(scale[1], 0) : "1"}</span>
       </span>
       <span className="flex items-center gap-3">
         <span>{t("research.exec.objectMap.legendLinks")}:</span>

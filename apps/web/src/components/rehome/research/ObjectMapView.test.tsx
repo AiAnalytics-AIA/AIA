@@ -92,6 +92,11 @@ describe("ObjectMapView", () => {
 
   it("describes the surface, weak fit and actual pair separately from object height", () => {
     render(<ObjectMapView battery={{ ...battery, rating_scale: [1, 10] }} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "3D terén" }));
+    expect(screen.getByLabelText("Výška = průměrné hodnocení na škále 1–10")).toBeTruthy();
+    const firstPoint = screen.getByTestId(`object-map-point-${read.map.object_ids[0]}`);
+    const expectedRating = 1 + read.map.heights.values[0]! * 9;
+    expect(firstPoint.textContent).toContain(expectedRating.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     const reading = screen.getByTestId("object-map-reading");
     expect(reading.textContent).toContain("není dalším měřením");
     expect(reading.textContent).toContain("Shoda této mapy je slabá");

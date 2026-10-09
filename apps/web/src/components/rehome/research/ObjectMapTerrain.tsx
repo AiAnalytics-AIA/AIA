@@ -7,9 +7,9 @@ import { type MapObject, type ObjectMapArtifact, mapLinks, viewSpan } from "@/li
 import { labelOffsets, num } from "@/lib/sociomapping-view";
 
 /** Canvas surface plus accessible SVG object controls, all from one frozen map. */
-export function ObjectMapTerrain({ map, objects, camera, selected, partner, showLinks, onSelect }: {
+export function ObjectMapTerrain({ map, objects, camera, selected, partner, showLinks, ratingScale, onSelect }: {
   map: ObjectMapArtifact; objects: MapObject[]; camera: TerrainCamera;
-  selected: string | null; partner: string | null; showLinks: boolean;
+  selected: string | null; partner: string | null; showLinks: boolean; ratingScale?: [number, number];
   onSelect: (id: string) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -113,6 +113,7 @@ export function ObjectMapTerrain({ map, objects, camera, selected, partner, show
           const tx = Math.max(12, Math.min(TERRAIN_VIEW.width - 180 * labelScale, sx + 16 * labelScale));
           const ty = Math.max(30 * labelScale, Math.min(TERRAIN_VIEW.height - 55 * labelScale, sy + dy));
           const limit = labelScale > 1.8 ? 14 : 30;
+          const displayHeight = o.height === null ? null : ratingScale ? ratingScale[0] + o.height * (ratingScale[1] - ratingScale[0]) : o.height;
           const label = o.label.length > limit ? `${o.label.slice(0, limit - 1)}…` : o.label;
           return (
             <g key={o.id} role="button" tabIndex={0} aria-label={tv("research.exec.objectMap.selectObject", { label: o.label })} aria-pressed={on}
@@ -124,7 +125,7 @@ export function ObjectMapTerrain({ map, objects, camera, selected, partner, show
               {showLabel ? <>
               <line x1={sx} y1={sy} x2={tx - 2} y2={ty} stroke="var(--ink-muted)" />
               <text x={tx} y={ty} fontSize={15 * labelScale} fontWeight={on ? 700 : 500} fill="var(--ink)" paintOrder="stroke" stroke="var(--surface-raised)" strokeWidth={5} strokeLinejoin="round">{label}</text>
-              <text x={tx} y={ty + 18 * labelScale} fontSize={13 * labelScale} fill="var(--ink-muted)" paintOrder="stroke" stroke="var(--surface-raised)" strokeWidth={4}>{num(o.height, 2)}</text>
+              <text x={tx} y={ty + 18 * labelScale} fontSize={13 * labelScale} fill="var(--ink-muted)" paintOrder="stroke" stroke="var(--surface-raised)" strokeWidth={4}>{num(displayHeight, 2)}</text>
               </> : null}
             </g>
           );

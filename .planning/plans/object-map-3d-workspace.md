@@ -90,3 +90,9 @@ regenerate the fixture or loosen the byte assertion. Require the official Linux
 CI fixture test and every blocking gate to pass before merge. API: 355 passed;
 worker: 54 passed, 8 PostgreSQL-only skips. Executor rerun and remaining web
 checks follow the config source relocation. Webpack production build passes.
+
+Final executor suite: 368 passed, 2 PostgreSQL-only skips. All 668 web tests
+(44 files) pass, including the map and public-config tests. Design checks:
+210 contrast comparisons and both theme/palette checks pass. Final Python and
+web lint pass. Original-scale rating labels and legends are tested; the results
+page's static-only description now accurately names the supported 3D controls.
