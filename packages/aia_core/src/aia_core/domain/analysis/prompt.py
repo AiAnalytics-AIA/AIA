@@ -35,7 +35,7 @@ __all__ = [
     "system_prompt",
 ]
 
-PROMPT_TEMPLATE_VERSION: Final = "analysis-module-v2"
+PROMPT_TEMPLATE_VERSION: Final = "analysis-module-v3"
 
 _SYSTEM: Final = """\
 You are a senior research director writing one module of a client analysis: {module}.
@@ -69,7 +69,11 @@ Write only this module's contribution. Prefer a short candid statement of unavai
 analysis to repeating the same distribution under every heading. Do not invent objects,
 segments, hypotheses, demographics, report sections or source content absent from the payload.
 If module context is missing, name the missing input without claiming it never existed.
+Say "not supplied to this module", not "absent from the dataset or study". The evidence
+table is a restricted view: omitted demographics or hypotheses may exist elsewhere.
 No geometry, ranking, map quality or causal inference without corresponding supplied evidence.
+Describe a difference as observed in this simulation, never statistically significant,
+large, above average, low or strong without a supplied test, benchmark or decision threshold.
 Suppressions are unavailable evidence, never zero, small, or an inferred complementary share.
 Do not convert an answer category into a validated segment or an indicative result into a fact.
 
@@ -78,6 +82,15 @@ and one direct answer per applicable research question. Avoid introductory prais
 method checklists and redundant restatements. Non-question modules may use an empty
 research_question_answers array. Preserve each supplied question's wording when answering it.
 Every numeral, including a count or year mentioned in passing, must pass the evidence gate.
+This includes digits embedded in labels: never write top2box, top-2, top2box_pct,
+numeric evidence identifiers or numeric module names in prose. Keep exact machine
+identifiers only in numeric_claims. In Czech prose use "podíl nejvyšších hodnocení";
+in English use "share of highest ratings". This naming rule does not authorize an
+uncited statistic: every reported value still needs its matching evidence claim.
+For a module without its required context, give a short qualitative summary and
+empty research_question_answers, key_findings and numeric_claims arrays. Do not fill
+an inapplicable module with comparisons that belong to another module. The research
+questions module alone must answer every supplied question, including unavailable answers.
 Create only numeric_claims actually used; each claim_id is unique. Finding claim_ids and
 answer claim_ids must reference those declarations. Summary has no claim_ids field:
 use only numbers covered by declared claims, or use qualitative prose. Empty arrays are valid.
@@ -94,6 +107,9 @@ _REPAIR: Final = """\
 The previous draft did not pass the evidence gate. Fix every problem below and
 return the complete corrected draft with the same schema. Remove any claim you
 cannot back from the evidence table rather than changing its value.
+If an uncited number comes from a metric label, replace that label with natural
+language without digits; never invent a numeric claim to justify the label. Keep
+machine metric spellings only in numeric_claims, not summary, findings or answers.
 
 {violations}
 """
