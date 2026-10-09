@@ -220,15 +220,19 @@ class InMemoryToolLedger:
     """A :class:`ToolMeter` over a ceiling, in memory. It never charges a study.
 
     Used by tests and inside a worker's meter, which adds the durable journal.
+    ``budget_usd`` ``None`` holds no ceiling of its own: a worker's meter, whose
+    every priced call is held against the study's budget (plan chunk 23c).
     """
 
-    budget_usd: float
+    budget_usd: float | None
     _events: list[ToolUsageEvent] = field(default_factory=list)
     _held: dict[str, float] = field(default_factory=dict)
     _spent: float = 0.0
 
     def __post_init__(self) -> None:
-        if not math.isfinite(self.budget_usd) or self.budget_usd < 0:
+        if self.budget_usd is not None and (
+            not math.isfinite(self.budget_usd) or self.budget_usd < 0
+        ):
             raise ValueError("a tool budget is a finite, non-negative amount")
 
     @property
@@ -240,7 +244,11 @@ class InMemoryToolLedger:
     ) -> ToolReservation:
         if not math.isfinite(amount_usd) or amount_usd < 0:
             raise ValueError("a reservation is a finite, non-negative amount")
-        remaining = self.budget_usd - self._spent - sum(self._held.values())
+        remaining = (
+            math.inf
+            if self.budget_usd is None
+            else self.budget_usd - self._spent - sum(self._held.values())
+        )
         if amount_usd > remaining + 1e-12:
             raise ToolBudgetExhausted(requested=amount_usd, remaining=max(0.0, remaining))
         reservation = ToolReservation(

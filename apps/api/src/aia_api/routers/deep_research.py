@@ -245,8 +245,10 @@ def deep_research_prices(
     Each kind of research agent's request reserves its own kind's amount
     (:func:`deep_research_budgets`, as ``aia_executors.deep_research_runtime`` composes
     them); with a key missing, every model kind is unknown. The retrieval a deployment
-    composes is fee-free (``aia_executors.deep_research_live``): the public Wikipedia
-    search, its pages or any public host's, and the listed public dataset connectors;
+    composes (``aia_executors.deep_research_live``) is fee-free but Brave's search: the
+    public Wikipedia search, its pages or any public host's, and the listed public dataset
+    connectors cost nothing; Brave's search costs its dated price per request (unset:
+    unknown, never zero), and a paid route needs the organization's sign-off (chunk 44);
     off, nothing is searched. Triage, the focused crawl and Common Crawl are composed by
     no deployment yet (chunk 23 wires them with their dated prices), so nothing is sent
     on them.
@@ -258,25 +260,35 @@ def deep_research_prices(
         else RoutePrice.per_call(budgets[kind].reservation_usd)
         for kind in RESEARCH_KINDS
     }
-    web = RoutePrice.per_call(0.0) if settings.deep_research_wikipedia_enabled else RoutePrice.off()
-    off = RoutePrice.off()
+    route = deep_research_search_route(settings)
+    free, off = RoutePrice.per_call(0.0), RoutePrice.off()
+    if route == "brave":
+        per_1000 = settings.deep_research_brave_usd_per_1000
+        search = RoutePrice.unknown() if per_1000 is None else RoutePrice.per_call(per_1000 / 1000)
+    else:
+        search = free if route == "wikipedia" else off
+    searching = route != "off"
     return DeepResearchPrices(
         {
             **model,
-            CallKind.SEARCH: web,
-            CallKind.FETCH: web,
+            CallKind.SEARCH: search,
+            CallKind.FETCH: free if searching else off,
             CallKind.TRIAGE: off,
             CallKind.CRAWL_FETCH: off,
             CallKind.CONNECTOR: (
-                RoutePrice.per_call(0.0)
-                if settings.deep_research_wikipedia_enabled
-                and settings.deep_research_connectors.strip()
-                else off
+                free if searching and settings.deep_research_connectors.strip() else off
             ),
             CallKind.URL_INDEX_QUERY: off,
             CallKind.ARCHIVE_FETCH: off,
         }
     )
+
+
+def deep_research_search_route(settings: Settings) -> str:
+    """The search route the worker composes from the same keys: off, wikipedia or brave."""
+    if settings.deep_research_web_search:
+        return settings.deep_research_web_search
+    return "wikipedia" if settings.deep_research_wikipedia_enabled else "off"
 
 
 def _study_prices(

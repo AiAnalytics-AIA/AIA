@@ -162,6 +162,19 @@ class AttemptContext:
         )
         return PaidCall(provider=provider, amount_usd=amount_usd, reservation_id=reservation_id)
 
+    def reserve_tool(self, *, amount_usd: float, route_id: str, reason: str = "") -> PaidCall:
+        self.checkpoint()
+        reservation_id = self._write(
+            lambda repo: repo.reserve_tool_budget(
+                attempt_id=self._step.attempt_id,
+                worker_id=self._worker_id,
+                amount_usd=amount_usd,
+                route_id=route_id,
+                reason=reason,
+            )
+        )
+        return PaidCall(provider=None, amount_usd=amount_usd, reservation_id=reservation_id)
+
     def dispatching(self, call: PaidCall, *, provider_request_id: str | None = None) -> None:
         # The last point at which stopping costs nothing: after this, the call is
         # in flight and its billing is the client's.

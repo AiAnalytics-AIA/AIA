@@ -6,8 +6,24 @@ key                                     meaning
 AIA_DEEP_RESEARCH_ENABLED               ``true`` builds the runtime; unset or false,
                                         a Deep Research run parks at its plan step
                                         (``deep_research_unconfigured``)
+AIA_DEEP_RESEARCH_WEB_SEARCH            ``off``, ``wikipedia`` or ``brave``: the search
+                                        route (plan chunk 23d). Unset, the Wikipedia
+                                        switch below decides; both set is refused.
+                                        ``brave`` needs the public fetch's contact and
+                                        the three Brave keys below
 AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED     ``true`` selects the bounded Czech Wikipedia
-                                        Class C public route; false has no retrieval
+                                        Class C public route; false has no retrieval.
+                                        Read when the key above is unset
+AIA_DEEP_RESEARCH_BRAVE_API_KEY         Brave's subscription key, put in the
+                                        environment by the deployment (SSM
+                                        SecureString on develop); read at each call
+                                        through its reference, never stored, logged
+                                        or named in a route
+AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000    Brave's price per 1,000 requests, in USD,
+                                        above zero: what every search reserves
+                                        (divided by 1,000) and is charged
+AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF    the date that price was read (YYYY-MM-DD),
+                                        not in the future
 AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS
                                         optional; unset or empty, the agents do not
                                         think. An integer >= 1024 and below
@@ -92,6 +108,7 @@ from __future__ import annotations
 import dataclasses
 import os
 from collections.abc import Mapping
+from datetime import UTC, date, datetime
 from typing import Final
 
 from aia_core.application.acquisition_ladder import LadderConfig
@@ -102,7 +119,8 @@ from aia_core.domain.providers import Provider
 from aia_core.infrastructure.db import create_app_engine, create_session_factory, is_sqlite
 from aia_core.infrastructure.fan_out_coordination import ModelSlots, SharedHostPacer
 from aia_core.infrastructure.model_adapters import BedrockSigner
-from aia_core.infrastructure.model_adapters.transport import HttpTransport
+from aia_core.infrastructure.model_adapters.transport import EnvironmentCredentials, HttpTransport
+from aia_core.infrastructure.web_retrieval_brave import BRAVE_CREDENTIAL_REF
 from aia_core.infrastructure.web_retrieval_live import public_user_agent
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -111,6 +129,7 @@ from .deep_research import DeepResearchConfig, DeepResearchRuntime
 from .deep_research_live import (
     CONNECTORS,
     UNAVAILABLE_CONNECTORS,
+    brave_retrieval,
     connector_accesses,
     public_retrieval,
     wikipedia_retrieval,
@@ -118,6 +137,9 @@ from .deep_research_live import (
 
 __all__ = [
     "AGENT_DIRECTED_KEY",
+    "BRAVE_AS_OF_KEY",
+    "BRAVE_KEY",
+    "BRAVE_PRICE_KEY",
     "CONNECTORS_KEY",
     "ENABLED_KEY",
     "FAN_OUT_KEY",
@@ -125,7 +147,9 @@ __all__ = [
     "MODEL_CONCURRENCY_KEY",
     "PUBLIC_FETCH_CONTACT_KEY",
     "THINKING_KEY",
+    "WEB_SEARCH_KEY",
     "agent_directed",
+    "brave_price_per_call",
     "connectors",
     "deep_research_enabled",
     "deep_research_runtime",
@@ -134,6 +158,7 @@ __all__ = [
     "model_concurrency",
     "public_fetch_contact",
     "thinking_budget",
+    "web_search",
 ]
 
 ENABLED_KEY: Final = "AIA_DEEP_RESEARCH_ENABLED"
@@ -145,6 +170,13 @@ FAN_OUT_KEY: Final = "AIA_DEEP_RESEARCH_FAN_OUT"
 MODEL_CONCURRENCY_KEY: Final = "AIA_DEEP_RESEARCH_MODEL_CONCURRENCY"
 PUBLIC_FETCH_CONTACT_KEY: Final = "AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT"
 CONNECTORS_KEY: Final = "AIA_DEEP_RESEARCH_CONNECTORS"
+WEB_SEARCH_KEY: Final = "AIA_DEEP_RESEARCH_WEB_SEARCH"
+BRAVE_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_API_KEY"
+BRAVE_PRICE_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000"
+BRAVE_AS_OF_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF"
+WEB_SEARCHES: Final = ("off", "wikipedia", "brave")
+#: The most a price per 1,000 requests may say: a typo of a decimal point stops the worker.
+MAX_BRAVE_USD_PER_1000: Final = 100.0
 
 _TRUE: Final = frozenset({"1", "true", "yes", "on"})
 _FALSE: Final = frozenset({"0", "false", "no", "off", ""})
@@ -257,6 +289,61 @@ def _coordination_sessions(env: Mapping[str, str]) -> sessionmaker[Session]:
     return create_session_factory(create_app_engine(url, pool_size=2, max_overflow=4))
 
 
+def web_search(env: Mapping[str, str] | None = None) -> str:
+    """The search route the deployment names: ``off``, ``wikipedia`` or ``brave``."""
+    env = os.environ if env is None else env
+    named = (env.get(WEB_SEARCH_KEY) or "").strip().lower()
+    wiki = (env.get(WIKIPEDIA_KEY) or "").strip().lower()
+    if wiki not in _TRUE | _FALSE:
+        raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY}={wiki!r} is not true or false")
+    if named:
+        if named not in WEB_SEARCHES:
+            raise AIRuntimeConfigError(
+                f"{WEB_SEARCH_KEY}={named!r} is not one of {', '.join(WEB_SEARCHES)}"
+            )
+        if wiki in _TRUE:
+            # ``false`` beside it is what a Compose file's default writes, and harmless.
+            raise AIRuntimeConfigError(
+                f"{WEB_SEARCH_KEY} replaces {WIKIPEDIA_KEY}: turn one of them on, not both"
+            )
+        return named
+    return "wikipedia" if wiki in _TRUE else "off"
+
+
+def brave_price_per_call(env: Mapping[str, str] | None = None) -> float:
+    """Brave's dated price, per request: ``AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000`` / 1,000.
+
+    Both price keys are required and checked; there is no default price. The key's
+    presence is checked through its reference, and its value is not kept.
+    """
+    env = os.environ if env is None else env
+    raw = (env.get(BRAVE_PRICE_KEY) or "").strip()
+    try:
+        per_1000 = float(raw)
+    except ValueError:
+        raise AIRuntimeConfigError(f"{BRAVE_PRICE_KEY}={raw!r} is not a price in USD") from None
+    if not (0 < per_1000 <= MAX_BRAVE_USD_PER_1000) or per_1000 != per_1000:
+        raise AIRuntimeConfigError(
+            f"{BRAVE_PRICE_KEY}={raw!r} must be above 0 and at most {MAX_BRAVE_USD_PER_1000:g}"
+        )
+    as_of = (env.get(BRAVE_AS_OF_KEY) or "").strip()
+    try:
+        read_on = date.fromisoformat(as_of)
+    except ValueError:
+        raise AIRuntimeConfigError(
+            f"{BRAVE_AS_OF_KEY}={as_of!r} is not a date (YYYY-MM-DD)"
+        ) from None
+    if read_on > datetime.now(UTC).date():
+        raise AIRuntimeConfigError(f"{BRAVE_AS_OF_KEY}={as_of} is in the future")
+    try:
+        present = bool(EnvironmentCredentials(environ=env).secret(BRAVE_CREDENTIAL_REF).strip())
+    except KeyError:
+        present = False
+    if not present:
+        raise AIRuntimeConfigError(f"{WEB_SEARCH_KEY}=brave needs {BRAVE_KEY}")
+    return per_1000 / 1000
+
+
 def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
     """The thinking budget, read strictly: unset or empty is none; else an integer >= 1024.
 
@@ -292,10 +379,8 @@ def deep_research_runtime(
     builds one from ``DATABASE_URL`` when the switch is on.
     """
     values = os.environ if env is None else env
-    wiki = values.get(WIKIPEDIA_KEY, "false").strip().lower()
-    if wiki not in {"1", "true", "yes", "on", "0", "false", "no", "off", ""}:
-        raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY}={wiki!r} is not true or false")
-    use_wikipedia = wiki in {"1", "true", "yes", "on"}
+    search = web_search(values)
+    has_search = search != "off"  # a search route the public fetch rides beside
     thinking = thinking_budget(values)
     directed = agent_directed(values)
     planned_by_lead = lead(values)
@@ -303,10 +388,10 @@ def deep_research_runtime(
     slots_limit = model_concurrency(values)
     contact = public_fetch_contact(values)
     listed = connectors(values)
-    if contact is not None and not use_wikipedia:
+    if contact is not None and not has_search:
         raise AIRuntimeConfigError(
-            f"{PUBLIC_FETCH_CONTACT_KEY} needs {WIKIPEDIA_KEY}: pages are fetched beside a "
-            "search route, and Wikipedia's is the one a deployment has"
+            f"{PUBLIC_FETCH_CONTACT_KEY} needs {WIKIPEDIA_KEY} or {WEB_SEARCH_KEY}: pages "
+            "are fetched beside a search route"
         )
     if listed and contact is None:
         raise AIRuntimeConfigError(
@@ -317,9 +402,17 @@ def deep_research_runtime(
         raise AIRuntimeConfigError(
             f"{LEAD_KEY} needs {AGENT_DIRECTED_KEY}: the lead plans agent-directed tracks"
         )
+    if search == "brave" and contact is None:
+        raise AIRuntimeConfigError(
+            f"{WEB_SEARCH_KEY}=brave needs {PUBLIC_FETCH_CONTACT_KEY}: Brave's results are "
+            "pages on any public host, fetched by the public fetch"
+        )
     if not deep_research_enabled(values):
-        if use_wikipedia:
-            raise AIRuntimeConfigError(f"{WIKIPEDIA_KEY} needs {ENABLED_KEY}")
+        if has_search:
+            raise AIRuntimeConfigError(
+                f"{WEB_SEARCH_KEY if values.get(WEB_SEARCH_KEY) else WIKIPEDIA_KEY} "
+                f"needs {ENABLED_KEY}"
+            )
         if thinking is not None:
             raise AIRuntimeConfigError(f"{THINKING_KEY} needs {ENABLED_KEY}")
         if planned_by_lead:
@@ -355,8 +448,16 @@ def deep_research_runtime(
         sessions = coordination or _coordination_sessions(values)
         slots = ModelSlots(sessions, pool=f"bedrock:{settings.route_id}", limit=slots_limit)
         pacer = SharedHostPacer(sessions)
-    if not use_wikipedia:
+    if not has_search:
         retrieval, table = None, SOURCE_TABLE_V1
+    elif search == "brave":
+        assert contact is not None
+        retrieval, table = brave_retrieval(
+            contact,
+            price_usd_per_call=brave_price_per_call(values),
+            credentials=EnvironmentCredentials(environ=values),
+            pacer=pacer,
+        )
     elif contact is not None:
         retrieval, table = public_retrieval(contact, pacer=pacer)
     else:

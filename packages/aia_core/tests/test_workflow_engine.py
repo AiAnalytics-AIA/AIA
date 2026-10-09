@@ -437,6 +437,52 @@ def test_recovery_does_not_retry_a_possibly_billed_paid_call(
     assert history[0]["actual_cost_usd"] == pytest.approx(2.00)
 
 
+def test_a_priced_tool_call_in_flight_is_recovered_like_a_model_call(
+    engine_repo: WorkflowRepository, run: str, session: Session
+) -> None:
+    """Plan ``deep-research-web-search.md`` 23c: a tool hold is the same hold. Dispatched
+    and lost with its worker, it is uncertain exposure charged to the study, never retried;
+    the attempt's model provider is not overwritten by the route."""
+    _fund_study(session, engine_repo.scope.study_id, 1.0)
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    reservation_id = engine_repo.reserve_tool_budget(
+        attempt_id=claimed.attempt_id,
+        worker_id=claimed.worker_id,
+        amount_usd=0.005,
+        route_id="brave-web-search",
+    )
+    engine_repo.mark_paid_call_dispatched(
+        claimed.attempt_id, worker_id=claimed.worker_id, reservation_id=reservation_id
+    )
+    _expire(session, claimed.attempt_id)
+
+    decisions = engine_repo.recover_expired_attempts()
+
+    assert [d.action for d in decisions] == [RecoveryAction.RECOVERY_REQUIRED]
+    reservation = session.get(BudgetReservationRow, reservation_id)
+    assert reservation is not None
+    assert reservation.status == ReservationStatus.SETTLED_UNCERTAIN.value
+    assert engine_repo.budget_position()["spent_usd"] == pytest.approx(0.005)
+    assert engine_repo.attempt_history(claimed.step_id)[0]["provider"] is None
+
+
+def test_a_tool_hold_the_study_cannot_cover_is_refused_before_anything_is_held(
+    engine_repo: WorkflowRepository, run: str, session: Session
+) -> None:
+    _fund_study(session, engine_repo.scope.study_id, 0.004)
+    claimed = engine_repo.claim_next(worker_id="worker-1")
+    assert claimed is not None
+    with pytest.raises(BudgetExceeded):
+        engine_repo.reserve_tool_budget(
+            attempt_id=claimed.attempt_id,
+            worker_id=claimed.worker_id,
+            amount_usd=0.005,
+            route_id="brave-web-search",
+        )
+    assert engine_repo.budget_position()["reserved_usd"] == pytest.approx(0.0)
+
+
 def test_recovery_retries_a_paid_call_that_never_dispatched(
     engine_repo: WorkflowRepository, run: str, session: Session
 ) -> None:

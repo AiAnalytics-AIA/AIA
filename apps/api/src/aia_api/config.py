@@ -122,6 +122,11 @@ class Settings(BaseSettings):
     ai_research_max_output_tokens: int | None = None
     deep_research_thinking_budget_tokens: int | None = None
     deep_research_wikipedia_enabled: bool = False
+    # The search route by name (``AIA_DEEP_RESEARCH_WEB_SEARCH``, chunk 23d): off, wikipedia or
+    # brave; empty, the Wikipedia switch decides, as the worker reads it. Brave is priced per
+    # request from ``AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000`` (unset: unknown, never free).
+    deep_research_web_search: Literal["", "off", "wikipedia", "brave"] = ""
+    deep_research_brave_usd_per_1000: float | None = None
     # The public dataset connectors the worker composes (``AIA_DEEP_RESEARCH_CONNECTORS``,
     # chunk 23b): fee-free, so stated free when listed rather than off. The worker checks
     # the names; here only whether any is listed matters to the ceiling.
@@ -154,6 +159,7 @@ class Settings(BaseSettings):
         "bedrock_context_window_tokens",
         "ai_research_max_output_tokens",
         "deep_research_thinking_budget_tokens",
+        "deep_research_brave_usd_per_1000",
         mode="before",
     )
     @classmethod

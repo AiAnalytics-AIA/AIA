@@ -136,3 +136,47 @@ def test_the_same_configuration_under_staging_is_refused_by_both(
     worker = {**_container("worker", HOST_ENV), "AIA_ENV": "staging"}
     with pytest.raises(RuntimeError, match="AIA_AI_FICTIONAL_CLIENT_IDS is refused in staging"):
         AIRuntimeSettings.from_env(worker)
+
+
+#: Brave on, as Parameter Store would carry it (chunk 23f): the key a SecureString, the
+#: price and its date plain. A fictional key, never a real one.
+BRAVE_ENV = {
+    **HOST_ENV,
+    "AIA_AI_RESEARCH_AGENTS_ENABLED": "true",
+    "AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS": "8192",
+    "AIA_AI_RESEARCH_RESERVATION_USD": "1.5",
+    "AIA_DEEP_RESEARCH_ENABLED": "true",
+    "AIA_DEEP_RESEARCH_WEB_SEARCH": "brave",
+    "AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT": "research@aia.example",
+    "AIA_DEEP_RESEARCH_BRAVE_API_KEY": "fictional-brave-key-0000",
+    "AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000": "5",
+    "AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF": "2026-10-09",
+}
+
+
+def test_brave_composes_from_the_hosts_env_file_and_its_key_reaches_the_worker_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aia_executors.deep_research_runtime import deep_research_runtime
+
+    worker = _container("worker", BRAVE_ENV)
+    runtime = deep_research_runtime(AIRuntimeSettings.from_env(worker), env=worker)
+    assert runtime is not None and runtime.retrieval is not None
+    assert runtime.retrieval.search_route.route_id == "brave-web-search"
+    assert runtime.sign_off_routes() == ("brave-web-search",)
+    for service in ("api", "web", "caddy", "postgres"):
+        assert "AIA_DEEP_RESEARCH_BRAVE_API_KEY" not in _container(service, BRAVE_ENV)
+    api = _api_settings(_container("api", BRAVE_ENV), monkeypatch)
+    assert (api.deep_research_web_search, api.deep_research_brave_usd_per_1000) == ("brave", 5.0)
+
+
+def test_with_brave_unset_the_develop_host_composes_as_before(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Every new key passes through Compose empty, and empty is unset in both processes."""
+    from aia_executors.deep_research_runtime import web_search
+
+    worker = _container("worker", HOST_ENV)
+    assert worker["AIA_DEEP_RESEARCH_WEB_SEARCH"] == "" and web_search(worker) == "off"
+    api = _api_settings(_container("api", HOST_ENV), monkeypatch)
+    assert (api.deep_research_web_search, api.deep_research_brave_usd_per_1000) == ("", None)
