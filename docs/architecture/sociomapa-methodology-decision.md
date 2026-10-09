@@ -1,9 +1,14 @@
 # Sociomap methodology decision — `AIA_SOCIOMAP_V3`, earlier `V1` (D6 / OI-16)
 
 **For:** the methodology owner who approves client-facing Sociomaps.
-**Decides:** whether the four AIA declarations in `AIA_SOCIOMAP_V1` may be used
-for client deliverables. Until this document carries an approval, **no Sociomap
-is client-deliverable** (§6).
+**Decides:** whether **`aia-sociomap-3`** (`AIA_SOCIOMAP_V3`, its fingerprint in the v3
+section) may be used for client deliverables. The one approval this document asks for is the
+v3 table below. Everything after it -- the v2 section and the `AIA_SOCIOMAP_V1` package in
+§1-§4 with their approval lines -- is **history**: an answer recorded there approves
+`aia-sociomap-1` at most, never `aia-sociomap-3`. Until the v3 table carries an ACCEPT, **no
+Sociomap is client-deliverable** (§6).
+
+The v1 preset, the subject of the history in §1-§4:
 
 | | |
 | --- | --- |
@@ -62,7 +67,9 @@ one. Approving `aia-sociomap-3` approves its fingerprint as a whole (§5); the m
 | Date | |
 | Conditions | |
 
-## v2 (2026-10-08): the decision's subject was `aia-sociomap-2`
+## v2 (2026-10-08), history: the decision's subject was `aia-sociomap-2`
+
+*Superseded by v3 above; kept as the record of why v1 stopped being the subject.*
 
 The formula audit ([`sociomap-formula-corrections.md`](../../.planning/plans/sociomap-formula-corrections.md))
 is canonical for AIA's object map, and overrides every earlier Sociomap decision where they
@@ -94,6 +101,11 @@ evidence basis (Q6), the default height and F8's denominator (Q7), finding F-4a-
 finding F-S3-1 (a context object moves PRIMARY r~ under F2). The approval line for the v1
 declarations below stays as it was; a decision on `aia-sociomap-2` approves its fingerprint as
 a whole (§5).
+
+## v1 package, history: `AIA_SOCIOMAP_V1` (the original D6 subject)
+
+*From here to §4 is the original package. Its approval lines decide `aia-sociomap-1` only; they
+are not the D6 decision, which is the v3 table above.*
 
 ## What is not in question
 
@@ -247,12 +259,18 @@ Both are in the withheld archive.
 
 | Answer | Effect |
 | --- | --- |
-| **ACCEPT** (all four) | `aia-sociomap-1` enters the approved-methodology policy (§6) bound to the fingerprint above; its maps may become deliverables under the stated conditions |
-| **REPLACE** (any) | Engineering implements the named replacement as a new declared method with a new `methodology_version`; this preset stays unapproved |
-| **DEFER** (any) | Nothing is client-deliverable. Computation for internal and exploratory use continues unchanged |
+For the D6 decision, the v3 approval table:
 
-A partial ACCEPT does not approve the preset: approval is of a whole spec,
-because the four choices interact.
+| Answer | Effect |
+| --- | --- |
+| **ACCEPT** | `aia-sociomap-3` enters the approved-methodology policy (§6) bound to fingerprint `e16dc0d0636109322900ab56ed9613e6b2d4f6e65f2dd7e26b9ada059b7cf241`; its maps may become deliverables under the conditions recorded in the table. No other version or fingerprint is approved by it |
+| **REPLACE** | Engineering implements the named replacement as a new declared method with a new `methodology_version`; `aia-sociomap-3` stays unapproved |
+| **DEFER** | Nothing is client-deliverable. Computation for internal and exploratory use continues unchanged |
+
+Approval is of a whole spec, never of one of its choices, because the choices interact.
+
+For the history in §1-§4 only: an ACCEPT on all four v1 lines would admit `aia-sociomap-1`
+(fingerprint in the v1 table at the top) and nothing else; a partial ACCEPT approves nothing.
 
 ## 6. The integration rule
 

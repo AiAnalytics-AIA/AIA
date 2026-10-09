@@ -42,3 +42,18 @@ def test_the_current_subject_is_the_preset_new_runs_pin() -> None:
     assert subject is not None
     assert subject.group(1) in {m.method_id for m in default_methods()}
     assert subject.group(1) == AIA_SOCIOMAP_V3.methodology_version
+
+
+def test_the_opening_and_the_effects_name_the_same_subject() -> None:
+    """The owner signs one table; the opening and §5 must say what that signature approves."""
+    text = PACKAGE.read_text("utf-8")
+    subject = AIA_SOCIOMAP_V3.methodology_version
+    decides = re.search(r"\*\*Decides:\*\* whether \*\*`([a-z0-9-]+)`\*\*", text)
+    assert decides is not None
+    assert decides.group(1) == subject
+    effects = text.split("## 5. What each answer does", 1)[1].split("## 6.", 1)[0]
+    accept = re.search(
+        r"\| \*\*ACCEPT\*\* \| `([a-z0-9-]+)` enters .*?fingerprint `([0-9a-f]{64})`", effects
+    )
+    assert accept is not None
+    assert accept.groups() == (subject, AIA_SOCIOMAP_V3.fingerprint())
