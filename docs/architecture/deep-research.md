@@ -2,9 +2,11 @@
 
 **State:** registered, parked by default. The executors are in the worker's default registry and
 the API route calls the service; a run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a
-runtime (off on develop). The one live web route is fee-free Czech Wikipedia (Class C,
-`AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`); no search provider is composed or approved (DR-2), and
-everything else runs on recorded exchanges. The engine is frozen after #166 (ADR 0021).
+runtime (off on develop). The live search routes are fee-free Czech Wikipedia and priced Brave
+(Class C, `AIA_DEEP_RESEARCH_WEB_SEARCH`), with Common Crawl's priced URL index and fee-free
+archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`); a priced route runs only once its
+organization has signed off (§ 9, ADR 0022), and nothing turns Brave on until its SSM keys are
+set (DR-2). Everything else runs on recorded exchanges. The engine is frozen after #166 (ADR 0021).
 Decision records: [ADR 0017](adr/0017-deep-research-external-retrieval.md) (*Proposed*,
 amended 2026-09-27) for retrieval, grounding and evidence; [ADR 0021](adr/0021-deep-research-purpose-target-lineage.md)
 for the two purposes, the typed target and the frozen lineage. Plan and chunk state:
@@ -251,7 +253,9 @@ price of zero. `InMemoryToolLedger` never charges a study's budget
 **The gate** (`RetrievalGate`) is the only way a query or URL leaves, in this order:
 classify (a URL from a public context, raised by client terms) → refuse Class A → `evaluate_egress`
 for the class on the tool's own route → refuse a priced route unless the meter charges the
-study (`tool_metering_unavailable`) → reserve → journal the dispatch → call → journal the
+study (`tool_metering_unavailable`; the worker's `StepToolMeter` does, so in a worker a priced
+call is held against the study's budget through `reserve_tool_budget`, marked dispatched before
+it leaves and settled once at what the gate charged) → reserve → journal the dispatch → call → journal the
 outcome. Every refusal is recorded with its reason; nothing is rerouted. What a call is
 charged is decided there, never in AIA's favour: a provider that answered (success or error)
 costs the route's price; a failure that sent nothing costs nothing; an uncertain call, and a
@@ -322,16 +326,29 @@ and that its Design Revision is the held Study's (`design_not_in_scope`).
 | Composition | Built by | What a run does |
 |---|---|---|
 | none | `deep_research_registry(runtime=None)` | parks at plan (`RUNTIME_UNAVAILABLE`, `deep_research_unconfigured`); nothing read or sent |
-| production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | without `AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`, web tracks `web_retrieval_unavailable` without a planner call; with it, Class C queries go to the Czech Wikipedia route only (`deep_research_live.py`); internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
+| production-shaped | `deep_research_runtime(settings)` (`deep_research_runtime.py`) | with no search route (`AIA_DEEP_RESEARCH_WEB_SEARCH=off`, or unset with the Wikipedia switch off), web tracks `web_retrieval_unavailable` without a planner call; `wikipedia` or `brave` sends Class C queries to that route only (`deep_research_live.py`), and `AIA_DEEP_RESEARCH_COMMON_CRAWL` adds the archive rung; internal tracks refused by the gateway on a Class C route; a completed bundle that says so |
 | recorded | `recorded_runtime(...)` (`deep_research_recorded.py`) | the whole path over a recorded exchange file; refuses unless `AIA_ENV` is `local` or `test`; `layer_check` keeps it out of the API, the worker, the other executors and deployments |
 
 Configuration: **`AIA_DEEP_RESEARCH_ENABLED`** (strict `true`/`false`, default off). On, it
 requires `AIA_AI_RUNTIME_ENABLED` and `AIA_AI_RESEARCH_AGENTS_ENABLED` -- the capabilities it
 names (`RESEARCH_REASONING`, `CRITIC`) are bound only then -- and uses their output limit and
 their per-request reservation (primary plus one repair, checked there against the model's
-ceilings); the worker refuses to start otherwise. No keyed provider is composed: the Brave
-adapter exists (`web_retrieval_brave.py`) and is composed by no deployment until chunk 23 of
-the web-search plan; the Wikipedia route needs no key. The recorded exchange file's format is in
+ceilings); the worker refuses to start otherwise. `AIA_DEEP_RESEARCH_WEB_SEARCH=brave` composes
+the Brave adapter (`web_retrieval_brave.py`): it needs the public fetch's contact,
+`AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000`, `…_PRICES_AS_OF` and `…_BRAVE_API_KEY`, read as a
+reference and never kept, logged or put in a route; the Wikipedia route needs no key.
+`AIA_DEEP_RESEARCH_COMMON_CRAWL` composes the Athena index and the archive
+([deep-research-common-crawl.md](deep-research-common-crawl.md)). The develop runbook is
+`deploy/develop/README.md` § *Deep Research on Brave search* and § *Deep Research on Common Crawl*.
+
+**Settings a run is sized and gated by** (ADR 0022). A run pins its organization's effective
+settings at enqueue (`settings_pin`); its model requests and its cost ceiling are sized by the
+request limits and route allowances it pinned, never above the code's, and the plan records the
+limits for the steps after it (`PlanRecord.request_limits`). Live needs approval for a **priced**
+live route (`ToolRoute.needs_sign_off`); the fee-free routes (Czech Wikipedia, the public fetch,
+the connectors) are exempt by the owner's decision of 2026-10-09. Enqueue answers 409
+`live_settings_unapproved` with `missing` and `routes`; the worker's plan step parks with the
+same reason before anything is asked. The recorded exchange file's format is in
 `deep_research_recorded.py`; its SHA256 is in the adapter ids, so a changed recording changes
 every web track's fingerprint.
 

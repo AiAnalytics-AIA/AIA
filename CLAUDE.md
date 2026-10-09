@@ -162,7 +162,8 @@ apps/
                             without AIA_DEEP_RESEARCH_ENABLED): plan, investigate, merge, verify,
                             synthesize, publish; StepToolMeter (every tool call journaled, fenced,
                             before it leaves; a retry takes the journal over and never resends a
-                            call left in flight); deep_research_registry(runtime=None) parks.
+                            call left in flight; a priced call held against the study's budget and
+                            settled once); deep_research_registry(runtime=None) parks.
                             investigate.py: a planned track's _PlannedLog stores every external
                             outcome (the search with its hits in order, each fetch, the round, the
                             answer) before the next call, so a released step continues and never
@@ -171,9 +172,18 @@ apps/
                             in a step of its own, any worker (InvestigateTrackExecutor; its payload,
                             TrackStepPayload); the run's snapshot cache in the store
                             (StoredRunSnapshotCache); investigate joins them
-    deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; without
-                            AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED web tracks are blocked and nothing is
-                            sent; with it, deep_research_live.py's Czech Wikipedia route (Class C only).
+    deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; the search route is
+                            AIA_DEEP_RESEARCH_WEB_SEARCH = off | wikipedia | brave (unset: the old
+                            AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED decides); off blocks every web track
+                            and sends nothing. deep_research_live.py builds each: Czech Wikipedia
+                            (fee-free, Class C only); brave (priced, NON_EU, Class C only) needs the
+                            public fetch's contact, AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000,
+                            …_PRICES_AS_OF and …_BRAVE_API_KEY (a reference, never kept or logged).
+                            AIA_DEEP_RESEARCH_COMMON_CRAWL (off by default) composes the Athena URL
+                            index (us-east-1, priced at its scan cutoff) and the archive beside a
+                            search route; every AIA_DEEP_RESEARCH_COMMON_CRAWL_* key required,
+                            …_CRAWLS the ladder's. The runtime's sign_off_routes() names the priced
+                            live routes; they run only under a pin recording the sign-off (ADR 0022).
                             AIA_DEEP_RESEARCH_FAN_OUT (off by default) needs
                             AIA_DEEP_RESEARCH_MODEL_CONCURRENCY: no default, 1-256, model requests in
                             flight across every worker on the route
@@ -194,7 +204,12 @@ packages/aia_core/src/aia_core/
                             bounded context and task-owned proposal mapping
     deep_research/          Deep Research (ADR 0017, ADR 0021), pure; the engine is frozen after #166:
       contracts.py          subjects, tracks, snapshots, knowledge sources, evidence, quarantine and
-                            stop reasons, the request a run is frozen to
+                            stop reasons, the request a run is frozen to; harness 3: the request's
+                            settings_method (the approved method digest) and method_identity() in
+                            every cross-run reuse key
+      settings.py           ADR 0022's catalogue, effective values, the run's pin (pin / read_pin,
+                            verified by digest; no fallback); route_allowances / request_limits:
+                            what the engine reads from it, never above the code's caps
       workflow.py           the deep_research graph: plan → investigate → merge → verify →
                             synthesize → publish (built from here by the service, not a template)
       integration.py        ADR 0021, around the engine: DeepResearchPurpose (DESIGN_RESEARCH /
@@ -208,7 +223,8 @@ packages/aia_core/src/aia_core/
                             its target, the pinned specification and the Design Revision (no
                             respondent number), each with an interpretation:<KIND>:<entity> origin;
                             require_interpretation_mission, the enqueue boundary's check (chunk 30)
-      tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome
+      tooling.py            the tool-cost contract: ToolRoute, reserve → dispatching → outcome;
+                            needs_sign_off: a live route with a price
       legacy.py             18.6.6 research_context leakage screen + merge, EXACT (unit captures)
       grounding.py          a quote must be in a source the same track retrieved; numbers too
       sources.py            source class + score from declared tables; unknown scores lowest
@@ -359,7 +375,12 @@ packages/aia_core/src/aia_core/
                             its target's mission: interpretation_mission_mismatch); an
                             interpretation retry re-freezes the stored target, lineage_changed
                             when a pin moved; legacy runs read legacy-unversioned; the bundle
-                            (seal verified), its snapshots and provenance only through the run
+                            (seal verified), its snapshots and provenance only through the run.
+                            The run's effective settings pinned at enqueue (ADR 0022: settings_pin
+                            in its metadata and the plan step's input; run_settings reads it back
+                            verified); cost_ceiling sized by the pinned allowances and limits;
+                            LiveNotApproved (409 live_settings_unapproved, missing + routes) when a
+                            priced route is composed and a live setting is not approved
     web_retrieval.py        RetrievalGate: the ONLY way a query or URL leaves -- classify, egress,
                             metering, reserve, journal the dispatch, call, journal the outcome
     develop_seed.py         The synthetic develop world, through the same paths the API uses
@@ -408,12 +429,17 @@ packages/aia_core/src/aia_core/
                             resolved scope, changed by a person's write or an accepted proposal
                             (a new revision each time)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
+    deep_research_settings_repository.py  The ONLY reader/writer of the Deep Research settings
+                            tables (propose, approve, history); settings_in_force_for_study, what an
+                            enqueue pins
     workflow_repository.py  Durable jobs, lease-fenced writes, cost reservations,
                             the population binding each run records; WorkQueue --
                             the only cross-study surface (claim, recover, resume, refuse);
                             resume_budget_wait: a person lifts an AWAITING_BUDGET step, in the
                             approval ledger (the worker's scope cannot); record_spend_confirmation and
-                            record_ai_proposal_acceptance (once per agent job): the same ledger
+                            record_ai_proposal_acceptance (once per agent job): the same ledger;
+                            reserve_tool_budget: a priced tool call's hold, the same check, fence
+                            and recovery as a model call's
     fan_out_coordination.py  ModelSlots (model requests in flight across processes, PostgreSQL
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
@@ -611,9 +637,13 @@ never lowered by keywords. The 18.6.6 leakage rule is kept exactly and bars a fi
 respondent context, which is re-screened against the final questionnaire. It runs through the
 worker as six steps whose every unit is an artifact with a fingerprint, so a later pass buys only
 what changed. Its executors are in the worker's default registry and its route in the API, but a
-run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a runtime; the only live web route is
-fee-free Czech Wikipedia (`AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED`, Class C); without it the
-production-shaped composition blocks every web track and sends nothing, and recorded web retrieval
+run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a runtime; the live search routes are
+fee-free Czech Wikipedia and priced Brave (`AIA_DEEP_RESEARCH_WEB_SEARCH`, Class C), with Common
+Crawl's priced index and fee-free archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`). A priced
+call is held against the study's budget before it leaves, and a priced route runs only once its
+organization has approved every setting live needs on Settings → Deep Research (ADR 0022). With
+no search route the production-shaped composition blocks every web track and sends nothing, and
+recorded web retrieval
 exists only in `aia_executors.deep_research_recorded` (local and test). Tracks fan out across
 workers behind `AIA_DEEP_RESEARCH_FAN_OUT` (off by default), which needs
 `AIA_DEEP_RESEARCH_MODEL_CONCURRENCY` (no default, 1-256).
