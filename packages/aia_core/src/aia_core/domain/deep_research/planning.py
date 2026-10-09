@@ -33,7 +33,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .classification import CLASSIFIER_VERSION, fold
 from .contracts import (
-    HARNESS_VERSION,
     BriefDigest,
     Channel,
     CoverageCell,
@@ -364,7 +363,7 @@ def track_fingerprint(
     later pass leaves every existing track's fingerprint where it was.
     """
     material: dict[str, Any] = {
-        "harness": HARNESS_VERSION,
+        **request.method_identity(),
         "subject": [subject.key, subject.kind.value, normalise_label(subject.text)],
         "channel": channel.value,
         # The agent-directed allowances only for an agent-directed web track: every

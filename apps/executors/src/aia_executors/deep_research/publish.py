@@ -21,7 +21,6 @@ from aia_core.domain.deep_research.bundle import (
 )
 from aia_core.domain.deep_research.classification import most_restrictive
 from aia_core.domain.deep_research.contracts import (
-    HARNESS_VERSION,
     Channel,
     StopReason,
     TrackStatus,
@@ -143,7 +142,7 @@ class SynthesizeExecutor(_Step):
                 "payload": payload,
                 "policy": runtime.config.policy_version,
                 "prompt": PROMPT_VERSION,
-                "harness": HARNESS_VERSION,
+                **plan.request.method_identity(),
             }
         )
         with context.transaction() as (session, _workflow):
@@ -276,7 +275,7 @@ class SynthesizeExecutor(_Step):
                 "prompt": BRIEF_PROMPT_VERSION,
                 "contract": BRIEF_CONTRACT_VERSION,
                 "brief": BRIEF_VERSION,
-                "harness": HARNESS_VERSION,
+                **plan.request.method_identity(),
             }
         )
         with context.transaction() as (session, _workflow):

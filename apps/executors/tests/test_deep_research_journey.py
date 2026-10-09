@@ -799,6 +799,48 @@ def test_a_run_whose_settings_pin_was_altered_is_never_executed(
     assert agents.requests == [], "nothing was asked under settings the run cannot prove"
 
 
+def test_a_run_whose_pin_is_not_its_requests_method_is_never_executed(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    """Harness 3: the request's method digest and the pin's must agree. A pin that proves
+    itself but records other approved method settings than the request was frozen under
+    fails the run before anything is asked."""
+    from datetime import UTC, datetime
+
+    from aia_core.domain.deep_research.settings import ApprovedValue, effective, pin
+    from aia_core.infrastructure.tables import StepRunRow
+    from sqlalchemy import select
+
+    approve_knowledge(research)
+    run_id = start(research)
+    other = effective(
+        {
+            "budgets.allowance.exhaustive.crawl_pages": ApprovedValue(
+                value=300, version=1, approved_by="someone", approved_at=datetime.now(UTC)
+            )
+        }
+    )
+    with research.sessions() as session:
+        plan_row = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "plan")
+        ).one()
+        plan_row.input_json = {**plan_row.input_json, "settings": pin(other)}
+        session.commit()
+
+    agents = RecordedAgents(ANSWERS)
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    result = w.run_once()
+    assert result is not None and result.ending == "failed"
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    [plan] = [s for s in run["steps"] if s["status"] is StepRunStatus.FAILED]
+    assert plan["attempts"][0]["error"]["reason"] == "settings_mismatch"
+    assert agents.requests == []
+
+
 @pytest.mark.parametrize(
     ("value", "problem"),
     [

@@ -13,7 +13,6 @@ from aia_core.domain.deep_research.agents import (
 )
 from aia_core.domain.deep_research.classification import most_restrictive
 from aia_core.domain.deep_research.contracts import (
-    HARNESS_VERSION,
     QuarantinedEvidence,
     QuarantineReason,
     SnapshotLink,
@@ -274,7 +273,7 @@ class VerifyExecutor(_Step):
                     "items": items,
                     "policy": runtime.config.policy_version,
                     "prompt": PROMPT_VERSION,
-                    "harness": HARNESS_VERSION,
+                    **plan.request.method_identity(),
                 }
             )
             with context.transaction() as (session, _workflow):
@@ -479,7 +478,7 @@ class VerifyExecutor(_Step):
                     "policy": runtime.config.policy_version,
                     "prompt": VERIFIER_PROMPT_VERSION,
                     "contract": VERIFIER_CONTRACT_VERSION,
-                    "harness": HARNESS_VERSION,
+                    **plan.request.method_identity(),
                 }
             )
             with context.transaction() as (session, _workflow):

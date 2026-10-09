@@ -160,21 +160,25 @@ def test_an_approval_reaches_only_runs_enqueued_after_it(
     assert run_settings(run["metadata"]) == first
 
 
-def test_the_engine_request_is_what_it_was_before_runs_pinned(start: Any, session: Any) -> None:
-    """Chunk 43a changes no method: the harness, the plan's request and every step's
-    fingerprint are the engine request's, exactly as before the pin existed; the plan step's
-    input gains the pin beside the request."""
+def test_with_nothing_approved_the_request_carries_no_method_digest(
+    start: Any, session: Any
+) -> None:
+    """Harness 3 with nothing approved: the plan's request holds no method digest, so it and
+    every key it shapes are harness 2's but for the harness string; every step's fingerprint
+    is the engine request's; the plan step's input carries the pin beside the request."""
     from sqlalchemy import select
 
     from aia_core.infrastructure.tables import StepRunRow
 
     started = start()
     metadata = started.run["metadata"]
-    assert metadata["harness_version"] == "aia-deep-research-harness-2"
+    assert metadata["harness_version"] == "aia-deep-research-harness-3"
     rows = session.scalars(select(StepRunRow).where(StepRunRow.run_id == started.run_id)).all()
     assert {r.input_fingerprint for r in rows} == {metadata["request_fingerprint"]}
     (plan,) = [r for r in rows if r.node_key == "plan"]
     assert set(plan.input_json) == {"request", "settings"}
+    # Nothing approved: the request carries no method digest, so it keys as harness 2's.
+    assert "settings_method" not in plan.input_json["request"]
     assert plan.input_json["settings"] == metadata["settings_pin"]
 
 
@@ -204,3 +208,22 @@ def test_another_organizations_approvals_never_reach_this_studys_pin(
     repo.approve(RETENTION, version.version_number)
     pinned = run_settings(start().run["metadata"])
     assert pinned is not None and pinned[RETENTION].origin is Origin.PROPOSED_DEFAULT
+
+
+def test_an_approved_method_setting_is_another_run_and_a_status_setting_is_not(
+    start: Any, scoped: Any, session: Any
+) -> None:
+    """Harness 3: the request carries the approved method digest, so a start repeated after a
+    method setting is approved is a new run, and one after a non-method approval is not."""
+    first = start()
+    _approve(scoped, session, RETENTION, 90)  # retention shapes no result: not a method key
+    assert start().run_id == first.run_id
+    _approve(scoped, session, "budgets.allowance.exhaustive.crawl_pages", 300)
+    second = start()
+    assert second.run_id != first.run_id
+    pinned = run_settings(second.run["metadata"])
+    assert pinned is not None and pinned.approved_method() == pinned.method_digest()
+    assert (
+        second.run["metadata"]["request_fingerprint"]
+        != first.run["metadata"]["request_fingerprint"]
+    )

@@ -88,12 +88,23 @@ __all__ = [
 #: output limit, where 1 sent every request under the model's window and the whole
 #: research output limit. A shorter answer or a refused oversize request can change a
 #: track, a verification or a brief, so work done under 1 is never reused under 2.
-HARNESS_VERSION: Final = "aia-deep-research-harness-2"
+#:
+#: 3 (chunk 43, ADR 0022 decision 5): a run's approved method settings are part of its
+#: identity. ``DeepResearchRequest.settings_method`` carries the pinned method digest once
+#: any method setting is approved, and every key a later run reuses by -- tracks,
+#: verification, synthesis, the brief -- carries it with the harness, so work made under
+#: one set of approved values is never reused under another. With nothing approved the
+#: request and every key are harness 2's but for this string.
+HARNESS_VERSION: Final = "aia-deep-research-harness-3"
 
 #: Every harness a stored request may name: the current one is frozen into new
 #: requests and the only one executed; an earlier one stays readable, so a run, its
 #: request and its sealed bundle from before still validate and keep their identity.
-HARNESS_VERSIONS: Final = ("aia-deep-research-harness-1", HARNESS_VERSION)
+HARNESS_VERSIONS: Final = (
+    "aia-deep-research-harness-1",
+    "aia-deep-research-harness-2",
+    HARNESS_VERSION,
+)
 
 
 class _Closed(BaseModel):
@@ -254,7 +265,11 @@ class DeepResearchRequest(_Closed):
 
     #: The harness the request was frozen for (:data:`HARNESS_VERSIONS`); only the
     #: current one is executed.
-    harness_version: Literal["aia-deep-research-harness-1", "aia-deep-research-harness-2"]
+    harness_version: Literal[
+        "aia-deep-research-harness-1",
+        "aia-deep-research-harness-2",
+        "aia-deep-research-harness-3",
+    ]
     design_revision_id: str = Field(min_length=1)
     design_revision: int = Field(ge=1)
     preset: str
@@ -264,6 +279,11 @@ class DeepResearchRequest(_Closed):
     questionnaire: tuple[ScreenQuestion, ...]
     knowledge: FrozenKnowledge
     client_terms: tuple[ClientTerm, ...]
+    #: The pinned settings' method digest (harness 3, ADR 0022 decision 5) once any method
+    #: setting is approved in the enqueuing organization; ``None`` while every one is the
+    #: code's proposed default, and then left out of the stored form, so such a request and
+    #: every key it shapes are what they were before settings existed.
+    settings_method: str | None = None
 
     @field_validator("channels")
     @classmethod
@@ -272,8 +292,23 @@ class DeepResearchRequest(_Closed):
             raise ValueError("each channel at most once")
         return value
 
+    @model_serializer(mode="wrap")
+    def _without_absent_method(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("settings_method") is None:
+            body.pop("settings_method", None)
+        return body
+
     def fingerprint(self) -> str:
         return digest(self.model_dump(mode="json"))
+
+    def method_identity(self) -> dict[str, str]:
+        """What every cross-run reuse key carries of the method: the harness, and the
+        approved method settings when there are any (harness 3)."""
+        identity = {"harness": HARNESS_VERSION}
+        if self.settings_method is not None:
+            identity["settings"] = self.settings_method
+        return identity
 
 
 # --------------------------------------------------------------------------- #
