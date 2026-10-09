@@ -52,6 +52,7 @@ type StoredMap = { artifact: ObjectMapArtifact; artifact_fingerprint: string; sp
 export type BatteryWithMaps = {
   battery_id: string;
   title: string;
+  rating_scale?: [number, number];
   objects: { id: string; label: string }[];
   maps?: Record<string, StoredMap>;
 };
@@ -188,5 +189,5 @@ export function relationsOf(battery: BatteryWithMaps, map: ObjectMapArtifact, id
       drawn: drawn.has([id, other].sort().join("|")),
     }))
     .filter((e) => e.id !== id)
-    .sort((a, b) => Math.abs(b.r ?? -1) - Math.abs(a.r ?? -1));
+    .sort((a, b) => (b.r === null ? -1 : Math.abs(b.r)) - (a.r === null ? -1 : Math.abs(a.r)));
 }

@@ -22,7 +22,7 @@ from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-1"
+REPORT_CONTRACT_VERSION = "aia-internal-report-2"
 
 
 class ReportExecutor:

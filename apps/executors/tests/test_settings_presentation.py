@@ -105,8 +105,13 @@ def test_every_switch_the_page_names_is_read_by_the_worker_and_handed_to_the_web
     route = (ROOT / "apps" / "web" / "src" / "app" / "config" / "route.ts").read_text(
         encoding="utf-8"
     )
-    listed = re.search(r"export const AI_SWITCHES = \[([^\]]*)\]", route)
-    assert listed, "route.ts no longer declares AI_SWITCHES"
+    config = (ROOT / "apps" / "web" / "src" / "lib" / "public-config.ts").read_text(
+        encoding="utf-8"
+    )
+    assert 'from "@/lib/public-config"' in route
+    assert "AI_SWITCHES.map" in route
+    listed = re.search(r"export const AI_SWITCHES = \[([^\]]*)\]", config)
+    assert listed, "public-config.ts no longer declares AI_SWITCHES"
     shown = set(re.findall(r'"([A-Z_]+)"', listed.group(1)))
 
     switches = {s for a in _described().activities for s in a.switches}

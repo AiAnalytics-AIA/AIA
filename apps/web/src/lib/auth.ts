@@ -13,7 +13,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import type { PublicConfig } from "@/app/config/route";
+import type { PublicConfig } from "@/lib/public-config";
 
 const SESSION_KEY = "aia.session";
 const PKCE_KEY = "aia.pkce";
