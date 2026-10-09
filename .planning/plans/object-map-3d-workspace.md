@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Frozen-grid 3D rendering geometry and integrity tests"
   - "[x] 2. Production map workspace, controls and grounded interpretation"
   - "[x] 3. Report introduction and paragraph structure"
-  - "[ ] 4. Full checks, visual verification, publication and live acceptance"
+  - "[x] 4. Full checks, visual verification, publication and live acceptance"
 ---
 
 # Object map 3D workspace
@@ -96,3 +96,29 @@ Final executor suite: 368 passed, 2 PostgreSQL-only skips. All 668 web tests
 210 contrast comparisons and both theme/palette checks pass. Final Python and
 web lint pass. Original-scale rating labels and legends are tested; the results
 page's static-only description now accurately names the supported 3D controls.
+
+## Published acceptance (2026-10-10)
+
+Feature PR #225 merged as `39b2d53177454264994414ce408c77cb966fdb1d`.
+Release CI `38001477137` passed every required gate, including the strict frozen
+map fixture on Linux. Integration CI `38003166296` passed PostgreSQL core
+(5,413 passed / 178 reference/environment skips), API (356), concurrency (25),
+worker processes (62), executors (387), web (668), SQLite (6,181 passed /
+215 reference/environment skips), migrations and application startup. Withheld
+reference comparisons still report NOT_EXECUTED, not verified parity.
+Deployment `38005544331` succeeded; public `/version` and `/api/v1/health`
+both returned the exact feature merge SHA.
+
+Live browser acceptance on `RUN-1725024c5b8b480a`: 3D terrain contains 2,437
+triangles and six gated signed links. Rotation button, arrow key and pointer drag
+change the camera; zoom, relief and reset work. Top mode removes the canvas.
+Selecting Filmový večer reads 5.80 on the original 1–10 scale. Comparing it to
+Beseda s autorem reads r = -0.332; the fit remains weak (Stress-1 = 0.160), with
+the contextual interpretation visible. No browser errors. Original map artifact
+`ART-d77dd313994a4086`, SHA prefix `6813425a1760`, and old report are unchanged.
+No new run/provider call or AI spending. Live screenshot saved in the task's
+`outputs/aia-3d-workspace-2026-10-10/terrain-live.png`.
+
+Required documentation follow-up merged separately in PR #226 after its checks
+passed. Main DOCX map inclusion, approved methodology, scenario/object editing
+and rewriting historical frozen reports remain outside this completed scope.
