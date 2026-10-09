@@ -67,6 +67,11 @@ from .runtime import StepToolMeter
 
 __all__ = ["PlanExecutor"]
 
+_LIVE_UNAPPROVED_MESSAGE = (
+    "Placená živá cesta vyžaduje schválená nastavení Deep Research (Nastavení → Deep "
+    "Research). Nic nebylo odesláno ani vyhledáno; po schválení spusťte nový běh."
+)
+
 # --------------------------------------------------------------------------- #
 # plan
 # --------------------------------------------------------------------------- #
@@ -114,6 +119,22 @@ class PlanExecutor(_Step):
             if pinned_limits != REQUEST_LIMITS:
                 limits = pinned_limits
                 runtime = _under(runtime, limits)
+        live_routes = runtime.sign_off_routes()
+        if live_routes:
+            # ADR 0022 decision 6 (chunk 44): a priced live route is used only by a run
+            # whose pin records every setting live needs as approved. The pin is the
+            # evidence of the approval at enqueue; no settings store is read here.
+            missing = ("settings_pin",) if pinned is None else read_pin(pinned).missing_for_live()
+            if missing:
+                return Failed(
+                    FailureClass.RUNTIME_UNAVAILABLE,
+                    error={
+                        "reason": "live_settings_unapproved",
+                        "message": _LIVE_UNAPPROVED_MESSAGE,
+                        "routes": list(live_routes),
+                        "missing": list(missing),
+                    },
+                )
         if request.harness_version != HARNESS_VERSION:
             # Frozen for an earlier method: executed now it would run under another
             # one and be labelled with the first. It stays readable; it is not run.

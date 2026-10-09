@@ -124,6 +124,14 @@ class ToolRoute:
     def route_id(self) -> str:
         return self.route.route_id
 
+    @property
+    def needs_sign_off(self) -> bool:
+        """Whether a run on this route goes live only once its organization has approved
+        every setting live needs (ADR 0022 decision 6, plan chunk 44): a live route with a
+        price. The fee-free routes (Czech Wikipedia, the public fetch, the connectors) and
+        every recorded one do not -- the owner's call of 2026-10-09."""
+        return self.retrieval_mode is RetrievalMode.LIVE and self.price_usd_per_call > 0
+
 
 class _Closed(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)

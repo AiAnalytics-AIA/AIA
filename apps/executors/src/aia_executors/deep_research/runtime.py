@@ -193,6 +193,17 @@ class DeepResearchRuntime:
             ]
         return identity
 
+    def sign_off_routes(self) -> tuple[str, ...]:
+        """Every route this composition gives that needs its run's organization to have
+        approved the live settings (``ToolRoute.needs_sign_off``), by route id."""
+        routes: list[ToolRoute] = []
+        if self.retrieval is not None:
+            routes += [self.retrieval.search_route, self.retrieval.fetch_route]
+        if self.archive is not None:
+            routes += [self.archive.index_route, self.archive.archive_route]
+        routes += [d.route for d in (*self.datasets, *self.archives)]
+        return tuple(sorted({r.route_id for r in routes if r.needs_sign_off}))
+
     def inputs(self) -> TrackInputs:
         return TrackInputs(
             policy_version=self.config.policy_version,

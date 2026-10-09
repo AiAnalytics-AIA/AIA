@@ -196,6 +196,18 @@ class DeepResearchPrices:
     def __getitem__(self, kind: CallKind) -> RoutePrice:
         return self.prices[kind]
 
+    def paid_routes(self) -> tuple[CallKind, ...]:
+        """The tool kinds this deployment prices above zero: its priced live routes, which
+        a run may use only once its organization has approved every setting live needs
+        (ADR 0022 decision 6, plan chunk 44). Model requests are not routes here."""
+        return tuple(
+            kind
+            for kind in CallKind
+            if kind not in MODEL_KINDS
+            and self.prices[kind].state == "priced"
+            and (self.prices[kind].usd or 0) > 0
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class DeepResearchCeiling:

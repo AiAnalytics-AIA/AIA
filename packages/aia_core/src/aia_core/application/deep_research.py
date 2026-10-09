@@ -149,6 +149,7 @@ __all__ = [
     "GovernedRecord",
     "InterpretationMissionMismatch",
     "LineageChanged",
+    "LiveNotApproved",
     "NothingToResearch",
     "ResearchTargetInvalid",
     "ResearchTargetNotFound",
@@ -192,6 +193,18 @@ class ResearchTargetInvalid(ValueError):
 
 class LineageChanged(Exception):
     """A retry would no longer rest on the exact artifacts its run was anchored to."""
+
+
+class LiveNotApproved(Exception):
+    """A run would use a priced live route and its organization has not approved every
+    setting live needs (ADR 0022 decision 6). ``missing`` names each key."""
+
+    def __init__(self, missing: Sequence[str], *, kinds: Sequence[str]) -> None:
+        super().__init__(
+            "Deep Research's live settings are not all approved: " + ", ".join(missing)
+        )
+        self.missing = tuple(missing)
+        self.kinds = tuple(kinds)
 
 
 class RunSpecCorrupt(ValueError):
@@ -576,7 +589,9 @@ class DeepResearchRuns:
         otherwise) and the yes is recorded in the approval ledger with the run. No
         prices, or a price the run needs missing, is
         :class:`~aia_core.application.research.CostCeilingUnknown`: not let by. A start
-        that finds its run already there spends nothing and asks nothing.
+        that finds its run already there spends nothing and asks nothing. When ``prices``
+        name a priced live route (``DeepResearchPrices.paid_routes``), a new run needs every
+        setting live needs approved in this organization, or :class:`LiveNotApproved`.
 
         **The one enqueue boundary.** Every run is created here, and a spec whose engine
         request does not research its own purpose's subjects is refused before anything is
@@ -601,6 +616,13 @@ class DeepResearchRuns:
             key += f":retry:{retry_of}"
         workflows = self._workflows()
         existing = workflows.find_run_by_idempotency_key(key)
+        if existing is None and prices is not None:
+            # ADR 0022 decision 6 (chunk 44): a priced live route needs every live setting
+            # approved in this organization; the worker checks the pin again.
+            paid = prices.paid_routes()
+            missing = in_force.missing_for_live() if paid else ()
+            if missing:
+                raise LiveNotApproved(missing, kinds=[k.value for k in paid])
         confirmation: tuple[float, float] | None = None
         ceiling: DeepResearchCeiling | None = None
         limit = self.spend_limit()
