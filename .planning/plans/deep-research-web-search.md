@@ -47,7 +47,7 @@ chunks:
   - "[x] 43a. Runs pin their settings: the pin and its digests on the run at enqueue, read back verified; the plan step fails a pin that does not hash to itself"
   - "[x] 43b. The approved method digest in the engine request and every cross-run reuse key (harness 3); a pin that is not the request's method fails the run"
   - "[x] 43c. The engine reads the pin's values where it reads constants: presets, allowances, request limits, register, weights, and the API's ceiling"
-  - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
+  - "[x] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
   - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
@@ -1249,6 +1249,23 @@ decides whether it refuses a start. Tests: `test_deep_research_settings_values.p
 `test_deep_research_spend_api.py::test_an_approved_request_limit_prices_the_ceiling_a_start_is_asked_about`,
 `test_deep_research_journey.py::test_an_approved_request_limit_sizes_every_request_of_its_kind_and_only_it`
 (verifier requests at 2,048 output tokens, every other kind unchanged).
+
+**Chunk 44, 2026-10-09** (`feature/dr-live-sign-off`, stacked on 43c). **The owner's call,
+2026-10-09:** the sign-off gates a *priced* live route; the fee-free routes (Czech Wikipedia,
+the public fetch, the connectors) run as they do, for testing. `ToolRoute.needs_sign_off` is a
+live route with a price above zero; `DeepResearchPrices.paid_routes` the tool kinds a
+deployment prices above zero. At enqueue, `_enqueue` refuses a new run when the deployment's
+prices name a paid route and the organization in force has any `missing_for_live()` key
+(`LiveNotApproved`, the API's 409 `live_settings_unapproved` with `missing` and `routes`); a
+start that finds its run returns it and asks nothing. In the worker, the plan step parks
+(`RUNTIME_UNAVAILABLE`, `live_settings_unapproved`, the routes and missing keys) a run whose
+composition has a sign-off route (`DeepResearchRuntime.sign_off_routes`) and whose pin is
+absent or records a live setting unapproved, before anything is asked; it reads only the pin.
+Brave (23d) and Common Crawl (23e) are the routes this will gate; no deployed route has a price
+yet, so nothing that runs today changes. Tests: `test_deep_research_live_sign_off.py` (7),
+`test_deep_research_spend_api.py::test_a_start_on_a_paid_live_route_is_refused_naming_what_live_still_needs`,
+`test_deep_research_journey.py::test_a_priced_live_route_runs_only_under_a_pin_that_records_the_sign_off`
+(both ways).
 
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0

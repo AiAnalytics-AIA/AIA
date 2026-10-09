@@ -249,3 +249,28 @@ def test_an_approved_request_limit_prices_the_ceiling_a_start_is_asked_about(
     assert asked.json()["details"]["ceiling_usd"] == pytest.approx(
         EXHAUSTIVE_PLANNED - 3 * VERIFIER + 3 * verifier
     )
+
+
+def test_a_start_on_a_paid_live_route_is_refused_naming_what_live_still_needs(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Chunk 44: no route the API prices today has a price (Wikipedia, the public fetch, the
+    connectors are fee-free), so a deployment's paid search is stood in for here."""
+    from aia_api.routers import deep_research as router
+    from aia_core.domain.deep_research.budgets import CallKind
+    from aia_core.domain.deep_research.settings import effective
+    from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
+
+    def paid(settings: Any, session: Any, scope: Any) -> DeepResearchPrices:
+        free = router.deep_research_prices(settings)
+        return DeepResearchPrices({**free.prices, CallKind.SEARCH: RoutePrice.per_call(0.005)})
+
+    monkeypatch.setattr(router, "_study_prices", paid)
+    refused = _start(researcher, world, _revision(researcher, world))
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "live_settings_unapproved"
+    assert refused.json()["details"] == {
+        "missing": list(effective({}).missing_for_live()),
+        "routes": ["search"],
+    }
+    assert researcher.get(_url(world)).json() == []

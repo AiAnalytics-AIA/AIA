@@ -907,6 +907,65 @@ def test_an_approved_request_limit_sizes_every_request_of_its_kind_and_only_it(
     assert plan.request_limits[CallKind.INVESTIGATOR].answer_tokens == 6144
 
 
+def _approve_live(world: ResearchWorld) -> None:
+    """Every setting live needs approved, with fictional values (chunk 44's tests only)."""
+    from aia_core.domain.deep_research.settings import CATALOGUE, SettingType, effective
+
+    by_type: dict[SettingType, Any] = {
+        SettingType.TEXT: "Fiktivní plán",
+        SettingType.URL: "https://example.org/terms",
+        SettingType.DATE: "2026-10-09",
+        SettingType.USD: 1.0,
+        SettingType.DAYS: 30,
+        SettingType.INTEGER: 10,
+        SettingType.DECISION: True,
+        SettingType.MODEL_ID: "eu.anthropic.example-model-v1:0",
+    }
+    by_key = {d.key: d for d in CATALOGUE}
+    for key in effective({}).missing_for_live():
+        defn = by_key[key]
+        if defn.type is SettingType.STATUS:
+            value: Any = "approved"
+        else:
+            value = defn.default if defn.default is not None else by_type[defn.type]
+        _approve_setting(world, key, value)
+
+
+@pytest.mark.parametrize("approved", [False, True])
+def test_a_priced_live_route_runs_only_under_a_pin_that_records_the_sign_off(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    approved: bool,
+) -> None:
+    """Chunk 44, in the worker: a composition with a priced live route (stood in for by the
+    recorded one, which the plan step is told needs the sign-off) parks a run whose pin does
+    not record every live setting approved, before anything is asked; a run pinned after the
+    approvals runs through. The worker reads no settings store: only the pin."""
+    approve_knowledge(research)
+    if approved:
+        _approve_live(research)
+    monkeypatch.setattr(DeepResearchRuntime, "sign_off_routes", lambda self: ("example-search",))
+    agents = RecordedAgents(ANSWERS)
+    run_id = start(research)  # no prices: the enqueue's own check is not asked here
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    if approved:
+        assert drain(w) == 6
+        run, bundle = read(research, run_id, store)
+        assert run["status"] is WorkflowRunStatus.COMPLETED and bundle.verify()
+        return
+    w.run_once()
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    [plan] = [s for s in run["steps"] if s["node_key"] == "plan"]
+    error = plan["attempts"][0]["error"]
+    assert error["reason"] == "live_settings_unapproved"
+    assert error["routes"] == ["example-search"] and "provider.search.terms_url" in error["missing"]
+    assert agents.requests == [], "nothing was asked before the sign-off"
+
+
 @pytest.mark.parametrize(
     ("value", "problem"),
     [

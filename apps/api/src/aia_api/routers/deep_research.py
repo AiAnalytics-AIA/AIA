@@ -35,6 +35,7 @@ from aia_core.application.deep_research import (
     DeepResearchRuns,
     InterpretationMissionMismatch,
     LineageChanged,
+    LiveNotApproved,
     NothingToResearch,
     ResearchTargetInvalid,
     ResearchTargetNotFound,
@@ -305,6 +306,15 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise _refused(exc) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except LiveNotApproved as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "live_settings_unapproved",
+                "message": "Deep Research's live settings are not all approved.",
+                "details": {"missing": list(exc.missing), "routes": list(exc.kinds)},
+            },
+        ) from exc
     except (DeepResearchRunNotFound, DesignRevisionNotFound, ResearchTargetNotFound) as exc:
         raise _not_found() from exc
     except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
