@@ -57,9 +57,10 @@ runtime prompt version rather than the common planned-mode version.
 - Final wording additionally passed 83 focused prompt/contract/repository tests,
   Ruff lint/format and `git diff --check`. Type checking and architecture/exposure
   rules passed; no guards or contracts were relaxed.
-- Refreshed a pre-existing stale object-map web fixture with its unchanged generator.
-  The stale byte comparison also fails on the unmodified base. Numeric differences
-  are at floating-point rounding scale (maximum 7.1e-15); the engine is unchanged.
+- A local object-map fixture regeneration exposed platform rounding differences
+  (maximum 7.1e-15): the macOS bytes passed locally but failed Linux CI. Restored
+  the committed canonical fixture; no fixture or engine change remains in the PR.
+  Linux CI verifies the canonical bytes. Local generator portability is a doc follow-up.
 - Eight final sandbox proposals completed; build, optimize and dimensions needed
   the existing schema repair path. Earlier failed drafts were not activated.
   Critique, copilot and memory were refined after reviewing actual model outputs.
