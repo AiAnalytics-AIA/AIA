@@ -1,9 +1,14 @@
-# Sociomap methodology decision — `AIA_SOCIOMAP_V1` (D6 / OI-16)
+# Sociomap methodology decision — `AIA_SOCIOMAP_V3`, earlier `V1` (D6 / OI-16)
 
 **For:** the methodology owner who approves client-facing Sociomaps.
-**Decides:** whether the four AIA declarations in `AIA_SOCIOMAP_V1` may be used
-for client deliverables. Until this document carries an approval, **no Sociomap
-is client-deliverable** (§6).
+**Decides:** whether **`aia-sociomap-3`** (`AIA_SOCIOMAP_V3`, its fingerprint in the v3
+section) may be used for client deliverables. The one approval this document asks for is the
+v3 table below. Everything after it -- the v2 section and the `AIA_SOCIOMAP_V1` package in
+§1-§4 with their approval lines -- is **history**: an answer recorded there approves
+`aia-sociomap-1` at most, never `aia-sociomap-3`. Until the v3 table carries an ACCEPT, **no
+Sociomap is client-deliverable** (§6).
+
+The v1 preset, the subject of the history in §1-§4:
 
 | | |
 | --- | --- |
@@ -13,7 +18,58 @@ is client-deliverable** (§6).
 | Reference | `AiAnalytics-AIA/AIA-reference` @ `678e298`: `sociomapping-reference-contract.md`, fixtures F1–F9 |
 | Engineering detail | [sociomapa-deterministic-engine.md](sociomapa-deterministic-engine.md) |
 
-## v2 (2026-10-08): the decision's subject is `aia-sociomap-2`
+## v3 (2026-10-09): the decision's subject is `aia-sociomap-3`
+
+AIA's product owner decided the audit's open questions Q5-Q7 for AIA on 2026-10-09, pending
+the audit's author ([plan § 4a](../../.planning/plans/sociomap-formula-corrections.md)). The
+decisions are a methodology version of their own, so D6 is now to approve **`aia-sociomap-3`**;
+`aia-sociomap-2` is unchanged and stays readable for the runs that pinned it.
+
+| | |
+| --- | --- |
+| Spec | `AIA_SOCIOMAP_V3`, `methodology_version = "aia-sociomap-3"`, spec contract 3 |
+| Spec fingerprint | `e16dc0d0636109322900ab56ed9613e6b2d4f6e65f2dd7e26b9ada059b7cf241` |
+| Engine | `domain/sociomap/engine_v2.py`, `compute_object_map`; `terrain.object_envelope` @ `1025539` (#205) |
+| Pinned by | every new research run, beside `aia-sociomap-1` (`research_sociomap.default_methods`) |
+| What it covers | the object map (F1-F3, F6-F9) and its terrain (F12, F13); respondent placement (F10) is not built |
+
+What `aia-sociomap-3` adds to `aia-sociomap-2`, and what each choice claims:
+
+- **Q5 (c), two concepts kept apart.** Positions show whether people's relative preferences
+  for two objects move together (F2's per-person min-max, then Pearson, then F6's distance);
+  how highly an object is rated is shown separately, as height. Height is never closeness.
+- **Q6 (b) + (c), two gates.** Evidence sufficiency: UNKNOWN below `n_min` 30, WEAK when the
+  Fisher 95 % interval includes 0, RELIABLE otherwise, read on each pair's **Kish effective n**
+  of its valid respondents' weights. Practical materiality: `|r| >= 0.10`, recorded per pair as
+  `meets_effect_floor` beside the state and never folded into it. A link is drawn only for a
+  RELIABLE pair that meets the floor.
+- **Q7 (d) with (a).** Height is selectable; the default in maps and reports is the mean
+  rating on the declared 0-1 scale.
+- **The terrain (F12).** The max-envelope of the PRIMARY objects' hills, each exactly its
+  height; `sigma = 0.25` on the fixed ruler is **AIA's provisional width**
+  (`aia_provisional_r08_5pct`: a hill falls below 5 % of its height at the correlation distance
+  of r = 0.8), because the audit leaves the width to its author (A5).
+
+Still open, and not answered by approving this version: the respondent-misfit threshold (A4),
+the audit author's own value for the kernel width (A5), F8's denominator reading (B8), the
+F16 equivalence tolerance (B10), the SECONDARY boundary (B11), the audit's check scripts and
+their output (C12-C15), finding F-4a-1 and finding F-S3-1. An answer from the audit's author
+that differs from any choice above becomes a new methodology version, never an edit to this
+one. Approving `aia-sociomap-3` approves its fingerprint as a whole (§5); the map stays
+`INTERNAL_ONLY` until then.
+
+**Approval of `aia-sociomap-3`**
+
+| Field | Value |
+| --- | --- |
+| Decision | ACCEPT / REPLACE / DEFER |
+| Decided by | |
+| Date | |
+| Conditions | |
+
+## v2 (2026-10-08), history: the decision's subject was `aia-sociomap-2`
+
+*Superseded by v3 above; kept as the record of why v1 stopped being the subject.*
 
 The formula audit ([`sociomap-formula-corrections.md`](../../.planning/plans/sociomap-formula-corrections.md))
 is canonical for AIA's object map, and overrides every earlier Sociomap decision where they
@@ -45,6 +101,11 @@ evidence basis (Q6), the default height and F8's denominator (Q7), finding F-4a-
 finding F-S3-1 (a context object moves PRIMARY r~ under F2). The approval line for the v1
 declarations below stays as it was; a decision on `aia-sociomap-2` approves its fingerprint as
 a whole (§5).
+
+## v1 package, history: `AIA_SOCIOMAP_V1` (the original D6 subject)
+
+*From here to §4 is the original package. Its approval lines decide `aia-sociomap-1` only; they
+are not the D6 decision, which is the v3 table above.*
 
 ## What is not in question
 
@@ -198,12 +259,18 @@ Both are in the withheld archive.
 
 | Answer | Effect |
 | --- | --- |
-| **ACCEPT** (all four) | `aia-sociomap-1` enters the approved-methodology policy (§6) bound to the fingerprint above; its maps may become deliverables under the stated conditions |
-| **REPLACE** (any) | Engineering implements the named replacement as a new declared method with a new `methodology_version`; this preset stays unapproved |
-| **DEFER** (any) | Nothing is client-deliverable. Computation for internal and exploratory use continues unchanged |
+For the D6 decision, the v3 approval table:
 
-A partial ACCEPT does not approve the preset: approval is of a whole spec,
-because the four choices interact.
+| Answer | Effect |
+| --- | --- |
+| **ACCEPT** | `aia-sociomap-3` enters the approved-methodology policy (§6) bound to fingerprint `e16dc0d0636109322900ab56ed9613e6b2d4f6e65f2dd7e26b9ada059b7cf241`; its maps may become deliverables under the conditions recorded in the table. No other version or fingerprint is approved by it |
+| **REPLACE** | Engineering implements the named replacement as a new declared method with a new `methodology_version`; `aia-sociomap-3` stays unapproved |
+| **DEFER** | Nothing is client-deliverable. Computation for internal and exploratory use continues unchanged |
+
+Approval is of a whole spec, never of one of its choices, because the choices interact.
+
+For the history in §1-§4 only: an ACCEPT on all four v1 lines would admit `aia-sociomap-1`
+(fingerprint in the v1 table at the top) and nothing else; a partial ACCEPT approves nothing.
 
 ## 6. The integration rule
 

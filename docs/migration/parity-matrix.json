@@ -3426,6 +3426,24 @@
      "tests": [
       "packages/aia_core/tests/test_research_sociomap.py"
      ]
+    },
+    {
+     "id": "sociomapping.core/audit-object-map",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_sociomap_object_map.py::test_the_presets_fingerprints",
+      "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
+      "packages/aia_core/tests/test_sociomap_object_map.py::test_the_artifact_round_trips_and_an_edit_is_refused",
+      "packages/aia_core/tests/test_sociomap_object_map.py::test_a_contract_2_artifact_reads_as_it_always_did",
+      "packages/aia_core/tests/test_sociomap_evidence_policy.py::test_aia_sociomap_2_keeps_its_pinned_fingerprint_and_stored_form",
+      "packages/aia_core/tests/test_sociomap_evidence_policy.py::test_aia_sociomap_3_is_aia_sociomap_2_under_the_q5_to_q7_decisions",
+      "packages/aia_core/tests/test_sociomap_evidence_policy.py::test_the_v3_map_records_both_gates_and_the_v2_map_records_neither",
+      "packages/aia_core/tests/test_sociomap_envelope.py::test_each_hill_is_exactly_its_height_and_a_high_neighbour_does_not_pull_it",
+      "packages/aia_core/tests/test_sociomap_envelope.py::test_a_cluster_of_equal_hills_peaks_at_one_hills_height_never_their_sum",
+      "packages/aia_core/tests/test_sociomap_envelope.py::test_nothing_outside_the_engine_computes_a_surface",
+      "packages/aia_core/tests/test_sociomapping_evidence_register.py::test_aias_decisions_on_the_audits_open_questions_are_what_the_preset_computes"
+     ]
     }
    ],
    "recorded_evidence": [
@@ -3449,6 +3467,12 @@
      "summary": "the engine's recorded deviations from the reference",
      "anchor": "docs/architecture/sociomapa-deterministic-engine.md §8",
      "gate": null
+    },
+    {
+     "id": "SUB-SOCIO-AUDIT",
+     "summary": "AIA's object map follows the canonical audit 'NPC Sociomapa: faulty formulas in the code', not the reference: per-person min-max then Pearson (F2), pair status instead of the 5.5 stamp (F3), SMACOF on the correlation distance on a fixed ruler with Stress-1 (F6, F7), mean rating as height and the max-envelope terrain (F8, F12); aia-sociomap-3 under AIA's Q5-Q7 decisions of 2026-10-09. aia-sociomap-1 keeps the reference's computation for comparison",
+     "anchor": "docs/migration/sociomapping-evidence-register.json canonical block; .planning/plans/sociomap-formula-corrections.md",
+     "gate": "sociomapping.core/audit-object-map"
     }
    ],
    "high_risk": [
@@ -3459,7 +3483,7 @@
     "blocking": true,
     "reason": "On the MVP acceptance path (AC-10)."
    },
-   "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6). PR C chunk 6: sociomap.py derive_relation_matrix ported (domain/research_sociomap.py), exact against a capture of the unit (fixtures/research_sociomap); a research run's map is compute_sociomap under AIA_SOCIOMAP_V1 and INTERNAL_ONLY while D6 is open."
+   "notes": "Relations, metrics, terrain, an AIA-declared layout and the artifact/view contracts are ported (docs/architecture/sociomapa-deterministic-engine.md). Not at parity: the layout (F4 refused, OI-13; R branch refused, OI-15), the object-map base layout (F8 partial, OI-14), and the Sociomapa modes (segments, comparison, object manager). The AIA declarations await methodology sign-off (OI-16, D6). PR C chunk 6: sociomap.py derive_relation_matrix ported (domain/research_sociomap.py), exact against a capture of the unit (fixtures/research_sociomap); a research run's map is compute_sociomap under AIA_SOCIOMAP_V1 and INTERNAL_ONLY while D6 is open. Since #205 (2026-10-09) a research run also pins aia-sociomap-3, the audit's object map (contract 3) under AIA's Q5-Q7 decisions, computed beside aia-sociomap-1 and drawn on Results by #208; it is a documented deviation from the reference (SUB-SOCIO-AUDIT), gated by sociomapping.core/audit-object-map, and INTERNAL_ONLY until D6 approves it."
   },
   "sociomapping.study_module": {
    "family": "sociomapping",
