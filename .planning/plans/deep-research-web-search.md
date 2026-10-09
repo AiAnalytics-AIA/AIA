@@ -50,8 +50,8 @@ chunks:
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
   - "[x] 47. The coverage ledger: what a run found, opened, refused, quarantined and accepted, by reason, counted by code"
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
-  - "[ ] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
-  - "[ ] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
+  - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
+  - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -697,6 +697,12 @@ cell-grounded share; conflicts found and resolved; quarantines by reason; search
 money per accepted finding; a rubric score from a separate judge model (factual accuracy, citation
 accuracy, completeness, source quality, tool efficiency); a researcher's blind grade. Each step
 becomes a default only if it wins; the owner sets the presets from these numbers.
+*A fourth arm (chunk 50):* Google's Gemini Deep Research, run by a person through Google's own
+interface on the questions whose topic is public and fictional-client only -- never a client's
+question, brief or name, which would leave AIA's egress gate. Its report is graded blind beside
+ours on the same rubric and grade: citation accuracy is checked by the person opening each cited
+page, since it has no sealed snapshot; money is what the person's plan charged, stated as such. It
+is a measuring stick, never a route: no code calls it, and § 10's verdict on answer engines stands.
 
 **27. Develop activation and the live acceptance.** Parameters set, deployed, the worker's start-up
 log read; one run per preset for a fictional client within the owner's budget; run ids, counts and
@@ -1134,9 +1140,23 @@ industry press, the publisher's own site -- rendered from the reputation registe
 investigator's prompt as hints. Code still decides what may leave; a hint names no URL the model
 could send. A prompt version.
 
+*Landed 2026-10-08* (`feature/dr-search-playbooks`): `domain/deep_research/playbooks.py`
+(`PLAYBOOK_VERSION = "aia-playbooks-1"`, six kinds of evidence: official statistics, ministries and
+regulators, public registers, scholarship, industry bodies, the press), rendered by
+`render_playbooks(REPUTATION_REGISTER_V1)` into the investigator's prompt, now version 3. Publishers
+are named only from the register, by canonical name and a short variant. A name that reads as an
+address is left out, and the press is a kind named by no title: follow it to the number's origin.
+No hint carries a host, a URL or a query (`test_deep_research_playbooks.py`). The rendered hints are
+pinned by hash, so a register change that moves them cannot ship under the old prompt version. Like
+the register, the hints are proposed. A new prompt version changes `INVESTIGATOR_VERSION` and with
+it every agent-directed track's fingerprint: tracks stored before it are not reused.
+
 **50. A commercial comparison arm.** Chunk 26's arms gain Google's Gemini Deep Research, run by a
 person on the public fictional topics only (never a client's), its report graded blind beside ours
 on the same rubric. It is a measuring stick, not a route: § 10's verdict on answer engines stands.
+
+*Landed 2026-10-08* (`feature/dr-search-playbooks`): plan text only, in chunk 26's arms. Nothing
+in code calls Gemini; the arm runs when chunk 26 does.
 
 ## 12. Dependencies
 
