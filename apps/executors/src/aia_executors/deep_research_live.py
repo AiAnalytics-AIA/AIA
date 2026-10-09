@@ -1,8 +1,9 @@
-"""Deep Research's live, fee-free retrieval: Czech Wikipedia, any public host, the connectors.
+"""Deep Research's live retrieval: Czech Wikipedia or Brave, any public host, the connectors.
 
-Three things a deployment may compose, each Class C only and each costing nothing per
-call (a priced route needs tool spend charged to the study, plan
-``deep-research-web-search.md`` chunk 23c, before it can be composed):
+What a deployment may compose, each Class C only. Every route here costs nothing per call
+but Brave's search, which is priced and charged to the study (plan
+``deep-research-web-search.md`` chunks 23c-23d) and needs its organization's sign-off
+(chunk 44):
 
 - **Wikipedia search** (``wikipedia_retrieval``): the bounded Czech Wikipedia search,
   and pages fetched from that one host. The first live acceptance's route.
@@ -12,6 +13,9 @@ call (a priced route needs tool spend charged to the study, plan
   identifying user agent carrying the deployment's contact address. What the ladder
   and the investigator open beyond Wikipedia -- a cited table, a publisher's index, an
   open-access copy -- is reached this way.
+- **Brave search** (``brave_retrieval``): Brave Web Search, priced per request, with pages
+  fetched from any public host as above. Its key is a credential reference
+  (``env:AIA_DEEP_RESEARCH_BRAVE_API_KEY``), read at each call and never stored.
 - **The public dataset connectors** (``connector_accesses``, chunks 14-16): ČSÚ
   DataStat, the national open-data catalogue, Eurostat, OpenAlex, ARES and the Wayback
   CDX index, each pinned to its own host; and Crossref, which the merge asks whether a
@@ -41,7 +45,14 @@ from aia_core.infrastructure.dataset_nkod import NKOD_HOST, NkodConnector
 from aia_core.infrastructure.dataset_openalex import OPENALEX_HOST, OpenAlexConnector
 from aia_core.infrastructure.dataset_wayback import WAYBACK_HOST, WaybackCdxConnector
 from aia_core.infrastructure.host_pacing import HostPacer, PacedTransport
+from aia_core.infrastructure.model_adapters.transport import CredentialSource
 from aia_core.infrastructure.web_retrieval import FetchTransport, Resolver, WebFetcher
+from aia_core.infrastructure.web_retrieval_brave import (
+    BRAVE_CREDENTIAL_REF,
+    BRAVE_SEARCH_ID,
+    BraveHttpsTransport,
+    BraveSearch,
+)
 from aia_core.infrastructure.web_retrieval_live import (
     SEARCH_ID,
     HostPinnedHttpsTransport,
@@ -53,12 +64,17 @@ from aia_core.infrastructure.web_retrieval_live import (
 )
 
 __all__ = [
+    "BRAVE_ROUTE_ID",
     "CONNECTORS",
     "UNAVAILABLE_CONNECTORS",
+    "brave_retrieval",
     "connector_accesses",
     "public_retrieval",
     "wikipedia_retrieval",
 ]
+
+#: Brave's search route: priced, outside the EU (plan § 10), Class C only.
+BRAVE_ROUTE_ID: Final = "brave-web-search"
 
 _FETCH_ID = "pinned-public-https-1"
 #: The public fetch's adapter: any public host, robots.txt obeyed (plan chunk 5).
@@ -150,6 +166,54 @@ def public_retrieval(
                 price_usd_per_call=0.0,
             ),
             search=WikipediaSearch(resolver=resolver, transport=search),
+            fetcher=WebFetcher(transport=pages, resolver=resolver, adapter_id=PUBLIC_FETCH_ID),
+        ),
+        _table(),
+    )
+
+
+def brave_retrieval(
+    contact: str,
+    *,
+    price_usd_per_call: float,
+    credentials: CredentialSource,
+    pacer: HostPacer | None = None,
+) -> tuple[WebRetrieval, SourceTable]:
+    """Brave Web Search, with pages fetched from any public host (plan chunk 23d).
+
+    ``price_usd_per_call`` is the deployment's dated price (per 1,000 requests / 1,000):
+    every search reserves it against the study before it leaves (chunk 23c), and a route
+    with a price needs its organization's sign-off (chunk 44). ``credentials`` resolves the
+    key's reference at each call; nothing here reads it. The search goes to Brave's one
+    host over its own pinned transport; pages as :func:`public_retrieval`'s.
+    """
+    if not price_usd_per_call > 0:
+        raise ValueError("Brave's search is priced: a price above zero is required")
+    public_user_agent(contact)
+    resolver = SystemResolver()
+    pages = PublicHttpsTransport(contact=contact, resolver=resolver, pacer=pacer)
+    return (
+        WebRetrieval(
+            search_route=ToolRoute(
+                route=_provider_route(BRAVE_ROUTE_ID, "brave", ResidencyZone.NON_EU),
+                tool=ToolKind.WEB_SEARCH,
+                adapter_id=BRAVE_SEARCH_ID,
+                retrieval_mode=RetrievalMode.LIVE,
+                price_usd_per_call=price_usd_per_call,
+            ),
+            fetch_route=ToolRoute(
+                route=_provider_route("public-web-fetch", "public-web"),
+                tool=ToolKind.WEB_FETCH,
+                adapter_id=PUBLIC_FETCH_ID,
+                retrieval_mode=RetrievalMode.LIVE,
+                price_usd_per_call=0.0,
+            ),
+            search=BraveSearch(
+                credentials=credentials,
+                credential_ref=BRAVE_CREDENTIAL_REF,
+                resolver=resolver,
+                transport=BraveHttpsTransport(),
+            ),
             fetcher=WebFetcher(transport=pages, resolver=resolver, adapter_id=PUBLIC_FETCH_ID),
         ),
         _table(),

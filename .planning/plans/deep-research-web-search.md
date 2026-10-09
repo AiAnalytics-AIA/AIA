@@ -1285,6 +1285,21 @@ through the real worker: answered, lost and unsent charges, the hold marked befo
 call the study cannot hold never sent), `test_workflow_engine.py::test_a_priced_tool_call_in_flight_is_recovered_like_a_model_call`
 and `::test_a_tool_hold_the_study_cannot_cover_is_refused_before_anything_is_held`.
 
+**Chunk 23d, 2026-10-09** (`feature/dr-brave-route`, stacked on 23c): `AIA_DEEP_RESEARCH_WEB_SEARCH`
+= `off` | `wikipedia` | `brave` (`deep_research_runtime.web_search`). Unset, the Wikipedia switch
+decides as before; both *on* is refused (a `false` beside it, what Compose's default writes, is
+not). `brave` needs the public fetch's contact (its results are pages on any host),
+`AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000` (above 0, at most 100), `AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF`
+(a date, not in the future) and `AIA_DEEP_RESEARCH_BRAVE_API_KEY` present through its reference
+(`env:`; the value is never kept, logged or put in a route). `deep_research_live.brave_retrieval`:
+search route `brave-web-search`, live, `NON_EU`, Class C only, priced per request (so it reserves
+against the study, 23c, and needs the sign-off, 44); pages by the public fetch. The API reads
+`AIA_DEEP_RESEARCH_WEB_SEARCH` and the price and prices the ceiling from them
+(`deep_research_search_route`; Brave without its price is unknown, never free). Not done: Brave's
+requests are not paced (its transport takes headers, `PacedTransport` does not; a 429 is an
+answered failure, charged); the develop wiring and the SSM read are 23f. Tests:
+`test_deep_research_brave_route.py` (15), `test_deep_research_spend_api.py::test_brave_search_is_priced_from_its_dated_key_and_unknown_without_it`.
+
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0
   on the hand-labelled fictional corpus. The threshold is chunk 1's decision.
