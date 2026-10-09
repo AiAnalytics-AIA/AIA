@@ -402,3 +402,168 @@ def test_a_page_has_no_document_and_keeps_its_serialisation() -> None:
     with pytest.raises(FetchRefused) as refused:
         _fetch(b"%PDF-1.4", "application/octet-stream")
     assert refused.value.reason == "content_type"
+
+
+# --------------------------------------------------------------------------- #
+# PDF tables (chunk 6: pdfplumber)
+# --------------------------------------------------------------------------- #
+
+
+def _ruled_table_pdf(title: str, header: list[str], rows: list[list[str]]) -> bytes:
+    """One page: a title line, a table drawn with rules (as a statistics office prints it),
+    and a note. Fictional values; Helvetica, Latin-1."""
+    x0, y0, width, height = 72, 700, 140, 22
+    grid = [header, *rows]
+    ops = ["BT", "/F1 14 Tf", "72 760 Td", f"({title}) Tj", "ET", "0.5 w"]
+    for r in range(len(grid) + 1):
+        y = y0 - r * height
+        ops.append(f"{x0} {y} m {x0 + len(header) * width} {y} l S")
+    for c in range(len(header) + 1):
+        x = x0 + c * width
+        ops.append(f"{x} {y0} m {x} {y0 - len(grid) * height} l S")
+    for r, row in enumerate(grid):
+        for c, cell in enumerate(row):
+            ops += ["BT", "/F1 11 Tf", f"{x0 + c * width + 4} {y0 - (r + 1) * height + 7} Td"]
+            ops += [f"({cell}) Tj", "ET"]
+    ops += ["BT", "/F1 9 Tf", "72 520 Td", "(Pozn.: fiktivni data.) Tj", "ET"]
+    stream = "\n".join(ops).encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    ]
+    out = io.BytesIO()
+    out.write(b"%PDF-1.4\n")
+    offsets = []
+    for n, obj in enumerate(objects, start=1):
+        offsets.append(out.tell())
+        out.write(f"{n} 0 obj\n".encode() + obj + b"\nendobj\n")
+    xref = out.tell()
+    out.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+    for offset in offsets:
+        out.write(f"{offset:010d} 00000 n \n".encode())
+    out.write(
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    )
+    return out.getvalue()
+
+
+TABLE_PDF = _ruled_table_pdf(
+    "Tabulka 3: Spotreba napoju na osobu",
+    ["Kraj", "2024", "2025"],
+    [["Praha", "12,4", "13,1"], ["Brno", "9,8", "112,4"]],
+)
+TABLE = "s. 1, tabulka 1"
+
+
+@pytest.fixture
+def table_snapshot() -> SourceSnapshot:
+    pytest.importorskip("pdfplumber")
+    return _fetch(TABLE_PDF, PDF_MEDIA_TYPE)
+
+
+def test_a_pdf_table_is_kept_as_a_grid_with_its_page_and_labels(
+    table_snapshot: SourceSnapshot,
+) -> None:
+    layout = table_snapshot.document
+    assert layout is not None and layout.version == "aia-document-layout-2"
+    [table] = layout.sheets
+    assert (table.name, table.page, table.header_row, table.label_column) == (TABLE, 1, 1, 1)
+    outline = document_outline(table_snapshot)
+    [sheet] = outline.sheets
+    assert sheet.name == TABLE and sheet.used_range == "A1:C3"
+    assert sheet.column_labels == (("A", "Kraj"), ("B", "2024"), ("C", "2025"))
+    # The page's own text is still there, and still maps to its page.
+    assert table_snapshot.text.startswith("Tabulka 3: Spotreba napoju na osobu")
+
+
+def test_a_number_quoted_from_the_page_grounds_to_its_cell_with_its_labels(
+    table_snapshot: SourceSnapshot,
+) -> None:
+    span = _grounds(
+        table_snapshot, "Kraj 2024 2025 Praha 12,4 13,1", "V Praze se v roce 2024 vypilo 12,4."
+    )
+    located = locate_span(table_snapshot, span)
+    assert located[0].ref == "p. 1"
+    cells = {loc.address: loc for loc in located[1:]}
+    assert set(cells) == {"A1", "B1", "C1", "A2", "B2", "C2"}
+    praha_2024 = cells["B2"]
+    assert praha_2024.ref == f"'{TABLE}'!B2" and praha_2024.page == 1
+    assert (praha_2024.row_label, praha_2024.column_label) == ("Praha", "2024")
+
+
+def test_a_value_is_matched_as_a_whole_token_never_inside_another(
+    table_snapshot: SourceSnapshot,
+) -> None:
+    """``12,4`` is not the cell holding ``112,4``, and ``112,4`` is not ``12,4``'s."""
+    span = _grounds(
+        table_snapshot, "Brno 9,8 112,4 Pozn.: fiktivni data.", "V Brně se vypilo 112,4."
+    )
+    addresses = {loc.address for loc in locate_span(table_snapshot, span)[1:]}
+    assert addresses == {"A3", "B3", "C3"}  # never B2 (12,4)
+
+
+def test_a_pdf_table_is_served_as_a_part(table_snapshot: SourceSnapshot) -> None:
+    whole = read_part(table_snapshot, TABLE)
+    assert [line.label for line in whole.lines] == ["1", "2", "3"]
+    assert whole.ref == f"'{TABLE}'!A1:C3"
+    cut = read_part(table_snapshot, f"'{TABLE}'!B2:C3")
+    assert cut.column_labels == (("B", "2024"), ("C", "2025"))
+    assert [line.text for line in cut.lines] == ["12,4 | 13,1", "9,8 | 112,4"]
+    for line in cut.lines:
+        assert line.text in table_snapshot.text
+    assert read_part(table_snapshot, "p. 1").ref == "p. 1"
+    with pytest.raises(documents.PartRefused, match="names no pages or table"):
+        read_part(table_snapshot, "List1")
+
+
+def test_a_pdf_without_tables_reads_exactly_as_before() -> None:
+    """No table: the text, the layout and the snapshot id are what layout 1 made."""
+    content = documents.PdfContent(pages=("Strana jedna.", "Strana dva."))
+    built = documents.pdf_document(content)
+    assert built.text == "Strana jedna. Strana dva." and built.layout.sheets == ()
+
+
+def test_tables_past_the_bound_are_dropped_and_the_snapshot_says_so() -> None:
+    row = documents.GridRow(1, ("a", "1"))
+    content = documents.PdfContent(
+        pages=("Strana.",),
+        tables=tuple(
+            documents.PdfTable(page=1, rows=(row,)) for _ in range(documents.MAX_PDF_TABLES + 3)
+        ),
+    )
+    built = documents.pdf_document(content)
+    assert len(built.layout.sheets) == documents.MAX_PDF_TABLES and built.truncated
+    assert built.layout.sheets[-1].name == f"s. 1, tabulka {documents.MAX_PDF_TABLES}"
+
+
+def test_an_empty_table_adds_nothing_and_takes_no_number() -> None:
+    content = documents.PdfContent(
+        pages=("Strana.",),
+        tables=(
+            documents.PdfTable(page=1, rows=(documents.GridRow(1, ("", "")),)),
+            documents.PdfTable(page=1, rows=(documents.GridRow(1, ("a", "b")),)),
+        ),
+    )
+    built = documents.pdf_document(content)
+    assert [s.name for s in built.layout.sheets] == ["s. 1, tabulka 1"]
+    assert built.text == "Strana. ## s. 1, tabulka 1 | a | b |"
+
+
+def test_the_extractor_stops_at_its_time_bound_and_says_so() -> None:
+    pytest.importorskip("pdfplumber")
+    from aia_core.infrastructure.document_text import PDF_TABLES_SECONDS, _pdf_tables
+
+    ticks = iter([0.0, PDF_TABLES_SECONDS + 1])
+    tables, cut = _pdf_tables(TABLE_PDF, monotonic=lambda: next(ticks))
+    assert (tables, cut) == ((), True)
+
+
+def test_a_file_pdfplumber_cannot_open_keeps_its_text_and_no_tables() -> None:
+    pytest.importorskip("pdfplumber")
+    from aia_core.infrastructure.document_text import _pdf_tables
+
+    assert _pdf_tables(b"%PDF-1.4\nnot a pdf at all") == ((), False)

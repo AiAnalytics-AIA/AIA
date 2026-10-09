@@ -348,7 +348,9 @@ class SnapshotLink(_Closed):
 
 #: The layout's version: how a document's text is rendered and where its parts lie.
 #: A change to the rendering changes the text, and so every snapshot id it yields.
-DOCUMENT_LAYOUT_VERSION: Final = "aia-document-layout-1"
+#: 2: a PDF's tables are grids too (``DocumentSheet.page``), extracted with their cells; a
+#: layout stored as 1 still reads.
+DOCUMENT_LAYOUT_VERSION: Final = "aia-document-layout-2"
 
 
 class DocumentPage(_Closed):
@@ -391,6 +393,8 @@ class DocumentSheet(_Closed):
     cells: tuple[tuple[int, int, int, int], ...] = ()
     #: Rows or cells past a bound were not read.
     truncated: bool = False
+    #: The PDF page a table was extracted from; ``None`` for an XLSX sheet or a CSV.
+    page: int | None = Field(default=None, ge=1)
 
 
 class DocumentLayout(_Closed):
@@ -401,7 +405,7 @@ class DocumentLayout(_Closed):
     a page (PDF) or a cell (XLSX, CSV). Built by ``domain.deep_research.documents``.
     """
 
-    version: Literal["aia-document-layout-1"] = DOCUMENT_LAYOUT_VERSION
+    version: Literal["aia-document-layout-1", "aia-document-layout-2"] = DOCUMENT_LAYOUT_VERSION
     kind: Literal["pdf", "xlsx", "csv"]
     #: Pages in the file (PDF); ``pages`` holds those whose text was kept.
     page_count: int | None = Field(default=None, ge=0)

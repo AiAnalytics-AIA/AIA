@@ -53,6 +53,7 @@ from ..domain.deep_research.documents import (
     GridRow,
     PdfBookmark,
     PdfContent,
+    PdfTable,
     grid_document,
     pdf_document,
 )
@@ -247,7 +248,78 @@ def read_pdf(data: bytes) -> PdfContent:
         title = str(getattr(reader.metadata, "title", None) or "")
     except Exception:
         title = ""
-    return PdfContent(pages=tuple(pages), title=title, bookmarks=_bookmarks(reader))
+    tables, tables_cut = _pdf_tables(data)
+    return PdfContent(
+        pages=tuple(pages),
+        title=title,
+        bookmarks=_bookmarks(reader),
+        tables=tables,
+        tables_truncated=tables_cut,
+    )
+
+
+#: How long one PDF's table extraction may take; past it, the rest is not looked for and
+#: the snapshot says so. Measured: about 30 ms a page of ruled tables (fictional fixtures).
+PDF_TABLES_SECONDS: Final = 20.0
+
+
+def _table_cell(value: object) -> str:
+    return "" if value is None else str(value)
+
+
+def _pdf_tables(
+    data: bytes, *, monotonic: Callable[[], float] | None = None
+) -> tuple[tuple[PdfTable, ...], bool]:
+    """Every table pdfplumber finds, page by page, bounded; and whether a bound stopped it.
+
+    Called only after pypdf has read every page (its inflate bound held for each
+    content stream), so pdfminer inflates nothing pypdf refused. A page whose tables
+    cannot be read has none; a file pdfplumber cannot open keeps its pages' text and
+    no tables: the tables are structure beside the text, never the text itself.
+    """
+    import time as _time
+
+    import pdfplumber
+
+    clock = monotonic or _time.monotonic
+    deadline = clock() + PDF_TABLES_SECONDS
+    found: list[PdfTable] = []
+    cells = 0
+    cut = False
+    try:
+        with pdfplumber.open(io.BytesIO(data), password="") as pdf:
+            for number, page in enumerate(pdf.pages, start=1):
+                if clock() > deadline or len(found) >= web_documents.MAX_PDF_TABLES:
+                    cut = True
+                    break
+                try:
+                    tables = page.extract_tables()
+                except Exception:  # one unreadable page has no tables
+                    tables = []
+                finally:
+                    with contextlib.suppress(Exception):
+                        page.close()
+                for table in tables:
+                    rows: list[GridRow] = []
+                    for index, row in enumerate(table[: web_documents.MAX_GRID_ROWS], start=1):
+                        values = tuple(
+                            _table_cell(v) for v in row[: web_documents.MAX_GRID_COLUMNS]
+                        )
+                        cells += len(values)
+                        rows.append(GridRow(index, values))
+                    if (
+                        len(table) > web_documents.MAX_GRID_ROWS
+                        or cells > web_documents.MAX_GRID_CELLS
+                    ):
+                        cut = True
+                    found.append(PdfTable(page=number, rows=tuple(rows)))
+                    if cut or len(found) >= web_documents.MAX_PDF_TABLES:
+                        break
+                if cut:
+                    break
+    except Exception:  # pdfplumber could not open what pypdf read: the text stands alone
+        return (), False
+    return tuple(found), cut
 
 
 def _cell_text(value: object) -> str:

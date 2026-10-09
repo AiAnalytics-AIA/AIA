@@ -1194,6 +1194,27 @@ stays open):
 - **Budgets, retention, register, weights, near-duplicate threshold:** left as proposed
   defaults, to be approved on Settings → Deep Research; chunk 44 refuses live until they are.
 
+**Chunk 6, PDF tables, 2026-10-09** (`feature/dr-pdf-tables`). What `eb1f9b8` (2026-10-05)
+left out: pdfplumber 0.11 (MIT; pdfminer.six MIT, pypdfium2 BSD-3/Apache-2.0, Pillow), in the
+`documents` extra by the owner's choice of 2026-10-09. `document_text._pdf_tables` runs only
+after pypdf has read every page (so its inflate bound held), page by page, bounded by
+`MAX_PDF_TABLES` (200), the grid bounds and `PDF_TABLES_SECONDS` (20 s); a page it cannot read
+has no tables and a file it cannot open keeps its text alone. `documents.pdf_document` renders
+each table after the pages as a grid named `s. <page>, tabulka <n>`, the same rendering as a
+sheet (`_render_rows`), with `DocumentSheet.page`; the layout is `aia-document-layout-2` (1
+still reads). `locate_span` on a page span also returns the cells of that page's tables whose
+value the quote holds as a whole token (`12,4` never inside `112,4`), with their row and column
+labels; `read_part` serves a table or a range of one (`'s. 3, tabulka 1'!B2:C4`); the outline
+lists them. A snapshot's id is its text's hash, so a PDF without tables keeps its id and one
+with tables gets a new one; no harness moved (the precedent of `eb1f9b8`), so a track reused
+from before keeps its page-level reading. Measured on fictional PDFs: 100 pages of ruled tables
+extract in 3.0 s (about 30 ms a page, so 400 pages fit the bound), the layout in 0.16 s.
+**Still open in chunk 6:** the investigator's `read` names numbered parts
+(`investigator._parse_part`), not `read_part`'s pages and sheets, and no evidence carries
+`locate_span`'s locators yet; wiring both changes the investigator's contract and prompt (a
+harness move). A PDF table's footnote below the rules stays page text, not the table's
+`notes`. Tests: `test_web_documents.py`, the nine `PDF tables` tests.
+
 **Chunk 43a, 2026-10-09** (`feature/dr-settings-pin`): `domain/deep_research/settings.py`
 `pin` / `read_pin` (`SETTINGS_PIN_CONTRACT = "aia-dr-settings-pin-1"`): every key's value and
 origin (approval version, who, when), `pin_digest` over the whole body, `settings_digest` and
