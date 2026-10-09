@@ -66,6 +66,7 @@ __all__ = [
     "RESPONDENTS_NOT_COMPUTED",
     "TERRAIN_NOT_COMPUTED",
     "WEIGHTING",
+    "WEIGHTING_KISH",
     "compute_object_map",
 ]
 
@@ -97,6 +98,17 @@ WEIGHTING: Final = (
     "unequal weights (Kish's n per pair is chunk 1d's, pending Q6); a K100 resample multiplies "
     "each weight by how many times its respondent was drawn; the heights are weighted means; "
     "nothing here is clustered on donors"
+)
+#: The same under the evidence policy's Kish basis (Q6, chunk 1d): what a pair's status reads
+#: is then each pair's Kish effective n, so the interval no longer overstates the evidence.
+WEIGHTING_KISH: Final = (
+    "each pair's correlation is weighted by the respondents' weights as given (the research "
+    "step normalises them to sum to N, the unit's vaha); a pair's status and interval read "
+    "the Kish effective n of the weights of the respondents who rated both, (sum w)^2 / "
+    "sum w^2, not their count (AIA's Q6 decision); a K100 resample multiplies each weight by "
+    "how many times its respondent was drawn, and its Kish n reads the weights of the "
+    "distinct respondents drawn; the heights are weighted means; nothing here is clustered "
+    "on donors"
 )
 CONNECTEDNESS_OFF: Final = {
     "status": "not_computed",
@@ -160,7 +172,9 @@ def _heights(
     )
 
 
-def _support(inputs: ObjectMapInputs, not_placed: dict[str, str]) -> ObjectMapSupport:
+def _support(
+    inputs: ObjectMapInputs, not_placed: dict[str, str], weighting: str
+) -> ObjectMapSupport:
     placed = [k for k, rid in enumerate(inputs.respondent_ids) if rid not in not_placed]
     w = [inputs.weights[k] for k in placed]
     squares = math.fsum(x * x for x in w)
@@ -170,7 +184,7 @@ def _support(inputs: ObjectMapInputs, not_placed: dict[str, str]) -> ObjectMapSu
         not_placed=len(not_placed),
         effective_n=math.fsum(w) ** 2 / squares if squares > 0 else None,
         donors=len({inputs.donor_ids[k] for k in placed}),
-        weighting=WEIGHTING,
+        weighting=weighting,
     )
 
 
@@ -315,7 +329,11 @@ def compute_object_map(
         scores=scores.to_payload(),
         heights=_heights(scaled, weights, columns),
         connectedness_100=connectedness,
-        support=_support(inputs, not_placed),
+        support=_support(
+            inputs,
+            not_placed,
+            WEIGHTING_KISH if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N else WEIGHTING,
+        ),
         respondents=RESPONDENTS_NOT_COMPUTED,
         terrain=TERRAIN_NOT_COMPUTED,
         provenance=ObjectMapProvenance(

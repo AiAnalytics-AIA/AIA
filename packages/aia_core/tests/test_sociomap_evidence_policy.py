@@ -258,6 +258,8 @@ def test_the_v3_map_records_both_gates_and_the_v2_map_records_neither() -> None:
     assert v3.relations.n_effective is not None and v3.relations.meets_effect_floor is not None
     assert v3.relations.r == v2.relations.r
     assert v3.relations.n_effective[0][1] < v3.relations.n[0][1]  # unequal weights
+    assert "Kish effective n" in v3.support.weighting
+    assert "not the weight" in v2.support.weighting  # the text v2 maps were stored with
     assert read_artifact(v3.to_payload()) == v3
     assert read_artifact(v2.to_payload()) == v2
     stored = v2.to_payload()["artifact"]["relations"]
