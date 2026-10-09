@@ -813,6 +813,14 @@ jobs:
           POSTGRES_PASSWORD=placeholder
           ENV
           docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config -q
+          # A saved SSM setting is ineffective unless Compose passes it to the API.
+          # Check both values through Compose's real interpolation, not YAML text.
+          for flag_value in false true; do
+            AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED="$flag_value" \
+              docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml \
+              config --format json > composed.json
+            python3 -c 'import json,sys; assert json.load(open("composed.json"))["services"]["api"]["environment"]["AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED"] == sys.argv[1]' "$flag_value"
+          done
           # ADR 0018 decision 5: the product stack is AIA's five services, nothing else.
           services="$(docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --services | sort | tr '\n' ' ')"
           test "$services" = "api caddy postgres web worker " || { echo "::error::product services: $services"; exit 1; }
