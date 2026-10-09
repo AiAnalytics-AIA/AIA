@@ -17,7 +17,7 @@ chunks:
   - "[ ] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16)"
   - "[ ] 4d. Stage 4 -- region tests: positioning variables excluded, Holm, Cohen's d and h ranking (F14, F15), with sociomapping-engine chunk 8"
   - "[ ] 5. Results and the report: the Stress-1 label, arrows for RELIABLE pairs only, sign as colour, the not-placed count; the client gate unchanged (OI-17)"
-  - "[ ] 6. Ledgers and the decision package: parity-matrix pins, D6 v2 re-scoped to aia-sociomap-2, OI-13 and OI-16 wording"
+  - "[x] 6. Ledgers and the decision package: parity-matrix gate and deviation for the audit's object map, D6 re-scoped to aia-sociomap-3 (OI-13 and OI-16 wording is the docs PR's)"
   - "[ ] I0. Freeze the study-input and map-request contracts: dimensions, population, audience, item roles and method selection"
   - "[ ] I1. Resolve selected dimensions and the audience into the fieldwork respondent context; unavailable inputs refused explicitly"
   - "[ ] I2. Build study-wide rating inputs before slicing families; keep F1 and F2 transforms separate; enforce PRIMARY/SECONDARY roles"
@@ -951,6 +951,28 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Chunk 6 -- the ledgers and the decision package, 2026-10-09
+
+- `docs/migration/parity-matrix.json`, `sociomapping.core`: gate
+  `sociomapping.core/audit-object-map` (production contract: the presets' fingerprints, the
+  engine's numbers against the landed functions, the artifact round trip, both gates, the
+  envelope, nothing outside the engine computing a surface, and the register's Q5-Q7 record),
+  deviation `SUB-SOCIO-AUDIT` (the object map follows the canonical audit, not the reference),
+  and the capability's notes. The v1 pins and gates are untouched.
+- `docs/architecture/sociomapa-methodology-decision.md`: a v3 section ahead of v2 -- the
+  subject is `aia-sociomap-3` (`e16dc0d0…`), what it adds and what each choice claims, what
+  approving it does not answer, and an approval table of its own.
+  `test_sociomap_decision_package.py` fails when a fingerprint in the package is not the
+  preset's, or the subject is not what new runs pin.
+- Not here: OI-13 and OI-16 are `open-items.md` entries, a shared file; their wording is under
+  Doc follow-up.
+
+I1 is not started, and not startable from this plan: the audience filters carry the panel's
+own factor ids and value codes (`apps/web/src/research/audience.ts`, `rangeOf` /
+`selectedValues` @ `1025539`), which AIA cannot resolve without the population and
+dimension-materialization work; applying them to the fictional roster would mean guessing
+what each code means. § 8.1 names that work as I1's dependency.
+
 ### Q5-Q7 decided for AIA, and chunk 1d, 2026-10-09
 
 **Decisions.** The audit's author has not answered Q5-Q7, and AIA's product owner (who is not
