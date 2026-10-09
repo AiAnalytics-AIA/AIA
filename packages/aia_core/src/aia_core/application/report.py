@@ -7,6 +7,8 @@ does not ask a model to invent a second interpretation of the results.
 
 from __future__ import annotations
 
+import re
+
 from aia_core.application.analysis_results import RunAnalysis
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
@@ -14,10 +16,12 @@ from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     AuditBlock,
     Block,
+    BulletList,
     Callout,
     CalloutKind,
     Classification,
     EvidenceAppendix,
+    ListItem,
     Paragraph,
     ParagraphRole,
     ReportDocument,
@@ -78,7 +82,47 @@ def compose_internal_report(run: RunAnalysis, meta: ReportMeta) -> ReportDocumen
         raise ReportCompositionRefused("report method status differs from analysis")
 
     claims: list[AdmittedClaim] = []
-    sections: list[Section] = []
+    introduction: list[Block] = [
+        Paragraph(
+            text(
+                f"Tato zpráva představuje výsledky studie „{meta.study_name}“ pro "
+                f"{meta.client_name}. Je určena k interní interpretaci a přípravě "
+                "rozhodnutí. Výsledky vycházejí ze zmrazeného běhu studie; každý "
+                "analytický oddíl zachovává přijatá zjištění a jejich evidenci."
+            ),
+            ParagraphRole.LEDE,
+        ),
+        Paragraph(
+            text(
+                "Nejprve si přečtěte shrnutí a odpovědi na výzkumné otázky. "
+                "Srovnání objektů, pohled na publikum a segmenty pak rozvíjejí "
+                "kontext výsledků. Hypotézy a implikace pomáhají formulovat další "
+                "kroky; jejich použitelnost posuzujte společně s oddílem limitů. "
+                "Číselná tvrzení lze ověřit v evidenční příloze."
+            )
+        ),
+    ]
+    if reference.research_questions:
+        introduction.extend(
+            [
+                Paragraph(text("Studie byla vedena následujícími výzkumnými otázkami:")),
+                BulletList(tuple(ListItem(text(q)) for q in reference.research_questions)),
+            ]
+        )
+    if labels.simulated_respondents:
+        introduction.append(
+            Callout(
+                CalloutKind.LIMITATION,
+                text(
+                    "Odpovědi v této studii vytvořili syntetičtí respondenti. "
+                    "Výsledky popisují chování simulace, nikoli měření skutečných "
+                    "osob. Slouží k ověření postupu a návrhu dalšího výzkumu; "
+                    "závěry o reálném publiku vyžadují samostatné ověření."
+                ),
+                title="Rámec interpretace",
+            )
+        )
+    sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
     for spec in ANALYSIS_MODULES:
         module = run.modules[spec.module_id]
@@ -107,7 +151,13 @@ def compose_internal_report(run: RunAnalysis, meta: ReportMeta) -> ReportDocumen
             if reference.table.rows.get(claim.row.evidence_ref) != claim.row:
                 raise ReportCompositionRefused(f"{spec.module_id}: claim is outside run evidence")
         claims.extend(result.claims)
-        blocks: list[Block] = [Paragraph(text(result.summary), ParagraphRole.LEDE)]
+        # Preserve authored paragraph boundaries instead of flattening the module
+        # into a single lede. This is formatting, not a second AI interpretation.
+        blocks: list[Block] = [
+            Paragraph(text(part), ParagraphRole.LEDE if index == 0 else ParagraphRole.BODY)
+            for index, part in enumerate(re.split(r"\n\s*\n", result.summary))
+            if part.strip()
+        ]
         if result.claims:
             blocks.append(
                 Callout(

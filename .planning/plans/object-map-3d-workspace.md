@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 1. Frozen-grid 3D rendering geometry and integrity tests"
   - "[x] 2. Production map workspace, controls and grounded interpretation"
-  - "[ ] 3. Report introduction and paragraph structure"
+  - "[x] 3. Report introduction and paragraph structure"
   - "[ ] 4. Full checks, visual verification, publication and live acceptance"
 ---
 
@@ -65,3 +65,28 @@ view unmounts its renderer immediately. This is the rendering kill switch.
 React review: expensive mesh memoized; no new dependencies or data requests;
 SVG object controls and DOM selectors accessible; observer cleanup present;
 responsive label density limits overlap without moving stored object positions.
+
+Report acceptance: 37 focused tests pass; the internal document now begins with
+study/client context, a reading guide, frozen research questions and the synthetic
+interpretation boundary. Admitted summary paragraphs remain separate lede/body
+blocks without another model call or evidence rewrite. Contract is bumped to
+`aia-internal-report-2`; stored old reports remain frozen. The generated fixture
+DOCX passes structural lint; rendered introduction and adjacent pages inspected.
+Map inclusion in the main DOCX remains outside this change and its internal gate
+is preserved.
+
+Production build finding: Next.js rejects arbitrary value exports from route
+modules. Move the unchanged public config type, switches and parsers into
+`lib/public-config.ts`, import them in `/config` and its consumers. Preserve
+cross-language worker vocabulary and Compose coverage assertions at the new
+source location. Document this wrong/right boundary in AGENTS.md after merge.
+
+Local full verification: typecheck (310 Python sources and web), 101 layer rules,
+7 exposure rules and formatting pass. Core suite: 5,486 passed, 104 expected
+environment/reference skips, one strict frozen-fixture failure. The unchanged
+builder/domain/fixture differ on this Mac by 147 floating-point roundings, at most
+7.11e-15 (and the resulting fingerprint), with both Python 3.12 and 3.14. Do not
+regenerate the fixture or loosen the byte assertion. Require the official Linux
+CI fixture test and every blocking gate to pass before merge. API: 355 passed;
+worker: 54 passed, 8 PostgreSQL-only skips. Executor rerun and remaining web
+checks follow the config source relocation. Webpack production build passes.

@@ -11,6 +11,7 @@ import hashlib
 import json
 import uuid
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -54,7 +55,16 @@ from aia_core.domain.evidence import (
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
-from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
+from aia_core.domain.report.model import (
+    BulletList,
+    Callout,
+    Classification,
+    Paragraph,
+    ParagraphRole,
+    ReportKind,
+    ReportMeta,
+    Text,
+)
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import compile_design
@@ -662,7 +672,9 @@ def test_a_whole_run_reads_back_and_is_complete_only_with_eight_completed(world:
     assert whole.complete and list(whole.modules) == list(AnalysisModuleId)
 
 
-def test_reconstructed_analysis_composes_an_internal_branded_draft(world: World) -> None:
+def test_reconstructed_analysis_composes_an_internal_branded_draft(
+    world: World, tmp_path: Path
+) -> None:
     run_id = world.start()
     world.upstream()
     world.store_outcomes(run_id, completed, count=7)
@@ -677,12 +689,20 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(world: World)
     first = run.modules[AnalysisModuleId.EXECUTIVE].result
     assert first is not None
     doc = compose_internal_report(run, report_meta(first.method_status))
-    assert len(doc.sections) == 10  # Eight modules, evidence, audit.
+    assert len(doc.sections) == 11  # Introduction, eight modules, evidence, audit.
+    assert doc.sections[0].id == "intro"
+    intro = doc.sections[0].blocks
+    assert isinstance(intro[0], Paragraph) and intro[0].role is ParagraphRole.LEDE
+    assert "Ranní nápoj" in "".join(i.text for i in intro[0].content if isinstance(i, Text))
+    assert any(isinstance(b, BulletList) for b in intro)
+    assert any(isinstance(b, Callout) and b.title == "Rámec interpretace" for b in intro)
     assert doc.meta.approvals == ()
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
     assert doc.sections[-1].appendix
-    assert not lint_docx(DocxRenderer().render(doc))
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report.docx").write_bytes(rendered)
 
     with pytest.raises(ReportCompositionRefused, match="unapproved internal"):
         compose_internal_report(
@@ -937,3 +957,36 @@ def test_a_module_with_no_stored_outcome_says_so(world: World) -> None:
     assert refused.value.reason == "no_outcome"
     empty = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
     assert empty.modules == {} and len(empty.pending) == 8 and not empty.complete
+
+
+def test_report_preserves_admitted_paragraphs_without_rewriting_claims(world: World) -> None:
+    run_id = world.start()
+    world.upstream()
+
+    def paragraphs(prepared: Any) -> Any:
+        draft = good_draft(prepared)
+        draft["summary"] += "\n\nDalší krok je ověřit výsledky v reálném výzkumu."
+        return module_artifact(
+            prepared,
+            outcome=ModuleOutcomeKind.COMPLETED,
+            draft=draft,
+            violations=(),
+            calls=(call(),),
+            produced_by=PRODUCED,
+            runtime_version="abc",
+        )
+
+    world.store_outcomes(run_id, paragraphs)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    executive = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert executive is not None
+    doc = compose_internal_report(run, report_meta(executive.method_status))
+    for section in doc.sections[1:9]:
+        first, second = section.blocks[:2]
+        assert isinstance(first, Paragraph) and first.role is ParagraphRole.LEDE
+        assert isinstance(second, Paragraph) and second.role is ParagraphRole.BODY
+        assert "".join(i.text for i in second.content if isinstance(i, Text)) == (
+            "Další krok je ověřit výsledky v reálném výzkumu."
+        )
+    assert "q1.mean" in cited_refs(doc)
+    assert doc.ledger.surface is ClaimSurface.INTERNAL
