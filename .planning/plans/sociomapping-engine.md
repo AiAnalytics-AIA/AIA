@@ -126,6 +126,15 @@ people-or-objects map: RTS never places respondents, only SOMECS's STORM map doe
 
 ## Open questions, each with its exact dependency
 
+**Superseded for AIA's object map (2026-10-09).** The audit "NPC Sociomapa: faulty formulas in
+the code" is the canonical method (the owner's rule of 2026-10-07; plan
+[`sociomap-formula-corrections.md`](sociomap-formula-corrections.md)). For the object map it
+answers **M2** (the layout is SMACOF on the correlation distance with Stress-1, F6/F7, not an
+H-Model), **M4** (the terrain is the max-envelope of hills, F12), **M6** (the fit is labelled by
+Stress-1 band, F7) and **M8** (region tests, F14), and AIA's Q5-Q7 decisions carry them in
+`aia-sociomap-3` (#205). The rows below stay true for the SOMECS H-Model path, which remains
+`EXPERIMENTAL_AIA` for comparison only.
+
 The register (`docs/migration/sociomapping-evidence-register.json`) is the source of truth for
 every rule; this table is what is still missing. **E** = a reference export or experiment (a
 technical fact the software can show); **O** = a decision only the method owner can make.
