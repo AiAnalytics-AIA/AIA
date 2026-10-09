@@ -22,7 +22,8 @@ never raise it.
 default, with its origin. Its :meth:`~EffectiveSettings.digest` covers every key; its
 :meth:`~EffectiveSettings.method_digest` only the keys that shape a result (``method``), which
 are the ones a run's reuse keys must carry (chunk 43). :meth:`~EffectiveSettings.missing_for_live`
-names every setting live still needs approved (chunk 44).
+names every setting live still needs approved (chunk 44). :func:`route_allowances` and
+:func:`request_limits` are what the engine reads where it read the code's tables (chunk 43c).
 
 Pure: stdlib only.
 """
@@ -37,9 +38,9 @@ from enum import StrEnum
 from typing import Final
 from urllib.parse import urlsplit
 
-from .budgets import ROUTE_ALLOWANCES
+from .budgets import ROUTE_ALLOWANCES, CallKind, RouteAllowance
 from .contracts import digest
-from .request_limits import REQUEST_LIMITS
+from .request_limits import REQUEST_LIMITS, RequestLimits
 
 __all__ = [
     "CATALOGUE",
@@ -61,6 +62,8 @@ __all__ = [
     "keys",
     "pin",
     "read_pin",
+    "request_limits",
+    "route_allowances",
     "validate",
 ]
 
@@ -849,3 +852,54 @@ def read_pin(payload: object) -> EffectiveSettings:
             "pin_altered", "the run's settings pin does not hash to its own digest"
         )
     return settings
+
+
+# --------------------------------------------------------------------------- #
+# What the engine reads from the settings (chunk 43c)
+# --------------------------------------------------------------------------- #
+
+
+def _capped(settings: EffectiveSettings, key: str, cap: int | None) -> int | None:
+    """``key``'s value in force, never above the code's ``cap`` (a cap is lower-only); a key
+    the catalogue does not hold (a field the code sets to nothing) is the code's own."""
+    if key not in _BY_KEY:
+        return cap
+    value = settings.value(key)
+    if value is None:
+        return cap
+    assert isinstance(value, int) and not isinstance(value, bool)
+    return value if cap is None else min(value, cap)
+
+
+def route_allowances(settings: EffectiveSettings) -> dict[str, RouteAllowance]:
+    """Each preset's route allowances under ``settings``: what ``budgets.call_bounds`` counts.
+
+    With nothing approved this is :data:`~.budgets.ROUTE_ALLOWANCES`, value for value.
+    """
+    allowances: dict[str, RouteAllowance] = {}
+    for preset, code in ROUTE_ALLOWANCES.items():
+        counts = {
+            field: _capped(settings, f"budgets.allowance.{preset.lower()}.{field}", cap)
+            for field, cap in ((field, getattr(code, field)) for field, _label in _ALLOWANCE_FIELDS)
+        }
+        allowances[preset] = RouteAllowance(**counts)  # type: ignore[arg-type]
+    return allowances
+
+
+def request_limits(settings: EffectiveSettings) -> dict[CallKind, RequestLimits]:
+    """Each research kind's window and answer limit under ``settings``: what
+    ``request_limits.kind_budgets`` sizes a request by. ``None`` stays the composition's own.
+
+    With nothing approved this is :data:`~.request_limits.REQUEST_LIMITS`, value for value.
+    """
+    return {
+        kind: RequestLimits(
+            window_tokens=_capped(
+                settings, f"limits.{kind.value}.window_tokens", code.window_tokens
+            ),
+            answer_tokens=_capped(
+                settings, f"limits.{kind.value}.answer_tokens", code.answer_tokens
+            ),
+        )
+        for kind, code in REQUEST_LIMITS.items()
+    }

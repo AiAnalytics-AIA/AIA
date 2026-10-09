@@ -225,3 +225,27 @@ def test_listed_connectors_are_stated_free_beside_a_search_route(settings: Setti
     assert deep_research_prices(alone)[CallKind.CONNECTOR].state == "off"
     connector = deep_research_prices(listed)[CallKind.CONNECTOR]
     assert (connector.state, connector.usd) == ("priced", 0.0)
+
+
+def test_an_approved_request_limit_prices_the_ceiling_a_start_is_asked_about(
+    researcher: TestClient, owner: TestClient, world: Any
+) -> None:
+    """Chunk 43c: the ceiling is priced by the request limits the run will pin, as the worker
+    will reserve: the verifier's answer limit lowered to 2,048 tokens takes each of its three
+    batches' reservation down by two calls' worth of the 2,048 tokens it no longer writes."""
+    key = "limits.verifier.answer_tokens"
+    made = owner.post(f"{API}/deep-research/settings/{key}/versions", json={"value": 2048})
+    assert made.status_code == 201, made.text
+    approved = owner.put(
+        f"{API}/deep-research/settings/{key}/approval",
+        json={"version_number": made.json()["version_number"]},
+    )
+    assert approved.status_code == 200, approved.text
+    revision = _revision(researcher, world)
+    _limit(researcher, world, 5.0)
+    asked = _start(researcher, world, revision)
+    assert asked.status_code == 409, asked.text
+    verifier = 2 * (112_000 * 3.0 + 2_048 * 15.0) / 1_000_000
+    assert asked.json()["details"]["ceiling_usd"] == pytest.approx(
+        EXHAUSTIVE_PLANNED - 3 * VERIFIER + 3 * verifier
+    )

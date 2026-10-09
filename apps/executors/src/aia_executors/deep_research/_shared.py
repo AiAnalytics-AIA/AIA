@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, replace
 from typing import Any, Final, TypeVar
 
 from aia_core.application.research import research_artifacts
@@ -16,7 +16,12 @@ from aia_core.domain.deep_research.contracts import (
     ResearchSubject,
     ResearchTrack,
 )
-from aia_core.domain.deep_research.request_limits import KindBudget, kind_of, window_fits
+from aia_core.domain.deep_research.request_limits import (
+    KindBudget,
+    RequestLimits,
+    kind_of,
+    window_fits,
+)
 from aia_core.domain.deep_research.steps import CallRecord, Gate, PlanRecord
 from aia_core.domain.deep_research.workflow import ARTIFACT_TYPES
 from aia_core.domain.licence import DataLineage
@@ -109,6 +114,25 @@ def _too_large(request: ModelRequest, budget: KindBudget) -> int | None:
     ):
         return size
     return None
+
+
+def _limits_of(plan: PlanRecord) -> Mapping[CallKind, RequestLimits] | None:
+    """The request limits the run's plan recorded from its pinned settings, or None."""
+    if plan.request_limits is None:
+        return None
+    return {
+        kind: RequestLimits(window_tokens=r.window_tokens, answer_tokens=r.answer_tokens)
+        for kind, r in plan.request_limits.items()
+    }
+
+
+def _under(
+    runtime: DeepResearchRuntime, limits: Mapping[CallKind, RequestLimits] | None
+) -> DeepResearchRuntime:
+    """``runtime`` sizing every model request by ``limits`` (a run's pinned request limits,
+    chunk 43c); ``None`` is the composition's own. Nothing else in it changes."""
+    config = runtime.config.under(limits)
+    return runtime if config is runtime.config else replace(runtime, config=config)
 
 
 def _lineage(sources: Iterable[KnowledgeSource]) -> DataLineage:
@@ -286,6 +310,11 @@ class _Step:
             if plan_id is None:
                 return _missing_upstream("plan")
             return plan_id, self._read(self._repo(session, context), plan_id, PlanRecord)
+
+    def _planned_runtime(self, plan: PlanRecord) -> DeepResearchRuntime:
+        """The composition as this run's plan sizes it: its pinned request limits."""
+        assert self._runtime is not None
+        return _under(self._runtime, _limits_of(plan))
 
 
 def _call_record(

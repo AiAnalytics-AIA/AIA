@@ -208,7 +208,9 @@ def _verifier_requests(tracks: int, requests_per_track: int, depth: DepthPreset)
     return tracks * -(-candidates // depth.verify_batch)
 
 
-def _bounds(depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode) -> dict[CallKind, int]:
+def _bounds(
+    depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode, routes: RouteAllowance
+) -> dict[CallKind, int]:
     counts = dict.fromkeys(CallKind, 0)
     web_ids = [str(i) for i in range(tracks.web)]
     verifier = _verifier_requests(tracks.internal, 1, depth)
@@ -252,7 +254,6 @@ def _bounds(depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode) -> dict
     # The brief is repaired once with every problem (chunk 13): a second request.
     briefs = 1 if mode is ResearchMode.PLANNED else 2
     counts[CallKind.SYNTHESIZER] = briefs if tracks.web or tracks.internal else 0
-    routes = ROUTE_ALLOWANCES[depth.name]
     counts[CallKind.TRIAGE] = routes.triage_reads
     counts[CallKind.CRAWL_FETCH] = routes.crawl_pages
     counts[CallKind.CONNECTOR] = routes.connector_calls
@@ -261,11 +262,21 @@ def _bounds(depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode) -> dict
     return counts
 
 
-def call_bounds(depth: DepthPreset, tracks: TrackCounts, mode: ResearchMode) -> CallBounds:
-    """The most calls of each kind a run of ``depth`` over ``tracks`` makes in ``mode``."""
-    if depth.name not in ROUTE_ALLOWANCES or depth.name not in LEAD_LIMITS:
+def call_bounds(
+    depth: DepthPreset,
+    tracks: TrackCounts,
+    mode: ResearchMode,
+    *,
+    allowances: Mapping[str, RouteAllowance] = ROUTE_ALLOWANCES,
+) -> CallBounds:
+    """The most calls of each kind a run of ``depth`` over ``tracks`` makes in ``mode``.
+
+    ``allowances`` are the route allowances in force: the run's settings
+    (``settings.route_allowances``, chunk 43c), or the code's table.
+    """
+    if depth.name not in allowances or depth.name not in LEAD_LIMITS:
         raise LookupError(f"the preset table has no budget for {depth.name!r}")
-    return CallBounds(_bounds(depth, tracks, mode))
+    return CallBounds(_bounds(depth, tracks, mode, allowances[depth.name]))
 
 
 def lead_state_bounds(

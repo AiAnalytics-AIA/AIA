@@ -13,6 +13,7 @@ from typing import Any
 from aia_core.application.web_retrieval import RetrievalGate
 from aia_core.domain.ai_material import classify_material
 from aia_core.domain.deep_research.agents import AgentRole, PlanProposal
+from aia_core.domain.deep_research.budgets import CallKind
 from aia_core.domain.deep_research.contracts import (
     HARNESS_VERSION,
     Channel,
@@ -29,12 +30,14 @@ from aia_core.domain.deep_research.planning import (
     check_plan_coverage,
     preset,
 )
-from aia_core.domain.deep_research.settings import SettingsPinCorrupt, read_pin
+from aia_core.domain.deep_research.request_limits import REQUEST_LIMITS, RequestLimits
+from aia_core.domain.deep_research.settings import SettingsPinCorrupt, read_pin, request_limits
 from aia_core.domain.deep_research.steps import (
     AllowanceRecord,
     BlockedTrack,
     CallRecord,
     Gate,
+    KindLimitsRecord,
     PlannedTrack,
     PlanRecord,
     PlanViolationRecord,
@@ -49,7 +52,16 @@ from aia_core.infrastructure.study_design_repository import (
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome
 from pydantic import ValidationError
 
-from ._shared import _class_a_texts, _detail, _invalid, _produced, _Step, _subjects, _unconfigured
+from ._shared import (
+    _class_a_texts,
+    _detail,
+    _invalid,
+    _produced,
+    _Step,
+    _subjects,
+    _unconfigured,
+    _under,
+)
 from .lead import LeadPlanned, LeadPlanning
 from .runtime import StepToolMeter
 
@@ -80,6 +92,7 @@ class PlanExecutor(_Step):
         if request.fingerprint() != step.input_fingerprint:
             return _invalid("request_altered", "the request is not the one the run was created for")
         pinned = step.payload.get("settings")
+        limits: dict[CallKind, RequestLimits] | None = None
         if pinned is not None:
             # ADR 0022 decision 4: the run runs under the settings it pinned at enqueue, and
             # a pin that does not prove itself is not run (a run enqueued before pins carries
@@ -95,6 +108,12 @@ class PlanExecutor(_Step):
                     "settings_mismatch",
                     "the request's method settings are not the ones the run pinned",
                 )
+            # Chunk 43c: every model request of the run is sized by the limits it pinned,
+            # recorded on the plan for the steps after it; the code's own are not recorded.
+            pinned_limits = request_limits(settings)
+            if pinned_limits != REQUEST_LIMITS:
+                limits = pinned_limits
+                runtime = _under(runtime, limits)
         if request.harness_version != HARNESS_VERSION:
             # Frozen for an earlier method: executed now it would run under another
             # one and be labelled with the first. It stays readable; it is not run.
@@ -309,6 +328,14 @@ class PlanExecutor(_Step):
             },
             planner=planner,
             lead_plan_artifact_id=lead.artifact_id if lead is not None else None,
+            request_limits=None
+            if limits is None
+            else {
+                kind: KindLimitsRecord(
+                    window_tokens=lim.window_tokens, answer_tokens=lim.answer_tokens
+                )
+                for kind, lim in limits.items()
+            },
         )
         with context.transaction() as (session, _workflow):
             artifact, created = self._put(

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Final
 
@@ -27,9 +27,11 @@ from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.planning import PRESET_STATUS, TrackInputs
 from aia_core.domain.deep_research.reputation import ReputationRegister
 from aia_core.domain.deep_research.request_limits import (
+    REQUEST_LIMITS,
     REQUEST_LIMITS_VERSION,
     KindBudget,
     ModelPrices,
+    RequestLimits,
     kind_budgets,
 )
 from aia_core.domain.deep_research.sources import SourceTable
@@ -93,6 +95,10 @@ class DeepResearchConfig:
     #: them. Off, one step researches every track, as before. Recorded nowhere: a
     #: track's result, fingerprint and every artifact are the same either way.
     fan_out: bool = False
+    #: Each research kind's window and answer limit; ``None`` is the code's table
+    #: (``request_limits.REQUEST_LIMITS``). A run's own come from the settings it pinned,
+    #: through :meth:`under` (chunk 43c).
+    limits: Mapping[CallKind, RequestLimits] | None = None
     _budgets: dict[CallKind, KindBudget] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
@@ -108,8 +114,16 @@ class DeepResearchConfig:
                 context_window_tokens=self.context_window_tokens,
                 max_output_tokens=self.max_output_tokens,
                 thinking_budget_tokens=self.thinking_budget_tokens,
+                limits=REQUEST_LIMITS if self.limits is None else self.limits,
             ),
         )
+
+    def under(self, limits: Mapping[CallKind, RequestLimits] | None) -> DeepResearchConfig:
+        """This composition sized by ``limits`` (a run's pinned request limits); ``None``,
+        or the limits it already has, is this one."""
+        if limits is None or limits == (self.limits or REQUEST_LIMITS):
+            return self
+        return replace(self, limits=dict(limits))
 
     def budget(self, kind: CallKind) -> KindBudget:
         """What a request of ``kind`` may read, write and reserve in this composition."""
