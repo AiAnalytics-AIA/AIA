@@ -700,6 +700,10 @@ class RecordedSearch:
     calls: list[str] = field(default_factory=list)
     #: The language each ``search_in`` call asked for, in call order.
     languages: list[str] = field(default_factory=list)
+    #: Each ``search_in`` call's query and language, taken in one append, so a pair stays a
+    #: pair when an investigator's searches run in parallel (``calls`` and ``languages`` are
+    #: appended apart and their indexes need not align across threads).
+    requests: list[tuple[str, str]] = field(default_factory=list)
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -707,6 +711,7 @@ class RecordedSearch:
 
     def search_in(self, query: str, *, lang: str, max_results: int) -> SearchResponse:
         """A recorded exchange is keyed by its query alone; the language is recorded."""
+        self.requests.append((query, lang))
         self.languages.append(lang)
         return self.search(query, max_results=max_results)
 

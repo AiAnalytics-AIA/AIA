@@ -395,13 +395,15 @@ def test_up_to_five_actions_are_all_journaled_before_any_leaves(directed_run: Di
     outcomes = [e["payload"]["outcome"] for e in events]
     # Turn 1's three searches: three dispatches on record, then three outcomes.
     assert outcomes[:6] == [ToolOutcome.DISPATCHED.value] * 3 + [ToolOutcome.SUCCEEDED.value] * 3
-    # Each in its own language; the site search goes as an operator code wrote.
-    assert directed_run.search.calls[:3] == [
-        "trh rostlinných nápojů",
-        "plant-based drinks Czech market",
-        "spotřeba rostlinných nápojů site:stat-dr.example",
-    ]
-    assert directed_run.search.languages[:3] == ["cs", "en", "cs"]
+    # Each in its own language; the site search goes as an operator code wrote. The three
+    # leave in parallel, so the turn's requests are compared as a set, never by order.
+    assert sorted(directed_run.search.requests[:3]) == sorted(
+        [
+            ("trh rostlinných nápojů", "cs"),
+            ("plant-based drinks Czech market", "en"),
+            ("spotřeba rostlinných nápojů site:stat-dr.example", "cs"),
+        ]
+    )
     second = directed_run.agents.payload(Q1, 2)
     feedback = {a["query"]: a["feedback"] for a in second["last_turn"]}
     assert feedback["spotřeba rostlinných nápojů site:stat-dr.example"] == ["no_hits"]
