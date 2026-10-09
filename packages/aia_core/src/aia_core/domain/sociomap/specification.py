@@ -62,16 +62,19 @@ from .relations import AUDIT_PROVISIONAL_N_MIN
 from .terrain import TERRAIN66_OBJECT, TERRAIN66_RESPONDENT, TerrainParameters
 
 __all__ = [
+    "AIA_OBJECT_ENVELOPE",
     "AIA_SOCIOMAP_V1",
     "AIA_SOCIOMAP_V2",
     "AIA_SOCIOMAP_V3",
     "EFFECT_FLOOR_AIA_Q6",
     "FIXED_RULER_EXTENT",
+    "PROVISIONAL_ENVELOPE_SIGMA",
     "SPEC_CONTRACTS",
     "SPEC_CONTRACT_V3",
     "SPEC_CONTRACT_VERSION",
     "ConnectednessSpec",
     "DissimilarityTarget",
+    "KernelWidthBasis",
     "LayoutSpec",
     "MapFrameMethod",
     "MapFrameSpec",
@@ -79,6 +82,7 @@ __all__ = [
     "ObjectHeightMetric",
     "ObjectLayoutSpec",
     "ObjectScoresSpec",
+    "ObjectTerrainSpec",
     "PairEvidenceBasis",
     "PairEvidenceSpec",
     "PersonNormalization",
@@ -93,6 +97,7 @@ __all__ = [
     "ScaleNormalization",
     "SociomapSpec",
     "SociomapSpecV3",
+    "TerrainMethod",
     "TerrainSpec",
     "UnknownSpecContract",
     "UnsupportedMethodology",
@@ -328,9 +333,10 @@ class SociomapSpec(_Frozen):
 # (F2), the weighted correlation of what remains with its status (F3, F4), the objects
 # alone by SMACOF on the correlation distance on a fixed ruler (F6, F7), the PRIMARY
 # scores with UNKNOWN left out and the mean rating as height (F8), K100 with its interval
-# (F9). Respondent placement (chunk 3, F10's threshold open) and the envelope terrain
-# (chunk 4b, its kernel width open) have no member yet: a spec declares them ``None`` and
-# an artifact says they were not computed. Every field is required.
+# (F9). Respondent placement (chunk 3, F10's threshold open) has no member yet: a spec
+# declares it ``None`` and an artifact says it was not computed. The envelope terrain
+# (chunk 4b) is declared with its kernel width and the width's basis, or ``None`` (as
+# ``aia-sociomap-2`` was pinned). Every field is required.
 
 
 class ScaleNormalization(StrEnum):
@@ -419,6 +425,38 @@ class ObjectLayoutSpec(_Frozen):
         return _not_boolean(v)
 
 
+class TerrainMethod(StrEnum):
+    """How the object terrain is computed under contract 3 (audit F12, F13)."""
+
+    #: ``z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2)`` over the PRIMARY objects.
+    OBJECT_ENVELOPE = "object_envelope"
+
+
+class KernelWidthBasis(StrEnum):
+    """Where a terrain's kernel width comes from: the audit leaves it to its author (A5)."""
+
+    #: AIA's provisional width (2026-10-09), pending the audit's author: a hill falls below
+    #: 5 % of its height at the correlation distance of r = 0.8, sqrt(2 (1 - 0.8)), so two
+    #: objects less related than that never visibly raise each other's position.
+    AIA_PROVISIONAL_R08_5PCT = "aia_provisional_r08_5pct"
+
+
+class ObjectTerrainSpec(_Frozen):
+    """The object terrain (chunk 4b): the envelope, its kernel and grid on the fixed ruler."""
+
+    method: str
+    sigma: float
+    sigma_basis: str
+    grid_resolution: int
+    half_extent: float
+    kernel_cutoff: float
+
+    @field_validator("sigma", "grid_resolution", "half_extent", "kernel_cutoff", mode="before")
+    @classmethod
+    def _no_bool(cls, v: object) -> object:
+        return _not_boolean(v)
+
+
 class ObjectScoresSpec(_Frozen):
     height: str
 
@@ -438,9 +476,10 @@ class ConnectednessSpec(_Frozen):
 class SociomapSpecV3(_Frozen):
     """Every methodology decision behind one contract-3 Sociomap (the audit's object map).
 
-    ``respondent_placement`` and ``terrain`` are declared ``None``: no member is built
-    (chunks 3 and 4b wait on decisions the audit leaves to its author), and a value is
-    refused by :func:`require_supported` rather than ignored.
+    ``respondent_placement`` is declared ``None``: no member is built (chunk 3 waits on a
+    decision the audit leaves to its author), and a value is refused by
+    :func:`require_supported` rather than ignored. ``terrain`` is the object envelope
+    (chunk 4b) or ``None``, which computes no terrain.
     """
 
     methodology_version: str
@@ -450,7 +489,7 @@ class SociomapSpecV3(_Frozen):
     scores: ObjectScoresSpec
     connectedness: ConnectednessSpec
     respondent_placement: str | None
-    terrain: str | None
+    terrain: ObjectTerrainSpec | None
 
     @field_validator("methodology_version")
     @classmethod
@@ -536,12 +575,37 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
             "misfit threshold is open (plan § 4a, 0b); declare null"
         )
     if spec.terrain is not None:
-        problems["terrain"] = (
-            "the envelope terrain is chunk 4b's (F12, F13) and is not built: its kernel width "
-            "on the fixed ruler is open (0b); declare null"
-        )
+        problems.update(_terrain_problems(spec.terrain))
     if problems:
         raise UnsupportedMethodology(problems)
+
+
+#: The largest grid a terrain may declare: (N + 1)^2 cells are stored in the artifact.
+_MAX_TERRAIN_GRID: Final = 256
+
+
+def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
+    problems: dict[str, str] = {}
+    if not _member(TerrainMethod, terrain.method):
+        problems["terrain.method"] = f"unknown terrain method {terrain.method!r}"
+    if not _member(KernelWidthBasis, terrain.sigma_basis):
+        problems["terrain.sigma_basis"] = f"unknown kernel width basis {terrain.sigma_basis!r}"
+    if not (math.isfinite(terrain.sigma) and terrain.sigma > 0.0):
+        problems["terrain.sigma"] = f"sigma must be positive and finite; got {terrain.sigma!r}"
+    if not 1 <= terrain.grid_resolution <= _MAX_TERRAIN_GRID:
+        problems["terrain.grid_resolution"] = (
+            f"grid_resolution must lie in 1..{_MAX_TERRAIN_GRID}; got {terrain.grid_resolution}"
+        )
+    if not (math.isfinite(terrain.half_extent) and terrain.half_extent >= FIXED_RULER_EXTENT):
+        problems["terrain.half_extent"] = (
+            f"the terrain must cover the fixed ruler, half_extent >= {FIXED_RULER_EXTENT}; "
+            f"got {terrain.half_extent!r}"
+        )
+    if not (math.isfinite(terrain.kernel_cutoff) and 0.0 < terrain.kernel_cutoff < 1.0):
+        problems["terrain.kernel_cutoff"] = (
+            f"kernel_cutoff must lie strictly between 0 and 1; got {terrain.kernel_cutoff!r}"
+        )
+    return problems
 
 
 class UnknownSpecContract(ValueError):
@@ -792,6 +856,21 @@ AIA_SOCIOMAP_V2 = SociomapSpecV3(
 )
 
 
+#: The provisional kernel width of :data:`KernelWidthBasis.AIA_PROVISIONAL_R08_5PCT`:
+#: ``sqrt(0.4) / sqrt(2 ln 20)`` is 0.258, rounded down to 0.25 so the 5 % is kept.
+PROVISIONAL_ENVELOPE_SIGMA: Final = 0.25
+
+#: The object terrain of ``aia-sociomap-3``: the envelope on a 65 x 65 grid covering the
+#: fixed ruler and three kernel widths beyond it, with the unit's cutoff (``terrain66``).
+AIA_OBJECT_ENVELOPE = ObjectTerrainSpec(
+    method=TerrainMethod.OBJECT_ENVELOPE,  # audit F12, F13
+    sigma=PROVISIONAL_ENVELOPE_SIGMA,  # AIA provisional (A5 open)
+    sigma_basis=KernelWidthBasis.AIA_PROVISIONAL_R08_5PCT,
+    grid_resolution=64,  # AIA declaration
+    half_extent=FIXED_RULER_EXTENT + 3 * PROVISIONAL_ENVELOPE_SIGMA,  # AIA declaration
+    kernel_cutoff=0.0005,  # the unit's terrain66 cutoff
+)
+
 #: Q6's practical floor on ``|r|``, AIA's decision of 2026-10-09 (the audit leaves it open;
 #: its author may replace it). Below it a RELIABLE relation is precisely small, not strong.
 EFFECT_FLOOR_AIA_Q6: Final = 0.10
@@ -809,5 +888,6 @@ AIA_SOCIOMAP_V3 = AIA_SOCIOMAP_V2.model_copy(
                 "effect_floor": EFFECT_FLOOR_AIA_Q6,  # AIA Q6 (b)
             }
         ),
+        "terrain": AIA_OBJECT_ENVELOPE,  # chunk 4b, audit F12 with AIA's provisional sigma
     }
 )

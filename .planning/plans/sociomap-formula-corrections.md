@@ -13,7 +13,7 @@ chunks:
   - "[ ] 2d. Spec v3 and the preset aia-sociomap-2; aia-sociomap-1 kept as the comparison alternative; artifact v3; the research step adapter"
   - "[ ] 3. Stage 3 -- the common 0-1 scale (F1); ideal-point placement against the object map, per-respondent misfit e_k and its flag (F10)"
   - "[x] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
-  - "[ ] 4b. Stage 4 -- terrain as the max-envelope of hills, one formula for every surface (F12, F13)"
+  - "[x] 4b. Stage 4 -- terrain as the max-envelope of hills, one formula for every surface (F12, F13)"
   - "[ ] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16)"
   - "[ ] 4d. Stage 4 -- region tests: positioning variables excluded, Holm, Cohen's d and h ranking (F14, F15), with sociomapping-engine chunk 8"
   - "[ ] 5. Results and the report: the Stress-1 label, arrows for RELIABLE pairs only, sign as colour, the not-placed count; the client gate unchanged (OI-17)"
@@ -994,6 +994,38 @@ the default-pin assertions in `test_sociomap_methods.py`, `test_sociomap_object_
 `apps/executors/tests/test_sociomap_frozen_methods.py` and `test_sociomap_acceptance.py` now
 name `aia-sociomap-3`. The acceptance's numbers hold unchanged under it (its fictional
 weights are equal, so Kish's n is the count).
+
+### Chunk 4b -- the envelope terrain (F12, F13), 2026-10-09
+
+`terrain.py`: `object_envelope`, `envelope_at`, `EnvelopeParameters`, `EnvelopeHill`,
+`EnvelopeTerrain` -- z(q) = max_j h_j exp(-d^2 / 2 sigma^2) over the PRIMARY objects' hills,
+each exactly its F8 height; a cell no hill's kernel reaches (the unit's cutoff 0.0005) is
+`None`, not 0; each cell names the hill that sets it. `specification.py`: `TerrainMethod`,
+`KernelWidthBasis`, `ObjectTerrainSpec` (refused by name: unknown method or basis, sigma, a
+grid outside 1..256, an extent that does not cover the ruler, a cutoff outside (0, 1));
+`AIA_OBJECT_ENVELOPE` in `aia-sociomap-3` (`e16dc0d0…`), whose terrain was `None` before this
+commit and was never on `develop`. `aia-sociomap-2` keeps `terrain: null` and its stored
+reason. A SECONDARY object raises no hill (F8); a NOT_MAPPABLE family's terrain says why.
+
+**The provisional kernel width** (A5 is the audit author's; decided provisional for AIA on
+2026-10-09): sigma = 0.25 on the fixed ruler, `KernelWidthBasis.AIA_PROVISIONAL_R08_5PCT` --
+a hill falls below 5 % of its height at the correlation distance of r = 0.8 (sqrt(0.4) /
+sqrt(2 ln 20) = 0.258, rounded down), and stays above 5 % at r = 0.9, so strongly related
+objects share a ridge and less related ones never visibly raise each other. Grid 64 (65 x 65
+cells) over +-2.75, the ruler plus three widths. The respondent-density kernel waits for
+chunk 3, which places respondents.
+
+Measured on 1,500 fictional respondents x 6 objects: the map 40 ms under `aia-sociomap-2`, 57
+ms under `aia-sociomap-3`; its stored payload 21.6 KB and 90.5 KB (+69 KB per mapped battery,
+the two 65 x 65 grids). Nothing reads the terrain yet; Results and the report draw it in
+chunk 5.
+
+Tests: `packages/aia_core/tests/test_sociomap_envelope.py` (15): F12 (a high neighbour does
+not pull a low object), F13 (a cluster peaks at one hill, never their sum; a scan that the
+report, API, executors and web client evaluate no kernel), the width's definition, the
+calibration on planted fictional tastes, the engine's envelope and its refusals. The
+register's AUDIT-F12 and AUDIT-F13 name the implementation and these tests; F12 stays
+`PENDING_PARAMETER` with A5 open.
 
 ### Slice S6 -- the recorded acceptance (I5, in part), 2026-10-08
 

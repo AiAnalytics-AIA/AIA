@@ -9,8 +9,9 @@ respondents' weights, and the family being mapped with each object's role.
 Beside the contract-2 artifact (:class:`~.models.SociomapArtifact`), never instead of it:
 a stored contract-2 payload is read exactly as before, and :func:`read_artifact` reads each
 payload under the contract it names. What contract 3 does not compute yet -- respondent
-placement (chunk 3) and the terrain (chunk 4b) -- is a :class:`NotComputed` block with its
-reason, never an empty list a reader could take for "nobody" or "flat".
+placement (chunk 3), and the terrain where the spec declares none or nothing is mapped -- is a
+:class:`NotComputed` block with its reason, never an empty list a reader could take for
+"nobody" or "flat".
 
 Pure: stdlib and Pydantic only.
 """
@@ -29,6 +30,7 @@ from .metrics import ObjectRole
 from .models import ArtifactIntegrityError, SociomapArtifact
 from .pairs import PairRelations
 from .specification import SociomapSpecV3
+from .terrain import EnvelopeTerrain
 
 __all__ = [
     "ARTIFACT_CONTRACT_V3",
@@ -308,7 +310,7 @@ class SociomapArtifactV3(_Frozen):
     connectedness_100: dict[str, Any]
     support: ObjectMapSupport
     respondents: NotComputed
-    terrain: NotComputed
+    terrain: NotComputed | EnvelopeTerrain
     provenance: ObjectMapProvenance
 
     @model_validator(mode="after")
@@ -335,6 +337,11 @@ class SociomapArtifactV3(_Frozen):
             raise ValueError(f"unknown outcome {self.outcome!r}")
         if len(self.heights.values) != m or len(self.heights.support_n) != m:
             raise ValueError("heights must align with the mapped objects")
+        if isinstance(self.terrain, EnvelopeTerrain):
+            if self.layout is None:
+                raise ValueError("a terrain stands on a layout; a NOT_MAPPABLE map has none")
+            if set(self.terrain.source_ids) - set(self.object_ids):
+                raise ValueError("the terrain's hills must be mapped objects")
         if (
             self.support.respondents != len(self.respondent_ids)
             or self.support.not_placed != len(self.not_placed)

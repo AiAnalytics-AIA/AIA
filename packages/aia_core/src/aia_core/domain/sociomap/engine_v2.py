@@ -13,12 +13,13 @@ Plan ``sociomap-formula-corrections`` § 8.2, S2. One pure function from
     F7   SMACOF from a Torgerson start; Stress-1 and its band; never rescaled
     F8   PRIMARY alignment and connectedness, UNKNOWN left out; the mean rating as height
     F9   K100 with its respondent-bootstrap interval, when the caller asks for it
+    F12  the envelope terrain over the PRIMARY hills, when the spec declares one (4b)
 
 Every step is a function another chunk already landed and tested (2a ``person_minmax``,
 1a ``derive_pair_relations``, 2b ``fit_smacof_objects``, 2c ``stress_quality``, 1b
 ``primary_scores``, 4a ``connectedness_100``); this module composes them and records what
-it composed. Respondent placement (chunk 3) and the terrain (chunk 4b) are not computed and
-the artifact says so. A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE`
+it composed. Respondent placement (chunk 3) is not computed and the artifact says so; so is
+the terrain where the spec declares none (``aia-sociomap-2``) or the family is not mapped. A family the data cannot map is :data:`~.models_v3.MapOutcome.NOT_MAPPABLE`
 with its reason, never an exception and never a picture.
 
 ``connectedness_interval`` is the deployment's kill switch for F9's bootstrap
@@ -35,7 +36,7 @@ from collections.abc import Sequence
 from typing import Any, Final
 
 from .layout import UnfoldingDesignError, correlation_distances, fit_smacof_objects
-from .metrics import connectedness_100, primary_scores, rank_with_ties
+from .metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ties
 from .models_v3 import (
     OBJECT_MAP_IMPLEMENTATION,
     OBJECT_MAP_IMPLEMENTATION_VERSION,
@@ -58,6 +59,7 @@ from .specification import (
     SociomapSpecV3,
     require_supported,
 )
+from .terrain import EnvelopeHill, EnvelopeParameters, EnvelopeTerrain, object_envelope
 from .view import stress_quality
 
 __all__ = [
@@ -65,6 +67,7 @@ __all__ = [
     "NOT_PLACED_NO_SPREAD",
     "RESPONDENTS_NOT_COMPUTED",
     "TERRAIN_NOT_COMPUTED",
+    "TERRAIN_NOT_MAPPED",
     "WEIGHTING",
     "WEIGHTING_KISH",
     "compute_object_map",
@@ -89,6 +92,11 @@ TERRAIN_NOT_COMPUTED: Final = NotComputed(
         "the envelope terrain is chunk 4b (audit F12, F13); its kernel width on the fixed "
         "ruler is open (0b)"
     ),
+)
+#: Why a declared terrain was not computed: nothing to stand the hills on.
+TERRAIN_NOT_MAPPED: Final = NotComputed(
+    status="not_computed",
+    reason="the objects are not mappable, so there is no layout to stand the hills on",
 )
 #: How the weights enter the map, recorded on every artifact (plan § 8.2, I3).
 WEIGHTING: Final = (
@@ -169,6 +177,38 @@ def _heights(
         metric=ObjectHeightMetric.MEAN_RATING_0_1.value,
         values=tuple(values),
         support_n=tuple(support),
+    )
+
+
+def _terrain(
+    spec: SociomapSpecV3,
+    layout: ObjectMapLayout | None,
+    heights: ObjectHeights,
+    inputs: ObjectMapInputs,
+) -> NotComputed | EnvelopeTerrain:
+    """F12's envelope over the PRIMARY objects' hills, each exactly its F8 height.
+
+    A SECONDARY object raises no hill (F8: context objects never enter terrain), and an
+    object nobody rated has no height and so no hill -- not a hill of 0.
+    """
+    declared = spec.terrain
+    if declared is None:
+        return TERRAIN_NOT_COMPUTED
+    if layout is None:
+        return TERRAIN_NOT_MAPPED
+    hills = [
+        EnvelopeHill(entity_id=oid, x=point[0], y=point[1], height=h)
+        for oid, point, h in zip(inputs.object_ids, layout.points, heights.values, strict=True)
+        if h is not None and inputs.roles[oid] == ObjectRole.PRIMARY.value
+    ]
+    return object_envelope(
+        hills,
+        EnvelopeParameters(
+            grid_resolution=declared.grid_resolution,
+            half_extent=declared.half_extent,
+            sigma=declared.sigma,
+            kernel_cutoff=declared.kernel_cutoff,
+        ),
     )
 
 
@@ -277,6 +317,7 @@ def compute_object_map(
             )
 
     scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles)
+    heights = _heights(scaled, weights, columns)
 
     connectedness: dict[str, Any] = dict(CONNECTEDNESS_OFF)
     if connectedness_interval:
@@ -327,7 +368,7 @@ def compute_object_map(
         not_mappable=not_mappable,
         layout=layout,
         scores=scores.to_payload(),
-        heights=_heights(scaled, weights, columns),
+        heights=heights,
         connectedness_100=connectedness,
         support=_support(
             inputs,
@@ -335,7 +376,7 @@ def compute_object_map(
             WEIGHTING_KISH if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N else WEIGHTING,
         ),
         respondents=RESPONDENTS_NOT_COMPUTED,
-        terrain=TERRAIN_NOT_COMPUTED,
+        terrain=_terrain(spec, layout, heights, inputs),
         provenance=ObjectMapProvenance(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,

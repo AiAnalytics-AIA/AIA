@@ -27,6 +27,7 @@ from aia_core.domain.research_sociomap import (
     research_sociomaps,
 )
 from aia_core.domain.sociomap import (
+    AIA_OBJECT_ENVELOPE,
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
     AIA_SOCIOMAP_V3,
@@ -125,7 +126,14 @@ def _v2_with(**update: Any) -> SociomapSpecV3:
     ("spec", "field"),
     [
         (_v2_with(respondent_placement="aia_ideal_point_v1"), "respondent_placement"),
-        (_v2_with(terrain="object_envelope"), "terrain"),
+        (
+            _v2_with(terrain=AIA_OBJECT_ENVELOPE.model_copy(update={"method": "sum_of_hills"})),
+            "terrain.method",
+        ),
+        (
+            _v2_with(terrain=AIA_OBJECT_ENVELOPE.model_copy(update={"half_extent": 1.0})),
+            "terrain.half_extent",
+        ),
         (
             _v2_with(
                 layout=AIA_SOCIOMAP_V2.layout.model_copy(

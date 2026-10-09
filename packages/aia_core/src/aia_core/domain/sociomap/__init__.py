@@ -55,10 +55,12 @@ from .models_v3 import (
     read_artifact,
 )
 from .specification import (
+    AIA_OBJECT_ENVELOPE,
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
     AIA_SOCIOMAP_V3,
     EFFECT_FLOOR_AIA_Q6,
+    PROVISIONAL_ENVELOPE_SIGMA,
     SPEC_CONTRACT_V3,
     SPEC_CONTRACT_VERSION,
     LayoutSpec,
@@ -96,6 +98,7 @@ from .view import (
 )
 
 __all__ = [
+    "AIA_OBJECT_ENVELOPE",
     "AIA_SOCIOMAP_V1",
     "AIA_SOCIOMAP_V2",
     "AIA_SOCIOMAP_V3",
@@ -105,6 +108,7 @@ __all__ = [
     "ENGINE_IMPLEMENTATION",
     "ENGINE_IMPLEMENTATION_VERSION",
     "LAYOUT_ALGORITHMS",
+    "PROVISIONAL_ENVELOPE_SIGMA",
     "SPEC_CONTRACT_V3",
     "SPEC_CONTRACT_VERSION",
     "TERRAIN66_OBJECT",

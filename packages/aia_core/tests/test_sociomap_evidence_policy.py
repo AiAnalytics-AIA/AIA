@@ -214,7 +214,8 @@ def test_aia_sociomap_3_is_aia_sociomap_2_under_the_q5_to_q7_decisions() -> None
     assert v3.relation.effect_floor == EFFECT_FLOOR_AIA_Q6 == 0.10
     assert v3.relation.n_min == 30
     assert v3.scores.height == ObjectHeightMetric.MEAN_RATING_0_1  # Q7 (a) as the default
-    same = {"ratings", "layout", "scores", "connectedness", "respondent_placement", "terrain"}
+    same = {"ratings", "layout", "scores", "connectedness", "respondent_placement"}
+    assert v3.terrain is not None and AIA_SOCIOMAP_V2.terrain is None  # chunk 4b's envelope
     for name in same:
         assert getattr(v3, name) == getattr(AIA_SOCIOMAP_V2, name), name
     require_supported(v3)
