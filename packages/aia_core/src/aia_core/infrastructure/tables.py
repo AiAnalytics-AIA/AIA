@@ -784,6 +784,8 @@ class ClientKnowledgeProposalRow(Base):
     study_id: Mapped[str | None] = mapped_column(String(64))
     # Set when the proposal revises an existing item; null for a new one.
     item_id: Mapped[str | None] = mapped_column(String(64))
+    # Exact approved item revision this edit was prepared against; unknown for legacy edits.
+    base_revision: Mapped[int | None] = mapped_column(Integer)
     kind: Mapped[str] = mapped_column(String(32), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
@@ -805,6 +807,7 @@ class ClientKnowledgeProposalRow(Base):
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["item_id"], ["client_knowledge_items.item_id"], ondelete="CASCADE"),
         CheckConstraint(f"kind in {_KINDS_SQL}", name="knowledge_proposal_kind_known"),
+        CheckConstraint("base_revision >= 1", name="knowledge_proposal_base_revision_positive"),
         CheckConstraint(
             "status in ('PROPOSED','APPROVED','REJECTED')", name="knowledge_proposal_status_known"
         ),

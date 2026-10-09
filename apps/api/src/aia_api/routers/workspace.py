@@ -24,6 +24,7 @@ from uuid import uuid4
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
+    KnowledgeConflict,
     KnowledgeItem,
     KnowledgeKind,
     KnowledgeProposal,
@@ -196,6 +197,7 @@ class ProposalResponse(BaseModel):
     study_id: str | None
     study_name: str | None = None
     item_id: str | None
+    base_revision: int | None = None
     kind: str
     title: str
     summary: str
@@ -392,6 +394,7 @@ class ProposalCreate(BaseModel):
     summary: str = Field(default="", max_length=10_000)
     content: dict[str, Any] = Field(default_factory=dict)
     item_id: str | None = Field(default=None, max_length=64)
+    base_revision: int | None = Field(default=None, ge=1)
 
 
 class DecisionRequest(BaseModel):
@@ -489,6 +492,7 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         study_id=p.study_id,
         study_name=names.get(p.study_id) if p.study_id else None,
         item_id=p.item_id,
+        base_revision=p.base_revision,
         kind=p.kind.value,
         title=p.title,
         summary=p.summary,
@@ -730,6 +734,20 @@ def client_overview(
 # --------------------------------------------------------------------------- #
 
 
+def _knowledge_conflict(exc: KnowledgeConflict) -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": exc.reason,
+            "message": str(exc),
+            "details": {
+                "expected_revision": exc.expected_revision,
+                "current_revision": exc.current_revision,
+            },
+        },
+    )
+
+
 def _knowledge_scope(principal: Any, resolver: Any, client_id: str) -> ClientContext:
     scope = _client_scope(principal, resolver, client_id)
     if not scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
@@ -841,7 +859,10 @@ def propose_knowledge(
             summary=body.summary,
             content=body.content,
             item_id=body.item_id,
+            base_revision=body.base_revision,
         )
+    except KnowledgeConflict as exc:
+        raise _knowledge_conflict(exc) from exc
     except ScopeDenied as exc:
         if exc.reason == "unknown_item":
             raise _not_found() from exc
@@ -878,6 +899,8 @@ def decide_knowledge(
         raise _forbidden(
             exc.reason, "Someone other than the proposer must decide this update."
         ) from exc
+    except KnowledgeConflict as exc:
+        raise _knowledge_conflict(exc) from exc
     except ScopeDenied as exc:
         if exc.reason in ("unknown_proposal", "unknown_item"):
             raise _not_found() from exc
@@ -1229,7 +1252,10 @@ def propose_from_study(
             summary=body.summary,
             content=body.content,
             item_id=body.item_id,
+            base_revision=body.base_revision,
         )
+    except KnowledgeConflict as exc:
+        raise _knowledge_conflict(exc) from exc
     except ScopeDenied as exc:
         if exc.reason == "unknown_item":
             raise _not_found() from exc

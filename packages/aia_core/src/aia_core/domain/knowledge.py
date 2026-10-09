@@ -35,6 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "KNOWLEDGE_SECTIONS",
+    "KnowledgeConflict",
     "KnowledgeItem",
     "KnowledgeKind",
     "KnowledgeLayer",
@@ -126,6 +127,18 @@ class KnowledgeItem(BaseModel):
     modified_at: datetime | None = None
 
 
+class KnowledgeConflict(Exception):
+    """An edit no longer refers to the item's current approved revision."""
+
+    def __init__(self, *, expected_revision: int | None, current_revision: int) -> None:
+        self.expected_revision = expected_revision
+        self.current_revision = current_revision
+        self.reason = "missing_base_revision" if expected_revision is None else "stale_revision"
+        super().__init__(
+            "Knowledge changed; review the current revision and propose the edit again."
+        )
+
+
 class KnowledgeRevision(BaseModel):
     """An approved revision: append-only, with where it came from and who approved it."""
 
@@ -153,6 +166,7 @@ class KnowledgeProposal(BaseModel):
     origin: ProposalOrigin
     study_id: str | None = None
     item_id: str | None = None
+    base_revision: int | None = Field(default=None, ge=1)
     kind: KnowledgeKind
     title: str
     summary: str = ""
