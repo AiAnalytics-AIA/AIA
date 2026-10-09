@@ -180,3 +180,35 @@ def test_with_brave_unset_the_develop_host_composes_as_before(
     assert worker["AIA_DEEP_RESEARCH_WEB_SEARCH"] == "" and web_search(worker) == "off"
     api = _api_settings(_container("api", HOST_ENV), monkeypatch)
     assert (api.deep_research_web_search, api.deep_research_brave_usd_per_1000) == ("", None)
+
+
+def test_common_crawl_composes_from_the_hosts_env_file_and_the_api_prices_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Chunk 23e: every Common Crawl key reaches the worker; the switch and the four price keys
+    reach the API, which prices the index query as the worker reserves it."""
+    from aia_executors.deep_research_runtime import deep_research_runtime
+
+    crawl_env = {
+        **{k: v for k, v in BRAVE_ENV.items() if "BRAVE" not in k},
+        "AIA_DEEP_RESEARCH_WEB_SEARCH": "wikipedia",
+        "AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL": "true",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_WORKGROUP": "aia-ccindex",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_DATABASE": "ccindex",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_TABLE": "ccindex",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_MAX_SCAN_BYTES": "1000000000",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_USD_PER_TB_SCANNED": "5",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_MIN_BILLED_BYTES": "10485760",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_BILLING_INCREMENT_BYTES": "1048576",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_PRICES_AS_OF": "2026-10-09",
+        "AIA_DEEP_RESEARCH_COMMON_CRAWL_CRAWLS": "CC-MAIN-2026-35",
+    }
+    worker = _container("worker", crawl_env)
+    runtime = deep_research_runtime(AIRuntimeSettings.from_env(worker), env=worker)
+    assert runtime is not None and runtime.archive is not None
+    api = _api_settings(_container("api", crawl_env), monkeypatch)
+    assert api.deep_research_common_crawl is True
+    assert api.deep_research_common_crawl_max_scan_bytes == 1_000_000_000
+    for service in ("api", "web"):
+        assert "AIA_DEEP_RESEARCH_COMMON_CRAWL_WORKGROUP" not in _container(service, crawl_env)

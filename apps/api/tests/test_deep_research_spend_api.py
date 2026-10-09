@@ -299,3 +299,38 @@ def test_brave_search_is_priced_from_its_dated_key_and_unknown_without_it(
     wikipedia = settings.model_copy(update={"deep_research_web_search": "wikipedia"})
     assert deep_research_prices(wikipedia).paid_routes() == ()
     assert deep_research_prices(wikipedia)[CallKind.SEARCH].usd == 0.0
+
+
+def test_a_common_crawl_index_query_is_priced_at_its_cutoff_and_unknown_without_a_key(
+    settings: Settings,
+) -> None:
+    """Chunk 23e: the ceiling prices each index query as the worker reserves it, the scan
+    cutoff billed in whole MB; a key missing (or a cutoff the worker refuses) is unknown,
+    never free; the archive is free; and the priced index is what a start asks the sign-off
+    for (chunk 44)."""
+    from aia_core.domain.deep_research.budgets import CallKind
+
+    from aia_api.routers.deep_research import deep_research_prices
+
+    crawl = settings.model_copy(
+        update={
+            "deep_research_wikipedia_enabled": True,
+            "deep_research_common_crawl": True,
+            "deep_research_common_crawl_max_scan_bytes": 1_000_000_000,
+            "deep_research_common_crawl_usd_per_tb_scanned": 5.0,
+            "deep_research_common_crawl_min_billed_bytes": 10_485_760,
+            "deep_research_common_crawl_billing_increment_bytes": 1_048_576,
+        }
+    )
+    index = deep_research_prices(crawl)[CallKind.URL_INDEX_QUERY]
+    assert (index.state, index.usd) == ("priced", pytest.approx(954 * 1_048_576 * 5 / 1e12))
+    assert deep_research_prices(crawl)[CallKind.ARCHIVE_FETCH].usd == 0.0
+    assert deep_research_prices(crawl).paid_routes() == (CallKind.URL_INDEX_QUERY,)
+    for missing in (
+        {"deep_research_common_crawl_usd_per_tb_scanned": None},
+        {"deep_research_common_crawl_max_scan_bytes": 5_000},
+    ):
+        priced = deep_research_prices(crawl.model_copy(update=missing))
+        assert priced[CallKind.URL_INDEX_QUERY].state == "unknown"
+    alone = crawl.model_copy(update={"deep_research_wikipedia_enabled": False})
+    assert deep_research_prices(alone)[CallKind.URL_INDEX_QUERY].state == "off"
