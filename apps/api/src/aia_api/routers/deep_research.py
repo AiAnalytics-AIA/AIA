@@ -46,6 +46,7 @@ from aia_core.application.deep_research import (
 from aia_core.application.design_research import DesignResearchProposals
 from aia_core.application.research import CostCeilingUnknown, CostConfirmationRequired
 from aia_core.domain.deep_research.budgets import CallKind, ResearchMode
+from aia_core.domain.deep_research.common_crawl import AthenaPricing
 from aia_core.domain.deep_research.contracts import Channel
 from aia_core.domain.deep_research.integration import (
     LEGACY_UNVERSIONED,
@@ -65,6 +66,7 @@ from aia_core.domain.deep_research.settings import request_limits
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
+from aia_core.infrastructure.common_crawl import MIN_SCAN_CUTOFF_BYTES
 from aia_core.infrastructure.deep_research_settings_repository import (
     settings_in_force_for_study,
 )
@@ -249,9 +251,9 @@ def deep_research_prices(
     public Wikipedia search, its pages or any public host's, and the listed public dataset
     connectors cost nothing; Brave's search costs its dated price per request (unset:
     unknown, never zero), and a paid route needs the organization's sign-off (chunk 44);
-    off, nothing is searched. Triage, the focused crawl and Common Crawl are composed by
-    no deployment yet (chunk 23 wires them with their dated prices), so nothing is sent
-    on them.
+    off, nothing is searched. Common Crawl's index query reserves its scan cutoff, billed
+    (unknown without every price key), and its archived pages are free. Triage and the
+    focused crawl are composed by no deployment yet, so nothing is sent on them.
     """
     budgets = deep_research_budgets(settings, limits)
     model = {
@@ -268,6 +270,8 @@ def deep_research_prices(
     else:
         search = free if route == "wikipedia" else off
     searching = route != "off"
+    # The worker composes Common Crawl only beside a search route and the public fetch.
+    crawling = searching and settings.deep_research_common_crawl
     return DeepResearchPrices(
         {
             **model,
@@ -278,10 +282,32 @@ def deep_research_prices(
             CallKind.CONNECTOR: (
                 free if searching and settings.deep_research_connectors.strip() else off
             ),
-            CallKind.URL_INDEX_QUERY: off,
-            CallKind.ARCHIVE_FETCH: off,
+            CallKind.URL_INDEX_QUERY: _index_price(settings) if crawling else off,
+            CallKind.ARCHIVE_FETCH: free if crawling else off,
         }
     )
+
+
+def _index_price(settings: Settings) -> RoutePrice:
+    """A Common Crawl index query's reservation: its scan cutoff, billed; unknown without
+    every price key, and unknown for a value the worker would refuse."""
+    cutoff = settings.deep_research_common_crawl_max_scan_bytes
+    per_tb = settings.deep_research_common_crawl_usd_per_tb_scanned
+    minimum = settings.deep_research_common_crawl_min_billed_bytes
+    increment = settings.deep_research_common_crawl_billing_increment_bytes
+    if cutoff is None or per_tb is None or minimum is None or increment is None:
+        return RoutePrice.unknown()
+    if cutoff < MIN_SCAN_CUTOFF_BYTES:  # the worker refuses it: no route, no price
+        return RoutePrice.unknown()
+    try:
+        pricing = AthenaPricing(
+            usd_per_tb_scanned=per_tb,
+            minimum_billed_bytes=minimum,
+            billing_increment_bytes=increment,
+        )
+        return RoutePrice.athena(pricing, cutoff)
+    except ValueError:
+        return RoutePrice.unknown()
 
 
 def deep_research_search_route(settings: Settings) -> str:

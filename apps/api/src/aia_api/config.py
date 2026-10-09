@@ -127,6 +127,14 @@ class Settings(BaseSettings):
     # request from ``AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000`` (unset: unknown, never free).
     deep_research_web_search: Literal["", "off", "wikipedia", "brave"] = ""
     deep_research_brave_usd_per_1000: float | None = None
+    # Common Crawl (``AIA_DEEP_RESEARCH_COMMON_CRAWL``, chunk 23e): each URL index query reserves
+    # the workgroup's scan cutoff, billed at the dated Athena price, as the worker composes it.
+    # Any key missing: the index's price is unknown, never free. Archived pages are fee-free.
+    deep_research_common_crawl: bool = False
+    deep_research_common_crawl_max_scan_bytes: int | None = None
+    deep_research_common_crawl_usd_per_tb_scanned: float | None = None
+    deep_research_common_crawl_min_billed_bytes: int | None = None
+    deep_research_common_crawl_billing_increment_bytes: int | None = None
     # The public dataset connectors the worker composes (``AIA_DEEP_RESEARCH_CONNECTORS``,
     # chunk 23b): fee-free, so stated free when listed rather than off. The worker checks
     # the names; here only whether any is listed matters to the ceiling.
@@ -160,6 +168,10 @@ class Settings(BaseSettings):
         "ai_research_max_output_tokens",
         "deep_research_thinking_budget_tokens",
         "deep_research_brave_usd_per_1000",
+        "deep_research_common_crawl_max_scan_bytes",
+        "deep_research_common_crawl_usd_per_tb_scanned",
+        "deep_research_common_crawl_min_billed_bytes",
+        "deep_research_common_crawl_billing_increment_bytes",
         mode="before",
     )
     @classmethod

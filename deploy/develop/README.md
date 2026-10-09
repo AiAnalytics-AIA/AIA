@@ -357,6 +357,26 @@ To switch it off, set `aia_deep_research_web_search` to `wikipedia` or `off` and
 redeploy; a run already planned on Brave then stops with `composition_changed` rather
 than continuing on another route.
 
+### Deep Research on Common Crawl
+
+Common Crawl's URL index runs through Amazon Athena in **`us-east-1`**, outside the EU, and its
+archived pages come from `data.commoncrawl.org`; both carry Class C only, and the index query is
+priced (its scan cutoff, reserved against the study) and so needs the organization's approvals on
+**Nastavení → Deep Research**. The `us-east-1` exception is the owner's residency decision, and the
+AWS side is an operator's: the results bucket, the workgroup with an enforced
+`BytesScannedCutoffPerQuery`, the `ccindex` table and the instance role's grants
+([`docs/architecture/deep-research-common-crawl.md`](../../docs/architecture/deep-research-common-crawl.md)
+§ Human actions). Then create, under `/aia/develop/`, beside a search route and
+`aia_deep_research_public_fetch_contact`:
+
+| Parameter | Value |
+|---|---|
+| `aia_deep_research_common_crawl` | `true` |
+| `aia_deep_research_common_crawl_workgroup`, `_database`, `_table` | the workgroup and the `ccindex` table |
+| `aia_deep_research_common_crawl_max_scan_bytes` | the workgroup's enforced cutoff, at least `10000000` |
+| `aia_deep_research_common_crawl_usd_per_tb_scanned`, `_min_billed_bytes`, `_billing_increment_bytes`, `_prices_as_of` | Athena's dated price |
+| `aia_deep_research_common_crawl_crawls` | 1 to 6 crawl ids, `CC-MAIN-YYYY-WW`, comma-separated |
+
 ## Seed / reset
 
 ```bash

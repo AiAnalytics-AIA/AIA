@@ -24,6 +24,19 @@ AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000    Brave's price per 1,000 requests, in USD
                                         (divided by 1,000) and is charged
 AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF    the date that price was read (YYYY-MM-DD),
                                         not in the future
+AIA_DEEP_RESEARCH_COMMON_CRAWL          ``true`` composes Common Crawl (plan chunk 23e):
+                                        the URL index through Athena in us-east-1,
+                                        priced at the workgroup's scan cutoff, and
+                                        archived pages by byte range; outside the EU,
+                                        Class C only, and the index needs its
+                                        organization's sign-off. Needs a search route,
+                                        the public fetch's contact and every key below
+AIA_DEEP_RESEARCH_COMMON_CRAWL_*        WORKGROUP, DATABASE, TABLE, MAX_SCAN_BYTES (the
+                                        workgroup's enforced cutoff), USD_PER_TB_SCANNED,
+                                        MIN_BILLED_BYTES, BILLING_INCREMENT_BYTES,
+                                        PRICES_AS_OF, and CRAWLS (comma-separated
+                                        CC-MAIN-YYYY-WW ids the ladder's archive rung
+                                        asks). Every one required; none has a default
 AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS
                                         optional; unset or empty, the agents do not
                                         think. An integer >= 1024 and below
@@ -107,15 +120,18 @@ from __future__ import annotations
 
 import dataclasses
 import os
+import re
 from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from typing import Final
 
 from aia_core.application.acquisition_ladder import LadderConfig
 from aia_core.domain.ai_contracts import THINKING_MIN_BUDGET_TOKENS
+from aia_core.domain.deep_research.common_crawl import MAX_CRAWLS_PER_QUERY
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
 from aia_core.domain.providers import Provider
+from aia_core.infrastructure.common_crawl import CommonCrawlSettings, common_crawl_settings
 from aia_core.infrastructure.db import create_app_engine, create_session_factory, is_sqlite
 from aia_core.infrastructure.fan_out_coordination import ModelSlots, SharedHostPacer
 from aia_core.infrastructure.model_adapters import BedrockSigner
@@ -130,6 +146,7 @@ from .deep_research_live import (
     CONNECTORS,
     UNAVAILABLE_CONNECTORS,
     brave_retrieval,
+    common_crawl_archive,
     connector_accesses,
     public_retrieval,
     wikipedia_retrieval,
@@ -140,6 +157,8 @@ __all__ = [
     "BRAVE_AS_OF_KEY",
     "BRAVE_KEY",
     "BRAVE_PRICE_KEY",
+    "COMMON_CRAWL_CRAWLS_KEY",
+    "COMMON_CRAWL_KEY",
     "CONNECTORS_KEY",
     "ENABLED_KEY",
     "FAN_OUT_KEY",
@@ -150,6 +169,8 @@ __all__ = [
     "WEB_SEARCH_KEY",
     "agent_directed",
     "brave_price_per_call",
+    "common_crawl",
+    "common_crawl_crawls",
     "connectors",
     "deep_research_enabled",
     "deep_research_runtime",
@@ -175,6 +196,8 @@ BRAVE_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_API_KEY"
 BRAVE_PRICE_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000"
 BRAVE_AS_OF_KEY: Final = "AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF"
 WEB_SEARCHES: Final = ("off", "wikipedia", "brave")
+COMMON_CRAWL_KEY: Final = "AIA_DEEP_RESEARCH_COMMON_CRAWL"
+COMMON_CRAWL_CRAWLS_KEY: Final = "AIA_DEEP_RESEARCH_COMMON_CRAWL_CRAWLS"
 #: The most a price per 1,000 requests may say: a typo of a decimal point stops the worker.
 MAX_BRAVE_USD_PER_1000: Final = 100.0
 
@@ -344,6 +367,41 @@ def brave_price_per_call(env: Mapping[str, str] | None = None) -> float:
     return per_1000 / 1000
 
 
+def common_crawl(env: Mapping[str, str] | None = None) -> bool:
+    """Whether the deployment composes Common Crawl (``AIA_DEEP_RESEARCH_COMMON_CRAWL``)."""
+    return _switch(env, COMMON_CRAWL_KEY)
+
+
+def common_crawl_crawls(env: Mapping[str, str]) -> tuple[str, ...]:
+    """The crawls the ladder's archive rung asks: required, each a CC-MAIN-YYYY-WW id,
+    none twice, at most as many as one index query may name."""
+    raw = [c.strip() for c in (env.get(COMMON_CRAWL_CRAWLS_KEY) or "").split(",") if c.strip()]
+    if not raw:
+        raise AIRuntimeConfigError(f"{COMMON_CRAWL_CRAWLS_KEY} is required")
+    bad = [c for c in raw if not re.fullmatch(r"CC-MAIN-\d{4}-\d{2}", c)]
+    if bad:
+        raise AIRuntimeConfigError(f"{COMMON_CRAWL_CRAWLS_KEY}: {bad[0]!r} is not CC-MAIN-YYYY-WW")
+    if len(set(raw)) != len(raw):
+        raise AIRuntimeConfigError(f"{COMMON_CRAWL_CRAWLS_KEY} names a crawl twice")
+    if len(raw) > MAX_CRAWLS_PER_QUERY:
+        raise AIRuntimeConfigError(
+            f"{COMMON_CRAWL_CRAWLS_KEY} names at most {MAX_CRAWLS_PER_QUERY} crawls"
+        )
+    return tuple(raw)
+
+
+def _common_crawl_settings(env: Mapping[str, str]) -> CommonCrawlSettings:
+    try:
+        settings = common_crawl_settings(env)
+    except ValueError as exc:
+        raise AIRuntimeConfigError(str(exc)) from None
+    if settings.prices_as_of > datetime.now(UTC).date():
+        raise AIRuntimeConfigError(
+            f"AIA_DEEP_RESEARCH_COMMON_CRAWL_PRICES_AS_OF={settings.prices_as_of} is in the future"
+        )
+    return settings
+
+
 def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
     """The thinking budget, read strictly: unset or empty is none; else an integer >= 1024.
 
@@ -401,6 +459,12 @@ def deep_research_runtime(
     if planned_by_lead and not directed:
         raise AIRuntimeConfigError(
             f"{LEAD_KEY} needs {AGENT_DIRECTED_KEY}: the lead plans agent-directed tracks"
+        )
+    crawl = common_crawl(values)
+    if crawl and (not has_search or contact is None):
+        raise AIRuntimeConfigError(
+            f"{COMMON_CRAWL_KEY} needs a search route and {PUBLIC_FETCH_CONTACT_KEY}: the "
+            "archive answers a page the public fetch found dead or moved"
         )
     if search == "brave" and contact is None:
         raise AIRuntimeConfigError(
@@ -467,6 +531,11 @@ def deep_research_runtime(
         if listed and contact is not None
         else ((), ())
     )
+    archive = crawls = None
+    if crawl:
+        assert contact is not None
+        crawls = common_crawl_crawls(values)
+        archive = common_crawl_archive(_common_crawl_settings(values), contact=contact)
     if planned_by_lead:
         settings = dataclasses.replace(settings, research_lead_enabled=True)
     return DeepResearchRuntime(
@@ -495,5 +564,10 @@ def deep_research_runtime(
         # The ladder resolves publishers by the register only where it can then reach
         # them (chunk 23b); without the public fetch it keeps its defaults, and every
         # fingerprint is the one it had before.
-        ladder=LadderConfig(register=REPUTATION_REGISTER_V1) if contact is not None else None,
+        ladder=(
+            LadderConfig(register=REPUTATION_REGISTER_V1, crawls=crawls or ())
+            if contact is not None
+            else None
+        ),
+        archive=archive,
     )

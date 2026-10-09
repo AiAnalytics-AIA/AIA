@@ -16,6 +16,10 @@ but Brave's search, which is priced and charged to the study (plan
 - **Brave search** (``brave_retrieval``): Brave Web Search, priced per request, with pages
   fetched from any public host as above. Its key is a credential reference
   (``env:AIA_DEEP_RESEARCH_BRAVE_API_KEY``), read at each call and never stored.
+- **Common Crawl** (``common_crawl_archive``): the URL index through Athena in ``us-east-1``,
+  priced at the workgroup's scan cutoff (chunk 18, 23e), and archived records read by byte
+  range from ``data.commoncrawl.org``. Both outside the EU, Class C only; the index needs its
+  organization's sign-off (chunk 44), as every priced live route does.
 - **The public dataset connectors** (``connector_accesses``, chunks 14-16): ČSÚ
   DataStat, the national open-data catalogue, Eurostat, OpenAlex, ARES and the Wayback
   CDX index, each pinned to its own host; and Crossref, which the merge asks whether a
@@ -31,11 +35,22 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Final
 
-from aia_core.application.web_retrieval import DatasetAccess, WebRetrieval
+from aia_core.application.web_retrieval import ArchiveRetrieval, DatasetAccess, WebRetrieval
+from aia_core.domain.deep_research.common_crawl import ATHENA_REGION
 from aia_core.domain.deep_research.contracts import RetrievalMode
 from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceClass, SourceTable
 from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
+from aia_core.infrastructure.common_crawl import (
+    ATHENA_SIGNING_SERVICE,
+    ArchiveFetcher,
+    ArchiveRangeTransport,
+    AthenaUrlIndex,
+    AwsSigner,
+    CommonCrawlSettings,
+    JsonPostWire,
+    UrllibPostWire,
+)
 from aia_core.infrastructure.dataset_ares import ARES_HOST, AresConnector
 from aia_core.infrastructure.dataset_connectors import DatasetConnector
 from aia_core.infrastructure.dataset_crossref import CROSSREF_HOST, CrossrefConnector
@@ -45,6 +60,7 @@ from aia_core.infrastructure.dataset_nkod import NKOD_HOST, NkodConnector
 from aia_core.infrastructure.dataset_openalex import OPENALEX_HOST, OpenAlexConnector
 from aia_core.infrastructure.dataset_wayback import WAYBACK_HOST, WaybackCdxConnector
 from aia_core.infrastructure.host_pacing import HostPacer, PacedTransport
+from aia_core.infrastructure.model_adapters.aws_signing import InstanceRoleSigner
 from aia_core.infrastructure.model_adapters.transport import CredentialSource
 from aia_core.infrastructure.web_retrieval import FetchTransport, Resolver, WebFetcher
 from aia_core.infrastructure.web_retrieval_brave import (
@@ -68,6 +84,7 @@ __all__ = [
     "CONNECTORS",
     "UNAVAILABLE_CONNECTORS",
     "brave_retrieval",
+    "common_crawl_archive",
     "connector_accesses",
     "public_retrieval",
     "wikipedia_retrieval",
@@ -217,6 +234,62 @@ def brave_retrieval(
             fetcher=WebFetcher(transport=pages, resolver=resolver, adapter_id=PUBLIC_FETCH_ID),
         ),
         _table(),
+    )
+
+
+#: Common Crawl's two routes and the archive fetcher's adapter.
+COMMON_CRAWL_INDEX_ROUTE_ID: Final = "common-crawl-athena-index"
+COMMON_CRAWL_ARCHIVE_ROUTE_ID: Final = "common-crawl-archive"
+COMMON_CRAWL_ARCHIVE_ID: Final = "commoncrawl-archive-1"
+
+
+def common_crawl_archive(
+    settings: CommonCrawlSettings,
+    *,
+    contact: str,
+    signer: AwsSigner | None = None,
+    wire: JsonPostWire | None = None,
+) -> ArchiveRetrieval:
+    """Common Crawl's URL index and archived records, live (plan chunk 23e).
+
+    The index route's price is the workgroup's scan cutoff, billed: what each query
+    reserves against the study and is charged when its scan is unknown; a query that
+    reports its scan is charged what it scanned. The archive route is fee-free. Both are
+    ``NON_EU`` and Class C only. ``signer`` defaults to the instance role signing for
+    Athena in its region; building it sends nothing.
+    """
+    public_user_agent(contact)
+    index = AthenaUrlIndex(
+        workgroup=settings.workgroup,
+        table=settings.table,
+        signer=signer or InstanceRoleSigner(region=ATHENA_REGION, service=ATHENA_SIGNING_SERVICE),
+        wire=wire or UrllibPostWire(),
+    )
+    return ArchiveRetrieval(
+        index_route=ToolRoute(
+            route=_provider_route(COMMON_CRAWL_INDEX_ROUTE_ID, "aws-athena", ResidencyZone.NON_EU),
+            tool=ToolKind.URL_INDEX_QUERY,
+            adapter_id=index.adapter_id,
+            retrieval_mode=RetrievalMode.LIVE,
+            price_usd_per_call=settings.reservation_usd,
+        ),
+        archive_route=ToolRoute(
+            route=_provider_route(
+                COMMON_CRAWL_ARCHIVE_ROUTE_ID, "commoncrawl", ResidencyZone.NON_EU
+            ),
+            tool=ToolKind.ARCHIVE_FETCH,
+            adapter_id=COMMON_CRAWL_ARCHIVE_ID,
+            retrieval_mode=RetrievalMode.LIVE,
+            price_usd_per_call=0.0,
+        ),
+        index=index,
+        fetcher=ArchiveFetcher(
+            transport=ArchiveRangeTransport(contact=contact),
+            resolver=SystemResolver(),
+            adapter_id=COMMON_CRAWL_ARCHIVE_ID,
+        ),
+        pricing=settings.pricing,
+        scan_cutoff_bytes=settings.max_scan_bytes,
     )
 
 
