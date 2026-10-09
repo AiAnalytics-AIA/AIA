@@ -28,6 +28,7 @@ import {
 import { ActivityOrb } from "@/components/brand/ActivityOrb";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { saveBlob } from "@/lib/download";
+import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
@@ -54,6 +55,7 @@ import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
+import { ObjectMapView } from "./ObjectMapView";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -1019,15 +1021,16 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
 }
 
 function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {
-  const payload = artifact.payload as { sociomap: { batteries: Parameters<typeof sociomapObjects>[0][] } } | null;
+  const payload = artifact.payload as {
+    sociomap: { data_origin?: string | null; batteries: (Parameters<typeof sociomapObjects>[0] & BatteryWithMaps)[] };
+  } | null;
   if (!payload) return null;
   return (
     <div className="flex flex-col gap-4">
       {payload.sociomap.batteries.map((b) => {
         const objects = sociomapObjects(b);
-        return (
-          <section key={b.battery_id} aria-label={b.title}>
-            <h3 className="text-sm font-semibold">{b.title}</h3>
+        const objectMap = readObjectMap(b);
+        const table = (
             <table className="mt-1 w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-ink-muted">
@@ -1048,6 +1051,23 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
                 ))}
               </tbody>
             </table>
+        );
+        return (
+          <section key={b.battery_id} aria-label={b.title} className="flex flex-col gap-2">
+            {objectMap.ok || objectMap.reason === "contract" ? (
+              <>
+                <ObjectMapView battery={b} dataOrigin={payload.sociomap.data_origin ?? null} />
+                <details className="text-sm">
+                  <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
+                  {table}
+                </details>
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-semibold">{b.title}</h3>
+                {table}
+              </>
+            )}
           </section>
         );
       })}

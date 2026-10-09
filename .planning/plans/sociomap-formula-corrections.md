@@ -16,7 +16,8 @@ chunks:
   - "[x] 4b. Stage 4 -- terrain as the max-envelope of hills, one formula for every surface (F12, F13)"
   - "[ ] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16)"
   - "[ ] 4d. Stage 4 -- region tests: positioning variables excluded, Holm, Cohen's d and h ranking (F14, F15), with sociomapping-engine chunk 8"
-  - "[ ] 5. Results and the report: the Stress-1 label, arrows for RELIABLE pairs only, sign as colour, the not-placed count; the client gate unchanged (OI-17)"
+  - "[x] 5a. Results: the contract-3 map from the artifact -- envelope terrain, links for RELIABLE pairs that meet the floor (|r| opacity, sign as colour), the Stress-1 label, the not-placed count; aia-sociomap-1 kept as a comparison"
+  - "[ ] 5b. The report: the contract-3 map as a DOCX figure with its Stress-1 label, internal only; the client gate unchanged (OI-17)"
   - "[ ] 6. Ledgers and the decision package: parity-matrix pins, D6 v2 re-scoped to aia-sociomap-2, OI-13 and OI-16 wording"
   - "[ ] I0. Freeze the study-input and map-request contracts: dimensions, population, audience, item roles and method selection"
   - "[ ] I1. Resolve selected dimensions and the audience into the fieldwork respondent context; unavailable inputs refused explicitly"
@@ -951,6 +952,37 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Chunk 5a -- the object map on Results, 2026-10-09
+
+Chunk 5 split in two: 5a draws the map on Results; 5b puts it in a report. No report draws a
+Sociomap today except the experimental Sociomapping's own draft, so 5b needs a composition
+of its own and is not a figure swap.
+
+What landed (`feature/sociomap-v3-results`):
+
+- `apps/web/src/lib/object-map-view.ts`: reads a battery's contract-3 map (`aia-sociomap-3`,
+  else `aia-sociomap-2`; another contract refused by name); the objects at their stored
+  places with their stored heights; `mapLinks`, the pairs that pass both of Q6's gates
+  (RELIABLE and, where the method declares one, `meets_effect_floor`), PRIMARY only, |r| as
+  opacity and the sign as colour; `belowFloor`, the reliable pairs the floor alone keeps off;
+  the envelope's cells that have a height. It computes no methodological number.
+- `ObjectMapView.tsx` in the Results card of the run's Sociomap: the map from above (terrain
+  in the sequential palette, positive links solid, negative dashed), the Stress-1 label with
+  the audit's band, support with Kish's effective n, the pair-state counts, the not-placed
+  count, the provisional note for sigma and Q5-Q7, the fictional-data note, one object's
+  stored relations with whether each is drawn, and why an unmappable family has no map.
+  `aia-sociomap-1`'s table stays below it, collapsed, for comparison.
+- `tools/object_map_web_fixture.py` writes `apps/web/src/lib/fixtures/object-map.json` from
+  `research_sociomaps` under the default pins; `test_object_map_web_fixture.py` fails when it
+  drifts.
+
+Verified in a browser on the workbench (`make ui-workbench`, `make ui-fixtures`, the
+`sociomapping` fixture's run through `tools/ui_workbench/sociomapping_journey.mjs`, PASS):
+on Results the card draws 8 objects, 22 links and 1,474 terrain cells, Stress-1 0,147
+("slabá"), 450 of 450 placed with effective n 397,7; no page or console error. Tests: 12 in
+`object-map-view.test.ts`, 6 in `ObjectMapView.test.tsx`, 2 in
+`test_object_map_web_fixture.py`; `make test-web` 657 passed.
+
 ### Q5-Q7 decided for AIA, and chunk 1d, 2026-10-09
 
 **Decisions.** The audit's author has not answered Q5-Q7, and AIA's product owner (who is not
