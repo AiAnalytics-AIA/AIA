@@ -75,6 +75,8 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
     assert viewer.get(run_url).status_code == 200
     assert researcher.get(f"{run_url}/bundle").status_code == 409
     assert viewer.get(f"{run_url}/bundle").status_code == 409
+    # The coverage ledger reads the sealed bundle: nothing to count before it exists.
+    assert researcher.get(f"{run_url}/coverage").status_code == 409
     assert viewer.get(f"{run_url}/events").status_code == 200
     events = researcher.get(f"{run_url}/events")
     assert events.status_code == 200, events.text
@@ -84,7 +86,12 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
         assert other_client_lead.get(path).status_code == 200, path
     for member in (outsider, other_client_lead):
         assert member.get(f"{run_url}/bundle").status_code == 409  # not published yet
-        for path in (wrong_study, f"{wrong_study}/bundle", f"{wrong_study}/events"):
+        for path in (
+            wrong_study,
+            f"{wrong_study}/bundle",
+            f"{wrong_study}/coverage",
+            f"{wrong_study}/events",
+        ):
             assert member.get(path).status_code == 404, path
 
 

@@ -534,6 +534,23 @@ def bundle(
     raise AssertionError("unreachable")
 
 
+@router.get("/runs/{run_id}/coverage", response_model=dict[str, Any])
+def coverage(
+    run_id: RunId, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """What the run looked at: searches, pages, refusals, set-aside findings, by reason.
+
+    Counted by code from the sealed bundle and the run's tool journal (chunk 47); 409
+    ``bundle_not_ready`` while nothing is published.
+    """
+    with _errors(session):
+        scope.require(Permission.EDIT_STUDY)
+        return (
+            DeepResearchRuns(session, scope).coverage(run_id, store=store).model_dump(mode="json")
+        )
+    raise AssertionError("unreachable")
+
+
 @router.get("/runs/{run_id}/provenance", response_model=dict[str, Any])
 def provenance(
     run_id: RunId, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
