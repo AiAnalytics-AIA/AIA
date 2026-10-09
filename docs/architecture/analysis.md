@@ -5,10 +5,12 @@ outcome is when stored, and how a reader gets it back. The plan, with the refere
 mapping and the decisions owed, is
 [`.planning/plans/evidence-backed-analysis.md`](../../.planning/plans/evidence-backed-analysis.md).
 
-**State:** the contract, the inputs, the reconstruction (`aia_core`) and the executor
-(`aia_executors/analysis.py`) exist and are tested under the real worker over recorded
-Bedrock exchanges. Nothing registers the executor in the production worker, adds the
-nodes to the research template, deploys or enables it.
+**State:** the contract, inputs, reconstruction and executor are registered in the
+native research workflow. The production composition binds analysis when
+`AIA_AI_RUNTIME_ENABLED` and `AIA_AI_ANALYSIS_ENABLED` are on; otherwise an
+unconfigured analysis step parks. Internal report generation is also registered.
+The completed fictional develop run `RUN-1725024c5b8b480a` exercised all eight
+modules and report generation. This does not establish client-facing evidence.
 
 ## The rule
 
@@ -180,9 +182,11 @@ analysis nodes should be exempt from that is the integration's decision.
 
 `AnalysisConfig.from_settings(settings, max_output_tokens=..., reservation_usd=...)` refuses
 an output cap above the model's, a reservation below one call at the model's ceilings, and
-a policy that does not bind `RESEARCH_REASONING`. Today that capability is bound only with
-the design agents' switch (`AIA_AI_RESEARCH_AGENTS_ENABLED`); an analysis switch of its own,
-its keys and its registration are the activation work's, not this module's.
+a policy that does not bind `RESEARCH_REASONING`. The native runtime binds that
+capability when either research agents or analysis are enabled. Analysis has its
+own `AIA_AI_ANALYSIS_ENABLED`, `AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS` and
+`AIA_AI_ANALYSIS_RESERVATION_USD` configuration; `aia_executors/registry.py`
+constructs its executor when enabled.
 
 ## Against the unit's gate
 
@@ -193,6 +197,23 @@ given as text, a number in the prose that no cited claim holds, a claim on a row
 fidelity rule or support removed. It admits two things the unit refused -- a finding that
 states no number and cites nothing, and a module with no finding -- and those wait on
 decision ANL-4 rather than being called intentional.
+
+## Internal report composition (2026-10-10, PR #225)
+
+`application/report.py::compose_internal_report` composes the reconstructed eight
+modules into an unapproved internal document. The introduction names the study
+and client, explains how to read the sections, lists the frozen research questions
+and states the interpretation boundary for synthetic respondents. It adds no
+study background that the frozen inputs do not supply.
+
+Accepted module summaries retain their blank-line paragraph boundaries: the first
+paragraph is a lede, subsequent paragraphs are body text. Claims and evidence
+references remain admitted through the existing gate; composition makes no new
+model request and does not rewrite accepted prose. The report executor's reuse
+contract is `aia-internal-report-2`. Previously stored reports remain frozen;
+newly generated reports use the revised composition. The main DOCX continues to
+exclude internally gated Sociomaps. Structural and paragraph coverage lives in
+`packages/aia_core/tests/test_analysis_results.py`.
 
 ## Not here
 

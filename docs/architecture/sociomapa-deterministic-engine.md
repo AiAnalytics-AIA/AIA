@@ -86,8 +86,12 @@ ObjectMapInputs  the rating universe (every tracked set's items + the declared s
                          known pair, a disconnected known-pair graph, a singular fit)
 ```
 
-Respondent placement and terrain are not part of contract 3 yet: the spec declares them
-`None` and the artifact carries them as `not_computed` with the reason.
+The `aia-sociomap-2` preset declares no terrain and stores `not_computed` with its
+reason. The later `aia-sociomap-3` preset retains contract 3 and declares the object
+envelope (`AIA_OBJECT_ENVELOPE`): stored height/colour samples on a 65×65 grid,
+64 intervals per axis, with kernel width and its provisional authority recorded
+in the specification. Respondent placement remains `not_computed`; object terrain
+is not respondent density.
 
 `ipsatize` (F3) is ported and tested, and the spec carries an `ipsatize` flag,
 but the one implemented dissimilarity target reads a rating's position on the
@@ -268,6 +272,38 @@ contract 3 by its model, and refuses anything else. In the research body each ba
 carries the contract-3 payloads under `maps`, keyed by method id.
 
 ## 7. View and scenario layers
+
+### Production corrected-map workspace (2026-10-10, PR #225)
+
+Results' **Sociomapa** section uses `ObjectMapView.tsx` to read the frozen corrected
+contract-3 artifact. The top view is the default; choosing **3D terén** mounts
+`ObjectMapTerrain.tsx`. Its canvas triangulates adjacent stored grid samples through
+`lib/object-map-3d.ts`; a missing corner leaves a hole. No browser kernel, relation,
+layout, connectedness or uncertainty calculation is introduced. This workspace
+is separate from the experimental HModel Sociomapping section.
+
+Rotation (pointer, buttons and keyboard), zoom, reset, relief, compact/expanded
+layout, link visibility, object selection and pair comparison are presentation
+state only. Camera changes neither move stored objects nor alter artifacts or
+evidence. Switching to top view immediately unmounts the canvas and is the
+rendering kill switch. No extra runtime dependency or model call is needed.
+
+Height and base colour describe the object score; lighting reveals shape. Ratings
+use the battery's original declared scale when available. The fit and support
+labels remain visible, and selected pairs read the stored signed relationship,
+including weak/unknown states. Terrain width does not count respondents or make
+values between objects measured data. Weak layout fit directs the reader to pair
+values. The map remains internal with provisional method disclosures; the main
+DOCX's map gate is unchanged. Object-position edits and scenarios below are
+backend view products and are not offered by this workspace.
+
+On the completed fictional acceptance study (65×65 samples, 2,437 triangles),
+mesh preparation took 5.57ms; 100-frame projection/sort median 0.56ms and p95
+1.59ms on the development Mac, excluding raster drawing. Geometry/component
+tests cover missing cells, frozen inputs, camera controls and accessible selection;
+browser acceptance covers desktop, narrow layout and dark theme.
+
+### Backend view products
 
 - **Drag** (`ViewOverrides`, `{respondents, objects}` like the reference's
   `st.manual`) is bound to the artifact fingerprint; `apply_view_overrides`

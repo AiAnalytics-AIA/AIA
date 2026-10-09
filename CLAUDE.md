@@ -122,6 +122,10 @@ apps/
                             fictional data is labelled every time, the park is explained
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
+    src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
+                            /config reads server values at request time, never credentials
+    src/lib/object-map-3d.ts  Frozen grid triangulation and presentation-only orthographic camera;
+                            ObjectMapTerrain.tsx draws it, ObjectMapView.tsx owns controls and reading
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts,
                               and aia_core domain/report/print_tokens.py (the report's print register)
