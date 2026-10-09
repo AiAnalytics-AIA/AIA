@@ -58,7 +58,7 @@ export function projectTerrain(vertex: TerrainVertex, camera: TerrainCamera, spa
   const z = vertex.height * span * camera.relief;
   return {
     sx: TERRAIN_VIEW.width / 2 + x * scale,
-    sy: TERRAIN_VIEW.height * 0.64 - (y * Math.sin(camera.elevation) + z * Math.cos(camera.elevation)) * scale,
+    sy: TERRAIN_VIEW.height * 0.52 - (y * Math.sin(camera.elevation) + z * Math.cos(camera.elevation)) * scale,
     depth: y * Math.cos(camera.elevation) - z * Math.sin(camera.elevation),
   };
 }

@@ -135,3 +135,11 @@ describe("one object's relations", () => {
     expect(relationsOf(battery, map, "nobody")).toEqual([]);
   });
 });
+
+
+describe("undefined pair ordering", () => {
+  it("keeps unknown pairs after defined ones, rather than making them strongest", () => {
+    const copy = edited((m) => { m.relations.r[0][1] = null; m.relations.status[0][1] = "unknown"; });
+    expect(relationsOf(battery, copy, copy.object_ids[0]).at(-1)?.id).toBe(copy.object_ids[1]);
+  });
+});

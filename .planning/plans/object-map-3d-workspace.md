@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Frozen-grid 3D rendering geometry and integrity tests"
-  - "[ ] 2. Production map workspace, controls and grounded interpretation"
+  - "[x] 2. Production map workspace, controls and grounded interpretation"
   - "[ ] 3. Report introduction and paragraph structure"
   - "[ ] 4. Full checks, visual verification, publication and live acceptance"
 ---
@@ -52,3 +52,16 @@ Shared documentation stays out of this feature PR.
 
 Geometry acceptance: 5 tests pass; TypeScript and all 101 layer rules pass.
 The grid resolution denotes intervals (64), with 65 stored samples per axis.
+
+Workspace acceptance: 29 focused web tests pass, web lint and TypeScript pass.
+Browser verified actual library artifact: rotate buttons, arrow key, pointer drag,
+selection (Filmový večer = 5.80), six gated signed relationships, top/3D switching,
+360px iframe layout and theme palette. Canvas carries 2,437 triangles.
+Geometry preparation 5.57ms; 100-frame projection/sort median 0.56ms, p95 1.59ms
+on this machine (does not include raster drawing). No AI calls or infrastructure
+charges. 3D is user-activated, off by default including tests; switching to top
+view unmounts its renderer immediately. This is the rendering kill switch.
+
+React review: expensive mesh memoized; no new dependencies or data requests;
+SVG object controls and DOM selectors accessible; observer cleanup present;
+responsive label density limits overlap without moving stored object positions.
