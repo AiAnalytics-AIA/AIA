@@ -256,10 +256,11 @@ def test_a_start_on_a_paid_live_route_is_refused_naming_what_live_still_needs(
 ) -> None:
     """Chunk 44: no route the API prices today has a price (Wikipedia, the public fetch, the
     connectors are fee-free), so a deployment's paid search is stood in for here."""
-    from aia_api.routers import deep_research as router
     from aia_core.domain.deep_research.budgets import CallKind
     from aia_core.domain.deep_research.settings import effective
     from aia_core.domain.run_cost import DeepResearchPrices, RoutePrice
+
+    from aia_api.routers import deep_research as router
 
     def paid(settings: Any, session: Any, scope: Any) -> DeepResearchPrices:
         free = router.deep_research_prices(settings)
