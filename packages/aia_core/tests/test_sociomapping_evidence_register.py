@@ -226,3 +226,29 @@ def test_every_rule_id_on_an_output_is_in_the_register(
     assert rules, f"{producer}: an output names the rules that made it"
     unknown = [r for r in rules if r not in RULES]
     assert not unknown, f"not in the register: {unknown}"
+
+
+def test_aias_decisions_on_the_audits_open_questions_are_what_the_preset_computes() -> None:
+    """Q5-Q7, decided for AIA on 2026-10-09 where the audit leaves them to its author: each
+    names the rules it shapes and the preset that carries it, and the preset's values are
+    the recorded ones. Completeness stays the audit's: a decision is AIA's, not a finished
+    formula of the audit's."""
+    from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
+
+    decisions = {d["question"]: d for d in CANONICAL["aia_decisions"]}
+    assert set(decisions) == {"Q5", "Q6", "Q7"}
+    for question, decision in decisions.items():
+        assert set(decision["rules"]) <= set(CANONICAL["completeness"]), question
+        assert decision["preset"] == AIA_SOCIOMAP_V3.methodology_version, question
+        assert decision["decided"] and decision["by"] and decision["option"], question
+    q6 = decisions["Q6"]["parameters"]
+    relation = AIA_SOCIOMAP_V3.relation
+    assert (relation.basis, relation.n_min, relation.confidence, relation.effect_floor) == (
+        q6["basis"],
+        q6["n_min"],
+        q6["confidence"],
+        q6["effect_floor"],
+    )
+    assert AIA_SOCIOMAP_V3.scores.height == decisions["Q7"]["parameters"]["height"]
+    # A decision is not completeness: the audit's own states are unchanged by it.
+    assert CANONICAL["completeness"]["AUDIT-F3"] == "PENDING_PARAMETER"

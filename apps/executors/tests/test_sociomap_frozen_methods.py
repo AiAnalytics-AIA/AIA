@@ -15,7 +15,7 @@ from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain import research_sociomap
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.research_sociomap import SociomapMethod, default_methods
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V2, SociomapSpec
+from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3, SociomapSpec
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
@@ -126,7 +126,7 @@ def test_a_new_run_pins_the_default_and_records_it(world: Any) -> None:
     run_id = _start(world)
     run = _run(world, run_id)
     pinned = [m.model_dump(mode="json") for m in default_methods()]
-    assert [m["method_id"] for m in pinned] == ["aia-sociomap-1", "aia-sociomap-2"]
+    assert [m["method_id"] for m in pinned] == ["aia-sociomap-1", "aia-sociomap-3"]
     assert run["metadata"]["sociomap_methods"] == pinned
     with world.sessions() as session:
         step = session.scalars(
@@ -154,10 +154,10 @@ def test_the_run_computes_its_pin_after_the_module_preset_changes(
     assert _extent(body) == AIA_SOCIOMAP_V1.layout.map_frame.extent == 45.0
     assert body["methods"] == [
         {"method_id": m.method_id, "spec_fingerprint": m.spec_fingerprint}
-        for m in (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V2))
+        for m in (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(AIA_SOCIOMAP_V3))
     ]
     (battery,) = body["batteries"]
-    assert set(battery["maps"]) == {"aia-sociomap-2"}
+    assert set(battery["maps"]) == {"aia-sociomap-3"}
 
 
 def test_a_run_pinned_to_another_spec_computes_that_spec_and_is_another_run(

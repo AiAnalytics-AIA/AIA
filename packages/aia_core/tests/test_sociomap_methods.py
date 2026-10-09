@@ -99,9 +99,9 @@ def test_a_run_without_a_pin_reads_as_aia_sociomap_1() -> None:
 
 
 def test_a_new_run_pins_aia_sociomap_1_and_the_audits_object_map_beside_it() -> None:
-    from aia_core.domain.sociomap import AIA_SOCIOMAP_V2
+    from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 
-    assert default_methods() == (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V2))
+    assert default_methods() == (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
     assert read_methods([m.model_dump(mode="json") for m in default_methods()]) == (
         default_methods()
     )

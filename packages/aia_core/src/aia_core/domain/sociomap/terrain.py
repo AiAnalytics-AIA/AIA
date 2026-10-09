@@ -30,7 +30,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -39,11 +39,16 @@ from .metrics import NormalizationMode, build_normalizer
 __all__ = [
     "TERRAIN66_OBJECT",
     "TERRAIN66_RESPONDENT",
+    "EnvelopeHill",
+    "EnvelopeParameters",
+    "EnvelopeTerrain",
     "TerrainField",
     "TerrainMode",
     "TerrainParameters",
     "TerrainSource",
     "compute_terrain",
+    "envelope_at",
+    "object_envelope",
 ]
 
 
@@ -273,4 +278,166 @@ def compute_terrain(
         height_raw=tuple(hr),
         colour_raw=tuple(cr),
         height_normalised=ht,
+    )
+
+
+# ------------------------------------------------------- the envelope (F12) --
+#
+# Audit F12 and F13: the object terrain is the max-envelope of the objects' hills,
+#
+#     z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2),
+#
+# so each object is a hill of exactly its height and a neighbour can raise a cell
+# only to its own hill's height there, never pull it towards a mean (the unit's
+# kernel-weighted mean drew a low object beside a high one at 0.66 of the high) or
+# pile up with others (a sum of hills peaks a cluster of three at 2.7x one). One
+# formula, here; nothing else computes a surface.
+
+
+class EnvelopeParameters(BaseModel):
+    """The envelope's grid and kernel, in the map's own units (the fixed ruler)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    grid_resolution: int
+    half_extent: float
+    sigma: float
+    kernel_cutoff: float
+
+    @field_validator("grid_resolution", "half_extent", "sigma", "kernel_cutoff", mode="before")
+    @classmethod
+    def _not_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("envelope parameters must be numbers, not booleans")
+        return v
+
+    @field_validator("grid_resolution")
+    @classmethod
+    def _resolution(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("grid_resolution must be a positive integer")
+        return v
+
+    @field_validator("half_extent", "sigma")
+    @classmethod
+    def _positive(cls, v: float) -> float:
+        if not (math.isfinite(v) and v > 0):
+            raise ValueError("the envelope's extent and sigma must be positive and finite")
+        return float(v)
+
+    @field_validator("kernel_cutoff")
+    @classmethod
+    def _cutoff(cls, v: float) -> float:
+        if not (math.isfinite(v) and 0 < v < 1):
+            raise ValueError("kernel_cutoff must lie strictly between 0 and 1")
+        return float(v)
+
+    def axis(self) -> tuple[float, ...]:
+        """Grid coordinates along one axis: ``-span + g * 2 span / N`` for ``g = 0..N``."""
+        n, span = self.grid_resolution, self.half_extent
+        step = 2.0 * span / n
+        return tuple(-span + g * step for g in range(n + 1))
+
+
+class EnvelopeHill(BaseModel):
+    """One object's hill: where it stands and how high it is (never negative)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    entity_id: str
+    x: float
+    y: float
+    height: float
+
+    @field_validator("x", "y", "height", mode="before")
+    @classmethod
+    def _not_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("hills must be numbers, not booleans")
+        return v
+
+    @field_validator("x", "y")
+    @classmethod
+    def _finite(cls, v: float) -> float:
+        if not math.isfinite(v):
+            raise ValueError("a hill stands at a finite position")
+        return float(v)
+
+    @field_validator("height")
+    @classmethod
+    def _height(cls, v: float) -> float:
+        # A max-envelope of signed heights would let a negative hill vanish under the
+        # zero far away from everything; a signed metric is a colour, not a height (Q7).
+        if not (math.isfinite(v) and v >= 0.0):
+            raise ValueError("an envelope hill's height is finite and not negative")
+        return float(v)
+
+
+class EnvelopeTerrain(BaseModel):
+    """The object envelope over a grid, indexed ``[gy][gx]``.
+
+    ``height`` is ``z(q)``; ``None`` where no hill's kernel reaches the cutoff -- nothing
+    is there, which is not a height of 0. ``governing`` is the index into ``source_ids``
+    of the hill that sets each cell (the first of equals), ``None`` with the height.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["computed"] = "computed"
+    method: Literal["object_envelope"] = "object_envelope"
+    parameters: EnvelopeParameters
+    source_ids: tuple[str, ...]
+    height: tuple[tuple[float | None, ...], ...]
+    governing: tuple[tuple[int | None, ...], ...]
+
+    @model_validator(mode="after")
+    def _shape(self) -> Self:
+        size = self.parameters.grid_resolution + 1
+        for name in ("height", "governing"):
+            grid = getattr(self, name)
+            if len(grid) != size or any(len(row) != size for row in grid):
+                raise ValueError(f"{name} must be a {size} x {size} grid")
+        for hrow, grow in zip(self.height, self.governing, strict=True):
+            for h, g in zip(hrow, grow, strict=True):
+                if (h is None) != (g is None):
+                    raise ValueError("a cell has a governing hill exactly when it has a height")
+                if g is not None and not 0 <= g < len(self.source_ids):
+                    raise ValueError("a governing index names a hill of this terrain")
+        return self
+
+
+def envelope_at(
+    x: float, y: float, hills: Sequence[EnvelopeHill], sigma: float, cutoff: float
+) -> tuple[float, int] | None:
+    """``z`` at ``(x, y)`` and the index of the hill that sets it; ``None`` when no hill's
+    kernel reaches ``cutoff`` there."""
+    two_sigma_sq = 2.0 * sigma * sigma
+    best: tuple[float, int] | None = None
+    for k, hill in enumerate(hills):
+        w = math.exp(-((x - hill.x) ** 2 + (y - hill.y) ** 2) / two_sigma_sq)
+        if w < cutoff:
+            continue
+        z = hill.height * w
+        if best is None or z > best[0]:
+            best = (z, k)
+    return best
+
+
+def object_envelope(hills: Sequence[EnvelopeHill], params: EnvelopeParameters) -> EnvelopeTerrain:
+    """The F12 envelope of ``hills`` on ``params``' grid. See the section above."""
+    ids = tuple(h.entity_id for h in hills)
+    if len(set(ids)) != len(ids):
+        raise ValueError("envelope hill ids must be unique")
+    axis = params.axis()
+    height: list[tuple[float | None, ...]] = []
+    governing: list[tuple[int | None, ...]] = []
+    for y in axis:
+        cells = [envelope_at(x, y, hills, params.sigma, params.kernel_cutoff) for x in axis]
+        height.append(tuple(None if c is None else c[0] for c in cells))
+        governing.append(tuple(None if c is None else c[1] for c in cells))
+    return EnvelopeTerrain(
+        parameters=params,
+        source_ids=ids,
+        height=tuple(height),
+        governing=tuple(governing),
     )

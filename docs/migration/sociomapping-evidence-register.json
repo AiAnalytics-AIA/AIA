@@ -191,7 +191,59 @@
    "AUDIT-F14": "SPECIFIED",
    "AUDIT-F15": "SPECIFIED",
    "AUDIT-F16": "PENDING_PARAMETER"
-  }
+  },
+  "aia_decisions_scope": "Decisions AIA's product owner took on 2026-10-09 where the audit leaves a question to its author, so development can proceed. Each is AIA's, not the audit's: completeness above is unchanged, and the audit's author may replace any of them, which then becomes a new methodology version. Each names the preset that carries it.",
+  "aia_decisions": [
+   {
+    "question": "Q5",
+    "rules": [
+     "AUDIT-F2",
+     "AUDIT-F4",
+     "AUDIT-F6",
+     "AUDIT-F7",
+     "AUDIT-F8"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "c",
+    "decision": "Two concepts kept apart: positions from relative co-movement (per-person min-max, then Pearson, then the correlation distance); absolute level is shown separately, by default as height (Q7). Never read height as closeness.",
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.specification:AIA_SOCIOMAP_V3 (ratings and layout as aia-sociomap-2)"
+   },
+   {
+    "question": "Q6",
+    "rules": [
+     "AUDIT-F3"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "b+c",
+    "decision": "Two gates. Evidence sufficiency: UNKNOWN below n_min = 30, WEAK when the Fisher 95 % interval includes 0, RELIABLE otherwise, read on Kish's effective n of the pair's valid respondents' weights. Practical materiality: meets_effect_floor = |r| >= 0.10, recorded beside the state, never folded into it.",
+    "parameters": {
+     "basis": "kish_effective_n",
+     "n_min": 30,
+     "confidence": 0.95,
+     "effect_floor": 0.1
+    },
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.pairs:derive_pair_relations; relations:kish_effective_n, meets_effect_floor"
+   },
+   {
+    "question": "Q7",
+    "rules": [
+     "AUDIT-F8"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "d with a",
+    "decision": "Height is selectable; the default in maps and reports is the mean rating on the declared 0-1 scale. Connectedness and alignment stay selectable analytical layers.",
+    "parameters": {
+     "height": "mean_rating_0_1"
+    },
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.specification:ObjectHeightMetric.MEAN_RATING_0_1"
+   }
+  ]
  },
  "rules": [
   {
@@ -1906,9 +1958,20 @@
    ],
    "formula": "z(q) = max_{j in P} h_j exp(-||q - y_j||^2 / 2 sigma^2)",
    "applies_to": "the object terrain; replaces the kernel-weighted mean with its cutoff cliff (terrain.py:251-253, 264). Answers the engine plan's M4 for AIA's object map and supersedes SOMECS-M2 there.",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "sigma is given in the unit's +-62 frame (12); on F6's ruler it must be restated (plan § 4 item 3).",
+   "implementation": "aia_core.domain.sociomap.terrain:object_envelope",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_envelope.py::test_each_hill_is_exactly_its_height_and_a_high_neighbour_does_not_pull_it",
+     "what": "each object a hill of exactly its height; a high neighbour does not pull a low object up, as the kernel-weighted mean did"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_envelope.py::test_on_planted_tastes_objects_of_another_taste_never_raise_each_other",
+     "what": "AIA's provisional kernel width on planted fictional structure: objects of independent tastes never lift each other's position by 5 % of a height"
+    }
+   ],
+   "uncertainty": "sigma is AIA's provisional width (KernelWidthBasis.AIA_PROVISIONAL_R08_5PCT, 0.25 on the fixed ruler, 2026-10-09): a hill falls below 5 % of its height at the correlation distance of r = 0.8. The audit's author has not given one (A5); an answer that differs becomes a new methodology version.",
    "resolve_by": "sociomap-formula-corrections chunk 4b",
    "question": "A5 -- the object-terrain kernel on the fixed ruler: how broad each object's hill is, defined relative to the ruler; not necessarily the density kernel's width"
   },
@@ -1939,8 +2002,19 @@
    ],
    "formula": "z(q) = max_j h_j exp(-||q - y_j||^2 / 2 sigma^2): the F12 envelope from one backend implementation; never a sum of hills",
    "applies_to": "every rendered surface. AIA has one terrain implementation (compute_terrain) and no renderer computes a surface of its own: met by construction, to be kept by a test.",
-   "implementation": null,
-   "validation": [],
+   "implementation": "aia_core.domain.sociomap.terrain:object_envelope",
+   "validation": [
+    {
+     "kind": "SOURCE_STATEMENT",
+     "test": "packages/aia_core/tests/test_sociomap_envelope.py::test_a_cluster_of_equal_hills_peaks_at_one_hills_height_never_their_sum",
+     "what": "a cluster of equal hills peaks at one hill's height, never their sum"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_envelope.py::test_nothing_outside_the_engine_computes_a_surface",
+     "what": "the report, API, executors and web client evaluate no kernel of their own"
+    }
+   ],
    "uncertainty": "None stated.",
    "resolve_by": "sociomap-formula-corrections chunk 4b",
    "question": null

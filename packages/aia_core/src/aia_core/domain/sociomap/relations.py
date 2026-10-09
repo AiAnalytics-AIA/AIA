@@ -50,6 +50,8 @@ __all__ = [
     "coercion_branch",
     "fisher_interval",
     "ipsatize",
+    "kish_effective_n",
+    "meets_effect_floor",
     "mutual_from_1_10",
     "mutual_relation_for_position",
     "null_band",
@@ -410,13 +412,14 @@ def _correlation(r: float) -> float:
     return float(r)
 
 
-def _count(n: int, what: str) -> int:
-    if isinstance(n, bool) or n < 0:
-        raise ValueError(f"{what} is a count of raters; got {n!r}")
+def _count(n: float, what: str) -> float:
+    """A sample size: a count of raters, or (chunk 1d) a Kish effective n, which is real."""
+    if isinstance(n, bool) or not math.isfinite(n) or n < 0:
+        raise ValueError(f"{what} is a count of raters or an effective n; got {n!r}")
     return n
 
 
-def _fisher_bounds(r: float, n: int, z: float) -> tuple[float, float]:
+def _fisher_bounds(r: float, n: float, z: float) -> tuple[float, float]:
     """``tanh(atanh(r) +- z / sqrt(n - 3))`` for ``n >= 4``; ``(r, r)`` at ``|r| = 1``."""
     if abs(r) == 1.0:
         # atanh(+-1) is infinite; the interval's limit is the point itself. A
@@ -427,7 +430,7 @@ def _fisher_bounds(r: float, n: int, z: float) -> tuple[float, float]:
     return (math.tanh(centre - half), math.tanh(centre + half))
 
 
-def null_band(n: int, confidence: float) -> float | None:
+def null_band(n: float, confidence: float) -> float | None:
     """The ``|r|`` below which ``n`` common raters cannot tell a correlation from zero.
 
     ``tanh(z_c / sqrt(n - 3))``: the audit's chance band, +-0.88 at N = 5 and
@@ -440,7 +443,7 @@ def null_band(n: int, confidence: float) -> float | None:
     return math.tanh(z / math.sqrt(n - 3))
 
 
-def fisher_interval(r: float, n: int, confidence: float) -> tuple[float, float] | None:
+def fisher_interval(r: float, n: float, confidence: float) -> tuple[float, float] | None:
     """The Fisher-z confidence interval of a Pearson ``r`` over ``n`` common raters.
 
     ``tanh(atanh(r) +- z_c / sqrt(n - 3))``. ``None`` for fewer than four raters.
@@ -454,14 +457,16 @@ def fisher_interval(r: float, n: int, confidence: float) -> tuple[float, float] 
     return _fisher_bounds(r, n, z)
 
 
-def pair_status(r: float | None, n: int, n_min: int, confidence: float) -> PairStatus:
+def pair_status(r: float | None, n: float, n_min: int, confidence: float) -> PairStatus:
     """Classify a pair's correlation ``r`` over ``n`` common raters (audit F3).
 
     ``UNKNOWN`` below ``n_min``, or when there is no correlation (``r`` is
     ``None``: fewer than two common raters, or a constant column); ``RELIABLE``
     when the Fisher interval at ``confidence`` excludes zero; ``WEAK`` otherwise.
     ``n_min`` is the caller's, declared and recorded with the result: there is
-    no default, and it must leave room for a standard error (at least 4).
+    no default, and it must leave room for a standard error (at least 4). ``n`` is
+    the pair's sample size on the declared basis: the rater count, or the Kish
+    effective n under weights (:func:`kish_effective_n`, chunk 1d), which is real.
     """
     _count(n, "n")
     if isinstance(n_min, bool) or n_min < _FISHER_MIN_N:
@@ -477,3 +482,45 @@ def pair_status(r: float | None, n: int, n_min: int, confidence: float) -> PairS
         return PairStatus.UNKNOWN
     low, high = _fisher_bounds(r, n, z)
     return PairStatus.RELIABLE if low > 0.0 or high < 0.0 else PairStatus.WEAK
+
+
+# ------------------------------------------------- the evidence policy (1d) --
+#
+# Q6, decided for AIA on 2026-10-09 (plan ``sociomap-formula-corrections`` § 4a):
+# two gates, never one. Evidence sufficiency is the state above, read on the
+# approved n basis; practical materiality is whether ``|r|`` reaches a declared
+# floor, recorded beside the state and never folded into it, so a tiny but
+# precisely estimated relation is RELIABLE and is not described as strong.
+
+
+def kish_effective_n(weights: Sequence[float]) -> float:
+    """Kish's effective sample size ``(sum w)^2 / sum w^2`` of positive weights.
+
+    Equal weights give the count exactly; unequal weights give less, which is the
+    point: a weighted design carries less evidence than its row count says. Using
+    it inside the Fisher interval is an approximation, signed off as AIA's Q6
+    decision, not a theorem. ``0.0`` for no weights.
+    """
+    if any(isinstance(x, bool) for x in weights):
+        raise ValueError("Kish's n reads positive finite weights only, not booleans")
+    w = [float(x) for x in weights]
+    if any(not math.isfinite(x) or x <= 0.0 for x in w):
+        raise ValueError("Kish's n reads positive finite weights only")
+    squares = math.fsum(x * x for x in w)
+    if squares == 0.0:
+        return 0.0
+    return math.fsum(w) ** 2 / squares
+
+
+def meets_effect_floor(r: float | None, floor: float) -> bool | None:
+    """Whether ``|r|`` reaches the declared practical floor; ``None`` with no ``r``.
+
+    Not a status: a pair can be RELIABLE and below the floor (precisely small), or
+    above it and WEAK (large but uncertain). Readers that draw or describe a
+    relation read both.
+    """
+    if isinstance(floor, bool) or not math.isfinite(floor) or not 0.0 < floor < 1.0:
+        raise ValueError(f"an effect floor lies strictly between 0 and 1; got {floor!r}")
+    if r is None:
+        return None
+    return abs(_correlation(r)) >= floor
