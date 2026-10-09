@@ -51,7 +51,7 @@ from .pipeline import fingerprint
 from .research_design import ResearchSpecification, SpecBattery, SpecQuestion
 from .sociomap import (
     AIA_SOCIOMAP_V1,
-    AIA_SOCIOMAP_V2,
+    AIA_SOCIOMAP_V3,
     ObjectMapInputs,
     RatingItem,
     SociomapSpec,
@@ -217,9 +217,10 @@ LEGACY_METHODS: Final = (SociomapMethod.of(AIA_SOCIOMAP_V1),)
 
 def default_methods() -> tuple[SociomapMethod, ...]:
     """What a new run pins: ``aia-sociomap-1``, the shipped picture until chunk 5 draws
-    another, and ``aia-sociomap-2``, the audit's object map, computed beside it. Both are
-    ``INTERNAL_ONLY`` while D6 is open."""
-    return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V2))
+    another, and ``aia-sociomap-3``, the audit's object map under AIA's Q5-Q7 decisions
+    (2026-10-09), computed beside it. Both are ``INTERNAL_ONLY`` while D6 is open. A run
+    that pinned ``aia-sociomap-2`` keeps it: a pin is never rewritten."""
+    return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
 
 
 def methods_fingerprint(methods: Sequence[SociomapMethod]) -> str:

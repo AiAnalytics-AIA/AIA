@@ -6,7 +6,7 @@ chunks:
   - "[x] 1a. Stage 1 -- pair status UNKNOWN / RELIABLE / WEAK with N_min and the Fisher interval on the derived relation; the 5.5 stamp gone (F3)"
   - "[x] 1b. Stage 1 -- alignment and connectedness over PRIMARY objects, UNKNOWN pairs left out; mean rating as the default height (F8)"
   - "[x] 1c. Stage 1 -- every straight-liner NOT PLACED with a reason, out of the terrain, counted (F11)"
-  - "[ ] 1d. Stage 1 -- the relationship-evidence policy Q6 decides: evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min) as two gates, each declared and recorded per pair (F3); after the Q6 decision"
+  - "[x] 1d. Stage 1 -- the relationship-evidence policy Q6 decides: evidence sufficiency (UNKNOWN / WEAK / RELIABLE on the approved n basis) and practical materiality (meets_effect_floor at r_min) as two gates, each declared and recorded per pair (F3); after the Q6 decision"
   - "[x] 2a. Stage 2 -- per-person min-max over all rated items before Pearson (F2); a declared matrix type, no branch detection (F5); signed strength beside |r| (F4)"
   - "[x] 2b. Stage 2 -- object layout: delta = sqrt(2(1 - r)), SMACOF from a Torgerson start, Stress-1, no rescale to a radius (F6)"
   - "[x] 2c. Stage 2 -- one layout; Procrustes alignment to a reference map as a view layer; the quality label (F7)"
@@ -823,6 +823,17 @@ that does not exist yet (chunk 5), F3's final N_min (Q6).
 
 ## 9. Doc follow-up
 
+- From Q5-Q7 and chunk 1d (2026-10-09): `.planning/overview.md`, a decision row: "Q5 (c), Q6
+  (b) + (c) on Kish's n with an effect floor of 0.10, Q7 (d) with mean rating as default --
+  decided for AIA by the product owner on 2026-10-09 pending the audit's author; carried by
+  `aia-sociomap-3`, which new runs pin beside `aia-sociomap-1`"; D6 reframed to "approve
+  `aia-sociomap-3`". `CLAUDE.md` map, `domain/sociomap/`: `AIA_SOCIOMAP_V3` and the pair
+  evidence policy (`kish_effective_n`, `meets_effect_floor`). `AGENTS.md` (Pydantic): adding
+  an optional field to a model whose stored form is fingerprinted changes every stored
+  fingerprint, because `model_dump` writes the `None`; wrong: `effect_floor: float | None =
+  None` alone; right: the same plus a wrap `model_serializer` that drops the key while it is
+  `None` (`PairEvidenceSpec`, `PairRelations`), which keeps `aia-sociomap-2` at `3f1c0122…`.
+
 - `CLAUDE.md` map, `domain/sociomap/`: the v2 members once they exist (`pair_status`,
   `person_minmax`, `fit_smacof_objects`, `place_respondents`, `connectedness_100`,
   `OBJECT_ENVELOPE`, `align_to`); `AIA_SOCIOMAP_V2` beside `AIA_SOCIOMAP_V1`.
@@ -940,6 +951,50 @@ dimension/audience selections do not reach the executed fieldwork contract. The 
 probes in § 8.1 reproduce the gap. Existing baseline verification: 193 focused Sociomap tests,
 91 layering rules and 7 exposure rules passed; all 41 plans were well-formed before this edit.
 These checks do not certify the unbuilt corrected method or complete application integration.
+### Q5-Q7 decided for AIA, and chunk 1d, 2026-10-09
+
+**Decisions.** The audit's author has not answered Q5-Q7, and AIA's product owner (who is not
+the audit's author) decided them for AIA on 2026-10-09 so development can proceed, choosing the
+options § 4a recommends: **Q5 (c)** two concepts kept apart, positions from co-movement and level
+shown separately; **Q6 (b) + (c)** two gates, evidence sufficiency on Kish's effective n
+(`n_min` 30, Fisher 95 %) and a practical floor `|r| >= 0.10` recorded beside the state; **Q7
+(d) with (a)** height selectable, mean rating the default. They are AIA's decisions, not the
+audit's: the register records them under `canonical.aia_decisions` and leaves every
+`completeness` state as it was, and an answer from the audit's author that differs becomes a
+new methodology version. The other open points of 0b (A4, A5, B8, B10, B11, C12-C15) stay with
+the audit's author; 0b stays open. Also decided the same day, for chunks 4b and 4c: AIA may
+calibrate the two kernel widths itself on planted fictional structure, labelled PROVISIONAL,
+and the F16 fit stays pure Python (no R on the develop host for now).
+
+**What landed** (`feature/sociomap-evidence-policy`):
+
+- `relations.py`: `kish_effective_n`, `meets_effect_floor`; `pair_status` and `fisher_interval`
+  read a real n.
+- `pairs.py`: `derive_pair_relations(..., basis=, effect_floor=, design_weights=)`; under the
+  Kish basis each pair's own Kish n over its valid respondents decides both the floor and the
+  interval; `meets_effect_floor` is recorded beside `status`, never inside it.
+  `PairRelations` gains `basis`, `n_effective`, `effect_floor`, `meets_effect_floor` and
+  `evidence_n()`, each left out of the stored form when absent.
+- `specification.py`: `PairEvidenceBasis.KISH_EFFECTIVE_N`; `PairEvidenceSpec.effect_floor`
+  (refused outside (0, 1) by name, left out of the stored form when `None`); preset
+  `AIA_SOCIOMAP_V3` (`aia-sociomap-3`, `705cd2aa…`) = `aia-sociomap-2` with the Kish basis and
+  the 0.10 floor.
+- `engine_v2.py`: the declared policy reaches the map and the K100 bootstrap; a resample's
+  Kish n reads the design weights of the distinct people drawn, never the multiplicities.
+- `research_sociomap.default_methods`: new runs pin `aia-sociomap-1` + `aia-sociomap-3`. A run
+  that pinned `aia-sociomap-2` keeps it and recomputes byte for byte: its spec fingerprint is
+  still `3f1c0122…` and its relations carry none of the new fields.
+
+What it does not do: the layout, the scores and K100 read the status, as before; nothing reads
+`meets_effect_floor` yet. Arrows and descriptions read both gates in chunk 5.
+
+Tests: `packages/aia_core/tests/test_sociomap_evidence_policy.py` (28),
+`test_sociomapping_evidence_register.py::test_aias_decisions_on_the_audits_open_questions_are_what_the_preset_computes`;
+the default-pin assertions in `test_sociomap_methods.py`, `test_sociomap_object_map.py`,
+`apps/executors/tests/test_sociomap_frozen_methods.py` and `test_sociomap_acceptance.py` now
+name `aia-sociomap-3`. The acceptance's numbers hold unchanged under it (its fictional
+weights are equal, so Kish's n is the count).
+
 ### Slice S6 -- the recorded acceptance (I5, in part), 2026-10-08
 
 What landed, on `feature/sociomap-acceptance` (stacked on S5):

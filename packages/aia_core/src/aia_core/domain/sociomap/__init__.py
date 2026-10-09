@@ -57,6 +57,8 @@ from .models_v3 import (
 from .specification import (
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
+    AIA_SOCIOMAP_V3,
+    EFFECT_FLOOR_AIA_Q6,
     SPEC_CONTRACT_V3,
     SPEC_CONTRACT_VERSION,
     LayoutSpec,
@@ -96,8 +98,10 @@ from .view import (
 __all__ = [
     "AIA_SOCIOMAP_V1",
     "AIA_SOCIOMAP_V2",
+    "AIA_SOCIOMAP_V3",
     "ARTIFACT_CONTRACT_V3",
     "ARTIFACT_CONTRACT_VERSION",
+    "EFFECT_FLOOR_AIA_Q6",
     "ENGINE_IMPLEMENTATION",
     "ENGINE_IMPLEMENTATION_VERSION",
     "LAYOUT_ALGORITHMS",

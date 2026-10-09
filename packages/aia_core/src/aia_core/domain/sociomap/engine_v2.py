@@ -52,7 +52,12 @@ from .models_v3 import (
 )
 from .pairs import derive_pair_relations
 from .relations import PairStatus, person_minmax
-from .specification import ObjectHeightMetric, SociomapSpecV3, require_supported
+from .specification import (
+    ObjectHeightMetric,
+    PairEvidenceBasis,
+    SociomapSpecV3,
+    require_supported,
+)
 from .view import stress_quality
 
 __all__ = [
@@ -169,6 +174,20 @@ def _support(inputs: ObjectMapInputs, not_placed: dict[str, str]) -> ObjectMapSu
     )
 
 
+def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
+    """The pair evidence policy the spec declares (Q6, chunk 1d), as the pair keywords.
+
+    A spec that declares neither Kish's n nor an effect floor is a spec pinned before the
+    policy existed (``aia-sociomap-2``): its relations are computed and recorded exactly
+    as they were, with nothing of the policy in them, so a stored map recomputes to the
+    same body.
+    """
+    rel = spec.relation
+    if rel.basis == PairEvidenceBasis.RESPONDENT_COUNT and rel.effect_floor is None:
+        return {}
+    return {"basis": rel.basis, "effect_floor": rel.effect_floor}
+
+
 def compute_object_map(
     inputs: ObjectMapInputs, spec: SociomapSpecV3, *, connectedness_interval: bool
 ) -> SociomapArtifactV3:
@@ -181,8 +200,9 @@ def compute_object_map(
     family = [[row[c] for c in columns] for row in person.values]
     weights = list(inputs.weights)
     evidence = spec.relation
+    policy = _evidence_policy(spec)
     pairs = derive_pair_relations(
-        family, weights, n_min=evidence.n_min, confidence=evidence.confidence
+        family, weights, n_min=evidence.n_min, confidence=evidence.confidence, **policy
     )
     ids = list(inputs.object_ids)
     m = len(ids)
@@ -252,11 +272,15 @@ def compute_object_map(
         ) -> tuple[tuple[tuple[float | None, ...], ...], tuple[tuple[PairStatus | None, ...], ...]]:
             # A resample: each person's scaled row taken as many times as drawn, as a weight
             # multiple. Rows are scaled once: each person's min-max is their own (F2).
+            # Kish's n reads the design weights of the distinct people drawn, never the
+            # multiplicities: a duplicated row is the same person, not less evidence.
             drawn = derive_pair_relations(
                 family,
                 [k * w for k, w in zip(multiplicities, weights, strict=True)],
                 n_min=evidence.n_min,
                 confidence=evidence.confidence,
+                design_weights=weights,
+                **policy,
             )
             return drawn.r, drawn.status
 

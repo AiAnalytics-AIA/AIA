@@ -29,6 +29,7 @@ from aia_core.domain.research_sociomap import (
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
+    AIA_SOCIOMAP_V3,
     ArtifactIntegrityError,
     MapOutcome,
     NotMappableReason,
@@ -507,7 +508,7 @@ def _study(seed: int, n: int) -> tuple[SpecBattery, SpecBattery, _Dataset]:
 
 def test_a_new_run_pins_both_methods() -> None:
     ids = [m.method_id for m in default_methods()]
-    assert ids == ["aia-sociomap-1", "aia-sociomap-2"]
+    assert ids == ["aia-sociomap-1", "aia-sociomap-3"]
 
 
 def test_the_research_body_stores_the_object_map_beside_the_v1_map() -> None:
@@ -602,12 +603,12 @@ def test_research_sociomaps_names_both_pinned_methods() -> None:
         methods=default_methods(),
         connectedness_interval=False,
     )
-    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-2"]
+    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
     (set_body,) = body["batteries"]
-    assert set(set_body["maps"]) == {"aia-sociomap-2"}
+    assert set(set_body["maps"]) == {"aia-sociomap-3"}
     assert body["sociomap_version"] == "aia-research-sociomap-8"
     pins = {m.method_id: m for m in default_methods()}
-    assert pins["aia-sociomap-2"] == SociomapMethod.of(AIA_SOCIOMAP_V2)
+    assert pins["aia-sociomap-3"] == SociomapMethod.of(AIA_SOCIOMAP_V3)
 
 
 def test_the_map_says_what_it_rests_on_and_how_weights_entered_it() -> None:

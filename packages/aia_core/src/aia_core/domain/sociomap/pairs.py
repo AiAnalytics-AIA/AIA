@@ -15,16 +15,36 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Self
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
-from .relations import PairStatus, fisher_interval, pair_status
+from .relations import (
+    PairStatus,
+    fisher_interval,
+    kish_effective_n,
+    meets_effect_floor,
+    pair_status,
+)
 
 __all__ = ["Interval", "PairRelations", "derive_pair_relations", "derive_relation_matrix"]
 
 
 _Triples = list[tuple[float, float, float]]
+
+#: The two evidence bases a pair's status can read (``PairEvidenceBasis``'s values; named
+#: here as strings so this module does not import the spec).
+_RESPONDENT_COUNT = "respondent_count"
+_KISH_EFFECTIVE_N = "kish_effective_n"
+#: Chunk 1d's fields: left out of the stored form when absent, so a relation stored before
+#: the evidence policy existed reads, and recomputes, byte for byte as it was stored.
+_POLICY_FIELDS = ("basis", "n_effective", "effect_floor", "meets_effect_floor")
 
 
 def _columns(ratings: Sequence[Sequence[float | None]]) -> list[list[float]]:
@@ -116,6 +136,12 @@ class PairRelations(BaseModel):
     there is none to compute; ``n`` counts those respondents; ``interval`` is the
     Fisher-z interval at ``confidence`` (``None`` below four raters); ``status``
     is :func:`~.sociomap.relations.pair_status` at ``n_min``.
+
+    The evidence policy (Q6, chunk 1d) adds, when it is declared: ``basis``, the n the
+    status and interval read (``kish_effective_n`` or ``respondent_count``);
+    ``n_effective``, each pair's Kish n under the Kish basis; and ``effect_floor`` with
+    ``meets_effect_floor``, the practical gate recorded beside the status, never inside
+    it. A relation computed before the policy carries none of them (``None``).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -126,17 +152,43 @@ class PairRelations(BaseModel):
     status: tuple[tuple[PairStatus | None, ...], ...]
     n_min: int
     confidence: float
+    basis: str | None = None
+    n_effective: tuple[tuple[float | None, ...], ...] | None = None
+    effect_floor: float | None = None
+    meets_effect_floor: tuple[tuple[bool | None, ...], ...] | None = None
 
     @model_validator(mode="after")
     def _square_and_pairwise(self) -> Self:
         m = len(self.r)
-        for name in ("r", "n", "interval", "status"):
+        for name in ("r", "n", "interval", "status", "n_effective", "meets_effect_floor"):
             matrix = getattr(self, name)
+            if matrix is None:
+                continue
             if len(matrix) != m or any(len(row) != m for row in matrix):
                 raise ValueError(f"{name} must be a {m} x {m} matrix like r")
             if any(matrix[i][i] is not None for i in range(m)):
                 raise ValueError(f"{name}: the diagonal is not a pair and must be None")
+        if self.basis not in (None, _RESPONDENT_COUNT, _KISH_EFFECTIVE_N):
+            raise ValueError(f"unknown evidence basis {self.basis!r}")
+        if (self.n_effective is not None) != (self.basis == _KISH_EFFECTIVE_N):
+            raise ValueError("n_effective is recorded exactly when the basis is Kish's n")
+        if (self.meets_effect_floor is not None) != (self.effect_floor is not None):
+            raise ValueError("meets_effect_floor is recorded exactly when a floor is declared")
         return self
+
+    @model_serializer(mode="wrap")
+    def _without_absent_policy(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        for name in _POLICY_FIELDS:
+            if body.get(name) is None:
+                body.pop(name, None)
+        return body
+
+    def evidence_n(self, i: int, j: int) -> float | None:
+        """The n pair ``(i, j)``'s status and interval read, on the recorded basis."""
+        if self.n_effective is not None:
+            return self.n_effective[i][j]
+        return self.n[i][j]
 
     def counts(self) -> dict[str, int]:
         """How many unordered pairs carry each status."""
@@ -156,6 +208,9 @@ def derive_pair_relations(
     *,
     n_min: int,
     confidence: float,
+    basis: str | None = None,
+    effect_floor: float | None = None,
+    design_weights: Sequence[float] | None = None,
 ) -> PairRelations:
     """Each pair's signed weighted correlation, its rater count, interval and status.
 
@@ -175,14 +230,31 @@ def derive_pair_relations(
     weighted design -- recorded for the audit's author with the plan's open
     points. Scaling each person's ratings before the correlation (F2) is chunk
     2a's and is applied to ``ratings`` before this call.
+
+    The evidence policy (Q6, chunk 1d), when the caller declares it: ``basis`` names the
+    n the status and interval read. ``respondent_count`` is the count above;
+    ``kish_effective_n`` is each pair's own Kish n over its valid respondents'
+    ``design_weights`` (default ``weights``), which a bootstrap passes apart from its
+    multiplicities so a resample's evidence is that of the distinct people it drew, not
+    of duplicated rows. ``effect_floor`` records ``meets_effect_floor = |r| >= floor``
+    beside each status, never inside it. ``None`` for both is the relation as computed
+    before the policy, unchanged.
     """
+    if basis not in (None, _RESPONDENT_COUNT, _KISH_EFFECTIVE_N):
+        raise ValueError(f"unknown evidence basis {basis!r}")
     cols = _columns(ratings)
     m = len(cols)
     w = [float(x) for x in weights]
+    dw = w if design_weights is None else [float(x) for x in design_weights]
+    if len(dw) != len(w):
+        raise ValueError("design_weights must weight the same respondents as weights")
+    kish = basis == _KISH_EFFECTIVE_N
     r: list[list[float | None]] = [[None] * m for _ in range(m)]
     n: list[list[int | None]] = [[None] * m for _ in range(m)]
     interval: list[list[Interval | None]] = [[None] * m for _ in range(m)]
     status: list[list[PairStatus | None]] = [[None] * m for _ in range(m)]
+    n_eff: list[list[float | None]] = [[None] * m for _ in range(m)]
+    meets: list[list[bool | None]] = [[None] * m for _ in range(m)]
     for i in range(m):
         for j in range(i + 1, m):
             ok = _common(cols[i], cols[j], w)
@@ -194,10 +266,22 @@ def derive_pair_relations(
                 corr = _clamped_correlation(*_weighted_moments(ok))
             r[i][j] = r[j][i] = corr
             n[i][j] = n[j][i] = len(ok)
+            size: float = len(ok)
+            if kish:
+                size = kish_effective_n(
+                    [
+                        d
+                        for x, y, ww, d in zip(cols[i], cols[j], w, dw, strict=True)
+                        if math.isfinite(x) and math.isfinite(y) and math.isfinite(ww) and ww > 0
+                    ]
+                )
+                n_eff[i][j] = n_eff[j][i] = size
             interval[i][j] = interval[j][i] = (
-                None if corr is None else fisher_interval(corr, len(ok), confidence)
+                None if corr is None else fisher_interval(corr, size, confidence)
             )
-            status[i][j] = status[j][i] = pair_status(corr, len(ok), n_min, confidence)
+            status[i][j] = status[j][i] = pair_status(corr, size, n_min, confidence)
+            if effect_floor is not None:
+                meets[i][j] = meets[j][i] = meets_effect_floor(corr, effect_floor)
     return PairRelations(
         r=tuple(tuple(row) for row in r),
         n=tuple(tuple(row) for row in n),
@@ -205,4 +289,10 @@ def derive_pair_relations(
         status=tuple(tuple(row) for row in status),
         n_min=n_min,
         confidence=confidence,
+        basis=basis,
+        n_effective=tuple(tuple(row) for row in n_eff) if kish else None,
+        effect_floor=effect_floor,
+        meets_effect_floor=(
+            tuple(tuple(row) for row in meets) if effect_floor is not None else None
+        ),
     )

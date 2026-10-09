@@ -183,11 +183,11 @@ def test_a_fictional_study_with_every_declared_input_reaches_its_maps(
     assert drinks.object_roles()["voda"] == "secondary" and drinks.roles_declared
 
     body = out["sociomap"]
-    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-2"]
+    assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
     assert [b["battery_id"] for b in body["batteries"]] == [drinks.id, moments.id]
     straight_liner = out["dataset"]["respondents"][STRAIGHT_LINER]["respondent_id"]
     for battery, set_body in zip(spec.batteries, body["batteries"], strict=True):
-        art = read_artifact(set_body["maps"]["aia-sociomap-2"])
+        art = read_artifact(set_body["maps"]["aia-sociomap-3"])
         assert isinstance(art, SociomapArtifactV3)
         # One rating universe for both families: every set's items and the declared q_kava,
         # each on its own declared scale; q_vek is not in it.
@@ -206,7 +206,7 @@ def test_a_fictional_study_with_every_declared_input_reaches_its_maps(
         assert [list(r) for r in art.relations.r] == set_body["relation_rescaled"]["r"]
         assert art.scores == set_body["object_scores"]
         assert set_body["methodology_status"] == "INTERNAL_ONLY"
-    drinks_map = read_artifact(body["batteries"][0]["maps"]["aia-sociomap-2"])
+    drinks_map = read_artifact(body["batteries"][0]["maps"]["aia-sociomap-3"])
     assert isinstance(drinks_map, SociomapArtifactV3)
     # Ten planted missing answers on the first drink: its height rests on fewer people.
     assert drinks_map.heights.support_n[0] == 110
@@ -257,6 +257,6 @@ def test_each_changed_input_is_a_new_specification_and_a_new_run(
     )
     assert again["sociomap"] == before["sociomap"]
     if change == "rating_input":
-        art = read_artifact(after["sociomap"]["batteries"][0]["maps"]["aia-sociomap-2"])
+        art = read_artifact(after["sociomap"]["batteries"][0]["maps"]["aia-sociomap-3"])
         assert isinstance(art, SociomapArtifactV3)
         assert ("q_kava", 5.0) in {(i.item_id, i.scale_max) for i in art.items}

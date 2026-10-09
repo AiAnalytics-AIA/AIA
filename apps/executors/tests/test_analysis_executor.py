@@ -739,11 +739,11 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
         {"method_id": method["method_id"], "spec_fingerprint": method["spec_fingerprint"]}
         for method in pinned
     ]
-    v2 = read_artifact(battery["maps"]["aia-sociomap-2"])
+    v2 = read_artifact(battery["maps"]["aia-sociomap-3"])
     assert isinstance(v2, SociomapArtifactV3)
     assert v2.support.respondents == n
     assert v2.spec.fingerprint() == next(
-        method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-2"
+        method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-3"
     )
     assert report.artifact_type == REPORT_ARTIFACT_TYPE
     assert report.metadata["run_id"] == started.run_id

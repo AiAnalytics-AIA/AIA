@@ -1,9 +1,9 @@
 """Versioned Sociomapping methodology: the ``SociomapSpec`` contract (2) and contract 3.
 
-Contract 3 (:class:`SociomapSpecV3`, preset :data:`AIA_SOCIOMAP_V2`) is the audit's object
-map and is described where it is defined, below; everything in this docstring up to there is
-contract 2's, unchanged. A stored spec names its contract (:func:`spec_payload`) and is read
-under it (:func:`read_spec`).
+Contract 3 (:class:`SociomapSpecV3`, presets :data:`AIA_SOCIOMAP_V2` and
+:data:`AIA_SOCIOMAP_V3`) is the audit's object map and is described where it is defined,
+below; everything in this docstring up to there is contract 2's, unchanged. A stored spec
+names its contract (:func:`spec_payload`) and is read under it (:func:`read_spec`).
 
 A Sociomapa is only reproducible if every methodology choice that shaped it is
 written down. This module makes each of them an explicit, fingerprinted field:
@@ -41,7 +41,14 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, Final
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from ..pipeline import fingerprint
 from .layout import (
@@ -57,6 +64,8 @@ from .terrain import TERRAIN66_OBJECT, TERRAIN66_RESPONDENT, TerrainParameters
 __all__ = [
     "AIA_SOCIOMAP_V1",
     "AIA_SOCIOMAP_V2",
+    "AIA_SOCIOMAP_V3",
+    "EFFECT_FLOOR_AIA_Q6",
     "FIXED_RULER_EXTENT",
     "SPEC_CONTRACTS",
     "SPEC_CONTRACT_V3",
@@ -347,9 +356,13 @@ class RelationEstimator(StrEnum):
 
 
 class PairEvidenceBasis(StrEnum):
-    """What ``n`` a pair's status reads (chunk 1d adds the Kish effective n)."""
+    """What ``n`` a pair's status and interval read (audit F3; Q6, chunk 1d)."""
 
+    #: The respondents who rated both objects (the audit's N_ij).
     RESPONDENT_COUNT = "respondent_count"
+    #: Kish's effective n of those respondents' weights, ``(sum w)^2 / sum w^2``: under a
+    #: weighted design the count overstates the evidence. AIA's Q6 decision (2026-10-09).
+    KISH_EFFECTIVE_N = "kish_effective_n"
 
 
 class ObjectHeightMetric(StrEnum):
@@ -371,11 +384,24 @@ class PairEvidenceSpec(_Frozen):
     basis: str
     n_min: int
     confidence: float
+    #: The practical floor on ``|r|`` (Q6's second gate, chunk 1d), recorded per pair as
+    #: ``meets_effect_floor`` beside the status, never folded into it. ``None`` declares no
+    #: such gate, which is what ``aia-sociomap-2`` was pinned with before the gate existed:
+    #: the key is then left out of the stored form, so that pin and its fingerprint read
+    #: unchanged.
+    effect_floor: float | None = None
 
-    @field_validator("n_min", "confidence", mode="before")
+    @field_validator("n_min", "confidence", "effect_floor", mode="before")
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
+
+    @model_serializer(mode="wrap")
+    def _without_absent_gate(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("effect_floor") is None:
+            body.pop("effect_floor", None)
+        return body
 
 
 class ObjectLayoutSpec(_Frozen):
@@ -458,7 +484,13 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
     if not _member(RelationEstimator, rel.estimator):
         problems["relation.estimator"] = f"unknown estimator {rel.estimator!r}"
     if not _member(PairEvidenceBasis, rel.basis):
-        problems["relation.basis"] = f"unknown basis {rel.basis!r} (the Kish n is chunk 1d's)"
+        problems["relation.basis"] = f"unknown basis {rel.basis!r}"
+    if rel.effect_floor is not None and not (
+        math.isfinite(rel.effect_floor) and 0.0 < rel.effect_floor < 1.0
+    ):
+        problems["relation.effect_floor"] = (
+            f"an effect floor lies strictly between 0 and 1; got {rel.effect_floor!r}"
+        )
     if rel.n_min < _V3_N_MIN_FLOOR:
         problems["relation.n_min"] = (
             f"n_min {rel.n_min} is below {_V3_N_MIN_FLOOR}: the Fisher interval needs four raters"
@@ -757,4 +789,25 @@ AIA_SOCIOMAP_V2 = SociomapSpecV3(
     connectedness=ConnectednessSpec(resamples=500, seed=20261007),  # audit F9's B; OI-62 seed
     respondent_placement=None,  # chunk 3
     terrain=None,  # chunk 4b
+)
+
+
+#: Q6's practical floor on ``|r|``, AIA's decision of 2026-10-09 (the audit leaves it open;
+#: its author may replace it). Below it a RELIABLE relation is precisely small, not strong.
+EFFECT_FLOOR_AIA_Q6: Final = 0.10
+
+# The audit's object map under AIA's Q5-Q7 decisions of 2026-10-09 (plan
+# ``sociomap-formula-corrections`` § 4a): positions from co-movement with level shown apart
+# (Q5 (c)); the pair evidence policy's two gates on Kish's n (Q6 (b) + (c)); mean rating as
+# the default height (Q7 (d) with (a)). Everything else is ``aia-sociomap-2``'s, unchanged.
+AIA_SOCIOMAP_V3 = AIA_SOCIOMAP_V2.model_copy(
+    update={
+        "methodology_version": "aia-sociomap-3",
+        "relation": AIA_SOCIOMAP_V2.relation.model_copy(
+            update={
+                "basis": PairEvidenceBasis.KISH_EFFECTIVE_N,  # AIA Q6 (c)
+                "effect_floor": EFFECT_FLOOR_AIA_Q6,  # AIA Q6 (b)
+            }
+        ),
+    }
 )

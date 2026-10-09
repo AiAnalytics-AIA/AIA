@@ -191,7 +191,59 @@
    "AUDIT-F14": "SPECIFIED",
    "AUDIT-F15": "SPECIFIED",
    "AUDIT-F16": "PENDING_PARAMETER"
-  }
+  },
+  "aia_decisions_scope": "Decisions AIA's product owner took on 2026-10-09 where the audit leaves a question to its author, so development can proceed. Each is AIA's, not the audit's: completeness above is unchanged, and the audit's author may replace any of them, which then becomes a new methodology version. Each names the preset that carries it.",
+  "aia_decisions": [
+   {
+    "question": "Q5",
+    "rules": [
+     "AUDIT-F2",
+     "AUDIT-F4",
+     "AUDIT-F6",
+     "AUDIT-F7",
+     "AUDIT-F8"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "c",
+    "decision": "Two concepts kept apart: positions from relative co-movement (per-person min-max, then Pearson, then the correlation distance); absolute level is shown separately, by default as height (Q7). Never read height as closeness.",
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.specification:AIA_SOCIOMAP_V3 (ratings and layout as aia-sociomap-2)"
+   },
+   {
+    "question": "Q6",
+    "rules": [
+     "AUDIT-F3"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "b+c",
+    "decision": "Two gates. Evidence sufficiency: UNKNOWN below n_min = 30, WEAK when the Fisher 95 % interval includes 0, RELIABLE otherwise, read on Kish's effective n of the pair's valid respondents' weights. Practical materiality: meets_effect_floor = |r| >= 0.10, recorded beside the state, never folded into it.",
+    "parameters": {
+     "basis": "kish_effective_n",
+     "n_min": 30,
+     "confidence": 0.95,
+     "effect_floor": 0.1
+    },
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.pairs:derive_pair_relations; relations:kish_effective_n, meets_effect_floor"
+   },
+   {
+    "question": "Q7",
+    "rules": [
+     "AUDIT-F8"
+    ],
+    "decided": "2026-10-09",
+    "by": "AIA product owner",
+    "option": "d with a",
+    "decision": "Height is selectable; the default in maps and reports is the mean rating on the declared 0-1 scale. Connectedness and alignment stay selectable analytical layers.",
+    "parameters": {
+     "height": "mean_rating_0_1"
+    },
+    "preset": "aia-sociomap-3",
+    "implementation": "aia_core.domain.sociomap.specification:ObjectHeightMetric.MEAN_RATING_0_1"
+   }
+  ]
  },
  "rules": [
   {
