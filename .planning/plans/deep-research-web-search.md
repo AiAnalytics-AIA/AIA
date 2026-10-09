@@ -44,7 +44,8 @@ chunks:
   - "[x] 40. Settings catalogue (ADR 0022): every policy value typed, bounded, with its proposed default"
   - "[x] 41. Settings store and service: immutable versions, append-only approvals, audit, the admin route"
   - "[x] 42. The Deep Research settings page: values, origins, history, approval, live readiness"
-  - "[ ] 43. Runs pin their settings; the engine reads the pin; method settings in reuse identity (harness 3)"
+  - "[x] 43a. Runs pin their settings: the pin and its digests on the run at enqueue, read back verified; the plan step fails a pin that does not hash to itself"
+  - "[ ] 43b. The engine reads the pin (presets, allowances, request limits, register, weights, the API's ceiling); the method digest in every cross-run reuse key (harness 3)"
   - "[ ] 44. Live needs approval: a run that would go live is refused until its organization approves every required setting"
   - "[x] 45. Injection evaluation: a held-out set of hostile and look-alike pages; the detector's recall and false alarms measured; a hostile page steers nothing"
   - "[x] 46. Retracted sources: a cited work's retraction read from OpenAlex and Crossref; a finding resting on a retracted work quarantined"
@@ -1169,7 +1170,46 @@ in code calls Gemini; the arm runs when chunk 26 does.
 
 ## 13. Measurements and decisions log
 
-(Chunk 1's decisions: none recorded yet.)
+**Chunk 1, decisions of the data owner, 2026-10-09** (in this session; the rest of chunk 1
+stays open):
+
+- **Search endpoint:** Brave's Web Search only, as chunk 3 built it; not the LLM Context
+  endpoint, whose page text is Brave's extract and could not be grounded as a capture AIA
+  made itself (§ 4, ADR 0017).
+- **The key (D8):** an SSM SecureString, the develop host's existing pattern; proposed name
+  `/aia/develop/deep-research/brave-api-key`, exported to the worker as
+  `AIA_DEEP_RESEARCH_BRAVE_API_KEY` (chunk 4). The owner reports the key is stored in AWS;
+  not verified from the agent session, which has no AWS access.
+- **Brave's terms:** read from Brave's public pages (the terms pages themselves are blocked
+  from the agent environment): Search plan $5 per 1,000 requests with $5 free credit a month;
+  storing results needs a plan that explicitly grants storage rights; query logs up to 90
+  days on standard plans, zero retention on Enterprise only. Whether keeping hit metadata
+  (URL, title, snippet, rank) for audit and resume needs storage rights, and whether failed
+  requests are billed, is for Brave support to answer (the question is drafted for the owner
+  to send). **Live search stays off until Brave answers.**
+- **The light model:** Claude Haiku 4.5 on Bedrock's EU route, Class C only, as the triage
+  model (its ADR 0010 policy entry is chunk 23's).
+- **PDF tables (chunk 6):** pdfplumber (MIT) may be added.
+- **Budgets, retention, register, weights, near-duplicate threshold:** left as proposed
+  defaults, to be approved on Settings → Deep Research; chunk 44 refuses live until they are.
+
+**Chunk 43a, 2026-10-09** (`feature/dr-settings-pin`): `domain/deep_research/settings.py`
+`pin` / `read_pin` (`SETTINGS_PIN_CONTRACT = "aia-dr-settings-pin-1"`): every key's value and
+origin (approval version, who, when), `pin_digest` over the whole body, `settings_digest` and
+`method_digest`; a pin from another catalogue, with a key missing or twice, or that does not
+hash to every digest it states is `SettingsPinCorrupt` by reason (`pin_unreadable`,
+`catalogue_changed`, `pin_altered`), never a default. `settings_in_force_for_study` reads the
+organization's settings through the enqueuing Study's own scope (no administration context is
+built). `DeepResearchRuns._enqueue` pins them on the run (`metadata.settings_pin`) and in the
+plan step's input beside the request; `run_settings(metadata)` reads them back verified (`None`
+for a run enqueued before pins). The plan step fails a pin that does not prove itself
+(`settings_<reason>`) before anything is asked. The pin is about 8 KB per run. Nothing reads
+its values yet, so with nothing approved every request, harness string and step fingerprint is
+harness 2's, unchanged (43b moves the engine and the harness). Known and left to 43b: the
+idempotency key is still the spec's alone, so a start repeated after an approval returns the
+run already enqueued under the old pin; 43b adds the method digest to it. Tests:
+`test_deep_research_settings_pin.py` (15), `test_deep_research_journey.py::
+test_a_run_whose_settings_pin_was_altered_is_never_executed`.
 
 - **Chunk 19, 2026-10-05** (`6309fe8`): near duplicates at the default 0.8, precision 11/11 and
   recall 11/24; at 0.7, precision 19/19 and recall 19/24; relevance R-precision 1.0, 0.8, 1.0, 1.0

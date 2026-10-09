@@ -766,6 +766,39 @@ def test_a_request_frozen_under_harness_one_is_never_executed_under_harness_two(
     assert agents.requests == [], "nothing was asked for a request of another method"
 
 
+def test_a_run_whose_settings_pin_was_altered_is_never_executed(
+    research: ResearchWorld,
+    database_url: str,
+    store: InMemoryArtifactStore,
+    build: Any,
+) -> None:
+    """ADR 0022 decision 4 (chunk 43): a run runs under the settings it pinned at enqueue,
+    and a pin that does not hash to itself fails the run closed before anything is asked."""
+    from aia_core.infrastructure.tables import StepRunRow
+    from sqlalchemy import select
+
+    approve_knowledge(research)
+    run_id = start(research)
+    with research.sessions() as session:
+        plan_row = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "plan")
+        ).one()
+        pinned = dict(plan_row.input_json["settings"])
+        pinned["method_digest"] = "0" * 64
+        plan_row.input_json = {**plan_row.input_json, "settings": pinned}
+        session.commit()
+
+    agents = RecordedAgents(ANSWERS)
+    w = worker(research, database_url, store, build, recorded(research, agents))
+    result = w.run_once()
+    assert result is not None and result.ending == "failed"
+    with research.sessions() as session:
+        run = DeepResearchRuns(session, research.lead_scope(session)).get(run_id)
+    [plan] = [s for s in run["steps"] if s["status"] is StepRunStatus.FAILED]
+    assert plan["attempts"][0]["error"]["reason"] == "settings_pin_altered"
+    assert agents.requests == [], "nothing was asked under settings the run cannot prove"
+
+
 @pytest.mark.parametrize(
     ("value", "problem"),
     [
