@@ -174,6 +174,16 @@ def test_a_disciplined_draft_passes(check: Any) -> None:
     assert [c.claim_id for c in result.admission.admitted] == ["c1", "c2", "c3"]
 
 
+def test_metric_label_wording_does_not_license_an_uncited_count(check: Any) -> None:
+    """Live repair exhausted on 'top-2'; natural wording needs no invented claim."""
+    raw = draft(key_findings=[{"text": "Top-2: 42,5 %.", "claim_ids": ["c1"]}])
+    assert check(raw).decision.codes == {ViolationCode.UNCITED_NUMBER}
+    raw["key_findings"][0]["text"] = "Podíl nejvyšších hodnocení je 42,5 %."
+    assert check(raw).decision.allowed
+    raw["key_findings"][0]["text"] = "Podíl nejvyšších hodnocení je 2 %."
+    assert check(raw).decision.codes == {ViolationCode.UNCITED_NUMBER}
+
+
 @pytest.mark.parametrize(
     "raw",
     [
