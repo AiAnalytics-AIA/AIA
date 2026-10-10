@@ -1038,8 +1038,8 @@ or is `Normal`". `lint.lint_docx` checks the real rule: no formatting element in
 LibreOffice shows a TOC field's cached result as-is and does not evaluate the
 `PAGEREF`s inside it; the renderer cannot know page numbers. Word updates them
 on open (`w:updateFields`). A LibreOffice preview therefore shows the entries
-and leaders without numbers — expected, not a defect. `STYLEREF` and `PAGE` in
-running heads LibreOffice does evaluate.
+and leaders without numbers — expected, not a defect. The AIA/study/client
+running head is literal; LibreOffice evaluates the footer's live `PAGE` field.
 
 **LibreOffice pads an inline picture by ~3 mm a side unless told not to.**
 python-docx writes `wp:inline` without `distT/B/L/R`. Word reads them as 0;
@@ -1841,23 +1841,37 @@ for name in ("w:pBdr", "w:shd", "w:contextualSpacing"):
         ppr.remove(inherited)
 ```
 
-A body-anchored full-page drawing with `behindDoc=1` can still obscure a footer
-if its background is opaque. The original cover SVG is vendored byte-for-byte;
-`cover.py` removes its full-page paper rectangle only from the derived SVG/PNG.
-Word owns the paper. Render the cover and check the draft footer visually: an
-XML assertion that the drawing is behind text does not prove the footer is visible.
+A body-anchored opaque full-page drawing can obscure the footer even with
+`behindDoc=1`. The field and lockup now live in a cover-only header, anchored
+relative to the page; the body remains editable. The exact original field SVG
+and its opaque PNG fallback keep the supplied paper color. Verify the cover
+footer visually: XML layering assertions alone do not establish visibility.
+
+**An SVG relationship belongs to the drawing's story part.** A header drawing
+whose SVG relationship exists only on the document part has an invalid vector
+reference even when its PNG fallback works. Cache shared image parts by digest,
+then relate each owning header/body part to that shared part.
 
 ```python
-# WRONG: the opaque paper rectangle can hide the draft footer.
-add_vector_image(
-    paragraph, svg_parts, svg=original_svg, png=opaque_fallback,
-    width_mm=210, height_mm=297, alt="AIA cover", name="AIA cover",
-)
-
-# RIGHT: preserve the source asset, derive transparent print artwork.
-svg, png = transparent_artwork_from_original()
-add_vector_image(
-    paragraph, svg_parts, svg=svg, png=png,
-    width_mm=210, height_mm=297, alt="AIA cover", name="AIA cover",
-)
+# WRONG: a header cannot resolve this body's relationship id.
+svg_rid = document.part.relate_to(svg_part, RT.IMAGE)
+# RIGHT: the story that owns the drawing owns its relationship.
+svg_rid = paragraph.part.relate_to(svg_part, RT.IMAGE)
 ```
+
+**LibreOffice ignores a placement-row height declared only in a table style.**
+The 120 mm cover block uses a direct exact 250 mm row height with bottom cell
+alignment. Without it the block collapses upward over the lockup. `trHeight` is
+layout geometry, admitted by DOCX lint alongside `tblW` and `tcW`; text metrics
+still belong to named styles. Render a long cover title and inspect for clipping.
+
+```python
+placement.rows[0].height = Mm(250)
+placement.rows[0].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.BOTTOM
+```
+
+**Transparent map PNGs can produce seams in document readers.** The print map
+canvas uses an opaque white ground, matching body pages. This removed a thin
+vertical seam from the 3D snapshot in LibreOffice PDF rendering; it changes no
+stored position, height, relation or terrain triangle.

@@ -1,9 +1,9 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Correct the cover and running page identity against the original design"
   - "[x] 2. Regenerate and visually verify the full report with both sociomaps"
-  - "[ ] 3. Publish and verify the corrected exporter"
+  - "[x] 3. Publish and verify the corrected exporter"
 ---
 # Report brand fidelity
 
@@ -22,3 +22,11 @@ Read `design/tokens.json` and generated `print_tokens.py` for the supplied typog
 The full 19-page example was rendered and every page visually reviewed. Its 37 authored summaries, answers and findings from eight frozen analysis artifacts remain present; both top and 3D map snapshots are embedded. Thirty live contents/figure/table page references in the offline example were cached from actual rendered PDF destinations, without changing the runtime exporter or inventing pagination. No paid model call or new research run was made.
 
 Local checks: 162 report/analysis/companion tests, 356 API tests, 54 worker tests, 385 executor tests and 668 web tests passed; typecheck, layering (101), exposure (7), formatting and design checks passed. Full core verification: 5510 passed, 104 infrastructure/reference tests skipped, one existing strict map-fixture byte comparison fails on macOS. Its 147 numerical differences are at most 7.105427357601002e-15 and alter the artifact fingerprint. Map computations and fixtures are untouched; Linux CI must pass before merge/deployment. No gate or test was weakened.
+
+## Publication receipt
+
+Feature PR #232 merged as `2e12f4fe2dd8dd9b49989a6de248926ef74773a5`. PR CI run `38061096312` passed; the complete exact-merge develop CI run `38062341573` also passed, including the PostgreSQL and SQLite suites, frontend checks and application-start lifecycle. Reference-dependent parity suites reported NOT_EXECUTED because their reference secrets were absent; this is not a scientific parity verification.
+
+Automatic develop deployment `38064289445` succeeded. Independent public checks at 2026-10-10 15:41:43 UTC confirmed `/api/v1/health` status ok with the exact merged SHA, `/version` with the same SHA, and `/api/v1/ready` with the database ok. New report exports use the corrected design; historical frozen report artifacts remain immutable.
+
+Separate docs-only PR #233 reconciles the shared document triad and carries this completion receipt. The final 19-page corrected example is stored in the task output directory; its SHA-256 is `9aae222c090cc11a349e0c1ff86127309c2c025c8b6c806ebdfb0efcc0739c03`. Both map views are explicitly labelled verification redraws from frozen responses and method pins; the example does not claim to recover the original stored map bytes.

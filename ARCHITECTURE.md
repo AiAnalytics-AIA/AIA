@@ -302,17 +302,22 @@ confirm it passes before committing.
 - **An internal report is a view of admitted analysis and the same run's frozen map.**
   `aia_executors/report.py` waits for eight analysis nodes and `sociomap`, rebuilds
   admission, then verifies the map's dataset SHA and specification fingerprint.
-  Native report contract `aia-internal-report-3` includes the map SHA in reuse
+  Native report contract `aia-internal-report-4` includes the map SHA in reuse
   identity and stores all nine dependencies. Its images project contract-3 stored
   positions, heights and finite terrain triangles without fitting new geometry.
   The reading guide describes signed correlation distance targets, the planar
   approximation and each pair's sign/support; gaps remain gaps.
   `application/report_maps.py` supplies prose/table blocks and takes image bytes;
   print drawing remains in infrastructure. Missing maps are explained, missing
-  required images and corrupt inputs are refused. The original Claude Design
-  Deliverable cover/styles are the document authority. Frozen historical exports
+  required images and corrupt inputs are refused. The user-supplied 10 October
+  2026 Claude Design Client Report Template is
+  the print authority: original lockup and field, bottom-aligned editable cover,
+  Source Serif 4 prose, IBM Plex Sans metadata and AIA/study/client running head
+  with fine horizontal rules. Methodology precedes audience context, object
+  findings and maps; admitted module prose is preserved. Table column weights
+  are finite and positive and affect layout only. Frozen historical exports
   stay immutable; new exports use the new contract. The experimental companion
-  report shares the updated renderer under `aia-sociomapping-report-2`. Internal,
+  report shares the updated renderer under `aia-sociomapping-report-3`. Internal,
   synthetic and pending-methodology gates do not become client approvals.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
