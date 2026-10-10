@@ -214,17 +214,17 @@ forbid "executors never touch the prompt tables" \
 # and read only through their repository, which validates every value against the catalogue,
 # refuses anyone who may not administer, keeps versions immutable and audits every change.
 forbid "the Deep Research settings tables are touched only by their repository" \
-  'DeepResearchSetting(Version|Approval)Row' \
+  'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$CORE" \
   tables.py deep_research_settings_repository.py
 forbid "the API never touches the Deep Research settings tables" \
-  'DeepResearchSetting(Version|Approval)Row' \
+  'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$API"
 forbid "the worker never touches the Deep Research settings tables" \
-  'DeepResearchSetting(Version|Approval)Row' \
+  'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$WORKER"
 forbid "executors never touch the Deep Research settings tables" \
-  'DeepResearchSetting(Version|Approval)Row' \
+  'DeepResearch(Setting(Version|Approval)|Test(Policy|Approval))Row' \
   "$EXECUTORS"
 
 # Fan-out's shared state (Deep Research chunk 21): one request per host at a time and at
