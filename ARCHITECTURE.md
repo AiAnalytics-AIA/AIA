@@ -149,6 +149,29 @@ To add one: state it in the script beside its `forbid` line and under Doc
 follow-up in the PR (the docs PR adds it to the table above; CLAUDE.md §1), then
 confirm it passes before committing.
 
+
+### Scoped research testing
+
+An organization administrator may propose and approve a separate expiring test policy
+for one explicitly fictional study (`infrastructure/deep_research_settings_repository.py:437
+@ db6db022`). It never writes organization setting versions or approvals. The normal
+organization reader remains unchanged. The repository resolves the newest study approval
+only in local/test/develop, through the exact organization, client and study, with the
+client on the existing fictional-client allowlist, a live expiry and a positive study
+budget no larger than the approved cap (maximum USD 20). It validates every required
+live setting and records provider test permission; values do not establish a permanent
+provider entitlement. Proposals carry a seal, and approvals/withdrawals are append-only
+and audited under the existing independent-review rule. Newest withdrawal or expiry
+never revives an older grant (`test_deep_research_sandbox_policy.py @ db6db022`).
+
+The enqueue stores the exact `test_policy_approval` receipt alongside its normal settings
+pin (`application/deep_research.py:657 @ db6db022`). An existing run retains its pinned
+authority; later scope, environment, budget, expiry or withdrawal checks apply to new
+enqueues. Per-call study reservations, material classification, network/robots rules and
+evidence admission continue to apply. The two test-policy tables are readable/writable
+only by the settings repository (`tools/layer_check.sh:217 @ db6db022`); no request body
+can grant approval or supply deployment prices.
+
 ## 4. Contracts at boundaries
 
 - **A protocol at every swappable seam.** Every external service has a protocol,

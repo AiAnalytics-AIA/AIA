@@ -462,3 +462,31 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 | DR-5 | Depth presets and default run budget | A run must name a proposed preset |
 | D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |
 | — | Which public terms are harmless (ENTITY/TERM `public`) | Every approved ENTITY/TERM is a client term |
+
+## A fictional study can hold a separate test approval
+
+An operator can use `DeepResearchSettingsRepository.propose_test_policy` and
+`approve_test_policy` (`infrastructure/deep_research_settings_repository.py:437,510
+@ db6db022`) for an explicit sandbox. These are the administrator repository seam, not
+request endpoints. A complete validated configuration, owner-attested provider test
+permission, expiry no farther than seven days and positive budget cap no greater than
+USD 20 are mandatory. Proposing does not activate it; approving follows the existing
+organization independent-review policy and appends an audit record. Withdrawal appends
+another approval record without mutating the proposal.
+
+`settings_in_force_for_study` (`infrastructure/deep_research_settings_repository.py:208
+@ db6db022`) overlays it only for the exact organization, client and study. Local/test/
+develop and the fictional-client allowlist must still admit the client; the study budget
+must remain positive and within the approved cap. Expiry or withdrawal stops new
+paid jobs without reviving earlier grants. Other studies and the organization catalogue
+retain the normal policy. The run records `test_policy_approval` (policy and approval IDs,
+seal, scope, budget, expiry, approver and provider-permission note) beside its settings
+pin (`application/deep_research.py:657 @ db6db022`). Existing runs remain frozen; the
+receipt does not widen query classifications or evidence admission.
+
+The additive migration `20261010_b2d4f6a8c0e1_study_test_research_policies.py @ db6db022`
+creates the immutable `deep_research_test_policies` and append-only
+`deep_research_test_approvals` tables. Scope, expiry, withdrawal, independent approval,
+paid enqueue, budget and seal tests are in `test_deep_research_sandbox_policy.py
+@ db6db022`. A provider test permission is temporary evidence for that sandbox, not
+an organization-wide approval or a permanent subscription/contract claim.

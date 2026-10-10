@@ -446,8 +446,10 @@ packages/aia_core/src/aia_core/
                             (a new revision each time)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
     deep_research_settings_repository.py  The ONLY reader/writer of the Deep Research settings
-                            tables (propose, approve, history); settings_in_force_for_study, what an
-                            enqueue pins
+                            tables (propose, approve, history); immutable study-test policy proposals and
+                            append-only scoped approvals (tables.py:1669 @ db6db022), with catalogue,
+                            expiry, fictional-client and USD 20 guards; settings_in_force_for_study,
+                            what an enqueue pins (deep_research_settings_repository.py:208 @ db6db022)
     workflow_repository.py  Durable jobs, lease-fenced writes, cost reservations,
                             the population binding each run records; WorkQueue --
                             the only cross-study surface (claim, recover, resume, refuse);

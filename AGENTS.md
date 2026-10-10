@@ -1900,3 +1900,21 @@ reference is not a read academic paper. Keep source-reading and grounding gates
 intact. Anchors: `packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py:517 @ 96e4f58f`,
 `apps/executors/src/aia_executors/deep_research/agent_directed.py:266 @ 96e4f58f`;
 English routing/refusal tests in `test_web_retrieval_live.py`.
+
+## Canonical policy seals and numeric database round trips
+
+A SQL Float column reads an integer-valued input back as a float. Canonical JSON
+distinguishes `20` from `20.0`; hashing the input integer and later hashing the stored
+float falsely reports corruption. The sandbox approval tests caught this before release.
+
+```python
+# WRONG: budget may be int before persistence and float afterwards.
+{"budget_cap_usd": policy.budget_cap_usd}
+
+# RIGHT: normalize the storage type before sealing and verifying.
+{"budget_cap_usd": float(policy.budget_cap_usd)}
+```
+
+See `infrastructure/deep_research_settings_repository.py:246 @ db6db022` and
+`test_deep_research_sandbox_policy.py::test_sandbox_approval_is_audited_scoped_and_pinned
+@ db6db022`. Keep the seal check; normalize the value rather than weakening verification.
