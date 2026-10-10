@@ -57,7 +57,11 @@ _TITLES = {
 
 
 def compose_internal_report(
-    run: RunAnalysis, meta: ReportMeta, *, map_sections: tuple[Section, ...] = ()
+    run: RunAnalysis,
+    meta: ReportMeta,
+    *,
+    map_sections: tuple[Section, ...] = (),
+    context_sections: tuple[Section, ...] = (),
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -113,6 +117,16 @@ def compose_internal_report(
                 BulletList(tuple(ListItem(text(q)) for q in reference.research_questions)),
             ]
         )
+    if context_sections:
+        introduction.append(
+            Paragraph(
+                text(
+                    "Literární rešerše po odpovědích na výzkumné otázky vysvětluje dostupné "
+                    "externí poznání, uvádí jeho zdroje a vymezuje jeho použitelnost. "
+                    "Studijní výsledky a externí podklady mají oddělenou evidenci."
+                )
+            )
+        )
     if labels.simulated_respondents:
         introduction.append(
             Callout(
@@ -144,6 +158,7 @@ def compose_internal_report(
     for module_id in order:
         spec = specs[module_id]
         if module_id is AnalysisModuleId.AUDIENCE:
+            sections.extend(context_sections)
             sections.append(
                 Section(
                     "Metodika a způsob interpretace",

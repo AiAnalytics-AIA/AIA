@@ -15,9 +15,18 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.contextual_report import contextual_report
+from aia_core.application.deep_research import (
+    BundleNotReady,
+    DeepResearchRunNotFound,
+    LineageChanged,
+    RunNotGoverned,
+    RunSpecCorrupt,
+)
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
+    ReportCompositionRefused,
 )
 from aia_core.application.research import (
     BudgetNotRaised,
@@ -35,6 +44,7 @@ from aia_core.application.research import (
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
+from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from aia_core.domain.workflow import StepRunStatus
@@ -984,6 +994,58 @@ def download_run_report(
 
 
 # The experimental Sociomapping's internal draft, read only through the run that produced it.
+
+
+@router.get(
+    "/research/runs/{run_id}/report/context/download",
+    response_class=Response,
+    summary="Internal report with an explicitly selected interpretation research run",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_contextual_report(
+    run_id: RunIdPath,
+    deep_research_run_id: Annotated[str, Query(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")],
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+
+    try:
+        document = contextual_report(
+            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+        )
+        data = DocxRenderer().render(document)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except (ResearchRunNotFound, DeepResearchRunNotFound) as exc:
+        raise _not_found("run") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except (
+        ReportCompositionRefused,
+        ReconstructionRefused,
+        ReportInvalid,
+        BundleNotReady,
+        LineageChanged,
+        RunNotGoverned,
+        RunSpecCorrupt,
+        ArtifactNotFound,
+        ValueError,
+    ) as exc:
+        raise HTTPException(
+            409, detail={"code": "context_report_refused", "message": str(exc)}
+        ) from exc
+    return Response(
+        content=data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="AIA-{scope.study_id}-with-research.docx"'
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 def _sociomapping_report(

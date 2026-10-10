@@ -567,6 +567,9 @@ export type DeepResearchRun = {
   retryable: boolean; created_at: string | null;
   steps: { node_key: string; status: string; waiting_reason: string | null; error_message: string | null }[];
   actual_cost_usd: number | null;
+  purpose?: string | null;
+  target?: { kind: string; research_run_id?: string } | null;
+  title?: string | null;
 };
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
@@ -574,16 +577,26 @@ export type DeepResearchBundle = {
   quarantined: { reason: string; detail?: string }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
   counts: Record<string, number>; sha256: string;
+  synthesis?: { check: { summary: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
+  origins?: string[];
 };
 const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;
 export const deepResearch = {
+  interpret: (studyId: string, runId: string, analysisArtifactId: string, preset: "QUICK" | "STANDARD", confirmCostUsd?: number) =>
+    request<DeepResearchRun>("POST", `${deepPath(studyId)}/interpretation`, {
+      target: { kind: "ANALYSIS_MODULE", research_run_id: runId, analysis_artifact_id: analysisArtifactId, module_id: "research_questions" },
+      preset_name: preset, channels: ["WEB"], title: "Literární rešerše pro interpretaci studie",
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+    }),
+  downloadContextReport: (studyId: string, runId: string, deepRunId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
   run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
-  retry: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`),
+  retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
 };
 
 export type ResearchAgentAction = "analyze_brief" | "build_questionnaire" | "optimize_questionnaire" | "propose_audience" | "suggest_dimensions" | "critique_design" | "design_copilot" | "answer_memory";

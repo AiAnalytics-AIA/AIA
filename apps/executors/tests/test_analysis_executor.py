@@ -33,7 +33,9 @@ from aia_core.application.analysis_results import (
     SourcesRefused,
     reconstruct_run,
 )
+from aia_core.application.contextual_report import contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
+from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
@@ -831,6 +833,16 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 assert provenance.target == result_target
                 assert provenance.lineage == frozen.lineage
                 assert runs.resolve_lineage(interpreted.run_id, store=store) == frozen.lineage
+                combined = contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert any(s.id == "literature" for s in combined.sections)
+                assert any((s.id or "").startswith("ch-native-map-") for s in combined.sections)
+                assert DocxRenderer().render(combined).startswith(b"PK")
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
                 record_property(
@@ -842,6 +854,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
             assert {run["run_id"] for run in runs.runs()} == {deep_run_id, *interpretation_ids}
             assert runs.bundle(deep_run_id, store=store).sha256 == bundle_seal
             assert research_artifacts(session, scope, store).get(report_id).sha256 == report.sha256
+            with pytest.raises(ReportCompositionRefused, match="does not interpret"):
+                contextual_report(
+                    session, scope, store, run_id=started.run_id, deep_research_run_id=deep_run_id
+                )
         assert len(agents.requests) > deep_calls
         assert len(models.requests) == fieldwork_analysis_calls
         assert worker.run_once() is None
