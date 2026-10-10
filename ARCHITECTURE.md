@@ -299,6 +299,21 @@ confirm it passes before committing.
   (`aia_executors/analysis.py`) runs one module per step: what code can refuse is stored
   `BLOCKED` before anything is reserved, a gate refusal after three turns is an outcome
   too, and a provider failure is never one -- it goes back to the worker's recovery rules.
+- **An internal report is a view of admitted analysis and the same run's frozen map.**
+  `aia_executors/report.py` waits for eight analysis nodes and `sociomap`, rebuilds
+  admission, then verifies the map's dataset SHA and specification fingerprint.
+  Native report contract `aia-internal-report-3` includes the map SHA in reuse
+  identity and stores all nine dependencies. Its images project contract-3 stored
+  positions, heights and finite terrain triangles without fitting new geometry.
+  The reading guide distinguishes unsigned relationship-strength distances from
+  signed correlations and describes fit quality and support; gaps remain gaps.
+  `application/report_maps.py` supplies prose/table blocks and takes image bytes;
+  print drawing remains in infrastructure. Missing maps are explained, missing
+  required images and corrupt inputs are refused. The original Claude Design
+  Deliverable cover/styles are the document authority. Frozen historical exports
+  stay immutable; new exports use the new contract. The experimental companion
+  report shares the updated renderer under `aia-sociomapping-report-2`. Internal,
+  synthetic and pending-methodology gates do not become client approvals.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.
