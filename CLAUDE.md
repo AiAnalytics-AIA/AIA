@@ -396,8 +396,8 @@ packages/aia_core/src/aia_core/
                             ScopeResolver, in its own transaction; missing is not lost until said so
   infrastructure/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
-      cover.py, assets/     Original Claude Design population-field SVG, behind editable cover text;
-                            derived transparent vector/PNG background preserves the draft footer
+      cover.py, assets/     Original Claude Design lockup/field SVGs in a cover-only header;
+                            editable bottom-aligned cover text and preserved draft footer
       object_map_figure.py  Deterministic top/3D PNG snapshots from stored contract-3 points, heights
                             and finite terrain triangles; no layout or terrain recomputation
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
