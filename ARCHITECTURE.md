@@ -305,8 +305,8 @@ confirm it passes before committing.
   Native report contract `aia-internal-report-3` includes the map SHA in reuse
   identity and stores all nine dependencies. Its images project contract-3 stored
   positions, heights and finite terrain triangles without fitting new geometry.
-  The reading guide distinguishes unsigned relationship-strength distances from
-  signed correlations and describes fit quality and support; gaps remain gaps.
+  The reading guide describes signed correlation distance targets, the planar
+  approximation and each pair's sign/support; gaps remain gaps.
   `application/report_maps.py` supplies prose/table blocks and takes image bytes;
   print drawing remains in infrastructure. Missing maps are explained, missing
   required images and corrupt inputs are refused. The original Claude Design
