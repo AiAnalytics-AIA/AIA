@@ -55,25 +55,39 @@ and no approval or tenant (`legacy/npc-panel-18.6.6/app/project_memory.py`,
 
 - **M1. Find.** One search over the client's own studies (`accessible_studies` within the
   client of the scope), matching name, goal, research questions and dimension titles from each
-  study's latest Design Revision. A study of another client is never returned. Replaces the
-  name-only filter in `GlobalPages.tsx` and the client workspace's study list.
+  study's latest Design Revision. A study of another client is never returned. The search
+  lives under the client (its id from the client workspace's route, never inferred); the
+  global Projektová paměť page (`GlobalPages.tsx` `MemoryPage`, which today aggregates every
+  accessible client's studies) asks for a client first and issues the same per-client search,
+  never one across clients. Replaces its name-only filter and the client workspace's.
   *Done when:* a search names the studies whose design matches, and a test shows another
   client's matching study absent.
 - **M2. Inspect.** A past study's page, read-only: its Design Revisions, its runs and their
   results through the existing study routes, with every label the result carries (synthetic,
   draft, `INTERNAL_ONLY`, suppression). No new reader: `research_artifacts` stays the only one.
 - **M3. Reuse the design.** From a past study, "start from this design" into a new or an
-  existing study of the same client: the new Design Revision is submitted through
-  `submit_if_current` by the person who asked, and records its source (source study id and
-  Design Revision id) and the source's labels in a provenance field of its own (today a
-  revision's provenance is only `source_stage`, `study_design_repository.py:34-36`); the
+  existing study of the same client, by the person who asked. Into an existing design it is
+  submitted through `submit_if_current` against that study's own latest revision; into a study
+  with no design yet, `submit_if_current` has nothing to compare (it rejects a study with no
+  latest revision, `study_design_repository.py:146-163`), so the first revision goes through
+  `submit` (`:103`), or one repository operation that takes either case explicitly. The new
+  revision records its source (source study id and Design Revision id) and the source's
+  labels in a provenance field of its own (today a revision's provenance is only
+  `source_stage`, `study_design_repository.py:34-36`). **The labels are derived by one
+  conservative rule, never picked:** over every run executed of that source revision, the
+  union of what they carry (any synthetic fieldwork origin makes the source synthetic; any
+  report `DRAFT_UNAPPROVED` makes it draft; no run makes it "never run"), recorded with the
+  run and report artifact ids it was derived from, so a later run of the source cannot
+  change what was cited. The
   same may be done for one part (questionnaire, dimensions). The labels are shown wherever the
   new design is, and nothing in the new study counts the source's data as evidence.
   *Done when:* a reused design opens in the new study with its citation and labels, and the
   source study's revisions are unchanged.
 - **M4. Proof.** One connected test: reuse from a synthetic source, the source's revisions and
-  artifacts byte-identical afterwards, the labels on the new revision, and another client's or
-  another organization's request for the source a 404.
+  artifacts byte-identical afterwards, the labels on the new revision, and **both** refusals
+  asserted separately: a sibling client's request for the source in the same organization is a
+  404, and another organization's request is a 404 (one passing cannot stand for the other: an
+  organization predicate alone would pass the second and still expose a sibling client).
 
 ## After the MVP
 
