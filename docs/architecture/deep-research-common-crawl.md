@@ -1,8 +1,9 @@
 # Deep Research: Common Crawl's URL index and archived pages
 
 Plan chunk 18 of [`.planning/plans/deep-research-web-search.md`](../../.planning/plans/deep-research-web-search.md)
-(§ 5.3 `archive`, § 7 ladder rung 9). Built and tested offline on 2026-10-06; **registered in no
-composition** (chunk 23 wires it, chunk 27 runs it live). Anchors are to commit `416733e` on
+(§ 5.3 `archive`, § 7 ladder rung 9). Built and tested offline on 2026-10-06; composed by
+`deep_research_live.common_crawl_archive` behind `AIA_DEEP_RESEARCH_COMMON_CRAWL` (chunk 23e,
+#221); chunk 27 runs it live. Anchors are to commit `416733e` on
 `feature/dr-common-crawl`.
 
 ## What it does
@@ -59,9 +60,11 @@ obtains the permit, from its own live attempt of the page.
   query is asked to stop) leaves the scan unknown: the call is journaled `UNCERTAIN` and charged
   the reservation. A 4xx at start scanned nothing. A `FAILED` or `CANCELLED` query is charged what it
   reports scanned. A scan beyond the cutoff is charged as reported, never capped in AIA's favour.
-- **Refused today.** The route has a price, and the tool meter cannot yet charge a study
-  (`ToolMeter.charges_study_budget`), so the gate refuses it (`tool_metering_unavailable`) until the
-  generalized ledger exists. Tested: `::test_a_paid_index_is_refused_while_tool_spend_cannot_be_charged_to_the_study`.
+- **Charged to the study.** The route has a price, so the gate refuses it under a meter that
+  cannot charge a study (`tool_metering_unavailable`; tested:
+  `::test_a_paid_index_is_refused_while_tool_spend_cannot_be_charged_to_the_study`). The worker's
+  `StepToolMeter` does charge one (#217): each query is held against the study's budget at the
+  reservation before it starts, and the route needs its organization's sign-off (ADR 0022).
 - **The price is configuration.** `common_crawl_settings` (`infrastructure/common_crawl.py:720 @ 416733e`)
   reads `AIA_DEEP_RESEARCH_COMMON_CRAWL_{WORKGROUP,DATABASE,TABLE,MAX_SCAN_BYTES,USD_PER_TB_SCANNED,MIN_BILLED_BYTES,BILLING_INCREMENT_BYTES,PRICES_AS_OF}`;
   every key is required and has no default. **Proposed** values for chunk 23, from an unverified
