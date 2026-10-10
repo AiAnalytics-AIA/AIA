@@ -127,7 +127,10 @@ from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import ArtifactNotFound, ArtifactStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
-from ..infrastructure.deep_research_settings_repository import settings_in_force_for_study
+from ..infrastructure.deep_research_settings_repository import (
+    settings_in_force_for_study,
+    test_approval_receipt_for_study,
+)
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
@@ -611,6 +614,7 @@ class DeepResearchRuns:
         # on the run; an approval after this changes only runs enqueued after it.
         in_force = settings_in_force_for_study(self.session, self.scope)
         settings_pin = pin(in_force)
+        test_approval = test_approval_receipt_for_study(self.session, self.scope)
         key = f"{DEEP_RESEARCH}:spec:{spec_fingerprint}"
         if retry_of:
             key += f":retry:{retry_of}"
@@ -650,6 +654,7 @@ class DeepResearchRuns:
             steps=steps,
             idempotency_key=key,
             metadata={
+                **({"test_policy_approval": test_approval} if test_approval is not None else {}),
                 "design_revision_id": request.design_revision_id,
                 "design_revision": request.design_revision,
                 "request_fingerprint": request_fingerprint,

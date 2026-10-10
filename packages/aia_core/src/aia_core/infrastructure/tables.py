@@ -1666,6 +1666,61 @@ class DeepResearchSettingApprovalRow(Base):
 # --------------------------------------------------------------------------- #
 
 
+class DeepResearchTestPolicyRow(Base):
+    """Immutable operator proposal for one fictional study, never an organization policy."""
+
+    __tablename__ = "deep_research_test_policies"
+    policy_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    values_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    policy_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    budget_cap_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    provider_permission: Mapped[str] = mapped_column(String(1000), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        UniqueConstraint(
+            "policy_id", "organization_id", "study_id", name="uq_dr_test_policy_scope"
+        ),
+        CheckConstraint(
+            "budget_cap_usd > 0 and budget_cap_usd <= 20", name="dr_test_budget_bounded"
+        ),
+    )
+
+
+class DeepResearchTestApprovalRow(Base):
+    """Append-only approval or withdrawal; newest study row wins, including expiry."""
+
+    __tablename__ = "deep_research_test_approvals"
+    approval_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    policy_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    approved: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    approved_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    approved_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["policy_id", "organization_id", "study_id"],
+            [
+                "deep_research_test_policies.policy_id",
+                "deep_research_test_policies.organization_id",
+                "deep_research_test_policies.study_id",
+            ],
+        ),
+        Index("ix_dr_test_approvals_scope", "organization_id", "study_id", "approval_id"),
+    )
+
+
 class HostPolitenessRow(Base):
     """One public host's turn: who is requesting it now, and when it may be asked next.
 
