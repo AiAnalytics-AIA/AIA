@@ -30,6 +30,9 @@ beforeEach(() => {
       urls.push(u);
       if (u === "/config") return new Response(JSON.stringify({ apiBase: "", aiRuntime: null }));
       if (u === "/api/v1/workspace/me") return new Response(JSON.stringify({ user_id: "USR-1", email: "a@example.test", organization_role: "MEMBER", may_administer: false }));
+      if (u === "/api/v1/population") {
+        return new Response(JSON.stringify({ dataset_id: "cz_synthetic_population", contract_id: "c", versions: [], populations: [], history: [] }));
+      }
       if (u === "/api/v1/studies/STU-2/workspace") {
         return new Response(JSON.stringify({
           study: { study_id: "STU-2", client_id: "CLI-a", name: "Cenové scénáře", kind: "SIMULATION", status: "ACTIVE" },
@@ -61,10 +64,12 @@ describe("what AIA does not have yet", () => {
     expect(screen.queryByRole("link", { name: /klasick/i })).toBeNull();
   });
 
-  it("the shared layer says the 18.6.6 Data Library is not in AIA", () => {
+  it("the shared layer says the 18.6.6 Data Library is not in AIA", async () => {
     render(<IntelligencePage />);
     expect(screen.getByText(t("aia.intelligence.notInAia")).getAttribute("role")).toBe("status");
     expect(screen.queryByRole("link", { name: /klasick|Data Library/i })).toBeNull();
+    // The population registry beneath it, empty: research answers with fictional respondents.
+    expect(await screen.findByText(t("aia.intelligence.population.empty"))).toBeTruthy();
   });
 
   it("settings offer no way into the classic interface or its project store", async () => {
