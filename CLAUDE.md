@@ -179,7 +179,7 @@ apps/
     deep_research_runtime.py  AIA_DEEP_RESEARCH_ENABLED: needs research agents; the search route is
                             AIA_DEEP_RESEARCH_WEB_SEARCH = off | wikipedia | brave (unset: the old
                             AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED decides); off blocks every web track
-                            and sends nothing. deep_research_live.py builds each: Czech Wikipedia
+                            and sends nothing. deep_research_live.py builds each: Czech and English Wikipedia
                             (fee-free, Class C only); brave (priced, NON_EU, Class C only) needs the
                             public fetch's contact, AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000,
                             …_PRICES_AS_OF and …_BRAVE_API_KEY (a reference, never kept or logged).
@@ -364,6 +364,10 @@ packages/aia_core/src/aia_core/
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
+    contextual_report.py    Combined internal report over an explicitly selected completed interpretation
+                            run: scoped ownership, bundle seal and exact frozen lineage; checked synthesis,
+                            accepted sources, supported measures and coverage limits; external L citations
+                            stay outside respondent evidence. Read-only export, original report unchanged.
     report_maps.py          Internal chapters from frozen object maps and supplied print snapshots;
                             reading guide, fit/support and signed relationship table
     workflows.py            start_workflow: a run from a template, idempotent per revision
@@ -468,7 +472,7 @@ packages/aia_core/src/aia_core/
     web_retrieval.py        WebFetcher (every hop and address checked, caps, HTML to a content-
                             addressed snapshot); search/fetch protocols; recorded doubles (they say
                             RECORDED and nothing else). The one live route is web_retrieval_live.py:
-                            fee-free Czech Wikipedia, pinned IP, no proxy, no other host
+                            fee-free Czech/English Wikipedia, separately pinned IP/host, no proxy
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
 
 migrations/                 Alembic
@@ -650,7 +654,7 @@ respondent context, which is re-screened against the final questionnaire. It run
 worker as six steps whose every unit is an artifact with a fingerprint, so a later pass buys only
 what changed. Its executors are in the worker's default registry and its route in the API, but a
 run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a runtime; the live search routes are
-fee-free Czech Wikipedia and priced Brave (`AIA_DEEP_RESEARCH_WEB_SEARCH`, Class C), with Common
+fee-free Czech/English Wikipedia and priced Brave (`AIA_DEEP_RESEARCH_WEB_SEARCH`, Class C), with Common
 Crawl's priced index and fee-free archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`). A priced
 call is held against the study's budget before it leaves, and a priced route runs only once its
 organization has approved every setting live needs on Settings → Deep Research (ADR 0022). With

@@ -1875,3 +1875,28 @@ cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.BOTTOM
 canvas uses an opaque white ground, matching body pages. This removed a thin
 vertical seam from the 3D snapshot in LibreOffice PDF rendering; it changes no
 stored position, height, relation or terrain triangle.
+
+
+## Search protocols: preserve the requested language
+
+A search adapter with only `search()` is a single-language composition even if the
+investigator supplied English terms. The first live result-stage library review
+sent English requests to Czech Wikipedia: twelve searches, no accepted evidence,
+USD 0.4151301. Treating a successful HTTP request as a correctly targeted search
+hid the gap.
+
+```python
+# WRONG — silently use the composition's default language for every request
+search_adapter.search(query.text, max_results=limit)
+
+# RIGHT — implement LanguageSearch and route each configured language explicitly
+search_adapter.search_in(query.text, lang=query.lang, max_results=limit)
+# Unconfigured language: refuse NOT_SENT; never substitute another index.
+```
+
+The public composition uses separately host-pinned Czech and English transports
+and discloses its encyclopedia scope to the investigator. A hit or bibliographic
+reference is not a read academic paper. Keep source-reading and grounding gates
+intact. Anchors: `packages/aia_core/src/aia_core/infrastructure/web_retrieval_live.py:517 @ 96e4f58f`,
+`apps/executors/src/aia_executors/deep_research/agent_directed.py:266 @ 96e4f58f`;
+English routing/refusal tests in `test_web_retrieval_live.py`.

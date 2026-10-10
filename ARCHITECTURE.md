@@ -319,6 +319,20 @@ confirm it passes before committing.
   stay immutable; new exports use the new contract. The experimental companion
   report shares the updated renderer under `aia-sociomapping-report-3`. Internal,
   synthetic and pending-methodology gates do not become client approvals.
+- **A contextual report selects its literature run explicitly.**
+  `application/contextual_report.py:234 @ 96e4f58f` verifies both study-owned runs,
+  completed interpretation status, provenance, bundle seal and the exact frozen
+  research/design lineage, then re-admits all eight analyses and validates the same
+  run's sociomap dependencies. Contract `aia-contextual-report-1` exports a separate
+  internal DOCX; it never overwrites the original report or calls models during export.
+  Only accepted findings and checked synthesis enter its targeted literature chapter.
+  External L citations stay outside the respondent evidence ledger. Unsupported
+  numerical benchmarks, excluded prose and missing coverage remain explicit gaps;
+  recorded evidence and synthetic respondents remain disclosed. The results panel
+  starts interpretation research over a pinned analysis and selects the completed
+  review in the download query. See `test_checked_synthesis_has_separate_sources_limits_and_fixture_disclosure`,
+  `test_corrupt_seal_and_foreign_synthesis_citations_refuse`, and the full report
+  journey in `apps/executors/tests/test_analysis_executor.py`.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.

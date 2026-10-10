@@ -2,7 +2,7 @@
 
 **State:** registered, parked by default. The executors are in the worker's default registry and
 the API route calls the service; a run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a
-runtime (off on develop). The live search routes are fee-free Czech Wikipedia and priced Brave
+runtime. The live search routes are fee-free Czech/English Wikipedia and priced Brave
 (Class C, `AIA_DEEP_RESEARCH_WEB_SEARCH`), with Common Crawl's priced URL index and fee-free
 archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`); a priced route runs only once its
 organization has signed off (§ 9, ADR 0022), and nothing turns Brave on until its SSM keys are
@@ -241,6 +241,32 @@ so internal tracks are refused before any call on the current Class C route.
 | Analysis and report | `analysis_context(bundle)` | External context only; `admissible_as_panel_claim` is always false. A number enters a result only as an `AdmittedClaim` from the population. |
 | Anything client-facing | `require_live_evidence(bundle)` | Refuses recorded fixtures and fictional clients. A person still signs off. |
 
+### Combined research report (PR #237)
+
+The results screen's literature panel starts `INTERPRETATION_RESEARCH` over its
+pinned `research_questions` analysis, filters reviews to that research run, shows
+accepted findings and captured sources, and lets the researcher select a review
+explicitly for the report. Start and retry keep the existing cost-confirmation
+boundary; selecting a report does not change a study's budget.
+
+`GET /api/v1/studies/{study_id}/research/runs/{run_id}/report/context/download`
+requires `deep_research_run_id` and edit permission. It returns fresh branded DOCX
+bytes after `application/contextual_report.py` validates the owned runs, completed
+status, exact frozen lineage and governed bundle. It preserves the eight admitted
+analysis chapters and snapshots of the frozen canonical map. The original report
+artifact remains immutable. Pending, foreign, mismatched, corrupt or ungoverned
+inputs are refused; export calls no model and writes no report artifact.
+
+The literature chapter publishes only checked synthesis and accepted findings,
+separate L source references with available source/capture dates, structured
+measures where supported, interpretation/comparability guidance and actual gaps.
+It describes a targeted review, not an exhaustive systematic review. `NO_EVIDENCE`
+exports an honest coverage limitation; a completed workflow does not imply usable
+literature or benchmarks. External numbers never become respondent findings or
+inputs to map geometry. Anchors: `application/contextual_report.py:53 @ 96e4f58f`,
+`routers/research.py:1005 @ 96e4f58f`; tests: `test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review`
+and the interpretation-target report journey in `test_analysis_executor.py`.
+
 ## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
 
 Search and fetch are bracketed like a model call: `ToolMeter.reserve` →
@@ -341,11 +367,25 @@ reference and never kept, logged or put in a route; the Wikipedia route needs no
 ([deep-research-common-crawl.md](deep-research-common-crawl.md)). The develop runbook is
 `deploy/develop/README.md` § *Deep Research on Brave search* and § *Deep Research on Common Crawl*.
 
+**Wikipedia search scope and language** (PR #237). The public composition's
+`wikipedia-cs-en-search-2` adapter implements language-aware search with separately
+host-pinned Czech and English transports. An unsupported or unconfigured language
+is refused before dispatch; an English request is never silently sent to the Czech
+index. The source table is `aia-source-table-1+wikipedia-public-2`, investigator
+prompt 5. `agent_directed.py` tells the investigator the active encyclopedia scope;
+it starts with concise topic names and follows original literature links before
+proposing evidence. This is encyclopedia search with public-page retrieval, not a
+whole-web academic search service. Broader paid search still needs a verified
+provider plan/storage entitlement and the organization's approved settings.
+Anchors: `infrastructure/web_retrieval_live.py:517 @ 96e4f58f`,
+`deep_research/agent_directed.py:266 @ 96e4f58f`; English routing and pre-dispatch
+refusal tests in `test_web_retrieval_live.py`.
+
 **Settings a run is sized and gated by** (ADR 0022). A run pins its organization's effective
 settings at enqueue (`settings_pin`); its model requests and its cost ceiling are sized by the
 request limits and route allowances it pinned, never above the code's, and the plan records the
 limits for the steps after it (`PlanRecord.request_limits`). Live needs approval for a **priced**
-live route (`ToolRoute.needs_sign_off`); the fee-free routes (Czech Wikipedia, the public fetch,
+live route (`ToolRoute.needs_sign_off`); the fee-free routes (Czech/English Wikipedia, the public fetch,
 the connectors) are exempt by the owner's decision of 2026-10-09. Enqueue answers 409
 `live_settings_unapproved` with `missing` and `routes`; the worker's plan step parks with the
 same reason before anything is asked. The recorded exchange file's format is in
