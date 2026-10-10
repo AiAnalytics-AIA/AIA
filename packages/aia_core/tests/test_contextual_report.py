@@ -15,6 +15,7 @@ def bundle(**updates: object) -> EvidenceBundle:
     path = Path(__file__).parent / "fixtures/deep_research_pre_step1/bundle.json"
     original = EvidenceBundle.model_validate_json(path.read_bytes())
     data = {**original.model_dump(mode="json"), **updates, "sha256": ""}
+    data = EvidenceBundle.model_validate(data).model_dump(mode="json")
     data["sha256"] = digest(data)
     return EvidenceBundle.model_validate(data)
 
@@ -72,3 +73,24 @@ def test_missing_synthesis_keeps_verified_findings_and_does_not_invent_benchmark
     assert "neobsahují strukturovaný číselný benchmark" in written
     for a in original.accepted:
         assert a.evidence.claim in written
+
+
+def test_unlabelled_historical_years_do_not_become_benchmark_paragraphs() -> None:
+    accepted = bundle().model_dump(mode="json")["accepted"]
+    for item in accepted:
+        item["evidence"]["claim"] = "Sociomapping was developed in 1993."
+        item["evidence"]["measures"] = [{"value": 1993}]
+    written = prose(bundle(accepted=accepted, synthesis=None))
+    assert "Sociomapping was developed in 1993." in written
+    assert "\n1993 [L" not in written
+    assert "neobsahují strukturovaný číselný benchmark" in written
+
+
+def test_labelled_numeric_data_keeps_its_indicator_and_unit() -> None:
+    accepted = bundle().model_dump(mode="json")["accepted"]
+    accepted[0]["evidence"]["measures"] = [
+        {"value": 25, "unit": "%", "measure_name": "Podíl odpovědí"}
+    ]
+    written = prose(bundle(accepted=accepted, synthesis=None))
+    assert "Podíl odpovědí: 25 % [L1]" in written
+    assert "neobsahují strukturovaný číselný benchmark" not in written

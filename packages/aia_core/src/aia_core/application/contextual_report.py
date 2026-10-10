@@ -143,15 +143,23 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
         )
 
     if accepted:
-        blocks.append(Heading("Ověřené podklady a dostupné benchmarky", 2))
+        blocks.append(Heading("Ověřené podklady a číselné údaje", 2))
+        has_numeric_data = False
         for a in bundle.accepted:
             e = a.evidence
             blocks.append(cited(e.claim, (e.evidence_id,)))
             for measure in e.measures:
+                # A grounding measure may be an unlabelled historical year.
+                # Its meaning remains in the claim, not a standalone benchmark.
+                if not (measure.unit or measure.measure_name):
+                    continue
                 phrase = render_measure(measure)
                 if phrase:
+                    has_numeric_data = True
+                    if measure.measure_name:
+                        phrase = f"{measure.measure_name}: {phrase}"
                     blocks.append(cited(phrase, (e.evidence_id,)))
-        if not any(a.evidence.measures for a in bundle.accepted):
+        if not has_numeric_data:
             blocks.append(
                 Paragraph(
                     text(
