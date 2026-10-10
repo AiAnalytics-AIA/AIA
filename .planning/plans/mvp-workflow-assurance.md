@@ -5,7 +5,7 @@ chunks:
   - "[x] A1. Verify the native AI research-to-map-to-report chain and expose remaining boundary gaps"
   - "[x] A1b. Include recorded Deep Research over the same design and verify the frozen evidence and missing handoff"
   - "[x] A1c. Check the unmerged Sociomap stack plus Interpretation Research candidate and prepare the post-merge proof"
-  - "[ ] A2. Trace and prove the simulation, data-library and project-memory user journeys"
+  - "[x] A2. Trace and prove the simulation, data-library and project-memory user journeys"
   - "[ ] A3. Review runtime complexity and carry out one measured simplification at a time"
   - "[ ] A4. Run the complete four-area recorded acceptance on a release candidate"
   - "[ ] A5. Verify bounded deployed acceptance and record the release decision"
@@ -361,6 +361,25 @@ Sociomap/Interpretation Research follow-ups are recorded there. This supersedes 
 pending-docs statements, not their historical verification results. Selected inputs are still
 unapplied and the remaining four-area consumer gaps remain open. No runtime code changed
 between the client-knowledge audit baseline and this publication base.
+
+2026-10-09, **A2 trace** at `develop @ c6ee438` (static: code read hop by hop from the UI
+action to the store, every hop anchored in the owning plan's table). None of the three
+journeys can be followed with a fixture past its first hop, so "prove" here is the trace and
+the assignment of every missing hop to a plan; the executable proof is A4's.
+
+| Area | Where the journey stops | Missing hops now owned by |
+|---|---|---|
+| Simulation studio | after "create a SIMULATION study": the page is a notice (`SimulationFrame.tsx:3-5, 33-38`), working content refused (`study_workspace_repository.py:135`), no workflow type (`workflow_templates.py:58`), no executor, no route; the core is pure and unconnected (its only non-test importer is `routers/settings.py`) | new [`simulation-studio.md`](simulation-studio.md) S0-S7 |
+| Data library / social intelligence | after "accept a knowledge item": no source intake (`workspace.py:385-394` takes kind/title/summary), a DIMENSION is a title, nothing outside the core calls `PopulationRuntime` / `PopulationAuthority`, no run records a binding (`workflows.py:96-105`) | intake, typed revisions, context, dimension definitions: [`client-knowledge-lifecycle.md`](client-knowledge-lifecycle.md) K2-K5; binding semantics and selection in fieldwork: `sociomap-formula-corrections.md` I0/I1; the operator root, registry, binding at creation, materialization contract and Promote: new [`population-operations.md`](population-operations.md) P1-P5 |
+| Project memory | after "list past studies by name": artifact approval has no caller (`artifact_repository.py:523-571`), no search crosses studies, accepting a memory answer raises `advice_only` (`research.py:637-638`), a revision cannot cite a source | new [`project-memory-reuse.md`](project-memory-reuse.md) M0-M5, after K3/K4 |
+
+Decisions the traces surfaced, each recorded in its plan: D9 reads as open while the user's
+2026-10-07 direction requires the studio (`simulation-studio.md` S0); memory's reach across
+clients, reuse unit and synthetic eligibility (`project-memory-reuse.md` M0); where and in what
+form materialization makes a revision, under OI-61 and D8 (`population-operations.md` P4).
+18.6.6's library approved its own calibration into LIVE (`data_library.py:621-626`); that is
+recorded as not to be ported. Order across areas, unchanged from A2's guidance: population
+P1-P3 first (they feed map, fieldwork and simulation S2), then K2-K5, then simulation and memory.
 
 ## Findings
 
