@@ -547,8 +547,11 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
     assert report.metadata["synthetic"] is True
     assert report.is_approved is False
-    assert len(dependencies) == 8
-    assert {d.artifact_type for d in dependencies} == {ANALYSIS_MODULE_ARTIFACT}
+    assert len(dependencies) == 9
+    assert {d.artifact_type for d in dependencies} == {
+        ANALYSIS_MODULE_ARTIFACT,
+        "research_sociomap",
+    }
     assert document.startswith(b"PK")
     assert lint_docx(document) == []
 
@@ -750,7 +753,8 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
     assert report.metadata["synthetic"] is True and report.is_approved is False
     assert {dep.artifact_id for dep in dependencies} == {
-        steps[analysis_node_key(module)]["output"]["artifact_id"] for module in AnalysisModuleId
+        *[steps[analysis_node_key(module)]["output"]["artifact_id"] for module in AnalysisModuleId],
+        steps["sociomap"]["output"]["artifact_id"],
     }
     assert document.startswith(b"PK") and lint_docx(document) == []
     record_property("report_artifact_id", report_id)

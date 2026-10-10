@@ -139,7 +139,10 @@ def steps_for_workflow(
                 StepDefinition(
                     node_key="report",
                     kind=REPORT_STEP_KIND,
-                    depends_on=tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
+                    depends_on=(
+                        *tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
+                        "sociomap",
+                    ),
                     stage_type="REPORT",
                     artifact_target="research_internal_docx",
                     max_attempts=3,

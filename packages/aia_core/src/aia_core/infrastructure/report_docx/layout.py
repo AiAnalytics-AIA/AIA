@@ -21,6 +21,7 @@ python-docx's ``add_section`` would.
 from __future__ import annotations
 
 import copy
+import re
 from io import BytesIO
 from typing import Final, Literal
 
@@ -33,7 +34,7 @@ from lxml import etree
 
 from aia_core.domain.report import numbers
 from aia_core.domain.report.copy import method_status_text, t
-from aia_core.domain.report.model import Classification
+from aia_core.domain.report.model import Classification, ReportKind
 from aia_core.domain.report.outline import OutlineEntry
 from aia_core.domain.report.print_tokens import PAGE
 from aia_core.infrastructure.report_docx.context import RenderContext
@@ -181,26 +182,29 @@ def running_foot(ctx: RenderContext, section: Section, *, page: bool, wide: bool
 
 
 def render_cover(ctx: RenderContext) -> None:
+    from aia_core.infrastructure.report_docx.cover import add_cover_field
+
     meta = ctx.report.meta
     d = ctx.document
+    field = d.add_paragraph(style=S.COVER_RULE)
+    add_cover_field(ctx, field)
     if meta.branding.client_logo_png is not None:
         logo = d.add_paragraph(style=S.META)
         logo.add_run().add_picture(BytesIO(meta.branding.client_logo_png), height=Mm(14))
-    d.add_paragraph(t(f"kind_{meta.kind.value}"), style=S.KICKER)
-    d.add_paragraph(meta.title, style=S.TITLE)
+    kind = meta.title if meta.kind is ReportKind.INTERNAL else t(f"kind_{meta.kind.value}")
+    d.add_paragraph(f"AIA · {kind}", style=S.KICKER)
+    d.add_paragraph(f"{meta.client_name} · {_classification(ctx)}", style=S.META)
+    cover_title = meta.study_name if meta.kind is ReportKind.INTERNAL else meta.title
+    cover_title = re.sub(
+        r"\d{4}-\d{2}-\d{2}", lambda m: m.group().replace("-", "\u2011"), cover_title
+    )
+    d.add_paragraph(cover_title, style=S.TITLE)
     if meta.subtitle:
         d.add_paragraph(meta.subtitle, style=S.SUBTITLE)
-    for label, value in (
-        (t("prepared_for"), meta.client_name),
-        (t("study"), meta.study_name),
-        (t("date"), numbers.czech_date(meta.issued_on)),
-        (t("revision").capitalize(), str(meta.revision)),
-        (t("prepared_by"), meta.prepared_by),
-    ):
-        d.add_paragraph(f"{label}: {value}", style=S.META)
-    d.add_paragraph(_classification(ctx), style=S.META)
-    d.add_paragraph(t("method_status"), style=S.CALLOUT_TITLE)
-    d.add_paragraph(method_status_text(meta.method_status), style=S.CALLOUT)
+    details = d.add_paragraph(style=S.COVER_DETAILS)
+    details.add_run(f"{numbers.czech_date(meta.issued_on)} · revize {meta.revision}")
+    signature = meta.approvals[-1].reviewer if meta.approvals else "čeká na podpis"
+    d.add_paragraph(f"Zpracovalo: {meta.prepared_by}\nSchválení: {signature}", style=S.META)
     if _draft(ctx):
         p = d.add_paragraph(style=S.META)
         p.add_run(t("draft"), style=S.DRAFT)

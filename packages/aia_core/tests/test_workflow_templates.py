@@ -57,7 +57,10 @@ def test_report_waits_for_every_analysis_module_when_analysis_is_enabled() -> No
         REPORT_STEP_KIND,
         "REPORT",
     )
-    assert report.depends_on == tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES)
+    assert report.depends_on == (
+        *tuple(analysis_node_key(m.module_id) for m in ANALYSIS_MODULES),
+        "sociomap",
+    )
     assert all(
         s.node_key != "report"
         for s in steps_for_workflow(RESEARCH, project_type=ProjectType.RESEARCH)

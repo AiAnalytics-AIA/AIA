@@ -9,6 +9,7 @@ indent. How a block looks is the style sheet's (``styles.py``).
 from __future__ import annotations
 
 from docx.enum.text import WD_BREAK
+from docx.shared import Emu
 from docx.text.paragraph import Paragraph as DocxParagraph
 
 from aia_core.domain.report import numbers
@@ -49,6 +50,7 @@ from aia_core.infrastructure.report_docx.ooxml import (
     add_internal_link,
     full_width,
     header_row,
+    keep_row,
 )
 from aia_core.infrastructure.report_docx.styles import S
 
@@ -160,7 +162,13 @@ def render_heading(ctx: RenderContext, container: Container, block: Heading) -> 
 
 def render_paragraph(ctx: RenderContext, container: Container, block: Paragraph) -> None:
     style = S.LEDE if block.role is ParagraphRole.LEDE else S.BODY
-    write_inlines(ctx, container.add_paragraph(style=style), block.content)
+    paragraph = container.add_paragraph(style=style)
+    write_inlines(ctx, paragraph, block.content)
+    # One mark per grade, rather than a row of identical marks for every number.
+    grades = dict.fromkeys(ctx.ledger.grade(ref) for ref in block.refs)
+    for grade in grades:
+        paragraph.add_run(numbers.NBSP)
+        ctx.marks.add(paragraph, grade)
 
 
 def render_page_break(ctx: RenderContext, container: Container, block: PageBreak) -> None:
@@ -237,7 +245,8 @@ def _labelled(container: Container, label: str, body: str) -> None:
 
 def render_key_finding(ctx: RenderContext, container: Container, block: KeyFinding) -> None:
     """Legacy ``key_findings``: headline, finding, evidence, meaning, confidence."""
-    title = container.add_paragraph(block.headline, style=S.FINDING_TITLE)
+    title = container.add_paragraph(style=S.FINDING_TITLE)
+    title.add_run(block.headline, style=S.STRONG)
     write_marks(ctx, title, block.refs)
     container.add_paragraph(block.finding, style=S.BODY)
     _labelled(container, t("finding_evidence"), block.evidence)
@@ -247,7 +256,8 @@ def render_key_finding(ctx: RenderContext, container: Container, block: KeyFindi
 
 def render_recommendation(ctx: RenderContext, container: Container, block: Recommendation) -> None:
     """Legacy ``implications``: the action, why, and its priority."""
-    title = container.add_paragraph(block.action, style=S.FINDING_TITLE)
+    title = container.add_paragraph(style=S.FINDING_TITLE)
+    title.add_run(block.action, style=S.STRONG)
     write_marks(ctx, title, block.refs)
     _labelled(container, t("recommendation_why"), block.why)
     _labelled(container, t("recommendation_priority"), block.priority)
@@ -310,8 +320,17 @@ def render_evidence_appendix(
     table = ctx.document.add_table(rows=1, cols=len(head))
     table.style = S.DATA_TABLE
     full_width(table)
+    section = ctx.document.sections[-1]
+    assert section.page_width is not None
+    assert section.left_margin is not None and section.right_margin is not None
+    width = section.page_width - section.left_margin - section.right_margin
+    shares = (0.27, 0.08, 0.14, 0.09, 0.11, 0.09, 0.11, 0.11)
+    table.autofit = False
+    for column, share in zip(table.columns, shares, strict=True):
+        column.width = Emu(int(width * share))
     header_row(table.rows[0])
     for i, (cell, label) in enumerate(zip(table.rows[0].cells, head, strict=True)):
+        cell.width = Emu(int(width * shares[i]))
         cell.paragraphs[0].style = S.TABLE_HEAD_NUMBER if i in numeric else S.TABLE_HEAD
         cell.paragraphs[0].add_run(label)
     refs = cited_refs(ctx.report)
@@ -334,8 +353,11 @@ def render_evidence_appendix(
             _grade_text(ctx.ledger.grade(ref)),
             ", ".join(t(f"disclosure_short_{d.value}") for d in sorted(row.disclosures)),
         )
-        cells = table.add_row().cells
+        added = table.add_row()
+        keep_row(added)
+        cells = added.cells
         for i, (cell, value) in enumerate(zip(cells, values, strict=True)):
+            cell.width = Emu(int(width * shares[i]))
             cell.paragraphs[0].style = (
                 S.MONO if i == 0 else S.TABLE_NUMBER if i in numeric else S.TABLE
             )
@@ -349,7 +371,8 @@ def render_evidence_appendix(
 
 def render_audit(ctx: RenderContext, container: Container, block: AuditBlock) -> None:
     """Run ids, fingerprints, provider and model. Internal reports only (validated)."""
-    container.add_paragraph(t("audit"), style=S.H2_FRONT)
+    if ctx.report.sections[ctx.position[0]].title != t("audit"):
+        container.add_paragraph(t("audit"), style=S.H2_FRONT)
     table = ctx.document.add_table(rows=1, cols=2)
     table.style = S.DATA_TABLE
     full_width(table)

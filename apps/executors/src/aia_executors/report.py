@@ -8,6 +8,7 @@ from aia_core.application.report import (
     ReportCompositionRefused,
     compose_internal_report,
 )
+from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
 from aia_core.domain.pipeline import fingerprint
@@ -16,13 +17,16 @@ from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import REPORT_STEP_KIND
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
+from .research import SOCIOMAP, upstream_artifact
+
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-2"
+REPORT_CONTRACT_VERSION = "aia-internal-report-3"
 
 
 class ReportExecutor:
@@ -59,8 +63,37 @@ class ReportExecutor:
                     classification=Classification.INTERNAL,
                     identifiers=(("Běh", step.run_id),),
                 )
-                document = compose_internal_report(analysis, meta)
-            except (ReconstructionRefused, ReportCompositionRefused, ReportInvalid) as exc:
+                map_id = upstream_artifact(workflow, step, "sociomap")
+                if map_id is None:
+                    raise ReportCompositionRefused("the run recorded no sociomap artifact")
+                repo = research_artifacts(session, context.scope, self._store)
+                map_source = repo.get(map_id)
+                if map_source.artifact_type != SOCIOMAP:
+                    raise ReportCompositionRefused("the map source has the wrong artifact type")
+                map_body = repo.read_json(map_id)["sociomap"]
+                dataset_sha = first.record.sources.dataset.sha256
+                map_dependencies = repo.dependencies(map_id)
+                if not any(d.sha256 == dataset_sha for d in map_dependencies):
+                    raise ReportCompositionRefused("the map is not derived from this run's dataset")
+                if not any(
+                    d.artifact_type == "research_specification"
+                    and repo.read_json(d.artifact_id).get("specification_fingerprint")
+                    == first.record.sources.specification_fingerprint
+                    for d in map_dependencies
+                ):
+                    raise ReportCompositionRefused("the map is not derived from this specification")
+                sections = compose_map_sections(
+                    map_body,
+                    object_map_snapshots(map_body),
+                    source=f"Zmrazený výsledek běhu {step.run_id}; SHA-256 {map_source.sha256}",
+                )
+                document = compose_internal_report(analysis, meta, map_sections=sections)
+            except (
+                ReconstructionRefused,
+                ReportCompositionRefused,
+                ReportInvalid,
+                ValueError,
+            ) as exc:
                 return Failed(
                     FailureClass.SCHEMA_VIOLATION,
                     error={"reason": "report_inputs_refused", "message": str(exc)},
@@ -74,6 +107,7 @@ class ReportExecutor:
                 "contract": REPORT_CONTRACT_VERSION,
                 "run_id": step.run_id,
                 "sources": [m.artifact_sha256 for m in sources],
+                "sociomap": map_source.sha256,
                 "title": meta.title,
                 "subtitle": meta.subtitle,
                 "client": meta.client_name,
@@ -99,8 +133,10 @@ class ReportExecutor:
                     "report_kind": ReportKind.INTERNAL.value,
                     "review_state": "DRAFT_UNAPPROVED",
                     "synthetic": bool(first.record.labels.simulated_respondents),
+                    "map_source_sha256": map_source.sha256,
+                    "report_contract": REPORT_CONTRACT_VERSION,
                 },
-                depends_on=[m.artifact_id for m in sources],
+                depends_on=[*[m.artifact_id for m in sources], map_id],
             )
         return Succeeded(
             output={

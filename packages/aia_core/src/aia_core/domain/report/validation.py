@@ -148,7 +148,7 @@ def _prose_refs(block: Block) -> Iterator[str]:
     for inline in _inlines(block):
         if isinstance(inline, Value):
             yield inline.ref
-    if isinstance(block, Callout | KeyFinding | Recommendation):
+    if isinstance(block, Paragraph | Callout | KeyFinding | Recommendation):
         yield from block.refs
     elif isinstance(block, KpiRow):
         yield from (k.ref for k in block.items)
