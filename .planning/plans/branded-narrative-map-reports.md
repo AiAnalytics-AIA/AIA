@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Restore the original AIA cover and semantic typography"
   - "[x] 2. Compose coherent chapters and include frozen sociomap snapshots"
   - "[x] 3. Verify every rendered page and report lineage"
-  - "[ ] 4. Publish, verify develop and reconcile documentation"
+  - "[x] 4. Publish, verify develop and reconcile documentation"
 ---
 # Branded narrative reports with sociomap snapshots
 
@@ -30,7 +30,18 @@ Checks: strict mypy 313 files; lint, format, layer (101 rules), exposure (7 rule
 - `cover.py: add_cover_field`: an opaque full-page background anchored in the body can cover the Word footer even with `behindDoc=1`. Wrong: retain the SVG paper rectangle; right: keep the original vendored SVG unchanged but remove that rectangle from the derived vector/PNG background. Visual QA on the rendered cover is the reproduction and catches the missing draft footer.
 - Document `application/report_maps.py`, print `cover.py`/`object_map_figure.py`, native report contract/dependencies, signed relationship reading guide and the unchanged frozen historical exports in CLAUDE.md and ARCHITECTURE.md. Record the two observed python-docx/Word layout gotchas in AGENTS.md in a separate docs-only PR after merge. Do not edit shared documents in this feature PR.
 
+## Publication
+
+Feature PR #228 merged at `7ce1d5a9f3cc3e5e9b2e3d0d8f8eafa92663012c` after every blocking Linux PR check passed (CI run 38042498428). The strict map fixture passes on Linux. Exact merged-SHA CI run 38043332219 was cancelled before dispatch after finding an interpretation error; #229 corrects the report/page guide. Only the fully verified corrected merged revision may deploy. A built wheel was inspected and contains the original cover SVG and snapshot renderer. A separate 104-character Czech title cover rendered cleanly on one page. Documentation is prepared on its own branch; completion follows deployment verification.
 
 ## Interpretation correction before deployment
 
-A final source check found that the first reading guide confused `relations.abs_r` (link styling) with `layout.correlation_distances(pairs.r, known)` (signed distance targets). Anchor: `domain/sociomap/layout.py:687` and `engine_v2.py:296 @ 7ce1d5a9`. Reproduction: `correlation_distance(-0.8) > correlation_distance(0) > correlation_distance(0.8)`. Strong negative relationships have larger target distances; they are not drawn close merely because |r| is large. The report and results-page guide now describe the signed target and the planar approximation. `test_reading_guide_matches_signed_correlation_distance_not_link_strength` checks the semantic reading rule alongside the engine's distance function. No engine values or frozen maps changed. The pending merged-SHA CI/deployment was cancelled before dispatch; the correction follows in PR #229, and only its fully verified merged revision may deploy. PR #229 also updates the old UI statement banning all reports to the actual internal-draft/client-report distinction. The example has been regenerated and the affected pages will be inspected again.
+A final source check found that the first reading guide confused `relations.abs_r` (link styling) with `layout.correlation_distances(pairs.r, known)` (signed distance targets). Anchor: `domain/sociomap/layout.py:687` and `engine_v2.py:296 @ 7ce1d5a9`. Reproduction: `correlation_distance(-0.8) > correlation_distance(0) > correlation_distance(0.8)`. Strong negative relationships have larger target distances; they are not drawn close merely because |r| is large. The report and results-page guide now describe the signed target and the planar approximation. `test_reading_guide_matches_signed_correlation_distance_not_link_strength` checks the semantic reading rule alongside the engine's distance function. No engine values or frozen maps changed. The pending merged-SHA CI/deployment was cancelled before dispatch; the correction follows in PR #229, and only its fully verified merged revision may deploy. PR #229 also updates the old UI statement banning all reports to the actual internal-draft/client-report distinction. The corrected example was regenerated: only page 8 changed visually; that page was re-inspected, while the other 15 pages are pixel-identical to the fully inspected prior render.
+
+PR #229 merged at `44c6900904103f2c665c4ef1f7504a04ac541d06` after all blocking checks passed (CI run 38044514072). Exact merged-SHA CI run 38045682421 now gates deployment; no manual bypass was used.
+
+## Completed publication
+
+Exact merged-SHA CI run 38045682421 passed all blocking checks, including PostgreSQL and SQLite, and automatically dispatched deployment 38047372401. The deployment succeeded. Independent HTTPS checks of `/api/v1/health` and `/version` both returned `44c6900904103f2c665c4ef1f7504a04ac541d06`, with API status `ok`. Documentation PR #230 records the final contracts and findings; its checks passed after synchronization with #229. The final example is 2,068,238 bytes and 16 pages, with both embedded map views. The layer-by-layer review map and full test evidence are saved beside the example in task outputs. Existing frozen report artifacts are unchanged; new reports use the upgraded exporter. No paid model calls occurred.
+
+The signed-in frozen sandbox results page reloaded successfully after automatic session renewal. Its rendered reading guide uses signed correlation targets and allows internal-draft map inclusion. The historical report artifact remains `ART-baf9f733e59d487e` / SHA prefix `7dfd6de7b007`, confirming it was not replaced.

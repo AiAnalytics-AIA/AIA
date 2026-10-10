@@ -1821,3 +1821,43 @@ A journaled dispatch with no durable outcome is uncertain, never retried by itse
 replay counts its own dispatches (`fetches_used`): the resumed meter already holds the earlier
 attempts', so reading its totals mid-replay would call the allowance spent before the replayed
 round's fetches were reached.
+
+
+## Word cover furniture must be declared, not inherited
+
+python-docx's starter `Title` contains theme borders/shading that survive changing
+its typeface and text color. In AIA's branded cover this produced a blue underline
+outside the Deliverable design. `report_docx/styles.py` clears inherited furniture
+before installing token-defined styles; the injected-theme regression test checks
+that the title and body keep no accidental border/shading.
+
+```python
+# WRONG: starter theme furniture still survives.
+title.font.name = "Source Serif 4"
+
+# RIGHT: clear inherited furniture, then apply the declared AIA tokens.
+for name in ("w:pBdr", "w:shd", "w:contextualSpacing"):
+    for inherited in tuple(ppr.findall(qn(name))):
+        ppr.remove(inherited)
+```
+
+A body-anchored full-page drawing with `behindDoc=1` can still obscure a footer
+if its background is opaque. The original cover SVG is vendored byte-for-byte;
+`cover.py` removes its full-page paper rectangle only from the derived SVG/PNG.
+Word owns the paper. Render the cover and check the draft footer visually: an
+XML assertion that the drawing is behind text does not prove the footer is visible.
+
+```python
+# WRONG: the opaque paper rectangle can hide the draft footer.
+add_vector_image(
+    paragraph, svg_parts, svg=original_svg, png=opaque_fallback,
+    width_mm=210, height_mm=297, alt="AIA cover", name="AIA cover",
+)
+
+# RIGHT: preserve the source asset, derive transparent print artwork.
+svg, png = transparent_artwork_from_original()
+add_vector_image(
+    paragraph, svg_parts, svg=svg, png=png,
+    width_mm=210, height_mm=297, alt="AIA cover", name="AIA cover",
+)
+```

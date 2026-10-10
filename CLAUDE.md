@@ -362,6 +362,10 @@ packages/aia_core/src/aia_core/
     population.py           PopulationRuntime — the ONLY loader of population data
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
+    report.py               Main internal narrative from eight re-admitted analysis modules;
+                            body prose keeps evidence refs and actual headings keep semantic styles
+    report_maps.py          Internal chapters from frozen object maps and supplied print snapshots;
+                            reading guide, fit/support and signed relationship table
     workflows.py            start_workflow: a run from a template, idempotent per revision
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader;
@@ -392,6 +396,10 @@ packages/aia_core/src/aia_core/
                             ScopeResolver, in its own transaction; missing is not lost until said so
   infrastructure/
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
+      cover.py, assets/     Original Claude Design population-field SVG, behind editable cover text;
+                            derived transparent vector/PNG background preserves the draft footer
+      object_map_figure.py  Deterministic top/3D PNG snapshots from stored contract-3 points, heights
+                            and finite terrain triangles; no layout or terrain recomputation
       embed.py              ECMA-376 obfuscated font embedding; deterministic keys
       styles.py             The Word style sheet, built from print_tokens (S = every style name)
       renderer.py           DocxRenderer.render(doc) -> bytes: validate, outline, write, finish;
