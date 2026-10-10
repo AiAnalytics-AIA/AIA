@@ -357,3 +357,9 @@ def test_prose_evidence_references_are_admitted_and_preserved(report_ledger: Any
     assert ProblemCode.SUPPRESSED_CITED in codes(
         doc(ledger, Paragraph(text("Suppressed prose."), refs=("trust_zlin",)))
     )
+
+
+@pytest.mark.parametrize("weight", [0, -1, float("nan"), float("inf")])
+def test_table_column_widths_fail_closed(report_ledger: Any, weight: float) -> None:
+    bad = table(columns=(Column("Region", width_weight=weight), Column("Podíl", unit="%")))
+    assert ProblemCode.TABLE_SHAPE in codes(doc(report_ledger(), bad))

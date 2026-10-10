@@ -25,7 +25,7 @@ from docx.shared import Mm, Pt, RGBColor
 from docx.styles.style import BaseStyle, CharacterStyle, ParagraphStyle
 from lxml import etree
 
-from aia_core.domain.report.print_tokens import COLORS, STYLES, PrintStyle
+from aia_core.domain.report.print_tokens import COLORS, PAGE, STYLES, PrintStyle
 from aia_core.infrastructure.report_docx.ooxml import el, insert_in_order
 
 # ---------------------------------------------------------------------- names
@@ -78,6 +78,10 @@ class S:
     FINDING_LABEL = "AIA Finding Label"
     COVER_RULE = "AIA Cover Rule"
     COVER_DETAILS = "AIA Cover Details"
+    COVER_ACCENT = "AIA Cover Accent"
+    COVER_NOTICE = "AIA Cover Notice"
+    COVER_TABLE = "AIA Cover Placement"
+    COVER_META_TABLE = "AIA Cover Metadata"
     # character styles
     EMPHASIS = "Emphasis"
     STRONG = "Strong"
@@ -152,16 +156,22 @@ class Para:
     shade: str | None = None  # a colour token for the paragraph ground
     bar: str | None = None  # a colour token for a left rule (callouts)
     leader: bool = True  # the right tab's dot leader; running heads have none
+    border_top: bool = False
+    border_bottom: bool = False
     exact: bool = True  # exact leading; a picture paragraph needs auto, or it is cropped
 
 
-_TEXT_WIDTH_MM: Final = 210 - 24 - 20  # page width minus inside and outside margins
-_WIDE_TEXT_WIDTH_MM: Final = 297 - 24 - 20  # the same on a landscape page
+_TEXT_WIDTH_MM: Final = (
+    PAGE.width_mm - PAGE.margin_inside_mm - PAGE.margin_outside_mm
+)  # page width minus inside and outside margins
+_WIDE_TEXT_WIDTH_MM: Final = (
+    PAGE.height_mm - PAGE.margin_inside_mm - PAGE.margin_outside_mm
+)  # the same on a landscape page
 
 PARAGRAPHS: Final[dict[str, Para]] = {
     S.BODY: Para("doc-body"),
-    S.TITLE: Para("doc-title", space_after_pt=10),
-    S.SUBTITLE: Para("doc-subtitle", color="doc-muted"),
+    S.TITLE: Para("doc-title", keep_next=True),
+    S.SUBTITLE: Para("doc-subtitle", color="doc-muted", keep_next=True),
     S.KICKER: Para("doc-kicker", color="doc-accent", keep_next=True),
     S.META: Para("doc-meta", color="doc-muted"),
     S.H1: Para("doc-h1", keep_next=True, page_break_before=True, outline=0),
@@ -173,15 +183,35 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.H2_FRONT: Para("doc-h2", keep_next=True),
     S.LEDE: Para("doc-lede"),
     S.CAPTION: Para("doc-caption", keep_next=True, space_before_pt=10, space_after_pt=4),
-    S.SOURCE: Para("doc-caption", color="doc-muted", space_before_pt=3, space_after_pt=12),
+    S.SOURCE: Para("doc-caption", color="doc-muted", space_before_pt=3, space_after_pt=6),
     S.FOOTNOTE: Para("doc-footnote", color="doc-muted", indent_mm=4, hanging_mm=4),
-    S.HEADER: Para("doc-running", color="doc-muted", tabs_right_mm=_TEXT_WIDTH_MM, leader=False),
-    S.FOOTER: Para("doc-running", color="doc-muted", tabs_right_mm=_TEXT_WIDTH_MM, leader=False),
+    S.HEADER: Para(
+        "doc-running",
+        color="doc-muted",
+        tabs_right_mm=_TEXT_WIDTH_MM,
+        leader=False,
+        border_bottom=True,
+    ),
+    S.FOOTER: Para(
+        "doc-running",
+        color="doc-muted",
+        tabs_right_mm=_TEXT_WIDTH_MM,
+        leader=False,
+        border_top=True,
+    ),
     S.HEADER_WIDE: Para(
-        "doc-running", color="doc-muted", tabs_right_mm=_WIDE_TEXT_WIDTH_MM, leader=False
+        "doc-running",
+        color="doc-muted",
+        tabs_right_mm=_WIDE_TEXT_WIDTH_MM,
+        leader=False,
+        border_bottom=True,
     ),
     S.FOOTER_WIDE: Para(
-        "doc-running", color="doc-muted", tabs_right_mm=_WIDE_TEXT_WIDTH_MM, leader=False
+        "doc-running",
+        color="doc-muted",
+        tabs_right_mm=_WIDE_TEXT_WIDTH_MM,
+        leader=False,
+        border_top=True,
     ),
     S.TABLE: Para("doc-table"),
     S.TABLE_NUMBER: Para("doc-table", align=WD_ALIGN_PARAGRAPH.RIGHT),
@@ -228,7 +258,9 @@ PARAGRAPHS: Final[dict[str, Para]] = {
     S.FINDING_TITLE: Para("doc-body", keep_next=True, space_before_pt=14),
     S.FINDING_LABEL: Para("doc-table-head", color="doc-muted", keep_next=True, space_before_pt=4),
     S.COVER_RULE: Para("doc-meta", space_before_pt=0, space_after_pt=0),
-    S.COVER_DETAILS: Para("doc-meta", color="doc-muted", space_before_pt=72),
+    S.COVER_DETAILS: Para("doc-meta", color="doc-muted"),
+    S.COVER_ACCENT: Para("doc-meta", space_before_pt=21, space_after_pt=21, keep_next=True),
+    S.COVER_NOTICE: Para("doc-running", color="doc-muted", space_before_pt=68),
 }
 
 
@@ -356,6 +388,14 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
         bdr = el("w:pBdr")
         bdr.append(el("w:left", val="single", sz="18", space="8", color=color_val(spec.bar)))
         insert_in_order(ppr, bdr, PPR_AFTER_NUMPR[2:])
+    if spec.border_top or spec.border_bottom:
+        bdr = el("w:pBdr")
+        for side, enabled in (("top", spec.border_top), ("bottom", spec.border_bottom)):
+            if enabled:
+                bdr.append(
+                    el(f"w:{side}", val="single", sz="6", space="6", color=color_val("doc-rule"))
+                )
+        insert_in_order(ppr, bdr, PPR_AFTER_NUMPR[2:])
     if spec.shade is not None:
         insert_in_order(
             ppr,
@@ -418,23 +458,31 @@ def _data_table_style(document: Document) -> None:
         style.element.append(tbl_pr)
     borders = el("w:tblBorders")
     for side, size, color in (
-        ("top", "8", "doc-ink"),
-        ("bottom", "8", "doc-ink"),
-        ("insideH", "4", "doc-rule"),
+        ("top", "0", "doc-rule"),
+        ("bottom", "6", "doc-rule"),
+        ("insideH", "6", "doc-rule"),
     ):
-        borders.append(el(f"w:{side}", val="single", sz=size, space="0", color=color_val(color)))
+        borders.append(
+            el(
+                f"w:{side}",
+                val="nil" if size == "0" else "single",
+                sz=size,
+                space="0",
+                color=color_val(color),
+            )
+        )
     for side in ("left", "right", "insideV"):
         borders.append(el(f"w:{side}", val="nil"))
     tbl_pr.append(borders)
     margins = el("w:tblCellMar")
-    for side, twips in (("top", "40"), ("bottom", "40"), ("left", "80"), ("right", "80")):
+    for side, twips in (("top", "120"), ("bottom", "120"), ("left", "80"), ("right", "80")):
         margins.append(el(f"w:{side}", w=twips, type="dxa"))
     tbl_pr.append(margins)
     # The header row: a heavier rule under it.
     header = el("w:tblStylePr", type="firstRow")
     tc_pr = el("w:tcPr")
     tc_borders = el("w:tcBorders")
-    tc_borders.append(el("w:bottom", val="single", sz="8", space="0", color=color_val("doc-ink")))
+    tc_borders.append(el("w:bottom", val="single", sz="6", space="0", color=color_val("doc-ink")))
     tc_pr.append(tc_borders)
     header.append(tc_pr)
     style.element.append(header)
@@ -460,6 +508,26 @@ def _kpi_table_style(document: Document) -> None:
     tbl_pr.append(margins)
 
 
+def _cover_styles(document: Document) -> None:
+    for name in (S.COVER_TABLE, S.COVER_META_TABLE):
+        if name in document.styles:
+            continue
+        style = document.styles.add_style(name, WD_STYLE_TYPE.TABLE)
+        pr = el("w:tblPr")
+        borders = el("w:tblBorders")
+        margins = el("w:tblCellMar")
+        for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            borders.append(el(f"w:{side}", val="nil"))
+        for side in ("top", "left", "bottom", "right"):
+            margins.append(el(f"w:{side}", w="0", type="dxa"))
+        pr.extend((borders, margins))
+        style.element.append(pr)
+    # One-point separator after nested tables and behind floating artwork.
+    rule = document.styles[S.COVER_RULE]
+    rule.paragraph_format.line_spacing = Pt(1)
+    rule.font.size = Pt(1)
+
+
 def install_styles(document: Document) -> None:
     """Build the whole style sheet into ``document``. Idempotent."""
     _defaults(document)
@@ -469,6 +537,7 @@ def install_styles(document: Document) -> None:
         _apply_character(_character_style(document, name), cspec)
     _data_table_style(document)
     _kpi_table_style(document)
+    _cover_styles(document)
     # Styles the report does not restyle (Heading 4-9, the template's character
     # twins) still carry theme fonts; strip them everywhere so nothing falls back.
     for rfonts in document.styles.element.iter(qn("w:rFonts")):

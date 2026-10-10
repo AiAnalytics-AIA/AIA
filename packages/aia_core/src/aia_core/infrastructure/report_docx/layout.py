@@ -7,7 +7,7 @@ A report has three kinds of section, each a Word section of its own:
 * the **front matter** (document control, contents, lists), paged in lower-case
   roman numerals from i;
 * the **body**, paged in arabic numerals from 1, with the report title and the
-  current chapter (``STYLEREF``) in the header and the classification and page
+  client in the header and the classification and page
   in the footer. Appendices and landscape pages are further sections of the body
   that continue its numbering.
 
@@ -23,9 +23,11 @@ from __future__ import annotations
 import copy
 import re
 from io import BytesIO
+from pathlib import Path
 from typing import Final, Literal
 
 from docx.enum.section import WD_ORIENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_ROW_HEIGHT_RULE
 from docx.oxml.ns import qn
 from docx.section import Section
 from docx.shared import Mm
@@ -139,28 +141,25 @@ def running(ctx: RenderContext, section: Section, *, wide: bool = False) -> None
     A landscape page has its own (``wide``) Header/Footer styles, whose right tab
     sits at the landscape text width, so a section after it sets them again.
     """
-    chapter_style, cached = ctx.running
-    running_head(section, ctx.report.meta.title, chapter_style, cached, wide=wide)
+    running_head(section, ctx.report.meta.study_name, ctx.report.meta.client_name, wide=wide)
     running_foot(ctx, section, page=True, wide=wide)
 
 
 def running_head(
     section: Section,
     title: str,
-    chapter_style: str | None,
-    cached: str,
+    client: str,
     *,
     wide: bool = False,
 ) -> None:
-    """Report title, then (right) the current chapter by ``STYLEREF``."""
+    """The supplied template's AIA/study identity and client, over a fine rule."""
     header = section.header
     header.is_linked_to_previous = False
     p = header.paragraphs[0]
     p.style = S.HEADER_WIDE if wide else S.HEADER
-    p.add_run(title)
-    if chapter_style is not None:
-        add_tab(p)
-        add_field(p, f'STYLEREF "{chapter_style}"', cached)
+    p.add_run(f"AIA · {title}")
+    add_tab(p)
+    p.add_run(client)
 
 
 def running_foot(ctx: RenderContext, section: Section, *, page: bool, wide: bool = False) -> None:
@@ -182,38 +181,97 @@ def running_foot(ctx: RenderContext, section: Section, *, page: bool, wide: bool
 
 
 def render_cover(ctx: RenderContext) -> None:
-    from aia_core.infrastructure.report_docx.cover import add_cover_field
+    from aia_core.infrastructure.report_docx.cover import add_cover_field, add_cover_logo
+    from aia_core.infrastructure.report_docx.images import add_vector_image
 
     meta = ctx.report.meta
     d = ctx.document
-    field = d.add_paragraph(style=S.COVER_RULE)
+    cover = d.sections[0]
+    cover.top_margin = Mm(22)
+    cover.bottom_margin = Mm(20)
+    cover.header_distance = Mm(0)
+    # Header artwork stays on the cover, with relationships owned by that part.
+    header = cover.header
+    header.is_linked_to_previous = False
+    field = header.paragraphs[0]
+    field.style = S.COVER_RULE
     add_cover_field(ctx, field)
+    logo = header.add_paragraph(style=S.COVER_RULE)
+    add_cover_logo(ctx, logo)
+
+    placement = d.add_table(rows=1, cols=1)
+    placement.style = S.COVER_TABLE
+    placement.autofit = False
+    placement.columns[0].width = Mm(120)
+    placement.rows[0].height = Mm(250)
+    placement.rows[0].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+    cell = placement.cell(0, 0)
+    cell.width = Mm(120)
+    cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.BOTTOM
+    placement.rows[0]._tr.get_or_add_trPr().append(el("w:cantSplit"))
     if meta.branding.client_logo_png is not None:
-        logo = d.add_paragraph(style=S.META)
-        logo.add_run().add_picture(BytesIO(meta.branding.client_logo_png), height=Mm(14))
+        p = cell.paragraphs[0]
+        p.style = S.META
+        p.add_run().add_picture(BytesIO(meta.branding.client_logo_png), height=Mm(14))
+        kicker = cell.add_paragraph(style=S.KICKER)
+    else:
+        kicker = cell.paragraphs[0]
+        kicker.style = S.KICKER
     kind = meta.title if meta.kind is ReportKind.INTERNAL else t(f"kind_{meta.kind.value}")
-    d.add_paragraph(f"AIA · {kind}", style=S.KICKER)
-    d.add_paragraph(f"{meta.client_name} · {_classification(ctx)}", style=S.META)
+    kicker.add_run(kind)
     cover_title = meta.study_name if meta.kind is ReportKind.INTERNAL else meta.title
     cover_title = re.sub(
         r"\d{4}-\d{2}-\d{2}", lambda m: m.group().replace("-", "\u2011"), cover_title
     )
-    d.add_paragraph(cover_title, style=S.TITLE)
+    cell.add_paragraph(cover_title, style=S.TITLE)
     if meta.subtitle:
-        d.add_paragraph(meta.subtitle, style=S.SUBTITLE)
-    details = d.add_paragraph(style=S.COVER_DETAILS)
-    details.add_run(f"{numbers.czech_date(meta.issued_on)} · revize {meta.revision}")
+        cell.add_paragraph(meta.subtitle, style=S.SUBTITLE)
+    # A literal 42pt by 2.25pt accent rule, from the supplied design.
+    accent = cell.add_paragraph(style=S.COVER_ACCENT)
+    add_vector_image(
+        accent,
+        ctx.svgs,
+        svg=(
+            b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 3">'
+            b'<rect width="56" height="3" fill="#0d5279"/></svg>'
+        ),
+        png=(Path(__file__).parent / "assets" / "report-cover-accent.png").read_bytes(),
+        width_mm=14.8167,
+        height_mm=0.79375,
+        alt="",
+        name="AIA cover accent",
+    )
+    grid = cell.add_table(rows=0, cols=2)
+    grid.style = S.COVER_META_TABLE
+    grid.autofit = False
+    grid.columns[0].width = Mm(22)
+    grid.columns[1].width = Mm(98)
     signature = meta.approvals[-1].reviewer if meta.approvals else "čeká na podpis"
-    d.add_paragraph(f"Zpracovalo: {meta.prepared_by}\nSchválení: {signature}", style=S.META)
+    rows = [
+        ("Klient", meta.client_name, S.META),
+        ("Datum", numbers.czech_date(meta.issued_on), S.META),
+        ("Autoři", meta.prepared_by, S.META),
+        ("Revize", str(meta.revision), S.MONO),
+        ("Schválení", signature, S.META),
+    ]
+    for label, value, style in rows:
+        cells = grid.add_row().cells
+        cells[0].width, cells[1].width = Mm(22), Mm(98)
+        cells[0].paragraphs[0].style = S.META
+        cells[0].paragraphs[0].add_run(label)
+        cells[1].paragraphs[0].style = style
+        cells[1].paragraphs[0].add_run(value)
+    cell.paragraphs[-1].style = S.COVER_RULE
+    notice = cell.add_paragraph(_classification(ctx), style=S.COVER_NOTICE)
     if _draft(ctx):
-        p = d.add_paragraph(style=S.META)
-        p.add_run(t("draft"), style=S.DRAFT)
-        p.add_run(" " + t("draft_long"))
-        footer = d.sections[-1].footer
+        notice.add_run(" · " + t("draft"), style=S.DRAFT)
+        notice.add_run(". " + t("draft_long"))
+        footer = cover.footer
         footer.is_linked_to_previous = False
         fp = footer.paragraphs[0]
         fp.style = S.FOOTER
         fp.add_run(t("draft"), style=S.DRAFT)
+    d.add_paragraph(style=S.COVER_RULE)
 
 
 # ---------------------------------------------------------------------- front matter

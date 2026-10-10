@@ -45,12 +45,12 @@ def test_every_style_resolves_to_an_embeddable_font() -> None:
 
 
 def test_no_print_text_falls_below_the_legibility_floor() -> None:
-    # 7.5 pt is the floor for running heads and fingerprints; body text is 10.5 pt.
+    # 7.5 pt is the floor for running heads and fingerprints; body text is 11.25 pt.
     for style in pt.STYLES.values():
         assert style.size_pt >= 7.5, style.name
         assert style.leading_pt >= style.size_pt, style.name
-    assert pt.STYLES["doc-body"].size_pt == 10.5
-    assert pt.STYLES["doc-body"].leading_pt == 16.8
+    assert pt.STYLES["doc-body"].size_pt == 11.25
+    assert pt.STYLES["doc-body"].leading_pt == 18
 
 
 def test_headings_are_semibold_faces_not_synthetic_bold() -> None:
@@ -84,3 +84,13 @@ def test_the_module_needs_nothing_but_the_stdlib() -> None:
         "assert not bad, bad"
     )
     subprocess.run([sys.executable, "-c", code], check=True)
+
+
+def test_supplied_client_template_scale_and_sentence_case_kicker() -> None:
+    assert pt.STYLES["doc-title"].size_pt == 33
+    assert pt.STYLES["doc-title"].leading_pt == 36
+    assert pt.STYLES["doc-h1"].size_pt == 19.5
+    assert pt.STYLES["doc-h2"].size_pt == 14.25
+    assert pt.STYLES["doc-body"].after_pt == 12
+    assert not pt.STYLES["doc-kicker"].caps
+    assert (pt.PAGE.margin_inside_mm, pt.PAGE.margin_outside_mm) == (20, 20)

@@ -33,7 +33,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
 from aia_core.application.research import research_artifacts
-from aia_core.domain.analysis import AnalysisModuleId
+from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
     ANALYSIS_MODULE_ARTIFACT,
     CallRecord,
@@ -689,8 +689,25 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     first = run.modules[AnalysisModuleId.EXECUTIVE].result
     assert first is not None
     doc = compose_internal_report(run, report_meta(first.method_status))
-    assert len(doc.sections) == 11  # Introduction, eight modules, evidence, audit.
+    assert len(doc.sections) == 12  # Introduction, methods, eight modules, evidence, audit.
     assert doc.sections[0].id == "intro"
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") < ids.index("ch-4") < ids.index("ch-3")
+    # Every admitted authored paragraph survives the new academic order.
+    for spec in ANALYSIS_MODULES:
+        result = run.modules[spec.module_id].result
+        assert result is not None
+        section = next(s for s in doc.sections if s.id == f"ch-{spec.ordinal}")
+        rendered_text = "\n".join(
+            "".join(i.text for i in b.content if isinstance(i, Text))
+            for b in section.blocks
+            if isinstance(b, Paragraph)
+        )
+        assert result.summary in rendered_text
+        for answer in result.research_question_answers:
+            assert answer.question in rendered_text and answer.answer in rendered_text
+        for finding in result.key_findings:
+            assert finding.text in rendered_text
     intro = doc.sections[0].blocks
     assert isinstance(intro[0], Paragraph) and intro[0].role is ParagraphRole.LEDE
     assert "Ranní nápoj" in "".join(i.text for i in intro[0].content if isinstance(i, Text))
@@ -981,7 +998,7 @@ def test_report_preserves_admitted_paragraphs_without_rewriting_claims(world: Wo
     executive = run.modules[AnalysisModuleId.EXECUTIVE].result
     assert executive is not None
     doc = compose_internal_report(run, report_meta(executive.method_status))
-    for section in doc.sections[1:9]:
+    for section in (s for s in doc.sections if s.id and s.id.startswith("ch-")):
         first, second = section.blocks[:2]
         assert isinstance(first, Paragraph) and first.role is ParagraphRole.BODY
         assert isinstance(second, Paragraph) and second.role is ParagraphRole.BODY

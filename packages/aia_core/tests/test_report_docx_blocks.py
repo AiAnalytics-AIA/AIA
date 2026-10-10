@@ -120,8 +120,18 @@ def test_every_value_carries_its_grade_mark_with_alt_text(report_ledger: Any) ->
     descr = [d.get("descr") for d in _body(parts).iter(f"{WP}docPr")]
     assert "Měřeno" in descr and "Modelováno" in descr
     # one SVG per distinct grade, shared by every occurrence
-    svgs = [n for n in parts if n.endswith(".svg")]
-    assert len(svgs) == len({d for d in descr if d})
+    grades: dict[str, set[str]] = {}
+    svg_ns = "{http://schemas.microsoft.com/office/drawing/2016/SVG/main}"
+    r_ns = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    for inline in _body(parts).iter(f"{WP}inline"):
+        label = inline.find(f"{WP}docPr").get("descr")
+        if not label:
+            continue  # the cover accent has no scientific grade
+        vector = next(inline.iter(svg_ns + "svgBlip"))
+        grades.setdefault(label, set()).add(vector.get(r_ns + "embed"))
+    assert set(grades) == {d for d in descr if d}
+    assert all(len(rids) == 1 for rids in grades.values())
+    assert len(set().union(*grades.values())) == len(grades)
     blips = parts["word/document.xml"].decode()
     assert "svgBlip" in blips and "{96DAC541-7B7A-43D3-8B79-37D633B846F1}" in blips
 

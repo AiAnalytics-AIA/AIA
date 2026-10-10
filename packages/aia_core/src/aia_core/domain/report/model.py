@@ -190,6 +190,7 @@ class Column:
     label: str
     align: Align = Align.LEFT
     unit: str | None = None
+    width_weight: float = 1.0  # relative share of the available text width
 
 
 @dataclass(frozen=True, slots=True)

@@ -375,7 +375,7 @@
 .type-num-hero { font-family: var(--font-sans-stack); font-size: 28px; line-height: 32px; font-weight: 500; }
 .type-mono { font-family: var(--font-mono-stack); font-size: 13px; line-height: 18px; font-weight: 400; }
 .type-mono-sm { font-family: var(--font-mono-stack); font-size: 12px; line-height: 16px; font-weight: 400; }
-.type-doc-title { font-family: var(--font-display-stack); font-size: 44px; line-height: 48px; font-weight: 600; }
+.type-doc-title { font-family: var(--font-serif-stack); font-size: 44px; line-height: 48px; font-weight: 600; }
 .type-doc-h1 { font-family: var(--font-serif-stack); font-size: 26px; line-height: 32px; font-weight: 600; }
 .type-doc-h2 { font-family: var(--font-serif-stack); font-size: 19px; line-height: 26px; font-weight: 600; }
 .type-doc-lede { font-family: var(--font-serif-stack); font-size: 18px; line-height: 28px; font-weight: 400; }

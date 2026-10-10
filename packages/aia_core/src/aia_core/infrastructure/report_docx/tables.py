@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from typing import Final
 
+from docx.shared import Emu
 from docx.table import _Cell
 
 from aia_core.domain.report import numbers
@@ -167,6 +168,17 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
     table = ctx.document.add_table(rows=1, cols=len(block.columns))
     table.style = S.DATA_TABLE
     full_width(table)
+    section = ctx.document.sections[-1]
+    page_width, left, right = section.page_width, section.left_margin, section.right_margin
+    assert page_width is not None and left is not None and right is not None
+    available = page_width - left - right
+    total_weight = sum(c.width_weight for c in block.columns)
+    widths = [Emu(round(available * c.width_weight / total_weight)) for c in block.columns]
+    table.autofit = False
+    for column, width in zip(table.columns, widths, strict=True):
+        column.width = width
+    for cell, width in zip(table.rows[0].cells, widths, strict=True):
+        cell.width = width
     header_row(table.rows[0])
     for cell, column in zip(table.rows[0].cells, block.columns, strict=True):
         p = cell.paragraphs[0]
@@ -177,6 +189,8 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         row = table.add_row()
         keep_row(row)
         cells = row.cells
+        for cell, width in zip(cells, widths, strict=True):
+            cell.width = width
         for cell, column, value in zip(cells, block.columns, trow.cells, strict=True):
             any_indicative |= _write_cell(
                 ctx, cell, column, value, strong=trow.emphasis, marks=grade is None

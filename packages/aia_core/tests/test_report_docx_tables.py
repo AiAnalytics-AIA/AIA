@@ -10,6 +10,7 @@ import io
 import zipfile
 from typing import Any
 
+import pytest
 from lxml import etree
 from test_report_docx_render import _meta
 
@@ -161,3 +162,31 @@ def test_a_landscape_page_has_running_heads_at_its_own_width(report_ledger: Any)
             for p in etree.fromstring(z.read(n)).iter(f"{W}p")
         }
     assert {"AIAHeaderLandscape", "AIAFooterLandscape", "Header", "Footer"} <= styles
+
+
+def test_column_weights_allocate_labels_more_room_without_changing_values(
+    report_ledger: Any,
+) -> None:
+    from dataclasses import replace
+
+    document = table_document(report_ledger())
+    section = document.sections[0]
+    block = next(b for b in section.blocks if isinstance(b, Table))
+    weighted = replace(
+        block,
+        columns=tuple(
+            replace(c, width_weight=3 if i == 0 else 1) for i, c in enumerate(block.columns)
+        ),
+    )
+    updated = replace(
+        document,
+        sections=(
+            replace(section, blocks=tuple(weighted if b is block else b for b in section.blocks)),
+            *document.sections[1:],
+        ),
+    )
+    tbl = _data_table(_render(updated))
+    grid = tbl.find(f"{W}tblGrid")
+    widths = [int(c.get(f"{W}w")) for c in grid]
+    assert widths[0] / widths[1] == pytest.approx(3, abs=0.01)
+    assert _t(tbl) == _t(_data_table(_render(document)))

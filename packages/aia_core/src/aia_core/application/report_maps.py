@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from aia_core.domain.report.model import (
+    Align,
     Block,
     Callout,
     CalloutKind,
@@ -148,9 +149,9 @@ def compose_map_sections(
                     id=f"tab-native-map-pairs-{index}-{ordinal}",
                     title="Směr a podpora vztahů",
                     columns=(
-                        Column("Dvojice objektů"),
-                        Column("Korelace r"),
-                        Column("Společné odpovědi"),
+                        Column("Dvojice objektů", width_weight=3),
+                        Column("Korelace r", align=Align.RIGHT),
+                        Column("Společné odpovědi", align=Align.RIGHT, width_weight=1.5),
                         Column("Status"),
                     ),
                     rows=tuple(rows),
