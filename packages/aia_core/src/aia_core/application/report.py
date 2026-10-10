@@ -98,7 +98,8 @@ def compose_internal_report(
         Paragraph(
             text(
                 "Nejprve si přečtěte shrnutí a odpovědi na výzkumné otázky. "
-                "Srovnání objektů, pohled na publikum a segmenty pak rozvíjejí "
+                "Metodika a popis publika vymezují, jak výsledky číst. Srovnání "
+                "objektů, sociomapy a segmenty pak rozvíjejí "
                 "kontext výsledků. Hypotézy a implikace pomáhají formulovat další "
                 "kroky; jejich použitelnost posuzujte společně s oddílem limitů. "
                 "Číselná tvrzení lze ověřit v evidenční příloze."
@@ -127,7 +128,62 @@ def compose_internal_report(
         )
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
-    for spec in ANALYSIS_MODULES:
+    # Put the population context before object-level findings; keep module IDs
+    # and their admitted paragraphs intact rather than rewriting the evidence.
+    order = (
+        AnalysisModuleId.EXECUTIVE,
+        AnalysisModuleId.RESEARCH_QUESTIONS,
+        AnalysisModuleId.AUDIENCE,
+        AnalysisModuleId.OBJECTS,
+        AnalysisModuleId.SEGMENTS,
+        AnalysisModuleId.HYPOTHESES,
+        AnalysisModuleId.IMPLICATIONS,
+        AnalysisModuleId.LIMITATIONS,
+    )
+    specs = {s.module_id: s for s in ANALYSIS_MODULES}
+    for module_id in order:
+        spec = specs[module_id]
+        if module_id is AnalysisModuleId.AUDIENCE:
+            sections.append(
+                Section(
+                    "Metodika a způsob interpretace",
+                    (
+                        Paragraph(
+                            text(
+                                "Analýza vychází ze společného souboru odpovědí a výzkumné "
+                                "specifikace uložených pro tento běh studie. Jednotlivé kapitoly "
+                                "proto čtou tutéž evidenci z různých hledisek: odpovídají na "
+                                "výzkumné otázky, porovnávají objekty, popisují publikum a "
+                                "zkoumají možné segmenty. Vzájemné rozdíly v důrazu je třeba "
+                                "posuzovat v kontextu této společné datové základny."
+                            )
+                        ),
+                        Paragraph(
+                            text(
+                                "Popisné výsledky, jejich interpretace a doporučení mají odlišnou "
+                                "úlohu. Výsledek uvádí, co evidence podporuje; interpretace "
+                                "vysvětluje jeho možné souvislosti a doporučení navrhuje další "
+                                "postup. Doporučení samo o sobě není důkazem účinku a vztah mezi "
+                                "dvěma charakteristikami neprokazuje příčinnou souvislost. "
+                                "Před rozhodnutím je proto nutné číst závěry společně s limity."
+                            )
+                        ),
+                        Paragraph(
+                            text(
+                                "Odkazy u tvrzení umožňují dohledat příslušné podklady v "
+                                "evidenční příloze. Sociomapy doplňují slovní analýzu vizuálním "
+                                "pohledem; vysvětlení jejich vzdáleností, výšky, kvality zobrazení "
+                                "a omezení je uvedeno přímo v kapitole s mapami."
+                                if map_sections
+                                else "Odkazy u tvrzení umožňují dohledat příslušné podklady v "
+                                "evidenční příloze. Ta slouží k ověření zjištění, zatímco "
+                                "následující kapitoly rozvíjejí jejich věcný význam."
+                            )
+                        ),
+                    ),
+                    id="methodology",
+                )
+            )
         module = run.modules[spec.module_id]
         result = module.result
         if result is None or result.module_id is not spec.module_id:

@@ -143,7 +143,7 @@ def test_cover_front_matter_body_and_appendix_are_four_sections(
     rendered: dict[str, bytes],
 ) -> None:
     cover, front, body, appendix = _sections(rendered)
-    assert cover.find(f"{W}headerReference") is None  # the cover has no running head
+    assert cover.find(f"{W}headerReference") is not None  # artwork only, no running text
     front_pg = front.find(f"{W}pgNumType")
     body_pg = body.find(f"{W}pgNumType")
     assert front_pg is not None and front_pg.get(f"{W}fmt") == "lowerRoman"
@@ -166,14 +166,22 @@ def _header_footer_text(parts: dict[str, bytes], kind: str) -> list[tuple[str, l
     ]
 
 
-def test_the_body_header_carries_the_title_and_the_current_chapter(
+def test_running_heads_match_the_supplied_study_and_client_template(
     rendered: dict[str, bytes],
 ) -> None:
     headers = _header_footer_text(rendered, "header")
-    chapter = [h for h in headers if 'STYLEREF "Heading 1"' in h[1]]
-    assert chapter and chapter[0][0].startswith("Důvěra v banky 2026")
-    assert "1 Shrnutí" in chapter[0][0]  # the cached result reads before an update
-    assert any('STYLEREF "AIA Appendix Heading"' in h[1] for h in headers)
+    running = [text for text, _ in headers if text]
+    assert len(running) == 3
+    assert all(text == "AIA · Důvěra 2026Klient a.s." for text in running)
+    assert all("STYLEREF" not in " ".join(fields) for _, fields in headers)
+    for n in rendered:
+        if n.startswith("word/header") and n.endswith(".xml") and _text(_xml(rendered, n)):
+            assert (
+                _xml(rendered, "word/styles.xml")
+                .find(f"{W}style[@{W}styleId='Header']/{W}pPr/{W}pBdr/{W}bottom")
+                .get(f"{W}sz")
+                == "6"
+            )
 
 
 def test_an_unapproved_report_says_draft_in_every_footer(rendered: dict[str, bytes]) -> None:
@@ -296,14 +304,39 @@ def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger:
     parts = _parts(DocxRenderer().render(internal))
     body = _xml(parts, "word/document.xml")
     wp = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
-    anchors = list(body.iter(wp + "anchor"))
-    assert len(anchors) == 1 and anchors[0].get("behindDoc") == "1"
+    headers = [
+        etree.fromstring(v)
+        for k, v in parts.items()
+        if k.startswith("word/header") and k.endswith(".xml")
+    ]
+    anchors = [a for h in headers for a in h.iter(wp + "anchor")]
+    assert len(anchors) == 2
+    assert {a.get("behindDoc") for a in anchors} == {"0", "1"}
+    assert any(a.find(wp + "docPr").get("name") == "AIA report lockup" for a in anchors)
     cover = Document(io.BytesIO(DocxRenderer().render(internal)))
+    cell = cover.tables[0].cell(0, 0)
     assert (
-        next(p.text for p in cover.paragraphs if p.style.name == "Title")
-        == internal.meta.study_name
+        next(p.text for p in cell.paragraphs if p.style.name == "Title") == internal.meta.study_name
     )
-    assert any("čeká na podpis" in p.text for p in cover.paragraphs)
+    assert "čeká na podpis" in _text(body)
+    assert cover.tables[0].columns[0].width.mm == pytest.approx(120, abs=0.02)
+    from aia_core.infrastructure.report_docx.cover import ASSETS
+
+    assert (ASSETS / "aia-lockup.svg").read_bytes() in parts.values()
+    # Header SVG relationships must resolve in their own part, not document.xml.
+    ns = "{http://schemas.microsoft.com/office/drawing/2016/SVG/main}"
+    rel_ns = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+    r = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+    for name, data in parts.items():
+        if (
+            name.startswith("word/header")
+            and name.endswith(".xml")
+            and list(etree.fromstring(data).iter(ns + "svgBlip"))
+        ):
+            rels = etree.fromstring(parts["word/_rels/" + name.split("/")[-1] + ".rels"])
+            targets = {e.get("Id"): e.get("Target") for e in rels.iter(rel_ns + "Relationship")}
+            for image in etree.fromstring(data).iter(ns + "svgBlip"):
+                assert "word/" + targets[image.get(r + "embed")] in parts
 
 
 def test_the_evidence_appendix_is_wide_and_audit_returns_to_portrait(report_ledger: Any) -> None:

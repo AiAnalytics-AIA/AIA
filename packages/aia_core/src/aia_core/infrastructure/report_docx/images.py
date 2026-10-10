@@ -34,9 +34,9 @@ class SvgParts:
 
     def __init__(self, document: Document) -> None:
         self._document = document
-        self._by_hash: dict[str, str] = {}
+        self._by_hash: dict[str, Part] = {}
 
-    def rid(self, svg: bytes) -> str:
+    def rid(self, svg: bytes, owner: Part | None = None) -> str:
         digest = hashlib.sha256(svg).hexdigest()
         if digest not in self._by_hash:
             n = len(self._by_hash) + 1
@@ -46,8 +46,8 @@ class SvgParts:
                 svg,
                 self._document.part.package,
             )
-            self._by_hash[digest] = self._document.part.relate_to(part, RT.IMAGE)
-        return self._by_hash[digest]
+            self._by_hash[digest] = part
+        return (owner or self._document.part).relate_to(self._by_hash[digest], RT.IMAGE)
 
 
 def add_vector_image(
@@ -75,4 +75,4 @@ def add_vector_image(
     ext_lst = etree.SubElement(blip, f"{{{_A_NS}}}extLst")
     ext = etree.SubElement(ext_lst, f"{{{_A_NS}}}ext", uri=SVG_EXT_URI)
     svg_blip = etree.SubElement(ext, f"{{{ASVG_NS}}}svgBlip", nsmap={"asvg": ASVG_NS})
-    svg_blip.set(f"{{{_R_NS}}}embed", svgs.rid(svg))
+    svg_blip.set(f"{{{_R_NS}}}embed", svgs.rid(svg, paragraph.part))

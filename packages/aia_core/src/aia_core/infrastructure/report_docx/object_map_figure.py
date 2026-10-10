@@ -26,7 +26,9 @@ def draw_object_map_snapshot(
     if perspective and not isinstance(artifact.terrain, EnvelopeTerrain):
         raise ValueError("a 3D snapshot needs stored terrain")
     with drawing():
-        fig = new_figure(160, 105 if perspective else 120)
+        fig = new_figure(160, 90 if perspective else 120)
+        # An opaque print ground avoids transparency seams in Word/PDF readers.
+        fig.set_facecolor("white")
         ax = fig.add_subplot(111, projection="3d" if perspective else None)
         palette = LinearSegmentedColormap.from_list(
             "aia_map", [COLORS[f"viz-seq-{k}"] for k in range(1, 8)]

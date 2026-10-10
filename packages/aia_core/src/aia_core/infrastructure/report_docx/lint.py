@@ -28,7 +28,7 @@ _ALLOWED: Final[dict[str, frozenset[str]]] = {
     "pPr": frozenset({"pStyle", "numPr", "sectPr", "rPr"}),
     "rPr": frozenset({"rStyle"}),
     "tblPr": frozenset({"tblStyle", "tblW", "tblLook", "tblLayout"}),
-    "trPr": frozenset({"tblHeader", "cantSplit"}),
+    "trPr": frozenset({"tblHeader", "cantSplit", "trHeight"}),
     "tcPr": frozenset({"tcW", "gridSpan", "vMerge", "vAlign"}),
 }
 

@@ -12,6 +12,7 @@ boundary where a report could otherwise quietly break them.
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -276,6 +277,13 @@ def validate(doc: ReportDocument) -> tuple[Problem, ...]:
             elif isinstance(block, Table):
                 if not block.title.strip() or not block.source.strip():
                     add(ProblemCode.TABLE_INCOMPLETE, "a table has a title and a source", where)
+                weights = [c.width_weight for c in block.columns]
+                if (
+                    not weights
+                    or any(not math.isfinite(w) or w <= 0 for w in weights)
+                    or not math.isfinite(sum(weights))
+                ):
+                    add(ProblemCode.TABLE_SHAPE, "column widths must be finite and positive", where)
                 for ri, trow in enumerate(block.rows):
                     if len(trow.cells) != len(block.columns):
                         add(
