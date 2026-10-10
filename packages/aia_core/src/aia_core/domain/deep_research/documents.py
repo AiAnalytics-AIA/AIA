@@ -17,9 +17,11 @@ span of that text back to where it came from:
   row and column labels, and the sheet's caption and notes
   (:class:`~.contracts.DocumentSheet` says how those are found).
 
-PDF table structure (cells, headers, captions inside a PDF) is not extracted:
-pypdf yields flat text, and no table extractor is a dependency. A number in a PDF
-table grounds to its page.
+* **PDF tables** -- each table the reader found on a page (pdfplumber, plan chunk 6)
+  follows the pages as a grid of its own, named ``s. <page>, tabulka <n>`` and
+  rendered like a sheet, so a number in it maps to its cell with its row and column
+  labels and the page it is on (``DocumentSheet.page``). The same numbers are also in
+  the page's flat text; a quote that grounds there maps to its page.
 
 :func:`read_part` serves a part of a captured document -- pages of a PDF, a sheet
 or a range of an XLSX, rows of a CSV -- from the snapshot alone; nothing leaves
@@ -58,6 +60,7 @@ __all__ = [
     "MAX_GRID_SHEETS",
     "MAX_LABEL_LINES",
     "MAX_PART_CHARS",
+    "MAX_PDF_TABLES",
     "PDF_MAX_PAGES",
     "ZIP_MAX_RATIO",
     "CapturedDocument",
@@ -71,6 +74,7 @@ __all__ = [
     "PartRefused",
     "PdfBookmark",
     "PdfContent",
+    "PdfTable",
     "SheetOutline",
     "cell_address",
     "column_letters",
@@ -78,6 +82,7 @@ __all__ = [
     "grid_document",
     "locate_span",
     "pdf_document",
+    "pdf_table_name",
     "read_part",
     "sheet_reference",
 ]
@@ -97,6 +102,8 @@ MAX_GRID_SHEETS: Final = 50
 #: An XLSX whose members declare more than this many times its own size is not
 #: opened (beside ``document_text``'s member-count and total-size bounds).
 ZIP_MAX_RATIO: Final = 100
+#: Tables kept from one PDF; past it, the snapshot says its tables are truncated.
+MAX_PDF_TABLES: Final = 200
 #: Bookmarks kept from a PDF's outline.
 MAX_BOOKMARKS: Final = 500
 #: Caption and note lines kept per sheet, and their length.
@@ -136,11 +143,17 @@ class PdfBookmark:
 
 @dataclass(frozen=True, slots=True)
 class PdfContent:
-    """A PDF as read: each page's text in order, and what the file says of itself."""
+    """A PDF as read: each page's text in order, and what the file says of itself.
+
+    ``tables`` are the tables the reader found, in page order; ``tables_truncated`` when
+    a bound (tables, cells, time) stopped it looking.
+    """
 
     pages: tuple[str, ...]
     title: str = ""
     bookmarks: tuple[PdfBookmark, ...] = ()
+    tables: tuple[PdfTable, ...] = ()
+    tables_truncated: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -158,6 +171,14 @@ class GridContent:
     name: str
     rows: tuple[GridRow, ...]
     truncated: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class PdfTable:
+    """One table found on a PDF page: its 1-based page, its rows as its cells were read."""
+
+    page: int
+    rows: tuple[GridRow, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +254,14 @@ class _Text:
         self.length += len(value)
         return start, self.length
 
+    def truncate(self, length: int) -> None:
+        """Drop everything after ``length`` characters (a piece that turned out empty)."""
+        while self._parts and self.length > length:
+            part = self._parts.pop()
+            self.length -= len(part)
+        if self.length < length:  # the cut fell inside a piece: keep its head
+            raise AssertionError("truncate only at a piece boundary")
+
     def text(self) -> str:
         return "".join(self._parts)
 
@@ -270,6 +299,22 @@ def pdf_document(
         page = normalise_text(raw)
         start, end = built.segment(page) if page else (built.length, built.length)
         spans.append((number, start, end))
+    # Each table after the pages, as a grid of its own: its cells keep their place.
+    drafts: list[tuple[str, int, int, int, _Table, list[tuple[int, int, int, int]]]] = []
+    per_page: dict[int, int] = {}
+    for table in content.tables[:MAX_PDF_TABLES]:
+        if not 1 <= table.page <= len(content.pages):
+            continue
+        per_page[table.page] = per_page.get(table.page, 0) + 1
+        name = pdf_table_name(table.page, per_page[table.page])
+        mark = built.length
+        heading_start, _ = built.segment(f"## {name}")
+        rows, cells = _render_rows(built, table.rows)
+        if not cells:  # an empty table adds nothing; take its heading back out
+            built.truncate(mark)
+            per_page[table.page] -= 1
+            continue
+        drafts.append((name, table.page, heading_start, built.length, _table(rows), cells))
     text, length, truncated = _clip(built.text(), max_chars)
     if not text:
         raise DocumentRefused(
@@ -291,11 +336,35 @@ def pdf_document(
         )
         for b in content.bookmarks[:MAX_BOOKMARKS]
     )
+    tables = tuple(
+        DocumentSheet(
+            name=name,
+            start=start,
+            end=min(end, length),
+            header_row=table.header_row,
+            label_column=table.label_column,
+            caption=table.caption,
+            notes=table.notes,
+            cells=tuple(cell for cell in cells if cell[3] <= length),
+            truncated=end > length,
+            page=page,
+        )
+        for name, page, start, end, table, cells in drafts
+        if start < length
+    )
+    tables_cut = content.tables_truncated or len(content.tables) > MAX_PDF_TABLES
     layout = DocumentLayout(
-        kind="pdf", page_count=len(content.pages), pages=pages, bookmarks=bookmarks
+        kind="pdf",
+        page_count=len(content.pages),
+        pages=pages,
+        bookmarks=bookmarks,
+        sheets=tables,
     )
     return CapturedDocument(
-        title=normalise_text(content.title)[:500], text=text, layout=layout, truncated=truncated
+        title=normalise_text(content.title)[:500],
+        text=text,
+        layout=layout,
+        truncated=truncated or tables_cut or any(t.truncated for t in tables),
     )
 
 
@@ -332,6 +401,35 @@ def _table(rows: Sequence[tuple[int, dict[int, str]]]) -> _Table:
     return _Table(rows[header_at][0], label_column, caption, notes)
 
 
+def _render_rows(
+    built: _Text, grid_rows: Sequence[GridRow]
+) -> tuple[list[tuple[int, dict[int, str]]], list[tuple[int, int, int, int]]]:
+    """Append a grid's rows as ``| v1 | v2 | | v4 |``; its non-empty rows and cell spans."""
+    rows: list[tuple[int, dict[int, str]]] = []
+    for row in grid_rows:
+        cells = {
+            c: v for c, v in ((c, normalise_text(raw)) for c, raw in enumerate(row.values, 1)) if v
+        }
+        if cells:
+            rows.append((row.number, cells))
+    first_column = min((min(cells) for _, cells in rows), default=1)
+    spans: list[tuple[int, int, int, int]] = []
+    for number, cells in rows:
+        built.segment("|")
+        for column in range(first_column, max(cells) + 1):
+            value = cells.get(column)
+            if value:
+                start, end = built.glue(" " + value)
+                spans.append((number, column, start + 1, end))
+            built.glue(" |")
+    return rows, spans
+
+
+def pdf_table_name(page: int, index: int) -> str:
+    """A PDF table's grid name: ``s. 3, tabulka 1`` (page 3, its first table)."""
+    return f"s. {page}, tabulka {index}"
+
+
 def grid_document(
     kind: Literal["xlsx", "csv"],
     sheets: Sequence[GridContent],
@@ -350,25 +448,7 @@ def grid_document(
         sheet_start = built.length + (1 if built.length else 0)
         if kind == "xlsx":
             built.segment(f"## {name}" if name else "##")
-        rows: list[tuple[int, dict[int, str]]] = []
-        for row in sheet.rows:
-            cells = {
-                c: v
-                for c, v in ((c, normalise_text(raw)) for c, raw in enumerate(row.values, 1))
-                if v
-            }
-            if cells:
-                rows.append((row.number, cells))
-        first_column = min((min(cells) for _, cells in rows), default=1)
-        spans: list[tuple[int, int, int, int]] = []
-        for number, cells in rows:
-            built.segment("|")
-            for column in range(first_column, max(cells) + 1):
-                value = cells.get(column)
-                if value:
-                    start, end = built.glue(" " + value)
-                    spans.append((number, column, start + 1, end))
-                built.glue(" |")
+        rows, spans = _render_rows(built, sheet.rows)
         drafts.append(
             (
                 name,
@@ -453,6 +533,10 @@ def _cell_ref(kind: str, sheet: DocumentSheet, row: int, column: int) -> str:
     return address if kind == "csv" else f"{sheet_reference(sheet.name)}!{address}"
 
 
+def _cell_page(kind: str, sheet: DocumentSheet) -> int | None:
+    return sheet.page if kind == "pdf" else None
+
+
 def _cell_locator(
     snapshot: SourceSnapshot, kind: str, sheet: DocumentSheet, row: int, column: int
 ) -> Locator:
@@ -464,6 +548,7 @@ def _cell_locator(
         row_label = _value(snapshot, sheet, row, sheet.label_column)
     return Locator(
         ref=_cell_ref(kind, sheet, row, column),
+        page=_cell_page(kind, sheet),
         sheet=None if kind == "csv" else sheet.name,
         address=cell_address(row, column),
         row=row,
@@ -475,8 +560,26 @@ def _cell_locator(
     )
 
 
+def _cells_quoted(
+    snapshot: SourceSnapshot, layout: DocumentLayout, page: int, quoted: str
+) -> list[Locator]:
+    found: list[Locator] = []
+    for sheet in layout.sheets:
+        if sheet.page != page:
+            continue
+        for row, column, cell_start, cell_end in sheet.cells:
+            value = snapshot.text[cell_start:cell_end]
+            if re.search(rf"(?<![\w,.]){re.escape(value)}(?![\w]|[,.]\d)", quoted):
+                found.append(_cell_locator(snapshot, "pdf", sheet, row, column))
+    return found
+
+
 def locate_span(snapshot: SourceSnapshot, span: tuple[int, int]) -> tuple[Locator, ...]:
     """The pages, or the cells, a span of a document snapshot's text overlaps.
+
+    In a PDF, a span on a page also locates the cells of that page's tables whose value
+    it quotes as a whole token (``12,4`` is not found in ``112,4`` or ``12,45``); a span
+    on a table's own rendering locates its cells directly.
 
     ``span`` is what grounding returns for a quote (``Grounding.span``): offsets
     in the snapshot's text. A span that covers only a separator overlaps nothing.
@@ -484,13 +587,16 @@ def locate_span(snapshot: SourceSnapshot, span: tuple[int, int]) -> tuple[Locato
     """
     layout = _layout(snapshot)
     start, end = span
-    if layout.kind == "pdf":
-        return tuple(
-            Locator(ref=f"p. {p.page}", page=p.page)
-            for p in layout.pages
-            if p.start < end and start < p.end
-        )
     found: list[Locator] = []
+    if layout.kind == "pdf":
+        quoted = snapshot.text[start:end]
+        for page in layout.pages:
+            if not (page.start < end and start < page.end):
+                continue
+            found.append(Locator(ref=f"p. {page.page}", page=page.page))
+            # The page's flat text holds the table's values too: a value quoted from it
+            # is also the cell (or cells) of that page's tables holding it as a whole token.
+            found.extend(_cells_quoted(snapshot, layout, page.page, quoted))
     for sheet in layout.sheets:
         if sheet.end <= start or end <= sheet.start:
             continue
@@ -732,7 +838,8 @@ def _range(spec: str) -> tuple[tuple[int, int], tuple[int, int] | None]:
 def read_part(snapshot: SourceSnapshot, part: str) -> DocumentPart:
     """Serve ``part`` of a captured document: ``read``'s backend; nothing is fetched.
 
-    A PDF takes pages: ``p. 3``, ``p. 3-5`` (``pages``, ``str.``, ``strany`` too).
+    A PDF takes pages: ``p. 3``, ``p. 3-5`` (``pages``, ``str.``, ``strany`` too), or
+    one of its tables (``s. 3, tabulka 1``) or a range of one (``'s. 3, tabulka 1'!B2:C4``).
     An XLSX takes a sheet (``List1``, ``'Kraje 2024'``), or a range of one
     (``List1!B2:D10``, ``List1!2:40``); a workbook of one sheet takes a bare
     range. A CSV takes a range (``B2:D10``, ``2:40``, ``rows 2-40``).
@@ -741,27 +848,39 @@ def read_part(snapshot: SourceSnapshot, part: str) -> DocumentPart:
     spec = part.strip()
     if not spec:
         raise PartRefused("an empty part", reason="part_invalid")
-    if layout.kind == "pdf":
+    if layout.kind == "pdf" and (_PAGES.match(spec) or not layout.sheets):
         return _pdf_part(snapshot, layout, spec)
     if layout.kind == "csv":
         rows, columns = _range(spec)
         return _grid_part(snapshot, "csv", layout.sheets[0], rows, columns)
+    return _sheet_part(snapshot, layout, spec)
+
+
+def _sheet_part(snapshot: SourceSnapshot, layout: DocumentLayout, spec: str) -> DocumentPart:
+    """A named grid (an XLSX sheet, a PDF table) or a range of one."""
+    kind = layout.kind
+    where = "document" if kind == "pdf" else "workbook"
     names = {s.name: s for s in layout.sheets}
     bare = spec[1:-1].replace("''", "'") if spec.startswith("'") and spec.endswith("'") else spec
     if bare in names:
-        return _grid_part(snapshot, "xlsx", names[bare], None, None)
+        return _grid_part(snapshot, kind, names[bare], None, None)
     if match := _SHEET_REF.match(spec):
         name = match[1].replace("''", "'") if match[1] is not None else match[2].strip()
         sheet = names.get(name)
         if sheet is None:
-            raise PartRefused(f"the workbook has no sheet {name!r}", reason="part_unknown_sheet")
+            raise PartRefused(f"the {where} has no sheet {name!r}", reason="part_unknown_sheet")
         rows, columns = _range(match[3].strip())
-        return _grid_part(snapshot, "xlsx", sheet, rows, columns)
-    if len(layout.sheets) == 1:
+        return _grid_part(snapshot, kind, sheet, rows, columns)
+    if len(layout.sheets) == 1 and kind == "xlsx":
         try:
             rows, columns = _range(spec)
         except PartRefused:
             pass
         else:
-            return _grid_part(snapshot, "xlsx", layout.sheets[0], rows, columns)
+            return _grid_part(snapshot, kind, layout.sheets[0], rows, columns)
+    if kind == "pdf":
+        raise PartRefused(
+            f"{spec!r} names no pages or table (say 'p. 3' or 's. 3, tabulka 1')",
+            reason="part_invalid",
+        )
     raise PartRefused(f"the workbook has no sheet {spec!r}", reason="part_unknown_sheet")
