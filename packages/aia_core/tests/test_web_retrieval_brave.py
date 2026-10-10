@@ -154,7 +154,7 @@ def _params(call: dict[str, Any]) -> dict[str, str]:
 
 def test_brave_is_a_live_search_adapter_with_its_own_id() -> None:
     adapter: SearchAdapter = _search(Transport(_json(DOCUMENTED_SHAPE)))
-    assert adapter.adapter_id == BRAVE_SEARCH_ID == "brave-web-search-1"
+    assert adapter.adapter_id == BRAVE_SEARCH_ID == "brave-web-search-2"
     assert adapter.retrieval_mode is RetrievalMode.LIVE
 
 
@@ -182,12 +182,74 @@ def test_one_get_to_the_checked_address_with_the_documented_parameters() -> None
     assert call["headers"] == {"Accept": "application/json", "X-Subscription-Token": KEY}
     assert _params(call) == {
         "q": "spotřeba kávy",
-        "country": "CZ",
+        "country": "ALL",
         "search_lang": "cs",
         "count": "5",
         "safesearch": "strict",
         "result_filter": "web",
     }
+
+
+@pytest.mark.parametrize("lang", ["cs", "en"])
+def test_czech_and_english_search_use_a_supported_global_region(lang: str) -> None:
+    # Provider country enum captured from the official GET reference, 2026-10-10.
+    # CZ is absent: sending it made every live search fail with HTTP 422.
+    supported = {
+        "AR",
+        "AU",
+        "AT",
+        "BE",
+        "BR",
+        "CA",
+        "CL",
+        "DK",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HK",
+        "IN",
+        "ID",
+        "IT",
+        "JP",
+        "KR",
+        "MY",
+        "MX",
+        "NL",
+        "NZ",
+        "NO",
+        "CN",
+        "PL",
+        "PT",
+        "PH",
+        "RU",
+        "SA",
+        "ZA",
+        "ES",
+        "SE",
+        "CH",
+        "TW",
+        "TR",
+        "GB",
+        "US",
+        "ALL",
+    }
+
+    class RegionCheckingTransport(Transport):
+        def get(
+            self, url: str, *, address: str, max_bytes: int, headers: Mapping[str, str]
+        ) -> FetchedResponse:
+            params = parse_qs(urlsplit(url).query)
+            if params["country"][0] not in supported:
+                return _json({"type": "ErrorResponse"}, status=422)
+            return super().get(url, address=address, max_bytes=max_bytes, headers=headers)
+
+    transport = RegionCheckingTransport(_json(DOCUMENTED_SHAPE))
+    response = _search(transport).search_in("public library programmes", lang=lang, max_results=5)
+    assert response.hits
+    assert len(transport.calls) == 1
+    assert _params(transport.calls[0])["country"] == "ALL"
+    assert _params(transport.calls[0])["search_lang"] == lang
 
 
 @pytest.mark.parametrize(("asked", "sent"), [(1, "1"), (20, "20"), (21, "20"), (500, "20")])
