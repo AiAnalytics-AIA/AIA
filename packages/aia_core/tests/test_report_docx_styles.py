@@ -69,3 +69,17 @@ def test_the_style_sheet_installs_with_no_theme_fonts() -> None:
     assert "asciiTheme" not in xml and "hAnsiTheme" not in xml
     h1 = document.styles[S.H1].element
     assert h1.find(qn("w:rPr")).find(qn("w:rFonts")).get(qn("w:ascii")) == STYLES["doc-h1"].font
+
+
+def test_starter_theme_furniture_cannot_override_the_aia_template() -> None:
+    from aia_core.infrastructure.report_docx.ooxml import el
+
+    document = Document()
+    props = document.styles["Title"].element.get_or_add_pPr()
+    props.append(el("w:pBdr"))
+    props.append(el("w:shd", fill="FF0000"))
+    props.append(el("w:contextualSpacing"))
+    install_styles(document)
+    title = document.styles[S.TITLE].element.get_or_add_pPr()
+    assert all(title.find(qn(tag)) is None for tag in ("w:pBdr", "w:shd", "w:contextualSpacing"))
+    assert PARAGRAPHS[S.FINDING_TITLE].token == "doc-body"

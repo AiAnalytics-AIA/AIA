@@ -22,7 +22,7 @@ from typing import Final
 import docx
 from docx.oxml.ns import qn
 
-from aia_core.domain.report.model import ReportDocument
+from aia_core.domain.report.model import EvidenceAppendix, ReportDocument
 from aia_core.domain.report.outline import build_outline
 from aia_core.domain.report.print_tokens import FONTS
 from aia_core.domain.report.validation import require_valid
@@ -88,16 +88,22 @@ def _write(ctx: RenderContext) -> None:
     layout.running(ctx, body)
 
     in_appendix = False
+    wide = False
     for si, section in enumerate(ctx.report.sections):
-        if section.appendix and not in_appendix:
-            in_appendix = True
+        needs_wide = section.appendix and any(
+            isinstance(b, EvidenceAppendix) for b in section.blocks
+        )
+        if (section.appendix and not in_appendix) or needs_wide != wide:
+            in_appendix = section.appendix
+            wide = needs_wide
             if si > 0:
-                appendix = layout.end_section(ctx, layout.last_paragraph(ctx))
+                appendix = layout.end_section(ctx, layout.last_paragraph(ctx), landscape=wide)
                 label = layout.heading_label(
-                    [e for e in ctx.outline.headings if e.level == 1][si], appendix=True
+                    [e for e in ctx.outline.headings if e.level == 1][si],
+                    appendix=section.appendix,
                 )
-                ctx.running = (S.APPENDIX, f"{label} {section.title}")
-                layout.running(ctx, appendix)
+                ctx.running = (S.APPENDIX if section.appendix else S.H1, f"{label} {section.title}")
+                layout.running(ctx, appendix, wide=wide)
         chapter_heading(ctx, si, section)
         for bi, block in enumerate(section.blocks):
             ctx.position = (si, bi)

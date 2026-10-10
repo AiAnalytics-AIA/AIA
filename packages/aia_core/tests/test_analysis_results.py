@@ -983,7 +983,7 @@ def test_report_preserves_admitted_paragraphs_without_rewriting_claims(world: Wo
     doc = compose_internal_report(run, report_meta(executive.method_status))
     for section in doc.sections[1:9]:
         first, second = section.blocks[:2]
-        assert isinstance(first, Paragraph) and first.role is ParagraphRole.LEDE
+        assert isinstance(first, Paragraph) and first.role is ParagraphRole.BODY
         assert isinstance(second, Paragraph) and second.role is ParagraphRole.BODY
         assert "".join(i.text for i in second.content if isinstance(i, Text)) == (
             "Další krok je ověřit výsledky v reálném výzkumu."

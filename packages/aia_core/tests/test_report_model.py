@@ -342,3 +342,18 @@ def test_require_valid_lists_every_problem(report_ledger: Any) -> None:
         ProblemCode.FIGURE_INCOMPLETE,
         ProblemCode.UNKNOWN_REF,
     }
+
+
+def test_prose_evidence_references_are_admitted_and_preserved(report_ledger: Any) -> None:
+    from aia_core.domain.report.validation import cited_refs
+
+    ledger = report_ledger()
+    admitted = doc(ledger, Paragraph(text("A finding in ordinary prose."), refs=("trust_praha",)))
+    assert not codes(admitted)
+    assert "trust_praha" in cited_refs(admitted)
+    assert ProblemCode.UNKNOWN_REF in codes(
+        doc(ledger, Paragraph(text("Unbacked prose."), refs=("nowhere",)))
+    )
+    assert ProblemCode.SUPPRESSED_CITED in codes(
+        doc(ledger, Paragraph(text("Suppressed prose."), refs=("trust_zlin",)))
+    )

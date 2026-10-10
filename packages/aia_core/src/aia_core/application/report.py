@@ -21,6 +21,7 @@ from aia_core.domain.report.model import (
     CalloutKind,
     Classification,
     EvidenceAppendix,
+    Heading,
     ListItem,
     Paragraph,
     ParagraphRole,
@@ -55,7 +56,9 @@ _TITLES = {
 }
 
 
-def compose_internal_report(run: RunAnalysis, meta: ReportMeta) -> ReportDocument:
+def compose_internal_report(
+    run: RunAnalysis, meta: ReportMeta, *, map_sections: tuple[Section, ...] = ()
+) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
     Caller supplies the Study-scoped ``reconstruct_run`` outcome and metadata.
@@ -151,37 +154,32 @@ def compose_internal_report(run: RunAnalysis, meta: ReportMeta) -> ReportDocumen
             if reference.table.rows.get(claim.row.evidence_ref) != claim.row:
                 raise ReportCompositionRefused(f"{spec.module_id}: claim is outside run evidence")
         claims.extend(result.claims)
-        # Preserve authored paragraph boundaries instead of flattening the module
-        # into a single lede. This is formatting, not a second AI interpretation.
+        # Analysis prose is body text. A lede is a short answer, not an entire
+        # module summary promoted to display typography.
+        refs = tuple(dict.fromkeys(c.row.evidence_ref for c in result.claims))
         blocks: list[Block] = [
-            Paragraph(text(part), ParagraphRole.LEDE if index == 0 else ParagraphRole.BODY)
-            for index, part in enumerate(re.split(r"\n\s*\n", result.summary))
+            Paragraph(text(part.strip()), refs=refs)
+            for part in re.split(r"\n\s*\n", result.summary)
             if part.strip()
         ]
-        if result.claims:
-            blocks.append(
-                Callout(
-                    CalloutKind.NOTE,
-                    text("Číselná tvrzení tohoto oddílu jsou doložena v evidenční příloze."),
-                    refs=tuple(dict.fromkeys(c.row.evidence_ref for c in result.claims)),
-                )
-            )
+        if result.research_question_answers:
+            blocks.append(Heading("Odpovědi na výzkumné otázky", 2))
         for answer in result.research_question_answers:
-            blocks.append(Paragraph((Text(answer.question, "strong"), Text(" — " + answer.answer))))
-            if answer.claim_ids:
-                blocks.append(
-                    Callout(
-                        CalloutKind.NOTE,
-                        text("Evidence k odpovědi."),
-                        refs=tuple(by_claim[cid].row.evidence_ref for cid in answer.claim_ids),
-                    )
+            blocks.append(Paragraph((Text(answer.question, "strong"),)))
+            blocks.extend(
+                Paragraph(
+                    text(part.strip()),
+                    refs=tuple(by_claim[cid].row.evidence_ref for cid in answer.claim_ids),
                 )
+                for part in re.split(r"\n\s*\n", answer.answer)
+                if part.strip()
+            )
+        if result.key_findings:
+            blocks.append(Heading("Podstatná zjištění", 2))
         for finding in result.key_findings:
             blocks.append(
-                Callout(
-                    CalloutKind.NOTE,
+                Paragraph(
                     text(finding.text),
-                    title="Zjištění",
                     refs=tuple(by_claim[cid].row.evidence_ref for cid in finding.claim_ids),
                 )
             )
@@ -193,6 +191,8 @@ def compose_internal_report(run: RunAnalysis, meta: ReportMeta) -> ReportDocumen
                 )
             )
         sections.append(Section(_TITLES[spec.module_id], tuple(blocks), id=f"ch-{spec.ordinal}"))
+        if spec.module_id is AnalysisModuleId.OBJECTS:
+            sections.extend(map_sections)
         audit.append((spec.artifact_name, module.artifact_sha256))
 
     ledger = EvidenceLedger.from_claims(

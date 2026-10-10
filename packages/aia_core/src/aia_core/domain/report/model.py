@@ -96,6 +96,7 @@ class ParagraphRole(StrEnum):
 class Paragraph:
     content: tuple[Inline, ...]
     role: ParagraphRole = ParagraphRole.BODY
+    refs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

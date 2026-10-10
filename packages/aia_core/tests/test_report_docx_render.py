@@ -18,6 +18,7 @@ import pytest
 from docx import Document
 from lxml import etree
 
+from aia_core.domain.evidence import ClaimSurface
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
 from aia_core.domain.report.model import (
     Approval,
@@ -284,3 +285,42 @@ def test_the_lint_finds_direct_formatting() -> None:
 def test_a_method_status_with_no_printed_wording_is_refused(report_ledger: Any) -> None:
     with pytest.raises(ReportInvalid, match="no printed wording"):
         DocxRenderer().render(_doc(report_ledger(), method_status="validated, trust me"))
+
+
+def test_the_cover_names_the_study_and_anchors_the_original_field(report_ledger: Any) -> None:
+    internal = _doc(
+        report_ledger(ClaimSurface.INTERNAL),
+        kind=ReportKind.INTERNAL,
+        classification=Classification.INTERNAL,
+    )
+    parts = _parts(DocxRenderer().render(internal))
+    body = _xml(parts, "word/document.xml")
+    wp = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
+    anchors = list(body.iter(wp + "anchor"))
+    assert len(anchors) == 1 and anchors[0].get("behindDoc") == "1"
+    cover = Document(io.BytesIO(DocxRenderer().render(internal)))
+    assert (
+        next(p.text for p in cover.paragraphs if p.style.name == "Title")
+        == internal.meta.study_name
+    )
+    assert any("čeká na podpis" in p.text for p in cover.paragraphs)
+
+
+def test_the_evidence_appendix_is_wide_and_audit_returns_to_portrait(report_ledger: Any) -> None:
+    from aia_core.domain.report.model import AuditBlock, EvidenceAppendix
+
+    sample = _doc(report_ledger())
+    document = replace(
+        sample,
+        sections=(
+            *sample.sections[:2],
+            Section("Evidence", (EvidenceAppendix(),), appendix=True),
+            Section("Audit", (AuditBlock((("Run", "FIC-1"),)),), appendix=True),
+        ),
+        meta=replace(sample.meta, kind=ReportKind.INTERNAL, classification=Classification.INTERNAL),
+        ledger=report_ledger(ClaimSurface.INTERNAL),
+    )
+    parts = _parts(DocxRenderer().render(document))
+    sections = _sections(parts)
+    assert sections[-2].find(W + "pgSz").get(W + "orient") == "landscape"
+    assert sections[-1].find(W + "pgSz").get(W + "orient") != "landscape"

@@ -77,6 +77,7 @@ class S:
     FINDING_TITLE = "AIA Finding Title"
     FINDING_LABEL = "AIA Finding Label"
     COVER_RULE = "AIA Cover Rule"
+    COVER_DETAILS = "AIA Cover Details"
     # character styles
     EMPHASIS = "Emphasis"
     STRONG = "Strong"
@@ -224,9 +225,10 @@ PARAGRAPHS: Final[dict[str, Para]] = {
         bar="doc-accent",
     ),
     S.FIGURE: Para("doc-body", keep_next=True, space_before_pt=2, space_after_pt=0, exact=False),
-    S.FINDING_TITLE: Para("doc-h3", keep_next=True, space_before_pt=14),
+    S.FINDING_TITLE: Para("doc-body", keep_next=True, space_before_pt=14),
     S.FINDING_LABEL: Para("doc-table-head", color="doc-muted", keep_next=True, space_before_pt=4),
     S.COVER_RULE: Para("doc-meta", space_before_pt=0, space_after_pt=0),
+    S.COVER_DETAILS: Para("doc-meta", color="doc-muted", space_before_pt=72),
 }
 
 
@@ -330,6 +332,11 @@ def _apply_paragraph(style: ParagraphStyle, spec: Para) -> None:
     pf.left_indent = Mm(spec.indent_mm) if spec.indent_mm else None
     pf.first_line_indent = Mm(-spec.hanging_mm) if spec.hanging_mm else None
     ppr = style.element.get_or_add_pPr()
+    # Built-in styles may bring theme borders, shading or contextual spacing
+    # from python-docx's starter document. Only AIA's declared furniture survives.
+    for tag in ("w:pBdr", "w:shd", "w:contextualSpacing"):
+        for existing in ppr.findall(qn(tag)):
+            ppr.remove(existing)
     for existing in ppr.findall(qn("w:outlineLvl")):
         ppr.remove(existing)
     for existing in ppr.findall(qn("w:numPr")):
