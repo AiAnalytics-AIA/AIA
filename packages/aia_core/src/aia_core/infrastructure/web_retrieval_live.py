@@ -71,7 +71,7 @@ __all__ = [
     "public_user_agent",
 ]
 
-SEARCH_ID: Final = "wikipedia-cs-search-1"
+SEARCH_ID: Final = "wikipedia-cs-en-search-2"
 SEARCH_HOST: Final = "cs.wikipedia.org"
 SEARCH_ENDPOINT: Final = f"https://{SEARCH_HOST}/w/api.php"
 USER_AGENT: Final = "AIAResearch/0.1 (https://aia-develop.art-chain.io/)"
@@ -515,21 +515,45 @@ class PublicHttpsTransport:
 
 
 class WikipediaSearch:
-    """One bounded MediaWiki search in Czech Wikipedia's article namespace."""
+    """One bounded article search in the explicitly composed language's Wikipedia."""
 
     adapter_id: Final = SEARCH_ID
 
-    def __init__(self, *, resolver: Resolver, transport: FetchTransport) -> None:
+    def __init__(
+        self,
+        *,
+        resolver: Resolver,
+        transport: FetchTransport,
+        english_transport: FetchTransport | None = None,
+    ) -> None:
         if transport.retrieval_mode is not RetrievalMode.LIVE:
             raise ValueError("live Wikipedia search requires a live transport")
         self._resolver = resolver
         self._transport = transport
+        if (
+            english_transport is not None
+            and english_transport.retrieval_mode is not RetrievalMode.LIVE
+        ):
+            raise ValueError("English Wikipedia search requires a live transport")
+        self._english_transport = english_transport
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
         return RetrievalMode.LIVE
 
     def search(self, query: str, *, max_results: int) -> SearchResponse:
+        return self.search_in(query, lang="cs", max_results=max_results)
+
+    def search_in(self, query: str, *, lang: str, max_results: int) -> SearchResponse:
+        transport = self._transport if lang == "cs" else self._english_transport
+        if lang not in {"cs", "en"} or transport is None:
+            raise ToolCallFailed(
+                "the requested Wikipedia language is not configured",
+                reason="search_language",
+                delivery=Delivery.NOT_SENT,
+            )
+        search_host = SEARCH_HOST if lang == "cs" else "en.wikipedia.org"
+        endpoint = f"https://{search_host}/w/api.php"
         if not 1 <= max_results <= 8 or not query.strip() or len(query.encode()) > 512:
             raise ToolCallFailed(
                 "search query or result limit is outside the public route",
@@ -540,7 +564,7 @@ class WikipediaSearch:
         # call as dispatched, and a FetchRefused would escape it with the call open
         # and its reservation held. Every refusal here happens before a byte is sent.
         try:
-            host = check_url(SEARCH_ENDPOINT)
+            host = check_url(endpoint)
             addresses = self._resolver.resolve(host)
             check_resolution(host, addresses)
         except FetchRefused as exc:
@@ -563,8 +587,8 @@ class WikipediaSearch:
             }
         )
         try:
-            response = self._transport.get(
-                f"{SEARCH_ENDPOINT}?{params}", address=addresses[0], max_bytes=MAX_SEARCH_BYTES
+            response = transport.get(
+                f"{endpoint}?{params}", address=addresses[0], max_bytes=MAX_SEARCH_BYTES
             )
         except FetchRefused as exc:
             # The transport refuses a URL or address only before it connects.
@@ -603,7 +627,7 @@ class WikipediaSearch:
                 snippet = entry.get("snippet", "")
                 if not isinstance(snippet, str):
                     raise ValueError("invalid snippet")
-                url = f"https://{SEARCH_HOST}/wiki/{quote(title.replace(' ', '_'), safe='()')}"
+                url = f"https://{search_host}/wiki/{quote(title.replace(' ', '_'), safe='()')}"
                 hits.append(
                     SearchHit(
                         url=url,

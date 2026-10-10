@@ -261,6 +261,11 @@ class AgentDirectedTrack:
             waiting=waiting,
             assignment=self._assignment,
         )
+        retrieval = self._runtime.retrieval
+        if retrieval is not None and retrieval.search.adapter_id.startswith("wikipedia-"):
+            payload["search_scope"] = (
+                "Wikipedia encyclopedia search; public source links may be opened"
+            )
         request = self._executor._request(
             self._runtime,
             AgentRole.INVESTIGATOR,
