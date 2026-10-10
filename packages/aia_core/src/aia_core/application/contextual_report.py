@@ -168,8 +168,8 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
             Paragraph(
                 text(
                     "Při čtení výsledků posuzujte, zda se zde citovaný poznatek vztahuje "
-                    "ke stejné službě, populaci a výzkumné otázce. Dostupnost služby, její "
-                    "skutečné využití a její hodnocení představují odlišné ukazatele. "
+                    "ke stejnému jevu, populaci a výzkumné otázce. Výskyt sledovaného jevu, "
+                    "chování, postoje a hodnocení představují odlišné ukazatele. "
                     "Externí kontext pomáhá formulovat vysvětlení a následné otázky; sám "
                     "neprokazuje příčinu zjištěného vztahu ani účinek navrženého opatření."
                 )
