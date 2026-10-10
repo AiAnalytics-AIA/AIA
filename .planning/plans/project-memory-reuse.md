@@ -1,22 +1,36 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] M0. Decide the reuse unit, its eligibility and its reach (questions below)"
-  - "[ ] M1. Approve an artifact for reuse: ArtifactRepository.approve behind a route, a person's act"
-  - "[ ] M2. A reusable item: an ARTIFACT knowledge item whose identity and limitations the server derives"
-  - "[ ] M3. Scoped retrieval: an organization-bounded search over approved items and past studies"
-  - "[ ] M4. Cited reuse into a new Design Revision, accepted by a person"
-  - "[ ] M5. Proof: the source unchanged, limitations carried, another organization refused"
+  - "[x] M0. Decide the reuse unit, its eligibility and its reach (owner, 2026-10-10)"
+  - "[ ] M1. Find: search the same client's past studies by name, goal, questions and dimensions"
+  - "[ ] M2. Inspect: a past study's design, method, results and their labels, read-only"
+  - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
+  - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
-# Project memory: an approved result reused in a new study, with its citation
+# Project memory: a past study's design reused in a new one, with its citation
 
 **Owner:** unassigned. **Written:** 2026-10-09, from `mvp-workflow-assurance.md` A2
-(`develop @ c6ee438`). `client-knowledge-lifecycle.md` describes project memory in prose
-("retrieve accepted reusable items with original scope, source, method and evidence category.
-Reuse proposes exact revisions for a new study and requires explicit accept", § Consumers)
-and the reusable-artifact record type, but none of its chunks K2-K7 builds retrieval or the
-path from reuse to a design. This plan owns those hops and depends on K3 (typed revisions
-against a reviewed base) and K4 (a study's frozen context).
+(`develop @ c6ee438`); **re-cut to the MVP scope 2026-10-10** by the owner's answers below.
+Depends on nothing unbuilt: the past study's Design Revisions, results and labels already
+exist and are found through the Study. `client-knowledge-lifecycle.md` keeps the reuse of
+individual results (its § Consumers, "Project memory"); see *After the MVP*.
+
+## M0. Decisions (owner, 2026-10-10)
+
+1. **Reach: the same client only.** A study sees the past studies of its own client and no
+   other, nor another organization's. Reuse of a method across clients may come later as an
+   explicit, labelled action; it is not built here.
+2. **Reusing individual results is out of the MVP.** Nothing marks a result as approved for
+   reuse, wraps it in a knowledge item or searches across results. The MVP reuses how a past
+   study was **designed** (its Design Revision: brief, questions, questionnaire, audience,
+   dimensions), not what it found. A finding still reaches a new study as Client Knowledge
+   written and accepted by a person, as today, without a link back to the exact result.
+   When result reuse is built, its unit is a knowledge item pointing at the exact artifact
+   (recommended, not yet decided).
+3. **Draft and synthetic sources may be reused, their labels carried and enforced.** A design
+   taken from a study whose data was synthetic (`SYNTHETIC_AI_FICTIONAL`, `SYNTHETIC_FIXTURE`)
+   or whose report is `DRAFT_UNAPPROVED` carries those labels into the new design, where it is
+   design input only and never evidence.
 
 ## What exists and where it stops (at `c6ee438`)
 
@@ -37,31 +51,35 @@ against a reviewed base) and K4 (a study's frozen context).
 and no approval or tenant (`legacy/npc-panel-18.6.6/app/project_memory.py`,
 `POST /api/assistant/search`); its route is undecided in `legacy-route-ledger.json`.
 
-## M0. Questions for the owner
-
-1. May memory reach across clients inside one organization? The knowledge plan forbids silent
-   copying between clients; the MVP journey only excludes another organization.
-2. Is the unit of reuse a raw artifact, or a Client Knowledge `ARTIFACT` / `FINDING` item that
-   wraps one (recommended: the item, so acceptance, revision and retirement are the knowledge
-   plan's)?
-3. May a synthetic or `DRAFT_UNAPPROVED` artifact be reused with its labels, or is it excluded?
-   Either way a synthetic finding never returns as independent measured evidence.
-4. Does a Design Revision carry its citations in a new provenance field (recommended) or in
-   its reason?
-5. Is 18.6.6's assistant search ported, or retired in favour of M3?
-
 ## Chunks
 
-- **M1. Approval.** `approve` behind a route and a permission, a named person's act in the
-  approval ledger. "Approved for reuse" = approved, frozen and valid, kept separate from
-  eligibility for a given use.
-- **M2. The item.** Proposing an `ARTIFACT` item from a study: the server derives artifact id,
-  sha256, run, project revision, method and limitations (`synthetic`, `review_state`, method
-  status) from the row, never from the request. Needs K3's base-revision check.
-- **M3. Retrieval.** One search, bounded by `accessible_clients` (and M0.1), returning approved
-  items and past studies with source study, revision and limitations.
-- **M4. Reuse.** A reuse proposal citing item ids; a person's acceptance writes a new Design
-  Revision through `submit_if_current`, with its citations and the limitations carried, and a
-  ledger row (the pattern of `application/design_research.py:81-133`).
-- **M5. Proof.** The source study's artifacts are byte-identical after reuse, the synthetic
-  label persists into the new design, and another organization's request is a 404.
+- **M1. Find.** One search over the client's own studies (`accessible_studies` within the
+  client of the scope), matching name, goal, research questions and dimension titles from each
+  study's latest Design Revision. A study of another client is never returned. Replaces the
+  name-only filter in `GlobalPages.tsx` and the client workspace's study list.
+  *Done when:* a search names the studies whose design matches, and a test shows another
+  client's matching study absent.
+- **M2. Inspect.** A past study's page, read-only: its Design Revisions, its runs and their
+  results through the existing study routes, with every label the result carries (synthetic,
+  draft, `INTERNAL_ONLY`, suppression). No new reader: `research_artifacts` stays the only one.
+- **M3. Reuse the design.** From a past study, "start from this design" into a new or an
+  existing study of the same client: the new Design Revision is submitted through
+  `submit_if_current` by the person who asked, and records its source (source study id and
+  Design Revision id) and the source's labels in a provenance field of its own (today a
+  revision's provenance is only `source_stage`, `study_design_repository.py:34-36`); the
+  same may be done for one part (questionnaire, dimensions). The labels are shown wherever the
+  new design is, and nothing in the new study counts the source's data as evidence.
+  *Done when:* a reused design opens in the new study with its citation and labels, and the
+  source study's revisions are unchanged.
+- **M4. Proof.** One connected test: reuse from a synthetic source, the source's revisions and
+  artifacts byte-identical afterwards, the labels on the new revision, and another client's or
+  another organization's request for the source a 404.
+
+## After the MVP
+
+Reusing individual results: approving an artifact for reuse (`ArtifactRepository.approve` has
+no caller outside tests), a knowledge item pointing at it with its identity and limitations
+derived by the server, search across them, and a cited reuse into a design. Cross-client reuse
+of a method, as an explicit labelled action. 18.6.6's assistant search
+(`legacy/npc-panel-18.6.6/app/project_memory.py`, `POST /api/assistant/search`) is superseded
+by M1 for studies; its route-ledger entry is decided with this section.
