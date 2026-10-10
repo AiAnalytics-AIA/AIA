@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] P1. The operator's composition root: PopulationOperatorConfig typed and wired, an operator command over fictional fixtures"
+  - "[x] P1. The operator's composition root: PopulationOperatorConfig typed and wired, an operator command over fictional fixtures"
   - "[ ] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
   - "[ ] P3. A run records its population binding at creation, and population-consuming steps say so"
   - "[ ] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
@@ -60,6 +60,29 @@ always a named person's explicit act through `PopulationAuthority`.
   `Population.current_version_id` unchanged.
 
 P1-P3 can land before K2/K5; P4-P5 need K5.
+
+## Progress
+
+**P1, 2026-10-10** (`feature/population-operator-root`). `aia_executors.population_ops` is
+the population core's one operator surface, beside `seed` and `legacy_workspace`:
+`status` (versions, populations, history; acts as no one), `import`, `attach`, `establish`,
+`promote` (`--to` and `--expected`, the core's compare-and-set). Every command but `status`
+acts as an active AIA user (`--as <email>`) whom `AIA_POPULATION_OPERATORS` names: a JSON
+object of verified user id to permissions, read by `operator_config` there and nowhere else,
+unset or blank meaning nobody; a value that does not read (not JSON, not an object, not a
+list, an empty id, an unknown permission) stops the command naming the key. Import, too,
+needs a configured operator, though the core does not ask it: a version is platform data.
+Bundles are read through `FilesystemPopulationSource` under `AIA_POPULATION_ASSET_ROOT` and
+judged against the Czech contract (`CZ_SYNTHETIC_V17`); `run` takes another for tests. Each
+command is one transaction; exit 2 is refused before anything is written, 3 is the
+population's own refusal with its failures listed. Tests (`apps/executors/tests/
+test_population_ops.py`, 15): a fictional four-version bundle on disk, imported, STATIC and
+LIVE established, LIVE promoted, the history naming the operator by user id; nobody operates
+until named; an unknown person; an operator without `POPULATION_PROMOTE` cannot move LIVE; a
+stale `--expected` is `PromotionConflict` and LIVE stays; refused bytes register nothing; a
+malformed companion; every malformed key; `main` without an asset root. **Not in P1:** the
+develop host passes neither key to its containers (run with `docker compose run -e`), and the
+first real import is the data owner's (`docs/architecture/population.md` § Not yet available).
 
 ## Blockers and decisions
 
