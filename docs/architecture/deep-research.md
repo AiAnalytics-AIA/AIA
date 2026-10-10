@@ -267,6 +267,15 @@ inputs to map geometry. Anchors: `application/contextual_report.py:53 @ 96e4f58f
 `routers/research.py:1005 @ 96e4f58f`; tests: `test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review`
 and the interpretation-target report journey in `test_analysis_executor.py`.
 
+An unlabelled historical number remains in its cited claim; a separate numeric
+paragraph requires an indicator name or a unit. Typed grounding measures alone
+do not establish benchmark coverage. The report uses short theme headings, keeps
+the complete research subject in body text, deduplicates equivalent gap prose,
+and writes missing-source reasons with the recorded next step in readable Czech.
+Anchors: `test_contextual_report.py::test_unlabelled_historical_years_do_not_become_benchmark_paragraphs`,
+`::test_labelled_numeric_data_keeps_its_indicator_and_unit` and
+`::test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once @ 75fe56f4`.
+
 ## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
 
 Search and fetch are bracketed like a model call: `ToolMeter.reserve` →
