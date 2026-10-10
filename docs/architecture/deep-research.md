@@ -2,7 +2,7 @@
 
 **State:** registered, parked by default. The executors are in the worker's default registry and
 the API route calls the service; a run parks unless `AIA_DEEP_RESEARCH_ENABLED` composes a
-runtime (off on develop). The live search routes are fee-free Czech Wikipedia and priced Brave
+runtime. The live search routes are fee-free Czech/English Wikipedia and priced Brave
 (Class C, `AIA_DEEP_RESEARCH_WEB_SEARCH`), with Common Crawl's priced URL index and fee-free
 archive beside them (`AIA_DEEP_RESEARCH_COMMON_CRAWL`); a priced route runs only once its
 organization has signed off (§ 9, ADR 0022), and nothing turns Brave on until its SSM keys are
@@ -241,6 +241,41 @@ so internal tracks are refused before any call on the current Class C route.
 | Analysis and report | `analysis_context(bundle)` | External context only; `admissible_as_panel_claim` is always false. A number enters a result only as an `AdmittedClaim` from the population. |
 | Anything client-facing | `require_live_evidence(bundle)` | Refuses recorded fixtures and fictional clients. A person still signs off. |
 
+### Combined research report (PR #237)
+
+The results screen's literature panel starts `INTERPRETATION_RESEARCH` over its
+pinned `research_questions` analysis, filters reviews to that research run, shows
+accepted findings and captured sources, and lets the researcher select a review
+explicitly for the report. Start and retry keep the existing cost-confirmation
+boundary; selecting a report does not change a study's budget.
+
+`GET /api/v1/studies/{study_id}/research/runs/{run_id}/report/context/download`
+requires `deep_research_run_id` and edit permission. It returns fresh branded DOCX
+bytes after `application/contextual_report.py` validates the owned runs, completed
+status, exact frozen lineage and governed bundle. It preserves the eight admitted
+analysis chapters and snapshots of the frozen canonical map. The original report
+artifact remains immutable. Pending, foreign, mismatched, corrupt or ungoverned
+inputs are refused; export calls no model and writes no report artifact.
+
+The literature chapter publishes only checked synthesis and accepted findings,
+separate L source references with available source/capture dates, structured
+measures where supported, interpretation/comparability guidance and actual gaps.
+It describes a targeted review, not an exhaustive systematic review. `NO_EVIDENCE`
+exports an honest coverage limitation; a completed workflow does not imply usable
+literature or benchmarks. External numbers never become respondent findings or
+inputs to map geometry. Anchors: `application/contextual_report.py:53 @ 96e4f58f`,
+`routers/research.py:1005 @ 96e4f58f`; tests: `test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review`
+and the interpretation-target report journey in `test_analysis_executor.py`.
+
+An unlabelled historical number remains in its cited claim; a separate numeric
+paragraph requires an indicator name or a unit. Typed grounding measures alone
+do not establish benchmark coverage. The report uses short theme headings, keeps
+the complete research subject in body text, deduplicates equivalent gap prose,
+and writes missing-source reasons with the recorded next step in readable Czech.
+Anchors: `test_contextual_report.py::test_unlabelled_historical_years_do_not_become_benchmark_paragraphs`,
+`::test_labelled_numeric_data_keeps_its_indicator_and_unit` and
+`::test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once @ 75fe56f4`.
+
 ## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
 
 Search and fetch are bracketed like a model call: `ToolMeter.reserve` →
@@ -341,11 +376,25 @@ reference and never kept, logged or put in a route; the Wikipedia route needs no
 ([deep-research-common-crawl.md](deep-research-common-crawl.md)). The develop runbook is
 `deploy/develop/README.md` § *Deep Research on Brave search* and § *Deep Research on Common Crawl*.
 
+**Wikipedia search scope and language** (PR #237). The public composition's
+`wikipedia-cs-en-search-2` adapter implements language-aware search with separately
+host-pinned Czech and English transports. An unsupported or unconfigured language
+is refused before dispatch; an English request is never silently sent to the Czech
+index. The source table is `aia-source-table-1+wikipedia-public-2`, investigator
+prompt 5. `agent_directed.py` tells the investigator the active encyclopedia scope;
+it starts with concise topic names and follows original literature links before
+proposing evidence. This is encyclopedia search with public-page retrieval, not a
+whole-web academic search service. Broader paid search still needs a verified
+provider plan/storage entitlement and the organization's approved settings.
+Anchors: `infrastructure/web_retrieval_live.py:517 @ 96e4f58f`,
+`deep_research/agent_directed.py:266 @ 96e4f58f`; English routing and pre-dispatch
+refusal tests in `test_web_retrieval_live.py`.
+
 **Settings a run is sized and gated by** (ADR 0022). A run pins its organization's effective
 settings at enqueue (`settings_pin`); its model requests and its cost ceiling are sized by the
 request limits and route allowances it pinned, never above the code's, and the plan records the
 limits for the steps after it (`PlanRecord.request_limits`). Live needs approval for a **priced**
-live route (`ToolRoute.needs_sign_off`); the fee-free routes (Czech Wikipedia, the public fetch,
+live route (`ToolRoute.needs_sign_off`); the fee-free routes (Czech/English Wikipedia, the public fetch,
 the connectors) are exempt by the owner's decision of 2026-10-09. Enqueue answers 409
 `live_settings_unapproved` with `missing` and `routes`; the worker's plan step parks with the
 same reason before anything is asked. The recorded exchange file's format is in
@@ -422,3 +471,31 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 | DR-5 | Depth presets and default run budget | A run must name a proposed preset |
 | D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |
 | — | Which public terms are harmless (ENTITY/TERM `public`) | Every approved ENTITY/TERM is a client term |
+
+## A fictional study can hold a separate test approval
+
+An operator can use `DeepResearchSettingsRepository.propose_test_policy` and
+`approve_test_policy` (`infrastructure/deep_research_settings_repository.py:437,510
+@ db6db022`) for an explicit sandbox. These are the administrator repository seam, not
+request endpoints. A complete validated configuration, owner-attested provider test
+permission, expiry no farther than seven days and positive budget cap no greater than
+USD 20 are mandatory. Proposing does not activate it; approving follows the existing
+organization independent-review policy and appends an audit record. Withdrawal appends
+another approval record without mutating the proposal.
+
+`settings_in_force_for_study` (`infrastructure/deep_research_settings_repository.py:208
+@ db6db022`) overlays it only for the exact organization, client and study. Local/test/
+develop and the fictional-client allowlist must still admit the client; the study budget
+must remain positive and within the approved cap. Expiry or withdrawal stops new
+paid jobs without reviving earlier grants. Other studies and the organization catalogue
+retain the normal policy. The run records `test_policy_approval` (policy and approval IDs,
+seal, scope, budget, expiry, approver and provider-permission note) beside its settings
+pin (`application/deep_research.py:657 @ db6db022`). Existing runs remain frozen; the
+receipt does not widen query classifications or evidence admission.
+
+The additive migration `20261010_b2d4f6a8c0e1_study_test_research_policies.py @ db6db022`
+creates the immutable `deep_research_test_policies` and append-only
+`deep_research_test_approvals` tables. Scope, expiry, withdrawal, independent approval,
+paid enqueue, budget and seal tests are in `test_deep_research_sandbox_policy.py
+@ db6db022`. A provider test permission is temporary evidence for that sandbox, not
+an organization-wide approval or a permanent subscription/contract claim.
