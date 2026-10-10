@@ -15,6 +15,7 @@ from aia_core.domain.sociomap import (
     RatingItem,
     compute_object_map,
 )
+from aia_core.domain.sociomap.layout import correlation_distance
 from aia_core.infrastructure.report_docx.cover import ASSET
 from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 
@@ -94,3 +95,20 @@ def test_cover_artwork_is_the_original_packaged_design_asset() -> None:
         ASSET.read_bytes()
         == (root / "design-system/assets/motif/report-cover-field.svg").read_bytes()
     )
+
+
+def test_reading_guide_matches_signed_correlation_distance_not_link_strength() -> None:
+    # A link's thickness can use |r|; the map target distance cannot drop its sign.
+    assert correlation_distance(-0.8) > correlation_distance(0.0) > correlation_distance(0.8)
+    frozen = result()
+    sections = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen map SHA")
+    prose = " ".join(
+        i.text
+        for b in sections[0].blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "z korelace se znaménkem" in prose
+    assert "silný záporný vztah znamená větší cílovou vzdálenost" in prose
+    assert "bez ohledu na znaménko" not in prose

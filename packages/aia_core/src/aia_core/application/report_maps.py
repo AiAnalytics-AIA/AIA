@@ -50,10 +50,12 @@ def compose_map_sections(
             ),
             Paragraph(
                 text(
-                    "Body představují sledované objekty. Vzdálenosti vycházejí ze síly vztahů "
-                    "bez ohledu na znaménko, po přepočtu hodnocení na osobní škálu respondentů. "
-                    "Blízké objekty proto mohou mít kladný i záporný vztah; jeho směr "
-                    "ověřujte v tabulce vztahů pod mapami. Výška a barva "
+                    "Body představují sledované objekty. Cílové vzdálenosti vycházejí "
+                    "z korelace se znaménkem, po přepočtu hodnocení na osobní škálu respondentů. "
+                    "Vyšší korelace znamená menší cílovou vzdálenost; silný záporný vztah "
+                    "znamená větší cílovou vzdálenost. Rozmístění v rovině tyto vzdálenosti "
+                    "přibližuje; konkrétní dvojice proto ověřujte podle korelace "
+                    "a její podpory v tabulce pod mapami. Výška a barva "
                     "ukazují průměrné hodnocení převedené na škálu od nuly do jedné. "
                     "Směr os nemá věcný význam; pro čtení jsou podstatné vzájemné vzdálenosti."
                 )
