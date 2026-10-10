@@ -6,6 +6,7 @@ citations have their own L labels; they never enter the respondent evidence ledg
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlsplit
 
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import EvidenceOrigin
+from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
 from aia_core.domain.deep_research.measures import render_measure
 from aia_core.domain.report.model import (
@@ -40,6 +42,14 @@ from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
 CONTEXT_REPORT_CONTRACT = "aia-contextual-report-1"
+_ACQUISITION_REASONS = {
+    AcquisitionReason.PAYWALL: "Zdroj vyžaduje placený přístup.",
+    AcquisitionReason.LOGIN: "Zdroj vyžaduje přihlášení.",
+    AcquisitionReason.NOT_PUBLIC: "Zdroj nebyl veřejně přístupný.",
+    AcquisitionReason.NOT_FOUND: "Zdroj se nepodařilo nalézt.",
+    AcquisitionReason.ROBOTS: "Pravidla webu neumožnila automatické získání zdroje.",
+    AcquisitionReason.NOT_PURSUED: "Získání tohoto zdroje nebylo v tomto běhu dokončeno.",
+}
 
 
 def _web_url(url: str | None) -> str | None:
@@ -117,10 +127,11 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
         ids = tuple(i for f in synthesis.findings for i in f.evidence_ids)
         if synthesis.summary and ids:
             blocks.extend([Heading("Souhrn dostupného poznání", 2), cited(synthesis.summary, ids)])
-        for subject in bundle.subjects:
+        for index, subject in enumerate(bundle.subjects, 1):
             findings = [f for f in synthesis.findings if f.subject_key == subject.key]
             if findings:
-                blocks.append(Heading(subject.text, 2))
+                blocks.append(Heading(f"Téma rešerše {index}", 2))
+                blocks.append(Paragraph(text(subject.text)))
                 blocks.extend(cited(f.text, f.evidence_ids) for f in findings)
     if not accepted:
         blocks.append(
@@ -143,15 +154,23 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
         )
 
     if accepted:
-        blocks.append(Heading("Ověřené podklady a dostupné benchmarky", 2))
+        blocks.append(Heading("Ověřené podklady a číselné údaje", 2))
+        has_numeric_data = False
         for a in bundle.accepted:
             e = a.evidence
             blocks.append(cited(e.claim, (e.evidence_id,)))
             for measure in e.measures:
+                # A grounding measure may be an unlabelled historical year.
+                # Its meaning remains in the claim, not a standalone benchmark.
+                if not (measure.unit or measure.measure_name):
+                    continue
                 phrase = render_measure(measure)
                 if phrase:
+                    has_numeric_data = True
+                    if measure.measure_name:
+                        phrase = f"{measure.measure_name}: {phrase}"
                     blocks.append(cited(phrase, (e.evidence_id,)))
-        if not any(a.evidence.measures for a in bundle.accepted):
+        if not has_numeric_data:
             blocks.append(
                 Paragraph(
                     text(
@@ -194,8 +213,18 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
             ),
         ]
     )
+    shown_limits: set[str] = set()
+
+    def add_limit(value: str) -> None:
+        # The checked synthesis and brief may state the same gap with different punctuation.
+        key = re.sub(r"[\W_]+", " ", value.casefold()).strip()
+        if key not in shown_limits:
+            shown_limits.add(key)
+            blocks.append(Paragraph(text(value)))
+
     if synthesis:
-        blocks.extend(Paragraph(text(s)) for s in (*synthesis.gaps, *synthesis.limitations))
+        for value in (*synthesis.gaps, *synthesis.limitations):
+            add_limit(value)
         if synthesis.summary_withheld or synthesis.excluded:
             blocks.append(
                 Paragraph(
@@ -207,10 +236,15 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
             )
     brief = bundle.synthesis.brief if bundle.synthesis else None
     if brief:
-        blocks.extend(Paragraph(text(f"{g.need} {g.reason}")) for g in brief.gaps)
-        blocks.extend(
-            Paragraph(text(f"{g.title}: {g.reason.value}")) for g in brief.acquisition_gaps
-        )
+        for gap in brief.gaps:
+            add_limit(f"{gap.need} {gap.reason}")
+        if brief.acquisition_gaps:
+            blocks.append(Heading("Podklady pro doplnění rešerše", 2))
+            for acquisition in brief.acquisition_gaps:
+                add_limit(
+                    f"{acquisition.title}. {_ACQUISITION_REASONS[acquisition.reason]} "
+                    f"{acquisition.how_to_obtain}"
+                )
     blocks.append(Heading("Literatura a zdroje", 2))
     blocks.extend(
         Paragraph(
