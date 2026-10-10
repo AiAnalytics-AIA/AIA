@@ -11,7 +11,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type ClientCard, type WorkspaceStudy, workspace } from "@/lib/api";
+import { type ClientCard, type PopulationRegistry, type WorkspaceStudy, population, workspace } from "@/lib/api";
+import { labelOf, shortSha, summarize } from "@/lib/population";
 import { appRoutes } from "@/lib/app-routes";
 import { useSession } from "@/lib/auth";
 import { relative } from "@/lib/format";
@@ -24,6 +25,7 @@ import { ControlPanel } from "./settings/ControlPanel";
 import { useResource } from "./useResource";
 
 export function IntelligencePage() {
+  const [res, retry] = useResource(() => population.registry(), []);
   return (
     <AppShell title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
       <section className={`${CARD} max-w-2xl`}>
@@ -32,7 +34,79 @@ export function IntelligencePage() {
           {t("aia.intelligence.notInAia")}
         </p>
       </section>
+      <section className={`${CARD} mt-6 max-w-4xl`} aria-labelledby="pop-title">
+        <h2 id="pop-title" className="text-base font-semibold">{t("aia.intelligence.population.title")}</h2>
+        <p className="mt-1 text-sm leading-6 text-ink-muted">{t("aia.intelligence.population.text")}</p>
+        <Loaded res={res} retry={retry}>
+          {(registry) => <PopulationRegistryView registry={registry} />}
+        </Loaded>
+      </section>
     </AppShell>
+  );
+}
+
+// The registry as a person reads it: which version LIVE is on, the reference, every
+// version with where it stands, and every move. Nothing here writes (P2).
+function PopulationRegistryView({ registry }: { registry: PopulationRegistry }) {
+  if (!registry.versions.length) return <Empty>{t("aia.intelligence.population.empty")}</Empty>;
+  const s = summarize(registry);
+  const P = "aia.intelligence.population";
+  return (
+    <div className="mt-4 flex flex-col gap-5">
+      <dl className="grid gap-3 sm:grid-cols-2">
+        {[
+          { label: t(`${P}.live`), v: s.live },
+          { label: t(`${P}.reference`), v: s.reference },
+        ].map(({ label, v }) => (
+          <div key={label} className="rounded-sm border border-border p-3">
+            <dt className="text-xs uppercase tracking-wide text-ink-faint">{label}</dt>
+            <dd className="mt-1 text-sm text-ink">
+              {v ? (
+                <>
+                  <span className="font-semibold">{v.label}</span> <span className="font-mono text-xs text-ink-faint">{shortSha(v.content_sha256)}</span>
+                </>
+              ) : (
+                t(`${P}.none`)
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {s.candidates ? <p className="text-sm text-ink-muted">{tv(`${P}.candidates`, { n: s.candidates })}</p> : null}
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">{t(`${P}.versions`)}</h3>
+        <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
+          {registry.versions.map((v) => (
+            <li key={v.version_id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
+              <span className="font-semibold text-ink">{v.label}</span>
+              <Tag>{t(`${P}.status.${v.status}`)}</Tag>
+              <span className="font-mono text-xs text-ink-faint">{shortSha(v.content_sha256)}</span>
+              <span className="text-xs text-ink-muted">{tv(`${P}.rows`, { n: v.row_count })}</span>
+              {v.companions_attached ? null : <span className="text-xs text-ink-muted">{t(`${P}.companionsMissing`)}</span>}
+              <span className="ml-auto text-xs text-ink-faint">{relative(v.imported_at)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h3 className="mb-2 text-sm font-semibold">{t(`${P}.history`)}</h3>
+        {s.history.length ? (
+          <ul className="flex flex-col gap-1 text-sm">
+            {s.history.map((h) => (
+              <li key={`${h.population_id}-${h.promoted_at}-${h.to_version_id}`} className="flex flex-wrap gap-2">
+                <span className="text-ink">
+                  {tv(`${P}.moved`, { population: h.population_id, from: labelOf(registry, h.from_version_id), to: labelOf(registry, h.to_version_id) })}
+                </span>
+                <span className="text-ink-muted">{h.reason}</span>
+                <span className="ml-auto text-xs text-ink-faint">{relative(h.promoted_at)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-ink-muted">{t(`${P}.noHistory`)}</p>
+        )}
+      </div>
+    </div>
   );
 }
 
