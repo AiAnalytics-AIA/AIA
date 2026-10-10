@@ -75,7 +75,7 @@ __all__ = [
     "check_freshness",
 ]
 
-BRAVE_SEARCH_ID: Final = "brave-web-search-1"
+BRAVE_SEARCH_ID: Final = "brave-web-search-2"
 #: Where a deployment keeps the subscription key: the reference, never the key.
 BRAVE_CREDENTIAL_REF: Final = "env:AIA_DEEP_RESEARCH_BRAVE_API_KEY"
 BRAVE_API_HOST: Final = "api.search.brave.com"
@@ -89,7 +89,10 @@ MAX_RESPONSE_BYTES: Final = 512_000
 MAX_TITLE_CHARS: Final = 500
 MAX_SNIPPET_CHARS: Final = 1000
 LANGUAGES: Final = frozenset({"cs", "en"})
-COUNTRY: Final = "CZ"
+# Brave does not list CZ among its supported search regions. Global coverage
+# retains Czech/English language filtering without sending an invalid country.
+# https://api-dashboard.search.brave.com/api-reference/web/search/get
+COUNTRY: Final = "ALL"
 USER_AGENT: Final = "AIAResearch/0.1 (https://aia-develop.art-chain.io/)"
 
 _FRESHNESS_WORD: Final = frozenset({"pd", "pw", "pm", "py"})
@@ -187,7 +190,7 @@ class BraveTransport(Protocol):
 
 
 class BraveSearch:
-    """Brave Web Search, ``country=CZ``, strict safe search, web results only."""
+    """Brave Web Search, ``country=ALL``, strict safe search, web results only."""
 
     adapter_id: Final = BRAVE_SEARCH_ID
 
