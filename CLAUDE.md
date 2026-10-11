@@ -137,12 +137,20 @@ apps/
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
                             /config reads server values at request time, never credentials
-    src/lib/object-map-3d.ts  Frozen grid triangulation and presentation-only orthographic camera;
-                            ObjectMapTerrain.tsx draws it, ObjectMapView.tsx owns controls and reading
+    src/lib/object-map-view.ts  The contract-3 object map read from its artifact: ten display terraces
+                            on the absolute 0-1 scale, mapLinks (the one link rule), pairDetail (UNKNOWN
+                            with an r apart from an undefined r), mapFrame, screen-space label placement
+    src/lib/object-map-3d.ts  terraceLayers (terraces cut from the stored mesh at the band thresholds) and
+                            the framed orthographic camera; presentation only, no kernel or relation maths
+                            (object-map-boundary.test.ts). ObjectMapTerrain.tsx draws 3D; ObjectMapView.tsx
+                            is the approved design's workspace: top view first, 3D unmounts, relief,
+                            rotation and opening choreography as display state, an internal PNG snapshot
     src/design/tokens.json  The design system's ONE source: colour, type, spacing, radius, motion
     scripts/build-tokens.mjs  tokens.json -> tokens.css, tokens-theme.css, fonts.css, tokens.ts,
                               and aia_core domain/report/print_tokens.py (the report's print register)
-    scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured
+    scripts/check-design.mjs  Contrast, chart-palette and client-accent evidence, re-measured; § 4 the
+                              object map's viz-terrace-1..10 ramp (adjacent and CVD ΔE floors) and the
+                              contrast of its stage, labels, links, pins and fit badges
     public/skin/            Self-hosted fonts (OFL) and the identity, served at /skin/ (the name is
                             historical: the 18.6.6 skin that shared the path is gone, ADR 0018)
   worker/src/aia_worker/    The execution loop. Claims, heartbeats, records. Does no work itself.

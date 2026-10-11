@@ -1269,6 +1269,19 @@ mounts per question (`useState(initial)`), not an effect that copies a prop.
 (`TS2305 … AppRouteHandlerRoutes`). It is not the source: re-run when the dev
 log says *Ready*. CI never runs `next dev`, so it never sees this.
 
+**`next dev` at `127.0.0.1` never hydrates.** Next.js 16 refuses its dev resources
+(`/_next/hmr` and the rest) to an origin it was not told about. A page opened as
+`http://127.0.0.1:<port>` renders its server HTML, then never becomes interactive:
+React attaches no handlers, a headless click does nothing, and nothing is thrown in the
+page. The only trace is the dev log's "Blocked cross-origin request to Next.js dev
+resource /_next/hmr" (found driving Playwright for PR #268).
+
+```text
+WRONG: next dev -p 3917, then open http://127.0.0.1:3917/... in a browser or Playwright
+RIGHT: next build && next start -p 3917 (or open http://localhost:3917/, or list the
+       host in next.config.ts allowedDevOrigins)
+```
+
 **jsdom has no `<dialog>` modality.** `HTMLDialogElement.prototype.showModal` is
 missing; a component test stubs it to set `open` (`ProjectsScreen.test.tsx`).
 
