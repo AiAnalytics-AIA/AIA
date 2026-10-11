@@ -768,8 +768,10 @@ describe("Interpretation research", () => {
     const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { kind: "ANALYSIS_MODULE", research_run_id: "RUN-1" },
       preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
       created_at: null, actual_cost_usd: 0.1, steps: [] };
-    const bundle = { quality_status: "PARTIAL", accepted: [], snapshots: [], quarantined: [],
-      synthesis: { check: { summary: "Ověřený kontext knihovních služeb.", findings: [], gaps: ["Chybí srovnatelný benchmark."], limitations: [] } } };
+    const bundle = { quality_status: "PARTIAL", accepted: [{ evidence: {
+      evidence_id: "EV-library", claim: "Studie popisuje hodnocení knihovních služeb.", source_ref: "SRC-library",
+    } }], snapshots: [], quarantined: [],
+      synthesis: { check: { summary: "Sociomapping není aplikovatelný na hodnocení služeb.", findings: [], gaps: ["Chybí srovnatelný benchmark."], limitations: [] } } };
     let started = false;
     api({ ...listed(completed),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
@@ -788,7 +790,11 @@ describe("Interpretation research", () => {
     const start = await screen.findByRole("button", { name: "Spustit rešerši výsledků" });
     expect(screen.queryByRole("button", { name: "Stáhnout AIA zprávu s rešerší" })).toBeNull();
     fireEvent.click(start);
-    expect(await screen.findByText("Ověřený kontext knihovních služeb.")).toBeTruthy();
+    expect(await screen.findByText("Studie popisuje hodnocení knihovních služeb.", { exact: true })).toBeTruthy();
+    const unapproved = screen.getByText("Sociomapping není aplikovatelný na hodnocení služeb.");
+    const draft = unapproved.closest("details");
+    expect(draft?.open).toBe(false);
+    expect(within(draft!).getByText("Generovaný návrh syntézy · věcně neschválený")).toBeTruthy();
     expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/interpretation")[0].body).toMatchObject({
       target: { kind: "ANALYSIS_MODULE", research_run_id: "RUN-1", analysis_artifact_id: "ART-questions", module_id: "research_questions" }, preset_name: "QUICK",
     });

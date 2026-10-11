@@ -168,7 +168,29 @@ export const cs = {
       text:
         "Tato vrstva nepatří žádnému klientovi. Studie ji používají podle pravidel pro jednotlivá pole; znalosti klientů se do ní nepřelévají.",
       notInAia:
-        "Data Library z NPC Panel 18.6.6 v AIA zatím není. Sdílené zdroje sem přibudou, až je AIA převezme vlastním importem: českou populaci přes PopulationRuntime, definice a evidenci jako schválené znalosti.",
+        "Data Library z NPC Panel 18.6.6 v AIA zatím není: příjem zdrojů, jejich návrhy a materializace dimenzí. Českou populaci už AIA eviduje sama, níže je, které verze má a na kterou ukazuje LIVE.",
+      population: {
+        title: "Česká populace",
+        text: "Verze populace, nad kterými se počítají studie. Jen ke čtení: verze importuje a LIVE posouvá pouze pověřený operátor.",
+        empty:
+          "Zatím není importovaná žádná verze. Dokud ji pověřený operátor neimportuje a nezaloží LIVE, výzkumy odpovídají fiktivními respondenty.",
+        live: "LIVE",
+        reference: "Statická reference",
+        none: "zatím není",
+        candidates: "Registrované, zatím nepoužité verze: {n}",
+        versions: "Verze",
+        history: "Historie",
+        noHistory: "Zatím žádný posun.",
+        rows: "{n} řádků",
+        companionsMissing: "bez doprovodných souborů",
+        moved: "{population}: {from} → {to}",
+        status: {
+          REGISTERED: "Jen registrovaná",
+          STATIC_REFERENCE: "Statická reference",
+          LIVE_CURRENT: "LIVE",
+          SUPERSEDED: "Nahrazená",
+        },
+      },
     },
     memory: {
       title: "Projektová paměť",

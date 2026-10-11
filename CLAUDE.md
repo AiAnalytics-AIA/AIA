@@ -365,9 +365,11 @@ packages/aia_core/src/aia_core/
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
     contextual_report.py    Combined internal report over an explicitly selected completed interpretation
-                            run: scoped ownership, bundle seal and exact frozen lineage; checked synthesis,
-                            accepted sources, supported measures and coverage limits; external L citations
-                            stay outside respondent evidence. Read-only export, original report unchanged.
+                            run: scoped ownership, bundle seal and exact frozen lineage; accepted source
+                            claims, complete cited numeric context and explicit coverage limits. Generated
+                            interpretation remains an unapproved UI draft outside the report; external L
+                            citations stay outside respondent evidence. Read-only export, original unchanged.
+                            See test_citation_valid_inapplicability_inference_is_not_published.
     report_maps.py          Internal chapters from frozen object maps and supplied print snapshots;
                             reading guide, fit/support and signed relationship table
     workflows.py            start_workflow: a run from a template, idempotent per revision

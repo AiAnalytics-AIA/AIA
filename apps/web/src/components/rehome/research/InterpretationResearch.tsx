@@ -124,18 +124,22 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     {bundle ? <div className="mt-4 space-y-3">
       <p className="text-sm">Stav evidence: {bundle.quality_status} · Přijatá zjištění: {bundle.accepted.length} · Zachycené zdroje: {bundle.snapshots.length}</p>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
-      {bundle.synthesis?.check.summary ? <p className="text-sm leading-6">{bundle.synthesis.check.summary}</p> : null}
-      {bundle.synthesis?.check.findings.map((f, i) => <p key={i} className="text-sm leading-6">{f.text}</p>)}
+      <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>
+      {bundle.accepted.map((a, i) => <p key={i} className="text-sm leading-6">{a.evidence.claim}</p>)}
       {bundle.accepted.length === 0 ? <p className="text-sm">Zatím nejsou ověřené podklady ani benchmarky. Zpráva uvede toto omezení.</p> : null}
-      <details><summary className="cursor-pointer text-sm font-medium">Ověřená zjištění a zdroje</summary>
-        {bundle.accepted.map((a, i) => <p key={i} className="mt-3 text-sm leading-6">{a.evidence.claim} <span className="text-ink-muted">({a.evidence.source_ref})</span></p>)}
+      <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje</summary>
         {bundle.snapshots.map(s => <p key={s.snapshot_id} className="mt-2 text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a></p>)}
       </details>
       <details><summary className="cursor-pointer text-sm font-medium">Mezery a omezení</summary>
-        {[...(bundle.synthesis?.check.gaps ?? []), ...(bundle.synthesis?.check.limitations ?? [])].map((s, i) => <p key={i} className="mt-2 text-sm">{s}</p>)}
-        {bundle.synthesis?.brief?.gaps.map((g, i) => <p key={i} className="mt-2 text-sm">{g.need} {g.reason}</p>)}
+        {bundle.synthesis?.brief?.gaps.map((g, i) => <p key={i} className="mt-2 text-sm">V tomto běhu nebyl doložen požadovaný podklad: {g.need}</p>)}
         <p className="mt-2 text-sm">Odmítnutá zjištění: {bundle.quarantined.length}</p>
       </details>
+      {bundle.synthesis ? <details><summary className="cursor-pointer text-sm font-medium">Generovaný návrh syntézy · věcně neschválený</summary>
+        <p className="mt-2 text-sm">Pracovní text může obsahovat nepodložené interpretace. Je uchován pro kontrolu; není součástí stažené zprávy.</p>
+        {bundle.synthesis.check.summary ? <p className="mt-2 text-sm leading-6">{bundle.synthesis.check.summary}</p> : null}
+        {bundle.synthesis.check.findings.map((f, i) => <p key={i} className="mt-2 text-sm leading-6">{f.text}</p>)}
+        {[...bundle.synthesis.check.gaps, ...bundle.synthesis.check.limitations].map((s, i) => <p key={i} className="mt-2 text-sm">{s}</p>)}
+      </details> : null}
       <Button onClick={download} disabled={busy || !frame.canEdit}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
     </div> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}

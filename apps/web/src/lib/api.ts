@@ -345,6 +345,45 @@ export type AttachmentRecord = {
   context_excerpt: string;
 };
 
+// GET /api/v1/population: the shared population's registry, read-only (population-operations P2).
+export type PopulationVersionStatus = "REGISTERED" | "STATIC_REFERENCE" | "LIVE_CURRENT" | "SUPERSEDED";
+export type PopulationVersion = {
+  version_id: string;
+  label: string;
+  content_sha256: string;
+  row_count: number;
+  column_count: number;
+  parent_version_id: string | null;
+  status: PopulationVersionStatus;
+  runtime_eligible: boolean;
+  companions_attached: boolean;
+  imported_at: string;
+  imported_by: string;
+  provenance: string;
+};
+export type PopulationRecord = {
+  population_id: string;
+  kind: "STATIC" | "LIVE";
+  current_version_id: string;
+  established_at: string;
+  established_by: string;
+};
+export type PopulationPromotion = {
+  population_id: string;
+  from_version_id: string | null;
+  to_version_id: string;
+  actor_id: string;
+  reason: string;
+  promoted_at: string;
+};
+export type PopulationRegistry = {
+  dataset_id: string;
+  contract_id: string;
+  versions: PopulationVersion[];
+  populations: PopulationRecord[];
+  history: PopulationPromotion[];
+};
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -352,6 +391,10 @@ const query = (q: Record<string, string | undefined>) => {
   const p = new URLSearchParams(Object.entries(q).filter((e): e is [string, string] => !!e[1]));
   const s = p.toString();
   return s ? `?${s}` : "";
+};
+
+export const population = {
+  registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
 };
 
 export const workspace = {
