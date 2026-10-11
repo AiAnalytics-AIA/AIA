@@ -254,6 +254,82 @@ export const colors = {
     "light": "#43484f",
     "dark": "#bdbab5"
   },
+  "viz-terrace-1": {
+    "light": "#2c3e9e",
+    "dark": "#2c3e9e"
+  },
+  "viz-terrace-2": {
+    "light": "#2f6fd1",
+    "dark": "#2f6fd1"
+  },
+  "viz-terrace-3": {
+    "light": "#2aa3d8",
+    "dark": "#2aa3d8"
+  },
+  "viz-terrace-4": {
+    "light": "#37c2a9",
+    "dark": "#37c2a9"
+  },
+  "viz-terrace-5": {
+    "light": "#2bb53f",
+    "dark": "#2bb53f"
+  },
+  "viz-terrace-6": {
+    "light": "#99d02d",
+    "dark": "#99d02d"
+  },
+  "viz-terrace-7": {
+    "light": "#e7ee31",
+    "dark": "#e7ee31"
+  },
+  "viz-terrace-8": {
+    "light": "#f5a332",
+    "dark": "#f5a332"
+  },
+  "viz-terrace-9": {
+    "light": "#e8672b",
+    "dark": "#e8672b"
+  },
+  "viz-terrace-10": {
+    "light": "#c8302a",
+    "dark": "#c8302a"
+  },
+  "viz-stage": {
+    "light": "#14171c",
+    "dark": "#14171c"
+  },
+  "viz-stage-raised": {
+    "light": "#1f242b",
+    "dark": "#1f242b"
+  },
+  "viz-stage-ink": {
+    "light": "#f4f1ec",
+    "dark": "#f4f1ec"
+  },
+  "viz-stage-muted": {
+    "light": "#c3c0ba",
+    "dark": "#c3c0ba"
+  },
+  "viz-ground": {
+    "light": "#3a4049",
+    "dark": "#3a4049"
+  },
+  "viz-link-positive": {
+    "light": "#f4f1ec",
+    "dark": "#f4f1ec"
+  },
+  "viz-link-negative": {
+    "light": "#ff7a59",
+    "dark": "#ff7a59"
+  },
+  "viz-map-partner": {
+    "light": "#9ec5f4",
+    "dark": "#9ec5f4"
+  },
+  "viz-map-context": {
+    "light": "#a7afb9",
+    "dark": "#a7afb9"
+  },
   "client-1": {
     "light": "#a0555c",
     "dark": "#efa8ac"
