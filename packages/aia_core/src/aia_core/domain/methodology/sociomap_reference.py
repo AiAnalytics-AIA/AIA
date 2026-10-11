@@ -94,7 +94,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="scale",
         title_cs="Deklarovaná škála hodnocení",
         formula_latex=(
-            r"a_{kj} \in [s^{\min}, s^{\max}],\quad"
+            r"a_{kj} \in [s^{\min}, s^{\max}],\quad "
             r"a_{kj} \notin [s^{\min}, s^{\max}] \Rightarrow \text{odmítnuto, ne oříznuto}"
         ),
         implements=f"{_S}.engine:_check_scale",
@@ -217,8 +217,8 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="unfolding",
         title_cs="Řádkově podmíněné rozvinutí (respondenti i objekty)",
         formula_latex=(
-            r"\hat d_{kj} = b_k \delta_{kj},\ \sum_k b_k^2 \lVert\delta_k\rVert^2 = C;\quad"
-            r"\min \sum_{k,j} (\hat d_{kj} - \lVert x_k - y_j\rVert)^2;\quad"
+            r"\hat d_{kj} = b_k \delta_{kj},\ \sum_k b_k^2 \lVert\delta_k\rVert^2 = C;\quad "
+            r"\min \sum_{k,j} (\hat d_{kj} - \lVert x_k - y_j\rVert)^2;\quad "
             r"\frac{\sigma_{t-1} - \sigma_t}{C} < \varepsilon"
         ),
         implements=f"{_S}.layout:fit_rowcond_unfolding",
@@ -340,7 +340,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="terrain_respondents",
         title_cs="Terén hustoty respondentů",
         formula_latex=(
-            r"h(q) = \sum_{k} \kappa(q, x_k),\quad"
+            r"h(q) = \sum_{k} \kappa(q, x_k),\quad "
             r"\kappa = e^{-\lVert q - x\rVert^2 / 2\sigma^2}\ (\text{vynechá se pod prahem}),"
             r"\quad z = \operatorname{norm}(h)\cdot z_{\text{scale}}"
         ),

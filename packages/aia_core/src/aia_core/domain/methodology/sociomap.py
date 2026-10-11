@@ -140,9 +140,9 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="f3_correlation",
         title_cs="Vážená Pearsonova korelace dvou objektů",
         formula_latex=(
-            r"\bar a = \frac{\sum_k w_k \tilde a_{ki}}{\sum_k w_k},\quad"
+            r"\bar a = \frac{\sum_k w_k \tilde a_{ki}}{\sum_k w_k},\quad "
             r"\operatorname{cov} = \frac{\sum_k w_k (\tilde a_{ki}-\bar a)(\tilde a_{kj}-\bar b)}"
-            r"{\sum_k w_k},\quad"
+            r"{\sum_k w_k},\quad "
             r"r_{ij} = \operatorname{clip}_{[-1,1]}"
             r"\frac{\operatorname{cov}}{\max\left(\sqrt{v_i v_j},\,10^{-12}\right)}"
         ),
@@ -369,7 +369,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="f8_scores",
         title_cs="Souhlasnost a propojenost objektu",
         formula_latex=(
-            r"A_i = \frac{1}{k_i}\sum_{j \in \mathcal{K}_i} r_{ij},\qquad"
+            r"A_i = \frac{1}{k_i}\sum_{j \in \mathcal{K}_i} r_{ij},\qquad "
             r"K_i = \frac{1}{k_i}\sum_{j \in \mathcal{K}_i} |r_{ij}|"
         ),
         implements=f"{_S}.metrics:primary_scores",
