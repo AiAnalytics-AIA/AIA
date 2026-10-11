@@ -759,3 +759,7 @@ jobs at a pagination limit. Regression:
 Research/native-agent follow-up 30/30. A real browser journey, interpretation,
 complete DOCX output and owned Deep Research remain required. Draft publication
 is not completion or activation.
+
+### Prompt settings and editable research proposals — 2026-10-11
+
+PR #269 repairs the prompt catalogue/editor and makes research step 2 directly editable. Native saved plans display when legacy analysis is absent; narrative and complete measurement edits persist to both representations and the design boundary while existing questionnaires remain intact. Prompt version loading/switching protects drafts; failed result reads retry without another paid job. Anchors: `PlanStep.test.tsx` › `direct proposal editing`, `SystemPromptsPanel.test.tsx` › `protects a dirty draft when loading a stored version and includes version notes in the switch guard`, and `retries a failed result read without starting a second paid test`. The local production browser acceptance covers nine flows, 20 responsive checks, and session-expiry return routing with zero paid calls. Feature status and release evidence: [prompt-proposal-ux](plans/prompt-proposal-ux.md).
