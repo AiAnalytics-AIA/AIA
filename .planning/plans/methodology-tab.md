@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. ADR 0023 and this plan"
-  - "[ ] A1. Framework: methodology package -- module, step, slot, parameter, specification; completeness and source-hash tests"
+  - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
   - "[ ] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
   - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
@@ -148,7 +148,19 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
 
 ## Chunk notes
 
-- **A1. Framework.**
+- **A1. Framework. Landed.**
+  - `domain/methodology/`: `catalogue.py` (MethodModule, MethodStep, StepGroup, ParameterRef,
+    ConstantRef, Preset, Evidence, Symbol), `resolution.py` (`leaf_paths`, `read_path`,
+    `read_constant`, `describe`, `module_problems`), and `registry.py` (`MODULES`, empty until
+    S1).
+  - A constant or function is read only from `aia_core.domain.*`. A path through a declared
+    `None` reads `ABSENT`, never a zero.
+  - Tests: `packages/aia_core/tests/test_methodology.py`. They cover the framework on a small
+    specification over real domain functions, and every registered module's completeness, source
+    pins and named tests. They loop over `MODULES` rather than parametrise, so an empty registry
+    passes rather than skipping.
+  - Slots (formulas as expressions) are not in A1. They land with A2, where they are evaluated.
+- **A1. Framework, as planned.**
   - `domain/methodology/` (pure) defines `MethodModule`, `MethodStep`, `Slot`, `Parameter` and
     `ModuleSpecification`. The spec is a frozen Pydantic model with no defaults; its code preset
     is a named constant, and it has a validator and a fingerprint.
