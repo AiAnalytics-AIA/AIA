@@ -93,8 +93,9 @@ def test_labelled_numeric_data_keeps_its_indicator_and_unit() -> None:
     accepted[0]["evidence"]["measures"] = [
         {"value": 25, "unit": "%", "measure_name": "Podíl odpovědí"}
     ]
+    accepted[0]["evidence"]["claim"] = "Podíl odpovědí byl 25 % v hodnocené skupině."
     written = prose(bundle(accepted=accepted, synthesis=None))
-    assert "Podíl odpovědí: 25 % [L1]" in written
+    assert "Podíl odpovědí byl 25 % v hodnocené skupině. [L1]" in written
     assert "neobsahují strukturovaný číselný benchmark" not in written
 
 
@@ -181,3 +182,16 @@ def test_citation_valid_inapplicability_inference_is_not_published() -> None:
         assert finding.evidence.claim in written
     assert updated.model_dump_json() == before
     assert updated.verify()
+
+
+def test_partial_measure_period_does_not_replace_the_source_claims_full_range() -> None:
+    accepted = bundle().model_dump(mode="json")["accepted"]
+    accepted[0]["evidence"]["claim"] = (
+        "Přehled vybral 14 příspěvků ze 149 publikací z let 2018-2022."
+    )
+    accepted[0]["evidence"]["measures"] = [
+        {"value": 14, "period": "Y2018", "measure_name": "vybrané příspěvky"}
+    ]
+    written = prose(bundle(accepted=accepted, synthesis=None))
+    assert "14 příspěvků ze 149 publikací z let 2018-2022. [L1]" in written
+    assert "vybrané příspěvky:" not in written

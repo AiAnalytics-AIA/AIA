@@ -21,7 +21,6 @@ from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import EvidenceOrigin
 from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
-from aia_core.domain.deep_research.measures import render_measure
 from aia_core.domain.report.model import (
     Block,
     Classification,
@@ -166,21 +165,17 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
 
     if accepted:
         blocks.append(Heading("Ověřené podklady a číselné údaje", 2))
-        has_numeric_data = False
+        has_numeric_data = any(
+            measure.unit or measure.measure_name
+            for a in bundle.accepted
+            for measure in a.evidence.measures
+        )
         for a in bundle.accepted:
             e = a.evidence
             blocks.append(cited(e.claim, (e.evidence_id,)))
-            for measure in e.measures:
-                # A grounding measure may be an unlabelled historical year.
-                # Its meaning remains in the claim, not a standalone benchmark.
-                if not (measure.unit or measure.measure_name):
-                    continue
-                phrase = render_measure(measure)
-                if phrase:
-                    has_numeric_data = True
-                    if measure.measure_name:
-                        phrase = f"{measure.measure_name}: {phrase}"
-                    blocks.append(cited(phrase, (e.evidence_id,)))
+            # Numeric metadata may capture just the first year of a range. Keep
+            # numbers with the accepted claim's full scope instead of reconstructing
+            # an independently unverified indicator or period from those fields.
         if not has_numeric_data:
             blocks.append(
                 Paragraph(
