@@ -41,6 +41,13 @@ population.decide_joint(["vek", "pohlavi"], client_facing=True)       # -> Joint
 population.analysis_weight                                    # the resolved column, exactly
 ```
 
+For a research run, `ResearchRuns.start` performs step 1 when it creates the run:
+`application/population.py` `live_binding` resolves `CZ_LIVE` without reading a panel, and the
+binding goes to `create_run` through `start_workflow(population=)`. A start that finds its run
+keeps what that run recorded, and a retry keeps its original's. No research step declares
+`consumes_population` yet, so step 2 does not run, and the run says its respondents did not come
+from the population (fieldwork stays fictional until OI-61).
+
 ## What the binding records (`PopulationBinding`)
 
 Stored once per run in `run_population_bindings`, never updated; `as_record()` is
@@ -94,12 +101,23 @@ set (15 assets for v17) is attached and valid, it is runtime-eligible (not the
 Establish and promote additionally need a `PopulationOperatorContext`
 (`POPULATION_ESTABLISH` / `POPULATION_PROMOTE`) from `PopulationAuthority`.
 
+That context is issued from `AIA_POPULATION_OPERATORS` (verified user id to permissions;
+unset means nobody), which `aia_executors.population_ops` reads, and nothing else does. The
+command imports, attaches, establishes and promotes, acting as a named person. The registry
+(versions, populations and promotion history, with status derived and never stored) is
+readable at `GET /api/v1/population` and shown on **Společenská inteligence**.
+
+On develop the bundle's files are synced read-only from the EU ops bucket to the host
+(`deploy/develop/bin/sync-population.sh`, `population/v17.files`), and
+`FilesystemPopulationSource` reads them. The first import ran on 2026-10-11: STATIC
+`CZ_STATIC_REFERENCE` is `v17_1_2` and LIVE `CZ_LIVE` is `v17_4_0`
+(`.planning/plans/population-operations.md` P6b).
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
 |---|---|---|
 | The seven enrichment derivations | the ANALYSIS view | OI-7, [archive dependency](../migration/population-enrichment-archive-dependency.md) |
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
-| The EU asset source and the first real import | any real data at all | `.planning/overview.md` Next |
+| An S3 asset source read directly by the loader (today: the host's synced copy) | a deployment without a host disk | `.planning/overview.md` Next |
 | Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
-| An operator configuration key at the composition root | establish / promote in a deployment | OI-8 note |

@@ -41,7 +41,7 @@ def test_the_list_is_every_registered_module_in_order(owner: TestClient) -> None
     assert [m["id"] for m in body] == [m.id for m in MODULES]
     sociomap = body[0]
     assert sociomap["in_force"] == "aia-sociomap-3"
-    assert sociomap["presets"] == ["aia-sociomap-3", "aia-sociomap-2"]
+    assert sociomap["presets"] == ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"]
     assert [g["id"] for g in sociomap["groups"]][:3] == ["M", "F1", "F2"]
 
 
@@ -68,7 +68,8 @@ def test_another_preset_marks_what_it_omits_absent_not_zero(owner: TestClient) -
     sigma = _values(body)["terrain.sigma"]
     assert (sigma["value"], sigma["absent"]) == (None, True)
     floor = _values(body)["relation.effect_floor"]
-    assert (floor["value"], floor["absent"]) == (None, False)  # declared null, not omitted
+    # No floor is left out of -2's stored form, so an edit from it cannot set one: absent.
+    assert (floor["value"], floor["absent"]) == (None, True)
 
 
 def test_a_step_carries_its_formula_evidence_and_tests(owner: TestClient) -> None:
@@ -260,7 +261,7 @@ def test_a_malformed_request_is_422_before_the_domain(owner: TestClient) -> None
 
 def test_an_edit_starts_from_a_preset_the_versions_route_serves_whole(owner: TestClient) -> None:
     presets = owner.get(f"{SOCIOMAP}/versions").json()["presets"]
-    assert set(presets) == {"aia-sociomap-3", "aia-sociomap-2"}
+    assert set(presets) == {"aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"}
     assert presets["aia-sociomap-3"] == AIA_SOCIOMAP_V3.model_dump(mode="json")
     assert owner.get(f"{METHODOLOGY}/sociomap_reference/versions").json()["presets"] == {}
 

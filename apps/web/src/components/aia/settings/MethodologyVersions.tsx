@@ -130,7 +130,7 @@ function Body({ summary, data, people, reload }: { summary: MethodModuleSummary;
           />
         ) : (
           <div>
-            <Button variant="primary" small onClick={() => { setDone(null); setStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.in_force ?? Object.keys(data.presets)[0])); }}>
+            <Button variant="primary" small onClick={() => { setDone(null); setStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.presets[0] ?? summary.in_force ?? "")); }}>
               {t(`${V}.edit`)}
             </Button>
           </div>

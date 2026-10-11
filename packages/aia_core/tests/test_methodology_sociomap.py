@@ -65,7 +65,19 @@ def test_the_map_in_force_shows_the_values_it_runs_with() -> None:
 def test_the_predecessor_shows_the_terrain_it_does_not_have_as_absent() -> None:
     values = _values("aia-sociomap-2")
     assert values["terrain.sigma"] is ABSENT
-    assert values["relation.effect_floor"] is None  # declared: no floor, not absent
+    # No floor is left out of the stored form, so an edit from this preset cannot set one:
+    # absent, like the part the preset does not have.
+    assert values["relation.effect_floor"] is ABSENT
+
+
+def test_the_object_maps_own_constants_are_absent_before_aia_sociomap_4() -> None:
+    before, after = _values("aia-sociomap-3"), _values("aia-sociomap-4")
+    for path in ("layout.min_objects", "layout.stress_bands", "connectedness.quantiles"):
+        assert before[path] is ABSENT
+        assert after[path] is not ABSENT
+    assert after["layout.min_objects"] == 3
+    assert after["layout.stress_bands"] == (0.05, 0.10, 0.20)
+    assert after["connectedness.quantiles"] == (0.025, 0.975)
 
 
 def test_constants_outside_the_specification_are_labelled_code() -> None:

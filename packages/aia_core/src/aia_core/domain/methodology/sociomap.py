@@ -23,6 +23,7 @@ from pydantic import BaseModel
 from ..sociomap.specification import (
     AIA_SOCIOMAP_V2,
     AIA_SOCIOMAP_V3,
+    AIA_SOCIOMAP_V4,
     SociomapSpec,
     SociomapSpecV3,
     require_supported,
@@ -247,7 +248,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="e3db6a8bc5f2f981b1444ec39dbf2cd4f06201fc88b03a0df123898a9c36d768",
+        source_sha256="deb3c4c93cf57ca3ac2b4c7f3d537a89a19772d70ed442c2a23c2ace9505ce6e",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -262,20 +263,27 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="f6_mappable",
         title_cs="Lze objekty zmapovat?",
         formula_latex=(
-            r"m \ge 3 \;\wedge\; \exists\, \text{známý pár} \;\wedge\;"
+            r"m \ge m_{\min} \;\wedge\; \exists\, \text{známý pár} \;\wedge\;"
             r"\text{graf známých párů je souvislý}"
         ),
         implements=f"{_S}.engine_v2:_unreached",
         source_sha256="316d808ab33bd28141fc3a012a8b1fd3f98884de5987199d395615d8824cd86b",
-        symbols=(Symbol(r"m", "počet objektů v rodině"),),
+        symbols=(
+            Symbol(r"m", "počet objektů v rodině"),
+            Symbol(r"m_{\min}", "nejmenší počet objektů, který mapa potřebuje"),
+        ),
+        parameters=(ParameterRef("layout.min_objects", "Nejméně objektů na mapě"),),
+        constants=(
+            ConstantRef(f"{_S}.specification:LEGACY_MIN_OBJECTS", "Minimum před aia-sociomap-4"),
+        ),
         evidence=(_rule("AUDIT-F6"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_too_few_objects_is_not_mappable",
             f"{_T}/test_sociomap_object_map.py::test_a_sample_below_n_min_is_not_mappable_however_large_its_numbers",
         ),
         note_cs=(
-            "Známý pár je spolehlivý nebo slabý. Minimum tří objektů je zatím přímo v kódu "
-            "(compute_object_map); do specifikace jej přesune krok S2."
+            "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 "
+            "(nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3."
         ),
     ),
     MethodStep(
@@ -352,13 +360,17 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         id="f7_quality",
         title_cs="Slovní hodnocení věrohodnosti",
         formula_latex=(
-            r"\text{kvalita} = \begin{cases} \text{dobrá} & \text{Stress-1} < 0{,}05 \\"
-            r" \text{ucházející} & < 0{,}10 \\ \text{slabá} & < 0{,}20 \\"
+            r"\text{kvalita} = \begin{cases} \text{dobrá} & \text{Stress-1} < b_1 \\"
+            r" \text{ucházející} & < b_2 \\ \text{slabá} & < b_3 \\"
             r" \text{2D obraz nespolehlivý} & \text{jinak} \end{cases}"
         ),
         implements=f"{_S}.view:stress_quality",
-        source_sha256="5ef198e6f7c2908ee4432525c6503566a7e3d5b21f967bdc4802c5b49ca7ee1d",
-        constants=(ConstantRef(f"{_S}.view:STRESS_QUALITY_BANDS", "Hranice pásem"),),
+        source_sha256="6a54c13d05342bde4d30ffd8bd768b43da0fe645650eeb826d8b06fd5085f3f0",
+        symbols=(Symbol(r"b_1, b_2, b_3", "horní hranice pásem dobrá, ucházející, slabá"),),
+        parameters=(ParameterRef("layout.stress_bands", "Hranice pásem b₁, b₂, b₃"),),
+        constants=(
+            ConstantRef(f"{_S}.view:STRESS_QUALITY_BANDS", "Hranice pásem před aia-sociomap-4"),
+        ),
         evidence=(_rule("AUDIT-F7"),),
         tests=(
             f"{_T}/test_sociomap_alignment_quality.py::test_every_stress_carries_the_audits_label",
@@ -408,14 +420,17 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{ (respondenti tažení s vracením)}"
         ),
         implements=f"{_S}.metrics:connectedness_100",
-        source_sha256="95a41a88d8f88acbf5e9de2d3a842a44577afafa71ff8633827bc16ff4bcb4ca",
+        source_sha256="e9302e1647a2b1318d3bbe60018fdb8133fd2783eed8e380fd687d776e11189a",
         symbols=(Symbol(r"B", "počet převzorkování"),),
         parameters=(
             ParameterRef("connectedness.resamples", "Počet převzorkování B"),
             ParameterRef("connectedness.seed", "Semínko generátoru"),
+            ParameterRef("connectedness.quantiles", "Kvantily intervalu"),
         ),
         constants=(
-            ConstantRef(f"{_S}.metrics:CONNECTEDNESS_QUANTILES", "Kvantily intervalu"),
+            ConstantRef(
+                f"{_S}.metrics:CONNECTEDNESS_QUANTILES", "Kvantily intervalu před aia-sociomap-4"
+            ),
             ConstantRef(f"{_S}.metrics:CONNECTEDNESS_BOOTSTRAP_GENERATOR", "Generátor"),
         ),
         evidence=(_rule("AUDIT-F9"),),
@@ -468,7 +483,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"{\sum_j \delta_{kj}^2}}"
         ),
         implements=f"{_S}.specification:_require_supported_v3",
-        source_sha256="09b669c5f1be5d42030d81ec38c0e4c37e1085e43b6be5656484956d932b1f70",
+        source_sha256="8250a494e70414dd677225cc2c3d3ed2b51dd96ebeaa27bf1e41b35a484ed70c",
         symbols=(
             Symbol(r"D", "průměr mapy (2 na pravítku F6)"),
             Symbol(r"e_k", "nesoulad respondenta: jak dobře jej mapa vystihne"),
@@ -603,6 +618,7 @@ SOCIOMAP: Final = MethodModule(
     title_cs="Sociomapa: objektová mapa",
     steps=_STEPS,
     presets=(
+        Preset("aia-sociomap-4", AIA_SOCIOMAP_V4, _validate),
         Preset("aia-sociomap-3", AIA_SOCIOMAP_V3, _validate),
         Preset("aia-sociomap-2", AIA_SOCIOMAP_V2, _validate),
     ),
@@ -613,6 +629,7 @@ SOCIOMAP: Final = MethodModule(
     note_cs=(
         "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne "
         "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapa je zatím jen interní "
-        "(D6 otevřené)."
+        "(D6 otevřené). aia-sociomap-4 počítá totéž, jen má v metodice i hodnoty, které "
+        "-3 drží v kódu (minimum objektů, pásma Stress, kvantily K100); úprava z něj vychází."
     ),
 )
