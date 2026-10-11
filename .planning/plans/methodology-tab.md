@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 0. ADR 0023 and this plan"
   - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
-  - "[ ] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
+  - "[x] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
   - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
   - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
@@ -184,6 +184,34 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - LaTeX round-trips;
     - property failures are named;
     - performance: the F12 kernel over a 65² grid × 30 objects within a stated budget, measured.
+- **A2. Landed.**
+  - **The module.** `domain/methodology/expressions.py`.
+    - `Slot` and `Variable` hold scalars, or vectors with elementwise arithmetic and the
+      aggregates `sum`, `mean`, `count`, and `min`/`max` of one vector.
+    - `Property` kinds: `non_negative`, `within`, `equals_at`, `non_increasing_in`,
+      `non_decreasing_in`, `at_most_variable`; finiteness is always checked.
+    - `compile_formula`: `ast.parse(mode="eval")`, a node whitelist, then closures over `math`
+      and `NormalDist`.
+    - `latex` is written from the same tree, with aggregates bracketed under powers and 1e-12
+      written as 10^{-12}.
+    - `check_properties` reports one counter-example per broken property.
+  - **Bit-identity, tested.** Written the way the engine computes, these expressions give the
+    engine's exact bits: the envelope kernel against `terrain.envelope_at` (500 random cases),
+    the Fisher lower bound against `relations.fisher_interval`, and Kish's n against
+    `relations.kish_effective_n` (200 random weight vectors). This is what S3 relies on.
+  - **Refusals, tested.** 22 hostile or foreign inputs are refused, among them `__import__`,
+    attribute access, `open`, `eval`, a lambda, a comprehension, a subscript, a string, a
+    keyword argument, a chained comparison, `//`, `@`, `~`, starred arguments, and a formula
+    that is too long or too deep. A domain error (division by zero, log of a negative,
+    atanh(1), overflow, an empty mean) raises and is never a number. A test pins that the
+    module calls neither `eval` nor `exec`.
+  - **Measured.** A 65 x 65 grid with 30 hills means 126,750 kernel evaluations. They take 1.2 s
+    through the closure, against 0.03 s for the engine's own `object_envelope`: about 40 times
+    slower. That is acceptable for a step run once per map. If it ever matters, the fix is to
+    evaluate whole vectors per call (grid-at-once) rather than one cell per call.
+  - **Checked by hand.** The generated LaTeX of the seven test formulas renders through Temml
+    0.13.5 with no error. S3 puts the built-in expressions into the web fixture, so the web
+    test enforces this from then on.
 - **A3. Version store.**
   - Tables `methodology_versions` and `methodology_activations`, and their migration.
   - A repository with `propose` (the module's validator plus the slot checks), `activate`,
