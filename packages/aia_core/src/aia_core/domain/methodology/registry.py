@@ -1,6 +1,5 @@
 """Every method module the Metodika tab shows, in the order it shows them.
 
-Empty until the first module is catalogued (plan ``methodology-tab.md`` S1: the Sociomap).
 Every module listed here is held complete by the test suite: no problem from
 :func:`~.resolution.module_problems`, every step's source pin current, every named test
 present.
@@ -9,10 +8,11 @@ present.
 from __future__ import annotations
 
 from .catalogue import MethodModule
+from .sociomap import SOCIOMAP
 
 __all__ = ["MODULES", "module"]
 
-MODULES: tuple[MethodModule, ...] = ()
+MODULES: tuple[MethodModule, ...] = (SOCIOMAP,)
 
 
 def module(module_id: str) -> MethodModule:
