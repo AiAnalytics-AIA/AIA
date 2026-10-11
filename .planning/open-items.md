@@ -3218,3 +3218,46 @@ body pays for its own bootstrap again (about 90 s per large set). Plan finding H
 that panel, so it cannot pass vacuously.
 
 **Status.** Closed by #260.
+
+## OI-95 · Limitation · Four population companions are not in the 18.6.6 data bundle
+
+**Claim.** The Czech contract requires 15 companions, and four of them are not in the unit's
+licence-bound data bundle (`legacy/npc-panel-18.6.6/data-manifest.json`): `CORE_JOINT_STATUS.json`,
+`PERSONA_VALUE_LABELS_v17.json`, `BUILTIN_SUBPANELS_v17.json` and
+`SPECIAL_PANEL_REGISTRY_v17.json`. They are the frozen unit's own configuration, in Git under
+`legacy/npc-panel-18.6.6/app/`.
+
+**Anchor.** `deploy/develop/population/v17.files:22 @ 078da08` (origin `unit`), and the bundle
+step of `.github/workflows/deploy-develop.yml @ 078da08` that copies them beside the list.
+
+**Reproduction.** `apps/executors/tests/test_population_carry_over.py::test_every_unit_file_is_the_frozen_units_own_bytes`.
+
+**Consequence.** A host gets its companions from two places: 15 files from the EU bucket and
+these four from the deploy bundle. Anyone who uploads or describes "the data bundle" as the
+whole population would miss them.
+
+**Fix.** Nothing to fix while `extract_legacy.py` keeps them as configuration. If the
+population ever gets a prefix of its own in the bucket, upload all 19 files there and make
+every origin `bucket`.
+
+**Test.** The reproduction above, and `test_the_list_is_exactly_the_contracts_versions_dictionary_and_companions`.
+
+## OI-96 · Finding · The first population import ran as the AWS account's root user
+
+**Claim.** P6b (2026-10-11) was run with a sign-in as the root user of the account that also
+hosts other production systems, because no narrower identity existed for it.
+
+**Anchor.** `.planning/plans/population-operations.md` § P6b @ 078da08; the runbook
+`deploy/develop/README.md:423 @ 078da08` (step 1) names no identity.
+
+**Reproduction.** Hypothesis only for anything beyond that run: nothing in the repository
+creates or names an operator role.
+
+**Consequence.** A later import, or a promotion, would again need credentials that can change
+anything in the account, and the session that holds them can too.
+
+**Fix.** An IAM role (or Identity Center permission set) limited to `ssm:SendCommand` and
+`ssm:GetCommandInvocation` on the develop instance and `ssm:PutParameter` / `ssm:GetParameter`
+under `/aia/develop/`, in `infra/develop`, named in the runbook's step 1.
+
+**Test.** A Terraform plan test that the role's policy names only those actions and resources.

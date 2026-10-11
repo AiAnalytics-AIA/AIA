@@ -420,6 +420,10 @@ deploy bundle carries. `population/v17.files` lists all 19.
 This is the data owner's act, once, as a named operator. Every step is safe to repeat, and
 each refusal writes nothing.
 
+Run these steps as an identity limited to this host, never as the AWS account's root user (the
+first import did, OI-96). It needs only: `ssm:SendCommand` and `ssm:GetCommandInvocation` on the
+develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develop/`.
+
 1. **Name the operator and the source.** Find your AIA user id (you must have signed in once):
 
    ```bash
