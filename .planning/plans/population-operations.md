@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] P1. The operator's composition root: PopulationOperatorConfig typed and wired, an operator command over fictional fixtures"
-  - "[ ] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
+  - "[x] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
   - "[ ] P3. A run records its population binding at creation, and population-consuming steps say so"
   - "[ ] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
@@ -83,6 +83,21 @@ stale `--expected` is `PromotionConflict` and LIVE stays; refused bytes register
 malformed companion; every malformed key; `main` without an asset root. **Not in P1:** the
 develop host passes neither key to its containers (run with `docker compose run -e`), and the
 first real import is the data owner's (`docs/architecture/population.md` § Not yet available).
+## Progress (P2)
+
+**P2, 2026-10-10** (`feature/population-registry-view`). `GET /api/v1/population`
+(`apps/api/src/aia_api/routers/population.py`): the Czech dataset's versions, each with
+its status derived by the domain's `version_status` from the populations and their history
+(never stored) and `runtime_eligible`, whether its companion set is attached, its lineage
+parent and who imported it; the STATIC and LIVE populations; every promotion with actor
+and reason. Any member reads it (`OrganizationDep`; ADR 0019), nothing unauthenticated,
+and the route has no write method. Společenská inteligence shows it under its notice:
+LIVE and the reference by label and short hash, the count of registered, unused versions,
+every version with its status, and the history newest first (`lib/population.ts`
+`summarize`, `labelOf`, `shortSha`). An empty registry says that research answers with
+fictional respondents until an operator imports and establishes LIVE. The Data Library
+stays `NOT_IN_AIA` in `interface-screens.json`: a registry is not intake. Tests:
+`apps/api/tests/test_population_api.py` (4), `apps/web/src/lib/population.test.ts` (3).
 
 ## Blockers and decisions
 
