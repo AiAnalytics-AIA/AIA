@@ -81,7 +81,8 @@ ok(`started ${study.study_id}: its working content is EMPTY in AIA`);
 const stage = (name) => `${FACADE}/app/clients/${encodeURIComponent(client)}/research/${encodeURIComponent(study.study_id)}/${name}`;
 
 mkdirSync(OUT, { recursive: true });
-const { chromium } = await loadPlaywright();
+const playwright = await loadPlaywright();
+const chromium = playwright.chromium ?? playwright.default?.chromium;
 const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
 const session = JSON.stringify({ idToken: OPERATOR, refreshToken: "", expiresAt: 4102444800000, email: OPERATOR, subject: OPERATOR });
@@ -99,7 +100,7 @@ const text = async (t, what) => page.getByText(t).first().waitFor({ timeout: 600
 
 // 1. Zadání: a goal, a file, a reload, a download.
 await page.goto(stage("brief"), { waitUntil: "load", timeout: 180000 });
-const goal = page.getByPlaceholder(/Co chcete zjistit/);
+const goal = page.getByRole("textbox", { name: "Cíl výzkumu", exact: true });
 await goal.waitFor({ timeout: 120000 });
 const firstSave = saved();
 await goal.fill(GOAL);
@@ -113,7 +114,7 @@ await saved();
 ok("Zadání: the file is kept in AIA storage and its record saved");
 await page.reload({ waitUntil: "load" });
 await text(FILE.name, "the attachment after a reload");
-if ((await page.getByPlaceholder(/Co chcete zjistit/).inputValue()) !== GOAL) fail("the goal did not survive a reload");
+if ((await page.getByRole("textbox", { name: "Cíl výzkumu", exact: true }).inputValue()) !== GOAL) fail("the goal did not survive a reload");
 ok("Zadání: goal and attachment read back from AIA after a reload");
 const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: `Stáhnout přílohu ${FILE.name}` }).click()]);
 const fileBack = readFileSync(await download.path(), "utf8");
@@ -140,7 +141,7 @@ await shot("2-questionnaire");
 
 // 3. Cílová skupina: what 18.6.6 computed from its panel says so.
 await page.goto(stage("audience"), { waitUntil: "load", timeout: 120000 });
-await page.getByRole("button", { name: /Vlastní audience/ }).click({ timeout: 60000 });
+await page.getByRole("radio", { name: /Vlastní audience/ }).click({ timeout: 60000 });
 await text("Nahrání, kontrolu a preflight vlastního datasetu dělala 18.6.6", "own audiences not in AIA");
 ok("Cílová skupina: own audiences say they are not in AIA");
 await shot("3-audience");
