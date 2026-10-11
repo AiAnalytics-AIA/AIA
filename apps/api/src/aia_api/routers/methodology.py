@@ -5,16 +5,26 @@ Organization-level, like the other settings routes: every route takes an
 
 * ``GET /methodology`` -- every method module: its name, what is in force, its groups.
 * ``GET /methodology/{module_id}`` -- one module's steps in computation order, each with its
-  formula, symbols, evidence, tests and every value it reads, from the preset in force or
+  formula, symbols, evidence, tests and every value it reads, from the code's preset or
   ``?preset=`` (a value is read from the code by the domain, never stored here).
+* ``GET /methodology/{module_id}/versions`` -- what is in force (a stored version or the
+  code's preset), every stored version and the activation log (chunk A5b).
+* ``POST /methodology/{module_id}/check`` -- validate an edit without storing it: every problem
+  at once, and the formulas the engine would not yet compute.
+* ``POST /methodology/{module_id}/versions`` -- store an edit as the next version (an
+  administrator); it is not in force until put.
+* ``PUT /methodology/{module_id}/activation`` -- put a version in force, or with
+  ``version_number: null`` return to the code's preset (an administrator). A run started
+  afterwards pins it; a run already started keeps its pin.
 
-Nothing here is editable yet: stored methodology versions are chunk A3 of
-``methodology-tab.md``. This module only serialises what
-:func:`aia_core.domain.methodology.describe` reads.
+The catalogue is serialised from :func:`aia_core.domain.methodology.describe`; versions are
+validated by the domain and stored only by
+:mod:`aia_core.infrastructure.methodology_repository`.
 """
 
 from __future__ import annotations
 
+from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any
 
@@ -29,10 +39,26 @@ from aia_core.domain.methodology import (
     module,
 )
 from aia_core.domain.methodology.expressions import compile_formula, latex
+from aia_core.domain.methodology.pins import uncomputed_formulas
+from aia_core.domain.methodology.versions import (
+    MethodologyVersionInvalid,
+    named,
+    validate_version,
+    version_payload,
+)
+from aia_core.domain.scope import ScopeDenied
+from aia_core.infrastructure.methodology_repository import (
+    Activation,
+    InForce,
+    MethodologyReader,
+    MethodologyRefused,
+    MethodologyRepository,
+    StoredVersion,
+)
 from fastapi import APIRouter, HTTPException, Path, Query
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from ..dependencies import OrganizationDep
+from ..dependencies import OrganizationDep, SessionDep
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -40,9 +66,19 @@ router = APIRouter(
     tags=["methodology"],
     responses={
         401: {"model": ErrorResponse, "description": "Not authenticated"},
-        404: {"model": ErrorResponse, "description": "No such module or preset"},
+        403: {"model": ErrorResponse, "description": "Not an organization administrator"},
+        404: {"model": ErrorResponse, "description": "No such module, preset or version"},
     },
 )
+
+#: How a refusal reads on the wire. Anything not listed is the caller's input: 422.
+_STATUS: dict[str, int] = {
+    "unknown_module": 404,
+    "unknown_version": 404,
+    "concurrent_edit": 409,
+    "formula_not_computed": 409,
+    "version_missing": 409,
+}
 
 ModuleId = Annotated[str, Path(max_length=64, pattern=r"^[a-z0-9_]+$")]
 
@@ -152,6 +188,75 @@ class ModuleDetail(ModuleSummary):
     step_details: list[StepOut]
 
 
+class VersionOut(_Strict):
+    """A stored methodology version: immutable, named by the store ``<base>+e<n>``."""
+
+    version_number: int
+    name: str
+    base_preset: str
+    #: The whole specification, as the run that pins it computes it.
+    spec: dict[str, Any]
+    #: The formula expressions this version replaces, by slot; the rest stay built in.
+    formulas: dict[str, str]
+    payload_sha256: str
+    note: str
+    created_by: str
+    created_at: datetime
+
+
+class ActivationOut(_Strict):
+    activation_id: int
+    #: ``null``: back to the code's preset.
+    version_number: int | None
+    activated_by: str
+    reason: str
+    activated_at: datetime
+
+
+class InForceOut(_Strict):
+    """What a run started now pins: a stored version (``origin: stored``) or the code's
+    preset (``origin: code``)."""
+
+    origin: str
+    preset: str | None
+    version_number: int | None
+    name: str
+
+
+class VersionsOut(_Strict):
+    in_force: InForceOut
+    #: Whether the caller may propose and activate (an organization OWNER or ADMIN).
+    may_administer: bool
+    versions: list[VersionOut]
+    history: list[ActivationOut]
+
+
+class EditIn(_Strict):
+    """An edited methodology: the whole specification and the formulas it replaces."""
+
+    base_preset: str = Field(max_length=64)
+    spec: dict[str, Any]
+    formulas: dict[str, Annotated[str, Field(max_length=2000)]] = Field(
+        default_factory=dict, max_length=64
+    )
+    note: str = Field(default="", max_length=500)
+
+
+class CheckOut(_Strict):
+    """What storing this edit would meet: ``problems`` (every one, by field or slot) refuse it;
+    ``not_computed`` lists replaced formulas it may store but not yet put in force."""
+
+    valid: bool
+    problems: dict[str, str]
+    not_computed: list[str]
+
+
+class ActivationIn(_Strict):
+    #: The version to put in force; ``null`` returns to the code's preset.
+    version_number: int | None = Field(ge=1)
+    reason: str = Field(default="", max_length=500)
+
+
 # --------------------------------------------------------------------------- #
 # Serialisation
 # --------------------------------------------------------------------------- #
@@ -236,6 +341,59 @@ def _not_found(code: str, message: str) -> HTTPException:
     return HTTPException(status_code=404, detail={"code": code, "message": message})
 
 
+def _version(v: StoredVersion) -> VersionOut:
+    return VersionOut(
+        version_number=v.version_number,
+        name=v.name,
+        base_preset=v.base_preset,
+        spec=dict(v.payload["spec"]),
+        formulas=dict(v.payload["formulas"]),
+        payload_sha256=v.payload_sha256,
+        note=v.note,
+        created_by=v.created_by,
+        created_at=v.created_at,
+    )
+
+
+def _activation(a: Activation) -> ActivationOut:
+    return ActivationOut(
+        activation_id=a.activation_id,
+        version_number=a.version_number,
+        activated_by=a.activated_by,
+        reason=a.reason,
+        activated_at=a.activated_at,
+    )
+
+
+def _in_force(found: InForce) -> InForceOut:
+    if found.version is None:
+        return InForceOut(
+            origin=found.origin, preset=found.preset, version_number=None, name=found.preset or ""
+        )
+    return InForceOut(
+        origin=found.origin,
+        preset=None,
+        version_number=found.version.version_number,
+        name=found.version.name,
+    )
+
+
+def _refused(exc: ScopeDenied | MethodologyRefused) -> HTTPException:
+    if isinstance(exc, ScopeDenied):
+        return HTTPException(
+            status_code=403,
+            detail={
+                "code": "insufficient_role",
+                "message": "Changing the methodology requires an organization OWNER or ADMIN.",
+                "details": {"reason": exc.reason},
+            },
+        )
+    detail: dict[str, Any] = {"code": exc.reason, "message": str(exc)}
+    if exc.problems:
+        detail["details"] = {"problems": exc.problems}
+    return HTTPException(status_code=_STATUS.get(exc.reason, 422), detail=detail)
+
+
 # --------------------------------------------------------------------------- #
 # Routes
 # --------------------------------------------------------------------------- #
@@ -272,3 +430,91 @@ def read_module(
         raise _not_found("unknown_module", f"no method module {module_id!r}") from exc
     except MethodologyReferenceError as exc:
         raise _not_found("unknown_preset", str(exc)) from exc
+
+
+@router.get(
+    "/{module_id}/versions",
+    response_model=VersionsOut,
+    summary="What is in force, every stored version and the activation log",
+)
+def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep) -> VersionsOut:
+    try:
+        reader = MethodologyReader(session, org)
+        return VersionsOut(
+            in_force=_in_force(reader.in_force(module_id)),
+            may_administer=org.may_administer,
+            versions=[_version(v) for v in reader.versions(module_id)],
+            history=[_activation(a) for a in reader.history(module_id)],
+        )
+    except MethodologyRefused as exc:
+        raise _refused(exc) from exc
+
+
+@router.post(
+    "/{module_id}/check",
+    response_model=CheckOut,
+    summary="Validate an edit without storing it",
+)
+def check(module_id: ModuleId, body: EditIn, org: OrganizationDep) -> CheckOut:
+    """Any member may check: nothing is stored, and the answer is the domain's own."""
+    del org
+    try:
+        found = module(module_id)
+    except KeyError as exc:
+        raise _not_found("unknown_module", f"no method module {module_id!r}") from exc
+    try:
+        validated = validate_version(
+            found,
+            base_preset=body.base_preset,
+            spec=body.spec,
+            formulas=body.formulas,
+            version_name=named(body.base_preset, 1),
+        )
+    except MethodologyVersionInvalid as exc:
+        return CheckOut(valid=False, problems=dict(exc.problems), not_computed=[])
+    return CheckOut(
+        valid=True,
+        problems={},
+        not_computed=list(uncomputed_formulas(version_payload(validated))),
+    )
+
+
+@router.post(
+    "/{module_id}/versions",
+    response_model=VersionOut,
+    status_code=201,
+    summary="Store an edit as the next version (it is not in force until put)",
+)
+def propose(
+    module_id: ModuleId, body: EditIn, org: OrganizationDep, session: SessionDep
+) -> VersionOut:
+    try:
+        stored = MethodologyRepository(session, org).propose(
+            module_id,
+            base_preset=body.base_preset,
+            spec=body.spec,
+            formulas=body.formulas,
+            note=body.note,
+        )
+    except (ScopeDenied, MethodologyRefused) as exc:
+        raise _refused(exc) from exc
+    return _version(stored)
+
+
+@router.put(
+    "/{module_id}/activation",
+    response_model=InForceOut,
+    summary="Put a version in force, or return to the code's preset",
+)
+def activate(
+    module_id: ModuleId, body: ActivationIn, org: OrganizationDep, session: SessionDep
+) -> InForceOut:
+    """Takes effect for runs started afterwards; a run already started keeps its pin."""
+    try:
+        return _in_force(
+            MethodologyRepository(session, org).activate(
+                module_id, body.version_number, reason=body.reason
+            )
+        )
+    except (ScopeDenied, MethodologyRefused) as exc:
+        raise _refused(exc) from exc

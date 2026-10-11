@@ -12,6 +12,7 @@ from typing import Any
 
 import pytest
 from aia_core.domain.methodology import MODULES
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
 from fastapi.testclient import TestClient
 
@@ -104,18 +105,23 @@ def test_an_unknown_module_or_preset_is_404(owner: TestClient) -> None:
     assert preset.json()["code"] == "unknown_preset"
 
 
-def test_nothing_here_writes() -> None:
+def test_the_only_writes_are_a_version_a_check_and_an_activation() -> None:
     from aia_api.config import Environment, Settings
     from aia_api.main import create_app
 
     spec = create_app(Settings(env=Environment.LOCAL)).openapi()
-    methods = {
-        method
+    writes = {
+        (path.removeprefix(METHODOLOGY), method)
         for path, operations in spec["paths"].items()
         if path.startswith(METHODOLOGY)
         for method in operations
+        if method != "get"
     }
-    assert methods == {"get"}
+    assert writes == {
+        ("/{module_id}/check", "post"),
+        ("/{module_id}/versions", "post"),
+        ("/{module_id}/activation", "put"),
+    }
 
 
 def test_the_web_fixture_is_what_the_api_serves() -> None:
@@ -130,3 +136,124 @@ def test_the_web_fixture_is_what_the_api_serves() -> None:
     spec.loader.exec_module(tool)
     current = tool.FIXTURE.read_text(encoding="utf-8")
     assert current == tool.render(), "run: python tools/methodology_fixture.py"
+
+
+# --------------------------------------------------------------------------- versions (A5b)
+
+SOCIOMAP = f"{METHODOLOGY}/sociomap"
+
+
+def _edit(formulas: dict[str, str] | None = None, **changes: Any) -> dict[str, Any]:
+    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
+    for path, value in changes.items():
+        node = spec
+        *parents, leaf = path.split("__")
+        for p in parents:
+            node = node[p]
+        node[leaf] = value
+    return {"base_preset": "aia-sociomap-3", "spec": spec, "formulas": formulas or {}}
+
+
+@pytest.mark.parametrize("who", ["lead", "researcher", "outsider"])
+def test_a_member_reads_and_checks_but_cannot_change(who: str, as_user: Any) -> None:
+    member: TestClient = as_user(who)
+    versions = member.get(f"{SOCIOMAP}/versions")
+    assert versions.status_code == 200 and versions.json()["may_administer"] is False
+    assert member.post(f"{SOCIOMAP}/check", json=_edit()).json()["valid"] is True
+    proposed = member.post(f"{SOCIOMAP}/versions", json=_edit())
+    assert proposed.status_code == 403 and proposed.json()["code"] == "insufficient_role"
+    put = member.put(f"{SOCIOMAP}/activation", json={"version_number": None})
+    assert put.status_code == 403
+
+
+def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> None:
+    body = owner.get(f"{SOCIOMAP}/versions").json()
+    assert body["in_force"] == {
+        "origin": "code",
+        "preset": "aia-sociomap-3",
+        "version_number": None,
+        "name": "aia-sociomap-3",
+    }
+    assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
+
+
+def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_preset(
+    owner: TestClient,
+) -> None:
+    proposed = owner.post(
+        f"{SOCIOMAP}/versions", json={**_edit(terrain__sigma=0.3), "note": "širší kopec"}
+    )
+    assert proposed.status_code == 201
+    version = proposed.json()
+    assert (version["version_number"], version["name"]) == (1, "aia-sociomap-3+e1")
+    assert version["spec"]["terrain"]["sigma"] == 0.3
+    assert version["spec"]["methodology_version"] == "aia-sociomap-3+e1"
+    assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["origin"] == "code"
+
+    put = owner.put(f"{SOCIOMAP}/activation", json={"version_number": 1, "reason": "ověřeno"})
+    assert put.status_code == 200
+    assert put.json() == {
+        "origin": "stored",
+        "preset": None,
+        "version_number": 1,
+        "name": "aia-sociomap-3+e1",
+    }
+    back = owner.put(f"{SOCIOMAP}/activation", json={"version_number": None, "reason": "zpět"})
+    assert back.json()["origin"] == "code"
+    body = owner.get(f"{SOCIOMAP}/versions").json()
+    assert [v["version_number"] for v in body["versions"]] == [1]
+    assert [(a["version_number"], a["reason"]) for a in body["history"]] == [
+        (None, "zpět"),
+        (1, "ověřeno"),
+    ]
+
+
+def test_an_invalid_edit_is_422_with_every_problem_and_check_says_the_same(
+    owner: TestClient,
+) -> None:
+    edit = _edit({"f6.distance": "open('x')"}, relation__n_min=2)
+    checked = owner.post(f"{SOCIOMAP}/check", json=edit).json()
+    assert checked["valid"] is False
+    assert {"spec.relation.n_min", "formula.f6.distance"} <= set(checked["problems"])
+    refused = owner.post(f"{SOCIOMAP}/versions", json=edit)
+    assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
+    assert refused.json()["details"]["problems"] == checked["problems"]
+    assert owner.get(f"{SOCIOMAP}/versions").json()["versions"] == []
+
+
+def test_a_replaced_formula_is_stored_but_not_put_in_force(owner: TestClient) -> None:
+    edit = _edit({"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
+    checked = owner.post(f"{SOCIOMAP}/check", json=edit).json()
+    assert (checked["valid"], checked["not_computed"]) == (True, ["f12.kernel"])
+    number = owner.post(f"{SOCIOMAP}/versions", json=edit).json()["version_number"]
+    refused = owner.put(f"{SOCIOMAP}/activation", json={"version_number": number})
+    assert refused.status_code == 409 and refused.json()["code"] == "formula_not_computed"
+    assert refused.json()["details"]["problems"] == {
+        "formula.f12.kernel": "not computed by the engine yet"
+    }
+    assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["origin"] == "code"
+
+
+def test_the_reference_map_is_never_edited(owner: TestClient) -> None:
+    edit = {"base_preset": "aia-sociomap-1", "spec": {}, "formulas": {}}
+    refused = owner.post(f"{METHODOLOGY}/sociomap_reference/versions", json=edit)
+    assert refused.status_code == 422 and "module" in refused.json()["details"]["problems"]
+
+
+def test_unknown_module_or_version_is_404(owner: TestClient) -> None:
+    for response in (
+        owner.get(f"{METHODOLOGY}/nothing/versions"),
+        owner.post(f"{METHODOLOGY}/nothing/check", json=_edit()),
+        owner.post(f"{METHODOLOGY}/nothing/versions", json=_edit()),
+    ):
+        assert response.status_code == 404 and response.json()["code"] == "unknown_module"
+    missing = owner.put(f"{SOCIOMAP}/activation", json={"version_number": 7})
+    assert missing.status_code == 404 and missing.json()["code"] == "unknown_version"
+
+
+def test_a_malformed_request_is_422_before_the_domain(owner: TestClient) -> None:
+    assert owner.post(f"{SOCIOMAP}/versions", json={"spec": {}}).status_code == 422
+    zero = owner.put(f"{SOCIOMAP}/activation", json={"version_number": 0})
+    assert zero.status_code == 422
+    long_note = owner.post(f"{SOCIOMAP}/versions", json={**_edit(), "note": "x" * 501})
+    assert long_note.status_code == 422
