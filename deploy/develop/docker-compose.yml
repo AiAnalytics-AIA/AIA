@@ -232,6 +232,15 @@ services:
       AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS: ${AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS:-}
       AIA_AI_FIELDWORK_RESERVATION_USD: ${AIA_AI_FIELDWORK_RESERVATION_USD:-}
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
+      # The population (population-operations P6), read by `python -m
+      # aia_executors.population_ops` (bin/population.sh) and nothing else in the worker:
+      # who may operate it, a JSON object of AIA user id to permissions from SSM
+      # /aia/develop/aia_population_operators (unset: nobody), and the read-only directory
+      # bin/sync-population.sh fills from population/v17.files.
+      AIA_POPULATION_OPERATORS: ${AIA_POPULATION_OPERATORS:-}
+      AIA_POPULATION_ASSET_ROOT: /srv/population/v17
+    volumes:
+      - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     depends_on:
       postgres:
         condition: service_healthy

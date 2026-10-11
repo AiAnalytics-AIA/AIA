@@ -13,11 +13,14 @@ import csv
 import gzip
 import io
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 from aia_core.domain.population import (
+    CompanionKind,
+    CompanionSpec,
     KnownVersion,
     PopulationImportContract,
     WeightScheme,
@@ -300,6 +303,82 @@ def test_a_malformed_companion_is_refused_before_the_bundle_is_read(
         "--dictionary", "dictionary.csv", "--provenance", "p", "--companion", "no-equals",
     )  # fmt: skip
     assert code == 2 and "ASSET_ID=LOCATION" in err
+
+
+def _with_a_companion(bundle: Any, root: Path) -> tuple[Any, Any]:
+    """The fictional contract declaring one companion, written under its asset id."""
+    contract, source = bundle
+    notes = b'{"fictional": true}'
+    (root / "NOTES.json").write_bytes(notes)
+    spec = CompanionSpec(
+        asset_id="NOTES.json",
+        kind=CompanionKind.INTEGRITY_ONLY,
+        sha256=content_sha256(notes),
+        byte_size=len(notes),
+        fmt="json",
+    )
+    return replace(contract, companions=(spec,)), source
+
+
+BASE_IMPORT = (
+    "import", "--as", OWNER, "--label", "f1_BASE", "--panel", "panels/f1_BASE.csv.gz",
+    "--dictionary", "dictionary.csv", "--provenance", "fictional test bundle",
+)  # fmt: skip
+
+
+def test_all_companions_reads_each_declared_companion_at_its_asset_id(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, _with_a_companion(bundle, tmp_path), {world.owner_id: list(BOTH)})
+    code, imported, err = ops(*BASE_IMPORT, "--all-companions")
+    assert code == 0, err
+    versions = ops("status")[1]["versions"]
+    assert [(v["version_id"], v["companions"]) for v in versions] == [
+        (imported["version_id"], True)
+    ]
+
+
+def test_all_companions_with_one_missing_registers_nothing(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, _with_a_companion(bundle, tmp_path), {world.owner_id: list(BOTH)})
+    (tmp_path / "NOTES.json").unlink()
+    code, _, err = ops(*BASE_IMPORT, "--all-companions")
+    assert code == 3 and "NOTES.json" in err
+    assert ops("status")[1]["versions"] == []
+
+
+def test_all_companions_attaches_a_set_after_the_import(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, _with_a_companion(bundle, tmp_path), {world.owner_id: list(BOTH)})
+    code, imported, err = ops(*BASE_IMPORT)
+    assert code == 0, err
+    assert ops("status")[1]["versions"][0]["companions"] is False
+    code, attached, err = ops(
+        "attach", "--as", OWNER, "--version", imported["version_id"], "--all-companions"
+    )
+    assert code == 0, err
+    assert attached["companions"] == ["NOTES.json"]
+    assert ops("status")[1]["versions"][0]["companions"] is True
+
+
+def test_all_companions_on_a_contract_that_declares_none_is_refused(
+    world: Any, bundle: Any
+) -> None:
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    code, _, err = ops(*BASE_IMPORT, "--all-companions")
+    assert code == 2 and "declares no companions" in err
+    assert ops("status")[1]["versions"] == []
+
+
+def test_companions_are_named_one_way_or_the_other_never_both(world: Any, bundle: Any) -> None:
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    with pytest.raises(SystemExit) as exc:
+        ops(*BASE_IMPORT, "--all-companions", "--companion", "A=a")
+    assert exc.value.code == 2
+    with pytest.raises(SystemExit):  # attach needs one of them
+        ops("attach", "--as", OWNER, "--version", "v")
 
 
 # ------------------------------------------------------------------ the key

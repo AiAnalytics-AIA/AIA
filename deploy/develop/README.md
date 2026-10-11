@@ -143,7 +143,10 @@ directory, `/app/clients`. Nothing of NPC Panel 18.6.6 is served or run by this
 stack ([ADR 0018](../../docs/architecture/adr/0018-aia-runs-without-18-6-6.md)
 decisions 4 and 5): it has no unit image, service, volume mount, hostname,
 credential, data sync or health check, and `/classic` is AIA's page saying the
-interface is gone. The Caddyfile routes:
+interface is gone. (The population is AIA's own, not the unit: `bin/sync-population.sh`
+fetches its 15 listed files from the same EU bucket, by hand and read-only. It never
+fetches the unit's whole bundle or starts anything of the unit; see § The population.)
+The Caddyfile routes:
 
 | Path | Goes to |
 |---|---|
@@ -396,6 +399,110 @@ is.
 
 To start completely fresh: `docker compose down -v` (destroys the PostgreSQL
 volume and Caddy's certificates), then `bin/deploy.sh <sha>` and the seed.
+
+## The population
+
+AIA's population is 18.6.6's v17 synthetic model of the Czech adult population: three
+versions of the panel (18,766 rows × 400 fields each), the 400-field dictionary and 15
+companions, every one pinned by SHA256 in the Czech import contract
+(`packages/aia_core/src/aia_core/domain/population/czech.py`). Once it is imported, with
+STATIC on `v17_1_2` and LIVE on `v17_4_0`, every new research run records the LIVE version
+it would be computed over, while fieldwork keeps answering with fictional respondents and
+says so (owner's decision of 2026-10-10, `.planning/plans/population-operations.md` P3,
+P6). No model sees the panel: OI-61 still bars panel-derived material from every provider.
+
+The panels are licence-bound (PIAAC 2023 CZ / ISSP 2022 CZ, open decision D3). They stay
+in the EU ops bucket and on this host's disk, never in Git or an image. Fifteen of the
+files come from the unit's data bundle (`legacy-data/86b70bfb5c1b`). The other four are the
+frozen unit's own configuration files (`legacy/npc-panel-18.6.6/app/*.json`), which the
+deploy bundle carries. `population/v17.files` lists all 19.
+
+This is the data owner's act, once, as a named operator. Every step is safe to repeat, and
+each refusal writes nothing.
+
+1. **Name the operator and the source.** Find your AIA user id (you must have signed in once):
+
+   ```bash
+   docker compose exec -T postgres psql -U aia -d aia -tAc \
+     "select user_id from users where email = 'you@art-chain.io'"
+   ```
+
+   Then create two parameters under `/aia/develop/` and rewrite the env file:
+
+   | Parameter | Value |
+   |---|---|
+   | `aia_population_source_prefix` | `legacy-data/86b70bfb5c1b` |
+   | `aia_population_operators` | `{"<user id>":["POPULATION_ESTABLISH","POPULATION_PROMOTE"]}` |
+
+   ```bash
+   bin/write-env.sh
+   ```
+
+   Unset or empty, `aia_population_operators` names nobody, and every command but
+   `status` is refused. A value that does not read stops the command and names the key.
+
+2. **Back up**, so the import can be undone by a restore (§ Database). Nothing un-imports
+   a version:
+
+   ```bash
+   bin/backup.sh pre-population
+   ```
+
+3. **Put the files on the host.** This fetches the 15 bucket files and copies the 4
+   bundled ones into a staging directory. It checks each one's size and SHA256 against
+   `population/v17.files`, and only then swaps the directory in, read-only, as
+   `/opt/aia/population/v17` (`AIA_POPULATION_DIR`). One mismatch or missing object stops
+   it, and the files already there stay as they were.
+
+   ```bash
+   bin/sync-population.sh
+   ```
+
+4. **Import the three versions, oldest first.** A version's parent is the contract's,
+   so the import finds it. `v17_0_BASE` is the lineage root, build input only, and never
+   becomes a population, so it is imported without companions. The other two are
+   imported with every companion the contract declares. Each prints its `version_id`.
+
+   ```bash
+   P="18.6.6 data bundle legacy-data/86b70bfb5c1b (source zip 86b70bfb5c1b4a79…)"
+   bin/population.sh import --as you@art-chain.io --label v17_0_BASE \
+     --panel FINALNI_KOMPLETNI_PANEL_v17_0_BASE.csv.gz --dictionary FIELD_DICTIONARY_v17_1.csv \
+     --provenance "$P"
+   bin/population.sh import --as you@art-chain.io --label v17_1_2 \
+     --panel FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz --dictionary FIELD_DICTIONARY_v17_1.csv \
+     --provenance "$P" --all-companions
+   bin/population.sh import --as you@art-chain.io --label v17_4_0 \
+     --panel FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz --dictionary FIELD_DICTIONARY_v17_1.csv \
+     --provenance "$P" --all-companions
+   ```
+
+5. **Establish STATIC, then LIVE**, with the ids step 4 printed (or read them from
+   `bin/population.sh status`):
+
+   ```bash
+   bin/population.sh establish --as you@art-chain.io --population CZ_STATIC_REFERENCE \
+     --kind STATIC --version <v17_1_2 id> --reason "the 18.6.6 reproducibility anchor"
+   bin/population.sh establish --as you@art-chain.io --population CZ_LIVE \
+     --kind LIVE --version <v17_4_0 id> --reason "the 18.6.6 default runtime population"
+   ```
+
+6. **Check.** `bin/population.sh status` lists the three versions, both populations and
+   two history entries naming your user id. **Společenská inteligence** shows the same
+   registry. A research run started from now on says on its page that `v17_4_0` was
+   recorded and that its respondents did not come from it. Runs started before keep
+   what they recorded, which is nothing.
+
+**Exit codes.** `2` means refused before anything was written: a person the
+configuration does not name, a malformed argument. `3` means the population itself
+refused, with every failure listed. A `3` on the real files is a **finding**: record it
+in the plan and do not loosen the contract. The reference measured the weight totals
+on `v17_4_0` only (the `czech.py` docstring); if `v17_1_2` fails them, that is exactly
+such a finding.
+
+**Cost.** Parsing one panel took 3.1 s and peaked at about 430 MB of process memory,
+measured on a fictional panel of the same shape (18,766 × 400, 5.4 MB gzip). The import
+runs as a one-off worker container beside the running services on this 4 GB host. The
+files add about 23 MB to the host's disk and nothing to S3.
 
 ## Migrating 18.6.6 content
 

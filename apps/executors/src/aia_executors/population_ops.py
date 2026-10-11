@@ -158,6 +158,21 @@ def _companions(pairs: Sequence[str] | None) -> dict[str, str] | None:
     return parsed
 
 
+def _companion_locations(
+    args: argparse.Namespace, contract: PopulationImportContract
+) -> dict[str, str] | None:
+    """``--all-companions``: each companion the contract declares, at its asset id.
+
+    The bundle's files sit under their own names in one directory (``deploy/develop/
+    population/v17.files``), so naming each by hand is fifteen chances to mistype one.
+    """
+    if not getattr(args, "all_companions", False):
+        return _companions(args.companion)
+    if not contract.companions:
+        raise OperatorRefused(f"{contract.contract_id} declares no companions")
+    return {spec.asset_id: spec.asset_id for spec in contract.companions}
+
+
 def _status(session: Session, contract: PopulationImportContract) -> dict[str, Any]:
     registry = PopulationRegistryRepository(session)
     dataset = contract.dataset_id
@@ -218,13 +233,25 @@ def _parser() -> argparse.ArgumentParser:
     imp.add_argument("--dictionary", required=True, help="dictionary location")
     imp.add_argument("--provenance", required=True, help="where the bundle came from")
     imp.add_argument("--parent", help="the version this one derives from")
-    imp.add_argument(
+    imp_companions = imp.add_mutually_exclusive_group()
+    imp_companions.add_argument(
         "--companion", action="append", help="ASSET_ID=LOCATION, repeatable; validated with it"
+    )
+    imp_companions.add_argument(
+        "--all-companions",
+        action="store_true",
+        help="every companion the contract declares, each at its asset id under the root",
     )
 
     att = acting("attach", "record a version's companion set")
     att.add_argument("--version", required=True)
-    att.add_argument("--companion", action="append", required=True, help="ASSET_ID=LOCATION")
+    att_companions = att.add_mutually_exclusive_group(required=True)
+    att_companions.add_argument("--companion", action="append", help="ASSET_ID=LOCATION")
+    att_companions.add_argument(
+        "--all-companions",
+        action="store_true",
+        help="every companion the contract declares, each at its asset id under the root",
+    )
 
     est = acting("establish", "create a population over a version; once per population")
     est.add_argument("--population", required=True)
@@ -263,7 +290,7 @@ def run(
             else:
                 operator = _operator(session, authority, args.actor)
                 runtime = PopulationRuntime(session, contract=contract, source=source)
-                result = _act(args, runtime, operator)
+                result = _act(args, runtime, operator, contract)
                 session.commit()
         except OperatorRefused as exc:
             session.rollback()
@@ -281,7 +308,10 @@ def run(
 
 
 def _act(
-    args: argparse.Namespace, runtime: PopulationRuntime, operator: PopulationOperatorContext
+    args: argparse.Namespace,
+    runtime: PopulationRuntime,
+    operator: PopulationOperatorContext,
+    contract: PopulationImportContract,
 ) -> dict[str, Any]:
     actor = operator.actor_id
     if args.command == "import":
@@ -292,7 +322,7 @@ def _act(
             provenance=args.provenance,
             imported_by=actor,
             parent_version_id=args.parent,
-            companion_locations=_companions(args.companion),
+            companion_locations=_companion_locations(args, contract),
         )
         return {
             "version_id": version.version_id,
@@ -302,7 +332,7 @@ def _act(
             "status": runtime.version_status(version.version_id).value,
         }
     if args.command == "attach":
-        companions = _companions(args.companion) or {}
+        companions = _companion_locations(args, contract) or {}
         runtime.attach_companions(
             version_id=args.version, companion_locations=companions, attached_by=actor
         )
