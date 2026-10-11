@@ -282,9 +282,9 @@ contract-3 artifact. The top view is the default; choosing **3D terén** mounts
 layout, connectedness or uncertainty calculation is introduced. This workspace
 is separate from the experimental HModel Sociomapping section.
 
-Rotation (pointer, buttons and keyboard), zoom, reset, relief, compact/expanded
-layout, link visibility, object selection and pair comparison are presentation
-state only. Camera changes neither move stored objects nor alter artifacts or
+Rotation (pointer, buttons and keyboard), zoom, reset, relief, link visibility,
+object selection and pair comparison are presentation state only (the
+compact/expanded switch was replaced by the approved design's layout in PR #268). Camera changes neither move stored objects nor alter artifacts or
 evidence. Switching to top view immediately unmounts the canvas and is the
 rendering kill switch. No extra runtime dependency or model call is needed.
 
@@ -302,6 +302,45 @@ mesh preparation took 5.57ms; 100-frame projection/sort median 0.56ms and p95
 1.59ms on the development Mac, excluding raster drawing. Geometry/component
 tests cover missing cells, frozen inputs, camera controls and accessible selection;
 browser acceptance covers desktop, narrow layout and dark theme.
+
+### The approved design (2026-10-11, PR #268)
+
+The workspace is built to the Claude Design prototype "AIA Sociomap 3D v3", the visual
+acceptance specification; the method stays `aia-sociomap-3`, contract 3, and no artifact,
+fingerprint or domain file changes. The plan is
+[`object-map-3d-redesign.md`](../../.planning/plans/object-map-3d-redesign.md).
+
+- **Ten display terraces.** A stored height is drawn in band `floor(h × 10)` (clamped) on
+  the absolute 0–1 scale every map shares, never this map's range, with the
+  `viz-terrace-1..10` ramp. Labels and cards print the stored number; the band appears
+  beside it as "zobrazovací pásmo".
+- **Terraces from the stored mesh.** `terraceLayers` cuts the same triangles, and the same
+  piecewise-linear surface, that `terrainMesh` draws at each band's lower bound. Each
+  terrace is a flat top at `0.03 + band/10` (display only) with shaded risers. A piece's
+  corners are stored samples or exact edge crossings; a triangle with a null corner draws
+  nothing; the lowest terrace's stepped outer edge is where the stored grid ends.
+- **Framing.** `mapFrame` frames a square around every stored sample with a height and
+  every object, with one scale on both axes and never beyond the grid.
+- **Links.** The map draws the selected object's subset of `mapLinks`, never more; a live
+  caption names whose relations the lines are. SECONDARY objects are diamonds, with no
+  hill and no line.
+- **The pair card.** It reads r, n, Kish effective n, the Fisher interval, the floor result
+  and whether the pair is drawn from the artifact. An UNKNOWN pair with an r ("Nedostatečná
+  evidence pro interpretaci tohoto odhadu.") is told apart from an r that was never
+  computed ("Vztah nebylo možné vypočítat."). The aggregate count says "neznámé vztahy".
+- **Labels.** They are placed in screen space, clear of each other, the panels and every
+  pin; a leader line ties any label moved away to its pin. Anchors never move.
+- **Presentation state.** Relief, the camera, rotation and the opening choreography are
+  display state; the "Přehrát animaci" rise is not a time series. Nothing animates under
+  reduced motion; leaving 3D stays instant.
+- **PNG.** "Uložit snímek (PNG)" composes the view as shown, with its fonts embedded and an
+  internal-use caption. The report figure stays `object_map_figure.py`.
+
+`object-map-boundary.test.ts` fails the map's browser code on any exp, log, atanh, tanh, sqrt
+or cbrt, or a read of `parameters.sigma` or `kernel_cutoff`. `check-design.mjs` § 4 holds
+the ramp to adjacent ΔE ≥ 10 and protan/deutan ΔE ≥ 8, and checks the contrast on the stage.
+What still differs from the prototype, and why, is tabled in the plan: stored data,
+no three.js, accessibility, and the handoff's own requirements.
 
 ### Backend view products
 
