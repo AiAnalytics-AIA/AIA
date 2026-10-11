@@ -41,7 +41,7 @@ from aia_core.infrastructure.artifact_repository import ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-1"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-2"
 _ACQUISITION_REASONS = {
     AcquisitionReason.PAYWALL: "Zdroj vyžaduje placený přístup.",
     AcquisitionReason.LOGIN: "Zdroj vyžaduje přihlášení.",
@@ -61,7 +61,7 @@ def _web_url(url: str | None) -> str | None:
 
 
 def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tuple[Section, ...]:
-    """Publish accepted findings and checked synthesis, including incomplete coverage."""
+    """Publish accepted source claims; citation checks do not approve model inferences."""
     if not bundle.verify():
         raise ReportCompositionRefused("Deep Research bundle seal is invalid")
     accepted = {a.evidence.evidence_id: a for a in bundle.accepted}
@@ -124,15 +124,26 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
         )
     synthesis = bundle.synthesis.check if bundle.synthesis else None
     if synthesis:
-        ids = tuple(i for f in synthesis.findings for i in f.evidence_ids)
-        if synthesis.summary and ids:
-            blocks.extend([Heading("Souhrn dostupného poznání", 2), cited(synthesis.summary, ids)])
-        for index, subject in enumerate(bundle.subjects, 1):
-            findings = [f for f in synthesis.findings if f.subject_key == subject.key]
-            if findings:
-                blocks.append(Heading(f"Téma rešerše {index}", 2))
-                blocks.append(Paragraph(text(subject.text)))
-                blocks.extend(cited(f.text, f.evidence_ids) for f in findings)
+        # Preserve the foreign-citation refusal, even though proposed prose is omitted.
+        for finding in synthesis.findings:
+            if not finding.evidence_ids or any(i not in accepted for i in finding.evidence_ids):
+                raise ReportCompositionRefused(
+                    "synthesis cites evidence outside its accepted bundle"
+                )
+        blocks.append(
+            Paragraph(
+                text(
+                    "Automatický návrh syntézy prošel kontrolou citací a čísel, nikoli "
+                    "schválením věcné platnosti všech interpretací. Do této kapitoly proto "
+                    "vstupují přijatá zjištění ze zdrojů; generované závěry a důvody mezer "
+                    "zůstávají odděleným pracovním návrhem. Historický původ metody ani "
+                    "nenalezený zdroj sám neprokazuje její vhodnost či nevhodnost pro jiný účel."
+                )
+            )
+        )
+    for index, subject in enumerate(bundle.subjects, 1):
+        blocks.append(Heading(f"Téma rešerše {index}", 2))
+        blocks.append(Paragraph(text(subject.text)))
     if not accepted:
         blocks.append(
             Paragraph(
@@ -222,22 +233,12 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
             shown_limits.add(key)
             blocks.append(Paragraph(text(value)))
 
-    if synthesis:
-        for value in (*synthesis.gaps, *synthesis.limitations):
-            add_limit(value)
-        if synthesis.summary_withheld or synthesis.excluded:
-            blocks.append(
-                Paragraph(
-                    text(
-                        "Část navržené syntézy byla odmítnuta při ověřování. Její text není "
-                        "součástí zprávy; přijaté podklady je třeba číst s tímto omezením."
-                    )
-                )
-            )
     brief = bundle.synthesis.brief if bundle.synthesis else None
     if brief:
         for gap in brief.gaps:
-            add_limit(f"{gap.need} {gap.reason}")
+            # A search gap's model-authored reason can contain the same unsupported
+            # inference as a summary. Report the unmet need, not that inference.
+            add_limit(f"V tomto běhu nebyl doložen požadovaný podklad: {gap.need}.")
         if brief.acquisition_gaps:
             blocks.append(Heading("Podklady pro doplnění rešerše", 2))
             for acquisition in brief.acquisition_gaps:

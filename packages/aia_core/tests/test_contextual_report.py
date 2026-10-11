@@ -30,11 +30,11 @@ def prose(value: EvidenceBundle) -> str:
     )
 
 
-def test_checked_synthesis_has_separate_sources_limits_and_fixture_disclosure() -> None:
+def test_source_claims_have_separate_citations_limits_and_fixture_disclosure() -> None:
     original = bundle()
     written = prose(original)
-    for finding in original.synthesis.check.findings:
-        assert finding.text in written
+    for finding in original.accepted:
+        assert finding.evidence.claim in written
     for excluded in original.synthesis.check.excluded:
         assert excluded.text not in written
     assert "[L1]" in written and "[L2]" in written
@@ -43,6 +43,7 @@ def test_checked_synthesis_has_separate_sources_limits_and_fixture_disclosure() 
     assert "nikoli o systematický přehled" in written
     assert "Syntetické odpovědi" in written
     assert original.sha256 in written
+    assert "nikoli schválením věcné platnosti" in written
     assert all(
         not b.refs
         for s in literature_sections(original, research_run_id="RUN-abc")
@@ -134,6 +135,18 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
             "text_withheld": False,
         }
     ]
+    gap = {
+        "gap_id": "GAP-need",
+        "kind": "unanswered",
+        "subject_key": original.subjects[0].key,
+        "track_id": None,
+        "need": "Srovnatelná původní studie",
+        "reason": "Sociomapping není aplikovatelný na hodnocení služeb.",
+        "tried": None,
+        "conflict_id": None,
+        "text_withheld": False,
+    }
+    synthesis["brief"]["gaps"] = [gap, {**gap, "gap_id": "GAP-need-duplicate"}]
     updated = bundle(synthesis=synthesis)
     sections = literature_sections(updated, research_run_id="RUN-abc")
     assert not any(
@@ -142,8 +155,29 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
         for block in section.blocks
     )
     assert updated.subjects[0].text in prose(updated)
-    assert prose(updated).count("Chybí původní studie") == 1
+    assert "Chybí původní studie" not in prose(updated)
+    assert prose(updated).count("Srovnatelná původní studie") == 1
+    assert gap["reason"] not in prose(updated)
     assert "not_pursued" not in prose(updated)
     assert "Získání tohoto zdroje nebylo v tomto běhu dokončeno. Doplnit z knihovny." in prose(
         updated
     )
+
+
+def test_citation_valid_inapplicability_inference_is_not_published() -> None:
+    original = bundle()
+    synthesis = original.synthesis.model_dump(mode="json")
+    unsupported = "Sociomapping není aplikovatelný na hodnocení služeb."
+    synthesis["check"]["summary"] = unsupported
+    synthesis["check"]["findings"][0]["text"] = unsupported
+    synthesis["check"]["gaps"] = [unsupported]
+    synthesis["check"]["limitations"] = [unsupported]
+    updated = bundle(synthesis=synthesis)
+    before = updated.model_dump_json()
+    written = prose(updated)
+    assert unsupported not in written
+    assert "nikoli schválením věcné platnosti" in written
+    for finding in updated.accepted:
+        assert finding.evidence.claim in written
+    assert updated.model_dump_json() == before
+    assert updated.verify()
