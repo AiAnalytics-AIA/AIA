@@ -24,6 +24,7 @@ from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.fieldwork import FieldworkSource
+from ..domain.methodology.pins import sociomap_methods_for
 from ..domain.population import (
     CZ_LIVE,
     CZ_SYNTHETIC_V17,
@@ -53,6 +54,7 @@ from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_AGENT
 from ..infrastructure.artifact_repository import ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
@@ -289,12 +291,23 @@ class ResearchRuns:
             raise DesignNotReady(readiness)
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
-        methods = read_methods(
-            [
-                m.model_dump(mode="json")
-                for m in (default_methods() if sociomap_methods is None else sociomap_methods)
-            ]
-        )
+        methodology: dict[str, Any] | None = None
+        if sociomap_methods is None:
+            # The organization's methodology in force (ADR 0023 decision 6): the code's
+            # preset, or an edited object map put in force on the Metodika tab.
+            in_force = methodology_in_force_for_study(self.session, self.scope, "sociomap")
+            payload = None if in_force.version is None else in_force.version.payload
+            chosen = default_methods() if payload is None else sociomap_methods_for(payload)
+            if in_force.version is not None:
+                methodology = {
+                    "module": "sociomap",
+                    "version": in_force.version.version_number,
+                    "name": in_force.version.name,
+                    "payload_sha256": in_force.version.payload_sha256,
+                }
+        else:
+            chosen = tuple(sociomap_methods)
+        methods = read_methods([m.model_dump(mode="json") for m in chosen])
         for method in methods:
             method.resolve()  # a pin the engine cannot compute is refused before any run
         pinned = [m.model_dump(mode="json") for m in methods]
@@ -303,7 +316,11 @@ class ResearchRuns:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
-        if sociomap_methods is not None and methods != default_methods():
+        if methodology is not None:
+            # An edited methodology is new identity: the same revision under it is another
+            # run, and its cost goes through the spend confirmation below like any new run.
+            key += f":methodology:{methodology['payload_sha256'][:16]}"
+        elif sociomap_methods is not None and methods != default_methods():
             # Only a set the caller chose over the default is new identity. A start that
             # takes the default keeps the key every earlier run of the revision has, so a
             # re-start after the default changes returns the run that exists -- with the
@@ -343,6 +360,7 @@ class ResearchRuns:
                 "analysis_enabled": analysis_enabled,
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 "sociomap_methods": pinned,
+                **({"methodology": methodology} if methodology else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"population": _population_note(population)} if population else {}),
             },

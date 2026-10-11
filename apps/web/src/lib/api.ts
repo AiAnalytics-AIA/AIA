@@ -876,3 +876,83 @@ export const deepResearchSettings = {
   approve: (key: string, versionNumber: number | null, reason: string) =>
     request<DrSetting>("PUT", `${DR_SETTINGS}/${enc(key)}/approval`, { version_number: versionNumber, reason }),
 };
+
+// ---------------------------------------------------------------- the Metodika tab (ADR 0023)
+
+/** A step's value: where it lives, and where it comes from. `absent`: the preset omits the
+ *  part; `value` is then null and is not a zero. */
+export type MethodValue = {
+  reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
+  value: unknown; absent: boolean;
+};
+/** A step's editable formula: its slot, the expression the engine computes today, and the
+ *  LaTeX the domain writes from that expression (the page shows what runs). */
+export type MethodFormula = {
+  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string;
+  variables: { name: string; latex: string; meaning_cs: string; unit: string; vector: boolean }[];
+  properties: { kind: string; variable: string | null; description_cs: string }[];
+};
+export type MethodStepOut = {
+  id: string; title_cs: string; formula_latex: string; implements: string; source_sha256: string;
+  symbols: { latex: string; meaning_cs: string; unit: string }[];
+  evidence: { kind: string; ref: string; note_cs: string }[];
+  tests: string[]; note_cs: string; values: MethodValue[]; formulas: MethodFormula[];
+};
+export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
+export type MethodModuleSummary = {
+  id: string; title_cs: string; note_cs: string; presets: string[]; in_force: string | null;
+  editable: boolean; steps: number; groups: MethodGroup[];
+};
+export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; step_details: MethodStepOut[] };
+
+/** A stored methodology version: immutable, named by the store `<base>+e<n>`. */
+export type MethodVersion = {
+  version_number: number; name: string; base_preset: string; spec: Record<string, unknown>;
+  formulas: Record<string, string>; payload_sha256: string; note: string; created_by: string; created_at: string;
+};
+export type MethodActivation = {
+  activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
+};
+/** What a run started now pins: a stored version, or the code's preset. */
+export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
+export type MethodVersions = {
+  in_force: MethodInForce; may_administer: boolean; presets: Record<string, Record<string, unknown>>;
+  versions: MethodVersion[]; history: MethodActivation[];
+};
+/** An edit: the whole specification and the formulas it replaces (by slot). */
+export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
+export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string> };
+/** One map of a check panel. */
+export type MethodMapSummary = {
+  outcome: string; not_mappable: string | null; stress_1: number | null; quality: string | null;
+  status_counts: Record<string, number>; effective_n: number | null;
+};
+/** An edit beside the methodology in force on one fixed fictional panel (plan S4b). Pairs are
+ *  `[in force, draft]`; `null` where an object has none. */
+export type MethodPanel = {
+  panel: string; label_cs: string; respondents: number; objects: string[];
+  in_force: MethodMapSummary; draft: MethodMapSummary;
+  status_changes: { a: string; b: string; in_force: string; draft: string }[];
+  shifts: Record<string, number>; alignment_rmsd: number | null;
+  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
+  terrain_max_change: number | null; terrain_note: string | null; notes: string[];
+};
+export type MethodCompare = { valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[] };
+
+const METHODOLOGY = "/api/v1/methodology";
+
+/** Any member reads and checks; storing a version and changing what is in force need an
+ *  organization OWNER or ADMIN (the API refuses anyone else). */
+export const methodology = {
+  list: () => request<MethodModuleSummary[]>("GET", METHODOLOGY),
+  get: (moduleId: string, preset?: string) =>
+    request<MethodModuleDetail>("GET", `${METHODOLOGY}/${enc(moduleId)}${preset ? `?preset=${enc(preset)}` : ""}`),
+  versions: (moduleId: string) => request<MethodVersions>("GET", `${METHODOLOGY}/${enc(moduleId)}/versions`),
+  check: (moduleId: string, edit: MethodEdit) => request<MethodCheck>("POST", `${METHODOLOGY}/${enc(moduleId)}/check`, edit),
+  /** The edit beside what is in force, on fictional panels; nothing stored. */
+  compare: (moduleId: string, edit: MethodEdit) => request<MethodCompare>("POST", `${METHODOLOGY}/${enc(moduleId)}/compare`, edit),
+  propose: (moduleId: string, edit: MethodEdit) => request<MethodVersion>("POST", `${METHODOLOGY}/${enc(moduleId)}/versions`, edit),
+  /** `versionNumber` null returns the module to the code's preset. */
+  activate: (moduleId: string, versionNumber: number | null, reason: string) =>
+    request<MethodInForce>("PUT", `${METHODOLOGY}/${enc(moduleId)}/activation`, { version_number: versionNumber, reason }),
+};

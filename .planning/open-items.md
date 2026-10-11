@@ -3173,3 +3173,48 @@ is a methodology change to F9. For the audit's author with group B
 ([sociomap-formula-corrections](plans/sociomap-formula-corrections.md), chunk 4a, F-4a-1).
 
 **Test.** The reproduction above.
+
+## OI-93 · Finding · The methodology editor shows the domain's refusals as English sentences
+
+**Claim.** A specification check's problem is an English sentence, and the Metodika editor
+shows it verbatim on a Czech page.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 8265af7`
+(`n_min {n} is below 4: the Fisher interval needs four raters`).
+
+**Reproduction.** `POST /api/v1/methodology/sociomap/check` with `relation.n_min` 2, or the
+editor on the workbench (`make ui-workbench`, Nastavení → Metodika → Upravit metodiku).
+
+**Consequence.** The methodologist reads why an edit is refused in English.
+
+**Fix.** A problem code beside each message, Czech words for the codes in `cs.ts`, the English
+as the fallback. Belongs with the specification validators' rewrite, chunk S2 of
+[methodology-tab](plans/methodology-tab.md) (plan finding H4).
+
+**Test.** One web test per code.
+
+## OI-94 · Finding, closed · The reference set's K100 was copied from a map that reads Kish's n
+
+**Claim.** With the F9 bootstrap on, `battery_sociomap` copied the body's K100 from any object
+map with the same B, seed, n_min, confidence and roles. `aia-sociomap-3`, pinned in every new
+run, matches all five but decides its pair statuses on Kish's effective n, the body on the
+respondent count.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_sociomap.py:438 @ e9d68b4` (the
+guard before the fix).
+
+**Reproduction.** `packages/aia_core/tests/test_research_sociomap_k100_copy.py`: 45 respondents
+of case A01, one in three weighted 20 times the others.
+
+**Consequence.** With `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` on, the stored body
+recorded no K100 for any object where its own bootstrap gives, for example, kava 36.97
+[.., 61.43]. No screen read it; the stored internal artifact was wrong.
+
+**Fix.** #260 (`3583908`, merged to develop by #265): the copy also requires the map's
+evidence basis to be the body's (`research_sociomap.py:511 @ 8265af7`). With the switch on, the
+body pays for its own bootstrap again (about 90 s per large set). Plan finding H5.
+
+**Test that catches it.** The reproduction above; it also asserts the map's K100 differs on
+that panel, so it cannot pass vacuously.
+
+**Status.** Closed by #260.

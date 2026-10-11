@@ -454,11 +454,11 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
-      "AI běh", "Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+      "AI běh", "Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
     ]);
     expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("AI běh").hidden).toBe(false);
-    for (const other of ["Systémové prompty", "Deep Research", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    for (const other of ["Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
       expect(panelOf(other).hidden).toBe(true);
       expect(tab(other).getAttribute("aria-selected")).toBe("false");
     }
