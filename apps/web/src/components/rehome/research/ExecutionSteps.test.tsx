@@ -601,6 +601,23 @@ describe("Progress", () => {
 });
 
 describe("Results", () => {
+  it("explains a failed run load and retries instead of leaving Results loading forever", async () => {
+    let failed = true;
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs": () => failed
+        ? new Response(JSON.stringify({ code: "service_unavailable", message: "Výsledky se nepodařilo načíst." }), { status: 503 })
+        : { items: [COMPLETED] },
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText("Výsledky se nepodařilo načíst.")).toBeTruthy();
+    failed = false;
+    fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
+    expect(await screen.findByRole("tab", { name: "Přehled" })).toBeTruthy();
+  });
+
   it("shows evidence-checked internal analysis while another module waits", async () => {
     const partial = run({
       status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
@@ -623,6 +640,7 @@ describe("Results", () => {
       }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText("Ověřené shrnutí.")).toBeTruthy();
     expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
@@ -636,6 +654,7 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
     const q2 = await screen.findByRole("region", { name: "q2" });
     expect(within(q2).getByText("34,8 %")).toBeTruthy();
@@ -647,6 +666,7 @@ describe("Results", () => {
     expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
     // What 18.6.6's map tool did and AIA does not is said where the map is.
     expect(screen.getByText(t("research.exec.results.mapToolNotInAia"))).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Sociomapy" }));
     const map = screen.getByRole("region", { name: "Nápoje" });
     expect(within(map).getByText("Káva")).toBeTruthy();
     expect(within(map).getByText("6,14")).toBeTruthy();
@@ -695,9 +715,11 @@ describe("Results", () => {
         new Response(documentBytes, { status: 200 }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
     expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
     expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportDownload") }));
     await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
     expect(click).toHaveBeenCalledOnce();
@@ -719,6 +741,7 @@ describe("Results", () => {
       }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
@@ -731,6 +754,7 @@ describe("Results", () => {
         new Response('{"code":"insufficient_role","message":"Not permitted."}', { status: 403 }),
     });
     render(<ResearchScreen step="results" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();
@@ -739,6 +763,28 @@ describe("Results", () => {
 
 
 describe("Interpretation research", () => {
+  it("requires confirmation before cancelling an active interpretation review", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "RUNNING", phase: "RUNNING", is_terminal: false, retryable: false,
+      created_at: null, actual_cost_usd: null, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "POST /api/v1/studies/STU-1/deep-research/runs/RUN-deep/cancel": () => review,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Zrušit rešerši" }));
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/cancel")).toHaveLength(0);
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "OK" }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/cancel")).toHaveLength(1));
+  });
+
   it("asks for the retry ceiling and sends the confirmed amount without changing the study budget", async () => {
     const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
@@ -754,6 +800,7 @@ describe("Interpretation research", () => {
         new Response(JSON.stringify({ code: "cost_confirmation_required", message: "confirm", details: { ceiling_usd: 5 } }), { status: 409 }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
     fireEvent.click(await screen.findByRole("button", { name: "Zkusit znovu" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/Opakování rešerše může stát nejvýše 5.00 USD/)).toBeTruthy();
@@ -787,6 +834,7 @@ describe("Interpretation research", () => {
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: createUrl, revokeObjectURL: revokeUrl }));
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
     const start = await screen.findByRole("button", { name: "Spustit rešerši výsledků" });
     expect(screen.queryByRole("button", { name: "Stáhnout AIA zprávu s rešerší" })).toBeNull();
     fireEvent.click(start);

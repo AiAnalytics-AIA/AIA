@@ -10,6 +10,7 @@ Plan: [`.planning/plans/ui-workbench.md`](../../.planning/plans/ui-workbench.md)
 make ui-workbench            # start AIA, or confirm it is running; the 18.6.6 unit is not started
 make ui-workbench-reference  # the same, with the 18.6.6 unit beside it at :8767 (fictional panel)
 make ui-workspace            # a study's content, file, import, audience, dimensions in a browser
+node tools/ui_workbench/ux_journey.mjs # after ui-fixtures + ui-research: 17 routes, four widths, result tabs, map camera, search and keyboard regression
 make ui-capture              # screenshot every screen -> tmp/ui-workbench/shots/<time>/index.html
 make ui-fixtures             # the fictional research projects, bound to AIA studies; prints their links
 make ui-research             # one research run in a browser: Run -> Progress -> Results (needs ui-fixtures)

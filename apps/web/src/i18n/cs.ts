@@ -733,6 +733,11 @@ export const cs = {
             unknownConfig: "Konfiguraci nasazení se nepodařilo načíst, takže nic netvrdí.",
           },
           activity: {
+            research_analysis: {
+              title: "Analýza výsledků výzkumu",
+              text: "Vytváří interní analýzu nad uloženými výsledky běhu. Číselná tvrzení procházejí kontrolou podkladů a výstup vyžaduje posouzení výzkumníkem.",
+              off: "Běh počká u analýzy výsledků. Dokončená data a mapy zůstanou k dispozici.",
+            },
             respondent_fieldwork: {
               title: "Sběr dat AI respondenty",
               text: "Fiktivní respondenti odpovídají na dotazník běhu výzkumu. Model vrací jen pravděpodobnosti odpovědí; fakta a výsledné odpovědi určuje kód. Data jsou označená jako fiktivní a nejsou zjištěním.",

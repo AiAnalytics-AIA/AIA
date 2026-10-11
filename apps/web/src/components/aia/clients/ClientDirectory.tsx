@@ -13,7 +13,7 @@ import { type ClientCard, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { plural, relative } from "@/lib/format";
 import { Icon } from "../../rehome/icons";
-import { type Ask, AskDialog, Button } from "../../rehome/ui";
+import { type Ask, AskDialog, Button, Field, TextInput } from "../../rehome/ui";
 import { AppShell } from "../AppShell";
 import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -60,6 +60,7 @@ export function ClientDirectory() {
   const [clients, retry] = useResource(() => workspace.clients(), []);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const newClient = () =>
     setAsk({
@@ -82,20 +83,28 @@ export function ClientDirectory() {
       action={<Button variant="primary" icon="plus" onClick={newClient}>{t("aia.clients.new")}</Button>}
     >
       {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      <Field label="Hledat klienta nebo studii" className="mb-5 max-w-lg">
+        <TextInput type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Název klienta nebo jeho studie…" />
+      </Field>
       <Loaded res={clients} retry={retry}>
-        {(list) =>
-          list.length ? (
+        {(list) => {
+          const needle = query.trim().toLocaleLowerCase("cs");
+          const shown = needle ? list.filter(c => `${c.name} ${c.recent.map(s => s.name).join(" ")}`.toLocaleLowerCase("cs").includes(needle)) : list;
+          return shown.length ? (
+            <>
+            <p role="status" className="mb-3 text-xs text-ink-muted">{shown.length} z {list.length} klientů</p>
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {list.map((c) => (
+              {shown.map((c) => (
                 <Card key={c.client_id} c={c} />
               ))}
             </ul>
+            </>
           ) : (
             <Empty>
-              {t("aia.clients.empty")}
+              {needle && list.length ? "Žádný klient ani jeho nedávná studie neodpovídají hledání. Zkuste jiný název." : t("aia.clients.empty")}
             </Empty>
-          )
-        }
+          );
+        }}
       </Loaded>
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
     </AppShell>

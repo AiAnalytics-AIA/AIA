@@ -10,7 +10,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { type ClientArea, appRoutes } from "@/lib/app-routes";
@@ -73,7 +73,7 @@ export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
                   {c.label}
                 </Link>
               ) : (
-                <span aria-current={last ? "page" : undefined} className={`whitespace-nowrap ${last ? "font-medium text-ink" : ""}`}>
+                <span aria-current={last ? "page" : undefined} className={`break-words ${last ? "font-medium text-ink" : ""}`}>
                   {c.label}
                 </span>
               )}
@@ -86,11 +86,15 @@ export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
 }
 
 function Sidebar({ path, client }: { path: string; client?: ShellClient }) {
+  const [expanded, setExpanded] = useState(false);
   const session = useSession();
   const email = session?.email ?? null;
   return (
-    <div className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-shell text-shell-ink">
-      <nav aria-label={t("aia.mainNav")} className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <div className="flex w-full shrink-0 flex-col bg-shell text-shell-ink lg:sticky lg:top-0 lg:h-screen lg:w-52 xl:w-60">
+      <button type="button" aria-expanded={expanded} aria-controls="aia-main-navigation" onClick={() => setExpanded(!expanded)} className={`flex min-h-12 items-center justify-between px-4 text-sm font-semibold lg:hidden ${FOCUS}`}>
+        <span>AI Analytics · {client?.name ?? t("aia.workspaceLabel")}</span><span>{expanded ? "Zavřít menu" : "Menu"}</span>
+      </button>
+      <nav id="aia-main-navigation" aria-label={t("aia.mainNav")} className={`${expanded ? "flex" : "hidden lg:flex"} min-h-0 flex-1 flex-col overflow-y-auto`}>
         <Link href={appRoutes.home()} className={`flex items-center gap-2.5 px-[18px] pb-4 pt-5 no-underline ${FOCUS}`}>
           {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}
           <img src="/skin/brand/aia-mark-on-graphite.svg" alt="" width={30} height={30} />
@@ -133,7 +137,7 @@ function Sidebar({ path, client }: { path: string; client?: ShellClient }) {
           })}
         </ul>
       </nav>
-      <div className="flex items-center gap-2.5 border-t border-shell-strong/8 px-4 py-3.5 text-xs leading-4 text-shell-muted">
+      <div className={`${expanded ? "flex" : "hidden lg:flex"} items-center gap-2.5 border-t border-shell-strong/8 px-4 py-3.5 text-xs leading-4 text-shell-muted`}>
         <span aria-hidden="true" className="inline-flex size-[30px] shrink-0 items-center justify-center rounded-full bg-shell-avatar text-[11px] font-semibold text-shell-avatar-ink">
           {email ? initials(email.split("@")[0]!) : "?"}
         </span>
@@ -193,12 +197,13 @@ export function AppShell({
   // The header's top edge: the client's accent inside a client, quiet on settings, the signal elsewhere.
   const accent = client ? clientAccent(client.id) : path.startsWith("/app/settings") ? "bg-ink-muted" : "bg-signal";
   return (
-    <div className="flex min-h-screen bg-surface text-ink">
+    <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
+      <a href="#aia-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:p-3 focus:text-ink">Přejít k obsahu</a>
       <Sidebar path={path} client={client} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 border-b border-border bg-surface-raised px-8">
-          <div aria-hidden="true" className={`-mx-8 mb-[18px] h-[3px] ${accent}`} />
+        <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+          <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (
               <Link
@@ -249,11 +254,11 @@ export function AppShell({
             ) : null}
           </div>
         </header>
-        <div className="flex min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           {aside ? (
-            <aside className="w-64 shrink-0 border-r border-border bg-surface-raised">{aside}</aside>
+            <aside className="shrink-0 border-b border-border bg-surface-raised xl:w-56 xl:border-b-0 xl:border-r">{aside}</aside>
           ) : null}
-          <main className="min-w-0 flex-1 px-8 py-6">
+          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 lg:px-6 xl:px-8">
             <div className="mx-auto max-w-[88rem]">{children}</div>
           </main>
         </div>
