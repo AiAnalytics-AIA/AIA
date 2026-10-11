@@ -166,12 +166,12 @@ export function SettingsPage() {
   const [me] = useResource(() => workspace.me(), []);
   return (
     <AppShell title={t("aia.settings.title")} sub={t("aia.settings.sub")}>
-      <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
-        <section className={CARD} aria-labelledby="set-account">
-          <h2 id="set-account" className="text-base font-semibold">{t("aia.settings.account")}</h2>
+      <div>
+        <section className={`${CARD} flex flex-wrap items-start justify-between gap-3`} aria-labelledby="set-account">
+          <div><h2 id="set-account" className="text-base font-semibold">{t("aia.settings.account")}</h2>
           {session?.email ? <p className="mt-2 text-sm">{tv("aia.settings.signedInAs", { email: session.email })}</p> : null}
           {me.state === "ready" ? <p className="mt-1 text-sm text-ink-muted">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
-          <p className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">{t("aia.settings.accessNote")}</p>
+          </div><details className="max-w-xl text-sm text-ink-muted"><summary className="cursor-pointer">{t("aia.settings.accessHelp")}</summary><p className="mt-2 leading-6">{t("aia.settings.accessNote")}</p></details>
         </section>
       </div>
       <div className="mt-6">

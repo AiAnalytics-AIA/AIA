@@ -7,7 +7,7 @@ chunks:
   - "[ ] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
-  - "[ ] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
+  - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
   - "[ ] P7. Show the population's characteristics on Společenská inteligence: weights, blocks, each field's evidence status and permitted uses, no row"
 ---
 # Population operations: the core's import and promotion reach a deployment
@@ -191,6 +191,35 @@ reason to loosen the contract.
 
 Tests: `test_population_carry_over.py` (15) and `test_population_ops.py` (5 new,
 `--all-companions`).
+
+**P6b, 2026-10-11** (develop host, deployed `999be17`). The data owner signed in, and the
+runbook's six steps were run as `USR-a97fa3d62eea4c`, each through SSM on `aia-develop`, with
+every step's output read before the next.
+
+- **Parameters:** `aia_population_source_prefix` = `legacy-data/86b70bfb5c1b` and
+  `aia_population_operators` (that user, `POPULATION_ESTABLISH` + `POPULATION_PROMOTE`) were
+  created, and `bin/write-env.sh` was run.
+- **Backup:** `backups/aia-20261011T222511Z-pre-population.dump` (661,230 bytes).
+- **Sync:** `bin/sync-population.sh` placed 19 files in `/opt/aia/population/v17`, each
+  matching `population/v17.files`.
+- **Imports:**
+  - `v17_0_BASE`: `cz_synthetic_population@sha256:5300c1aeeef4ead1`, no companions, 8.9 s.
+  - `v17_1_2`: `…@sha256:d6a9ef120b81982e`, with companions, parent `v17_0_BASE`.
+  - `v17_4_0`: `…@sha256:864f8dbcd101e4be`, with companions, parent `v17_1_2`.
+  - Every import exited 0. The contract's two weight totals, never measured on `v17_1_2` by
+    the reference, held for it as well.
+- **Establish:** `CZ_STATIC_REFERENCE` on `v17_1_2`, then `CZ_LIVE` on `v17_4_0`.
+  `population_ops status` reads three versions (companions: no, yes, yes), both populations,
+  and two history entries naming the operator.
+
+From here every new research run on develop records `CZ_LIVE` / `v17_4_0`
+(`read_by_fieldwork: false`). Runs made before keep what they recorded, which is nothing.
+Fieldwork is unchanged.
+
+**Findings:** none from the import. On how the run was done: the operator signed in as the
+AWS account's root user, in an account that also runs other production systems. A role
+limited to `ssm:SendCommand` on the develop instance and `ssm:PutParameter` under
+`/aia/develop/` would be enough for the next import (a finding for the docs PR, not this plan).
 
 **P7, what "characteristics" are.** What a researcher should see without any row: the four
 weights and their meaning, the field blocks (provenance, population anchor, core, modelled
