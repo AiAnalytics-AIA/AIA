@@ -1,34 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { t, tv } from "@/i18n/t";
-import { faceLight, projectTerrain, terrainMesh, TERRAIN_VIEW, type TerrainCamera } from "@/lib/object-map-3d";
-import { type MapObject, type ObjectMapArtifact, mapLinks, viewSpan } from "@/lib/object-map-view";
-import { labelOffsets, num } from "@/lib/sociomapping-view";
+// The object map's 3D terrain (plan object-map-3d-redesign): the stored envelope grid drawn as
+// ten terraces on a graphite stage, pins standing on it, the selected object's drawn relations
+// as arcs and labels that keep clear of each other and of the panels. Canvas surface plus
+// accessible SVG object controls, all from one frozen map; mounted only while 3D is on.
 
-/** Canvas surface plus accessible SVG object controls, all from one frozen map. */
-export function ObjectMapTerrain({ map, objects, camera, selected, partner, showLinks, ratingScale, onSelect }: {
-  map: ObjectMapArtifact; objects: MapObject[]; camera: TerrainCamera;
-  selected: string | null; partner: string | null; showLinks: boolean; ratingScale?: [number, number];
-  onSelect: (id: string) => void;
+import { useEffect, useMemo, useRef } from "react";
+import { t } from "@/i18n/t";
+import { easeOut, faceLight, plinthSides, projectTerrain, terrainMesh, type TerrainCamera } from "@/lib/object-map-3d";
+import { type MapLink, type MapObject, type ObjectMapArtifact, type Rect, type ViewSize, TERRACE_BANDS, terraceLevel, terrainAt, viewSpan } from "@/lib/object-map-view";
+import { type MarkState, MapLabel, MapPin, PinButton, casing, layoutLabels, linkStyle } from "./ObjectMapMarks";
+
+/** How tall a pin's stem stands above the terrain, in display units of the 0-1 height. */
+const STALK = 0.16;
+
+export function ObjectMapTerrain({ map, objects, camera, view, rise = 1, links, marks, obstacles = [], ratingScale, onSelect, onHover = () => {} }: {
+  map: ObjectMapArtifact; objects: MapObject[]; camera: TerrainCamera; view: ViewSize; rise?: number;
+  links: MapLink[]; marks: MarkState; obstacles?: Rect[]; ratingScale?: [number, number];
+  onSelect: (id: string) => void; onHover?: (id: string | null) => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [labelScale, setLabelScale] = useState(1);
-  useEffect(() => {
-    const node = canvas.current;
-    if (!node || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width > 0) setLabelScale(Math.max(1, Math.min(2.5, TERRAIN_VIEW.width / entry.contentRect.width)));
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
   const faces = useMemo(() => terrainMesh(map), [map]);
   const span = viewSpan(map);
-  const points = objects.map((o) => ({ object: o, ...projectTerrain({ ...o, height: o.height ?? 0 }, camera, span) }));
-  const at = new Map(points.map((p) => [p.object.id, p]));
-  const offsets = labelOffsets(points.map((p) => ({ id: p.object.id, sx: p.sx, sy: p.sy })), 40 * labelScale, 180 * labelScale);
-  const links = showLinks ? mapLinks(map) : [];
+  // The opening rise scales the drawn relief only; the stored grid is never touched.
+  const shown: TerrainCamera = { ...camera, relief: camera.relief * Math.max(0.001, easeOut(rise)) };
+  const pins = objects.map((o) => {
+    const ground = terrainAt(map, o.x, o.y);
+    const base = ground === null ? 0 : terraceLevel(ground);
+    return {
+      object: o,
+      base: projectTerrain({ x: o.x, y: o.y, height: base }, shown, span, view),
+      head: projectTerrain({ x: o.x, y: o.y, height: base + STALK }, shown, span, view),
+      top: base + STALK,
+    };
+  });
+  const at = new Map(pins.map((p) => [p.object.id, p]));
+  const labels = layoutLabels(objects, new Map(pins.map((p) => [p.object.id, p.head])), marks, view, obstacles, ratingScale);
 
   useEffect(() => {
     const node = canvas.current;
@@ -37,37 +44,28 @@ export function ObjectMapTerrain({ map, objects, camera, selected, partner, show
     if (!context) return;
     const draw = () => {
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      if (node.width !== TERRAIN_VIEW.width * ratio) node.width = TERRAIN_VIEW.width * ratio;
-      if (node.height !== TERRAIN_VIEW.height * ratio) node.height = TERRAIN_VIEW.height * ratio;
+      const width = Math.round(view.width * ratio), height = Math.round(view.height * ratio);
+      if (node.width !== width) node.width = width;
+      if (node.height !== height) node.height = height;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      context.clearRect(0, 0, TERRAIN_VIEW.width, TERRAIN_VIEW.height);
+      context.clearRect(0, 0, view.width, view.height);
       const style = getComputedStyle(node);
-      const colours = Array.from({ length: 7 }, (_, k) => style.getPropertyValue(`--viz-seq-${k + 1}`).trim());
+      const token = (name: string) => style.getPropertyValue(`--${name}`).trim();
+      const colours = Array.from({ length: TERRACE_BANDS }, (_, k) => token(`viz-terrace-${k + 1}`));
       const polygon = (vertices: { sx: number; sy: number }[]) => {
         context.beginPath();
         vertices.forEach((v, i) => i ? context.lineTo(v.sx, v.sy) : context.moveTo(v.sx, v.sy));
         context.closePath();
       };
-      const ground = [[-span, -span], [span, -span], [span, span], [-span, span]].map(([x, y]) => projectTerrain({ x, y, height: 0 }, camera, span));
+      // The plinth's walls, then the "bez dat" ground: where no stored sample is, nothing is drawn over it.
+      context.fillStyle = token("viz-stage-raised");
+      for (const side of plinthSides(span)) { polygon(side.map((v) => projectTerrain(v, shown, span, view))); context.fill(); }
+      const ground = [[-span, -span], [span, -span], [span, span], [-span, span]].map(([x, y]) => projectTerrain({ x, y, height: 0 }, shown, span, view));
       polygon(ground);
-      context.fillStyle = style.getPropertyValue("--surface").trim();
+      context.fillStyle = token("viz-ground");
       context.fill();
-      context.strokeStyle = style.getPropertyValue("--border-strong").trim();
-      context.lineWidth = 1;
-      context.stroke();
-      context.strokeStyle = style.getPropertyValue("--border").trim();
-      for (let k = -3; k <= 3; k++) {
-        const value = k * span / 4;
-        for (const segment of [
-          [{ x: value, y: -span, height: 0 }, { x: value, y: span, height: 0 }],
-          [{ x: -span, y: value, height: 0 }, { x: span, y: value, height: 0 }],
-        ]) {
-          const [a, b] = segment.map((v) => projectTerrain(v, camera, span));
-          context.beginPath(); context.moveTo(a.sx, a.sy); context.lineTo(b.sx, b.sy); context.stroke();
-        }
-      }
       const projected = faces.map((face) => {
-        const vertices = face.vertices.map((v) => projectTerrain(v, camera, span));
+        const vertices = face.vertices.map((v) => projectTerrain(v, shown, span, view));
         return { face, vertices, depth: vertices.reduce((sum, v) => sum + v.depth, 0) / 3 };
       }).sort((a, b) => b.depth - a.depth);
       for (const { face, vertices } of projected) {
@@ -76,10 +74,12 @@ export function ObjectMapTerrain({ map, objects, camera, selected, partner, show
         context.strokeStyle = colours[face.band];
         context.lineWidth = 0.5;
         context.fill(); context.stroke();
-        // Light reveals shape, while the unshaded legend retains the rating scale.
-        context.globalAlpha = 1 - faceLight(face, camera, span);
+        // Light reveals shape, while the unshaded legend retains the bands.
+        context.globalAlpha = 1 - faceLight(face, shown, span);
         context.fillStyle = "black";
         context.fill();
+        // The light edge of a terrace step.
+        if (face.riser) { context.globalAlpha = 0.22; context.fillStyle = "white"; context.fill(); }
         context.globalAlpha = 1;
       }
     };
@@ -89,48 +89,34 @@ export function ObjectMapTerrain({ map, objects, camera, selected, partner, show
     const scheme = window.matchMedia?.("(prefers-color-scheme: dark)");
     scheme?.addEventListener("change", draw);
     return () => { observer.disconnect(); scheme?.removeEventListener("change", draw); };
-  }, [faces, camera, span]);
+  }, [faces, shown.yaw, shown.elevation, shown.zoom, shown.relief, span, view]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const arc = (link: MapLink) => {
+    const a = at.get(link.a), b = at.get(link.b);
+    if (!a || !b) return null;
+    const lift = Math.max(a.top, b.top) + 0.12 + 0.22 * link.strength;
+    const c = projectTerrain({ x: (a.object.x + b.object.x) / 2, y: (a.object.y + b.object.y) / 2, height: lift }, shown, span, view);
+    return `M${a.head.sx.toFixed(1)},${a.head.sy.toFixed(1)} Q${c.sx.toFixed(1)},${c.sy.toFixed(1)} ${b.head.sx.toFixed(1)},${b.head.sy.toFixed(1)}`;
+  };
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: `${TERRAIN_VIEW.width}/${TERRAIN_VIEW.height}` }} data-testid="object-map-3d" data-camera={JSON.stringify(camera)} data-triangles={faces.length}>
+    <div className="absolute inset-0" data-testid="object-map-3d" data-camera={JSON.stringify(camera)} data-triangles={faces.length}>
       <canvas ref={canvas} className="absolute inset-0 h-full w-full" aria-hidden="true" />
-      <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${TERRAIN_VIEW.width} ${TERRAIN_VIEW.height}`} role="group" aria-label={t("research.exec.objectMap.terrainLabel")}>
-        <g data-testid="object-map-3d-links">
-          {links.map((link) => {
-            const a = at.get(link.a), b = at.get(link.b);
-            if (!a || !b) return null;
-            const focus = [selected, partner].includes(link.a) && [selected, partner].includes(link.b);
-            return <line key={`${link.a}|${link.b}`} x1={a.sx} y1={a.sy} x2={b.sx} y2={b.sy}
-              stroke={`var(--viz-div-${link.sign === "positive" ? 7 : 1})`} strokeWidth={focus ? 4 : 1.5}
-              strokeOpacity={focus ? 1 : 0.25 + 0.65 * link.strength} strokeDasharray={link.sign === "negative" ? "7 5" : undefined} />;
-          })}
+      <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${view.width} ${view.height}`} role="group" aria-label={t("research.exec.objectMap.terrainLabel")}>
+        <g aria-hidden="true">
+          {links.map((link) => { const d = arc(link); return d ? <path key={link.a + link.b} d={d} fill="none" {...casing(linkStyle(link, marks.partner).strokeWidth)} /> : null; })}
         </g>
-        {points.map(({ object: o, sx, sy }) => {
-          const base = projectTerrain({ ...o, height: 0 }, camera, span);
-          const on = o.id === selected;
-          const showLabel = labelScale <= 1.8 && objects.length <= 12 || on || o.id === partner;
-          const dy = offsets.get(o.id) ?? -22;
-          const tx = Math.max(12, Math.min(TERRAIN_VIEW.width - 180 * labelScale, sx + 16 * labelScale));
-          const ty = Math.max(30 * labelScale, Math.min(TERRAIN_VIEW.height - 55 * labelScale, sy + dy));
-          const limit = labelScale > 1.8 ? 14 : 30;
-          const displayHeight = o.height === null ? null : ratingScale ? ratingScale[0] + o.height * (ratingScale[1] - ratingScale[0]) : o.height;
-          const label = o.label.length > limit ? `${o.label.slice(0, limit - 1)}…` : o.label;
-          return (
-            <g key={o.id} role="button" tabIndex={0} aria-label={tv("research.exec.objectMap.selectObject", { label: o.label })} aria-pressed={on}
-              onClick={() => onSelect(o.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(o.id); } }}
-              className="cursor-pointer" data-testid={`object-map-point-${o.id}`}>
-              <line x1={base.sx} y1={base.sy} x2={sx} y2={sy} stroke="var(--ink-muted)" strokeDasharray="3 4" opacity={on ? 0.8 : 0.35} />
-              <circle cx={sx} cy={sy} r={on ? 9 : 6} fill={o.band === null ? "var(--surface)" : `var(--viz-seq-${o.band + 1})`} stroke="var(--ink)" strokeWidth={on ? 3 : 1.5} />
-              <title>{o.label}</title>
-              {showLabel ? <>
-              <line x1={sx} y1={sy} x2={tx - 2} y2={ty} stroke="var(--ink-muted)" />
-              <text x={tx} y={ty} fontSize={15 * labelScale} fontWeight={on ? 700 : 500} fill="var(--ink)" paintOrder="stroke" stroke="var(--surface-raised)" strokeWidth={5} strokeLinejoin="round">{label}</text>
-              <text x={tx} y={ty + 18 * labelScale} fontSize={13 * labelScale} fill="var(--ink-muted)" paintOrder="stroke" stroke="var(--surface-raised)" strokeWidth={4}>{num(displayHeight, 2)}</text>
-              </> : null}
-            </g>
-          );
-        })}
-
+        <g data-testid="object-map-3d-links">
+          {links.map((link) => { const d = arc(link); return d ? <path key={`${link.a}|${link.b}`} data-pair={`${link.a}|${link.b}`} d={d} fill="none" strokeLinecap="round" {...linkStyle(link, marks.partner)} /> : null; })}
+        </g>
+        {pins.map(({ object: o, base, head }) => (
+          <PinButton key={o.id} o={o} marks={marks} onSelect={onSelect} onHover={onHover}>
+            <ellipse cx={base.sx} cy={base.sy} rx={7} ry={3.5} fill="none" stroke="var(--viz-stage-ink)" strokeOpacity={0.8} />
+            <line x1={base.sx} y1={base.sy} x2={head.sx} y2={head.sy} stroke="var(--viz-stage-ink)" strokeOpacity={0.75} strokeWidth={1.5} />
+            <MapPin o={o} x={head.sx} y={head.sy} marks={marks} />
+            <g opacity={rise >= 0.9 ? 1 : 0}><MapLabel o={o} {...labels.get(o.id)!} marks={marks} /></g>
+          </PinButton>
+        ))}
       </svg>
     </div>
   );

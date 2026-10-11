@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/object-map.json";
-import { type BatteryWithMaps, readObjectMap } from "./object-map-view";
-import { boundedCamera, faceLight, INITIAL_CAMERA, projectTerrain, terrainMesh } from "./object-map-3d";
+import { type BatteryWithMaps, readObjectMap, terraceBand, terraceLevel } from "./object-map-view";
+import { boundedCamera, easeOut, faceLight, INITIAL_CAMERA, plinthSides, projectTerrain, TERRAIN_VIEW, terrainMesh } from "./object-map-3d";
 
 function map() {
   const read = readObjectMap(fixture.sociomap.batteries[0] as unknown as BatteryWithMaps);
@@ -32,6 +32,7 @@ describe("frozen terrain geometry", () => {
       height: [[0.2, null], [0.4, 0.6]], governing: [[0, null], [0, 0]] };
     expect(terrainMesh(source)).toHaveLength(1);
     expect(terrainMesh(source)[0].vertices.map((v) => v.height)).toEqual([0.2, 0.6, 0.4]);
+    expect(terrainMesh(source)[0].vertices.map((v) => v.elevation)).toEqual([0.3, 0.7, 0.5]);
     source.terrain.height = [[null, null], [null, null]];
     expect(terrainMesh(source)).toEqual([]);
     source.terrain = { status: "not_computed", reason: "unavailable" };
@@ -53,6 +54,7 @@ describe("frozen terrain geometry", () => {
     expect(rotated.sx).toBeCloseTo(y.sx);
     expect(rotated.sy).toBeCloseTo(y.sy);
     const low = projectTerrain({ x: 0, y: 0, height: 0 }, INITIAL_CAMERA, 2);
+    expect(projectTerrain({ x: 1, y: 1, height: 0.3 }, INITIAL_CAMERA, 2, TERRAIN_VIEW)).toEqual(projectTerrain({ x: 1, y: 1, height: 0.3 }, INITIAL_CAMERA, 2));
     const high = projectTerrain({ x: 0, y: 0, height: 1 }, INITIAL_CAMERA, 2);
     expect(high.sx).toBe(low.sx);
     expect(high.sy).toBeLessThan(low.sy);
@@ -66,4 +68,40 @@ describe("frozen terrain geometry", () => {
       expect(faceLight(face, INITIAL_CAMERA, 2)).toBeLessThanOrEqual(1);
     }
   });
+  it("draws terraces: elevation is the stored height's display band, the stored height stays on the vertex", () => {
+    const faces = terrainMesh(map());
+    let risers = 0;
+    for (const face of faces) {
+      for (const v of face.vertices) expect(v.elevation).toBe(terraceLevel(v.height));
+      const bands = face.vertices.map((v) => terraceBand(v.height));
+      expect(face.band).toBe(Math.max(...bands));
+      expect(face.riser).toBe(new Set(bands).size > 1);
+      if (face.riser) risers++;
+    }
+    expect(risers).toBeGreaterThan(0);
+    expect(risers).toBeLessThan(faces.length);
+  });
+  it("projects the drawn elevation, so relief and the opening rise change pixels only", () => {
+    const v = { x: 0.5, y: -0.5, height: 0.63, elevation: 0.7 };
+    const drawn = projectTerrain(v, INITIAL_CAMERA, 2);
+    expect(drawn).toEqual(projectTerrain({ x: 0.5, y: -0.5, height: 0.7 }, INITIAL_CAMERA, 2));
+    expect(v).toEqual({ x: 0.5, y: -0.5, height: 0.63, elevation: 0.7 });
+    const flat = projectTerrain(v, { ...INITIAL_CAMERA, relief: 0 }, 2);
+    expect(flat).toEqual(projectTerrain({ x: 0.5, y: -0.5, height: 0 }, INITIAL_CAMERA, 2));
+    expect([easeOut(-1), easeOut(0), easeOut(1), easeOut(2)]).toEqual([0, 0, 1, 1]);
+    expect(easeOut(0.5)).toBeGreaterThan(0.5);
+  });
+  it("keeps the ruler square in any measured view and builds a plinth below the ground", () => {
+    const view = { width: 360, height: 480 };
+    const camera = { ...INITIAL_CAMERA, yaw: 0, elevation: Math.PI / 2 };
+    const c = projectTerrain({ x: 0, y: 0, height: 0 }, camera, 2, view);
+    const x = projectTerrain({ x: 1, y: 0, height: 0 }, camera, 2, view);
+    const y = projectTerrain({ x: 0, y: 1, height: 0 }, camera, 2, view);
+    expect(x.sx - c.sx).toBeCloseTo(c.sy - y.sy);
+    expect(c.sx).toBe(view.width / 2);
+    const sides = plinthSides(2);
+    expect(sides).toHaveLength(4);
+    for (const side of sides) expect(Math.min(...side.map((v) => v.height))).toBeLessThan(0);
+  });
 });
+
