@@ -39,6 +39,14 @@ describe("reading the stored map", () => {
     const wrong = { "aia-sociomap-3": { ...battery.maps!["aia-sociomap-3"], artifact: { ...map, contract_version: "2" } } };
     expect(readObjectMap({ ...battery, maps: wrong as never })).toEqual({ ok: false, reason: "contract" });
   });
+
+  it("reads the map a run pinned under an edited methodology's own name", () => {
+    const stored = battery.maps!["aia-sociomap-3"];
+    const edited = { "aia-sociomap-3+e2": { ...stored, artifact: { ...map, spec: { ...map.spec, methodology_version: "aia-sociomap-3+e2" } } } };
+    expect(readObjectMap({ ...battery, maps: edited })).toMatchObject({ ok: true, methodId: "aia-sociomap-3+e2" });
+    const otherContract = { "aia-sociomap-3+e2": { ...stored, artifact: { ...map, contract_version: "2" } } };
+    expect(readObjectMap({ ...battery, maps: otherContract as never })).toEqual({ ok: false, reason: "contract" });
+  });
 });
 
 describe("the objects", () => {
