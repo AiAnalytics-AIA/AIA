@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. ADR 0023 and this plan"
   - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
   - "[x] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
-  - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
+  - "[x] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[x] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
   - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
   - "[x] A5b. API: methodology version routes (after A3)"
