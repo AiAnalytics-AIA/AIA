@@ -876,3 +876,33 @@ export const deepResearchSettings = {
   approve: (key: string, versionNumber: number | null, reason: string) =>
     request<DrSetting>("PUT", `${DR_SETTINGS}/${enc(key)}/approval`, { version_number: versionNumber, reason }),
 };
+
+// ---------------------------------------------------------------- the Metodika tab (ADR 0023)
+
+/** A step's value: where it lives, and where it comes from. `absent`: the preset omits the
+ *  part; `value` is then null and is not a zero. */
+export type MethodValue = {
+  reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
+  value: unknown; absent: boolean;
+};
+export type MethodStepOut = {
+  id: string; title_cs: string; formula_latex: string; implements: string; source_sha256: string;
+  symbols: { latex: string; meaning_cs: string; unit: string }[];
+  evidence: { kind: string; ref: string; note_cs: string }[];
+  tests: string[]; note_cs: string; values: MethodValue[];
+};
+export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
+export type MethodModuleSummary = {
+  id: string; title_cs: string; note_cs: string; presets: string[]; in_force: string | null;
+  steps: number; groups: MethodGroup[];
+};
+export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; step_details: MethodStepOut[] };
+
+const METHODOLOGY = "/api/v1/methodology";
+
+/** Read by any member. Nothing here writes: stored methodology versions are a later chunk. */
+export const methodology = {
+  list: () => request<MethodModuleSummary[]>("GET", METHODOLOGY),
+  get: (moduleId: string, preset?: string) =>
+    request<MethodModuleDetail>("GET", `${METHODOLOGY}/${enc(moduleId)}${preset ? `?preset=${enc(preset)}` : ""}`),
+};

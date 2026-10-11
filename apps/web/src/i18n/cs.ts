@@ -347,6 +347,39 @@ export const cs = {
           result: "Navržený výsledek",
         },
       },
+      methodology: {
+        malformed: "Odpověď API nemá podobu metodiky. Nic se nezobrazí, aby to nevypadalo jako prázdná metodika.",
+        modules: "Oblasti metodiky",
+        preset: "Metodika",
+        inForce: "v platnosti",
+        steps: "kroků",
+        noSteps: "Žádný krok: v AIA se zatím nepočítá.",
+        values: "Hodnoty, které krok čte",
+        symbols: "Značení",
+        evidence: "Podklad",
+        tests: "Testy, které krok drží",
+        implements: "Funkce v kódu",
+        pin: "Otisk zdroje",
+        origin: {
+          specification: "metodika",
+          code_constant: "kód",
+        },
+        originHelp: {
+          specification: "Pole metodiky v platnosti; s uloženými verzemi půjde upravit.",
+          code_constant: "Konstanta v kódu; mění se revidovanou změnou kódu.",
+        },
+        absent: "v této metodice není",
+        none: "žádná (null)",
+        yes: "ano",
+        no: "ne",
+        evidenceKind: {
+          register_rule: "pravidlo registru",
+          fixture: "fixtura",
+          legacy_port: "port z 18.6.6",
+          aia_decision: "rozhodnutí AIA",
+        },
+        formulaError: "Vzorec nejde vykreslit; zobrazuje se jeho zápis.",
+      },
       deepResearch: {
         adminNote: "Hodnoty navrhuje a schvaluje vlastník nebo správce; ostatní členové je vidí.",
         intro:
@@ -523,6 +556,7 @@ export const cs = {
           ai: "AI běh",
           prompts: "Systémové prompty",
           deep_research: "Deep Research",
+          methodology: "Metodika",
           access: "Přístup a schvalování",
           studies: "Studie a rozpočty",
           audit: "Audit",
@@ -580,6 +614,11 @@ export const cs = {
             title: "Deep Research",
             intro:
               "Hodnoty, podle kterých Deep Research běží, a kdo je schválil (ADR 0022). Každá změna je nová verze a platí až po schválení; běh si hodnoty zapíše při zařazení.",
+          },
+          methodology: {
+            title: "Metodika",
+            intro:
+              "Matematika a statistika AIA tak, jak běží: každý krok výpočtu, jeho vzorec, hodnoty, které čte, a odkud každá pochází (ADR 0023). Hodnoty se čtou přímo z kódu a z metodiky v platnosti, nic se sem neopisuje. Úpravy přijdou s uloženými verzemi metodiky.",
           },
           roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím a zakládá klienty. Správce k tomu spravuje členy, stav klientů a nastavení systému. API kontroluje oprávnění, nikdy role." },
           audit: { title: "Audit přístupu", intro: "Posledních 50 udělení, odebrání, odmítnutí a změn nastavení." },
