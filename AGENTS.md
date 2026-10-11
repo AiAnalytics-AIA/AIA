@@ -1918,3 +1918,28 @@ float falsely reports corruption. The sandbox approval tests caught this before 
 See `infrastructure/deep_research_settings_repository.py:246 @ db6db022` and
 `test_deep_research_sandbox_policy.py::test_sandbox_approval_is_audited_scoped_and_pinned
 @ db6db022`. Keep the seal check; normalize the value rather than weakening verification.
+
+
+## A citation check is not semantic approval
+
+A source describing Sociomapping's historical use in teams does not establish
+that it is unsuitable for service preferences. The live research test produced
+that unsupported inference even though every cited evidence id existed and its
+numbers passed checks. Preserve the sealed model draft for review; publish the
+accepted source claims with explicit interpretation limits.
+
+```python
+# WRONG: valid citations turn generated interpretation into verified prose.
+blocks.append(cited(check.summary, accepted_ids))
+
+# RIGHT: publish source claims; keep generated interpretation an unapproved draft.
+for accepted in bundle.accepted:
+    blocks.append(cited(accepted.evidence.claim, (accepted.evidence.evidence_id,)))
+```
+
+A typed period can also retain only the first year of a source's range. Keep the
+complete number and period in the accepted claim rather than reconstructing a
+separate indicator from partial metadata. Anchors:
+`application/contextual_report.py:62 @ b3f1a881`;
+`test_citation_valid_inapplicability_inference_is_not_published` and
+`test_partial_measure_period_does_not_replace_the_source_claims_full_range`.
