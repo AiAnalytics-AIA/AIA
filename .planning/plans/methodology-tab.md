@@ -7,7 +7,7 @@ chunks:
   - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[x] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
   - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
-  - "[ ] A5b. API: methodology version routes (after A3)"
+  - "[x] A5b. API: methodology version routes (after A3)"
   - "[x] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
@@ -287,6 +287,24 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - Write (`require_administer`): `POST /{module}/versions`, `POST /{module}/check` and
     `PUT /{module}/activation`.
   - The API never names a preset (`layer_check`). It asks the domain.
+- **A5b. Landed.** These routes are in `apps/api/src/aia_api/routers/methodology.py`.
+  - **`GET /{module}/versions`** returns what is in force (`origin: stored | code`), every stored
+    version (its whole spec, its replaced formulas and its digest), the activation log, and
+    `may_administer`.
+  - **`POST /{module}/check`** asks the domain's own `validate_version` and stores nothing.
+    - Any member may check.
+    - It returns every problem at once, plus `not_computed`: the replaced formulas a version may
+      store but not yet put in force.
+  - **`POST /{module}/versions`** (201) and **`PUT /{module}/activation`** write through
+    `MethodologyRepository`, which runs `require_administer`; a member gets 403
+    `insufficient_role`.
+  - **Refusals keep the repository's codes.**
+    - 404: `unknown_module`, `unknown_version`.
+    - 409: `concurrent_edit`, `formula_not_computed`, `version_missing`.
+    - Anything else is 422, with `details.problems` field by field.
+  - **The old `test_nothing_here_writes`** became
+    `test_the_only_writes_are_a_version_a_check_and_an_activation`.
+  - **Tests.** `apps/api/tests/test_methodology_api.py`, eight new tests.
 - **A5a + A6. Landed.**
   - **The route.** `apps/api/src/aia_api/routers/methodology.py` serves `GET /api/v1/methodology`
     and `/{module_id}?preset=`.
