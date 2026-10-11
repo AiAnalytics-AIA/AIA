@@ -153,6 +153,7 @@ function MappedView({ battery, map, methodId, fingerprint, facts }: { battery: B
   const area = useRef<HTMLDivElement>(null);
   const hud = useRef<HTMLDivElement>(null);
   const tools = useRef<HTMLDivElement>(null);
+  const caption = useRef<HTMLParagraphElement>(null);
   const view = useViewSize(area);
   const [obstacles, setObstacles] = useState<Rect[]>([]);
   const drag = useRef<{ x: number; y: number; camera: TerrainCamera } | null>(null);
@@ -166,13 +167,13 @@ function MappedView({ battery, map, methodId, fingerprint, facts }: { battery: B
   useLayoutEffect(() => {
     const box = area.current?.getBoundingClientRect();
     if (!box || box.width === 0) return;
-    const next = [hud.current, tools.current].flatMap((el) => {
+    const next = [hud.current, tools.current, caption.current].flatMap((el) => {
       const r = el?.getBoundingClientRect();
       if (!r || r.width === 0 || r.bottom <= box.top || r.top >= box.bottom) return [];
       return [{ x: r.left - box.left - 6, y: r.top - box.top - 6, w: r.width + 12, h: r.height + 12 }];
     });
     setObstacles((o) => (JSON.stringify(o) === JSON.stringify(next) ? o : next));
-  }, [view, mode, orbit, labelsOnly, showLinks]);
+  }, [view, mode, orbit, labelsOnly, showLinks, selected]);
 
   // Auto-rotation, while 3D is on and the reader asked for it (the design's slow orbit).
   useEffect(() => {
@@ -280,6 +281,13 @@ function MappedView({ battery, map, methodId, fingerprint, facts }: { battery: B
             <button type="button" className={pill(showLinks)} aria-pressed={showLinks} title={t("research.exec.objectMap.linksHelp")} onClick={() => { setShowLinks(!showLinks); cue("links"); }}>{t("research.exec.objectMap.links")}</button>
             <button type="button" className={pill(false)} title={t("research.exec.objectMap.replayHelp")} onClick={() => cue("open", "links")}>{t("research.exec.objectMap.replay")}</button>
           </div>
+          {/* Which relations the lines are: a reader who clicks another object sees the network change and why. */}
+          <p ref={caption} aria-live="polite" data-testid="object-map-links-caption"
+            className="pointer-events-none absolute bottom-3.5 left-3.5 max-w-[calc(100%-28px)] rounded-lg border border-white/[.12] bg-[rgba(20,23,28,0.72)] px-2.5 py-1.5 text-[11px] leading-[14px] text-[var(--viz-stage-muted)]">
+            {!showLinks ? t("research.exec.objectMap.linksHidden")
+              : chosen && shownLinks.length ? tv("research.exec.objectMap.linksFor", { label: chosen.label, count: shownLinks.length })
+              : chosen ? tv("research.exec.objectMap.linksNone", { label: chosen.label }) : null}
+          </p>
         </div>
         <Legend map={map} scale={rating} />
         {mode === "3d" ? (
@@ -339,7 +347,7 @@ function TopView({ battery, map, objects, frame, view, rise, pop, labels: labelO
   })), [layers, frame, view]);
   const at = new Map(objects.map((o) => [o.id, toS(o.x, o.y)]));
   const marked = { ...marks, shadow };
-  const placed = layoutLabels(objects, new Map([...at].map(([id, p]) => [id, { sx: p.sx, sy: p.sy - 8 }])), marked, view, obstacles, ratingScale);
+  const placed = layoutLabels(objects, at, marked, view, obstacles, ratingScale);
   const corner = toS(frame.cx - frame.half, frame.cy + frame.half);
   const side = 2 * frame.half * k;
   const rim = side * 0.02;
@@ -356,6 +364,7 @@ function TopView({ battery, map, objects, frame, view, rise, pop, labels: labelO
           return (
             <g key={p.band} opacity={show} data-band={p.band}>
               <path d={p.fill} fill="black" fillOpacity={0.3} transform="translate(1.6 2.2)" />
+              {p.band > 0 ? <path d={p.fill} fill="white" fillOpacity={0.14} transform="translate(-0.9 -1.1)" /> : null}
               <path d={p.fill} fill={TERRACE(p.band)} />
               {p.band > 0 ? <path d={p.rim} fill="none" stroke="white" strokeOpacity={0.38} strokeWidth={1} /> : null}
             </g>
@@ -571,6 +580,10 @@ async function saveSnapshot(area: HTMLElement | null, caption: string): Promise<
     copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     copy.setAttribute("width", String(width)); copy.setAttribute("height", String(height));
     copy.setAttribute("style", `font-family: ${token("--font-sans") || "sans-serif"}`);
+    // An SVG drawn as an image cannot reach the page's web fonts; embed the faces the labels
+    // use, so the snapshot sets the text exactly as the labels were sized.
+    const faces = await embeddedFaces();
+    if (faces) copy.insertAdjacentHTML("afterbegin", `<style>${faces}</style>`);
     const markup = resolveVars(new XMLSerializer().serializeToString(copy), token);
     const image = new Image();
     await new Promise<void>((done) => { image.onload = () => done(); image.onerror = () => done(); image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`; });
@@ -582,4 +595,26 @@ async function saveSnapshot(area: HTMLElement | null, caption: string): Promise<
   link.href = out.toDataURL("image/png");
   link.download = t("research.exec.objectMap.snapshotFile");
   link.click();
+}
+
+/** The page's IBM Plex Sans @font-face rules with their files inlined as data URLs. */
+async function embeddedFaces(): Promise<string> {
+  const rules: CSSFontFaceRule[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let list: CSSRuleList;
+    try { list = sheet.cssRules; } catch { continue; }
+    for (const rule of Array.from(list)) {
+      if (rule instanceof CSSFontFaceRule && rule.style.getPropertyValue("font-family").includes("IBM Plex Sans") && rule.style.getPropertyValue("font-style") !== "italic") rules.push(rule);
+    }
+  }
+  const css = await Promise.all(rules.map(async (rule) => {
+    const url = /url\(["']?([^"')]+)["']?\)/.exec(rule.style.getPropertyValue("src"))?.[1];
+    if (!url) return "";
+    try {
+      const blob = await (await fetch(url)).blob();
+      const data = await new Promise<string>((done) => { const r = new FileReader(); r.onload = () => done(String(r.result)); r.readAsDataURL(blob); });
+      return `@font-face{font-family:"IBM Plex Sans";font-weight:${rule.style.getPropertyValue("font-weight") || 400};src:url(${data}) format("woff2");}`;
+    } catch { return ""; }
+  }));
+  return css.join("");
 }

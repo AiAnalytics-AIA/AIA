@@ -100,10 +100,14 @@ export function terraceBand(height: number): number {
   return Math.min(TERRACE_BANDS - 1, Math.max(0, Math.floor(height * TERRACE_BANDS)));
 }
 
-/** The display elevation of a stored height: the top of its terrace, so a hill never sits on
- * the ground that means "bez dat". Presentation only. */
+/** How high the lowest terrace is drawn: a thin sheet, so a hill never sits on the ground that
+ * means "bez dat", yet the lowest band does not read as a slab (the approved design's base). */
+export const TERRACE_BASE = 0.03;
+
+/** The display elevation of a stored height: the top of its terrace, `TERRACE_BASE` plus a
+ * tenth per band above the lowest. Presentation only; labels print the stored number. */
 export function terraceLevel(height: number): number {
-  return (terraceBand(height) + 1) / TERRACE_BANDS;
+  return TERRACE_BASE + terraceBand(height) / TERRACE_BANDS;
 }
 
 /** A stored 0-1 height read on the battery's declared rating scale, when it declares one. */
@@ -390,15 +394,15 @@ export type LabelBox = { id: string; ax: number; ay: number; w: number; h: numbe
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 /**
- * Where each label goes on screen: above its anchor if that is free, else the nearest free
- * slot beside or below it, never over another label, a panel (`obstacles`) or another
- * object's pin, and inside `bounds`. Earlier items win (put the selected object first). Only
+ * Where each label goes on screen: just above its pin if that is free, else the nearest free
+ * slot beside or below it, never over another label, a panel (`obstacles`) or any pin --
+ * its own included -- and inside `bounds`. Earlier items win (put the selected object first). Only
  * the annotation moves: the anchors -- the stored positions on screen -- are inputs and are
  * returned untouched by construction. When nothing is free the label keeps its first choice.
  */
-export function placeLabels(items: LabelBox[], obstacles: Rect[], bounds: ViewSize, gap = 6): Map<string, Rect> {
+export function placeLabels(items: LabelBox[], obstacles: Rect[], bounds: ViewSize, gap = 4): Map<string, Rect> {
   const margin = 4;
-  const pin = 7;
+  const pin = 9;
   const taken: Rect[] = obstacles.filter((o) => o.w > 0 && o.h > 0);
   const pins = new Map(items.map((it) => [it.id, { x: it.ax - pin, y: it.ay - pin, w: 2 * pin, h: 2 * pin }]));
   const clamp = (r: Rect): Rect => ({
@@ -409,15 +413,19 @@ export function placeLabels(items: LabelBox[], obstacles: Rect[], bounds: ViewSi
   const out = new Map<string, Rect>();
   for (const it of items) {
     const ax = it.ax - it.w / 2;
-    const ay = it.ay - it.h - gap;
-    const blocked = (r: Rect) => taken.some((t) => overlaps(r, t)) || [...pins].some(([id, p]) => id !== it.id && overlaps(r, p));
+    const ay = it.ay - pin - gap - it.h;
+    const blocked = (r: Rect) => taken.some((t) => overlaps(r, t)) || [...pins.values()].some((p) => overlaps(r, p));
     let best: Rect | null = null;
     let distance = Infinity;
-    for (const dx of [0, -(it.w / 2 + 16), it.w / 2 + 16]) {
+    for (const dx of [0, -it.w / 4, it.w / 4, -(it.w / 2 - 12), it.w / 2 - 12, -(it.w / 2 + 16), it.w / 2 + 16]) {
       for (let k = -6; k <= 6; k++) {
         const r = clamp({ x: ax + dx, y: ay + k * (it.h + 4), w: it.w, h: it.h });
         if (blocked(r)) continue;
-        const d = Math.hypot(r.x - ax, (r.y - ay) * 1.2);
+        // How far the label is from its pin as the eye reads it: the gap from the pin to the
+        // nearest point of the label, a little dearer below the pin than above it.
+        const gx = Math.max(r.x - it.ax, 0, it.ax - (r.x + r.w));
+        const gy = Math.max(r.y - it.ay, 0, it.ay - (r.y + r.h));
+        const d = Math.hypot(gx, gy) + (r.y > it.ay ? 6 : 0) + Math.abs(r.x + r.w / 2 - it.ax) * 0.02;
         if (d < distance) { distance = d; best = r; }
       }
     }

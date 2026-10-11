@@ -210,7 +210,7 @@ export function terraceLayers(map: ObjectMapArtifact): TerraceLayer[] {
         }
       }
     }
-    layers.push({ band, base: band / TERRACE_BANDS, top: terraceLevel(band / TERRACE_BANDS), pieces, edges });
+    layers.push({ band, base: band === 0 ? 0 : terraceLevel((band - 1) / TERRACE_BANDS), top: terraceLevel(band / TERRACE_BANDS), pieces, edges });
   }
   return layers;
 }

@@ -70,7 +70,7 @@ export function labelLines(o: MapObject, active: boolean, labelsOnly: boolean, s
 export function layoutLabels(
   objects: MapObject[], anchors: Map<string, { sx: number; sy: number }>, marks: MarkState,
   view: ViewSize, obstacles: Rect[], scale?: [number, number],
-): Map<string, { rect: Rect; lines: string[] }> {
+): Map<string, { rect: Rect; lines: string[]; anchor: { sx: number; sy: number } }> {
   const rank = (id: string) => (id === marks.selected ? 0 : id === marks.partner ? 1 : id === marks.hovered ? 2 : 3);
   const order = [...objects].sort((a, b) => rank(a.id) - rank(b.id) || anchors.get(a.id)!.sy - anchors.get(b.id)!.sy || a.id.localeCompare(b.id));
   const lines = new Map(order.map((o) => [o.id, labelLines(o, rank(o.id) < 3, marks.labelsOnly, scale)]));
@@ -85,7 +85,7 @@ export function layoutLabels(
     return { id: o.id, ax: a.sx, ay: a.sy, w, h: PILL.line + (l.length - 1) * PILL.metaLine + 2 * PILL.padY };
   });
   const placed = placeLabels(boxes, obstacles, view);
-  return new Map(order.map((o) => [o.id, { rect: placed.get(o.id)!, lines: lines.get(o.id)! }]));
+  return new Map(order.map((o) => [o.id, { rect: placed.get(o.id)!, lines: lines.get(o.id)!, anchor: anchors.get(o.id)! }]));
 }
 
 /** The labels' soft drop shadow (the approved design's 0 6px 18px). */
@@ -101,15 +101,16 @@ export function LabelShadow({ id }: { id: string }) {
 
 /** One object's label: a stage pill (yellow when selected, blue when compared, light when
  * hovered), or names-only text on a stage halo. */
-export function MapLabel({ o, rect, lines, marks }: { o: MapObject; rect: Rect; lines: string[]; marks: MarkState }) {
+export function MapLabel({ o, rect, lines, anchor, marks }: { o: MapObject; rect: Rect; lines: string[]; anchor?: { sx: number; sy: number }; marks: MarkState }) {
   const selected = o.id === marks.selected;
   const partner = o.id === marks.partner;
   const hovered = o.id === marks.hovered;
+  const leader = anchor ? <Leader anchor={anchor} rect={rect} strong={selected || partner} /> : null;
   if (marks.labelsOnly) {
     return (
-      <text x={rect.x + PLAIN.padX} y={rect.y + PLAIN.padY + PLAIN.font} fontSize={PLAIN.font} fontWeight={selected ? 700 : 500}
+      <>{leader}<text x={rect.x + PLAIN.padX} y={rect.y + PLAIN.padY + PLAIN.font} fontSize={PLAIN.font} fontWeight={selected ? 700 : 500}
         fill={selected ? "var(--viz-map-select)" : partner ? "var(--viz-map-partner)" : "var(--viz-stage-ink)"}
-        paintOrder="stroke" stroke="var(--viz-stage)" strokeWidth={3.5} strokeLinejoin="round">{lines[0]}</text>
+        paintOrder="stroke" stroke="var(--viz-stage)" strokeWidth={3.5} strokeLinejoin="round">{lines[0]}</text></>
     );
   }
   const lit = selected || partner || hovered;
@@ -117,12 +118,22 @@ export function MapLabel({ o, rect, lines, marks }: { o: MapObject; rect: Rect; 
   const ink = lit ? "var(--viz-stage)" : "var(--viz-stage-ink)";
   return (
     <g>
+      {leader}
       <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6} fill={fill} fillOpacity={lit ? 1 : 0.78}
         stroke="white" strokeOpacity={lit ? 0 : 0.14} filter={marks.shadow ? `url(#${marks.shadow})` : undefined} />
       <text x={rect.x + PILL.padX} y={rect.y + PILL.padY + PILL.font} fontSize={PILL.font} fontWeight={600} fill={ink}>{lines[0]}</text>
       {lines[1] ? <text x={rect.x + PILL.padX} y={rect.y + PILL.padY + PILL.line + PILL.meta} fontSize={PILL.meta} fill={ink} style={{ fontVariantNumeric: "tabular-nums" }}>{lines[1]}</text> : null}
     </g>
   );
+}
+
+/** The thin line from a pin to its label when collisions moved the label away from it, so
+ * every label still visibly belongs to its object. Nothing when the label sits at the pin. */
+function Leader({ anchor, rect, strong }: { anchor: { sx: number; sy: number }; rect: Rect; strong: boolean }) {
+  const x = Math.max(rect.x, Math.min(rect.x + rect.w, anchor.sx));
+  const y = Math.max(rect.y, Math.min(rect.y + rect.h, anchor.sy));
+  if (Math.hypot(x - anchor.sx, y - anchor.sy) <= 12) return null;
+  return <line data-leader x1={anchor.sx} y1={anchor.sy} x2={x} y2={y} stroke="var(--viz-stage-ink)" strokeOpacity={strong ? 0.85 : 0.5} strokeWidth={1.2} />;
 }
 
 /** One object's pin head: a lit sphere for a PRIMARY object, a diamond for a SECONDARY one;

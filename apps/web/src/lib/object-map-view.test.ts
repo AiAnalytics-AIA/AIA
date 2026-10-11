@@ -72,9 +72,10 @@ describe("the objects", () => {
     expect([0, 0.0999, 0.1, 0.35, 0.5, 0.7, 0.8999, 0.9, 1].map(terraceBand)).toEqual([0, 0, 1, 3, 5, 7, 8, 9, 9]);
     // Every k/10 lands on its own band despite floating point (0.7 * 10 = 7.000000000000001).
     for (let k = 0; k < 10; k++) expect(terraceBand(k / 10)).toBe(k);
-    // Never below the ground: the lowest terrace is drawn above zero, the top at one.
-    expect(terraceLevel(0)).toBe(0.1);
-    expect(terraceLevel(1)).toBe(1);
+    // Never on the ground: the lowest terrace is a thin sheet above it; a tenth per band above.
+    expect(terraceLevel(0)).toBe(0.03);
+    expect(terraceLevel(1)).toBeCloseTo(0.93);
+    expect(terraceLevel(0.55)).toBeGreaterThan(terraceLevel(0.45));
   });
 
   it("does not rescale the bands to one map's range", () => {
@@ -281,13 +282,22 @@ describe("label placement on screen", () => {
 
   it("keeps clear of a panel and of other pins, and puts a free label right above its anchor", () => {
     const free = placeLabels([{ id: "a", ax: 200, ay: 150, w: 60, h: 20 }], [], view).get("a")!;
-    expect(free).toEqual({ x: 170, y: 124, w: 60, h: 20 });
+    expect(free).toEqual({ x: 170, y: 117, w: 60, h: 20 }); // clear of the pin's 9 px, 4 px gap
     const panel = { x: 150, y: 100, w: 120, h: 50 };
     const moved = placeLabels([{ id: "a", ax: 200, ay: 150, w: 60, h: 20 }], [panel], view).get("a")!;
     expect(moved.x < panel.x + panel.w && moved.x + moved.w > panel.x && moved.y < panel.y + panel.h && moved.y + moved.h > panel.y).toBe(false);
     const pins = placeLabels([{ id: "a", ax: 200, ay: 150, w: 60, h: 20 }, { id: "b", ax: 200, ay: 130, w: 60, h: 20 }], [], view);
     const a = pins.get("a")!;
-    expect(a.x < 207 && a.x + a.w > 193 && a.y < 137 && a.y + a.h > 123).toBe(false);
+    expect(a.x < 209 && a.x + a.w > 191 && a.y < 139 && a.y + a.h > 121).toBe(false);
+  });
+
+  it("never covers its own pin, even in a crowd", () => {
+    const items = Array.from({ length: 12 }, (_, k) => ({ id: `o${k}`, ax: 180 + (k % 4) * 14, ay: 120 + Math.floor(k / 4) * 14, w: 70, h: 20 }));
+    const placed = placeLabels(items, [], view);
+    for (const it of items) {
+      const r = placed.get(it.id)!;
+      expect(r.x < it.ax + 9 && r.x + r.w > it.ax - 9 && r.y < it.ay + 9 && r.y + r.h > it.ay - 9).toBe(false);
+    }
   });
 
   it("is deterministic and sizes a label from its longest line", () => {

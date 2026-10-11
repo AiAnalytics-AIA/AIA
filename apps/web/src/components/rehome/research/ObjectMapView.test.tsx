@@ -64,6 +64,22 @@ describe("ObjectMapView", () => {
     expect(drawnPairs("object-map-links")).toEqual(linksOf("deneb"));
   });
 
+  it("says whose relations the lines are, and follows a click to another object", () => {
+    render(<ObjectMapView battery={battery} dataOrigin={null} />);
+    const caption = () => screen.getByTestId("object-map-links-caption").textContent;
+    expect(caption()).toBe(`Čáry: vztahy objektu Altair (${linksOf("altair").length}) · klikněte na jiný objekt`);
+    fireEvent.click(screen.getByTestId("object-map-point-deneb"));
+    expect(caption()).toBe(`Čáry: vztahy objektu Deneb (${linksOf("deneb").length}) · klikněte na jiný objekt`);
+    expect(screen.getByTestId("object-map-links-caption").getAttribute("aria-live")).toBe("polite");
+    fireEvent.click(screen.getByRole("button", { name: "Vztahy" }));
+    expect(caption()).toBe("Čáry vztahů jsou skryté");
+    const lonely = variant((m) => { for (let j = 0; j < m.object_ids.length; j++) if (j !== 0) { m.relations.status[0][j] = m.relations.status[j][0] = "weak"; } });
+    cleanup();
+    render(<ObjectMapView battery={lonely} dataOrigin={null} />);
+    expect(caption()).toContain("Altair: žádný vztah nesplňuje pravidla pro čáru");
+    expect(drawnPairs("object-map-links")).toEqual([]);
+  });
+
   it("never draws a WEAK, UNKNOWN, undefined or below-floor pair, and never more than mapLinks", () => {
     const changed = variant((m) => {
       m.relations.status[0][1] = m.relations.status[1][0] = "unknown"; // r kept

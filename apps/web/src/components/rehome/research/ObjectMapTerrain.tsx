@@ -37,7 +37,7 @@ export function ObjectMapTerrain({ map, objects, camera, shown = camera, frame, 
   });
   const at = new Map(pins.map((p) => [p.object.id, p]));
   const marked = { ...marks, shadow };
-  const placed = layoutLabels(objects, new Map(pins.map((p) => [p.object.id, { sx: p.head.sx, sy: p.head.sy - 4 }])), marked, view, obstacles, ratingScale);
+  const placed = layoutLabels(objects, new Map(pins.map((p) => [p.object.id, p.head])), marked, view, obstacles, ratingScale);
 
   useEffect(() => {
     const node = canvas.current;

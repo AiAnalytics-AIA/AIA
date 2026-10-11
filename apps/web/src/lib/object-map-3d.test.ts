@@ -32,7 +32,8 @@ describe("frozen terrain geometry", () => {
       height: [[0.2, null], [0.4, 0.6]], governing: [[0, null], [0, 0]] };
     expect(terrainMesh(source)).toHaveLength(1);
     expect(terrainMesh(source)[0].vertices.map((v) => v.height)).toEqual([0.2, 0.6, 0.4]);
-    expect(terrainMesh(source)[0].vertices.map((v) => v.elevation)).toEqual([0.3, 0.7, 0.5]);
+    expect(terrainMesh(source)[0].vertices.map((v) => v.elevation)).toEqual([0.2, 0.6, 0.4].map((h) => terraceLevel(h)));
+    expect(terraceLevel(0.6)).toBeCloseTo(0.63);
     source.terrain.height = [[null, null], [null, null]];
     expect(terrainMesh(source)).toEqual([]);
     source.terrain = { status: "not_computed", reason: "unavailable" };
@@ -123,8 +124,8 @@ describe("terraces cut from the stored mesh", () => {
   it("makes ten layers, each drawn at its band's top and rising from the one below", () => {
     expect(layers.map((l) => l.band)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     for (const l of layers) {
-      expect(l.base).toBeCloseTo(l.band / 10);
-      expect(l.top).toBeCloseTo((l.band + 1) / 10);
+      expect(l.top).toBeCloseTo(0.03 + l.band / 10);
+      expect(l.base).toBeCloseTo(l.band === 0 ? 0 : 0.03 + (l.band - 1) / 10);
     }
   });
 
