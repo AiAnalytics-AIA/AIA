@@ -503,7 +503,7 @@ function reasonFor(state: ActivityState, activity: NativeActivity): string {
 function Codes({ ids, title }: { ids: string[]; title?: (id: string) => string }) {
   return (
     <span className="flex flex-wrap gap-1">
-      {ids.map((id) => <code key={id} title={title?.(id)} className="rounded-sm bg-surface-sunken px-1.5 text-xs">{id}</code>)}
+      {ids.map((id) => <code key={id} title={title?.(id)} className="min-w-0 break-all rounded-sm bg-surface-sunken px-1.5 text-xs">{id}</code>)}
     </span>
   );
 }
@@ -529,14 +529,14 @@ function ActivityCard({ runtime, activity, switches }: { runtime: NativeRuntime;
   const state = activityState(runtime, activity, switches);
   const A = `${R}.activity.${activity.key}`;
   return (
-    <article data-activity={activity.key} data-state={state.kind} className="flex flex-col gap-2 rounded-sm border border-border p-3">
+    <article data-activity={activity.key} data-state={state.kind} className="flex min-w-0 flex-col gap-2 rounded-sm border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
+        <h3 className="min-w-0 break-words text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip>
       </div>
       <p className="text-sm text-ink-muted">{t(`${A}.text`)}</p>
-      <p data-reason className="text-sm text-ink">{reasonFor(state, activity)}</p>
-      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+      <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
+      <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
         {activity.actions.length ? (
           <>
             <dt className="text-ink-faint">{t(`${R}.actions`)}</dt>

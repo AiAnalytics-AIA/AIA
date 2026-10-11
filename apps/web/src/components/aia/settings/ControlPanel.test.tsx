@@ -137,6 +137,8 @@ const called = (method: string, path: string) => calls.filter((c) => c.method ==
 // a read an earlier test left (CLAUDE.md §7; OI-76 is the same trap in the research tests).
 beforeEach(() => {
   resetConfigCache();
+  // Each example opens Settings afresh; another example's selected hash is not its input.
+  window.history.replaceState(null, "", "/app/settings");
   replace.mockReset();
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
 });
@@ -264,6 +266,21 @@ const OVERCLAIM = /připojen|funkční spojení|spojení funguje|(?<!ne)ověřen
 const LOGIN = /přihlaste se|zadejte (api )?klíč|api klíč se zadává|subscription login|ANTHROPIC_API_KEY/i;
 
 describe("what powers AIA", () => {
+  it("names analysis activity and its disabled state in human-readable language", async () => {
+    const doc = DOC();
+    doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
+      key: "research_analysis", step_kind: "research_analysis", capabilities: ["REPORT_WRITING"],
+      versions: [], switches: ["AIA_AI_RUNTIME_ENABLED", "AIA_AI_ANALYSIS_ENABLED"], actions: [],
+    }] };
+    api({ "GET /api/v1/settings": () => doc, "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_ANALYSIS_ENABLED: false } }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("research_analysis")).toBeTruthy());
+    const analysis = card("research_analysis");
+    expect(within(analysis).getByRole("heading", { name: "Analýza výsledků výzkumu" })).toBeTruthy();
+    expect(within(analysis).getByText(/Dokončená data a mapy zůstanou k dispozici/)).toBeTruthy();
+    expect(analysis.textContent).not.toContain("aia.settings.panel.runtime.activity");
+  });
+
   it("fieldwork on and design off: Bedrock, one switched on in configuration, one off by its own switch", async () => {
     api();
     render(<ControlPanel />);

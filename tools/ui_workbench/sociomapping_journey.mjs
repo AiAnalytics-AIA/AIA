@@ -119,7 +119,9 @@ await shot("1-progress");
 
 // 3. Results: the experimental card, its map, interactions, details, fit, limitations.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
-const card = page.getByText("Sociomapping · experimentální metoda AIA");
+await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
+const cardView = page.locator("#res-sociomapping");
+const card = cardView.getByText("Sociomapping · experimentální metoda AIA");
 await card.first().waitFor({ timeout: 60000 }).catch(() => fail("no experimental Sociomapping card on Results"));
 await page.getByText("nejde o ověřenou rekonstrukci SOMECS").first().waitFor({ timeout: 30000 }).catch(() => fail("the card does not say the method is experimental"));
 await page.getByText(/Fiktivní data \(SYNTHETIC_FIXTURE\)/).first().waitFor({ timeout: 30000 }).catch(() => fail("the card does not say the data are fictional"));
@@ -136,18 +138,18 @@ await page.locator("section", { has: map }).last().screenshot({ path: join(OUT, 
 
 const where = async () => points.first().locator("circle").getAttribute("cx");
 const before = await where();
-await page.getByRole("button", { name: "Otočit vpravo" }).click();
-await page.getByRole("button", { name: "Otočit vpravo" }).click();
+await cardView.getByRole("button", { name: "Otočit vpravo" }).click();
+await cardView.getByRole("button", { name: "Otočit vpravo" }).click();
 if ((await where()) === before) fail("rotation did not move the points");
 const box = await map.boundingBox();
 await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 await page.mouse.down();
 await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 - 40, { steps: 6 });
 await page.mouse.up();
-await page.getByRole("button", { name: "Přiblížit" }).click();
+await cardView.getByRole("button", { name: "Přiblížit" }).click();
 ok("Results: rotation by button and by drag, zoom");
 await page.locator("section", { has: map }).last().screenshot({ path: join(OUT, "4-map-rotated-zoomed.png") });
-await page.getByRole("button", { name: "Pohled shora" }).click();
+await cardView.getByRole("button", { name: "Pohled shora" }).click();
 if ((await points.first().locator("line").count()) !== 0) fail("the top view still draws height stems");
 ok("Results: top view");
 await page.locator("section", { has: map }).last().screenshot({ path: join(OUT, "5-map-top.png") });

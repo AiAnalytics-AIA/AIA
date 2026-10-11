@@ -70,7 +70,7 @@ export function DeepResearchPanel() {
   return (
     <section className="rounded-md border border-border bg-surface-raised p-5" aria-labelledby="deep-research-title">
       <h2 id="deep-research-title" className="text-base font-semibold">Veřejný hloubkový výzkum</h2>
-      <p className="mt-1 text-sm text-ink-muted">Vyhledávání ve veřejné české Wikipedii. Nálezy jsou podklady k interní revizi; nejde o hotový výstup pro klienta.</p>
+      <p className="mt-1 text-sm text-ink-muted">Vyhledávání veřejných zdrojů podle schváleného nastavení rešerše. Nálezy jsou podklady k interní revizi; nejde o hotový výstup pro klienta.</p>
       {frame.canEdit ? <AiButton className="mt-3" small disabled={busy} onClick={() => void start()}>{busy ? "Spouštím…" : "Spustit veřejný výzkum"}</AiButton> : null}
       {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       {runs.length ? (

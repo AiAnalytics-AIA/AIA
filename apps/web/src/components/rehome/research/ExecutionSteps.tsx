@@ -58,6 +58,7 @@ import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
+import { ResultsWorkspace } from "./ResultsWorkspace";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -512,7 +513,11 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
         if (current && shouldPoll(current)) timer = setTimeout(read, POLL_MS);
       } catch (e) {
         if (!live) return;
-        if (e instanceof ApiError && e.status === 404) return setRun(null);
+        // 404 is "no run here": a retry that lands on it clears the earlier failure.
+        if (e instanceof ApiError && e.status === 404) {
+          setError(null);
+          return setRun(null);
+        }
         setError(message(e));
       }
     };
@@ -612,6 +617,7 @@ export function ProgressStep() {
     [setRun],
   );
 
+  if (run === undefined && error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
   const parked = parkedForRuntime(run);
@@ -797,26 +803,9 @@ function IntervalBar({ bar }: { bar: NonNullable<ResultTable["rows"][number]["ba
   );
 }
 
-/** Jump chips over the results that this run has. */
-function ResultChips({ items }: { items: [string, string][] }) {
-  return (
-    <nav aria-label={t("research.exec.results.jumpLabel")} className="flex flex-wrap gap-1.5">
-      {items.map(([id, label]) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" })}
-          className="inline-flex items-center whitespace-nowrap rounded-pill border border-border bg-surface-raised px-3 py-1 text-[13px] leading-5 hover:border-border-strong hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-        >
-          {label}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
+/** Separate views of the artifacts belonging to the selected frozen run. */
 export function ResultsStep() {
-  const [run] = useRun();
+  const [run, refresh, , error] = useRun();
   const frame = useFrame();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
@@ -825,6 +814,7 @@ export function ResultsStep() {
     ? <InternalReport key={run.run_id} run={run} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
+  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
     return (
@@ -839,24 +829,17 @@ export function ResultsStep() {
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
-  const chips: [string, string][] = [
-    ["res-aggregate", t("research.exec.results.aggregate")],
-    ...(showMap ? ([["res-sociomap", t("research.exec.results.sociomap")]] as [string, string][]) : []),
-    ...(showMapping ? ([["res-sociomapping", t("research.exec.results.sociomapping")]] as [string, string][]) : []),
-    ...(showAnalysis ? ([["res-analysis", t("research.exec.results.jumpAnalysis")]] as [string, string][]) : []),
-    ["res-report", t("research.exec.results.jumpReport")],
-    ...(showAnalysis ? ([["res-literature", "Literární rešerše"]] as [string, string][]) : []),
-  ];
-  return (
-    <div className="flex max-w-4xl flex-col gap-4">
-      <ResultChips items={chips} />
-      {isSynthetic(run) ? <SyntheticBanner /> : null}
-      <PopulationNote run={run} />
+  return <ResultsWorkspace run={run} progressHref={`${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}`}
+    notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
+    panels={[
+      { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
         {aggregate?.state === "ready" ? <AggregateView artifact={aggregate.value} run={run} /> : null}
         {aggregate?.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{aggregate.message}</p> : null}
         {aggregate?.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
       </Card>
+      </> },
+      ...(showMap || showMapping ? [{ id: "maps", label: "Sociomapy", description: "Prostorové vztahy a 3D pohledy nad uloženými výsledky. Výška, vzdálenost a barva mají odlišný význam; metodická omezení jsou uvedena u každé mapy.", content: <>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
@@ -874,11 +857,13 @@ export function ResultsStep() {
           {sociomapping.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomapping.message}</p> : null}
         </Card>
       ) : null}
-      {showAnalysis ? <div id="res-analysis" className="scroll-mt-60"><AnalysisResults key={run.run_id} run={run} /></div> : null}
-      <div id="res-report" className="scroll-mt-60">{report}</div>
-      {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
-    </div>
-  );
+      </> }] : []),
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
+      { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
+        <div id="res-report">{report}</div>
+        {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+      </> },
+    ]} />;
 }
 
 function InternalReport({ run }: { run: ResearchRun }) {

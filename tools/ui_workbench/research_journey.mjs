@@ -68,7 +68,8 @@ if (!binding) fail(`no workbench fixture "${FIXTURE}" (run make ui-fixtures)`);
 const stage = (name) => `${FACADE}/app/clients/${encodeURIComponent(binding.client)}/research/${encodeURIComponent(binding.study)}/${name}`;
 
 mkdirSync(OUT, { recursive: true });
-const { chromium } = await loadPlaywright();
+const playwright = await loadPlaywright();
+const chromium = playwright.chromium ?? playwright.default?.chromium;
 const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
 const session = JSON.stringify({ idToken: OPERATOR, refreshToken: "", expiresAt: 4102444800000, email: OPERATOR, subject: OPERATOR });
@@ -113,7 +114,9 @@ await shot("2-progress");
 // 3. Results: labelled fictional, an aggregate table, the Sociomap internal only.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Results do not say the data are fictional"));
+await page.getByRole("tab", { name: "Data", exact: true }).click();
 await page.locator("table").first().waitFor({ timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
+await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
 await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap is not labelled INTERNAL_ONLY"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");

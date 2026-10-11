@@ -121,6 +121,21 @@ describe("Klienti", () => {
     expect(screen.queryByText(/Dotazník|Audience|Dimenze|Agent/)).toBeNull();
   });
 
+  it("finds clients by their name or recent study and distinguishes no match from an empty organization", async () => {
+    api();
+    render(<ClientDirectory />);
+    await screen.findByText("Klient A");
+    const search = screen.getByRole("searchbox", { name: "Hledat klienta nebo studii" });
+    fireEvent.change(search, { target: { value: "značky" } });
+    expect(screen.getByText("Klient A")).toBeTruthy();
+    fireEvent.change(search, { target: { value: "not-found" } });
+    expect(screen.queryByText("Klient A")).toBeNull();
+    expect(screen.getByText(/Žádný klient ani jeho nedávná studie/)).toBeTruthy();
+    fireEvent.change(search, { target: { value: "KLIENT A" } });
+    expect(screen.getByText("Klient A")).toBeTruthy();
+    expect(called("POST", "/api/v1/workspace/clients")).toHaveLength(0);
+  });
+
   it("lets an administrator start a client and opens it", async () => {
     api();
     render(<ClientDirectory />);
