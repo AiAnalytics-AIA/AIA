@@ -6,7 +6,8 @@ chunks:
   - "[x] P3. A run records its population binding at creation, and population-consuming steps say so"
   - "[ ] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
-  - "[ ] P6. Carry 18.6.6's v17 population into AIA on develop: its three versions, companions and field dictionary, STATIC v17_1_2 and LIVE v17_4_0"
+  - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
+  - "[ ] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
   - "[ ] P7. Show the population's characteristics on Společenská inteligence: weights, blocks, each field's evidence status and permitted uses, no row"
 ---
 # Population operations: the core's import and promotion reach a deployment
@@ -156,6 +157,40 @@ the worker; a runbook (`population_ops import` x3 with `--companion`, `establish
 `v17_1_2` and LIVE `v17_4_0`) run by a named operator. Importing is not blocked by OI-61 (no
 model sees the panel), but it is the data owner's act on the develop host: the code and runbook
 land in a PR, the run is the owner's.
+
+**P6, 2026-10-11** (`feature/population-develop-carry-over`). What the host needs, in code;
+the import itself is P6b, the data owner's.
+`deploy/develop/population/v17.files` lists the 19 files by SHA256, size, origin and path:
+three panels, the dictionary and 15 companions. `apps/executors/tests/
+test_population_carry_over.py` holds that list equal to `CZ_SYNTHETIC_V17` (every known
+version, the dictionary hash, every companion), to `data-manifest.json` for the 15 "bucket"
+files, and to the frozen unit's bytes for the four "unit" files. Those four
+(`CORE_JOINT_STATUS.json`, `PERSONA_VALUE_LABELS_v17.json`, `BUILTIN_SUBPANELS_v17.json`,
+`SPECIAL_PANEL_REGISTRY_v17.json`) are companions the contract requires but the data bundle
+does not carry. They are configuration in Git (`legacy/npc-panel-18.6.6/app/`), and the deploy
+workflow copies them into the bundle beside the list.
+
+`bin/sync-population.sh` (by hand) fetches the bucket files from
+`AIA_POPULATION_SOURCE_PREFIX` and copies the unit files into a staging directory. It refuses
+any size or hash that differs, and only then swaps the directory in, read-only, at
+`AIA_POPULATION_DIR/v17`. It reads a key of its own, never the reference unit's
+`AIA_LEGACY_DATA_PREFIX`, so the product stack still reads no `AIA_LEGACY_*` setting
+(ADR 0018 decision 5).
+
+Compose gives the worker alone `AIA_POPULATION_OPERATORS` (SSM) and
+`AIA_POPULATION_ASSET_ROOT=/srv/population/v17` over a read-only mount. `bin/population.sh`
+runs `population_ops` in a one-off worker container. `population_ops import` and `attach`
+gain `--all-companions`: every companion the contract declares, at its asset id under the
+root, in place of fifteen `--companion` pairs.
+
+Measured: parsing a fictional panel of the real shape (18,766 x 400, 5.4 MB gzip) took
+3.1 s and peaked at about 430 MB RSS, on a 4 GB host. Not measured: an import of the real
+files, which this session cannot reach. A `3` from that import (the `v17_1_2` weight totals
+were never measured by the reference, `czech.py` docstring) is a finding for this plan, not a
+reason to loosen the contract.
+
+Tests: `test_population_carry_over.py` (15) and `test_population_ops.py` (5 new,
+`--all-companions`).
 
 **P7, what "characteristics" are.** What a researcher should see without any row: the four
 weights and their meaning, the field blocks (provenance, population anchor, core, modelled

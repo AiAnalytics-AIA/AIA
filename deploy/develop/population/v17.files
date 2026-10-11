@@ -1,0 +1,33 @@
+# The files of 18.6.6's v17 population that AIA imports (population-operations P6).
+#
+#   <sha256> <bytes> <origin> <path>
+#
+# origin "bucket": the unit's licence-bound data bundle in the EU ops bucket, at
+#   s3://$AIA_OPS_BUCKET/$AIA_LEGACY_DATA_PREFIX/<path> (data-manifest.json lists it).
+# origin "unit": a configuration file of the frozen unit, in Git at
+#   legacy/npc-panel-18.6.6/app/<path>, shipped beside this file in the deploy bundle.
+#
+# Every file lands under its base name in one flat directory, which is what
+# `population_ops import` names with --panel, --dictionary and --companion.
+# bin/sync-population.sh refuses a file whose hash or size differs; the import then
+# judges every byte again against the Czech contract (aia_core.domain.population.czech),
+# and apps/executors/tests/test_population_carry_over.py keeps this list equal to it.
+5300c1aeeef4ead1deb07f183d87040e6031ab1273e816dd057ad3ddd6464105 7318890 bucket audit_reference/FINALNI_KOMPLETNI_PANEL_v17_0_BASE.csv.gz
+d6a9ef120b81982e195b360fbdb9539fd70b7845a296918a12622502f2400387 7324528 bucket FINALNI_KOMPLETNI_PANEL_v17_1_2.csv.gz
+864f8dbcd101e4be1b2a006ccebe4196a85f9bfcbf1a474af762b8135cc779ce 7324827 bucket FINALNI_KOMPLETNI_PANEL_v17_4_0.csv.gz
+4f2defebc79a4bbf3caab8affa9e76ea1eae087a806c2d6252c2e79a3b58273c 83829 bucket FIELD_DICTIONARY_v17_1.csv
+687d52da3a9ad447a67cec53bfa1a55e3cb04e6cc7eb6aa1e31d11de03c9d862 123496 bucket DIMENSION_SCORECARD_v17_1.csv
+75e0acf7cabae4d13dbc9177d9546ca6b0eecb4a9e6a5ac2780ba19970a590d8 20237 bucket PERSONA_SIGNAL_CATALOG_v17.csv
+42ce6b3d73425e23c292281c436f4255a80299097fc1fc7d2a19773b05e11aed 958710 bucket RESPONDENT_AUDIT_v17_1.csv
+bb1d49ce477892b6df4a976ed9a92dffb07301dc8b43babecc426691038ed5dd 2175 unit CORE_JOINT_STATUS.json
+3208a2459133005cb48bcbd14a49cb612326415628eecbf4d9ed3c88b6228ed8 79472 bucket DATA_PROVENANCE_REGISTRY_v17.csv
+62e959077ba77683da7161fac0f8de856fc9934400df03fe0f79f992da5187ec 338455 bucket FINAL_SOURCE_CATALOG_v17.csv
+c3e58952f8be4b0bb81525b40bd61d585201d9f6a294b7ed6f6e853e8a9fd041 3684 bucket OUT_OF_SAMPLE_VALIDATION_v17_1.csv
+11fdfce2c003feb980924824b260118c70b1d854b956e971a40cec39f44090e7 92534 bucket DONOR_COVERAGE_MATRIX_v17_1.csv
+1b0d9cea2f7a0962fad7d2f1ffe8de67f0a5cce58eace746c7faf20a30d4a7a9 19832 bucket CALIBRATION_REGISTRY.csv
+de5c2ec6c5020fd9fa1fd1c4da00d24d365a9bc44d973f81ca53d6562c9e370e 3101 bucket DOMAIN_EVIDENCE_COVERAGE.csv
+3daa69ff1f22bc01ddf8c8c98e621d4800def9d7c848a1952d9a04f9bd20c35f 165453 bucket CORRELATION_MATRIX_QC_v17_1.csv
+9bc4866fbad7d2dede416a8053377c242de1e6c9589bda3e96fa777e8ffc29f5 36956 unit PERSONA_VALUE_LABELS_v17.json
+bcc0cead3fe4d06c0451c3e322802ec1d6bda114e333cec79deb22db1bde21a4 11415 unit BUILTIN_SUBPANELS_v17.json
+6dd240f585138deab609545b69b8a6241bd6dfd60e125f6592c2f585cc47b000 10477 unit SPECIAL_PANEL_REGISTRY_v17.json
+7473e4e57ff7823332d2c6fc8dcf51718fe200aa46a8cf498a0429cbedf22798 1256871 bucket LATENT_FACTOR_AUDIT_v17_1.csv.gz

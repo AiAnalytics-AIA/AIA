@@ -146,7 +146,15 @@ jobs:
         # The compose file, Caddyfile and scripts the host runs, at this SHA, so
         # the host's procedure is versioned with the code it deploys.
         run: |
-          tar -czf deploy-bundle.tar.gz -C deploy/develop docker-compose.yml Caddyfile bin
+          # population/: the list of the population's files (bin/sync-population.sh) and
+          # the frozen unit's configuration files it names as "unit", from Git.
+          stage="$(mktemp -d)"
+          cp -R deploy/develop/docker-compose.yml deploy/develop/Caddyfile deploy/develop/bin \
+            deploy/develop/population "$stage/"
+          awk '$3 == "unit" { print $4 }' deploy/develop/population/v17.files | while read -r name; do
+            cp "legacy/npc-panel-18.6.6/app/$name" "$stage/population/$name"
+          done
+          tar -czf deploy-bundle.tar.gz -C "$stage" docker-compose.yml Caddyfile bin population
           aws s3 cp deploy-bundle.tar.gz "s3://$OPS_BUCKET/deploy/$SHA.tar.gz" --only-show-errors
           echo "bundle s3://$OPS_BUCKET/deploy/$SHA.tar.gz" >> "$GITHUB_STEP_SUMMARY"
 
