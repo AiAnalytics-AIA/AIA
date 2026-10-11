@@ -56,6 +56,7 @@ import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
 import { ObjectMapView } from "./ObjectMapView";
+import { InterpretationResearch } from "./InterpretationResearch";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -832,6 +833,7 @@ export function ResultsStep() {
     ...(showMapping ? ([["res-sociomapping", t("research.exec.results.sociomapping")]] as [string, string][]) : []),
     ...(showAnalysis ? ([["res-analysis", t("research.exec.results.jumpAnalysis")]] as [string, string][]) : []),
     ["res-report", t("research.exec.results.jumpReport")],
+    ...(showAnalysis ? ([["res-literature", "Literární rešerše"]] as [string, string][]) : []),
   ];
   return (
     <div className="flex max-w-4xl flex-col gap-4">
@@ -861,6 +863,7 @@ export function ResultsStep() {
       ) : null}
       {showAnalysis ? <div id="res-analysis" className="scroll-mt-60"><AnalysisResults key={run.run_id} run={run} /></div> : null}
       <div id="res-report" className="scroll-mt-60">{report}</div>
+      {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
     </div>
   );
 }

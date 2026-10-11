@@ -128,7 +128,7 @@ def _route(tool: ToolKind) -> ToolRoute:
 
 def _table() -> SourceTable:
     return SOURCE_TABLE_V1.extended(
-        "aia-source-table-1+wikipedia-public-1",
+        "aia-source-table-1+wikipedia-public-2",
         {"wikipedia.org": SourceClass.MEDIA},
     )
 
@@ -171,6 +171,13 @@ def public_retrieval(
     public_user_agent(contact)
     resolver = SystemResolver()
     search = _paced(PinnedHttpsTransport(), pacer)
+    english_search = _paced(
+        HostPinnedHttpsTransport(
+            host="en.wikipedia.org",
+            accept="application/json",
+        ),
+        pacer,
+    )
     pages = PublicHttpsTransport(contact=contact, resolver=resolver, pacer=pacer)
     return (
         WebRetrieval(
@@ -182,7 +189,9 @@ def public_retrieval(
                 retrieval_mode=RetrievalMode.LIVE,
                 price_usd_per_call=0.0,
             ),
-            search=WikipediaSearch(resolver=resolver, transport=search),
+            search=WikipediaSearch(
+                resolver=resolver, transport=search, english_transport=english_search
+            ),
             fetcher=WebFetcher(transport=pages, resolver=resolver, adapter_id=PUBLIC_FETCH_ID),
         ),
         _table(),

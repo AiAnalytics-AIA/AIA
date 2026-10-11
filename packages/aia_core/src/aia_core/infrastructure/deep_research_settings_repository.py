@@ -28,9 +28,11 @@ Rules this module keeps:
 from __future__ import annotations
 
 import hashlib
+import math
+import os
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -44,6 +46,7 @@ from aia_core.domain.deep_research.settings import (
     ApprovedValue,
     Effective,
     EffectiveSettings,
+    Origin,
     SettingDefinition,
     SettingInvalid,
     SettingValue,
@@ -51,6 +54,7 @@ from aia_core.domain.deep_research.settings import (
     effective,
     validate_value,
 )
+from aia_core.domain.deployment import parse_environment
 from aia_core.domain.scope import (
     OrganizationContext,
     SelfApprovalPolicy,
@@ -62,8 +66,12 @@ from .tables import (
     AccessAuditRow,
     DeepResearchSettingApprovalRow,
     DeepResearchSettingVersionRow,
+    DeepResearchTestApprovalRow,
+    DeepResearchTestPolicyRow,
     OrganizationRow,
+    StudyRow,
     as_utc,
+    utcnow,
 )
 
 __all__ = [
@@ -74,6 +82,7 @@ __all__ = [
     "SettingRefused",
     "StoredSettingVersion",
     "settings_in_force_for_study",
+    "test_approval_receipt_for_study",
 ]
 
 _MAX_SOURCE_URL = 500
@@ -204,7 +213,141 @@ def settings_in_force_for_study(session: Session, scope: StudyContext) -> Effect
     organization-administration context; only the organization's rows are read, and a Study
     never sees another organization's settings.
     """
-    return _in_force(session, scope.organization_id)
+    normal = _in_force(session, scope.organization_id)
+    active = _active_test_approval(session, scope)
+    if active is None:
+        return normal
+    policy, approval = active
+    approved = {
+        item.key: ApprovedValue(
+            item.value,
+            item.version or 1,
+            item.approved_by or "",
+            item.approved_at or as_utc(approval.approved_at),
+        )
+        for item in normal.values
+        if item.origin is Origin.APPROVED
+    }
+    for key, value in policy.values_json.items():
+        approved[key] = ApprovedValue(
+            value, approval.approval_id, approval.approved_by, as_utc(approval.approved_at)
+        )
+    return effective(approved)
+
+
+def _test_environment(scope: StudyContext) -> bool:
+    environment = parse_environment(os.environ.get("AIA_ENV"))
+    clients = {c.strip() for c in os.environ.get("AIA_AI_FICTIONAL_CLIENT_IDS", "").split(",")}
+    return bool(
+        environment and environment.allows_fictional_material and scope.client_id in clients
+    )
+
+
+def _test_policy_sha(policy: DeepResearchTestPolicyRow) -> str:
+    return hashlib.sha256(
+        canonical_json(
+            {
+                "organization_id": policy.organization_id,
+                "client_id": policy.client_id,
+                "study_id": policy.study_id,
+                "values": policy.values_json,
+                "budget_cap_usd": float(policy.budget_cap_usd),
+                "provider_permission": policy.provider_permission,
+                "expires_at": as_utc(policy.expires_at).isoformat(),
+                "created_by": policy.created_by,
+                "created_at": as_utc(policy.created_at).isoformat(),
+            }
+        ).encode()
+    ).hexdigest()
+
+
+def _test_values(values: dict[str, Any], cap: float) -> dict[str, Any]:
+    cleaned = {
+        key: _stored(validate_value(_definition(key), value))["value"]
+        for key, value in values.items()
+    }
+    trial = effective(
+        {
+            key: ApprovedValue(value, 1, "operator", datetime.now(UTC))
+            for key, value in cleaned.items()
+        }
+    )
+    if (
+        trial.missing_for_live()
+        or cleaned.get("provider.search.storage_and_ai_use_granted") is not True
+    ):
+        raise SettingRefused(
+            "every live setting and test storage permission is required",
+            reason="test_policy_incomplete",
+        )
+    if any(
+        float(cleaned[f"budgets.run_limit.{preset}"]) > cap
+        for preset in ("standard", "deep", "exhaustive")
+    ):
+        raise SettingRefused(
+            "test run limits exceed the approved cap", reason="test_budget_invalid"
+        )
+    return cleaned
+
+
+def _active_test_approval(
+    session: Session, scope: StudyContext
+) -> tuple[DeepResearchTestPolicyRow, DeepResearchTestApprovalRow] | None:
+    if not _test_environment(scope):
+        return None
+    approval = session.scalar(
+        select(DeepResearchTestApprovalRow)
+        .where(
+            DeepResearchTestApprovalRow.organization_id == scope.organization_id,
+            DeepResearchTestApprovalRow.study_id == scope.study_id,
+        )
+        .order_by(DeepResearchTestApprovalRow.approval_id.desc())
+        .limit(1)
+    )
+    if approval is None or not approval.approved:
+        return None
+    policy = session.get(DeepResearchTestPolicyRow, approval.policy_id)
+    study = session.get(StudyRow, scope.study_id)
+    if (
+        policy is None
+        or study is None
+        or policy.organization_id != scope.organization_id
+        or policy.study_id != scope.study_id
+        or policy.client_id != scope.client_id
+        or study.organization_id != scope.organization_id
+        or study.client_id != scope.client_id
+        or as_utc(policy.expires_at) <= utcnow()
+        or study.budget_usd <= 0
+        or study.budget_usd > policy.budget_cap_usd
+    ):
+        return None
+    if policy.policy_sha256 != _test_policy_sha(policy):
+        raise SettingRefused("test policy seal changed", reason="test_policy_corrupt")
+    try:
+        _test_values(policy.values_json, policy.budget_cap_usd)
+    except SettingInvalid as exc:
+        raise SettingRefused(str(exc), reason="test_policy_invalid") from exc
+    return policy, approval
+
+
+def test_approval_receipt_for_study(session: Session, scope: StudyContext) -> dict[str, Any] | None:
+    """Operator authority pinned beside a run's settings, never supplied by its request."""
+    active = _active_test_approval(session, scope)
+    if active is None:
+        return None
+    policy, approval = active
+    return {
+        "policy_id": policy.policy_id,
+        "policy_sha256": policy.policy_sha256,
+        "approval_id": approval.approval_id,
+        "organization_id": policy.organization_id,
+        "client_id": policy.client_id,
+        "study_id": policy.study_id,
+        "expires_at": as_utc(policy.expires_at).isoformat(),
+        "budget_cap_usd": policy.budget_cap_usd,
+        "provider_permission": policy.provider_permission,
+        "approved_by": approval.approved_by,
+    }
 
 
 def _definition(key: str) -> SettingDefinition:
@@ -290,6 +433,129 @@ class DeepResearchSettingsRepository:
         admin.require_administer()
         self._session = session
         self._admin = admin
+
+    def propose_test_policy(
+        self,
+        scope: StudyContext,
+        *,
+        values: dict[str, Any],
+        expires_at: datetime,
+        budget_cap_usd: float,
+        provider_permission: str,
+    ) -> str:
+        """Propose a complete, expiring policy for an explicitly fictional study only."""
+        if scope.organization_id != self._admin.organization_id or not _test_environment(scope):
+            raise SettingRefused(
+                "test policy requires a scoped fictional study", reason="test_scope_refused"
+            )
+        now = utcnow()
+        if expires_at.tzinfo is None or not now < expires_at <= now + timedelta(days=7):
+            raise SettingRefused(
+                "test expiry must be within seven days", reason="test_expiry_invalid"
+            )
+        study = self._session.get(StudyRow, scope.study_id)
+        if (
+            isinstance(budget_cap_usd, bool)
+            or not math.isfinite(budget_cap_usd)
+            or not 0 < budget_cap_usd <= 20
+            or study is None
+            or study.organization_id != scope.organization_id
+            or study.client_id != scope.client_id
+            or not 0 < study.budget_usd <= budget_cap_usd
+        ):
+            raise SettingRefused(
+                "test budget must cover this study and be at most USD 20",
+                reason="test_budget_invalid",
+            )
+        permission = provider_permission.strip()
+        if not permission or len(permission) > 1000:
+            raise SettingRefused(
+                "record the provider's test permission", reason="test_permission_missing"
+            )
+        try:
+            cleaned = _test_values(values, budget_cap_usd)
+        except SettingInvalid as exc:
+            raise SettingRefused(str(exc), reason="setting_invalid") from exc
+        row = DeepResearchTestPolicyRow(
+            policy_id=f"DRT-{uuid.uuid4().hex[:24]}",
+            organization_id=scope.organization_id,
+            client_id=scope.client_id,
+            study_id=scope.study_id,
+            values_json=cleaned,
+            budget_cap_usd=budget_cap_usd,
+            provider_permission=permission,
+            expires_at=expires_at.astimezone(UTC),
+            created_by=self._admin.actor_id,
+            created_at=now,
+        )
+        row.policy_sha256 = _test_policy_sha(row)
+        self._session.add(row)
+        self._session.flush()
+        self._audit(
+            "DR_TEST_POLICY_PROPOSED",
+            reason="fictional study test only",
+            payload={
+                "policy_id": row.policy_id,
+                "study_id": row.study_id,
+                "client_id": row.client_id,
+                "policy_sha256": row.policy_sha256,
+                "values": cleaned,
+                "budget_cap_usd": budget_cap_usd,
+                "expires_at": row.expires_at.isoformat(),
+                "provider_permission": permission,
+            },
+        )
+        return row.policy_id
+
+    def approve_test_policy(
+        self, scope: StudyContext, policy_id: str, *, approved: bool = True, reason: str
+    ) -> None:
+        """Append an approval or withdrawal; organization settings are never changed."""
+        row = self._session.get(DeepResearchTestPolicyRow, policy_id)
+        if (
+            row is None
+            or row.organization_id != self._admin.organization_id
+            or row.organization_id != scope.organization_id
+            or row.study_id != scope.study_id
+            or row.client_id != scope.client_id
+        ):
+            raise SettingRefused("no test policy in this scope", reason="test_scope_refused")
+        if not reason.strip() or len(reason) > 255:
+            raise SettingRefused(
+                "a reason of at most 255 characters is required", reason="reason_too_long"
+            )
+        if approved:
+            if not _test_environment(scope) or as_utc(row.expires_at) <= utcnow():
+                raise SettingRefused(
+                    "test permission unavailable or expired", reason="test_scope_refused"
+                )
+            if row.policy_sha256 != _test_policy_sha(row):
+                raise SettingRefused("test policy seal changed", reason="test_policy_corrupt")
+            if row.created_by == self._admin.actor_id and not self._self_approval().allowed:
+                raise SettingRefused(
+                    "independent approval is required", reason="self_approval_not_allowed"
+                )
+        approval = DeepResearchTestApprovalRow(
+            policy_id=policy_id,
+            organization_id=row.organization_id,
+            study_id=row.study_id,
+            approved=approved,
+            approved_by=self._admin.actor_id,
+            reason=reason.strip(),
+        )
+        self._session.add(approval)
+        self._session.flush()
+        self._audit(
+            "DR_TEST_POLICY_APPROVED" if approved else "DR_TEST_POLICY_WITHDRAWN",
+            reason=reason,
+            payload={
+                "policy_id": policy_id,
+                "approval_id": approval.approval_id,
+                "study_id": row.study_id,
+                "client_id": row.client_id,
+                "policy_sha256": row.policy_sha256,
+            },
+        )
 
     def propose(
         self, key: str, value: object, *, source_url: str = "", note: str = ""

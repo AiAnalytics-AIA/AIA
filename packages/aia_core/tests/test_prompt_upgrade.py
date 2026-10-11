@@ -9,7 +9,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from aia_core.domain.deep_research.agents import AgentRole, agent_definition
+from aia_core.domain.deep_research.agents import AgentRole, agent_definition, prompt_for
 from aia_core.domain.deep_research.synthesizer import BRIEF_TASK, BriefProposal
 from aia_core.domain.prompt_slots import get_slot, slots
 from aia_core.domain.research_agents import Advice, ResearchAction, baseline_task
@@ -58,7 +58,7 @@ def test_catalogue_reports_the_actual_role_version(role: AgentRole) -> None:
     slot = get_slot(agent.prompt_id)
     assert slot is not None
     assert slot.baseline_version == agent.prompt_version
-    assert agent.prompt_version == ("4" if role is AgentRole.INVESTIGATOR else "2")
+    assert agent.prompt_version == ("5" if role is AgentRole.INVESTIGATOR else "2")
 
 
 def test_every_live_editable_task_passes_the_same_store_validation() -> None:
@@ -67,3 +67,10 @@ def test_every_live_editable_task_passes_the_same_store_validation() -> None:
     for slot in editable:
         assert slot.check(slot.baseline_text) == slot.baseline_text.strip()
         assert slot.baseline_version == "2"
+
+
+def test_wikipedia_guidance_names_its_scope_and_requires_reading_original_sources() -> None:
+    task = prompt_for(AgentRole.INVESTIGATOR)
+    assert "search_scope" in task and "lang en" in task
+    assert "bibliografický odkaz nejsou přečtenou studií" in task
+    assert "původní studie" in task

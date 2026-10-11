@@ -135,7 +135,7 @@ PROMPT_VERSION: Final = "2"
 #: The investigator's own prompt version: it is not one of the five above.
 #: 2: the ``ladder`` action (plan chunk 10).
 #: 3: where each kind of evidence is usually found (:mod:`.playbooks`, plan chunk 49).
-INVESTIGATOR_PROMPT_VERSION: Final = "4"
+INVESTIGATOR_PROMPT_VERSION: Final = "5"
 
 #: The investigator's output contract, :class:`InvestigatorTurn`. A new action kind
 #: is an additive change under a new version; a stored turn keeps its own.
@@ -488,6 +488,14 @@ DOI, zdroj S<n>, který ho cituje (source), a výsledek nebo odkaz R<n>/L<n>, je
 aplikace neobchází: vrátí ho jako nedostupný.
 'finish' -- ukonči stopu a v gaps uveď, co se zjistit nepodařilo, proč a co jsi
 zkusil.
+Je-li v zadání search_scope uvedena Wikipedie, vyhledáváš v encyklopedii,
+nikoli na celém webu. Začni názvem tématu nebo metody z jednoho až tří slov;
+dlouhý dotaz jako celá výzkumná otázka obvykle nenajde článek. Pro anglické
+odborné pojmy použij lang en. Encyklopedii použij pro orientaci a nalezení
+odkazů na původní studie, odborné zprávy a institucionální zdroje. Jejich
+odkazy otevři a ověř dříve, než z nich vytvoříš zjištění. Výsledek vyhledávání
+ani bibliografický odkaz nejsou přečtenou studií. Nenašel-li jsi zdroj,
+zkus obecnější název tématu a uveď skutečnou mezeru, nikoli tvrzení z paměti.
 Postup: začni zeširoka krátkými dotazy, potom zužuj. Dej přednost vydavateli čísla
 (statistický úřad, regulátor, autor studie) před tím, kdo ho jen opakuje: vede-li stránka na
 zdroj čísla, otevři ten odkaz. U každé použité statistiky si přečti metodickou poznámku. Dej

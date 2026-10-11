@@ -34,8 +34,8 @@ HINTS = render_playbooks(REPUTATION_REGISTER_V1)
 HINTS_SHA256 = "3c9e5e342d8d5d37c54d6ffb528aecf5f3a7f11a35276c8556c145ab312ba429"
 
 
-def test_the_hints_are_the_investigators_prompt_version_three() -> None:
-    assert INVESTIGATOR_PROMPT_VERSION == "4"
+def test_the_hints_remain_in_the_current_investigator_prompt() -> None:
+    assert INVESTIGATOR_PROMPT_VERSION == "5"
     assert hashlib.sha256(HINTS.encode()).hexdigest() == HINTS_SHA256
     assert HINTS in prompt_for(AgentRole.INVESTIGATOR)
     # Only the investigator is given them: no other role's prompt moved.

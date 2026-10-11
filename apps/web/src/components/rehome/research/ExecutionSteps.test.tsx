@@ -114,6 +114,7 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [{ revision_id: "REV-old", revision: 2 }] }),
         "GET /api/v1/studies/STU-1/research/readiness": () => READY,
         "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [] }),
+        "GET /api/v1/studies/STU-1/deep-research/runs": () => [],
         "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
         ...overrides,
       };
@@ -733,5 +734,67 @@ describe("Results", () => {
     expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
     expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();
+  });
+});
+
+
+describe("Interpretation research", () => {
+  it("asks for the retry ceiling and sends the confirmed amount without changing the study budget", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { research_run_id: "RUN-1" },
+      preset: "QUICK", status: "FAILED", phase: "FAILED", is_terminal: true, retryable: true,
+      created_at: null, actual_cost_usd: 0.1, steps: [] };
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => [review],
+      "POST /api/v1/studies/STU-1/deep-research/runs/RUN-deep/retry": b => (b as { confirm_cost_usd?: number } | null)?.confirm_cost_usd === 5 ? review :
+        new Response(JSON.stringify({ code: "cost_confirmation_required", message: "confirm", details: { ceiling_usd: 5 } }), { status: 409 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Zkusit znovu" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Opakování rešerše může stát nejvýše 5.00 USD/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/retry")).toHaveLength(2));
+    expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/retry").map(c => c.body)).toEqual([null, { confirm_cost_usd: 5 }]);
+    expect(called("PATCH", "/api/v1/studies/STU-1")).toHaveLength(0);
+  });
+  it("starts over the pinned analysis and downloads the report with the explicitly selected review", async () => {
+    const completed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-questions" })] });
+    const review = { run_id: "RUN-deep", purpose: "INTERPRETATION_RESEARCH", target: { kind: "ANALYSIS_MODULE", research_run_id: "RUN-1" },
+      preset: "QUICK", status: "COMPLETED", phase: "COMPLETED", is_terminal: true, retryable: false,
+      created_at: null, actual_cost_usd: 0.1, steps: [] };
+    const bundle = { quality_status: "PARTIAL", accepted: [], snapshots: [], quarantined: [],
+      synthesis: { check: { summary: "Ověřený kontext knihovních služeb.", findings: [], gaps: ["Chybí srovnatelný benchmark."], limitations: [] } } };
+    let started = false;
+    api({ ...listed(completed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/deep-research/runs": () => started ? [review] : [{ ...review, run_id: "RUN-other", target: { research_run_id: "RUN-other" } }],
+      "POST /api/v1/studies/STU-1/deep-research/runs/interpretation": () => { started = true; return review; },
+      "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => bundle,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context/download": () => new Response("document bytes"),
+    });
+    const createUrl = vi.fn(() => "blob:test-report");
+    const revokeUrl = vi.fn();
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: createUrl, revokeObjectURL: revokeUrl }));
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const start = await screen.findByRole("button", { name: "Spustit rešerši výsledků" });
+    expect(screen.queryByRole("button", { name: "Stáhnout AIA zprávu s rešerší" })).toBeNull();
+    fireEvent.click(start);
+    expect(await screen.findByText("Ověřený kontext knihovních služeb.")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/interpretation")[0].body).toMatchObject({
+      target: { kind: "ANALYSIS_MODULE", research_run_id: "RUN-1", analysis_artifact_id: "ART-questions", module_id: "research_questions" }, preset_name: "QUICK",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Stáhnout AIA zprávu s rešerší" }));
+    await waitFor(() => expect(createUrl).toHaveBeenCalled());
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/download")[0].url).toContain("deep_research_run_id=RUN-deep");
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   });
 });

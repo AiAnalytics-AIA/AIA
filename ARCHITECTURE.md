@@ -149,6 +149,29 @@ To add one: state it in the script beside its `forbid` line and under Doc
 follow-up in the PR (the docs PR adds it to the table above; CLAUDE.md §1), then
 confirm it passes before committing.
 
+
+### Scoped research testing
+
+An organization administrator may propose and approve a separate expiring test policy
+for one explicitly fictional study (`infrastructure/deep_research_settings_repository.py:437
+@ db6db022`). It never writes organization setting versions or approvals. The normal
+organization reader remains unchanged. The repository resolves the newest study approval
+only in local/test/develop, through the exact organization, client and study, with the
+client on the existing fictional-client allowlist, a live expiry and a positive study
+budget no larger than the approved cap (maximum USD 20). It validates every required
+live setting and records provider test permission; values do not establish a permanent
+provider entitlement. Proposals carry a seal, and approvals/withdrawals are append-only
+and audited under the existing independent-review rule. Newest withdrawal or expiry
+never revives an older grant (`test_deep_research_sandbox_policy.py @ db6db022`).
+
+The enqueue stores the exact `test_policy_approval` receipt alongside its normal settings
+pin (`application/deep_research.py:657 @ db6db022`). An existing run retains its pinned
+authority; later scope, environment, budget, expiry or withdrawal checks apply to new
+enqueues. Per-call study reservations, material classification, network/robots rules and
+evidence admission continue to apply. The two test-policy tables are readable/writable
+only by the settings repository (`tools/layer_check.sh:217 @ db6db022`); no request body
+can grant approval or supply deployment prices.
+
 ## 4. Contracts at boundaries
 
 - **A protocol at every swappable seam.** Every external service has a protocol,
@@ -319,6 +342,20 @@ confirm it passes before committing.
   stay immutable; new exports use the new contract. The experimental companion
   report shares the updated renderer under `aia-sociomapping-report-3`. Internal,
   synthetic and pending-methodology gates do not become client approvals.
+- **A contextual report selects its literature run explicitly.**
+  `application/contextual_report.py:234 @ 96e4f58f` verifies both study-owned runs,
+  completed interpretation status, provenance, bundle seal and the exact frozen
+  research/design lineage, then re-admits all eight analyses and validates the same
+  run's sociomap dependencies. Contract `aia-contextual-report-1` exports a separate
+  internal DOCX; it never overwrites the original report or calls models during export.
+  Only accepted findings and checked synthesis enter its targeted literature chapter.
+  External L citations stay outside the respondent evidence ledger. Unsupported
+  numerical benchmarks, excluded prose and missing coverage remain explicit gaps;
+  recorded evidence and synthetic respondents remain disclosed. The results panel
+  starts interpretation research over a pinned analysis and selects the completed
+  review in the download query. See `test_checked_synthesis_has_separate_sources_limits_and_fixture_disclosure`,
+  `test_corrupt_seal_and_foreign_synthesis_citations_refuse`, and the full report
+  journey in `apps/executors/tests/test_analysis_executor.py`.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
   is no override field, a missing input blocks, and `combine` keeps every refusal
   so a later gate cannot launder an earlier one.
