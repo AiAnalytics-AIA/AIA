@@ -2,7 +2,10 @@
 status: in-progress
 chunks:
   - "[x] M0. Decide the reuse unit, its eligibility and its reach (owner, 2026-10-10)"
-  - "[ ] M1. Find: search the same client's past studies by name, goal, questions and dimensions"
+  - "[x] M1a. The match, pure: dimension titles in the core, accent-folded words, the fields that matched"
+  - "[ ] M1b. The search, scoped to one client: latest Design Revision, else the working draft, else the name"
+  - "[ ] M1c. The route: GET /clients/{client_id}/memory/search"
+  - "[ ] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
   - "[ ] M2. Inspect: a past study's design, method, results and their labels, read-only"
   - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
   - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
@@ -97,3 +100,51 @@ derived by the server, search across them, and a cited reuse into a design. Cros
 of a method, as an explicit labelled action. 18.6.6's assistant search
 (`legacy/npc-panel-18.6.6/app/project_memory.py`, `POST /api/assistant/search`) is superseded
 by M1 for studies; its route-ledger entry is decided with this section.
+
+## M1, the design (2026-10-12)
+
+**Decisions (owner, 2026-10-12).** (a) Dimensions are matched by their **titles**, resolved
+on the server: the 18 canonical labels move into `aia_core`, and a client's own dimension (a
+Client Knowledge `DIMENSION` item) is named by its title from that client's knowledge. (b) A
+study with no Design Revision is searched on its **working content**, and a hit there is
+labelled a working draft, never a design.
+
+**What the code has.** A design stores dimension ids (`persona_dimensions.approved`: slugs
+such as `zdravi`, or knowledge item ids), never titles; the titles are only in the web
+(`apps/web/src/research/persona.ts` `PERSONA_DIM_LABELS`). One client's studies are listed
+through `ScopeResolver.client_context` (`application/scope.py`), and a study's design and
+working content are read only under its own `StudyContext` (`study_design_repository.py`,
+`study_workspace_repository.py`), which `layer_check` keeps that way. Many studies have no
+Design Revision: a study before its first submission, every simulation, every study migrated
+from 18.6.6.
+
+**Chunks.**
+
+- **M1a. The match, pure.** `domain/project_memory.py`: `DIMENSION_LABELS` (pinned to the
+  web's by a test), `fold` (Unicode-decomposed, combining marks dropped, case-folded), the
+  searchable text of one study (its name; the content's `title`, `goal`, `decision_use`,
+  `research_plan.research_questions`, `research_plan.objectives`, `sections[].title` and
+  battery `object_family`; its dimensions' titles), and `match(query, study)`: every word of
+  the query must occur, folded, in some field; the answer names the fields that matched, with
+  the text that matched.
+- **M1b. The search, scoped.** `application/project_memory.py` `search_client_studies`:
+  `client_context` for the client the route names (a client the person cannot see is
+  `ScopeDenied`), then each study of that client through `study_context` -- the only way to
+  read its design. Source per study: the latest Design Revision (`design`, with its number),
+  else the working content (`draft`), else the name alone (`name`). The client's dimension
+  titles come from its own knowledge, read once under the `ClientContext`. Another client's
+  study is never read: the loop is over `ClientContext.study_ids`.
+- **M1c. The route.** `GET /api/v1/clients/{client_id}/memory/search?q=` (two characters at
+  least): the hits, newest study first. 404 for a client the person cannot see. Tests: a
+  sibling client's matching study is absent; another organization's request is 404; a draft
+  hit says draft; a dimension found by its Czech title.
+- **M1d. The pages.** Projektová paměť asks for a client first and runs that client's search;
+  the client workspace's Výzkumy list gets the same search. Each hit says what matched and
+  whether it came from a design, a draft or the name.
+
+**Cost.** About six queries per study searched (the resolver's study context, then its design
+or working content); a client with 50 studies is about 300 small queries, under a second on
+PostgreSQL. A client with hundreds of studies would want one client-wide read in
+`study_design_repository.py`; not built until that is measured.
+
+**Not in M1:** reuse (M3), the inspection page (M2), result search (after the MVP).
