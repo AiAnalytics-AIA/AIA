@@ -36,6 +36,7 @@ import {
 import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
+import { MethodologyPanel } from "./MethodologyPanel";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
@@ -726,15 +727,15 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["ai", "prompts", "deep_research", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "reference"] as const;
 export type TabId = (typeof TABS)[number];
 
 // Tabs that read their own route and are drawn on the first visit only.
-const OWN_TABS = new Set<TabId>(["prompts", "deep_research"]);
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
-const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research">, string[]> = {
+const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodology">, string[]> = {
   ai: ["ai", "ai_history"],
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
@@ -812,6 +813,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? []} members={members} />;
+    if (tab === "methodology") return <MethodologySection members={members} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -863,6 +865,16 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
   return (
     <Section id="prompts">
       <SystemPromptsPanel {...props} />
+    </Section>
+  );
+}
+
+/** The Metodika tab: the methodology, its versions and who made them (ADR 0023). */
+function MethodologySection({ members }: { members: Part<Member[]> }) {
+  const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
+  return (
+    <Section id="methodology">
+      <MethodologyPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
     </Section>
   );
 }

@@ -26,7 +26,10 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
+from .expressions import Slot
+
 __all__ = [
+    "BuiltinFormula",
     "ConstantRef",
     "Evidence",
     "EvidenceKind",
@@ -130,6 +133,23 @@ class Preset:
 
 
 @dataclass(frozen=True, slots=True)
+class BuiltinFormula:
+    """A step's formula as an editable slot, with the expression the engine computes today.
+
+    ADR 0023 decision 4. ``expression`` is written in the formula language
+    (:mod:`.expressions`) so that it gives the engine's exact bits on every input (the
+    test suite proves it per slot against the engine's own function); a stored edit replaces
+    it. A step whose computation is an algorithm, not a formula (a fit, a ranking, a graph
+    test), has none.
+    """
+
+    step_id: str
+    slot: Slot
+    expression: str
+    note_cs: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class StepGroup:
     """Steps shown together under one heading (for the Sociomap: one of the audit's F1-F16)."""
 
@@ -147,7 +167,8 @@ class MethodModule:
     uses today when nothing is stored. A module whose values are not declared yet has no
     presets, and its steps read constants only (ADR 0023 decision 2 declares them).
     ``groups`` order the steps on the page (for the Sociomap: the audit's F1-F16); when there
-    are groups, every step belongs to exactly one.
+    are groups, every step belongs to exactly one. ``formulas`` are the steps' editable
+    slots, each with the built-in expression the engine computes.
     """
 
     id: str
@@ -156,4 +177,7 @@ class MethodModule:
     presets: tuple[Preset, ...] = ()
     in_force: str | None = None
     groups: tuple[StepGroup, ...] = ()
+    formulas: tuple[BuiltinFormula, ...] = ()
+    #: Whether a methodology version may be stored for it (ADR 0023 decision 4).
+    editable: bool = False
     note_cs: str = ""

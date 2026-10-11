@@ -36,7 +36,12 @@ import math
 from collections.abc import Sequence
 from typing import Any, Final
 
-from .layout import UnfoldingDesignError, correlation_distances, fit_smacof_objects
+from .layout import (
+    UnfoldingDesignError,
+    correlation_distances,
+    fit_smacof_objects,
+    stress_terms,
+)
 from .metrics import ObjectRole, connectedness_100, primary_scores, rank_with_ties
 from .models_v3 import (
     OBJECT_MAP_IMPLEMENTATION,
@@ -54,6 +59,7 @@ from .models_v3 import (
 )
 from .pairs import derive_pair_relations
 from .relations import PairStatus, person_minmax
+from .slots import HEIGHT, NO_SLOTS, SCALE, STRESS_1, SUPPORT_EFFECTIVE_N, Slots
 from .specification import (
     ObjectHeightMetric,
     PairEvidenceBasis,
@@ -128,8 +134,10 @@ CONNECTEDNESS_OFF: Final = {
 }
 
 
-def _scaled(inputs: ObjectMapInputs) -> list[list[float | None]]:
-    """F1: every rating on its item's declared 0-1 scale; a value off its scale is refused."""
+def _scaled(inputs: ObjectMapInputs, slots: Slots = NO_SLOTS) -> list[list[float | None]]:
+    """F1: every rating on its item's declared 0-1 scale; a value off its scale is refused.
+    ``slots`` may replace the transform (``f1.scale``); the refusal stays."""
+    replaced = slots.get(SCALE)
     rows: list[list[float | None]] = []
     for k, row in enumerate(inputs.values):
         out: list[float | None] = []
@@ -142,7 +150,11 @@ def _scaled(inputs: ObjectMapInputs) -> list[list[float | None]]:
                     f"respondent {inputs.respondent_ids[k]!r} rated {item.item_id!r} {value}, "
                     f"outside its declared scale [{item.scale_min}, {item.scale_max}]"
                 )
-            out.append((value - item.scale_min) / (item.scale_max - item.scale_min))
+            out.append(
+                (value - item.scale_min) / (item.scale_max - item.scale_min)
+                if replaced is None
+                else float(replaced(a=value, lo=item.scale_min, hi=item.scale_max))
+            )
         rows.append(out)
     return rows
 
@@ -161,15 +173,31 @@ def _unreached(known: Sequence[Sequence[bool]]) -> list[int]:
 
 
 def _heights(
-    scaled: Sequence[Sequence[float | None]], weights: Sequence[float], columns: Sequence[int]
+    scaled: Sequence[Sequence[float | None]],
+    weights: Sequence[float],
+    columns: Sequence[int],
+    slots: Slots = NO_SLOTS,
 ) -> ObjectHeights:
     """F8's height: each object's weighted mean rating on the declared 0-1 scale, over
-    everyone who rated it (a person not placed rated it too)."""
+    everyone who rated it (a person not placed rated it too). ``slots`` may replace the
+    mean (``f8.height``) over the same raters."""
+    replaced = slots.get(HEIGHT)
     values: list[float | None] = []
     support: list[int] = []
     for c in columns:
         rated = [(row[c], w) for row, w in zip(scaled, weights, strict=True) if row[c] is not None]
         total = math.fsum(w for _, w in rated)
+        if rated and replaced is not None:
+            values.append(
+                float(
+                    replaced(
+                        a=tuple(v for v, _ in rated if v is not None),
+                        w=tuple(w for _, w in rated),
+                    )
+                )
+            )
+            support.append(len(rated))
+            continue
         values.append(
             math.fsum(v * w for v, w in rated if v is not None) / total if rated else None
         )
@@ -186,6 +214,7 @@ def _terrain(
     layout: ObjectMapLayout | None,
     heights: ObjectHeights,
     inputs: ObjectMapInputs,
+    slots: Slots = NO_SLOTS,
 ) -> NotComputed | EnvelopeTerrain:
     """F12's envelope over the PRIMARY objects' hills, each exactly its F8 height.
 
@@ -210,20 +239,28 @@ def _terrain(
             sigma=declared.sigma,
             kernel_cutoff=declared.kernel_cutoff,
         ),
+        slots=slots,
     )
 
 
 def _support(
-    inputs: ObjectMapInputs, not_placed: dict[str, str], weighting: str
+    inputs: ObjectMapInputs,
+    not_placed: dict[str, str],
+    weighting: str,
+    slots: Slots = NO_SLOTS,
 ) -> ObjectMapSupport:
     placed = [k for k, rid in enumerate(inputs.respondent_ids) if rid not in not_placed]
     w = [inputs.weights[k] for k in placed]
     squares = math.fsum(x * x for x in w)
+    replaced = slots.get(SUPPORT_EFFECTIVE_N)
+    effective_n = math.fsum(w) ** 2 / squares if squares > 0 else None
+    if effective_n is not None and replaced is not None:
+        effective_n = float(replaced(w=tuple(w)))
     return ObjectMapSupport(
         respondents=len(inputs.respondent_ids),
         placed=len(placed),
         not_placed=len(not_placed),
-        effective_n=math.fsum(w) ** 2 / squares if squares > 0 else None,
+        effective_n=effective_n,
         donors=len({inputs.donor_ids[k] for k in placed}),
         weighting=weighting,
     )
@@ -244,12 +281,21 @@ def _evidence_policy(spec: SociomapSpecV3) -> dict[str, Any]:
 
 
 def compute_object_map(
-    inputs: ObjectMapInputs, spec: SociomapSpecV3, *, connectedness_interval: bool
+    inputs: ObjectMapInputs,
+    spec: SociomapSpecV3,
+    *,
+    connectedness_interval: bool,
+    slots: Slots = NO_SLOTS,
 ) -> SociomapArtifactV3:
-    """The audit's object map of ``inputs.object_ids`` under ``spec``. See the module."""
+    """The audit's object map of ``inputs.object_ids`` under ``spec``. See the module.
+
+    ``slots`` are the formulas a methodology version replaces (ADR 0023, ``slots.py``),
+    each computed where the code's formula would be; with none, the code computes every
+    one, bit for bit as before.
+    """
     require_supported(spec)
-    scaled = _scaled(inputs)
-    person = person_minmax(scaled)
+    scaled = _scaled(inputs, slots)
+    person = person_minmax(scaled, slots=slots)
     not_placed = {inputs.respondent_ids[k]: NOT_PLACED_NO_SPREAD for k in person.excluded}
     columns = inputs.object_columns()
     family = [[row[c] for c in columns] for row in person.values]
@@ -257,7 +303,12 @@ def compute_object_map(
     evidence = spec.relation
     policy = _evidence_policy(spec)
     pairs = derive_pair_relations(
-        family, weights, n_min=evidence.n_min, confidence=evidence.confidence, **policy
+        family,
+        weights,
+        n_min=evidence.n_min,
+        confidence=evidence.confidence,
+        slots=slots,
+        **policy,
     )
     ids = list(inputs.object_ids)
     m = len(ids)
@@ -293,7 +344,7 @@ def compute_object_map(
             objects=tuple(ids[k] for k in unreached),
         )
     else:
-        delta = correlation_distances(pairs.r, known)
+        delta = correlation_distances(pairs.r, known, slots=slots)
         try:
             fit = fit_smacof_objects(
                 delta,
@@ -305,20 +356,24 @@ def compute_object_map(
                 reason=NotMappableReason.SINGULAR.value, message=str(exc), objects=tuple(ids)
             )
         else:
+            stress_1 = fit.stress_1
+            if (replaced_stress := slots.get(STRESS_1)) is not None:
+                d, t = stress_terms(fit.points, delta)
+                stress_1 = float(replaced_stress(d=d, delta=t))
             layout = ObjectMapLayout(
                 points=fit.points,
                 extent=spec.layout.map_frame.extent,
-                stress_1=fit.stress_1,
+                stress_1=stress_1,
                 raw_stress=fit.raw_stress,
-                quality=stress_quality(fit.stress_1).value,
+                quality=stress_quality(stress_1).value,
                 known_pairs=fit.known_pairs,
                 iterations=fit.iterations,
                 converged=fit.converged,
                 start_fill=fit.start_fill,
             )
 
-    scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles)
-    heights = _heights(scaled, weights, columns)
+    scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
+    heights = _heights(scaled, weights, columns, slots)
 
     connectedness: dict[str, Any] = dict(CONNECTEDNESS_OFF)
     if connectedness_interval:
@@ -336,6 +391,7 @@ def compute_object_map(
                 n_min=evidence.n_min,
                 confidence=evidence.confidence,
                 design_weights=weights,
+                slots=slots,
                 **policy,
             )
             return drawn.r, drawn.status
@@ -347,6 +403,7 @@ def compute_object_map(
             respondents=len(family),
             resamples=spec.connectedness.resamples,
             seed=spec.connectedness.seed,
+            slots=slots,
         )
         connectedness = {
             "status": "computed",
@@ -375,9 +432,10 @@ def compute_object_map(
             inputs,
             not_placed,
             WEIGHTING_KISH if evidence.basis == PairEvidenceBasis.KISH_EFFECTIVE_N else WEIGHTING,
+            slots,
         ),
         respondents=RESPONDENTS_NOT_COMPUTED,
-        terrain=_terrain(spec, layout, heights, inputs),
+        terrain=_terrain(spec, layout, heights, inputs, slots),
         provenance=ObjectMapProvenance(
             implementation=OBJECT_MAP_IMPLEMENTATION,
             implementation_version=OBJECT_MAP_IMPLEMENTATION_VERSION,

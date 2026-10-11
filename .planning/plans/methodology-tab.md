@@ -3,15 +3,22 @@ status: in-progress
 chunks:
   - "[x] 0. ADR 0023 and this plan"
   - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
-  - "[ ] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
-  - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
-  - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
-  - "[ ] A5. API: GET /api/v1/methodology (modules, steps, values with origin, evidence, open questions); version routes"
-  - "[ ] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
-  - "[ ] S1. Sociomap documented: F1-F16 in the audit's order, aia-sociomap-1, the H-Model; register gaps filled"
+  - "[x] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
+  - "[x] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
+  - "[x] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
+  - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
+  - "[x] A5b. API: methodology version routes (after A3)"
+  - "[x] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
+  - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
+  - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
+  - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
+  - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
-  - "[ ] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
-  - "[ ] S4. Sociomap editable: draft, check (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14), activate"
+  - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
+  - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
+  - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
+  - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
+  - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
@@ -180,7 +187,61 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - LaTeX round-trips;
     - property failures are named;
     - performance: the F12 kernel over a 65² grid × 30 objects within a stated budget, measured.
-- **A3. Version store.**
+- **A2. Landed.**
+  - **The module.** `domain/methodology/expressions.py`.
+    - `Slot` and `Variable` hold scalars, or vectors with elementwise arithmetic and the
+      aggregates `sum`, `mean`, `count`, and `min`/`max` of one vector.
+    - `Property` kinds: `non_negative`, `within`, `equals_at`, `non_increasing_in`,
+      `non_decreasing_in`, `at_most_variable`; finiteness is always checked.
+    - `compile_formula`: `ast.parse(mode="eval")`, a node whitelist, then closures over `math`
+      and `NormalDist`.
+    - `latex` is written from the same tree, with aggregates bracketed under powers and 1e-12
+      written as 10^{-12}.
+    - `check_properties` reports one counter-example per broken property.
+  - **Bit-identity, tested.** Written the way the engine computes, these expressions give the
+    engine's exact bits: the envelope kernel against `terrain.envelope_at` (500 random cases),
+    the Fisher lower bound against `relations.fisher_interval`, and Kish's n against
+    `relations.kish_effective_n` (200 random weight vectors). This is what S3 relies on.
+  - **Refusals, tested.** 22 hostile or foreign inputs are refused, among them `__import__`,
+    attribute access, `open`, `eval`, a lambda, a comprehension, a subscript, a string, a
+    keyword argument, a chained comparison, `//`, `@`, `~`, starred arguments, and a formula
+    that is too long or too deep. A domain error (division by zero, log of a negative,
+    atanh(1), overflow, an empty mean) raises and is never a number. A test pins that the
+    module calls neither `eval` nor `exec`.
+  - **Measured.** A 65 x 65 grid with 30 hills means 126,750 kernel evaluations. They take 1.2 s
+    through the closure, against 0.03 s for the engine's own `object_envelope`: about 40 times
+    slower. That is acceptable for a step run once per map. If it ever matters, the fix is to
+    evaluate whole vectors per call (grid-at-once) rather than one cell per call.
+  - **Checked by hand.** The generated LaTeX of the seven test formulas renders through Temml
+    0.13.5 with no error. S3 puts the built-in expressions into the web fixture, so the web
+    test enforces this from then on.
+- **A3. Landed.**
+  - **Domain.** `domain/methodology/versions.py` turns a draft into a version and fails closed:
+    `validate_version` (every problem at once), `named` (`<base>+e<n>`, written into the
+    specification by the store, never by its author), `version_payload` (contract
+    `aia-methodology-version-1`) and `payload_sha256`.
+    - The specification must validate as the base preset's own type, under the module's own
+      validator.
+    - Each replaced formula must name a slot, compile in it and keep its properties.
+    - `MethodModule.editable` decides which modules can be edited: the object map can, the
+      reference map cannot.
+  - **Storage.**
+    - Tables `methodology_versions` (immutable) and `methodology_activations` (append-only;
+      newest wins; NULL means the preset). Migration `c4e6a8b0d2f3` follows `b2d4f6a8c0e1`.
+    - Verified on PostgreSQL 16: the upgrade compared with the models shows 0 differences
+      across all tables, and downgrade then upgrade round-trips.
+  - **Repository.** `infrastructure/methodology_repository.py`:
+    - `MethodologyReader` (any member) offers `in_force`, `versions` and `history`.
+    - `MethodologyRepository` (`require_administer`) offers `propose`, and `activate` (a version
+      number, or None to return to the preset). `activate` validates the version again, because
+      one stored under an older engine may no longer compute.
+    - Every change is audited as `METHODOLOGY_PROPOSED`, `METHODOLOGY_ACTIVATED` or
+      `METHODOLOGY_RESET`.
+    - There is no independent-review rule here; access is decision 9's.
+  - **Layer check.** Four new rules keep the rows inside the repository (105 rules).
+  - **Tests.** `test_methodology_versions.py` (9) and `test_methodology_repository.py` (10); the
+    repository tests also pass on PostgreSQL.
+- **A3. Version store, as planned.**
   - Tables `methodology_versions` and `methodology_activations`, and their migration.
   - A repository with `propose` (the module's validator plus the slot checks), `activate`,
     `reset`, `history` and `in_force(org)`.
@@ -200,12 +261,76 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - a retry keeps the pin;
     - every artifact's input fingerprint carries the pins of the modules that shape it;
     - a tampered pin fails closed.
+- **A4. Landed.**
+  - **What a run pins.** `ResearchRuns.start` reads `methodology_in_force_for_study`, which uses
+    the Study's own scope, so a start needs no administrator context. When a version is in force,
+    `domain.methodology.pins.sociomap_methods_for(payload)` makes it the run's second
+    `SociomapMethod`, `aia-sociomap-3+e<n>`; the reference `aia-sociomap-1` stays first. The run's
+    metadata gains `methodology: {module, version, name, payload_sha256}`.
+  - **Its identity.** The idempotency key carries `:methodology:<sha16>`, so the same revision under
+    an edited methodology is another run, and that run is idempotent. It goes through the spend
+    confirmation like any other start.
+  - **What already existed.** The existing `sociomap_methods` pin is the module's pin.
+    - A retry keeps it: `test_a_retry_keeps_the_methodology_its_run_pinned`.
+    - A tampered pin fails the step by name: `test_a_pin_that_does_not_verify_fails_the_step_by_name`.
+    - The sociomap step is reused only under the same pins.
+    - With nothing stored, a run pins exactly `default_methods()`, as before:
+      `test_with_nothing_stored_a_run_pins_the_codes_methods`.
+  - **Formulas are not computed yet.** `COMPUTED_SLOTS` is empty, so `activate` refuses a version
+    that replaces a formula (`formula_not_computed`). A run must never compute the built-in formula
+    while its methodology says another. Such a version is stored and shown, never put in force,
+    until the engine evaluates that slot.
+  - **Tests.**
+    - `apps/executors/tests/test_methodology_run_pins.py`: four tests through the real worker. An
+      edited sigma and n_min are computed in the map; an earlier run keeps 0.25; reset gives the
+      code's pins again.
+    - `test_methodology_repository.py::test_a_version_replacing_a_formula_the_engine_does_not_compute_is_not_put_in_force`.
 - **A5. API.**
   - Read: `GET /api/v1/methodology` and `/{module}` (`OrganizationDep`).
   - Write (`require_administer`): `POST /{module}/versions`, `POST /{module}/check` and
     `PUT /{module}/activation`.
   - The API never names a preset (`layer_check`). It asks the domain.
-- **A6. Web.**
+- **A5b. Landed.** These routes are in `apps/api/src/aia_api/routers/methodology.py`.
+  - **`GET /{module}/versions`** returns what is in force (`origin: stored | code`), every stored
+    version (its whole spec, its replaced formulas and its digest), the activation log, and
+    `may_administer`.
+  - **`POST /{module}/check`** asks the domain's own `validate_version` and stores nothing.
+    - Any member may check.
+    - It returns every problem at once, plus `not_computed`: the replaced formulas a version may
+      store but not yet put in force.
+  - **`POST /{module}/versions`** (201) and **`PUT /{module}/activation`** write through
+    `MethodologyRepository`, which runs `require_administer`; a member gets 403
+    `insufficient_role`.
+  - **Refusals keep the repository's codes.**
+    - 404: `unknown_module`, `unknown_version`.
+    - 409: `concurrent_edit`, `formula_not_computed`, `version_missing`.
+    - Anything else is 422, with `details.problems` field by field.
+  - **The old `test_nothing_here_writes`** became
+    `test_the_only_writes_are_a_version_a_check_and_an_activation`.
+  - **Tests.** `apps/api/tests/test_methodology_api.py`, eight new tests.
+- **A5a + A6. Landed.**
+  - **The route.** `apps/api/src/aia_api/routers/methodology.py` serves `GET /api/v1/methodology`
+    and `/{module_id}?preset=`.
+    - It uses `OrganizationDep`, so any member reads it.
+    - Its only job is to serialise `describe()`. A value the preset omits is `absent: true` with
+      `value: null`, never a zero.
+    - There is no write route; a test pins that.
+  - **The fixture.** `tools/methodology_fixture.py` writes `apps/web/src/lib/fixtures/methodology.json`
+    from the route's own builder. `test_the_web_fixture_is_what_the_api_serves` fails when it is
+    stale.
+  - **The web tab.** `MethodologyPanel.tsx` is a new Settings tab, "Metodika". It shows a module
+    list, a methodology selector, the steps in their groups, and each step's formula, symbols,
+    values with origin, evidence, and function and tests. Supporting pieces:
+    - `src/lib/methodology.ts`: value wording (absent and null in words, tiny tolerances as
+      powers of ten) and grouping;
+    - Temml 0.13.5, pinned, used with `trust: false`.
+  - **What the tests caught.** `src/lib/methodology.test.ts` renders all of the API's formulas and
+    symbols (130). On its first run it found three formulas where `\quad` had run into the next
+    letter; that fix is on the S1 branch. A test pins that markup comes out escaped and that
+    `\href` is refused, because the page inserts Temml's output as HTML.
+  - **Temml version.** 0.14.0 was three days old when this was written, so 0.13.5 (six weeks
+    old) is pinned instead.
+- **A6. Web, as planned.**
   - `TABS` gains `methodology`, labelled "Metodika", and `OWN_TABS` gains it. The UI is Czech.
   - Inside the tab: a module list; per step, the formula (MathML via Temml, pinned), symbols, a
     parameter table (value, unit, origin, allowed range), evidence (rule, label, source page),
@@ -213,7 +338,188 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - Number inputs accept scientific notation and negatives. Deep Research's `parseInput` refuses
     both, so it is not reused.
   - Vitest renders every formula in a captured API document.
-- **S1.** Rules for every step the register lacks, and the null and wrong pointers fixed
+- **S1a. Landed.**
+  - `domain/methodology/sociomap.py` is module `sociomap`. Its presets are `aia-sociomap-3`
+    (in force) and `aia-sociomap-2`. It has 22 steps in 16 groups: M, then F1–F16, with F12–F13
+    as one group.
+  - Every leaf of both presets is shown exactly once. Each step pins its function, cites its
+    AUDIT rule (or the Q6/Q7 decision) and names its tests.
+  - F5 is empty here: the object map reads no supplied matrix. F14 and F15 are "V AIA zatím
+    není", with the audit's proposal. F16 is open and belongs to the reference map. F10 shows the
+    audit's proposed placement against `respondent_placement = null`.
+  - The constants outside the specification are shown as code: the Stress bands, the K100
+    quantiles and generator, `_FISHER_MIN_N`, `_V3_N_MIN_FLOOR` and `FIXED_RULER_EXTENT`. The
+    three-object minimum is a bare literal and is named in its step's note. S2 moves these into
+    the specification.
+  - Tests: `test_methodology_sociomap.py` covers the audit order, the values in force, absent
+    vs `None`, code-vs-specification labels, and that every cited register rule exists.
+- **S1b. Landed.**
+  - `domain/methodology/sociomap_reference.py` is module `sociomap_reference`, preset
+    `aia-sociomap-1`. It has 17 steps in six stage groups:
+    1. method;
+    2. inputs and scale;
+    3. relations;
+    4. unfolding and frame;
+    5. scores;
+    6. terrain.
+  - All 29 values are shown once.
+  - Each step the audit criticises cites the AUDIT rule with the criticism in one line: F2, F3,
+    F4, F5, F6, F8, F9, F12 and F16.
+  - Evidence is the F1–F9 fixtures and the 18.6.6 functions it ports. The module says it is not
+    edited.
+  - Shown as code: the 5-rater threshold and 5.5 inside `derive_relation_matrix` are bare literals
+    of a ported function. They stay code, because the reference map is not edited.
+- **S3. Landed.**
+  - `domain/methodology/sociomap_formulas.py` declares 14 slots, each with the expression the
+    engine computes: F1 scale, F2 person min-max, F3 Kish n, the lower and upper Fisher bounds,
+    the effect floor, F6 distance, F7 Stress-1, F8 alignment, connectedness and height, F9 K100,
+    the F12 kernel, and the map's support n.
+  - `test_methodology_sociomap_formulas.py` evaluates each against the engine's own function
+    (`_scaled`, `person_minmax`, `kish_effective_n`, `fisher_interval`, `meets_effect_floor`,
+    `correlation_distance`, `_object_stress`, `primary_scores`, `_heights`,
+    `connectedness_100`, `envelope_at`, `_support`). Inputs are random and boundary cases:
+    |r| = 1, an empty weight, all known pairs. The values are equal as floats, not
+    approximately.
+  - `module_problems` now also requires that each built-in formula compiles and keeps its
+    slot's properties.
+  - The API sends each step's `formulas` (expression, LaTeX written from it, variables,
+    properties). The tab shows them in a "Vzorec jako výraz" block, and the web render test
+    covers their LaTeX.
+  - Algorithms stay code and have no slot: the status classification, the linear quantile, the
+    ranking, SMACOF, mappability, and the envelope's maximum over hills.
+- **S4a. Landed.** The editor is `apps/web/src/components/aia/settings/MethodologyVersions.tsx`;
+  its pure part is `apps/web/src/lib/methodology-edit.ts`.
+  - **What an editable module shows.**
+    - What is in force, with its origin.
+    - Every stored version and what it changes against its base preset (dotted fields, plus
+      `ƒ <slot>` for each replaced formula).
+    - Activation with a reason, back to the code's preset, and the history.
+    - For an administrator, the editor.
+  - **The editor starts from the whole specification** of a preset or a stored version.
+    - The presets come from `GET …/versions`, a field this PR adds.
+    - It offers every specification field the catalogue lists, and each formula slot as an
+      expression.
+    - A typed value keeps its type: a number takes a decimal comma; nothing coerces across
+      types.
+    - A field the base lacks is refused, never created (`withPath`).
+    - Only a formula that differs from its built-in expression is sent.
+  - **The check is the domain's own** (`POST …/check`). Its problems land at the field or slot
+    they name; a problem no field shows is listed above the form. A replaced formula is drawn
+    from the LaTeX the check writes (`formulas_latex`, added here), with the "not in force yet"
+    note while `COMPUTED_SLOTS` is empty.
+  - **The API changes.**
+    - `ModuleSummary.editable` (the reference map is shown and never edited).
+    - `VersionsOut.presets` and `CheckOut.formulas_latex`.
+    - The web fixture now carries `presets`.
+  - **`Formula` moved** to `MethodologyFormula.tsx`, so the panel and the editor do not import
+    each other.
+  - **Tests.**
+    - `methodology-edit.test.ts` (9, against the API's own document).
+    - `MethodologyVersions.test.tsx` (7, a stateful fake of the four routes).
+    - Two new API tests.
+  - **Seen in a browser** on the workbench, against the real API. The editor stored
+    `terrain.sigma` 0.3, showed the domain's `n_min` refusal at its field, drew a replaced
+    kernel and put the version in force, with no console error.
+- **S4c. Landed.** The engine computes every slot from a version's expression.
+  - **The vocabulary.** `domain/sociomap/slots.py` names the 14 slot ids the engine reads
+    (`ENGINE_SLOTS`). It knows nothing of the expression language.
+  - **Each function takes `slots`** (default `NO_SLOTS`) and calls a replaced slot by its
+    variables exactly where its own formula ran. The functions are `_scaled` (F1),
+    `person_minmax` (F2), `derive_pair_relations` (F3: Kish n, either interval bound, and the
+    floor test), `correlation_distances` (F6), the reported Stress-1 over `stress_terms`
+    (F7), `primary_scores` (F8), `_heights` (F8), `connectedness_100` (F9: K and K100 in the
+    full sample and every resample), `envelope_at` / `object_envelope` (F12: the kernel at
+    the hill's height, its reach at height 1) and `_support`.
+  - **The algorithms stay code:** which rows are excluded, which pairs are read, SMACOF, the
+    bootstrap draws, the maximum over hills.
+  - **A replaced interval decides the status** through `status_of_interval`, the same rule.
+  - **The pin.**
+    - `SociomapMethod.formulas` carries what a version replaces. It is left out of the stored
+      form when empty, so every code preset's pin and `methods_fingerprint` are byte for byte
+      as before.
+    - `SociomapMethod.slots()` compiles the formulas again on read. It refuses by name a
+      formula that does not compile, names no engine slot, or sits on a contract-2 map.
+    - The research body's `methods` entry records the formulas beside the map they shaped.
+    - A map computed with a replaced formula never lends its K100 to the body.
+  - **`COMPUTED_SLOTS` is now `ENGINE_SLOTS`.** `formula_not_computed` stays as the guard for
+    a slot added to the catalogue before the engine reads it; a test narrows the set to
+    reach it.
+  - **The step pins moved** for the ten steps whose functions gained `slots`, and were re-read.
+    With no slot replaced, every golden, parity-capture and engine test passes unchanged.
+  - **Tests.**
+    - `test_methodology_engine_slots.py` (36). For each slot, its built-in expression gives the
+      code's map bit for bit (`model_dump` equality) on a weighted panel with gaps, the
+      bootstrap and the terrain. Another expression moves what that slot computes.
+    - The pin's tests.
+    - `test_a_run_computes_the_formula_its_methodology_replaced`, through the real worker.
+- **S4b. Landed.** The draft check lives in `domain/methodology/sociomap_check.py`.
+  - **What it computes.** It runs the draft and the methodology in force through the real
+    engine (`compute_object_map`, each with its own slots) on `CHECK_PANELS`, three fixed
+    fictional panels from seeded generators; no client data is read:
+    - balanced: 120 respondents, equal weights;
+    - weighted: 90, weights 0.3 to 3, 8 % blank, one SECONDARY object;
+    - small: 36, near `n_min`.
+  - **What it reports** per panel:
+    - the outcome and its reason;
+    - Stress-1 and its band;
+    - status counts and every pair whose status changes;
+    - each object's shift once the draft is turned onto the map in force
+      (`align_to_reference`: rotation and reflection only);
+    - heights;
+    - the K100 point (`f9.k100` of K);
+    - support n;
+    - the largest terrain-cell change.
+  - **K100's interval is not in the check.** It is computed without the bootstrap, which costs
+    about 1.6 s per map at B = 500 (measured on 120 x 8). The check says so on every panel; the
+    run computes the interval.
+  - **The check resolves both sides through the run's own pin** (`sociomap_methods_for`), so it
+    computes exactly what a run would. All three panels take 0.13 s for parameter edits.
+  - **The route** is `POST /api/v1/methodology/{module}/compare`, for any member, storing
+    nothing. An invalid edit returns its problems; a module other than the object map is 422
+    `no_comparison`.
+  - **The editor** has a "Porovnat s metodikou v platnosti" button and a per-panel comparison
+    (`MethodologyComparison.tsx`). It says plainly what did not move.
+  - **Seen on the workbench.** `n_min` 34 plus `sigma` 0.3 leaves the balanced and weighted
+    maps unchanged except the terrain, which moves by up to 0.07. The small panel becomes
+    unmappable (DISCONNECTED: 13 pairs drop to UNKNOWN).
+  - **Tests.**
+    - `test_methodology_sociomap_check.py` (7): fixed panels; a methodology beside itself moves
+      nothing; `n_min` moves statuses only where the panel is small; `sigma` moves only the
+      terrain; a replaced δ moves objects; a replaced K100 halves it; a payload is checked
+      through the pin.
+    - Four API tests and two web tests.
+- **Finding H5 (fixed in this PR).** The body's K100 was copied from an object map whose
+  evidence basis is not the body's.
+  1. **Claim.** `battery_sociomap` copies the K100 of an object map whose bootstrap matches by
+     B, seed, n_min, confidence and roles. It did not compare the evidence basis: the body's
+     statuses read the respondent count, `aia-sociomap-3`'s read Kish's n.
+  2. **Anchor.** `packages/aia_core/src/aia_core/domain/research_sociomap.py:507 @ e9d68b4`
+     (the guard, before the fix).
+  3. **Reproduce.**
+     `pytest packages/aia_core/tests/test_research_sociomap_k100_copy.py`: 45 respondents of
+     case A01, one in three weighted 20 times the others.
+  4. **Consequence.** With the bootstrap switched on
+     (`AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED`) and `aia-sociomap-3` pinned beside the
+     reference map, as every new run has it, the stored body recorded no K100 for any object
+     (`known_pairs` 0). Its own bootstrap gives kava 36.97, upper bound 61.43, for example.
+     No screen reads the body's K100 today; the stored internal artifact is wrong.
+  5. **Fix.** The guard also requires the map's basis to be `respondent_count`. Today no
+     default map matches, so the body computes its own K100: about 90 s per large set while
+     the switch is on.
+  6. **Test.** The one above. It also asserts that the map's K100 differs on that panel, so it
+     cannot pass vacuously.
+- **Finding H4.** The domain's problems are English sentences, shown verbatim on a Czech page:
+  `n_min 2 is below 4: the Fisher interval needs four raters`
+  (`packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 41dc1be`).
+  - Reproduce: `MethodologyVersions.test.tsx`-style check with `relation.n_min` 2, or the
+    workbench editor.
+  - Consequence: the methodologist reads the reason in English.
+  - Smallest fix: a problem code beside each message, and Czech words for the codes in
+    `cs.ts`, with the English as the fallback.
+  - Test: one per code, in the web suite.
+  - It is not fixed here because the messages belong to the specification validators, which S2
+    rewrites.
+- **S1d.** Rules for every step the register lacks, and the null and wrong pointers fixed
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that
   plan's open PR.

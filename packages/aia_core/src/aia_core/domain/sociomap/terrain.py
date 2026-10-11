@@ -35,6 +35,7 @@ from typing import Literal, Self
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from .metrics import NormalizationMode, build_normalizer
+from .slots import KERNEL, NO_SLOTS, Slots
 
 __all__ = [
     "TERRAIN66_OBJECT",
@@ -407,13 +408,32 @@ class EnvelopeTerrain(BaseModel):
 
 
 def envelope_at(
-    x: float, y: float, hills: Sequence[EnvelopeHill], sigma: float, cutoff: float
+    x: float,
+    y: float,
+    hills: Sequence[EnvelopeHill],
+    sigma: float,
+    cutoff: float,
+    *,
+    slots: Slots = NO_SLOTS,
 ) -> tuple[float, int] | None:
     """``z`` at ``(x, y)`` and the index of the hill that sets it; ``None`` when no hill's
-    kernel reaches ``cutoff`` there."""
+    kernel reaches ``cutoff`` there.
+
+    ``slots`` may replace the kernel (``f12.kernel``, ADR 0023): a hill's ``z`` is then the
+    replaced kernel at its height, and whether it reaches ``cutoff`` is the kernel at height
+    1, as the code's. Taking the maximum over hills stays this rule."""
+    kernel = slots.get(KERNEL)
     two_sigma_sq = 2.0 * sigma * sigma
     best: tuple[float, int] | None = None
     for k, hill in enumerate(hills):
+        if kernel is not None:
+            d2 = (x - hill.x) ** 2 + (y - hill.y) ** 2
+            if float(kernel(h=1.0, d2=d2, sigma=sigma)) < cutoff:
+                continue
+            z = float(kernel(h=hill.height, d2=d2, sigma=sigma))
+            if best is None or z > best[0]:
+                best = (z, k)
+            continue
         w = math.exp(-((x - hill.x) ** 2 + (y - hill.y) ** 2) / two_sigma_sq)
         if w < cutoff:
             continue
@@ -423,8 +443,11 @@ def envelope_at(
     return best
 
 
-def object_envelope(hills: Sequence[EnvelopeHill], params: EnvelopeParameters) -> EnvelopeTerrain:
-    """The F12 envelope of ``hills`` on ``params``' grid. See the section above."""
+def object_envelope(
+    hills: Sequence[EnvelopeHill], params: EnvelopeParameters, *, slots: Slots = NO_SLOTS
+) -> EnvelopeTerrain:
+    """The F12 envelope of ``hills`` on ``params``' grid. See the section above; ``slots``
+    as :func:`envelope_at`'s."""
     ids = tuple(h.entity_id for h in hills)
     if len(set(ids)) != len(ids):
         raise ValueError("envelope hill ids must be unique")
@@ -432,7 +455,9 @@ def object_envelope(hills: Sequence[EnvelopeHill], params: EnvelopeParameters) -
     height: list[tuple[float | None, ...]] = []
     governing: list[tuple[int | None, ...]] = []
     for y in axis:
-        cells = [envelope_at(x, y, hills, params.sigma, params.kernel_cutoff) for x in axis]
+        cells = [
+            envelope_at(x, y, hills, params.sigma, params.kernel_cutoff, slots=slots) for x in axis
+        ]
         height.append(tuple(None if c is None else c[0] for c in cells))
         governing.append(tuple(None if c is None else c[1] for c in cells))
     return EnvelopeTerrain(

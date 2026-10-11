@@ -76,6 +76,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from .slots import DISTANCE, NO_SLOTS, Slots
+
 __all__ = [
     "CORRELATION_DISTANCE_MAX",
     "LAYOUT_ALGORITHMS",
@@ -714,13 +716,18 @@ class ObjectLayout:
 
 
 def correlation_distances(
-    r: Sequence[Sequence[float | None]], known: Sequence[Sequence[bool]]
+    r: Sequence[Sequence[float | None]],
+    known: Sequence[Sequence[bool]],
+    *,
+    slots: Slots = NO_SLOTS,
 ) -> list[list[float | None]]:
     """F6's targets from signed correlations: ``None`` where a pair is not known (F3).
 
     ``known[i][j]`` is whether the pair's status lets it pull (RELIABLE or WEAK); a known
-    pair must carry a correlation. The diagonal is ``0.0``.
+    pair must carry a correlation. The diagonal is ``0.0``. ``slots`` may replace
+    ``delta(r)`` (``f6.distance``, ADR 0023).
     """
+    replaced = slots.get(DISTANCE)
     m = len(r)
     if len(known) != m or any(len(row) != m for row in (*r, *known)):
         raise ValueError(f"r and known must both be {m} x {m}")
@@ -733,7 +740,9 @@ def correlation_distances(
             value = r[i][j]
             if value is None:
                 raise ValueError(f"pair ({i}, {j}) is known but has no correlation")
-            out[i][j] = correlation_distance(value)
+            out[i][j] = (
+                correlation_distance(value) if replaced is None else float(replaced(r=value))
+            )
     return out
 
 
@@ -754,6 +763,24 @@ def _solve(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
                 factor = aug[k][col]
                 aug[k] = [vk - factor * vc for vk, vc in zip(aug[k], aug[col], strict=True)]
     return [row[n:width] for row in aug]
+
+
+def stress_terms(
+    points: Sequence[Point], delta: Sequence[Sequence[float | None]]
+) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Each known pair's map distance ``d`` and target ``delta``, in the order eq. 14 sums
+    them: what a replaced Stress-1 (``f7.stress_1``, ADR 0023) reads."""
+    m = len(points)
+    d: list[float] = []
+    t: list[float] = []
+    for i in range(m):
+        for j in range(i + 1, m):
+            target = delta[i][j]
+            if target is None:
+                continue
+            d.append(math.hypot(points[i][0] - points[j][0], points[i][1] - points[j][1]))
+            t.append(target)
+    return tuple(d), tuple(t)
 
 
 def _object_stress(

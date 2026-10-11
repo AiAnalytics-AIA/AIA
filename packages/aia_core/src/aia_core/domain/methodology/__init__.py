@@ -11,6 +11,7 @@ Pure: stdlib and Pydantic only.
 """
 
 from .catalogue import (
+    BuiltinFormula,
     ConstantRef,
     Evidence,
     EvidenceKind,
@@ -40,6 +41,7 @@ from .resolution import (
 __all__ = [
     "ABSENT",
     "MODULES",
+    "BuiltinFormula",
     "ConstantRef",
     "Evidence",
     "EvidenceKind",

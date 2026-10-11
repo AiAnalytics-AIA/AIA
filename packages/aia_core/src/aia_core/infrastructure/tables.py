@@ -1662,6 +1662,78 @@ class DeepResearchSettingApprovalRow(Base):
 
 
 # --------------------------------------------------------------------------- #
+# Methodology versions (ADR 0023, plan methodology-tab A3)
+# --------------------------------------------------------------------------- #
+
+
+class MethodologyVersionRow(Base):
+    """One edited methodology of a method module. Immutable (ADR 0023 decision 3).
+
+    A version is never updated or deleted, so what a run pinned can always be read back.
+    ``version_number`` counts per organization and module from 1; the code's preset is not a
+    row. ``payload`` is the validated whole specification and the replaced formulas
+    (``domain.methodology.versions.version_payload``); ``payload_sha256`` its digest.
+    """
+
+    __tablename__ = "methodology_versions"
+
+    version_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    module_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    base_preset: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    payload_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    note: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "module_id", "version_number", name="uq_methodology_version"
+        ),
+        CheckConstraint("version_number >= 1", name="methodology_version_positive"),
+        Index("ix_methodology_versions_module", "organization_id", "module_id", "version_number"),
+    )
+
+
+class MethodologyActivationRow(Base):
+    """Which version of a module is in force for an organization. Append-only.
+
+    The newest row for a module wins. ``version_number`` NULL means the code's preset: going
+    back is a new row, never a delete, so the record of what was in force, put there by whom
+    and when, is complete. A run does not read this table once started: it pins its
+    methodology when it starts (chunk A4).
+    """
+
+    __tablename__ = "methodology_activations"
+
+    activation_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    module_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    version_number: Mapped[int | None] = mapped_column(Integer)
+    activated_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    activated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "module_id", "version_number"],
+            [
+                "methodology_versions.organization_id",
+                "methodology_versions.module_id",
+                "methodology_versions.version_number",
+            ],
+        ),
+        Index("ix_methodology_activations_module", "organization_id", "module_id", "activation_id"),
+    )
+
+
+# --------------------------------------------------------------------------- #
 # Fan-out coordination (Deep Research chunk 21)
 # --------------------------------------------------------------------------- #
 

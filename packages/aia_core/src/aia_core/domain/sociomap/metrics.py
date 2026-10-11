@@ -40,6 +40,7 @@ from enum import StrEnum
 from typing import Any, Final
 
 from .relations import PairStatus
+from .slots import ALIGNMENT, CONNECTEDNESS, K100, NO_SLOTS, Slots
 
 __all__ = [
     "AUDIT_PROVISIONAL_DEFAULT_HEIGHT",
@@ -490,6 +491,8 @@ def primary_scores(
     r: Sequence[Sequence[float | None]],
     status: Sequence[Sequence[PairStatus | str | None]],
     roles: Mapping[str, ObjectRole | str],
+    *,
+    slots: Slots = NO_SLOTS,
 ) -> PrimaryScores:
     """Alignment ``A_i`` and connectedness ``K_i`` of every PRIMARY object (audit F8).
 
@@ -502,7 +505,12 @@ def primary_scores(
     read; a RELIABLE or WEAK pair must carry a correlation in [-1, 1], and the
     two halves of every PRIMARY pair must agree. SECONDARY rows and columns are
     not read at all, so a context object cannot move a PRIMARY score.
+
+    ``slots`` may replace either score's formula over the object's known ``r``
+    (``f8.alignment`` / ``f8.connectedness``, ADR 0023); which pairs are read stays this
+    rule.
     """
+    align, connect = slots.get(ALIGNMENT), slots.get(CONNECTEDNESS)
     ids = list(object_ids)
     declared = _roles(ids, roles)
     m = len(ids)
@@ -530,11 +538,19 @@ def primary_scores(
     for i in primary:
         values = [known[(i, j)] for j in primary if j != i and (i, j) in known]
         k = len(values)
+        alignment = connectedness = None
+        if k:
+            alignment = math.fsum(values) / k if align is None else float(align(r=tuple(values)))
+            connectedness = (
+                math.fsum(abs(v) for v in values) / k
+                if connect is None
+                else float(connect(r=tuple(values)))
+            )
         scores.append(
             PrimaryObjectScore(
                 object_id=ids[i],
-                alignment=math.fsum(values) / k if k else None,
-                connectedness=math.fsum(abs(v) for v in values) / k if k else None,
+                alignment=alignment,
+                connectedness=connectedness,
                 known_pairs=k,
                 unknown_partners=tuple(ids[j] for j in primary if j != i and (i, j) not in known),
             )
@@ -729,6 +745,7 @@ def connectedness_100(
     respondents: int,
     resamples: int,
     seed: int,
+    slots: Slots = NO_SLOTS,
 ) -> Connectedness100:
     """``K100_i = 100 K_i`` with its respondent-bootstrap interval (audit F9).
 
@@ -744,7 +761,15 @@ def connectedness_100(
     Each resample draws ``respondents`` indices with replacement. The section's
     notes give the pair-status reading and what a resample that cannot compute
     a pair does.
+
+    ``slots`` reach every score this computes: ``K_i`` (``f8.connectedness``) in the full
+    sample and in each resample, and ``K100`` from it (``f9.k100``), ADR 0023.
     """
+    scale = slots.get(K100)
+
+    def k100_of(k: float) -> float:
+        return 100.0 * k if scale is None else float(scale(k=k))
+
     n = _positive_int(respondents, "respondents")
     b = _positive_int(resamples, "resamples")
     if isinstance(seed, bool) or not isinstance(seed, int):
@@ -752,7 +777,7 @@ def connectedness_100(
     ids = list(object_ids)
     m = len(ids)
     full_r, full_status = correlate([1] * n)
-    full = primary_scores(ids, full_r, full_status, roles)
+    full = primary_scores(ids, full_r, full_status, roles, slots=slots)
     denominators = {s.object_id: s.known_pairs for s in full.scores}
     draws: dict[str, list[float]] = {
         s.object_id: [] for s in full.scores if s.connectedness is not None
@@ -775,13 +800,13 @@ def connectedness_100(
             ]
             for i in range(m)
         ]
-        for s in primary_scores(ids, r_b, status_b, roles).scores:
+        for s in primary_scores(ids, r_b, status_b, roles, slots=slots).scores:
             if (
                 s.object_id in draws
                 and s.connectedness is not None
                 and s.known_pairs == denominators[s.object_id]
             ):
-                draws[s.object_id].append(100.0 * s.connectedness)
+                draws[s.object_id].append(k100_of(s.connectedness))
 
     low_q, high_q = CONNECTEDNESS_QUANTILES
     out: list[ConnectednessInterval] = []
@@ -790,7 +815,7 @@ def connectedness_100(
         out.append(
             ConnectednessInterval(
                 object_id=s.object_id,
-                k100=None if s.connectedness is None else 100.0 * s.connectedness,
+                k100=None if s.connectedness is None else k100_of(s.connectedness),
                 low=linear_quantile(values, low_q) if values else None,
                 high=linear_quantile(values, high_q) if values else None,
                 resamples_scored=len(values),
