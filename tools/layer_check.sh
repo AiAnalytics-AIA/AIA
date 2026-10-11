@@ -210,6 +210,24 @@ forbid "executors never touch the prompt tables" \
   'Prompt(Version|Activation)Row' \
   "$EXECUTORS"
 
+# The methodology is data the methodologist edits (ADR 0023). Its rows are written and read
+# only through their repository, which validates every version against its module (the
+# specification's own validator, each formula's slot), refuses anyone who may not administer,
+# keeps versions immutable and audits every change.
+forbid "the methodology tables are touched only by their repository" \
+  'Methodology(Version|Activation)Row' \
+  "$CORE" \
+  tables.py methodology_repository.py
+forbid "the API never touches the methodology tables" \
+  'Methodology(Version|Activation)Row' \
+  "$API"
+forbid "the worker never touches the methodology tables" \
+  'Methodology(Version|Activation)Row' \
+  "$WORKER"
+forbid "executors never touch the methodology tables" \
+  'Methodology(Version|Activation)Row' \
+  "$EXECUTORS"
+
 # Deep Research's policy values are data an Admin approves (ADR 0022). Their rows are written
 # and read only through their repository, which validates every value against the catalogue,
 # refuses anyone who may not administer, keeps versions immutable and audits every change.
