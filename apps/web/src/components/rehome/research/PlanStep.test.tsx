@@ -35,9 +35,9 @@ const ANALYSIS = {
 
 type Call = { url: string; body: Record<string, unknown> | null };
 let calls: Call[] = [];
-function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}) {
+function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown) => unknown> = {}, project: Record<string, unknown> = PROJECT) {
   calls = [];
-  const ws = workspaceFixture(PROJECT, { analysis: analysis });
+  const ws = workspaceFixture(project, { analysis: analysis });
   const native = nativeAgentFixture((_action, baseline) => ({ project: { ...baseline, research_plan: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }, proposal: { ...ANALYSIS, problem_summary: "Nové shrnutí." }, analysis: { ...ANALYSIS, problem_summary: "Nové shrnutí." } }), over);
   vi.stubGlobal(
     "fetch",
@@ -50,6 +50,7 @@ function unitStub(analysis: unknown = ANALYSIS, over: Record<string, (b: unknown
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
+  return ws;
 }
 const posted = (path: string) => calls.filter((c) => c.url.split("?")[0] === path && (!path.startsWith("/api/v1/") || c.body !== null));
 
@@ -197,5 +198,80 @@ describe("Návrh", () => {
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: /Další · dotazník/ }));
     expect(push).toHaveBeenCalledWith(stagePath("questionnaire"));
+  });
+});
+
+
+describe("direct proposal editing", () => {
+  it("retains native saved sets when adding another set without a legacy analysis", async () => {
+    const existing = { ...ANALYSIS.tracked_sets[0], objects: ["A", "B", "C", "D"] };
+    const ws = unitStub(null, {}, { ...PROJECT, research_plan: { objectives: ["Saved objective"], tracked_sets: [existing] } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat sadu" }));
+    const input = screen.getAllByLabelText("Název sady").find((e) => e.getAttribute("placeholder") !== "Název sady")!;
+    fireEvent.change(input, { target: { value: "Nová sada" } });
+    fireEvent.submit(input.closest("form")!);
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    const sets = (ws.saves.at(-1)!.content.research_plan as { tracked_sets: unknown[] }).tracked_sets;
+    expect(sets).toHaveLength(2);
+    expect(sets[0]).toEqual(existing);
+  });
+
+  it("shows a native saved plan without a legacy analysis and persists human narrative edits to both representations", async () => {
+    const ws = unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "Uložený problém", objectives: ["Uložený cíl"], research_questions: ["Uložená otázka?"], status: "approved" } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Uložený cíl")).toBeTruthy();
+    expect(screen.queryByText("Zatím není návrh")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Upravit text návrhu" }));
+    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
+    fireEvent.change(within(form).getByLabelText("Shrnutí výzkumného problému"), { target: { value: "Upravený problém" } });
+    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "První cíl\n\nDruhý cíl" } });
+    fireEvent.change(within(form).getByLabelText("Výzkumné otázky"), { target: { value: "Nová otázka?" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    expect(ws.saves.at(-1)?.content.research_plan).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"], research_questions: ["Nová otázka?"], status: "approved" });
+    expect(ws.saves.at(-1)?.analysis).toMatchObject({ problem_summary: "Upravený problém", objectives: ["První cíl", "Druhý cíl"] });
+    expect(posted(DESIGN_PATH)).toEqual([]); // manual editing never pays for an AI task
+  });
+
+  it("validates narrative edits, cancels without changes, and guards leaving an unfinished editor", async () => {
+    const ws = unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Upravit text návrhu" }));
+    const form = screen.getByRole("form", { name: "Upravit text návrhu" });
+    fireEvent.change(within(form).getByLabelText("Co má výzkum zjistit"), { target: { value: "" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Použít úpravy návrhu" }));
+    expect(await screen.findByText("Doplňte alespoň jeden cíl výzkumu.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: /Další · dotazník/ }) as HTMLButtonElement).disabled).toBe(true);
+    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    fireEvent.click(within(form).getByRole("button", { name: "Zrušit úpravy" }));
+    expect(screen.getByText("Změřit zájem")).toBeTruthy();
+    expect(ws.saves).toEqual([]);
+  });
+
+  it("edits a complete measurement with a live preview, preserves its extra fields and the existing questionnaire, and confirms scope replacement", async () => {
+    const analysis = { ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], purpose: "Porovnat varianty", objects: ["A", "B", "C", "D"], custom_method: "keep" }] };
+    const ws = unitStub(analysis, {}, { ...PROJECT, sections: [{ title: "Existující dotazník" }] });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Upravit měření a položky" }));
+    const form = screen.getByRole("form", { name: "Upravit měření a položky" });
+    fireEvent.change(within(form).getByLabelText("Otázka sady · položí se ke každé položce"), { target: { value: "Chybná otázka" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
+    expect(await screen.findByText(/Vyplňte název, účel/)).toBeTruthy();
+    fireEvent.change(within(form).getByLabelText("Otázka sady · položí se ke každé položce"), { target: { value: "Zvolili byste {object}?" } });
+    fireEvent.change(within(form).getByLabelText("Položky sady (jedna na řádek)"), { target: { value: "Nová A\nB\nC\nD" } });
+    fireEvent.change(within(form).getByLabelText("1 na škále"), { target: { value: "určitě ne" } });
+    expect(within(form).getByText("Zvolili byste Nová A?")).toBeTruthy();
+    fireEvent.click(within(form).getByRole("button", { name: "Použít změny sady" }));
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 4000 });
+    const body = ws.saves.at(-1)!;
+    expect(body.content.sections).toEqual([{ title: "Existující dotazník" }]);
+    expect((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets[0]).toMatchObject({ objects: ["Nová A", "B", "C", "D"], scale_labels: ["určitě ne", "velmi"], custom_method: "keep" });
+    expect((body.analysis as { tracked_sets: unknown[] }).tracked_sets).toEqual((body.content.research_plan as { tracked_sets: unknown[] }).tracked_sets);
+    fireEvent.click(screen.getByRole("radio", { name: /Jen varianty/ }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect(screen.getByText("Zvolili byste Nová A?")).toBeTruthy();
   });
 });

@@ -760,14 +760,24 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const select = (tab: TabId) => {
     setActive(tab);
     setDrawn((d) => (d.has(tab) ? d : new Set(d).add(tab)));
-    if (typeof window !== "undefined") window.history.replaceState(null, "", `#${tab}`);
+    if (typeof window !== "undefined") window.history.replaceState(window.history.state, "", `#${tab}`);
   };
   // A link to /app/settings#prompts opens that tab. Read after mount so the server and the
   // first client render agree.
   useEffect(() => {
     const fromHash = tabFromHash();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable after mount
-    if (fromHash) select(fromHash);
+    if (fromHash) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate the section from the browser URL after mount
+      setActive(fromHash);
+      setDrawn((d) => d.has(fromHash) ? d : new Set(d).add(fromHash));
+    }
+    const followHash = () => {
+      const tab = tabFromHash();
+      if (tab) { setActive(tab); setDrawn((d) => d.has(tab) ? d : new Set(d).add(tab)); }
+    };
+    window.addEventListener("hashchange", followHash);
+    window.addEventListener("popstate", followHash);
+    return () => { window.removeEventListener("hashchange", followHash); window.removeEventListener("popstate", followHash); };
   }, []);
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = TABS.indexOf(active);
@@ -826,11 +836,11 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
       <div className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">{t(`${P}.title`)}</h2>
         <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.intro`)}</p>
-        <ul className="flex flex-wrap gap-4 border-t border-border pt-3">
+        <details><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.legendTitle`)}</summary><ul className="mt-3 flex flex-wrap gap-4 border-t border-border pt-3">
           {(["API", "DEPLOYMENT", "CODE", "INVARIANT"] as const).map((c) => (
             <li key={c} className="flex items-center gap-2 text-xs text-ink-muted"><ControlBadge control={c} />{t(`${P}.controlHelp.${c}`)}</li>
           ))}
-        </ul>
+        </ul></details>
       </div>
       <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex flex-wrap gap-1 border-b border-border">
         {TABS.map((tab) => (

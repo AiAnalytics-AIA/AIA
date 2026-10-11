@@ -37,20 +37,20 @@ export function StepSection({
   const mark = done ? "bg-status-done/14 text-status-done" : optional ? "bg-surface-sunken text-ink-muted" : "bg-signal-wash text-signal";
   return (
     <section id={id} aria-labelledby={headingId} className="scroll-mt-60 rounded-card border border-border bg-surface-raised p-5">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-wrap items-start gap-3">
         <span aria-hidden="true" className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold ${mark}`}>
           {done ? <Icon name="done" size={12} /> : n}
         </span>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-40">
           <h2 id={headingId} className={`font-semibold ${lead ? "text-lg leading-[26px]" : "text-base leading-6"}`}>
             {title}
             {optional ? <span className="text-[13px] font-normal text-ink-faint"> · {t("research.step.optional")}</span> : null}
           </h2>
           {hint ? <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{hint}</p> : null}
         </div>
-        {aside}
+        {aside ? <div className="max-w-full">{aside}</div> : null}
       </div>
-      {children ? <div className="mt-3.5 pl-9">{children}</div> : null}
+      {children ? <div className="mt-3.5 sm:pl-9">{children}</div> : null}
     </section>
   );
 }
@@ -164,13 +164,14 @@ export function Segmented<K extends string>({ value, options, onChange, label }:
  * A list of short values typed in: Enter adds the trimmed value, × removes one.
  * `backspaceRemoves` lets Backspace in an empty field take the last one back.
  */
-export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false }: {
+export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspaceRemoves = false, disabled = false }: {
   values: readonly string[];
   onAdd: (value: string) => void;
   onRemove: (index: number) => void;
   label: string;
   placeholder?: string;
   backspaceRemoves?: boolean;
+  disabled?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const key = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -186,15 +187,15 @@ export function ChipInput({ values, onAdd, onRemove, label, placeholder, backspa
   return (
     <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-control border border-border-strong bg-surface-raised px-2 py-1 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring">
       {values.map((v, i) => (
-        <span key={`${i}-${v}`} className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
-          {v}
-          <button type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`rounded-sm px-0.5 text-ink-faint hover:text-ink ${FOCUS}`}>
+        <span key={`${i}-${v}`} className="inline-flex max-w-full items-center gap-1 rounded-md border border-border bg-surface px-2 py-0.5 text-[13px] leading-5">
+          <span className="min-w-0 break-words">{v}</span>
+          <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`rounded-sm px-0.5 text-ink-faint hover:text-ink ${FOCUS}`}>
             ×
           </button>
         </span>
       ))}
       <input
-        aria-label={label}
+        aria-label={label} disabled={disabled}
         placeholder={placeholder}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}

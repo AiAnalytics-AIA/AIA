@@ -552,3 +552,13 @@ describe("the settings tabs", () => {
     expect(within(panelOf("Reference")).queryByText(/Pravidla Deep Research/)).toBeNull();
   });
 });
+
+
+it("follows changed settings hashes and preserves the framework's navigation state", async () => {
+  api(); render(<ControlPanel />); await screen.findByRole("tablist");
+  window.history.replaceState({ __NA: true, marker: "preserve" }, "", "/app/settings");
+  fireEvent.click(tab("Audit")); expect(window.history.state).toMatchObject({ __NA: true, marker: "preserve" });
+  window.history.replaceState(window.history.state, "", "/app/settings#reference");
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  await waitFor(() => expect(tab("Reference").getAttribute("aria-selected")).toBe("true"));
+});
