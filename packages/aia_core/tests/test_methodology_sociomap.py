@@ -19,7 +19,8 @@ from aia_core.domain.methodology import (
     module,
 )
 from aia_core.domain.methodology.sociomap import SOCIOMAP
-from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
+from aia_core.domain.methodology.sociomap_reference import SOCIOMAP_REFERENCE
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
 
 REPO = Path(__file__).resolve().parents[3]
 REGISTER = REPO / "docs/migration/sociomapping-evidence-register.json"
@@ -32,6 +33,7 @@ def _values(preset: str | None = None) -> dict[str, object]:
 
 def test_the_sociomap_is_registered() -> None:
     assert module("sociomap") is SOCIOMAP
+    assert module("sociomap_reference") is SOCIOMAP_REFERENCE
 
 
 def test_the_groups_follow_the_audit_from_f1_to_f16() -> None:
@@ -81,7 +83,11 @@ def test_constants_outside_the_specification_are_labelled_code() -> None:
 def test_every_register_rule_cited_is_in_the_register() -> None:
     rules = {r["id"] for r in json.loads(REGISTER.read_text(encoding="utf-8"))["rules"]}
     cited = {
-        e.ref for s in SOCIOMAP.steps for e in s.evidence if e.kind is EvidenceKind.REGISTER_RULE
+        e.ref
+        for m in (SOCIOMAP, SOCIOMAP_REFERENCE)
+        for s in m.steps
+        for e in s.evidence
+        if e.kind is EvidenceKind.REGISTER_RULE
     }
     assert cited and cited <= rules, sorted(cited - rules)
 
@@ -92,3 +98,40 @@ def test_every_audit_point_the_map_computes_cites_its_rule() -> None:
     }
     computed = {1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13}
     assert {f"AUDIT-F{n}" for n in computed} <= cited
+
+
+# --------------------------------------------------------------------------- the reference map
+
+
+def test_the_reference_map_shows_the_values_it_runs_with() -> None:
+    view = describe(SOCIOMAP_REFERENCE)
+    values = {v.reference: v.value for s in view.steps for v in s.values}
+    assert view.preset == "aia-sociomap-1"
+    assert values["layout.parameters.max_iterations"] == 2000
+    assert values["layout.map_frame.extent"] == AIA_SOCIOMAP_V1.layout.map_frame.extent == 45.0
+    assert values["terrain.respondent.sigma"] == 9.5
+    assert values["terrain.object.sigma"] == 12.0
+    assert values["aia_core.domain.sociomap.relations:_NAN_SENTINEL"] == 5.5
+
+
+def test_each_reference_step_the_audit_criticises_says_so() -> None:
+    criticised = {
+        s.id
+        for s in SOCIOMAP_REFERENCE.steps
+        for e in s.evidence
+        if e.kind is EvidenceKind.REGISTER_RULE and e.ref.startswith("AUDIT-") and e.note_cs
+    }
+    assert {
+        "relation_matrix",
+        "coercion",
+        "frame",
+        "relation_classic",
+        "tscore",
+        "terrain_objects",
+    } <= criticised
+
+
+def test_the_reference_map_is_kept_as_18_6_6_computed_it() -> None:
+    kinds = {e.kind for s in SOCIOMAP_REFERENCE.steps for e in s.evidence}
+    assert EvidenceKind.FIXTURE in kinds and EvidenceKind.LEGACY_PORT in kinds
+    assert "needituje" in SOCIOMAP_REFERENCE.note_cs

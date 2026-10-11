@@ -9,7 +9,7 @@ chunks:
   - "[ ] A5. API: GET /api/v1/methodology (modules, steps, values with origin, evidence, open questions); version routes"
   - "[ ] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
-  - "[ ] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
+  - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
@@ -231,6 +231,22 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     the specification.
   - Tests: `test_methodology_sociomap.py` covers the audit order, the values in force, absent
     vs `None`, code-vs-specification labels, and that every cited register rule exists.
+- **S1b. Landed.**
+  - `domain/methodology/sociomap_reference.py` is module `sociomap_reference`, preset
+    `aia-sociomap-1`. It has 17 steps in six stage groups:
+    1. method;
+    2. inputs and scale;
+    3. relations;
+    4. unfolding and frame;
+    5. scores;
+    6. terrain.
+  - All 29 values are shown once.
+  - Each step the audit criticises cites the AUDIT rule with the criticism in one line: F2, F3,
+    F4, F5, F6, F8, F9, F12 and F16.
+  - Evidence is the F1–F9 fixtures and the 18.6.6 functions it ports. The module says it is not
+    edited.
+  - Shown as code: the 5-rater threshold and 5.5 inside `derive_relation_matrix` are bare literals
+    of a ported function. They stay code, because the reference map is not edited.
 - **S1d.** Rules for every step the register lacks, and the null and wrong pointers fixed
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that

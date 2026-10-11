@@ -9,10 +9,11 @@ from __future__ import annotations
 
 from .catalogue import MethodModule
 from .sociomap import SOCIOMAP
+from .sociomap_reference import SOCIOMAP_REFERENCE
 
 __all__ = ["MODULES", "module"]
 
-MODULES: tuple[MethodModule, ...] = (SOCIOMAP,)
+MODULES: tuple[MethodModule, ...] = (SOCIOMAP, SOCIOMAP_REFERENCE)
 
 
 def module(module_id: str) -> MethodModule:
