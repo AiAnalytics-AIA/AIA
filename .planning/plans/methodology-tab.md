@@ -5,7 +5,7 @@ chunks:
   - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
   - "[x] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
   - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
-  - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
+  - "[x] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
   - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
   - "[ ] A5b. API: methodology version routes (after A3)"
   - "[x] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
@@ -258,6 +258,30 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - a retry keeps the pin;
     - every artifact's input fingerprint carries the pins of the modules that shape it;
     - a tampered pin fails closed.
+- **A4. Landed.**
+  - **What a run pins.** `ResearchRuns.start` reads `methodology_in_force_for_study`, which uses
+    the Study's own scope, so a start needs no administrator context. When a version is in force,
+    `domain.methodology.pins.sociomap_methods_for(payload)` makes it the run's second
+    `SociomapMethod`, `aia-sociomap-3+e<n>`; the reference `aia-sociomap-1` stays first. The run's
+    metadata gains `methodology: {module, version, name, payload_sha256}`.
+  - **Its identity.** The idempotency key carries `:methodology:<sha16>`, so the same revision under
+    an edited methodology is another run, and that run is idempotent. It goes through the spend
+    confirmation like any other start.
+  - **What already existed.** The existing `sociomap_methods` pin is the module's pin.
+    - A retry keeps it: `test_a_retry_keeps_the_methodology_its_run_pinned`.
+    - A tampered pin fails the step by name: `test_a_pin_that_does_not_verify_fails_the_step_by_name`.
+    - The sociomap step is reused only under the same pins.
+    - With nothing stored, a run pins exactly `default_methods()`, as before:
+      `test_with_nothing_stored_a_run_pins_the_codes_methods`.
+  - **Formulas are not computed yet.** `COMPUTED_SLOTS` is empty, so `activate` refuses a version
+    that replaces a formula (`formula_not_computed`). A run must never compute the built-in formula
+    while its methodology says another. Such a version is stored and shown, never put in force,
+    until the engine evaluates that slot.
+  - **Tests.**
+    - `apps/executors/tests/test_methodology_run_pins.py`: four tests through the real worker. An
+      edited sigma and n_min are computed in the map; an earlier run keeps 0.25; reset gives the
+      code's pins again.
+    - `test_methodology_repository.py::test_a_version_replacing_a_formula_the_engine_does_not_compute_is_not_put_in_force`.
 - **A5. API.**
   - Read: `GET /api/v1/methodology` and `/{module}` (`OrganizationDep`).
   - Write (`require_administer`): `POST /{module}/versions`, `POST /{module}/check` and

@@ -36,6 +36,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from aia_core.domain.methodology import MethodModule, module
+from aia_core.domain.methodology.pins import uncomputed_formulas
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
@@ -43,7 +44,7 @@ from aia_core.domain.methodology.versions import (
     validate_version,
     version_payload,
 )
-from aia_core.domain.scope import OrganizationContext
+from aia_core.domain.scope import OrganizationContext, StudyContext
 
 from .tables import AccessAuditRow, MethodologyActivationRow, MethodologyVersionRow, as_utc
 
@@ -54,6 +55,7 @@ __all__ = [
     "MethodologyRefused",
     "MethodologyRepository",
     "StoredVersion",
+    "methodology_in_force_for_study",
 ]
 
 _MAX_NOTE: Final = 500
@@ -165,6 +167,18 @@ def _in_force(session: Session, org: str, found: MethodModule) -> InForce:
             f"{found.id}: the version in force is missing", reason="version_missing"
         )
     return InForce(found.id, _stored(row), None)
+
+
+def methodology_in_force_for_study(
+    session: Session, scope: StudyContext, module_id: str
+) -> InForce:
+    """What the Study's organization has in force for ``module_id``: what a run started in it
+    pins (chunk A4).
+
+    Read through the Study's own resolved scope, so starting a run needs no
+    organization-administration context; only the organization's rows are read.
+    """
+    return _in_force(session, scope.organization_id, _module(module_id))
 
 
 class MethodologyReader:
@@ -328,6 +342,15 @@ class MethodologyRepository:
                 raise MethodologyRefused(
                     str(exc), reason="methodology_invalid", problems=exc.problems
                 ) from exc
+            # A run computes what it pins; never put in force a formula it would not compute.
+            missing = uncomputed_formulas(row.payload)
+            if missing:
+                raise MethodologyRefused(
+                    "the engine does not yet compute these formulas from a stored expression: "
+                    + ", ".join(missing),
+                    reason="formula_not_computed",
+                    problems={f"formula.{s}": "not computed by the engine yet" for s in missing},
+                )
         self._session.add(
             MethodologyActivationRow(
                 organization_id=org,

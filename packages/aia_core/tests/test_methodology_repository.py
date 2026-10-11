@@ -93,7 +93,7 @@ def test_activation_puts_a_version_in_force_and_reset_returns_to_the_preset(
 ) -> None:
     repo = _repo(scoped, session)
     _propose(repo, relation__n_min=40)
-    second = _propose(repo, formulas={"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
+    second = _propose(repo, terrain__sigma=0.3)
     in_force = repo.activate(SOCIOMAP, 2, reason="širší kopec ověřen")
     assert in_force.origin == "stored" and in_force.version is not None
     assert in_force.version.payload == second.payload
@@ -180,3 +180,18 @@ def test_a_long_note_or_reason_is_refused_not_cut(scoped: Any, session: Any) -> 
     with pytest.raises(MethodologyRefused) as reason:
         repo.activate(SOCIOMAP, None, reason="x" * 501)
     assert reason.value.reason == "reason_too_long"
+
+
+def test_a_version_replacing_a_formula_the_engine_does_not_compute_is_not_put_in_force(
+    scoped: Any, session: Any
+) -> None:
+    """Stored and shown, never in force: a run must not compute the built-in formula while
+    its methodology says another (plan A4)."""
+    repo = _repo(scoped, session)
+    version = _propose(repo, formulas={"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
+    assert version.payload["formulas"] == {"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"}
+    with pytest.raises(MethodologyRefused) as refused:
+        repo.activate(SOCIOMAP, version.version_number)
+    assert refused.value.reason == "formula_not_computed"
+    assert set(refused.value.problems) == {"formula.f12.kernel"}
+    assert _reader(scoped, session).in_force(SOCIOMAP).origin == "code"
