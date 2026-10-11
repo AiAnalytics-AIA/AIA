@@ -21,12 +21,17 @@ describe("every formula the API serves", () => {
     d.step_details.flatMap((s) => [
       { where: `${d.id}/${s.id}`, latex: s.formula_latex },
       ...s.symbols.map((y) => ({ where: `${d.id}/${s.id}/${y.latex}`, latex: y.latex })),
+      ...s.formulas.flatMap((f) => [
+        { where: `${d.id}/${s.id}/${f.slot_id}`, latex: f.latex },
+        ...f.variables.map((v) => ({ where: `${d.id}/${s.id}/${f.slot_id}/${v.name}`, latex: v.latex })),
+      ]),
     ]),
   );
 
-  it("is in the fixture at all", () => {
+  it("is in the fixture at all, the editable formulas included", () => {
     expect(doc.modules.map((m) => m.id)).toContain("sociomap");
     expect(formulas.length).toBeGreaterThan(40);
+    expect(formulas.filter((f) => f.where.includes("/f12.kernel")).length).toBeGreaterThan(0);
   });
 
   it.each(formulas)("renders as MathML: $where", ({ latex }) => {

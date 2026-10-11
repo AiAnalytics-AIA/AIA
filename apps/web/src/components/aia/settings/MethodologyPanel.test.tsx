@@ -77,6 +77,18 @@ describe("the Metodika tab", () => {
     expect(within(smacof).getByText("10⁻¹²")).toBeTruthy();
   });
 
+  it("shows a step's formula as the expression the engine evaluates, and an algorithm without one", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    const terrain = await card("Terén jako obálka kopců");
+    const slot = terrain.querySelector('[data-slot="f12.kernel"]') as HTMLElement;
+    expect(within(slot).getByText("h * exp(-d2 / (2 * sigma * sigma))")).toBeTruthy();
+    expect(slot.querySelector("math")).not.toBeNull();
+    expect(within(slot).getByText("kopec má ve svém středu přesně svou výšku")).toBeTruthy();
+    const smacof = await card("Rozložení objektů (SMACOF na pevném pravítku)");
+    expect(smacof.querySelector("[data-slot]")).toBeNull();
+  });
+
   it("says what another methodology omits, and never shows it as 0", async () => {
     fakeApi();
     render(<MethodologyPanel />);

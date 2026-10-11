@@ -885,11 +885,18 @@ export type MethodValue = {
   reference: string; label_cs: string; unit: string; origin: "specification" | "code_constant";
   value: unknown; absent: boolean;
 };
+/** A step's editable formula: its slot, the expression the engine computes today, and the
+ *  LaTeX the domain writes from that expression (the page shows what runs). */
+export type MethodFormula = {
+  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string;
+  variables: { name: string; latex: string; meaning_cs: string; unit: string; vector: boolean }[];
+  properties: { kind: string; variable: string | null; description_cs: string }[];
+};
 export type MethodStepOut = {
   id: string; title_cs: string; formula_latex: string; implements: string; source_sha256: string;
   symbols: { latex: string; meaning_cs: string; unit: string }[];
   evidence: { kind: string; ref: string; note_cs: string }[];
-  tests: string[]; note_cs: string; values: MethodValue[];
+  tests: string[]; note_cs: string; values: MethodValue[]; formulas: MethodFormula[];
 };
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {

@@ -30,7 +30,8 @@ from typing import Any, Final
 
 from pydantic import BaseModel
 
-from .catalogue import MethodModule, MethodStep, Preset
+from .catalogue import BuiltinFormula, MethodModule, MethodStep, Preset
+from .expressions import ExpressionRefused, check_properties, compile_formula
 
 __all__ = [
     "ABSENT",
@@ -206,6 +207,28 @@ def module_problems(module: MethodModule) -> dict[str, str]:
 
     problems.update(_coverage_problems(module))
     problems.update(_group_problems(module))
+    problems.update(_formula_problems(module))
+    return problems
+
+
+def _formula_problems(module: MethodModule) -> dict[str, str]:
+    """Each built-in formula belongs to a step, compiles in its slot and keeps its properties."""
+    problems: dict[str, str] = {}
+    ids = {s.id for s in module.steps}
+    slots = [f.slot.id for f in module.formulas]
+    for duplicate in sorted({i for i in slots if slots.count(i) > 1}):
+        problems[f"slot:{duplicate}"] = "slot id is used more than once"
+    for formula in module.formulas:
+        where = f"slot:{formula.slot.id}"
+        if formula.step_id not in ids:
+            problems[f"{where}:step"] = f"no step {formula.step_id!r}"
+        try:
+            compiled = compile_formula(formula.slot, formula.expression)
+        except ExpressionRefused as exc:
+            problems[f"{where}:expression"] = str(exc)
+            continue
+        for prop, why in check_properties(compiled).items():
+            problems[f"{where}:{prop}"] = why
     return problems
 
 
@@ -307,6 +330,7 @@ class ValueView:
 class StepView:
     step: MethodStep
     values: tuple[ValueView, ...]
+    formulas: tuple[BuiltinFormula, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,7 +377,8 @@ def describe(module: MethodModule, preset: str | None = None) -> ModuleView:
                     read_constant(constant.symbol),
                 )
             )
-        views.append(StepView(step, tuple(values)))
+        formulas = tuple(f for f in module.formulas if f.step_id == step.id)
+        views.append(StepView(step, tuple(values), formulas))
     return ModuleView(module, chosen, tuple(views))
 
 

@@ -38,6 +38,7 @@ from .catalogue import (
     StepGroup,
     Symbol,
 )
+from .sociomap_formulas import SOCIOMAP_FORMULAS
 
 __all__ = ["SOCIOMAP"]
 
@@ -607,6 +608,7 @@ SOCIOMAP: Final = MethodModule(
     ),
     in_force="aia-sociomap-3",
     groups=_GROUPS,
+    formulas=SOCIOMAP_FORMULAS,
     note_cs=(
         "Mapa auditu NPC Sociomapa (kanonická metodika). Každý nový běh si připne "
         "aia-sociomap-3 vedle referenční mapy aia-sociomap-1. Mapa je zatím jen interní "

@@ -21,12 +21,14 @@ from typing import Annotated, Any
 from aia_core.domain.methodology import (
     ABSENT,
     MODULES,
+    BuiltinFormula,
     MethodModule,
     MethodologyReferenceError,
     StepView,
     describe,
     module,
 )
+from aia_core.domain.methodology.expressions import compile_formula, latex
 from fastapi import APIRouter, HTTPException, Path, Query
 from pydantic import BaseModel, ConfigDict
 
@@ -102,6 +104,35 @@ class ValueOut(_Strict):
     absent: bool
 
 
+class FormulaVariableOut(_Strict):
+    name: str
+    latex: str
+    meaning_cs: str
+    unit: str
+    vector: bool
+
+
+class FormulaPropertyOut(_Strict):
+    kind: str
+    variable: str | None
+    description_cs: str
+
+
+class FormulaOut(_Strict):
+    """A step's editable formula: the slot, and the expression the engine computes today.
+
+    ``latex`` is written from ``expression`` by the domain, so the page shows what runs.
+    """
+
+    slot_id: str
+    title_cs: str
+    expression: str
+    latex: str
+    note_cs: str
+    variables: list[FormulaVariableOut]
+    properties: list[FormulaPropertyOut]
+
+
 class StepOut(_Strict):
     id: str
     title_cs: str
@@ -113,6 +144,7 @@ class StepOut(_Strict):
     tests: list[str]
     note_cs: str
     values: list[ValueOut]
+    formulas: list[FormulaOut]
 
 
 class ModuleDetail(ModuleSummary):
@@ -151,6 +183,28 @@ def _summary(m: MethodModule) -> ModuleSummary:
     )
 
 
+def _formula(f: BuiltinFormula) -> FormulaOut:
+    return FormulaOut(
+        slot_id=f.slot.id,
+        title_cs=f.slot.title_cs,
+        expression=f.expression,
+        latex=latex(compile_formula(f.slot, f.expression)),
+        note_cs=f.note_cs,
+        variables=[
+            FormulaVariableOut(
+                name=v.name, latex=v.latex, meaning_cs=v.meaning_cs, unit=v.unit, vector=v.vector
+            )
+            for v in f.slot.variables
+        ],
+        properties=[
+            FormulaPropertyOut(
+                kind=p.kind.value, variable=p.variable, description_cs=p.description_cs
+            )
+            for p in f.slot.properties
+        ],
+    )
+
+
 def _step(view: StepView) -> StepOut:
     s = view.step
     return StepOut(
@@ -174,6 +228,7 @@ def _step(view: StepView) -> StepOut:
             )
             for v in view.values
         ],
+        formulas=[_formula(f) for f in view.formulas],
     )
 
 
