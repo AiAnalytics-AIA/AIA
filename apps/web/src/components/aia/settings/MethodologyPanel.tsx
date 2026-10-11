@@ -9,6 +9,10 @@
 
 import { useState } from "react";
 
+// Temml's layout rules (display math in Firefox and Safari, enclosures, primes) and the
+// system math font stack: Cambria Math on Windows, STIX Two Math on macOS.
+import "temml/dist/Temml-Local.css";
+
 import { t } from "@/i18n/t";
 import { type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
 import { formulaMathML, groupSteps, showValue } from "@/lib/methodology";
