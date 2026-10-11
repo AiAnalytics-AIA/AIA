@@ -83,6 +83,11 @@
   --color-viz-link-negative: var(--viz-link-negative);
   --color-viz-map-partner: var(--viz-map-partner);
   --color-viz-map-context: var(--viz-map-context);
+  --color-viz-map-select: var(--viz-map-select);
+  --color-viz-fit-good: var(--viz-fit-good);
+  --color-viz-fit-fair: var(--viz-fit-fair);
+  --color-viz-fit-weak: var(--viz-fit-weak);
+  --color-viz-fit-unreliable: var(--viz-fit-unreliable);
   --color-client-1: var(--client-1);
   --color-client-2: var(--client-2);
   --color-client-3: var(--client-3);

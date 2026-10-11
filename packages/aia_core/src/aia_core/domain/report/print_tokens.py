@@ -97,7 +97,7 @@ COLORS: Final[dict[str, str]] = {
     "viz-terrace-9": "#e8672b",
     "viz-terrace-10": "#c8302a",
     "viz-stage": "#14171c",
-    "viz-stage-raised": "#1f242b",
+    "viz-stage-raised": "#1c2026",
     "viz-stage-ink": "#f4f1ec",
     "viz-stage-muted": "#c3c0ba",
     "viz-ground": "#3a4049",
@@ -105,6 +105,11 @@ COLORS: Final[dict[str, str]] = {
     "viz-link-negative": "#ff7a59",
     "viz-map-partner": "#9ec5f4",
     "viz-map-context": "#a7afb9",
+    "viz-map-select": "#ffd23f",
+    "viz-fit-good": "#5ccb5f",
+    "viz-fit-fair": "#e7ee31",
+    "viz-fit-weak": "#f5a332",
+    "viz-fit-unreliable": "#ff7a59",
 }
 
 #: The Deliverable type group, by style name.

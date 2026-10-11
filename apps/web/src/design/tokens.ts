@@ -299,8 +299,8 @@ export const colors = {
     "dark": "#14171c"
   },
   "viz-stage-raised": {
-    "light": "#1f242b",
-    "dark": "#1f242b"
+    "light": "#1c2026",
+    "dark": "#1c2026"
   },
   "viz-stage-ink": {
     "light": "#f4f1ec",
@@ -329,6 +329,26 @@ export const colors = {
   "viz-map-context": {
     "light": "#a7afb9",
     "dark": "#a7afb9"
+  },
+  "viz-map-select": {
+    "light": "#ffd23f",
+    "dark": "#ffd23f"
+  },
+  "viz-fit-good": {
+    "light": "#5ccb5f",
+    "dark": "#5ccb5f"
+  },
+  "viz-fit-fair": {
+    "light": "#e7ee31",
+    "dark": "#e7ee31"
+  },
+  "viz-fit-weak": {
+    "light": "#f5a332",
+    "dark": "#f5a332"
+  },
+  "viz-fit-unreliable": {
+    "light": "#ff7a59",
+    "dark": "#ff7a59"
   },
   "client-1": {
     "light": "#a0555c",

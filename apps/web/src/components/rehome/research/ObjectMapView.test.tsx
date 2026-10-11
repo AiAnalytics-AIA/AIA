@@ -8,7 +8,8 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import fixture from "@/lib/fixtures/object-map.json";
-import { type BatteryWithMaps, mapLinks, readObjectMap, terrainCells } from "@/lib/object-map-view";
+import { type BatteryWithMaps, mapLinks, readObjectMap } from "@/lib/object-map-view";
+import { terraceLayers } from "@/lib/object-map-3d";
 import { ObjectMapView } from "./ObjectMapView";
 
 const battery = fixture.sociomap.batteries[0] as unknown as BatteryWithMaps;
@@ -50,8 +51,10 @@ describe("ObjectMapView", () => {
 
   it("draws every stored cell, the selected object's drawn links and every object", () => {
     render(<ObjectMapView battery={battery} dataOrigin={null} />);
-    expect(screen.getByTestId("object-map-terrain").querySelectorAll("rect")).toHaveLength(terrainCells(map).length);
-    expect(screen.getByTestId("object-map-terraces").getAttribute("d")).not.toBe("");
+    // Ten terraces, each the stored surface cut at its band (filled exactly where it has pieces).
+    const bands = [...screen.getByTestId("object-map-terrain").querySelectorAll("g[data-band]")];
+    expect(bands).toHaveLength(10);
+    terraceLayers(map).forEach((layer, k) => expect(bands[k].querySelector("path")!.getAttribute("d") !== "").toBe(layer.pieces.length > 0));
     expect(drawnPairs("object-map-links")).toEqual(linksOf("altair"));
     const negative = [...screen.getByTestId("object-map-links").children].filter((l) => l.getAttribute("stroke-dasharray"));
     expect(negative).toHaveLength(mapLinks(map).filter((l) => (l.a === "altair" || l.b === "altair") && l.sign === "negative").length);
@@ -79,9 +82,12 @@ describe("ObjectMapView", () => {
   });
 
   it("draws a SECONDARY object as context: no link, and the stored terrain unchanged", () => {
+    render(<ObjectMapView battery={battery} dataOrigin={null} />);
+    const terrain = screen.getByTestId("object-map-terrain").innerHTML;
+    cleanup();
     const context = variant((m) => (m.roles.altair = "secondary"));
     render(<ObjectMapView battery={context} dataOrigin={null} />);
-    expect(screen.getByTestId("object-map-terrain").querySelectorAll("rect")).toHaveLength(terrainCells(map).length);
+    expect(screen.getByTestId("object-map-terrain").innerHTML).toBe(terrain);
     expect(drawnPairs("object-map-links")).toEqual([]);
     const pin = screen.getByTestId("object-map-point-altair");
     expect(pin.querySelector("rect[transform]")).toBeTruthy(); // the diamond
@@ -99,7 +105,7 @@ describe("ObjectMapView", () => {
     expect(fit).not.toContain("Spearman");
     expect(screen.getByTestId("object-map-not-placed").textContent).toContain("Nezařazení respondenti: 1");
     const support = screen.getByTestId("object-map-support").textContent!;
-    expect(support).toContain("spolehlivé: 11 · slabé: 4 · neznámé vztahy: 0");
+    expect(support).toContain("Dvojice: 11 spolehlivé · 4 slabé · 0 neznámé vztahy");
     // The aggregate UNKNOWN count is neutral: it holds UNKNOWN estimates and undefined r alike.
     const counts = within(screen.getByTestId("object-map-support")).getByText(/^Dvojice/).textContent!;
     expect(counts).toContain("neznámé vztahy");
@@ -123,11 +129,11 @@ describe("ObjectMapView", () => {
     const cs = (v: number, d: number) => v.toLocaleString("cs-CZ", { minimumFractionDigits: d, maximumFractionDigits: d });
     const details = screen.getByTestId("object-map-details").textContent!;
     expect(details).toContain(cs(h, 2));
-    expect(details).toContain(cs(1 + 9 * h, 2));
+    expect(details).toContain(cs(1 + 9 * h, 1));
     expect(details).toContain(`${Math.floor(h * 10) + 1}/10`);
-    expect(details).toContain("zobrazovací pásmo");
+    expect(details).toContain("pásmo (zobrazení)");
     const label = screen.getByTestId("object-map-point-altair").textContent!;
-    expect(label).toContain(`${cs(h, 2)} · ${cs(1 + 9 * h, 2)}/10 · zobrazovací pásmo ${Math.floor(h * 10) + 1}/10`);
+    expect(label).toContain(`${cs(h, 2)} · ${cs(1 + 9 * h, 1)}/10 · zobrazovací pásmo ${Math.floor(h * 10) + 1}/10`);
     // Two heights in one band print two different numbers.
     const nudged = variant((m) => (m.heights.values[0] = Math.floor(h * 10) / 10 + 0.001));
     cleanup();
@@ -151,16 +157,16 @@ describe("ObjectMapView", () => {
       m.relations.status[0][2] = m.relations.status[2][0] = "unknown";
     });
     render(<ObjectMapView battery={changed} dataOrigin={null} />);
-    const compare = screen.getByRole("combobox", { name: "Porovnat Altair s objektem" });
-    fireEvent.change(compare, { target: { value: "borealis" } });
+    const row = (name: string) => within(screen.getByTestId("object-map-details")).getByText(name).closest("button")!;
+    fireEvent.click(row("Borealis"));
     const estimate = screen.getByTestId("object-map-pair").textContent!;
     expect(estimate).toContain(map.relations.r[0][1]!.toLocaleString("cs-CZ", { minimumFractionDigits: 3, maximumFractionDigits: 3 }));
     expect(estimate).toContain("neznámý");
     expect(estimate).toContain("Nedostatečná evidence pro interpretaci tohoto odhadu.");
     expect(estimate).not.toContain("nebylo možné vypočítat");
-    fireEvent.change(compare, { target: { value: "cirrus" } });
+    fireEvent.click(row("Cirrus"));
     const none = screen.getByTestId("object-map-pair").textContent!;
-    expect(none).toContain("r = —");
+    expect(screen.getByTestId("object-map-pair-r").textContent).toBe("—");
     expect(none).toContain("Vztah nebylo možné vypočítat.");
     expect(none).not.toContain("Nedostatečná evidence");
     expect(screen.getByTestId("object-map-pair-why").textContent).toContain("odhad r neexistuje");
@@ -174,8 +180,8 @@ describe("ObjectMapView", () => {
     expect(card).toContain("n = 79");
     expect(card).toContain(`95 % interval r: ${low.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
     expect(card).toContain(high.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    expect(card).toContain("Práh síly |r| ≥ 0,10: splněn");
-    expect(card).toContain("Na mapě: spolehlivý vztah");
+    expect(screen.getByTestId("object-map-pair-evidence").textContent).toContain("|r| ≥ 0,10 splněn · na mapě");
+    expect(screen.queryByTestId("object-map-pair-why")).toBeNull(); // drawn: no reason to give
     expect(card).not.toMatch(/p\s*[=<]/);
     fireEvent.click(screen.getByRole("button", { name: "Prohodit pohled" }));
     expect(within(screen.getByTestId("object-map-details")).getByText("Borealis")).toBeTruthy();
@@ -237,9 +243,14 @@ describe("ObjectMapView", () => {
     const before = JSON.stringify(battery);
     render(<ObjectMapView battery={battery} dataOrigin={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Přehrát animaci" }));
-    expect(screen.getByTestId("object-map-terrain").querySelectorAll("rect")).toHaveLength(terrainCells(map).length);
-    expect(screen.getByRole("button", { name: "Otáčet" }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByTestId("object-map-terrain").querySelectorAll("g[data-band]")).toHaveLength(10);
     expect(JSON.stringify(battery)).toBe(before);
+    // "Otáčet" from above opens 3D and turns it, as in the approved design.
+    fireEvent.click(screen.getByRole("button", { name: "Otáčet" }));
+    expect(screen.getByTestId("object-map-3d")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Otáčet" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Pohled shora" }));
+    expect(screen.getByRole("button", { name: "Otáčet" }).getAttribute("aria-pressed")).toBe("false");
   });
 
   it("describes the surface, weak fit and actual pair separately from object height", () => {
@@ -248,22 +259,22 @@ describe("ObjectMapView", () => {
     expect(screen.getByLabelText("Výška = průměrné hodnocení na škále 1–10")).toBeTruthy();
     const firstPoint = screen.getByTestId(`object-map-point-${map.object_ids[0]}`);
     const expectedRating = 1 + map.heights.values[0]! * 9;
-    expect(firstPoint.textContent).toContain(expectedRating.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    expect(firstPoint.textContent).toContain(expectedRating.toLocaleString("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
     const reading = screen.getByTestId("object-map-reading");
     expect(reading.textContent).toContain("není dalším měřením");
     expect(reading.textContent).toContain("Shoda této mapy je slabá");
     expect(reading.textContent).toContain("Výška a barva terasy = průměrné hodnocení. Blízkost = podobnost relativních preferencí");
-    fireEvent.change(screen.getByRole("combobox", { name: "Objekt" }), { target: { value: "deneb" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Porovnat Deneb s objektem" }), { target: { value: "fomalhaut" } });
+    fireEvent.click(within(screen.getByTestId("object-map-ranked")).getByText("Deneb").closest("button")!);
+    fireEvent.click(within(screen.getByTestId("object-map-details")).getByText("Fomalhaut").closest("button")!);
     expect(screen.getByTestId("object-map-pair").textContent).toContain("Podpora vztahu nesplňuje");
-    expect(screen.getByTestId("object-map-details").textContent).toContain("Průměr na škále 1–10");
+    expect(screen.getByTestId("object-map-details").textContent).toContain("škála 1–10");
   });
 
   it("keeps the top view available without a stored terrain", () => {
     const copy = variant((m) => (m.terrain = { status: "not_computed", reason: "disabled" }));
     render(<ObjectMapView battery={copy} dataOrigin={null} />);
     expect(screen.getByTestId("object-map-svg")).toBeTruthy();
-    expect(screen.getByTestId("object-map-terrain").querySelectorAll("rect")).toHaveLength(0);
+    expect(screen.getByTestId("object-map-terrain").querySelectorAll("path")).toHaveLength(0);
     expect(screen.getByRole("button", { name: "3D terén" }).hasAttribute("disabled")).toBe(true);
     expect(screen.queryByTestId("object-map-3d")).toBeNull();
   });

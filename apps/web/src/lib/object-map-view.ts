@@ -208,6 +208,51 @@ export function screenScale(span: number, view: ViewSize): number {
   return (Math.min(view.width, view.height) - 2 * MAP_VIEW.pad) / (2 * span);
 }
 
+/** A square of the map the view is centred on: its centre and half-width, in ruler units. */
+export type Frame = { cx: number; cy: number; half: number };
+
+/**
+ * The square the view frames (plan object-map-3d-redesign, V3): every stored terrain sample
+ * that has a height and every placed object, padded, and never larger than the stored grid.
+ * A display zoom only: both axes keep one scale, and every number stays where it is stored.
+ */
+export function mapFrame(map: ObjectMapArtifact, objects: { x: number; y: number }[], pad = 0.06): Frame {
+  const xs: number[] = objects.map((o) => o.x);
+  const ys: number[] = objects.map((o) => o.y);
+  const t = map.terrain;
+  if (t.status === "computed") {
+    const { grid_resolution: n, half_extent: span } = t.parameters;
+    const step = (2 * span) / n;
+    t.height.forEach((row, gy) => row.forEach((h, gx) => { if (h !== null) { xs.push(-span + gx * step); ys.push(-span + gy * step); } }));
+  }
+  const limit = viewSpan(map);
+  if (!xs.length) return { cx: 0, cy: 0, half: limit };
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const half = Math.min(limit, Math.max(0.5, Math.max(x1 - x0, y1 - y0) / 2) * (1 + pad));
+  return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, half };
+}
+
+/**
+ * The top view's mapping: the framed square, centred, its side the approved design's share of
+ * the stage (about three quarters of its height), y up, one scale on both axes.
+ */
+export function frameToScreen(x: number, y: number, frame: Frame, view: ViewSize): { sx: number; sy: number } {
+  const k = frameScale(frame, view);
+  return { sx: view.width / 2 + (x - frame.cx) * k, sy: view.height / 2 - (y - frame.cy) * k };
+}
+
+export function frameScale(frame: Frame, view: ViewSize): number {
+  return Math.min(view.width * 0.9, view.height * 0.72) / (2 * frame.half);
+}
+
+/**
+ * A rendered SVG's markup with every `var(--token)` replaced by its resolved value, so the
+ * snapshot keeps its colours outside the page. Nothing but colour references changes.
+ */
+export function resolveVars(markup: string, value: (token: string) => string): string {
+  return markup.replace(/var\((--[\w-]+)\)/g, (whole, token: string) => value(token) || whole);
+}
+
 export type Segment = { x1: number; y1: number; x2: number; y2: number };
 
 /**

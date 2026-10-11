@@ -136,7 +136,9 @@ const STAGE = [
   ...["viz-stage", "viz-stage-raised"].map((bg) => ["viz-stage-muted", bg, 4.5, "map secondary text"]),
   ["viz-stage", "viz-stage-ink", 7, "selected object's label (stage text on its light pill)"],
   ["viz-stage", "viz-map-partner", 7, "compared object's label"],
-  ...["viz-link-positive", "viz-link-negative", "viz-map-context", "viz-map-partner"].map((fg) => [fg, "viz-stage", 3, "link or pin over its stage casing"]),
+  ["viz-stage", "viz-map-select", 7, "selected object's label (stage text on the yellow pill)"],
+  ...["viz-fit-good", "viz-fit-fair", "viz-fit-weak", "viz-fit-unreliable"].map((bg) => ["viz-stage", bg, 4.5, "fit badge text"]),
+  ...["viz-link-positive", "viz-link-negative", "viz-map-context", "viz-map-partner", "viz-map-select"].map((fg) => [fg, "viz-stage", 3, "link or pin over its stage casing"]),
 ];
 const stageRows = STAGE.flatMap(([fg, bg, min, use]) =>
   ["light", "dark"].map((theme) => { const r = contrast(hex(fg, theme), hex(bg, theme)); return { theme, fg, bg, min, use, ratio: +r.toFixed(2), pass: r >= min }; }));

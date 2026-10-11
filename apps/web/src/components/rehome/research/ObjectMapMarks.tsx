@@ -1,9 +1,9 @@
 "use client";
 
 // The object map's pins, labels and links, shared by the top view and the 3D terrain
-// (plan object-map-3d-redesign). Screen-space annotation only: every position comes from the
-// stored layout through the view's projection, every number printed is the stored one, and
-// a label that moves to avoid another never moves its object.
+// (plan object-map-3d-redesign, V16, V17, V21). Screen-space annotation only: every position
+// comes from the stored layout through the view's projection, every number printed is the
+// stored one, and a label that moves to avoid another never moves its object.
 
 import type { KeyboardEvent, ReactNode } from "react";
 import { t, tv } from "@/i18n/t";
@@ -29,11 +29,16 @@ export type MarkState = {
   hovered: string | null;
   dimmed: Set<string>;
   labelsOnly: boolean;
+  /** The id of the SVG drop-shadow filter the labels use (unique per drawing). */
+  shadow?: string;
 };
 
 const PILL = { font: 12, meta: 11, padX: 9, padY: 4, line: 15, metaLine: 14 };
 const PLAIN = { font: 11, padX: 2, padY: 1, line: 14 };
 const FACE = '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif';
+
+/** A number as the map prints it: Czech decimal comma and a true minus sign. */
+export const fmt = (value: number | null | undefined, digits: number) => (value === null || value === undefined || !Number.isFinite(value) ? "—" : num(value, digits).replace("-", "−"));
 
 let ruler: CanvasRenderingContext2D | null | undefined;
 
@@ -56,8 +61,8 @@ export function labelLines(o: MapObject, active: boolean, labelsOnly: boolean, s
   const band = o.band + 1;
   const rating = originalRating(o.height, scale);
   const meta = rating === null
-    ? tv("research.exec.objectMap.labelMetaNoScale", { height: num(o.height, 2), band, bands: TERRACE_BANDS })
-    : tv("research.exec.objectMap.labelMeta", { height: num(o.height, 2), rating: `${num(rating, 2)}/${num(scale![1], 0)}`, band, bands: TERRACE_BANDS });
+    ? tv("research.exec.objectMap.labelMetaNoScale", { height: fmt(o.height, 2), band, bands: TERRACE_BANDS })
+    : tv("research.exec.objectMap.labelMeta", { height: fmt(o.height, 2), rating: `${fmt(rating, 1)}/${num(scale![1], 0)}`, band, bands: TERRACE_BANDS });
   return [name, meta];
 }
 
@@ -83,7 +88,19 @@ export function layoutLabels(
   return new Map(order.map((o) => [o.id, { rect: placed.get(o.id)!, lines: lines.get(o.id)! }]));
 }
 
-/** One object's label: a stage pill, or names-only text on a stage halo. */
+/** The labels' soft drop shadow (the approved design's 0 6px 18px). */
+export function LabelShadow({ id }: { id: string }) {
+  return (
+    <defs>
+      <filter id={id} x="-30%" y="-40%" width="160%" height="220%">
+        <feDropShadow dx="0" dy="6" stdDeviation="9" floodColor="#000" floodOpacity="0.35" />
+      </filter>
+    </defs>
+  );
+}
+
+/** One object's label: a stage pill (yellow when selected, blue when compared, light when
+ * hovered), or names-only text on a stage halo. */
 export function MapLabel({ o, rect, lines, marks }: { o: MapObject; rect: Rect; lines: string[]; marks: MarkState }) {
   const selected = o.id === marks.selected;
   const partner = o.id === marks.partner;
@@ -91,36 +108,40 @@ export function MapLabel({ o, rect, lines, marks }: { o: MapObject; rect: Rect; 
   if (marks.labelsOnly) {
     return (
       <text x={rect.x + PLAIN.padX} y={rect.y + PLAIN.padY + PLAIN.font} fontSize={PLAIN.font} fontWeight={selected ? 700 : 500}
-        fill={partner ? "var(--viz-map-partner)" : "var(--viz-stage-ink)"} paintOrder="stroke" stroke="var(--viz-stage)" strokeWidth={4} strokeLinejoin="round"
-        textDecoration={selected ? "underline" : undefined}>{lines[0]}</text>
+        fill={selected ? "var(--viz-map-select)" : partner ? "var(--viz-map-partner)" : "var(--viz-stage-ink)"}
+        paintOrder="stroke" stroke="var(--viz-stage)" strokeWidth={3.5} strokeLinejoin="round">{lines[0]}</text>
     );
   }
-  const fill = selected ? "var(--viz-stage-ink)" : partner ? "var(--viz-map-partner)" : "var(--viz-stage-raised)";
-  const ink = selected || partner ? "var(--viz-stage)" : "var(--viz-stage-ink)";
+  const lit = selected || partner || hovered;
+  const fill = selected ? "var(--viz-map-select)" : partner ? "var(--viz-map-partner)" : hovered ? "var(--viz-stage-ink)" : "var(--viz-stage)";
+  const ink = lit ? "var(--viz-stage)" : "var(--viz-stage-ink)";
   return (
     <g>
-      <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6} fill={fill} fillOpacity={selected || partner ? 1 : 0.92}
-        stroke={hovered && !selected ? "var(--viz-stage-ink)" : "var(--viz-stage-muted)"} strokeOpacity={hovered ? 0.9 : 0.25} />
+      <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx={6} fill={fill} fillOpacity={lit ? 1 : 0.78}
+        stroke="white" strokeOpacity={lit ? 0 : 0.14} filter={marks.shadow ? `url(#${marks.shadow})` : undefined} />
       <text x={rect.x + PILL.padX} y={rect.y + PILL.padY + PILL.font} fontSize={PILL.font} fontWeight={600} fill={ink}>{lines[0]}</text>
       {lines[1] ? <text x={rect.x + PILL.padX} y={rect.y + PILL.padY + PILL.line + PILL.meta} fontSize={PILL.meta} fill={ink} style={{ fontVariantNumeric: "tabular-nums" }}>{lines[1]}</text> : null}
     </g>
   );
 }
 
-/** One object's pin: a disc for a PRIMARY object, a diamond for a SECONDARY one. */
-export function MapPin({ o, x, y, marks }: { o: MapObject; x: number; y: number; marks: MarkState }) {
+/** One object's pin head: a lit sphere for a PRIMARY object, a diamond for a SECONDARY one;
+ * yellow when selected, blue when compared. `pop` scales it in during the opening; `ring` is
+ * the white ring where the pin meets the terrain (`flat` squashes it with the camera). */
+export function MapPin({ o, x, y, marks, pop = 1, ring }: { o: MapObject; x: number; y: number; marks: MarkState; pop?: number; ring?: { x: number; y: number; flat: number } }) {
   const selected = o.id === marks.selected;
   const partner = o.id === marks.partner;
   const active = selected || o.id === marks.hovered;
-  const size = active ? 8 : 6;
-  const fill = partner ? "var(--viz-map-partner)" : o.primary ? "var(--viz-stage-ink)" : "var(--viz-map-context)";
+  const size = (active ? 8.5 : 6) * pop;
+  const fill = selected ? "var(--viz-map-select)" : partner ? "var(--viz-map-partner)" : o.primary ? "var(--viz-stage-ink)" : "var(--viz-map-context)";
   return (
     <>
-      {selected ? <circle cx={x} cy={y} r={size + 5} fill="none" stroke="var(--viz-stage-ink)" strokeWidth={2} /> : null}
+      {ring ? <ellipse cx={ring.x} cy={ring.y} rx={(active ? 12 : 8) * pop} ry={(active ? 12 : 8) * pop * ring.flat} fill="none" stroke="white" strokeOpacity={0.85} strokeWidth={2.2} /> : null}
       {o.primary
-        ? <circle cx={x} cy={y} r={size} fill={fill} stroke="var(--viz-stage)" strokeWidth={2} />
-        : <rect x={x - size} y={y - size} width={2 * size} height={2 * size} transform={`rotate(45 ${x} ${y})`} fill={fill} stroke="var(--viz-stage)" strokeWidth={2} />}
-      <circle className="opacity-0 group-focus-visible:opacity-100" cx={x} cy={y} r={size + 9} fill="none" stroke="var(--viz-stage-ink)" strokeWidth={2} strokeDasharray="3 3" />
+        ? <circle cx={x} cy={y} r={size} fill={fill} stroke="var(--viz-stage)" strokeOpacity={0.6} strokeWidth={1} />
+        : <rect x={x - size} y={y - size} width={2 * size} height={2 * size} transform={`rotate(45 ${x} ${y})`} fill={fill} stroke="var(--viz-stage)" strokeOpacity={0.6} strokeWidth={1} />}
+      {o.primary && pop > 0 ? <circle cx={x - size * 0.3} cy={y - size * 0.35} r={size * 0.35} fill="white" fillOpacity={0.55} /> : null}
+      <circle data-export="skip" className="opacity-0 group-focus-visible:opacity-100" cx={x} cy={y} r={size + 9} fill="none" stroke="var(--viz-stage-ink)" strokeWidth={2} strokeDasharray="3 3" />
     </>
   );
 }
@@ -143,8 +164,9 @@ export function PinButton({ o, marks, onSelect, onHover, children }: {
   );
 }
 
-/** A drawn link's stroke: width and opacity from |r|, colour and dash from its sign; the one
- * compared pair stands out. Every link passed here is already one `mapLinks` draws. */
+/** A drawn link's stroke: width and opacity from |r|, colour from its sign (dashed when
+ * negative, so the sign survives greyscale); the one compared pair stands out. Every link
+ * passed here is already one `mapLinks` draws. */
 export function linkStyle(link: MapLink, partner: string | null) {
   const focus = partner !== null && (link.a === partner || link.b === partner);
   const fade = partner !== null && !focus ? 0.3 : 1;
@@ -156,7 +178,17 @@ export function linkStyle(link: MapLink, partner: string | null) {
   };
 }
 
-export const casing = (width: number) => ({ stroke: "var(--viz-stage)", strokeWidth: width + 3, strokeOpacity: 0.85 });
+export const casing = (width: number) => ({ stroke: "var(--viz-stage)", strokeWidth: width + 2, strokeOpacity: 0.45 });
+
+/** The first `t` (0..1) of a quadratic curve from `a` through control `c` to `b`, as a path:
+ * the arc draws itself in, as in the approved design. */
+export function partialCurve(a: { sx: number; sy: number }, c: { sx: number; sy: number }, b: { sx: number; sy: number }, t: number): string {
+  const k = Math.max(0, Math.min(1, t));
+  const q = { sx: a.sx + k * (c.sx - a.sx), sy: a.sy + k * (c.sy - a.sy) };
+  const r = { sx: c.sx + k * (b.sx - c.sx), sy: c.sy + k * (b.sy - c.sy) };
+  const e = { sx: q.sx + k * (r.sx - q.sx), sy: q.sy + k * (r.sy - q.sy) };
+  return `M${a.sx.toFixed(1)},${a.sy.toFixed(1)} Q${q.sx.toFixed(1)},${q.sy.toFixed(1)} ${e.sx.toFixed(1)},${e.sy.toFixed(1)}`;
+}
 
 export const legendLabel = (scale?: [number, number]) =>
   scale ? tv("research.exec.objectMap.legendOriginal", { low: num(scale[0], 0), high: num(scale[1], 0) }) : t("research.exec.objectMap.legendHeight");

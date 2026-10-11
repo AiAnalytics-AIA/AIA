@@ -16,8 +16,10 @@ import {
   pairDetail,
   placeLabels,
   rankedByHeight,
+  frameToScreen,
   readObjectMap,
   relationsOf,
+  resolveVars,
   terraceBand,
   terraceEdges,
   terraceLevel,
@@ -292,5 +294,22 @@ describe("label placement on screen", () => {
     const items = [{ id: "a", ax: 10, ay: 10, w: 50, h: 20 }, { id: "b", ax: 12, ay: 12, w: 50, h: 20 }];
     expect(placeLabels(items, [], view)).toEqual(placeLabels(items, [], view));
     expect(labelWidth(["ab", "abcd"], 10, 5)).toBe(Math.ceil(4 * 10 * 0.56) + 10);
+  });
+});
+
+describe("the top view's frame and the snapshot's colours", () => {
+  it("maps a framed square centred in the view, one scale on both axes, y up", () => {
+    const frame = { cx: 1, cy: -1, half: 2 };
+    const view = { width: 900, height: 600 };
+    expect(frameToScreen(1, -1, frame, view)).toEqual({ sx: 450, sy: 300 });
+    const right = frameToScreen(3, -1, frame, view), up = frameToScreen(1, 1, frame, view);
+    expect(right.sx - 450).toBeCloseTo(300 - up.sy);
+    expect(right.sx - 450).toBeCloseTo(600 * 0.72 / 2);
+  });
+
+  it("resolves token colours in a snapshot's markup and touches nothing else", () => {
+    const markup = '<rect fill="var(--viz-terrace-3)" stroke="white" data-n="0,52"/><text fill="var(--missing)">0,52</text>';
+    const tokens: Record<string, string> = { "--viz-terrace-3": "#2aa3d8" };
+    expect(resolveVars(markup, (t) => tokens[t] ?? "")).toBe('<rect fill="#2aa3d8" stroke="white" data-n="0,52"/><text fill="var(--missing)">0,52</text>');
   });
 });
