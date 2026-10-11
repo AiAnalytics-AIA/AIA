@@ -6,6 +6,7 @@ chunks:
   - "[x] 3. Terraced 3D geometry: display elevation by band, stored height kept on every vertex, relief and the entrance rise as presentation only, measured view size"
   - "[x] 4. The redesigned workspace: dark stage, HUD, toolbar (3D / Shora / Otáčet / Jen názvy / Vztahy / Přehrát animaci), labels that avoid each other and the panels, selected-object, pair and ranked cards, legend, Czech copy"
   - "[x] 5. Boundary tests, full checks, browser comparison against the prototype (top, 3D, pair card, labels-only, relations off, 360 px, both themes), PR"
+  - "[x] 6. Visual fidelity correction: the prototype as the composition acceptance spec (checklist V1-V25 below), paired screenshots, remaining differences named"
 ---
 
 # Object map 3D redesign (`aia-sociomap-3`, presentation only)
@@ -119,6 +120,107 @@ into a composited image; the report image remains `object_map_figure.py`. The li
 `RUN-1725024c5b8b480a` needs the deployed develop site after merge; this session has no access
 to it.
 
+## Visual fidelity correction (chunk 6, 2026-10-11)
+
+Owner's review of PR #268: the result is "an AIA Sociomap inspired by the design", not "the
+production implementation of that design". From now on the standalone prototype is the
+**visual composition acceptance specification**. Every methodology safeguard above stays
+(contract 3, `aia-sociomap-3`, frozen fingerprints, stored terrain and coordinates, Stress-1,
+pair evidence, UNKNOWN vs undefined r, `mapLinks` gating, PRIMARY / SECONDARY, ten fixed 0-1
+bands, Canvas/SVG renderer, no three.js, all boundary tests).
+
+Compared at 1440 × 1100 and 360 px wide: prototype (`1-proto-top` … `5-proto-narrow`) against
+PR #268 head `c3a0c56d`. A difference may remain only if caused by stored research data,
+accessibility, the no-three.js constraint, or an explicit AIA requirement; each kept one is
+named in the paired-screenshot table at the end of this section.
+
+### Checklist: what differs, and what production must become
+
+| # | Area | Prototype | PR #268 `c3a0c56d` | Correction |
+|---|---|---|---|---|
+| V1 | Page composition | kicker 12 px muted, title 24/30 semibold (the battery's title), interaction hint right-aligned 12 px; chips; then map column + aside | 14 px "Mapa objektů (aia-sociomap-3)" heading only; no title, no hint | header as the prototype: kicker = method, title = battery title, hint on the right |
+| V2 | Map column | stage + legend bar only, the column sticky beside the aside | stage + legend + a row of camera buttons + slider + three help paragraphs | column is stage + legend; camera buttons, relief and help move into a collapsed disclosure; sticky when side by side |
+| V3 | Map dominance / framing | plinth fills ~75 % of the stage height (top) and ~65 % of its width (3D) | ground square is the whole ±2.75 grid; the terrain uses ~45 % of it | frame the view on a square around the stored terrain's defined cells and every object (display zoom; same scale on both axes) |
+| V4 | Stage | 16:10, min 420 px, radius 10, flat `#14171c`, no border | same aspect, min 320/420, a 1 px ring | no ring; min height 420 at every width |
+| V5 | HUD | top-left 14 px, 10/12 padding, radius 8, translucent, 11/14 text; quality as a **filled** pill | same place; weak quality as an outlined orange pill | filled pill coloured by the stored quality |
+| V6 | Toolbar | top-right, 12 px, 5/11 padding, regular weight, white/18 border; "Otáčet" usable from top view | medium weight, "Otáčet" disabled in top view | prototype sizes; "Otáčet" from top view opens 3D and rotates |
+| V7 | Selected object | chip + 18/24 name, role, three 22/28 stats in one row (průměr 0–1 · škála 1–10 · pásmo), relation rows, pair card inside the same card | an "Objekt" select and a "Porovnat" select; stats wrap to two rows; long captions | no selects (pins, list rows and relation rows are the buttons); one stat row, short captions |
+| V8 | Relation rows | name · 64 px diverging bar · value; state line; partner row washed; negative bar orange; U+2212 minus | same grid, wider value column, `viz-div-6` bar, hyphen minus | prototype widths and colours, true minus |
+| V9 | Pair card | dark card in the selected card: title + ✕, r (20/26) · stav · podpora, one verdict, the "not drawn" note only when not drawn, "Prohodit pohled" | adds a "A × B: r = …" sentence, separate interval and floor lines, a reason line always | prototype order; interval, floor and drawn state as one 11 px evidence line (the handoff requires them) |
+| V10 | Ranked list | rank · chip · name · value, selected row washed | same, plus "· kontext" suffix | names as in the prototype |
+| V11 | "Jak mapu číst" | one paragraph, three 11 px lines (pairs, not placed, method + fingerprint), "Uložit snímek (PNG)" | paragraph, a details block, a fit paragraph, eight lines, no PNG | prototype card; everything else behind one "Podrobnosti a původ" disclosure; PNG export built |
+| V12 | Legend | title, ten stepped bars, 0 / 0,5 / 1; bez dat, kladný, záporný; lines rule, context diamond; `#1c2026` | rating-scale ends, an extra bands sentence, stage colour + ring | prototype order and labels on the 0–1 scale; bands sentence to the disclosure |
+| V13 | Explanatory copy | the hint line only | three paragraphs under the map | hint in the header; the rest in disclosures |
+| V14 | Spacing | page 28/24, row gap 16, column gap 8, aside gap 14, card padding 16 | close, but extra rows change the rhythm | prototype values |
+| V15 | Typography | title 24, name 18, stats 22, body 12, captions 11 | 14 px heading, 13–14 px body | prototype sizes |
+| V16 | Colour hierarchy | selected label/pin **yellow**, compared object light blue, hovered white, others dark translucent pills | selected white, no hover colour | `viz-map-select` yellow (plot area only), partner blue, hover white |
+| V17 | Labels | 12 px semibold pill, radius 6, 4/9 padding, soft drop shadow; meta line on the active label; dimmed 0.45 | same pill, no shadow, selected white | shadow, colours as V16 |
+| V18 | Terrain silhouette | smooth concentric terraces, flat plateaus, light rim at each step, shaded risers | 3D: jagged triangulated cones; top: square-cell staircase | terraces as flat layers cut from the stored mesh at the band thresholds (marching triangles on the same piecewise-linear surface the mesh draws), vertical risers shaded by facing, light rims, display-only height scale |
+| V19 | Camera | 3D from ~27° elevation, plinth diagonal to the viewer, slightly below centre | 38° elevation, whole grid | elevation ≈ 0.48 rad, yaw −0.66, framed as V3 |
+| V20 | Top view | the plinth with shaded terraces and white rings round pin heads | flat cell squares, discs | layer paths with a lower-right shadow and a light rim, pin heads with rings, plinth edge |
+| V21 | 3D view | plinth with dark sides and edge lines, drop shadow; sphere heads on thin stalks, base rings | grid-wide plinth, small discs | plinth framed to the terrain, edge stroke, canvas shadow; larger heads, base rings |
+| V22 | Narrow (360) | HUD and toolbar stay over the stage (they collide in the prototype); stage 420 high | HUD and toolbar move above the stage | keep both over the stage, each capped at half its width so they do not collide |
+| V23 | Choreography | on open: terraces rise 1.6 s, pins pop in turn, labels at 90 %, arcs draw 0.7 s; camera glides into 3D; rotation 75 s per turn | rise only on entering 3D, instant camera, 30 s per turn | the same choreography (skipped under reduced motion); glide into 3D, leave instantly (the kill switch) |
+| V24 | Header hint and interaction | "Tažením otáčíte · kolečkem přibližujete · klik na objekt ukáže jeho vztahy" | in a paragraph under the map | header |
+| V25 | PNG | "Uložit snímek (PNG)" | not built | client-side export of the current view, marked internal, no recomputation |
+
+### What was built against the checklist
+
+- V1, V13, V24: header with kicker (method), the battery's title at 24/30, the interaction hint on
+  the right; the chips; nothing else above the map.
+- V2, V14: map column = stage + legend (sticky beside the aside at `lg`); camera buttons, relief
+  and their help in one collapsed "Ovládání 3D pohledu a výšky" disclosure, shown only in 3D.
+- V3, V19, V20, V21: `mapFrame` frames a square around every stored terrain sample with a height
+  and every object (6 % pad, never beyond the grid; one scale on both axes). Top view: the square
+  at 72 % of the stage height on a raised plinth with a drop shadow. 3D: yaw −0.66, elevation
+  0.48, plinth 4 % wider than the frame with dark walls, an edge line and a canvas shadow.
+- V18: `terraceLayers` cuts the stored mesh (the same triangles `terrainMesh` draws, the same
+  piecewise-linear surface) at each band's lower bound; each terrace is a flat top drawn in one
+  fill at its band's top, risers facing the viewer shaded by the design's light direction, a
+  light rim between terraces. Top view: the same layers as SVG paths with a lower-right shadow.
+  `HEIGHT_SCALE` 0.62 (display only). Tests prove every piece corner is a stored sample or an
+  exact edge crossing at the level, every sampled surface point lies in its own band's terrace
+  and not the next, a triangle with a null corner draws nothing.
+- V5, V6, V22: HUD and toolbar at the prototype's sizes, quality as a filled pill
+  (`viz-fit-*`), "Otáčet" from top view opens 3D and turns at 75 s per turn; at 360 px both stay
+  over the stage, the HUD capped at half the width.
+- V7-V11: selected-object card without selects (pins, list rows and relation rows are the
+  buttons), stats in one row (original scale to one decimal, as the design), relation rows with
+  a true minus and the design's colours, the pair card inside it (r · stav · podpora, one
+  evidence line: interval, floor, drawn; the verdict; the reason only when not drawn; swap);
+  ranked list; "Jak mapu číst" with the three lines, one "Podrobnosti a původ" disclosure for
+  everything else, and "Uložit snímek (PNG)".
+- V12: legend in the design's order on the 0 / 0,5 / 1 scale.
+- V16, V17: `viz-map-select` yellow for the selected pin and pill (plot area only; contrast
+  checked), compared object blue, hovered light, others translucent pills with the design's
+  drop shadow.
+- V23: one choreography clock: terraces rise and build up (1.6 s), pins pop in turn from 0.9 s
+  (60 ms apart), labels at 1.35 s, arcs draw in over 0.7 s after a selection, the camera glides
+  from straight down into 3D over 0.9 s; leaving 3D is instant (the kill switch). Nothing runs
+  under `prefers-reduced-motion`.
+- V25: PNG export composes the canvas and the SVG as shown (token colours resolved by
+  `resolveVars`), adds a strip "Interní · nesmí ke klientovi · aia-sociomap-3 · otisk …", and
+  downloads `sociomapa-interni.png`; nothing redrawn from data.
+
+### Paired screenshots and what still differs (1440 × 1100; 360 px; light and dark)
+
+| Pair | Remaining difference | Cause |
+|---|---|---|
+| Top | Fewer, narrower hills; most of the terrain in the lowest band; 6 objects, not 8 | stored data: σ = 0.25 on the ruler, heights 0.24-0.66 |
+| Top, 3D | The lowest terrace's outer edge is stepped | stored data: the grid is null beyond the kernel cutoff at 64 intervals; rounding it would draw terrain where nothing is stored ("holes stay holes") |
+| Top | Terraces lit by a flat offset shadow, not a lit 3D surface | no-three.js constraint (SVG, no lighting) |
+| 3D | Orthographic, no fog, no soft cast shadows, flat discs for pin heads with a highlight | no-three.js constraint; orthographic is the fixed-ruler requirement |
+| 3D | Vertical risers instead of smoothstep slopes | Canvas 2D flat polygons (no-three.js); a sloped riser would need an invented in-between surface |
+| 3D | "Ovládání 3D pohledu a výšky" disclosure under the legend | accessibility: buttons and a slider for the camera and relief besides drag and wheel |
+| All | Negative links dashed; a faint stage casing under links | accessibility: sign not by colour alone; ≥ 3:1 over every terrace (check-design) |
+| Labels, card | "zobrazovací pásmo 7/10", "pásmo (zobrazení)" instead of "pásmo 8/10", "pásmo" | handoff: the band is display-only and labelled as such |
+| Pair | An evidence line (interval, floor, drawn); "—" for an undefined r | handoff: the pair card consumes those fields; "r = —" copy |
+| Relation rows | "nedefinováno ·" before the state of an undefined r | requirement: UNKNOWN with r and undefined r stay distinct |
+| Reading card | A "Podrobnosti a původ" disclosure | AIA requirement: provenance, σ notice, support and the fictional-data sentence stay reachable |
+| Header | Kicker "Mapa objektů (aia-sociomap-3)" and the battery title, not "Návrh · …" | the design's own text is a mock-up label; the method and title come from the artifact |
+| Narrow | The HUD does not overlap the toolbar | accessibility: in the prototype the two collide and hide text |
+| Dark | A faint inset edge on the stage, legend and pair card | the prototype has no dark theme; without it the stage merges into the graphite page |
+
 ## Findings
 
 - Next.js 16 `next dev` refuses its HMR and dev resources to a page opened as
@@ -143,5 +245,8 @@ to it.
   tokens, checked by `check-design.mjs` § 4.
 - `AGENTS.md`, Next.js: the `127.0.0.1` / `allowedDevOrigins` finding above, wrong and right
   side by side.
+- `CLAUDE.md` map: `object-map-3d.ts` also holds `terraceLayers` (terraces cut from the stored
+  mesh at the band thresholds) and the framed projection; `object-map-view.ts` `mapFrame`,
+  `frameToScreen`, `resolveVars`; new tokens `viz-map-select`, `viz-fit-*`.
 - `docs/architecture` research journey / sociomapping: the Results object map is a
   presentation of the stored `aia-sociomap-3` artifact; the ten bands are display-only.
