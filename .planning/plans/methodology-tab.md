@@ -6,8 +6,9 @@ chunks:
   - "[ ] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
   - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
-  - "[ ] A5. API: GET /api/v1/methodology (modules, steps, values with origin, evidence, open questions); version routes"
-  - "[ ] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
+  - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
+  - "[ ] A5b. API: methodology version routes (after A3)"
+  - "[x] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
@@ -208,7 +209,29 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - Write (`require_administer`): `POST /{module}/versions`, `POST /{module}/check` and
     `PUT /{module}/activation`.
   - The API never names a preset (`layer_check`). It asks the domain.
-- **A6. Web.**
+- **A5a + A6. Landed.**
+  - **The route.** `apps/api/src/aia_api/routers/methodology.py` serves `GET /api/v1/methodology`
+    and `/{module_id}?preset=`.
+    - It uses `OrganizationDep`, so any member reads it.
+    - Its only job is to serialise `describe()`. A value the preset omits is `absent: true` with
+      `value: null`, never a zero.
+    - There is no write route; a test pins that.
+  - **The fixture.** `tools/methodology_fixture.py` writes `apps/web/src/lib/fixtures/methodology.json`
+    from the route's own builder. `test_the_web_fixture_is_what_the_api_serves` fails when it is
+    stale.
+  - **The web tab.** `MethodologyPanel.tsx` is a new Settings tab, "Metodika". It shows a module
+    list, a methodology selector, the steps in their groups, and each step's formula, symbols,
+    values with origin, evidence, and function and tests. Supporting pieces:
+    - `src/lib/methodology.ts`: value wording (absent and null in words, tiny tolerances as
+      powers of ten) and grouping;
+    - Temml 0.13.5, pinned, used with `trust: false`.
+  - **What the tests caught.** `src/lib/methodology.test.ts` renders all of the API's formulas and
+    symbols (130). On its first run it found three formulas where `\quad` had run into the next
+    letter; that fix is on the S1 branch. A test pins that markup comes out escaped and that
+    `\href` is refused, because the page inserts Temml's output as HTML.
+  - **Temml version.** 0.14.0 was three days old when this was written, so 0.13.5 (six weeks
+    old) is pinned instead.
+- **A6. Web, as planned.**
   - `TABS` gains `methodology`, labelled "Metodika", and `OWN_TABS` gains it. The UI is Czech.
   - Inside the tab: a module list; per step, the formula (MathML via Temml, pinned), symbols, a
     parameter table (value, unit, origin, allowed range), evidence (rule, label, source page),
