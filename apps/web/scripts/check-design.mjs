@@ -6,6 +6,8 @@
  *      separation (Machado–Oliveira–Fernandes 2009, severity 1.0; OKLab ΔE × 100),
  *      normal-vision floor, contrast vs surface.
  *   3. Family separation: client accents vs status/UI/chart colours, and each other.
+ *   4. The object Sociomap's ten terrace bands (adjacent ΔE and CVD floors, apart from the
+ *      "bez dat" ground) and the contrast of labels, pins and links on its stage.
  * Exits 1 on any hard failure. `--json` prints the full report.
  */
 import { readFileSync } from "node:fs";
@@ -112,15 +114,47 @@ const separation = ["light", "dark"].map((theme) => {
   return { theme, nearestOther: +near[0].toFixed(1), pair: near.slice(1), nearestAccent: +self[0].toFixed(1), accentPair: self.slice(1), pass: near[0] >= 7 && self[0] >= 12 };
 });
 
+// ---------- 4. the object Sociomap's terrace ramp and its stage ----------
+// Ten display bands of the stored 0-1 height. Every adjacent pair must stay apart for normal
+// vision and under protan/deutan simulation, because a band edge is the terrace's only cue
+// besides the printed number; the "bez dat" ground must not read as the lowest band. Labels
+// sit on a stage-coloured pill or halo, so their contrast is measured against the stage; a
+// link is drawn over a stage-coloured casing, so its contrast is measured the same way.
+const terraces = Array.from({ length: 10 }, (_, i) => `viz-terrace-${i + 1}`);
+const TERRACE_FLOOR = { normal: 10, cvd: 8, ground: 10 };
+const terraceRows = ["light", "dark"].map((theme) => {
+  const cs = terraces.map((n) => hex(n, theme));
+  const pairs = cs.slice(1).map((b, i) => [cs[i], b]);
+  const normal = Math.min(...pairs.map(([a, b]) => dE(a, b)));
+  const cvd = Math.min(...pairs.flatMap(([a, b]) => ["protan", "deutan"].map((k) => dE(simulate(a, k), simulate(b, k)))));
+  const ground = Math.min(...cs.map((c) => dE(c, hex("viz-ground", theme))));
+  return { theme, normal: +normal.toFixed(1), cvd: +cvd.toFixed(1), ground: +ground.toFixed(1),
+    pass: normal >= TERRACE_FLOOR.normal && cvd >= TERRACE_FLOOR.cvd && ground >= TERRACE_FLOOR.ground };
+});
+const STAGE = [
+  ...["viz-stage", "viz-stage-raised"].map((bg) => ["viz-stage-ink", bg, 7, "map label and HUD text (pill or halo)"]),
+  ...["viz-stage", "viz-stage-raised"].map((bg) => ["viz-stage-muted", bg, 4.5, "map secondary text"]),
+  ["viz-stage", "viz-stage-ink", 7, "selected object's label (stage text on its light pill)"],
+  ["viz-stage", "viz-map-partner", 7, "compared object's label"],
+  ["viz-stage", "viz-map-select", 7, "selected object's label (stage text on the yellow pill)"],
+  ...["viz-fit-good", "viz-fit-fair", "viz-fit-weak", "viz-fit-unreliable"].map((bg) => ["viz-stage", bg, 4.5, "fit badge text"]),
+  ...["viz-link-positive", "viz-link-negative", "viz-map-context", "viz-map-partner", "viz-map-select"].map((fg) => [fg, "viz-stage", 3, "link or pin over its stage casing"]),
+];
+const stageRows = STAGE.flatMap(([fg, bg, min, use]) =>
+  ["light", "dark"].map((theme) => { const r = contrast(hex(fg, theme), hex(bg, theme)); return { theme, fg, bg, min, use, ratio: +r.toFixed(2), pass: r >= min }; }));
+
 // ---------- report ----------
-const failures = [...contrastRows.filter((r) => !r.pass), ...paletteRows.filter((r) => !r.pass), ...separation.filter((r) => !r.pass)];
+const failures = [...contrastRows.filter((r) => !r.pass), ...paletteRows.filter((r) => !r.pass), ...separation.filter((r) => !r.pass),
+  ...terraceRows.filter((r) => !r.pass), ...stageRows.filter((r) => !r.pass)];
 if (process.argv.includes("--json")) {
-  console.log(JSON.stringify({ contrast: contrastRows, palette: paletteRows, separation, failures: failures.length }, null, 2));
+  console.log(JSON.stringify({ contrast: contrastRows, palette: paletteRows, separation, terraces: terraceRows, stage: stageRows, failures: failures.length }, null, 2));
 } else {
   const pairs = contrastRows.length / 2;
   console.log(`contrast: ${pairs} pairs × 2 themes = ${contrastRows.length} checks, ${contrastRows.filter((r) => !r.pass).length} failures`);
   for (const r of paletteRows) console.log(`palette ${r.theme} ${r.pairs} (${r.n}): CVD ΔE ${r.cvd}, normal ΔE ${r.normal}, band ${r.outOfBand.length ? "FAIL" : "ok"}, chroma ${r.belowChroma.length ? "FAIL" : "ok"}, <3:1 relief needed for ${r.belowContrast3.length} → ${r.pass ? "PASS" : "FAIL"}`);
   for (const s of separation) console.log(`client accents ${s.theme}: nearest status/UI/chart ΔE ${s.nearestOther} (${s.pair.join(" vs ")}), nearest accent ΔE ${s.nearestAccent} → ${s.pass ? "PASS" : "FAIL"}`);
+  for (const r of terraceRows) console.log(`terraces ${r.theme}: adjacent ΔE ${r.normal} (≥ ${TERRACE_FLOOR.normal}), protan/deutan ΔE ${r.cvd} (≥ ${TERRACE_FLOOR.cvd}), nearest to ground ΔE ${r.ground} (≥ ${TERRACE_FLOOR.ground}) → ${r.pass ? "PASS" : "FAIL"}`);
+  console.log(`map stage: ${stageRows.length} contrast checks, ${stageRows.filter((r) => !r.pass).length} failures`);
   for (const f of failures) console.error("FAIL", JSON.stringify(f));
 }
 process.exit(failures.length ? 1 : 0);

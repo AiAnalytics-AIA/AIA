@@ -3173,3 +3173,91 @@ is a methodology change to F9. For the audit's author with group B
 ([sociomap-formula-corrections](plans/sociomap-formula-corrections.md), chunk 4a, F-4a-1).
 
 **Test.** The reproduction above.
+
+## OI-93 · Finding · The methodology editor shows the domain's refusals as English sentences
+
+**Claim.** A specification check's problem is an English sentence, and the Metodika editor
+shows it verbatim on a Czech page.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 8265af7`
+(`n_min {n} is below 4: the Fisher interval needs four raters`).
+
+**Reproduction.** `POST /api/v1/methodology/sociomap/check` with `relation.n_min` 2, or the
+editor on the workbench (`make ui-workbench`, Nastavení → Metodika → Upravit metodiku).
+
+**Consequence.** The methodologist reads why an edit is refused in English.
+
+**Fix.** A problem code beside each message, Czech words for the codes in `cs.ts`, the English
+as the fallback. Belongs with the specification validators' rewrite, chunk S2 of
+[methodology-tab](plans/methodology-tab.md) (plan finding H4).
+
+**Test.** One web test per code.
+
+## OI-94 · Finding, closed · The reference set's K100 was copied from a map that reads Kish's n
+
+**Claim.** With the F9 bootstrap on, `battery_sociomap` copied the body's K100 from any object
+map with the same B, seed, n_min, confidence and roles. `aia-sociomap-3`, pinned in every new
+run, matches all five but decides its pair statuses on Kish's effective n, the body on the
+respondent count.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/research_sociomap.py:438 @ e9d68b4` (the
+guard before the fix).
+
+**Reproduction.** `packages/aia_core/tests/test_research_sociomap_k100_copy.py`: 45 respondents
+of case A01, one in three weighted 20 times the others.
+
+**Consequence.** With `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED` on, the stored body
+recorded no K100 for any object where its own bootstrap gives, for example, kava 36.97
+[.., 61.43]. No screen read it; the stored internal artifact was wrong.
+
+**Fix.** #260 (`3583908`, merged to develop by #265): the copy also requires the map's
+evidence basis to be the body's (`research_sociomap.py:511 @ 8265af7`). With the switch on, the
+body pays for its own bootstrap again (about 90 s per large set). Plan finding H5.
+
+**Test that catches it.** The reproduction above; it also asserts the map's K100 differs on
+that panel, so it cannot pass vacuously.
+
+**Status.** Closed by #260.
+
+## OI-95 · Limitation · Four population companions are not in the 18.6.6 data bundle
+
+**Claim.** The Czech contract requires 15 companions, and four of them are not in the unit's
+licence-bound data bundle (`legacy/npc-panel-18.6.6/data-manifest.json`): `CORE_JOINT_STATUS.json`,
+`PERSONA_VALUE_LABELS_v17.json`, `BUILTIN_SUBPANELS_v17.json` and
+`SPECIAL_PANEL_REGISTRY_v17.json`. They are the frozen unit's own configuration, in Git under
+`legacy/npc-panel-18.6.6/app/`.
+
+**Anchor.** `deploy/develop/population/v17.files:22 @ 078da08` (origin `unit`), and the bundle
+step of `.github/workflows/deploy-develop.yml @ 078da08` that copies them beside the list.
+
+**Reproduction.** `apps/executors/tests/test_population_carry_over.py::test_every_unit_file_is_the_frozen_units_own_bytes`.
+
+**Consequence.** A host gets its companions from two places: 15 files from the EU bucket and
+these four from the deploy bundle. Anyone who uploads or describes "the data bundle" as the
+whole population would miss them.
+
+**Fix.** Nothing to fix while `extract_legacy.py` keeps them as configuration. If the
+population ever gets a prefix of its own in the bucket, upload all 19 files there and make
+every origin `bucket`.
+
+**Test.** The reproduction above, and `test_the_list_is_exactly_the_contracts_versions_dictionary_and_companions`.
+
+## OI-96 · Finding · The first population import ran as the AWS account's root user
+
+**Claim.** P6b (2026-10-11) was run with a sign-in as the root user of the account that also
+hosts other production systems, because no narrower identity existed for it.
+
+**Anchor.** `.planning/plans/population-operations.md` § P6b @ 078da08; the runbook
+`deploy/develop/README.md:423 @ 078da08` (step 1) names no identity.
+
+**Reproduction.** Hypothesis only for anything beyond that run: nothing in the repository
+creates or names an operator role.
+
+**Consequence.** A later import, or a promotion, would again need credentials that can change
+anything in the account, and the session that holds them can too.
+
+**Fix.** An IAM role (or Identity Center permission set) limited to `ssm:SendCommand` and
+`ssm:GetCommandInvocation` on the develop instance and `ssm:PutParameter` / `ssm:GetParameter`
+under `/aia/develop/`, in `infra/develop`, named in the runbook's step 1.
+
+**Test.** A Terraform plan test that the role's policy names only those actions and resources.

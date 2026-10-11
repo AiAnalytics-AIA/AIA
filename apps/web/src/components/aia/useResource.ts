@@ -37,7 +37,7 @@ export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[])
       (e: unknown) => {
         if (!live) return;
         if (e instanceof Unauthenticated) {
-          return routerRef.current.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+          return routerRef.current.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
         }
         if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return setRes({ state: "not-found" });
         setRes({ state: "failed", message: e instanceof Error ? e.message : String(e) });

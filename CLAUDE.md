@@ -84,7 +84,12 @@ apps/
                             settings (the read-only settings document: every control and how it is set;
                             the access group states membership_is_access and offers no grant;
                             ai_runtime, what powers AIA's model calls from code; ai_history, the
-                            prototype's provider fields, readable and never offered)
+                            prototype's provider fields, readable and never offered),
+                            methodology (the Metodika tab, ADR 0023: GET the catalogue, a module and
+                            its versions, POST check and compare (any member); POST versions and PUT
+                            activation (an organization OWNER or ADMIN)),
+                            population (GET /population: the registry, read-only, any member;
+                            status derived, never stored)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -100,6 +105,13 @@ apps/
                             settings/ControlPanel (every control from GET /settings, how each is set;
                             live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
                             the one AI section: ai_runtime beside /config's switches, never "connected"),
+                            settings/MethodologyPanel (the Metodika tab: each module's steps, formulas
+                            as MathML via Temml, every value with its origin), MethodologyVersions (in
+                            force, stored versions and what each changes, activation with a reason,
+                            history; for an administrator the editor: the whole spec and each formula
+                            slot, the domain's check at the field) and MethodologyComparison (an edit
+                            beside what is in force on fictional panels); lib/methodology-edit.ts is
+                            the editor's pure part,
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
@@ -123,6 +135,8 @@ apps/
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
+    src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
+                            labelOf, shortSha); read-only
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
@@ -199,6 +213,10 @@ apps/
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
     legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
                             of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
+    population_ops.py       Operator command: status / import / attach / establish / promote over
+                            PopulationRuntime, as a person AIA_POPULATION_OPERATORS names (user id
+                            -> permissions; unset: nobody); bundles under AIA_POPULATION_ASSET_ROOT;
+                            --all-companions reads each companion the contract declares by its id
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -272,7 +290,9 @@ packages/aia_core/src/aia_core/
                             (every set's items + the declared rating questions); SociomapMethod,
                             default_methods (aia-sociomap-1 + -3; a run that pinned -2 keeps it),
                             read_methods, LEGACY_METHODS: a run computes the methods it pinned;
-                            each battery's contract-3 maps
+                            each battery's contract-3 maps; SociomapMethod.formulas: the formulas a
+                            stored methodology version replaces, compiled on read (slots()), absent
+                            from the stored form when empty
     research.py             A run's phase in words (queued … cancelled), from the engine's state
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
@@ -303,7 +323,21 @@ packages/aia_core/src/aia_core/
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
+    methodology/            The Metodika tab's model (ADR 0023), pure: catalogue.py (module, step,
+                            group, preset; every step pinned to the function it describes),
+                            sociomap.py (the object map in the audit's order F1-F16) and
+                            sociomap_reference.py (aia-sociomap-1, read-only); expressions.py (the
+                            formula language: AST whitelist compiled to closures, no eval; LaTeX
+                            written from the expression; slot properties checked on a grid);
+                            sociomap_formulas.py (the 14 built-in formulas, bit-identical to the
+                            engine); versions.py (what a stored version may be: <base>+e<n>);
+                            pins.py (the methodology in force -> a run's Sociomap pins;
+                            COMPUTED_SLOTS); sociomap_check.py (an edit beside what is in force on
+                            three fixed fictional panels, through the run's own pin)
     sociomap/               Sociomapping maths, pure Python: compute_sociomap -> artifact
+      slots.py              The formula slots a methodology version replaces (ADR 0023): the ids the
+                            engine reads; every engine function takes slots (default none: the code's
+                            formula, bit for bit)
       specification.py      SociomapSpec v2 (contract 2, AIA_SOCIOMAP_V1) and SociomapSpecV3
                             (contract 3: AIA_SOCIOMAP_V2, the audit's object map; AIA_SOCIOMAP_V3,
                             the same under AIA's Q5-Q7 decisions: Kish-n pair evidence, the 0.10
@@ -362,7 +396,9 @@ packages/aia_core/src/aia_core/
                             and of a ClientContext (client_context, accessible_clients);
                             membership of the organization is the access, no grant is read
                             (ADR 0019), and an archived client's studies are not listed
-    population.py           PopulationRuntime — the ONLY loader of population data
+    population.py           PopulationRuntime — the ONLY loader of population data; live_binding:
+                            the binding a new run records (None until the population is
+                            established; reads no panel)
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
@@ -380,8 +416,13 @@ packages/aia_core/src/aia_core/
                             found only through the Study; research_artifacts, the ONLY reader;
                             start/retry ask when the run's cost ceiling reaches the study's spend
                             limit, and record the yes (ADR 0019 gate 2); start pins the Sociomap
-                            methods, a retry keeps the original's; ResearchAgentJobs.accept: a
-                            person applies an agent's proposal (APPROVE_GATE), recorded (gate 1)
+                            methods -- the organization's methodology in force (ADR 0023: a stored
+                            version as aia-sociomap-3+e<n>, its digest in the run's identity) -- and
+                            a retry keeps the original's; ResearchAgentJobs.accept: a
+                            person applies an agent's proposal (APPROVE_GATE), recorded (gate 1);
+                            start records the LIVE population binding when it creates a run (a
+                            found run keeps what it recorded, a retry the original's); no step
+                            reads it while fieldwork is fictional
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
@@ -441,7 +482,9 @@ packages/aia_core/src/aia_core/
                             (a stale one refused), history; the brief's attachments as artifacts of
                             that project; found only through the Study (ADR 0018)
     document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
-                            openpyxl: the `documents` extra), with the ZIP bounds the unit lacked
+                            openpyxl: the `documents` extra), with the ZIP bounds the unit lacked;
+                            a PDF's tables through pdfplumber, after pypdf, bounded
+                            (`MAX_PDF_TABLES`, 20 s)
     questionnaire_file.py   A questionnaire file's rows (the unit's CSV and stdlib XLSX readers) and
                             AIA's own template workbook
     unit_project_store.py   A COPY of the 18.6.6 project store, read mode=ro&immutable=1 (a live
@@ -450,6 +493,11 @@ packages/aia_core/src/aia_core/
                             resolved scope, changed by a person's write or an accepted proposal
                             (a new revision each time)
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
+    methodology_repository.py  The ONLY reader/writer of the methodology tables (ADR 0023):
+                            immutable versions, validated by domain.methodology.versions; append-only
+                            activations, newest wins, NULL the code's preset; any member reads,
+                            require_administer writes, every change audited;
+                            methodology_in_force_for_study, what a run start pins
     deep_research_settings_repository.py  The ONLY reader/writer of the Deep Research settings
                             tables (propose, approve, history); immutable study-test policy proposals and
                             append-only scoped approvals (tables.py:1669 @ db6db022), with catalogue,
@@ -487,7 +535,11 @@ deploy/docker/              python.Dockerfile (api + worker targets); apps/web/D
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook.
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
-                            stops its old container and keeps its volume (bin/lib.sh)
+                            stops its old container and keeps its volume (bin/lib.sh).
+                            bin/sync-population.sh (by hand) puts the population's 19 files, listed
+                            and pinned in population/v17.files, read-only under AIA_POPULATION_DIR;
+                            bin/population.sh runs population_ops in a one-off worker container.
+                            AIA's population, never the unit
 deploy/reference/           The 18.6.6 unit beside the product, never part of it: Compose project
                             `aia-reference` on the unit's external volume, a basic-auth gate on the
                             host's loopback (127.0.0.1:8765), up/down/backup-state by hand;
@@ -646,6 +698,9 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
 before combining fields, `decide_joint(...)` — never the dictionary directly. The
 contract is [docs/architecture/population.md](docs/architecture/population.md).
+A research run records the LIVE binding at creation (owner, 2026-10-10); no research
+step reads it yet, and the run says its respondents did not come from it. On develop,
+STATIC is `v17_1_2` and LIVE is `v17_4_0`, imported from 18.6.6 on 2026-10-11.
 
 **Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
 reference's recorded outputs, vendored under
@@ -719,6 +774,8 @@ ungated fixture.
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
+| Operate the population | `python -m aia_executors.population_ops <status\|import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`) |
+| **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
