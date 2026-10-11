@@ -67,15 +67,19 @@ def worker(
     )
 
 
-def _edit(world: Any, *, sigma: float, n_min: int) -> int:
-    """Propose and put in force an edited object map, as the Metodika tab will."""
+def _edit(world: Any, *, sigma: float, n_min: int, formulas: dict[str, str] | None = None) -> int:
+    """Propose and put in force an edited object map, as the Metodika tab does."""
     spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
     spec["terrain"]["sigma"] = sigma
     spec["relation"]["n_min"] = n_min
     with world.sessions() as session:
         repo = MethodologyRepository(session, world.admin_context(session))
         version = repo.propose(
-            "sociomap", base_preset="aia-sociomap-3", spec=spec, formulas={}, note="test"
+            "sociomap",
+            base_preset="aia-sociomap-3",
+            spec=spec,
+            formulas=formulas or {},
+            note="test",
         )
         repo.activate("sociomap", version.version_number, reason="test")
         session.commit()
@@ -112,14 +116,19 @@ def _drain(worker: Worker) -> None:
         pass
 
 
-def _maps(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+def _body(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
     run = _run(world, run_id)
     assert run["status"] is WorkflowRunStatus.COMPLETED
     step = next(s for s in run["steps"] if s["node_key"] == "sociomap")
     assert step["status"] is StepRunStatus.SUCCEEDED, step
     with world.sessions() as session:
         research = research_artifacts(session, world.lead_scope(session), store)
-        body = research.read_json(step["output"]["artifact_id"])["sociomap"]
+        body: dict[str, Any] = research.read_json(step["output"]["artifact_id"])["sociomap"]
+    return body
+
+
+def _maps(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+    body = _body(world, store, run_id)
     (battery,) = body["batteries"]
     maps: dict[str, Any] = battery["maps"]
     return maps
@@ -179,3 +188,32 @@ def test_back_to_the_preset_a_new_run_pins_the_codes_methods_again(world: Any) -
     assert run["metadata"]["sociomap_methods"] == [
         m.model_dump(mode="json") for m in default_methods()
     ]
+
+
+def test_a_run_computes_the_formula_its_methodology_replaced(
+    world: Any, store: InMemoryArtifactStore, worker: Worker
+) -> None:
+    """A replaced kernel is the kernel the map's terrain is drawn with (plan S4c): the same
+    parameters with the built-in kernel draw another terrain, and the body records what the
+    version replaced beside the map it shaped."""
+    kernel = "h * exp(-d2 / (sigma * sigma))"  # half the built-in's spread
+    plain = _edit(world, sigma=0.25, n_min=30)
+    run_plain = _start(world)
+    edited = _edit(world, sigma=0.25, n_min=30, formulas={"f12.kernel": kernel})
+    run_edited = _start(world)
+    assert run_edited != run_plain
+    pinned = _run(world, run_edited)["metadata"]["sociomap_methods"][1]
+    assert pinned["formulas"] == {"f12.kernel": kernel}
+    _drain(worker)
+
+    body = _body(world, store, run_edited)
+    assert body["methods"][1] == {
+        "method_id": f"aia-sociomap-3+e{edited}",
+        "spec_fingerprint": pinned["spec_fingerprint"],
+        "formulas": {"f12.kernel": kernel},
+    }
+    with_kernel = read_artifact(_maps(world, store, run_edited)[f"aia-sociomap-3+e{edited}"])
+    without = read_artifact(_maps(world, store, run_plain)[f"aia-sociomap-3+e{plain}"])
+    assert isinstance(with_kernel, SociomapArtifactV3) and isinstance(without, SociomapArtifactV3)
+    assert with_kernel.layout == without.layout  # the kernel moves the terrain, nothing else
+    assert with_kernel.terrain != without.terrain

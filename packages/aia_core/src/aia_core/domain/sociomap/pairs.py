@@ -31,7 +31,10 @@ from .relations import (
     kish_effective_n,
     meets_effect_floor,
     pair_status,
+    slot_interval,
+    status_of_interval,
 )
+from .slots import EFFECT_FLOOR, EFFECTIVE_N, INTERVAL_HIGH, INTERVAL_LOW, NO_SLOTS, Slots
 
 __all__ = ["Interval", "PairRelations", "derive_pair_relations", "derive_relation_matrix"]
 
@@ -211,6 +214,7 @@ def derive_pair_relations(
     basis: str | None = None,
     effect_floor: float | None = None,
     design_weights: Sequence[float] | None = None,
+    slots: Slots = NO_SLOTS,
 ) -> PairRelations:
     """Each pair's signed weighted correlation, its rater count, interval and status.
 
@@ -239,6 +243,11 @@ def derive_pair_relations(
     of duplicated rows. ``effect_floor`` records ``meets_effect_floor = |r| >= floor``
     beside each status, never inside it. ``None`` for both is the relation as computed
     before the policy, unchanged.
+
+    ``slots`` may replace Kish's n (``f3.effective_n``), either interval bound
+    (``f3.interval_low`` / ``_high``; the status then reads that interval) and the effect
+    floor's test (``f3.effect_floor``), ADR 0023. With none replaced this is the code's
+    relation, bit for bit.
     """
     if basis not in (None, _RESPONDENT_COUNT, _KISH_EFFECTIVE_N):
         raise ValueError(f"unknown evidence basis {basis!r}")
@@ -249,6 +258,9 @@ def derive_pair_relations(
     if len(dw) != len(w):
         raise ValueError("design_weights must weight the same respondents as weights")
     kish = basis == _KISH_EFFECTIVE_N
+    replaced_n = slots.get(EFFECTIVE_N)
+    replaced_interval = INTERVAL_LOW in slots or INTERVAL_HIGH in slots
+    replaced_floor = slots.get(EFFECT_FLOOR)
     r: list[list[float | None]] = [[None] * m for _ in range(m)]
     n: list[list[int | None]] = [[None] * m for _ in range(m)]
     interval: list[list[Interval | None]] = [[None] * m for _ in range(m)]
@@ -268,20 +280,32 @@ def derive_pair_relations(
             n[i][j] = n[j][i] = len(ok)
             size: float = len(ok)
             if kish:
-                size = kish_effective_n(
-                    [
-                        d
-                        for x, y, ww, d in zip(cols[i], cols[j], w, dw, strict=True)
-                        if math.isfinite(x) and math.isfinite(y) and math.isfinite(ww) and ww > 0
-                    ]
+                valid = [
+                    d
+                    for x, y, ww, d in zip(cols[i], cols[j], w, dw, strict=True)
+                    if math.isfinite(x) and math.isfinite(y) and math.isfinite(ww) and ww > 0
+                ]
+                size = (
+                    kish_effective_n(valid)
+                    if replaced_n is None or not valid
+                    else float(replaced_n(w=tuple(valid)))
                 )
                 n_eff[i][j] = n_eff[j][i] = size
-            interval[i][j] = interval[j][i] = (
-                None if corr is None else fisher_interval(corr, size, confidence)
-            )
-            status[i][j] = status[j][i] = pair_status(corr, size, n_min, confidence)
+            if replaced_interval:
+                bounds = None if corr is None else slot_interval(corr, size, confidence, slots)
+                interval[i][j] = interval[j][i] = bounds
+                pair_status(corr, size, n_min, confidence)  # the code's checks of its inputs
+                status[i][j] = status[j][i] = status_of_interval(corr, size, n_min, bounds)
+            else:
+                interval[i][j] = interval[j][i] = (
+                    None if corr is None else fisher_interval(corr, size, confidence)
+                )
+                status[i][j] = status[j][i] = pair_status(corr, size, n_min, confidence)
             if effect_floor is not None:
-                meets[i][j] = meets[j][i] = meets_effect_floor(corr, effect_floor)
+                met = meets_effect_floor(corr, effect_floor)
+                if replaced_floor is not None and corr is not None:
+                    met = bool(replaced_floor(r=corr, floor=effect_floor))
+                meets[i][j] = meets[j][i] = met
     return PairRelations(
         r=tuple(tuple(row) for row in r),
         n=tuple(tuple(row) for row in n),
