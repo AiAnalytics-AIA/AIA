@@ -384,6 +384,28 @@ export type PopulationRegistry = {
   history: PopulationPromotion[];
 };
 
+// GET /api/v1/clients/{id}/memory/search (project memory M1).
+export type MemoryField =
+  | "name"
+  | "title"
+  | "goal"
+  | "decision_use"
+  | "research_questions"
+  | "objectives"
+  | "sections"
+  | "dimensions";
+export type MemoryHit = {
+  study_id: string;
+  name: string;
+  kind: StudyKind;
+  status: string;
+  modified_at: string | null;
+  /** design: its latest Design Revision; draft: its working content (no Design Revision); name: its name alone. */
+  source: "design" | "draft" | "name";
+  design_revision: number | null;
+  matches: { field: MemoryField; texts: string[] }[];
+};
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -405,6 +427,9 @@ export const workspace = {
   overview: (clientId: string) => request<ClientOverview>("GET", `/api/v1/clients/${enc(clientId)}/overview`),
   studies: (clientId: string, kind?: StudyKind) =>
     request<WorkspaceStudy[]>("GET", `/api/v1/clients/${enc(clientId)}/studies${query({ kind })}`),
+  /** Project memory M1: this client's past studies whose name or design holds every word of q. */
+  memorySearch: (clientId: string, q: string) =>
+    request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
