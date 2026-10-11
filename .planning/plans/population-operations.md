@@ -10,7 +10,7 @@ chunks:
   - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
   - "[x] P7a. Keep each version's field dictionary with it (stored at import, hash-checked; a deploy step records it for versions imported before)"
   - "[x] P7b. Adopt 18.6.6's 18 built-in subpanels as AIA's catalogue, each checked against a version's dictionary"
-  - "[ ] P7c. A version's characteristics through the API: weights, blocks, every field's evidence and permitted uses, the subpanels; no row"
+  - "[x] P7c. A version's characteristics through the API: weights, blocks, every field's evidence and permitted uses, the subpanels; no row"
   - "[ ] P7d. Show them on Společenská inteligence"
 ---
 # Population operations: the core's import and promotion reach a deployment
