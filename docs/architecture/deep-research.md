@@ -257,24 +257,33 @@ analysis chapters and snapshots of the frozen canonical map. The original report
 artifact remains immutable. Pending, foreign, mismatched, corrupt or ungoverned
 inputs are refused; export calls no model and writes no report artifact.
 
-The literature chapter publishes only checked synthesis and accepted findings,
-separate L source references with available source/capture dates, structured
-measures where supported, interpretation/comparability guidance and actual gaps.
-It describes a targeted review, not an exhaustive systematic review. `NO_EVIDENCE`
-exports an honest coverage limitation; a completed workflow does not imply usable
-literature or benchmarks. External numbers never become respondent findings or
-inputs to map geometry. Anchors: `application/contextual_report.py:53 @ 96e4f58f`,
-`routers/research.py:1005 @ 96e4f58f`; tests: `test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review`
-and the interpretation-target report journey in `test_analysis_executor.py`.
+Contract `aia-contextual-report-2` publishes accepted source claims, separate L
+references with available source/capture dates, interpretation/comparability
+guidance, unmet source needs and recorded acquisition steps. Generated summaries,
+findings, limitations and model-authored gap reasons stay outside the report:
+citation and number checks do not prove semantic entailment. The raw sealed bundle
+is unchanged and generated interpretation remains available in the results page's
+closed, explicitly unapproved draft disclosure. It describes a targeted review,
+not an exhaustive systematic review. `NO_EVIDENCE` exports an honest coverage
+limitation; workflow completion does not imply usable literature or benchmarks.
+External numbers never become respondent findings or inputs to map geometry.
+Anchors: `application/contextual_report.py:62 @ b3f1a881`,
+`apps/web/src/components/rehome/research/InterpretationResearch.tsx:125 @ b3f1a881`;
+tests: `test_an_empty_bundle_reports_a_gap_instead_of_inventing_a_review`,
+`test_citation_valid_inapplicability_inference_is_not_published` and the
+interpretation-target report journey in `test_analysis_executor.py`.
 
-An unlabelled historical number remains in its cited claim; a separate numeric
-paragraph requires an indicator name or a unit. Typed grounding measures alone
-do not establish benchmark coverage. The report uses short theme headings, keeps
-the complete research subject in body text, deduplicates equivalent gap prose,
-and writes missing-source reasons with the recorded next step in readable Czech.
-Anchors: `test_contextual_report.py::test_unlabelled_historical_years_do_not_become_benchmark_paragraphs`,
-`::test_labelled_numeric_data_keeps_its_indicator_and_unit` and
-`::test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once @ 75fe56f4`.
+Numbers, units and complete periods remain in the cited source claim; separately
+extracted numeric metadata can truncate a range and must not create an independently
+unverified indicator. Typed grounding measures alone do not establish benchmark
+coverage. The report uses short theme headings, keeps the complete research subject
+in body text, deduplicates unmet needs, and writes structured missing-source reasons
+with the recorded next step in readable Czech. Withheld acquisition titles receive
+a readable source label rather than an internal transcription marker. Tests:
+`test_partial_measure_period_does_not_replace_the_source_claims_full_range`,
+`test_unlabelled_historical_years_do_not_become_benchmark_paragraphs`,
+`test_labelled_numeric_data_keeps_its_indicator_and_unit` and
+`test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once`.
 
 ## 7. The cost contract for tools (`tooling.py`, `application/web_retrieval.py`)
 

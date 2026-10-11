@@ -343,17 +343,26 @@ can grant approval or supply deployment prices.
   report shares the updated renderer under `aia-sociomapping-report-3`. Internal,
   synthetic and pending-methodology gates do not become client approvals.
 - **A contextual report selects its literature run explicitly.**
-  `application/contextual_report.py:234 @ 96e4f58f` verifies both study-owned runs,
+  `application/contextual_report.py:265 @ b3f1a881` verifies both study-owned runs,
   completed interpretation status, provenance, bundle seal and the exact frozen
   research/design lineage, then re-admits all eight analyses and validates the same
-  run's sociomap dependencies. Contract `aia-contextual-report-1` exports a separate
+  run's sociomap dependencies. Contract `aia-contextual-report-2` exports a separate
   internal DOCX; it never overwrites the original report or calls models during export.
-  Only accepted findings and checked synthesis enter its targeted literature chapter.
-  External L citations stay outside the respondent evidence ledger. Unsupported
-  numerical benchmarks, excluded prose and missing coverage remain explicit gaps;
-  recorded evidence and synthetic respondents remain disclosed. The results panel
-  starts interpretation research over a pinned analysis and selects the completed
-  review in the download query. See `test_checked_synthesis_has_separate_sources_limits_and_fixture_disclosure`,
+  Only accepted source claims enter its targeted literature chapter. Citation and
+  number checks do not establish semantic validity: generated conclusions and
+  model-authored gap reasons remain unapproved drafts outside the report. Complete
+  numbers and periods stay in their cited source claims; extracted numeric metadata
+  cannot independently establish comparability. External L citations stay outside
+  the respondent evidence ledger. Unmet source needs and recorded acquisition steps
+  remain explicit, alongside synthetic-data and targeted-review disclosures. The
+  results panel starts interpretation research over a pinned analysis, selects the
+  completed review in the download query and keeps generated interpretation behind
+  a closed, explicitly unapproved disclosure. Publication anchors:
+  `application/contextual_report.py:62 @ b3f1a881` and
+  `apps/web/src/components/rehome/research/InterpretationResearch.tsx:125 @ b3f1a881`.
+  See `test_source_claims_have_separate_citations_limits_and_fixture_disclosure`,
+  `test_citation_valid_inapplicability_inference_is_not_published`,
+  `test_partial_measure_period_does_not_replace_the_source_claims_full_range`,
   `test_corrupt_seal_and_foreign_synthesis_citations_refuse`, and the full report
   journey in `apps/executors/tests/test_analysis_executor.py`.
 - **Every gate returns a `GateDecision`, and allowed means no violations.** There
