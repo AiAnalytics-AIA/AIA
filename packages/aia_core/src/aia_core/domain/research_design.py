@@ -34,7 +34,6 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 from .pipeline import fingerprint
 from .sociomap.metrics import ObjectRole
-from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 
 __all__ = [
     "COMPILER_VERSION",
@@ -558,8 +557,14 @@ def _selection(content: dict[str, Any], audience: dict[str, Any]) -> SpecSelecti
 READINESS_RULES: Final = "aia-structural-readiness-1"
 
 
-def assess_readiness(spec: ResearchSpecification) -> Readiness:
-    """AIA's structural readiness checks. Ready means no check FAILed."""
+def assess_readiness(spec: ResearchSpecification, *, pair_n_min: int) -> Readiness:
+    """AIA's structural readiness checks. Ready means no check FAILed.
+
+    ``pair_n_min`` is how many respondents each pair of a tracked set needs, as the run
+    will compute it: the side tables' ``n_min`` of the methods it pins
+    (``research_sociomap.side_tables_for``; plan ``methodology-tab`` S2c). It has no
+    default: a warning that read the code's value would contradict the methodology in force.
+    """
     checks: list[ReadinessCheck] = []
 
     def check(check_id: str, status: CheckStatus, message: str) -> None:
@@ -622,19 +627,18 @@ def assess_readiness(spec: ResearchSpecification) -> Readiness:
         # n_min respondents who rated both (audit F3), counted after missing answers and
         # straight-liners. Below it every pair is UNKNOWN and the object map says
         # NOT_MAPPABLE; this says so before anything is paid for (plan § 8.2, I3).
-        if spec.n is not None and spec.n < AUDIT_PROVISIONAL_N_MIN:
+        if spec.n is not None and spec.n < pair_n_min:
             check(
                 "sociomap_support",
                 CheckStatus.WARN,
-                f"n = {spec.n} je pod {AUDIT_PROVISIONAL_N_MIN} respondenty, které potřebuje "
-                "každý pár položek (předběžná hodnota auditu): žádný vztah nebude známý a mapa "
-                "položek nevznikne.",
+                f"n = {spec.n} je pod {pair_n_min} respondenty, které podle platné metodiky "
+                "potřebuje každý pár položek: žádný vztah nebude známý a mapa položek nevznikne.",
             )
         else:
             check(
                 "sociomap_support",
                 CheckStatus.PASS,
-                f"n stačí na {AUDIT_PROVISIONAL_N_MIN} respondentů na pár, pokud odpovědi "
+                f"n stačí na {pair_n_min} respondentů na pár, pokud odpovědi "
                 "nechybějí; skutečnou oporu každého páru uvádí mapa.",
             )
     else:
@@ -664,8 +668,11 @@ def assess_readiness(spec: ResearchSpecification) -> Readiness:
     )
 
 
-def prepare(content: dict[str, Any]) -> tuple[ResearchSpecification | None, Readiness]:
-    """Compile and assess in one call. A design that does not compile is not ready."""
+def prepare(
+    content: dict[str, Any], *, pair_n_min: int
+) -> tuple[ResearchSpecification | None, Readiness]:
+    """Compile and assess in one call. A design that does not compile is not ready.
+    ``pair_n_min`` as :func:`assess_readiness` takes it."""
     spec, problems = compile_design(content)
     if spec is None:
         return None, Readiness(
@@ -678,4 +685,4 @@ def prepare(content: dict[str, Any]) -> tuple[ResearchSpecification | None, Read
                 for p in problems
             ),
         )
-    return spec, assess_readiness(spec)
+    return spec, assess_readiness(spec, pair_n_min=pair_n_min)

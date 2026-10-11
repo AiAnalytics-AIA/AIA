@@ -217,3 +217,64 @@ def test_a_run_computes_the_formula_its_methodology_replaced(
     assert isinstance(with_kernel, SociomapArtifactV3) and isinstance(without, SociomapArtifactV3)
     assert with_kernel.layout == without.layout  # the kernel moves the terrain, nothing else
     assert with_kernel.terrain != without.terrain
+
+
+# ------------------------------------------- S2c: the readiness warning's pair n_min --
+
+
+def _support(readiness: Any) -> dict[str, Any]:
+    checks = (
+        readiness["checks"]
+        if isinstance(readiness, dict)
+        else readiness.model_dump(mode="json")["checks"]
+    )
+    (check,) = [c for c in checks if c["id"] == "sociomap_support"]
+    return dict(check)
+
+
+def _readiness(world: Any) -> Any:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        _spec, readiness = ResearchRuns(session, scope).readiness(revision.revision_id)
+        session.commit()
+        return readiness
+
+
+def _preflight(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+    run = _run(world, run_id)
+    step = next(s for s in run["steps"] if s["node_key"] == "preflight")
+    assert step["status"] is StepRunStatus.SUCCEEDED, step
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        readiness: dict[str, Any] = research.read_json(step["output"]["artifact_id"])["readiness"]
+    return readiness
+
+
+def test_readiness_warns_with_the_n_min_of_the_methodology_in_force(world: Any) -> None:
+    # DESIGN asks 40 respondents: enough for the code's 30, not for an edit's 45.
+    assert _support(_readiness(world))["status"] == "PASS"
+    _edit(world, sigma=0.25, n_min=45)
+    edited = _support(_readiness(world))
+    assert edited["status"] == "WARN" and "45" in edited["message"]
+    _reset(world)
+    assert _support(_readiness(world))["status"] == "PASS"
+
+
+def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    _edit(world, sigma=0.25, n_min=45)
+    under_edit = _start(world)
+    _reset(world)
+    before_edit = _start(world)
+    _edit(world, sigma=0.25, n_min=45)  # in force again while both run
+    _drain(worker)
+    edited = _support(_preflight(world, store, under_edit))
+    assert edited["status"] == "WARN" and "45" in edited["message"]
+    assert _support(_preflight(world, store, before_edit))["status"] == "PASS"
+    # The tables beside the map read the same n_min as the warning did (S2b).
+    (battery,) = _body(world, store, under_edit)["batteries"]
+    assert battery["side_tables"]["n_min"] == battery["relation"]["n_min"] == 45

@@ -47,6 +47,7 @@ from ..domain.research_sociomap import (
     default_methods,
     methods_fingerprint,
     read_methods,
+    side_tables_of,
 )
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
@@ -286,30 +287,17 @@ class ResearchRuns:
         self.scope.require_open_study()
         designs = self._designs()
         revision = designs.get(design_revision_id)
-        _spec, readiness = prepare(designs.content(revision.revision_id))
+        # What the run will pin, resolved before the readiness checks: a pin the engine
+        # cannot compute is refused before any run, and the checks read its pair n_min.
+        methods, methodology = self._methods(sociomap_methods)
+        _spec, readiness = prepare(
+            designs.content(revision.revision_id),
+            pair_n_min=side_tables_of(methods).n_min,
+        )
         if not readiness.ready:
             raise DesignNotReady(readiness)
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
-        methodology: dict[str, Any] | None = None
-        if sociomap_methods is None:
-            # The organization's methodology in force (ADR 0023 decision 6): the code's
-            # preset, or an edited object map put in force on the Metodika tab.
-            in_force = methodology_in_force_for_study(self.session, self.scope, "sociomap")
-            payload = None if in_force.version is None else in_force.version.payload
-            chosen = default_methods() if payload is None else sociomap_methods_for(payload)
-            if in_force.version is not None:
-                methodology = {
-                    "module": "sociomap",
-                    "version": in_force.version.version_number,
-                    "name": in_force.version.name,
-                    "payload_sha256": in_force.version.payload_sha256,
-                }
-        else:
-            chosen = tuple(sociomap_methods)
-        methods = read_methods([m.model_dump(mode="json") for m in chosen])
-        for method in methods:
-            method.resolve()  # a pin the engine cannot compute is refused before any run
         pinned = [m.model_dump(mode="json") for m in methods]
         key = f"{RESEARCH}:{revision.revision_id}"
         if analysis_enabled:
@@ -366,6 +354,7 @@ class ResearchRuns:
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
+                "preflight": {"methods": pinned},
                 "run": {"fieldwork_source": fieldwork_source.value},
                 "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
@@ -456,10 +445,44 @@ class ResearchRuns:
         return self.get(run_id)
 
     def readiness(self, design_revision_id: str) -> tuple[ResearchSpecification | None, Readiness]:
-        """Compile a revision of this Study and assess it, without starting anything."""
+        """Compile a revision of this Study and assess it, without starting anything, under
+        the methodology a start would pin now (the one in force)."""
         designs = self._designs()
         revision = designs.get(design_revision_id)
-        return prepare(designs.content(revision.revision_id))
+        methods, _ = self._methods(None)
+        return prepare(
+            designs.content(revision.revision_id),
+            pair_n_min=side_tables_of(methods).n_min,
+        )
+
+    def _methods(
+        self, sociomap_methods: Sequence[SociomapMethod] | None
+    ) -> tuple[tuple[SociomapMethod, ...], dict[str, Any] | None]:
+        """The Sociomap methods a start pins, each resolved, and the stored methodology they
+        come from (``None``: the code's preset, or the caller's own set).
+
+        ``sociomap_methods`` ``None`` is the organization's methodology in force (ADR 0023
+        decision 6): the code's preset, or an edited object map put in force on the
+        Metodika tab. A pin the engine cannot compute is refused here, by name.
+        """
+        methodology: dict[str, Any] | None = None
+        if sociomap_methods is None:
+            in_force = methodology_in_force_for_study(self.session, self.scope, "sociomap")
+            payload = None if in_force.version is None else in_force.version.payload
+            chosen = default_methods() if payload is None else sociomap_methods_for(payload)
+            if in_force.version is not None:
+                methodology = {
+                    "module": "sociomap",
+                    "version": in_force.version.version_number,
+                    "name": in_force.version.name,
+                    "payload_sha256": in_force.version.payload_sha256,
+                }
+        else:
+            chosen = tuple(sociomap_methods)
+        methods = read_methods([m.model_dump(mode="json") for m in chosen])
+        for method in methods:
+            method.resolve()
+        return methods, methodology
 
     # -- read -------------------------------------------------------------------
 

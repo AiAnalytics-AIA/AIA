@@ -21,6 +21,7 @@ from aia_core.domain.research_design import (
     compile_design,
     prepare,
 )
+from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 
 DESIGN: dict[str, Any] = {
@@ -116,7 +117,7 @@ def test_an_empty_questionnaire_does_not_compile() -> None:
 def test_readiness_is_named_checks_and_a_fail_blocks() -> None:
     spec, _ = compile_design(DESIGN)
     assert spec is not None
-    ready = assess_readiness(spec)
+    ready = assess_readiness(spec, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert ready.ready and ready.rules == "aia-structural-readiness-1"
     assert _check(ready, "sample_size").status is CheckStatus.PASS
     assert _check(ready, "sociomap_input").status is CheckStatus.PASS
@@ -127,7 +128,7 @@ def test_readiness_is_named_checks_and_a_fail_blocks() -> None:
         (10001, CheckStatus.FAIL),
         (20, CheckStatus.PASS),
     ):
-        _, r = prepare({**DESIGN, "n": n})
+        _, r = prepare({**DESIGN, "n": n}, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
         assert _check(r, "sample_size").status is status and r.ready is (status is CheckStatus.PASS)
 
 
@@ -135,20 +136,21 @@ def test_what_the_unit_does_and_aia_does_not_yet_is_refused_not_skipped() -> Non
     """Skipping a filter would put answers in the data nobody would have been asked for."""
     filtered = copy.deepcopy(DESIGN)
     filtered["sections"][0]["questions"][2]["filtr"] = "q2 == 'Kávu'"
-    _, r = prepare(filtered)
+    _, r = prepare(filtered, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert not r.ready and _check(r, "conditional_questions").status is CheckStatus.FAIL
     familiar = copy.deepcopy(DESIGN)
     familiar["sections"][1]["familiarity_required"] = True
-    _, r = prepare(familiar)
+    _, r = prepare(familiar, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert not r.ready and _check(r, "battery_familiarity").status is CheckStatus.FAIL
     audience = {**DESIGN, "audience": {"source_mode": "customer", "filters": {"age": [18, 35]}}}
-    _, r = prepare(audience)
+    _, r = prepare(audience, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert r.ready and _check(r, "audience").status is CheckStatus.WARN
 
 
 def test_a_design_that_does_not_compile_is_not_ready() -> None:
     spec, r = prepare(
-        {"n": 100, "sections": [{"type": "questions", "questions": [{"typ": "vyber"}]}]}
+        {"n": 100, "sections": [{"type": "questions", "questions": [{"typ": "vyber"}]}]},
+        pair_n_min=AUDIT_PROVISIONAL_N_MIN,
     )
     assert spec is None and not r.ready
     assert [c.status for c in r.checks] == [CheckStatus.FAIL]
