@@ -107,6 +107,8 @@ class ModuleSummary(_Strict):
     note_cs: str
     presets: list[str]
     in_force: str | None
+    #: Whether a version of it may be stored (the reference map is shown, never edited).
+    editable: bool
     steps: int
     groups: list[GroupOut]
 
@@ -227,6 +229,8 @@ class VersionsOut(_Strict):
     in_force: InForceOut
     #: Whether the caller may propose and activate (an organization OWNER or ADMIN).
     may_administer: bool
+    #: Each code preset's whole specification, by name: what an edit starts from.
+    presets: dict[str, dict[str, Any]]
     versions: list[VersionOut]
     history: list[ActivationOut]
 
@@ -249,6 +253,8 @@ class CheckOut(_Strict):
     valid: bool
     problems: dict[str, str]
     not_computed: list[str]
+    #: Each replaced formula as LaTeX, written by the domain from the expression checked.
+    formulas_latex: dict[str, str]
 
 
 class ActivationIn(_Strict):
@@ -280,6 +286,7 @@ def _summary(m: MethodModule) -> ModuleSummary:
         note_cs=m.note_cs,
         presets=[p.name for p in m.presets],
         in_force=m.in_force,
+        editable=m.editable,
         steps=len(m.steps),
         groups=[
             GroupOut(id=g.id, title_cs=g.title_cs, step_ids=list(g.step_ids), note_cs=g.note_cs)
@@ -378,6 +385,19 @@ def _in_force(found: InForce) -> InForceOut:
     )
 
 
+def _presets(module_id: str) -> dict[str, dict[str, Any]]:
+    """An editable module's presets, whole, as JSON; a read-only module offers none."""
+    try:
+        found = module(module_id)
+    except KeyError as exc:
+        raise MethodologyRefused(
+            f"no method module {module_id!r}", reason="unknown_module"
+        ) from exc
+    if not found.editable:
+        return {}
+    return {p.name: p.spec.model_dump(mode="json") for p in found.presets}
+
+
 def _refused(exc: ScopeDenied | MethodologyRefused) -> HTTPException:
     if isinstance(exc, ScopeDenied):
         return HTTPException(
@@ -443,6 +463,7 @@ def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep
         return VersionsOut(
             in_force=_in_force(reader.in_force(module_id)),
             may_administer=org.may_administer,
+            presets=_presets(module_id),
             versions=[_version(v) for v in reader.versions(module_id)],
             history=[_activation(a) for a in reader.history(module_id)],
         )
@@ -471,11 +492,18 @@ def check(module_id: ModuleId, body: EditIn, org: OrganizationDep) -> CheckOut:
             version_name=named(body.base_preset, 1),
         )
     except MethodologyVersionInvalid as exc:
-        return CheckOut(valid=False, problems=dict(exc.problems), not_computed=[])
+        return CheckOut(
+            valid=False, problems=dict(exc.problems), not_computed=[], formulas_latex={}
+        )
+    slots = {f.slot.id: f.slot for f in found.formulas}
     return CheckOut(
         valid=True,
         problems={},
         not_computed=list(uncomputed_formulas(version_payload(validated))),
+        formulas_latex={
+            slot: latex(compile_formula(slots[slot], text))
+            for slot, text in validated.formulas.items()
+        },
     )
 
 

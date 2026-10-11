@@ -34,6 +34,8 @@ from enum import StrEnum
 from statistics import NormalDist
 from typing import Final
 
+from .slots import INTERVAL_HIGH, INTERVAL_LOW, NO_SLOTS, PERSON, Slots
+
 __all__ = [
     "AUDIT_PROVISIONAL_N_MIN",
     "DECLARED_TYPE_REFUSED",
@@ -318,7 +320,9 @@ class PersonScaled:
     excluded: tuple[int, ...]
 
 
-def person_minmax(values: Sequence[Sequence[float | None]]) -> PersonScaled:
+def person_minmax(
+    values: Sequence[Sequence[float | None]], *, slots: Slots = NO_SLOTS
+) -> PersonScaled:
     """Each respondent's ratings on their own scale, lowest 0 and highest 1 (audit F2).
 
     ``a~_ki = (a_ki - min_l a_kl) / (max_l a_kl - min_l a_kl)``, ``l`` over every item
@@ -327,7 +331,11 @@ def person_minmax(values: Sequence[Sequence[float | None]]) -> PersonScaled:
     items the respondent rated, not only the family mapped. A row with no spread is
     excluded (``max == min``): it has no preference to rescale, and a 0/0 would be a
     stamp. Non-finite ratings are refused.
+
+    ``slots`` may replace the rescaling (``f2.person``, ADR 0023); which rows are excluded
+    stays this rule.
     """
+    replaced = slots.get(PERSON)
     rows: list[tuple[float | None, ...]] = []
     excluded: list[int] = []
     for k, row in enumerate(values):
@@ -338,6 +346,14 @@ def person_minmax(values: Sequence[Sequence[float | None]]) -> PersonScaled:
         if not rated or high == low:
             excluded.append(k)
             rows.append(tuple(None for _ in row))
+            continue
+        if replaced is not None:
+            rows.append(
+                tuple(
+                    None if v is None else float(replaced(a=float(v), low=low, high=high))
+                    for v in row
+                )
+            )
             continue
         span = high - low
         rows.append(tuple(None if v is None else (float(v) - low) / span for v in row))
@@ -455,6 +471,34 @@ def fisher_interval(r: float, n: float, confidence: float) -> tuple[float, float
     if _count(n, "n") < _FISHER_MIN_N:
         return None
     return _fisher_bounds(r, n, z)
+
+
+def slot_interval(
+    r: float, n: float, confidence: float, slots: Slots
+) -> tuple[float, float] | None:
+    """:func:`fisher_interval` with either bound replaced by a methodology version's slot
+    (``f3.interval_low`` / ``f3.interval_high``, ADR 0023); the bound not replaced is the
+    code's. ``None`` for fewer than four raters, as the code's."""
+    bounds = fisher_interval(r, n, confidence)
+    low, high = slots.get(INTERVAL_LOW), slots.get(INTERVAL_HIGH)
+    if bounds is None or (low is None and high is None):
+        return bounds
+    z = _z_quantile(confidence)
+    return (
+        bounds[0] if low is None else float(low(r=r, n=n, z=z)),
+        bounds[1] if high is None else float(high(r=r, n=n, z=z)),
+    )
+
+
+def status_of_interval(
+    r: float | None, n: float, n_min: int, interval: tuple[float, float] | None
+) -> PairStatus:
+    """:func:`pair_status`'s rule read from an interval already computed: UNKNOWN without
+    ``r`` or below ``n_min``, RELIABLE where the interval excludes zero, WEAK otherwise."""
+    if r is None or n < n_min or interval is None:
+        return PairStatus.UNKNOWN
+    low, high = interval
+    return PairStatus.RELIABLE if low > 0.0 or high < 0.0 else PairStatus.WEAK
 
 
 def pair_status(r: float | None, n: float, n_min: int, confidence: float) -> PairStatus:

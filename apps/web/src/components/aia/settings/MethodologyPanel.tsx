@@ -5,20 +5,19 @@
 // the formula as MathML, its symbols, every value it reads and where that value comes from
 // (the methodology in force, or a constant in code), the evidence behind it and the tests
 // that hold it. Values are read from the code by the API; nothing is copied into the page.
-// Read-only: stored methodology versions, and with them editing, are a later chunk.
+// An editable module also shows its versions and, for an administrator, the editor
+// (MethodologyVersions.tsx).
 
 import { useState } from "react";
 
-// Temml's layout rules (display math in Firefox and Safari, enclosures, primes) and the
-// system math font stack: Cambria Math on Windows, STIX Two Math on macOS.
-import "temml/dist/Temml-Local.css";
-
 import { t } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
-import { formulaMathML, groupSteps, showValue } from "@/lib/methodology";
+import { groupSteps, showValue } from "@/lib/methodology";
 import { Tag } from "../../rehome/ui";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
+import { Formula } from "./MethodologyFormula";
+import { MethodologyVersions, type People } from "./MethodologyVersions";
 
 const M = "aia.settings.methodology";
 const WORDS = { absent: t(`${M}.absent`), none: t(`${M}.none`), yes: t(`${M}.yes`), no: t(`${M}.no`) };
@@ -30,12 +29,14 @@ async function loadList(): Promise<MethodModuleSummary[]> {
   return body as MethodModuleSummary[];
 }
 
-export function MethodologyPanel() {
+const anyone: People = (id) => id ?? "—";
+
+export function MethodologyPanel({ people = anyone }: { people?: People }) {
   const [res, retry] = useResource(loadList, []);
-  return <Loaded res={res} retry={retry}>{(modules) => <Modules modules={modules} />}</Loaded>;
+  return <Loaded res={res} retry={retry}>{(modules) => <Modules modules={modules} people={people} />}</Loaded>;
 }
 
-function Modules({ modules }: { modules: MethodModuleSummary[] }) {
+function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: People }) {
   const [active, setActive] = useState(modules[0]?.id ?? null);
   const current = modules.find((m) => m.id === active) ?? null;
   return (
@@ -53,17 +54,18 @@ function Modules({ modules }: { modules: MethodModuleSummary[] }) {
           </button>
         ))}
       </nav>
-      {current ? <ModuleView key={current.id} summary={current} /> : null}
+      {current ? <ModuleView key={current.id} summary={current} people={people} /> : null}
     </div>
   );
 }
 
-function ModuleView({ summary }: { summary: MethodModuleSummary }) {
+function ModuleView({ summary, people }: { summary: MethodModuleSummary; people: People }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
   return (
     <div className="flex flex-col gap-4">
       {summary.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{summary.note_cs}</p> : null}
+      {summary.editable ? <MethodologyVersions summary={summary} people={people} /> : null}
       {summary.presets.length > 1 ? (
         <div role="radiogroup" aria-label={t(`${M}.preset`)} className="flex flex-wrap items-center gap-2 text-sm">
           <span className="text-xs font-medium text-ink-muted">{t(`${M}.preset`)}</span>
@@ -103,21 +105,6 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
       ))}
     </div>
   );
-}
-
-/** A formula as MathML; its LaTeX, said so, when it cannot be drawn. */
-export function Formula({ latex, display = true }: { latex: string; display?: boolean }) {
-  const mathml = formulaMathML(latex, display);
-  if (mathml === null) {
-    return (
-      <span className="flex flex-col gap-1">
-        <code className="font-mono text-xs">{latex}</code>
-        <span className="text-xs text-status-fault">{t(`${M}.formulaError`)}</span>
-      </span>
-    );
-  }
-  // Temml's own output, trust off: built from the catalogue's LaTeX, no link or HTML passes.
-  return <span className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: mathml }} />;
 }
 
 function StepCard({ step }: { step: MethodStepOut }) {
