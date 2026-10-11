@@ -237,8 +237,9 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
         if brief.acquisition_gaps:
             blocks.append(Heading("Podklady pro doplnění rešerše", 2))
             for acquisition in brief.acquisition_gaps:
+                title = "Další nedostupný zdroj" if acquisition.text_withheld else acquisition.title
                 add_limit(
-                    f"{acquisition.title}. {_ACQUISITION_REASONS[acquisition.reason]} "
+                    f"{title}. {_ACQUISITION_REASONS[acquisition.reason]} "
                     f"{acquisition.how_to_obtain}"
                 )
     blocks.append(Heading("Literatura a zdroje", 2))

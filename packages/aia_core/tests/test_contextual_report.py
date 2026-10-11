@@ -148,6 +148,14 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
         "text_withheld": False,
     }
     synthesis["brief"]["gaps"] = [gap, {**gap, "gap_id": "GAP-need-duplicate"}]
+    synthesis["brief"]["acquisition_gaps"].append(
+        {
+            **synthesis["brief"]["acquisition_gaps"][0],
+            "gap_id": "GAP-withheld-title",
+            "title": "[text s číslem bez citace je jen v přepisu stopy]",
+            "text_withheld": True,
+        }
+    )
     updated = bundle(synthesis=synthesis)
     sections = literature_sections(updated, research_run_id="RUN-abc")
     assert not any(
@@ -159,6 +167,8 @@ def test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once() -> 
     assert "Chybí původní studie" not in prose(updated)
     assert prose(updated).count("Srovnatelná původní studie") == 1
     assert gap["reason"] not in prose(updated)
+    assert "přepisu stopy" not in prose(updated)
+    assert "Další nedostupný zdroj" in prose(updated)
     assert "not_pursued" not in prose(updated)
     assert "Získání tohoto zdroje nebylo v tomto běhu dokončeno. Doplnit z knihovny." in prose(
         updated
