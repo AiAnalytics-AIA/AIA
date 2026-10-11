@@ -12,7 +12,7 @@
  *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
  *  `aia-sociomap-3+e<n>`, and is read as well: the map is whichever contract-3 map the run
  *  stored, a known name first. */
-export const OBJECT_MAP_METHODS = ["aia-sociomap-3", "aia-sociomap-2"] as const;
+export const OBJECT_MAP_METHODS = ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"] as const;
 
 export type PairState = "reliable" | "weak" | "unknown";
 

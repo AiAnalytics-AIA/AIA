@@ -627,13 +627,20 @@ RANK_WITH_TIES_RULE: Final = "audit-f9-rank-where-intervals-do-not-overlap-v1"
 
 _CONNECTEDNESS_100_RULE_TEXT: Final = (
     "audit F9: K100 = 100 x connectedness (F8, over the PRIMARY objects, UNKNOWN pairs "
-    "out); the interval is the 2.5 % / 97.5 % linear (type 7) quantiles of K100 over "
+    "out); the interval is the {low} % / {high} % linear (type 7) quantiles of K100 over "
     "`resamples` respondent bootstraps drawn by random.Random(seed).random(), index "
     "floor(u * n) (OI-62). Pair status is fixed from the full sample; a resample in "
     "which one of an object's known pairs has no correlation does not score that object "
     "and is counted out of its interval (`resamples_scored`); an object unscored in the "
     "full sample has no interval"
 )
+
+
+def _percent(q: float) -> str:
+    """A quantile as the rule text writes it: 0.025 -> "2.5"."""
+    return f"{round(100 * q, 10):g}"
+
+
 _RANK_WITH_TIES_RULE_TEXT: Final = (
     "audit F9: i is above j only when i's interval lies wholly above j's (low_i > high_j); "
     "intervals that overlap or touch are tied. Overlap is not transitive, so the result "
@@ -711,7 +718,9 @@ class Connectedness100:
         """A JSON-ready body: the scores, their intervals, the draw and the rule."""
         return {
             "rule": self.rule,
-            "rule_text": _CONNECTEDNESS_100_RULE_TEXT,
+            "rule_text": _CONNECTEDNESS_100_RULE_TEXT.format(
+                low=_percent(self.quantiles[0]), high=_percent(self.quantiles[1])
+            ),
             "resamples": self.resamples,
             "seed": self.seed,
             "generator": self.generator,
@@ -746,6 +755,7 @@ def connectedness_100(
     resamples: int,
     seed: int,
     slots: Slots = NO_SLOTS,
+    quantiles: tuple[float, float] = CONNECTEDNESS_QUANTILES,
 ) -> Connectedness100:
     """``K100_i = 100 K_i`` with its respondent-bootstrap interval (audit F9).
 
@@ -763,7 +773,8 @@ def connectedness_100(
     a pair does.
 
     ``slots`` reach every score this computes: ``K_i`` (``f8.connectedness``) in the full
-    sample and in each resample, and ``K100`` from it (``f9.k100``), ADR 0023.
+    sample and in each resample, and ``K100`` from it (``f9.k100``), ADR 0023. ``quantiles``
+    are the interval's, as a specification declares them (S2a); the default is the audit's.
     """
     scale = slots.get(K100)
 
@@ -808,7 +819,7 @@ def connectedness_100(
             ):
                 draws[s.object_id].append(k100_of(s.connectedness))
 
-    low_q, high_q = CONNECTEDNESS_QUANTILES
+    low_q, high_q = quantiles
     out: list[ConnectednessInterval] = []
     for s in full.scores:
         values = sorted(draws.get(s.object_id, ()))
@@ -827,7 +838,7 @@ def connectedness_100(
         resamples=b,
         seed=seed,
         generator=CONNECTEDNESS_BOOTSTRAP_GENERATOR,
-        quantiles=CONNECTEDNESS_QUANTILES,
+        quantiles=quantiles,
         respondents=n,
         scores=tuple(out),
     )

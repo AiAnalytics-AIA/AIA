@@ -13,7 +13,9 @@ chunks:
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
-  - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
+  - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
+  - "[ ] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
+  - "[ ] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
   - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
@@ -523,9 +525,46 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that
   plan's open PR.
-- **S2.** Contract 4 moves every listed constant into the specification. The side tables, K100
-  and the readiness warning read the run's pin. A layer check forbids importing those constants
-  on a run path. This is one fingerprint move for new runs; it is tested.
+- **S2.** Every listed constant moves into the specification. The side tables, K100 and the
+  readiness warning read the run's pin. A layer check forbids importing those constants on a run
+  path. ~~This is one fingerprint move for new runs~~: superseded, see "No fingerprint move" below.
+  - **Split** into S2a (the object map's own constants), S2b (the reference set's side tables and
+    K100) and S2c (the readiness warning). Each touches different consumers.
+  - **Not a new contract class.** Contract 3 already grew a declaration without moving a pin:
+    `effect_floor` is left out of the stored form when absent
+    (`specification.py:386-410 @ 8265af7`). The new declarations follow the same rule. A pin made
+    before them reads, fingerprints and computes exactly as before, with the value its code fixed
+    then. The preset `aia-sociomap-4` declares every one, with the same numbers as -3.
+  - **No fingerprint move for new runs (decided in S2a).** The owner's pending D6 sign-off names
+    `aia-sociomap-3` and its fingerprint `e16dc0d06361…`
+    (`docs/architecture/sociomapa-methodology-decision.md`, enforced by
+    `test_sociomap_decision_package.py`). Moving new runs to -4 would change the subject of that
+    sign-off under the owner. So `default_methods()` still pins -3 and the catalogue keeps -3 in
+    force. `aia-sociomap-4` is the editor's starting point: an edit from it
+    (`aia-sociomap-4+e<n>`) declares the constants and can move them, and a run pins it only
+    once a person puts that version in force. Moving the code default to -4 is the D6 owner's
+    call, a one-line change with nothing to compute differently
+    (`test_v4_computes_exactly_what_v3_computes`).
+  - **`_FISHER_MIN_N` stays code.** Four raters is the domain of the Fisher interval
+    (`1/sqrt(n - 3)`), not a methodological choice. The tab shows it as a code constant, and
+    `n_min` is refused below it. A methodologist who wants another interval replaces the
+    `f3.interval_*` formulas (S4c).
+  - **Landed (S2a).** Contract 3 gains `layout.min_objects`, `layout.stress_bands` and
+    `connectedness.quantiles`, each optional and out of the stored form when undeclared, each
+    refused outside its domain by name (`test_a_constant_outside_its_domain_is_refused_by_name`).
+    The engine reads each declaration and falls back to the code's value
+    (`LEGACY_MIN_OBJECTS`, `LEGACY_STRESS_BANDS`, `LEGACY_CONNECTEDNESS_QUANTILES`). -3's stored
+    form and fingerprint are unchanged (`test_the_d6_subject_keeps_its_stored_form_and_fingerprint`).
+    -4 computes byte for byte what -3 does on every check panel, spec aside. K100's `rule_text`
+    names the quantiles it used, and reads as before at the defaults. The catalogue's F6, F7 and
+    F9 steps name the new parameters; the code constants stay beside them as "before
+    aia-sociomap-4". Results reads an object map under -4 too (`OBJECT_MAP_METHODS`).
+  - **Finding (fixed in S2a).** The tab offered a field that a preset leaves out of its stored
+    form as editable with the value `null` (`relation.effect_floor` under `aia-sociomap-2`). The
+    editor works on the stored form, so saving from -2 would have thrown on that field.
+    `describe` now reads such a value as absent (`resolution.py` `_read_or_absent`,
+    `test_the_predecessor_shows_the_terrain_it_does_not_have_as_absent`). The editor's default
+    base is the first preset in the module's ordered list, not the first key of a JSON object.
 - **S3 / G2 / R1 / V1.** Each built-in expression is checked against the code on every fixture
   of its module, bit for bit: F1–F9, the AIA golden, the research aggregate cases and the
   response-process captures. Where floating-point order makes bit-identity impossible, the

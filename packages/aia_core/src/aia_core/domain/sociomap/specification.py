@@ -66,8 +66,12 @@ __all__ = [
     "AIA_SOCIOMAP_V1",
     "AIA_SOCIOMAP_V2",
     "AIA_SOCIOMAP_V3",
+    "AIA_SOCIOMAP_V4",
     "EFFECT_FLOOR_AIA_Q6",
     "FIXED_RULER_EXTENT",
+    "LEGACY_CONNECTEDNESS_QUANTILES",
+    "LEGACY_MIN_OBJECTS",
+    "LEGACY_STRESS_BANDS",
     "PROVISIONAL_ENVELOPE_SIGMA",
     "SPEC_CONTRACTS",
     "SPEC_CONTRACT_V3",
@@ -411,18 +415,35 @@ class PairEvidenceSpec(_Frozen):
 
 
 class ObjectLayoutSpec(_Frozen):
-    """The objects' map (F6, F7): its algorithm, its targets, its stopping rule, its frame."""
+    """The objects' map (F6, F7): its algorithm, its targets, its stopping rule, its frame.
+
+    ``min_objects`` (how many objects a map needs) and ``stress_bands`` (the upper bounds of
+    Stress-1's good, fair and weak bands; above the last is unreliable) were constants of the
+    code until ``aia-sociomap-4`` declared them (plan ``methodology-tab`` S2a). ``None`` is a
+    pin made before then: it computes with the value its code fixed, 3 and (0.05, 0.10, 0.20),
+    and the key is left out of the stored form so that pin and its fingerprint read unchanged.
+    """
 
     algorithm: str
     dissimilarity: str
     max_iterations: int
     tolerance: float
     map_frame: MapFrameSpec
+    min_objects: int | None = None
+    stress_bands: tuple[float, float, float] | None = None
 
-    @field_validator("max_iterations", "tolerance", mode="before")
+    @field_validator("max_iterations", "tolerance", "min_objects", mode="before")
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
+
+    @model_serializer(mode="wrap")
+    def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        for key in ("min_objects", "stress_bands"):
+            if body.get(key) is None:
+                body.pop(key, None)
+        return body
 
 
 class TerrainMethod(StrEnum):
@@ -462,15 +483,26 @@ class ObjectScoresSpec(_Frozen):
 
 
 class ConnectednessSpec(_Frozen):
-    """K100's respondent bootstrap (F9): how many resamples, from which seed."""
+    """K100's respondent bootstrap (F9): how many resamples, from which seed, and the
+    interval's quantiles. ``quantiles`` ``None`` is a pin made before ``aia-sociomap-4``
+    declared them: it computes with (0.025, 0.975), and the key is left out of its stored
+    form (see :class:`ObjectLayoutSpec`)."""
 
     resamples: int
     seed: int
+    quantiles: tuple[float, float] | None = None
 
     @field_validator("resamples", "seed", mode="before")
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
+
+    @model_serializer(mode="wrap")
+    def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if body.get("quantiles") is None:
+            body.pop("quantiles", None)
+        return body
 
 
 class SociomapSpecV3(_Frozen):
@@ -507,6 +539,15 @@ class SociomapSpecV3(_Frozen):
 FIXED_RULER_EXTENT: Final = 2.0
 #: The smallest ``n_min`` a status can mean anything at: the Fisher interval needs four.
 _V3_N_MIN_FLOOR: Final = 4
+#: What a map needs before ``aia-sociomap-4`` declared it: three objects. Two points have no
+#: shape, and the layout refuses fewer (``layout.fit_smacof_objects``).
+LEGACY_MIN_OBJECTS: Final = 3
+#: Stress-1's band bounds before ``aia-sociomap-4`` declared them: the audit's < 0.05 good,
+#: < 0.10 fair, < 0.20 weak, above unreliable (``view.STRESS_QUALITY_BANDS``).
+LEGACY_STRESS_BANDS: Final = (0.05, 0.10, 0.20)
+#: K100's interval quantiles before ``aia-sociomap-4`` declared them
+#: (``metrics.CONNECTEDNESS_QUANTILES``).
+LEGACY_CONNECTEDNESS_QUANTILES: Final = (0.025, 0.975)
 
 
 def _require_supported_v3(spec: SociomapSpecV3) -> None:
@@ -567,8 +608,29 @@ def _require_supported_v3(spec: SociomapSpecV3) -> None:
         )
     if not _member(ObjectHeightMetric, spec.scores.height):
         problems["scores.height"] = f"unknown height {spec.scores.height!r}"
+    if layout.min_objects is not None and layout.min_objects < LEGACY_MIN_OBJECTS:
+        problems["layout.min_objects"] = (
+            f"a map needs at least {LEGACY_MIN_OBJECTS} objects: two points have no shape and "
+            f"the layout refuses fewer; got {layout.min_objects}"
+        )
+    if layout.stress_bands is not None:
+        bands = layout.stress_bands
+        if not all(math.isfinite(b) and b > 0 for b in bands) or not (
+            bands[0] < bands[1] < bands[2]
+        ):
+            problems["layout.stress_bands"] = (
+                f"three positive bounds, each above the last (good < fair < weak); got "
+                f"{list(bands)}"
+            )
     if spec.connectedness.resamples < 1:
         problems["connectedness.resamples"] = "resamples must be at least 1"
+    quantiles = spec.connectedness.quantiles
+    if quantiles is not None and not (
+        all(math.isfinite(q) for q in quantiles) and 0.0 < quantiles[0] < quantiles[1] < 1.0
+    ):
+        problems["connectedness.quantiles"] = (
+            f"two quantiles strictly between 0 and 1, the lower first; got {list(quantiles)}"
+        )
     if spec.respondent_placement is not None:
         problems["respondent_placement"] = (
             "respondent placement is chunk 3's (ideal points, F10) and is not built: its "
@@ -889,5 +951,20 @@ AIA_SOCIOMAP_V3 = AIA_SOCIOMAP_V2.model_copy(
             }
         ),
         "terrain": AIA_OBJECT_ENVELOPE,  # chunk 4b, audit F12 with AIA's provisional sigma
+    }
+)
+
+# ``aia-sociomap-3`` with every value its code fixed declared in the specification (plan
+# ``methodology-tab`` S2a): the same numbers, so the same maps, now the methodologist's to edit.
+# A run pins it from S2a on; a run that pinned -3 keeps -3 and computes exactly as it did.
+AIA_SOCIOMAP_V4 = AIA_SOCIOMAP_V3.model_copy(
+    update={
+        "methodology_version": "aia-sociomap-4",
+        "layout": AIA_SOCIOMAP_V3.layout.model_copy(
+            update={"min_objects": LEGACY_MIN_OBJECTS, "stress_bands": LEGACY_STRESS_BANDS}
+        ),
+        "connectedness": AIA_SOCIOMAP_V3.connectedness.model_copy(
+            update={"quantiles": LEGACY_CONNECTEDNESS_QUANTILES}
+        ),
     }
 )
