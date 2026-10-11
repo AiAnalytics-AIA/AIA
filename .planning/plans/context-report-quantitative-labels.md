@@ -1,8 +1,8 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Keep unlabelled historical numbers in their cited claims"
-  - "[ ] 2. Verify regression tests and deploy the report correction"
+  - "[x] 2. Verify regression tests and deploy the report correction"
 ---
 # Context report quantitative labels
 
@@ -15,3 +15,5 @@ Verify both unlabelled historical years and labelled measurements in `test_conte
 Focused verification: all twelve composer and interpretation API tests passed. Ruff, mypy, layer checks, planning validation and whitespace checks passed. `test_unlabelled_historical_years_do_not_become_benchmark_paragraphs` preserves the dated claim while refusing a bare numeric paragraph; `test_labelled_numeric_data_keeps_its_indicator_and_unit` preserves a labelled percentage. Test bundle inputs are normalized through the contract before sealing, so defaults and integer-to-float coercion do not create an invalid seal.
 
 After the visual presentation corrections, seven composer tests passed; the six API export tests passed in the same verification. `test_long_research_subject_is_body_text_and_duplicate_gaps_appear_once` verifies preserved subject text, deduplicated gaps and a readable acquisition reason with its recorded next step.
+
+Release receipt: PR #240 merged as bc403c271ece4bbb6d97a6423fcf4a2a54282b6d; CI 38085646094 and develop deployment 38087573798 succeeded on that exact SHA. The actual results-page download has SHA256 b2f43a216dff36cc3929605eda0965c86b01a7c61fb0235baf0ec4ba78625bbd. It retains all 37 original analysis passages and six embedded PNGs, including both canonical sociomap views and their unchanged provenance. The 27-page render passed visual review: seven changed pages inspected individually, and the other twenty page images matched the already individually inspected predecessor byte for byte. The three presentation regression tests named above pass on the release. This closes presentation verification; the public review's three low-confidence encyclopedia claims remain limited context, without academic or comparable benchmark coverage.
