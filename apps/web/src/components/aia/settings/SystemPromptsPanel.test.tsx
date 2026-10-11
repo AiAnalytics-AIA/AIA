@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PromptActive, PromptSlotDetail, PromptSlotSummary, PromptVersion, SettingsDocument } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
 import type { Part, StudyRow } from "./ControlPanel";
-import { SystemPromptsPanel, actionOf } from "./SystemPromptsPanel";
+import { SystemPromptsPanel, actionOf, nameOf } from "./SystemPromptsPanel";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace }), usePathname: () => "/app/settings" }));
@@ -433,7 +433,7 @@ describe("comparing", () => {
     const [from, to] = within(compare).getAllByRole("combobox") as HTMLSelectElement[];
     fireEvent.change(from, { target: { value: "baseline" } });
     fireEvent.change(to, { target: { value: "v1" } });
-    expect(within(compare).getByText("+1 / −1 řádků")).toBeTruthy();
+    expect(await within(compare).findByText("+1 / −1 řádků")).toBeTruthy();
     const removed = compare.querySelector('[data-diff="del"]') as HTMLElement;
     const added = compare.querySelector('[data-diff="add"]') as HTMLElement;
     expect(removed.textContent).toContain("Nesestavuj dotazník.");
@@ -574,5 +574,53 @@ describe("sending a signed-out person to sign in", () => {
     fakeApi();
     mount();
     await waitFor(() => expect(replace).toHaveBeenCalledWith(expect.stringMatching(/^\/login\?next=/)));
+  });
+});
+
+
+describe("prompt workspace repairs", () => {
+  it("gives every newly registered research role a readable name and supports search and read-only filters", async () => {
+    for (const suffix of ["investigator", "independent_verifier", "brief_synthesizer", "lead", "lead_replan"]) expect(nameOf(`aia.deep_research.${suffix}`)).not.toMatch(/aia.settings/);
+    fakeApi(); mount(); await editor();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat prompt" }), { target: { value: "sestavení" } });
+    const list = screen.getByRole("navigation", { name: "Seznam promptů" });
+    expect(within(list).getAllByRole("button").length).toBe(1);
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "no-result" } });
+    expect(screen.getByText("Žádný prompt neodpovídá hledání.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Zrušit hledání" }));
+    fireEvent.change(screen.getByLabelText("Zobrazit prompty"), { target: { value: "readOnly" } });
+    expect(within(list).getAllByRole("button").length).toBe(1);
+    expect(within(list).getByText("AI respondent (blok otázek)")).toBeTruthy();
+  });
+
+  it("protects a dirty draft when loading a stored version and includes version notes in the switch guard", async () => {
+    fakeApi(); mount(); await saveAs("Uložená instrukce."); await versionRow("v1");
+    fireEvent.change(await editor(), { target: { value: "Důležitá rozepsaná instrukce." } });
+    fireEvent.click(within(await versionRow("baseline")).getByRole("button", { name: "Do editoru" }));
+    expect((await editor()).value).toBe("Důležitá rozepsaná instrukce.");
+    fireEvent.click(screen.getByRole("button", { name: "Pokračovat v úpravách" }));
+    expect((await editor()).value).toBe("Důležitá rozepsaná instrukce.");
+    fireEvent.click(within(await versionRow("baseline")).getByRole("button", { name: "Do editoru" }));
+    fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a nahrát verzi" }));
+    expect((await editor()).value).toBe(SLOTS[0].baseline);
+    fireEvent.change(screen.getByLabelText("Poznámka k verzi (nepovinná)"), { target: { value: "Nesmí zmizet" } });
+    fireEvent.click(screen.getByRole("button", { name: /Sestavení dotazníku/ }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+  });
+
+  it("retries a failed result read without starting a second paid test", async () => {
+    let reads = 0;
+    fakeApi({ "GET /api/v1/studies/STU-1/research/agent-jobs/RUN-1/result": () => {
+      if (++reads === 1) return new Response(JSON.stringify({code:"temporary_failure", message:"Výsledek nelze načíst"}), {status:503});
+      return { result: {project:{}, proposal:{title:"Výsledek po obnovení"}}, provenance:{} };
+    } });
+    mount(); await saveAs("Nová instrukce.");
+    fireEvent.click(within(await versionRow("v1")).getByRole("button", { name: "Vyzkoušet" }));
+    await waitFor(() => expect((screen.getByLabelText("Revize návrhu") as HTMLSelectElement).value).toBe("REV-2"));
+    fireEvent.click(screen.getByRole("button", { name: "Zadat zkušební úlohu" }));
+    fireEvent.click(await screen.findByRole("button", {name:"Znovu načíst výsledek"}));
+    expect(await screen.findByText(/Výsledek po obnovení/)).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/agent-jobs")).toHaveLength(1);
+    expect(reads).toBe(2);
   });
 });

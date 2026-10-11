@@ -14,7 +14,7 @@
 // Nothing here calls a model. A test queues a normal agent job pinned to the version.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -53,7 +53,11 @@ export function actionOf(promptId: string): ResearchAgentAction | null {
   return ACTIONS.find((a) => a === name) ?? null;
 }
 
-const nameOf = (id: string) => t(`${P}.names.${id.replaceAll(".", "_")}`);
+export const nameOf = (id: string) => {
+  const key = `${P}.names.${id.replaceAll(".", "_")}`;
+  const label = t(key);
+  return label === key ? id.split(".").at(-1)!.replaceAll("_", " ") : label;
+};
 const short = (hash: string) => hash.slice(0, 8);
 const when = (iso: string | null) => (iso ? (relative(iso) ?? iso) : "—");
 
@@ -101,7 +105,7 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
           else setSelected(id);
         };
         return (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
             <PromptList rows={rows} current={current} onChoose={choose} />
             <div className="min-w-0">
               {pending ? (
@@ -126,35 +130,46 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
 
 function stateChip(row: PromptSlotSummary): ReactNode {
   if (!row.wired) return <Tag>{t(`${P}.state.locked`)}</Tag>;
-  if (row.active.origin === "stored") return <Chip tone="you">{tv(`${P}.state.edited`, { label: row.active.label })}</Chip>;
+  if (row.active.origin === "stored") return <Chip tone="done">{tv(`${P}.state.edited`, { label: row.active.label })}</Chip>;
   return <Chip tone="neutral">{t(`${P}.state.baseline`)}</Chip>;
 }
 
 function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; current: string | null; onChoose: (id: string) => void }) {
-  const families = [...new Set(rows.map((r) => r.family))];
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const matching = rows.filter((r) =>
+    (filter === "all" || r.wired === (filter === "editable")) &&
+    `${nameOf(r.prompt_id)} ${r.prompt_id} ${t(`${P}.families.${r.family}`)}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  const families = [...new Set(matching.map((r) => r.family))];
   return (
-    <nav aria-label={t(`${P}.listLabel`)} className="flex flex-col gap-4">
-      {families.map((family) => (
-        <div key={family} data-family={family}>
-          <h3 className={EYEBROW}>{t(`${P}.families.${family}`)}</h3>
-          <ul className="mt-1 flex flex-col gap-1">
-            {rows.filter((r) => r.family === family).map((row) => (
-              <li key={row.prompt_id}>
-                <button
-                  type="button"
-                  data-prompt={row.prompt_id}
-                  aria-current={row.prompt_id === current ? "true" : undefined}
-                  onClick={() => onChoose(row.prompt_id)}
-                  className={`flex w-full flex-col items-start gap-1 rounded-sm border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${row.prompt_id === current ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:bg-surface-sunken"}`}
-                >
-                  <span className="font-medium text-ink">{nameOf(row.prompt_id)}</span>
-                  {stateChip(row)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
+    <nav aria-label={t(`${P}.listLabel`)} className="min-w-0 rounded-md border border-border bg-surface-sunken lg:sticky lg:top-4">
+      <div className="flex flex-col gap-2 border-b border-border p-3">
+        <TextInput type="search" aria-label={t(`${P}.search`)} placeholder={t(`${P}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+        <Select aria-label={t(`${P}.filter`)} value={filter} onChange={(e) => setFilter(e.target.value)}>
+          {["all", "editable", "readOnly"].map((f) => <option key={f} value={f}>{t(`${P}.${f}`)}</option>)}
+        </Select>
+        <span role="status" className="text-xs text-ink-muted">{tv(`${P}.found`, { shown: matching.length, total: rows.length })}</span>
+      </div>
+      <div className="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain p-3 lg:max-h-[65vh]">
+        {families.map((family) => (
+          <div key={family} data-family={family}>
+            <h3 className={EYEBROW}>{t(`${P}.families.${family}`)}</h3>
+            <ul className="mt-2 flex flex-col gap-1">
+              {matching.filter((r) => r.family === family).map((row) => (
+                <li key={row.prompt_id}>
+                  <button type="button" data-prompt={row.prompt_id} aria-current={row.prompt_id === current ? "true" : undefined}
+                    onClick={() => onChoose(row.prompt_id)}
+                    className={`flex w-full min-w-0 flex-col items-start gap-1 rounded-sm border p-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${row.prompt_id === current ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:bg-surface"}`}>
+                    <span className="break-words font-medium text-ink">{nameOf(row.prompt_id)}</span>
+                    {stateChip(row)}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {!matching.length ? <div className="flex flex-col gap-2 text-sm"><p>{t(`${P}.noMatch`)}</p><Button small onClick={() => { setQuery(""); setFilter("all"); }}>{t(`${P}.clearSearch`)}</Button></div> : null}
+      </div>
     </nav>
   );
 }
@@ -197,12 +212,18 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   const [justSaved, setJustSaved] = useState<PromptVersion | null>(null);
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const [testing, setTesting] = useState<number | null>(null);
+  const [pendingLoad, setPendingLoad] = useState<{ text: string; label: string } | null>(null);
+  const compareRef = useRef<HTMLDetailsElement>(null);
+  const activationRef = useRef<HTMLDivElement>(null);
   const [compare, setCompare] = useState<{ a: string; b: string }>({
     a: detail.active.origin === "stored" ? `v${detail.active.version_number}` : "baseline",
     b: "draft",
   });
 
-  const dirty = differs(draft, reference);
+  useEffect(() => {
+    if (activating) activationRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+  }, [activating]);
+  const dirty = differs(draft, reference) || !!note.trim();
   useEffect(() => {
     onDirty(dirty);
     return () => onDirty(false);
@@ -218,8 +239,10 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   const trimmed = draft.trim();
   const duplicateOf = useMemo(() => {
     if (!trimmed) return null;
-    if (trimmed === detail.baseline_text.trim()) return t(`${P}.baselineName`);
-    return detail.versions.find((v) => v.text === trimmed)?.label ?? null;
+    const stored = detail.versions.find((v) => !differs(v.text.trim(), trimmed));
+    if (stored) return stored.label;
+    if (!differs(trimmed, detail.baseline_text.trim())) return t(`${P}.baselineName`);
+    return detail.versions.find((v) => !differs(v.text.trim(), trimmed))?.label ?? null;
   }, [trimmed, detail]);
   const missing = detail.required_literals.filter((lit) => !trimmed.includes(lit));
   const problem =
@@ -228,17 +251,18 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
     : missing.length ? tv(`${P}.editor.missing`, { text: missing.join(", ") })
     : draft.includes("\u0000") ? t(`${P}.editor.badChar`)
     : null;
-  const canSave = detail.wired && !problem && !duplicateOf && !busy;
+  const canSave = detail.wired && dirty && !problem && !duplicateOf && !busy;
 
   const fail = (e: unknown) => {
     if (e instanceof Unauthenticated) {
-      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
       return;
     }
     setAnswer({ ok: false, text: describeError(e) });
   };
 
   async function save() {
+    if (!canSave) return;
     setBusy(true);
     setAnswer(null);
     try {
@@ -270,19 +294,24 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   const side = (key: string) => options.find((o) => o.key === key) ?? options[0];
 
   return (
-    <div data-editor={detail.prompt_id} className="flex flex-col gap-5">
+    <div data-editor={detail.prompt_id} className="flex min-w-0 flex-col gap-5">
+      <p className="rounded-sm border border-signal-edge bg-signal-wash p-3 text-sm font-medium text-signal">{t(`${P}.workflow`)}</p>
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-base font-semibold">{nameOf(detail.prompt_id)}</h3>
+          <h3 className="text-xl font-semibold">{nameOf(detail.prompt_id)}</h3>
           {stateChip(detail)}
           {dirty ? <Chip tone="you">{t(`${P}.guard.unsaved`)}</Chip> : null}
         </div>
         <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.about.${detail.family}`)}</p>
-        <p className="text-xs text-ink-faint">
-          <code>{detail.prompt_id}</code> · {t(`${P}.runs`)}: {detail.active.origin === "stored" ? detail.active.label : tv(`${P}.baselineVersion`, { version: detail.baseline_version })}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-sm border border-border bg-surface-sunken p-3"><p className={EYEBROW}>{t(`${P}.liveLabel`)}</p><p className="mt-1 font-semibold">{detail.active.origin === "stored" ? detail.active.label : t(`${P}.baselineName`)}</p></div>
+          <div className="rounded-sm border border-border bg-surface-sunken p-3"><p className={EYEBROW}>{t(`${P}.draftLabel`)}</p><p className="mt-1 text-sm">{dirty ? tv(`${P}.editor.basedOn`, {label: basedOn === "baseline" ? t(`${P}.baselineName`) : basedOn}) : t(`${P}.unchanged`)}</p></div>
+        </div>
+        <details className="text-xs text-ink-muted"><summary className="cursor-pointer">{t(`${P}.technical`)}</summary><p className="mt-2 break-words">
+          <code className="break-all">{detail.prompt_id}</code> · {t(`${P}.runs`)}: {detail.active.origin === "stored" ? detail.active.label : tv(`${P}.baselineVersion`, { version: detail.baseline_version })}
           {" · "}SHA-256 <code>{short(detail.active.text_sha256)}</code>
           {detail.active.activated_by ? <> · {tv(`${P}.activatedBy`, { who: people(detail.active.activated_by), when: when(detail.active.activated_at) })}</> : null}
-        </p>
+        </p></details>
       </header>
 
       {!detail.wired ? (
@@ -306,16 +335,22 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
           </details>
 
           <form
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4 sm:p-5"
             onSubmit={(e) => { e.preventDefault(); if (canSave) void save(); }}
           >
+            {pendingLoad ? <div role="alert" className="flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+              <p>{tv(`${P}.loadGuard`, { label: pendingLoad.label })}</p><div className="flex flex-wrap gap-2">
+                <Button small disabled={busy} onClick={() => { setDraft(pendingLoad.text); setReference(pendingLoad.text); setBasedOn(pendingLoad.label); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.loadDiscard`)}</Button>
+                <Button small onClick={() => setPendingLoad(null)}>{t(`${P}.loadStay`)}</Button>
+              </div></div> : null}
             <Field label={t(`${P}.editor.textLabel`)}>
               <TextArea
-                name="instruction" rows={14} spellCheck={false} value={draft}
+                aria-label={t(`${P}.editor.textLabel`)}
+                name="instruction" rows={18} disabled={busy} spellCheck={false} value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 aria-invalid={problem ? true : undefined}
                 aria-describedby={`${detail.prompt_id}-hint`}
-                className="w-full font-mono text-[13px]"
+                className="w-full resize-y font-mono text-[13px] leading-6"
               />
             </Field>
             <div id={`${detail.prompt_id}-hint`} className="flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -325,16 +360,16 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
               <span className="font-mono text-ink-faint">{trimmed.length} / {detail.max_chars}</span>
             </div>
             <div className="flex flex-wrap items-end gap-2">
-              <Field label={t(`${P}.editor.noteLabel`)} className="min-w-64 flex-1">
-                <TextInput name="note" value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder={t(`${P}.editor.notePlaceholder`)} />
+              <Field label={t(`${P}.editor.noteLabel`)} className="w-full sm:flex-1">
+                <TextInput name="note" disabled={busy} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder={t(`${P}.editor.notePlaceholder`)} />
               </Field>
               <Button type="submit" variant="primary" disabled={!canSave}>{busy ? t(`${P}.editor.saving`) : t(`${P}.editor.save`)}</Button>
-              <Button disabled={!dirty || busy} onClick={() => { setDraft(reference); setAnswer(null); }}>{t(`${P}.editor.revert`)}</Button>
+              <Button disabled={!dirty || busy} onClick={() => { setDraft(reference); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.editor.revert`)}</Button>
             </div>
             <p data-declaration className="text-xs text-ink-muted">{t(`${P}.editor.declaration`)}</p>
             <p className="text-xs text-ink-faint">{t(`${P}.editor.notLiveYet`)}</p>
             {answer ? (
-              <div role="status" data-answer={answer.ok ? "ok" : "refused"} className={`flex flex-wrap items-center gap-3 text-sm ${answer.ok ? "text-status-done" : "text-status-fault"}`}>
+              <div role={answer.ok ? "status" : "alert"} data-answer={answer.ok ? "ok" : "refused"} className={`flex flex-wrap items-center gap-3 text-sm ${answer.ok ? "text-status-done" : "text-status-fault"}`}>
                 <span>{answer.text}</span>
                 {answer.ok && answer.savedVersion ? (
                   <Button small onClick={() => setActivating({ version: answer.savedVersion ?? null })}>{tv(`${P}.versions.activate`, { label: `e${answer.savedVersion}` })}</Button>
@@ -345,12 +380,17 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
 
           <Versions
             detail={detail} people={people}
-            onLoad={(text, label) => { setDraft(text); setReference(text); setBasedOn(label); setAnswer(null); }}
-            onCompare={(key) => setCompare((c) => ({ ...c, a: key }))}
+            onLoad={(text, label) => {
+              if (busy) return;
+              if (dirty) { setPendingLoad({ text, label }); return; }
+              setDraft(text); setReference(text); setBasedOn(label); setAnswer(null); setPendingLoad(null);
+            }}
+            onCompare={(key) => { setCompare((c) => ({ ...c, a: key })); if (compareRef.current) { compareRef.current.open = true; compareRef.current.scrollIntoView?.({ block: "center", behavior: "smooth" }); } }}
             onActivate={(version) => setActivating({ version })}
             onTest={(version) => setTesting(version)}
           />
 
+          <div ref={activationRef}>
           {activating ? (
             <Activation
               key={`${activating.version}`}
@@ -370,11 +410,12 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
             />
           ) : null}
 
+          </div>
           {testing !== null ? (
             <TestRun key={testing} detail={detail} version={testing} studies={studies} clients={clients} onClose={() => setTesting(null)} />
           ) : null}
 
-          <Compare options={options} state={compare} onChange={setCompare} side={side} />
+          <Compare options={options} state={compare} onChange={setCompare} side={side} detailsRef={compareRef} />
 
           <History detail={detail} people={people} />
         </>
@@ -394,47 +435,33 @@ function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
 }) {
   const baselineRunning = detail.active.origin === "baseline";
   const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
-  const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
-  const TD = "px-2 py-1.5 align-top text-sm";
   const row = (v: PromptVersion | null) => {
     const running = v === null ? baselineRunning : detail.active.version_number === v.version_number;
     const key = v === null ? "baseline" : `v${v.version_number}`;
     const label = v === null ? t(`${P}.baselineName`) : v.label;
     return (
-      <tr key={key} data-version={key} data-running={running ? "yes" : "no"}>
-        <td className={TD}><span className="font-medium">{label}</span></td>
-        <td className={TD}>{v === null ? t(`${P}.versions.byCode`) : people(v.created_by)}</td>
-        <td className={`${TD} text-ink-muted`}>{v === null ? "—" : when(v.created_at)}</td>
-        <td className={`${TD} max-w-56 text-ink-muted`}>{v === null ? tv(`${P}.baselineVersion`, { version: detail.baseline_version }) : v.note || "—"}</td>
-        <td className={TD}>{running ? <Chip tone="done">{t(`${P}.versions.running`)}</Chip> : null}</td>
-        <td className={TD}>
-          <div className="flex flex-wrap gap-1">
-            <Button small onClick={() => onLoad(v === null ? detail.baseline_text : v.text, v === null ? "baseline" : v.label)}>{t(`${P}.versions.load`)}</Button>
-            <Button small onClick={() => onCompare(key)}>{t(`${P}.versions.compare`)}</Button>
-            {!running ? (
-              <Button small variant="primary" onClick={() => onActivate(v === null ? null : v.version_number)}>
-                {v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label })}
-              </Button>
-            ) : null}
-            {v !== null && canTest ? <Button small onClick={() => onTest(v.version_number)}>{t(`${P}.versions.test`)}</Button> : null}
-          </div>
-        </td>
-      </tr>
+      <article key={key} data-version={key} data-running={running ? "yes" : "no"} className={`flex min-w-0 flex-col gap-3 rounded-sm border p-3 sm:p-4 ${running ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised"}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <strong className="text-sm">{label}</strong>
+          {running ? <Chip tone="done">{t(`${P}.versions.running`)}</Chip> : null}
+        </div>
+        <p className="break-words text-xs text-ink-muted">{v === null ? tv(`${P}.baselineVersion`, { version: detail.baseline_version }) : <><span>{people(v.created_by)}</span> · <span>{when(v.created_at)}</span></>}</p>
+        {v?.note ? <p className="break-words text-sm text-ink-muted">{v.note}</p> : null}
+        <div className="flex flex-wrap gap-2">
+          <Button small onClick={() => onLoad(v === null ? detail.baseline_text : v.text, v === null ? "baseline" : v.label)}>{t(`${P}.versions.load`)}</Button>
+          <Button small onClick={() => onCompare(key)}>{t(`${P}.versions.compare`)}</Button>
+          {!running ? <Button small variant="primary" onClick={() => onActivate(v === null ? null : v.version_number)}>{v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label })}</Button> : null}
+          {v !== null && canTest ? <Button small onClick={() => onTest(v.version_number)}>{t(`${P}.versions.test`)}</Button> : null}
+        </div>
+      </article>
     );
   };
   return (
     <section aria-labelledby="pv-h" className="flex flex-col gap-2">
       <h4 id="pv-h" className={EYEBROW}>{t(`${P}.versions.title`)}</h4>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr>{(["version", "author", "when", "note", "state", "actions"] as const).map((k) => <th key={k} className={TH}>{t(`${P}.versions.col.${k}`)}</th>)}</tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {[...detail.versions].map((v) => row(v))}
-            {row(null)}
-          </tbody>
-        </table>
+      <div className="grid gap-3 xl:grid-cols-2">
+        {[...detail.versions].map((v) => row(v))}
+        {row(null)}
       </div>
       {!detail.versions.length ? <p className="text-xs text-ink-faint">{t(`${P}.versions.none`)}</p> : null}
       {!canTest && actionOf(detail.prompt_id) !== null ? <p data-test-off className="text-xs text-ink-muted">{t(`${P}.test.noFictional`)}</p> : null}
@@ -482,7 +509,7 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
       onDone(active.label, textOf(version));
     } catch (e) {
       if (e instanceof Unauthenticated) {
-        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
         return;
       }
       setError(describeError(e));
@@ -513,26 +540,29 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
 
 type Option = { key: string; label: string; text: string };
 
-function Compare({ options, state, onChange, side }: {
+function Compare({ options, state, onChange, side, detailsRef }: {
+  detailsRef: RefObject<HTMLDetailsElement | null>;
   options: Option[]; state: { a: string; b: string }; onChange: (s: { a: string; b: string }) => void; side: (key: string) => Option;
 }) {
   const a = side(state.a);
   const b = side(state.b);
-  const ops = useMemo(() => diffLines(a.text, b.text), [a.text, b.text]);
+  const [expanded, setExpanded] = useState(false);
+  // Do no quadratic line comparison while the person types in a closed comparison.
+  const ops = useMemo(() => expanded ? diffLines(a.text, b.text) : [], [a.text, b.text, expanded]);
   const { added, removed } = summarise(ops);
   const same = !differs(a.text, b.text);
   return (
-    <details data-compare className="rounded-sm border border-border" open={state.a !== "baseline" || undefined}>
+    <details ref={detailsRef} data-compare onToggle={(e) => setExpanded(e.currentTarget.open)} className="rounded-sm border border-border">
       <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.compare.title`)}</summary>
       <div className="flex flex-col gap-3 border-t border-border p-3">
         <div className="flex flex-wrap items-end gap-3">
           <Field label={t(`${P}.compare.from`)}>
-            <Select value={state.a} onChange={(e) => onChange({ ...state, a: e.target.value })} className="w-auto">
+            <Select value={state.a} onChange={(e) => onChange({ ...state, a: e.target.value })} className="w-full sm:w-auto">
               {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
             </Select>
           </Field>
           <Field label={t(`${P}.compare.to`)}>
-            <Select value={state.b} onChange={(e) => onChange({ ...state, b: e.target.value })} className="w-auto">
+            <Select value={state.b} onChange={(e) => onChange({ ...state, b: e.target.value })} className="w-full sm:w-auto">
               {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
             </Select>
           </Field>
@@ -603,10 +633,19 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const resultFor = useRef<string | null>(null);
+  const [resultRetry, setResultRetry] = useState(0);
+  const [resultFailed, setResultFailed] = useState(false);
+  const generation = useRef(0);
+  useEffect(() => () => { generation.current += 1; }, []);
+  const changeStudy = (id: string) => {
+    generation.current += 1;
+    setStudyId(id); setJob(null); setResult(null); setError(null); setResultFailed(false);
+    resultFor.current = null;
+  };
 
   const fail = (e: unknown) => {
     if (e instanceof Unauthenticated) {
-      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
       return;
     }
     setError(describeError(e));
@@ -631,35 +670,42 @@ function TestRun({ detail, version, studies, clients, onClose }: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studyId]);
 
-  // Follow the job until it ends, then read its proposal once.
+  // A failed read can retry the result, never the paid model call. Old reads cannot
+  // attach a result to another study, job or unmounted test panel.
   useEffect(() => {
     if (!job || !studyId) return;
-    if (job.is_terminal || job.status === "WAITING_PROVIDER") {
+    let live = true;
+    if (job.is_terminal || job.needs_attention || job.status.startsWith("WAITING")) {
       if (job.status === "COMPLETED" && resultFor.current !== job.run_id) {
         resultFor.current = job.run_id;
-        researchAgents.result(studyId, job.run_id).then(setResult, fail);
+        researchAgents.result(studyId, job.run_id).then(
+          (value) => { if (live) { setResult(value); setResultFailed(false); } },
+          (e: unknown) => { if (live) { fail(e); setResultFailed(true); } },
+        );
       }
-      return;
+      return () => { live = false; };
     }
     const timer = setTimeout(() => {
-      researchAgents.job(studyId, job.run_id).then(setJob, fail);
+      researchAgents.job(studyId, job.run_id).then((value) => { if (live) setJob(value); }, (e: unknown) => { if (live) fail(e); });
     }, POLL_MS);
-    return () => clearTimeout(timer);
+    return () => { live = false; clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [job, studyId]);
+  }, [job, studyId, resultRetry]);
 
   async function run() {
-    if (!action) return;
+    if (!action || busy || !revisionId || (!!job && !job.is_terminal)) return;
+    const operation = ++generation.current;
     setBusy(true);
     setError(null);
     setResult(null);
     resultFor.current = null;
     try {
-      setJob(await researchAgents.start(studyId, revisionId, action, "", version));
+      const queued = await researchAgents.start(studyId, revisionId, action, "", version);
+      if (generation.current === operation) setJob(queued);
     } catch (e) {
-      fail(e);
+      if (generation.current === operation) fail(e);
     } finally {
-      setBusy(false);
+      if (generation.current === operation) setBusy(false);
     }
   }
 
@@ -674,12 +720,12 @@ function TestRun({ detail, version, studies, clients, onClose }: {
       {!eligible.length ? <Empty>{t(`${P}.test.${fictional.size ? "noStudies" : "noFictional"}`)}</Empty> : (
         <div className="flex flex-wrap items-end gap-3">
           <Field label={t(`${P}.test.study`)}>
-            <Select value={studyId} onChange={(e) => setStudyId(e.target.value)} className="w-auto">
+            <Select value={studyId} disabled={busy || (!!job && !job.is_terminal)} onChange={(e) => changeStudy(e.target.value)} className="w-full sm:w-auto">
               {eligible.map((s) => <option key={s.study_id} value={s.study_id}>{s.name} · {clientName.get(s.client_id) ?? s.client_id}</option>)}
             </Select>
           </Field>
           <Field label={t(`${P}.test.revision`)}>
-            <Select value={revisionId} onChange={(e) => setRevisionId(e.target.value)} className="w-auto" disabled={!revisions?.length}>
+            <Select value={revisionId} onChange={(e) => setRevisionId(e.target.value)} className="w-full sm:w-auto" disabled={!revisions?.length || busy || (!!job && !job.is_terminal)}>
               {(revisions ?? []).map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
             </Select>
           </Field>
@@ -690,6 +736,7 @@ function TestRun({ detail, version, studies, clients, onClose }: {
       )}
       {revisions && !revisions.length && studyId ? <p className="text-xs text-ink-muted">{t(`${P}.test.noRevision`)}</p> : null}
       {error ? <p role="alert" data-refusal className="text-sm text-status-fault">{error}</p> : null}
+      {resultFailed ? <Button onClick={() => { resultFor.current = null; setResultFailed(false); setError(null); setResultRetry((n) => n + 1); }}>{t(`${P}.retryResult`)}</Button> : null}
       {job ? (
         <div data-job className="flex flex-col gap-2 text-sm">
           <p>
