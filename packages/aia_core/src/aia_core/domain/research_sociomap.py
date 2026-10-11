@@ -76,6 +76,7 @@ from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relation_matrix
 from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
 from .sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
+from .sociomap.specification import PairEvidenceBasis
 
 __all__ = [
     "CONNECTEDNESS_NOT_COMPUTED",
@@ -493,8 +494,10 @@ def battery_sociomap(
     # the code's formulas compute.
     code_maps = {spec_v3.methodology_version for spec_v3, slots in pinned_maps if not slots}
     # K100 is computed once: an object map whose bootstrap is this body's -- the same
-    # universe, rows, weights, roles, n_min, confidence, B and seed -- already
-    # holds it, so it is copied rather than paid for twice (about 90 s per large set).
+    # universe, rows, weights, roles, n_min, confidence, B and seed, and the same evidence
+    # basis (the body's statuses read the respondent count; a map that reads Kish's n
+    # decides other statuses under unequal weights) -- already holds it, so it is copied
+    # rather than paid for twice (about 90 s per large set).
     same_bootstrap = next(
         (
             a
@@ -505,6 +508,7 @@ def battery_sociomap(
             and a.spec.connectedness.seed == CONNECTEDNESS_SEED
             and a.spec.relation.n_min == AUDIT_PROVISIONAL_N_MIN
             and a.spec.relation.confidence == PAIR_CONFIDENCE
+            and a.spec.relation.basis == PairEvidenceBasis.RESPONDENT_COUNT
             and a.roles == roles
         ),
         None,

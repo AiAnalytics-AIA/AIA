@@ -451,14 +451,26 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       bootstrap and the terrain. Another expression moves what that slot computes.
     - The pin's tests.
     - `test_a_run_computes_the_formula_its_methodology_replaced`, through the real worker.
-- **Hypothesis H5 (not reproduced).** The body's K100 is copied from an object map whose
-  bootstrap matches by B, seed, n_min, confidence and roles
-  (`packages/aia_core/src/aia_core/domain/research_sociomap.py:438` @ 86b967b). The body's correlator reads the
-  respondent count; `aia-sociomap-3`'s reads Kish n. Under unequal weights the statuses, and so
-  K100's denominators, could differ, while the copy calls them the same bootstrap.
-  - Reproduce: compute the body's K100 with the copy disabled, on an unequally weighted
-    panel, and compare.
-  - It is outside this plan unless it reproduces.
+- **Finding H5 (fixed in this PR).** The body's K100 was copied from an object map whose
+  evidence basis is not the body's.
+  1. **Claim.** `battery_sociomap` copies the K100 of an object map whose bootstrap matches by
+     B, seed, n_min, confidence and roles. It did not compare the evidence basis: the body's
+     statuses read the respondent count, `aia-sociomap-3`'s read Kish's n.
+  2. **Anchor.** `packages/aia_core/src/aia_core/domain/research_sociomap.py:507 @ e9d68b4`
+     (the guard, before the fix).
+  3. **Reproduce.**
+     `pytest packages/aia_core/tests/test_research_sociomap_k100_copy.py`: 45 respondents of
+     case A01, one in three weighted 20 times the others.
+  4. **Consequence.** With the bootstrap switched on
+     (`AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED`) and `aia-sociomap-3` pinned beside the
+     reference map, as every new run has it, the stored body recorded no K100 for any object
+     (`known_pairs` 0). Its own bootstrap gives kava 36.97, upper bound 61.43, for example.
+     No screen reads the body's K100 today; the stored internal artifact is wrong.
+  5. **Fix.** The guard also requires the map's basis to be `respondent_count`. Today no
+     default map matches, so the body computes its own K100: about 90 s per large set while
+     the switch is on.
+  6. **Test.** The one above. It also asserts that the map's K100 differs on that panel, so it
+     cannot pass vacuously.
 - **Finding H4.** The domain's problems are English sentences, shown verbatim on a Czech page:
   `n_min 2 is below 4: the Fisher interval needs four raters`
   (`packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 41dc1be`).
