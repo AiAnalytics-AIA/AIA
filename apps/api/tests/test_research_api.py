@@ -23,7 +23,12 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
-from aia_core.infrastructure.tables import ProjectArtifactRow, ProjectRow, StudyRow
+from aia_core.infrastructure.tables import (
+    ProjectArtifactRow,
+    ProjectRow,
+    StudyRow,
+    WorkflowRunRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 from aia_worker.settings import WorkerSettings
@@ -872,3 +877,26 @@ def test_a_budget_lift_that_is_refused_changes_nothing(
 def test_lifting_a_budget_wait_needs_a_signed_in_member(client: TestClient, world: Any) -> None:
     url = f"{_runs(world)}/RUN-0a1b2c/steps/run/budget"
     assert client.post(url, json={"budget_usd": 10.0}).status_code == 401
+
+
+def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read_it(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Population-operations P3: no LIVE, no population; a recorded one is a record only."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["population"] is None  # no LIVE when it started: it recorded none
+
+    note = {
+        "population_id": "CZ_LIVE",
+        "version_id": "DSV-fictional",
+        "version_label": "v17_4_0",
+        "read_by_fieldwork": False,
+    }
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {**row.metadata_json, "population": note}
+        session.commit()
+    read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert read["population"] == note

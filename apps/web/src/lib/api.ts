@@ -475,6 +475,15 @@ export type ResearchRun = {
   steps: ResearchStep[];
   artifact_ids: string[];
   actual_cost_usd: number | null;
+  /** The population the run recorded (population-operations P3); absent or null: none. */
+  population?: ResearchRunPopulation | null;
+};
+/** What a run recorded about its population, and whether fieldwork read it (never, today). */
+export type ResearchRunPopulation = {
+  population_id: string | null;
+  version_id: string;
+  version_label: string;
+  read_by_fieldwork: boolean;
 };
 /** A run as the Study's list gives it: its state, without its steps or artifacts. */
 export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;

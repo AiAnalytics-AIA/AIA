@@ -42,6 +42,7 @@ import {
   sociomapObjects,
   stepLabel,
   stepOf,
+  populationNote,
   stepStatusLabel,
   stepTone,
   supportNote,
@@ -91,6 +92,16 @@ function SyntheticBanner() {
       {t("research.exec.syntheticNotice")}
     </p>
   );
+}
+
+// The population a run recorded, and that fieldwork did not read it (population-operations P3).
+function PopulationNote({ run }: { run: ResearchRun }) {
+  const note = populationNote(run);
+  return note ? (
+    <p role="note" data-population={run.population?.version_label} className="text-sm text-ink-muted">
+      {note}
+    </p>
+  ) : null;
 }
 
 function useFrame() {
@@ -608,6 +619,7 @@ export function ProgressStep() {
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       {isSynthetic(run) ? <SyntheticBanner /> : null}
+      <PopulationNote run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
@@ -839,6 +851,7 @@ export function ResultsStep() {
     <div className="flex max-w-4xl flex-col gap-4">
       <ResultChips items={chips} />
       {isSynthetic(run) ? <SyntheticBanner /> : null}
+      <PopulationNote run={run} />
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
         {aggregate?.state === "ready" ? <AggregateView artifact={aggregate.value} run={run} /> : null}
         {aggregate?.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{aggregate.message}</p> : null}
