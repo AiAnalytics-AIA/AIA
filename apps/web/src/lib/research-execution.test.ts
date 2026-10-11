@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { isSynthetic, parkedForRuntime, phaseTone, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
+import { isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -72,3 +72,26 @@ describe("waitingDetail", () => {
     expect(waitingDetail({ ...base, waiting_reason: "something_new" })).toBeNull();
   });
 });
+
+describe("populationNote (population-operations P3)", () => {
+  const recorded = { population_id: "CZ_LIVE", version_id: "DSV-x", version_label: "v17_4_0", read_by_fieldwork: false };
+
+  it("says nothing for a run that recorded no population", () => {
+    expect(populationNote({ population: null })).toBeNull();
+    expect(populationNote({})).toBeNull();
+  });
+
+  it("names the recorded version and says the respondents did not come from it", () => {
+    const note = populationNote({ population: recorded });
+    expect(note).toContain("v17_4_0");
+    expect(note).toContain("CZ_LIVE");
+    expect(note).toMatch(/fiktivní/);
+  });
+
+  it("drops the fictional caveat only when fieldwork read the population", () => {
+    const note = populationNote({ population: { ...recorded, read_by_fieldwork: true } });
+    expect(note).toContain("v17_4_0");
+    expect(note).not.toMatch(/fiktivní/);
+  });
+});
+

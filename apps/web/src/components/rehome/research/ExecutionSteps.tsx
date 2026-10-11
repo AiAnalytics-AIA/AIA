@@ -42,6 +42,7 @@ import {
   sociomapObjects,
   stepLabel,
   stepOf,
+  populationNote,
   stepStatusLabel,
   stepTone,
   supportNote,
@@ -92,6 +93,16 @@ function SyntheticBanner() {
       {t("research.exec.syntheticNotice")}
     </p>
   );
+}
+
+// The population a run recorded, and that fieldwork did not read it (population-operations P3).
+function PopulationNote({ run }: { run: ResearchRun }) {
+  const note = populationNote(run);
+  return note ? (
+    <p role="note" data-population={run.population?.version_label} className="text-sm text-ink-muted">
+      {note}
+    </p>
+  ) : null;
 }
 
 function useFrame() {
@@ -502,7 +513,11 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
         if (current && shouldPoll(current)) timer = setTimeout(read, POLL_MS);
       } catch (e) {
         if (!live) return;
-        if (e instanceof ApiError && e.status === 404) return setRun(null);
+        // 404 is "no run here": a retry that lands on it clears the earlier failure.
+        if (e instanceof ApiError && e.status === 404) {
+          setError(null);
+          return setRun(null);
+        }
         setError(message(e));
       }
     };
@@ -610,6 +625,7 @@ export function ProgressStep() {
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       {isSynthetic(run) ? <SyntheticBanner /> : null}
+      <PopulationNote run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
           <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
@@ -814,7 +830,7 @@ export function ResultsStep() {
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
   return <ResultsWorkspace run={run} progressHref={`${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}`}
-    notice={isSynthetic(run) ? <SyntheticBanner /> : null}
+    notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>

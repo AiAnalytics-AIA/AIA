@@ -618,6 +618,21 @@ describe("Results", () => {
     expect(await screen.findByRole("tab", { name: "Přehled" })).toBeTruthy();
   });
 
+  it("clears a failed load when the retry finds no run (404)", async () => {
+    let failed = true;
+    api({ ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs": () => failed
+        ? new Response(JSON.stringify({ code: "service_unavailable", message: "Výsledky se nepodařilo načíst." }), { status: 503 })
+        : new Response(JSON.stringify({ code: "not_found", message: "Nenalezeno." }), { status: 404 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Výsledky se nepodařilo načíst.")).toBeTruthy();
+    failed = false;
+    fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
+    expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();
+    expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
+  });
+
   it("shows evidence-checked internal analysis while another module waits", async () => {
     const partial = run({
       status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",

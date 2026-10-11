@@ -180,6 +180,21 @@ class ResearchStepResponse(BaseModel):
     data_origin: str | None = None
 
 
+class ResearchRunPopulation(BaseModel):
+    """The population a run recorded (population-operations P3), and whether anything read it.
+
+    ``read_by_fieldwork`` is ``False`` for every run today: fieldwork answers with
+    fictional respondents (OI-61), so the recorded population is a record, not a source.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    population_id: str | None
+    version_id: str
+    version_label: str
+    read_by_fieldwork: bool
+
+
 class ResearchRunResponse(BaseModel):
     """A research run of this Study, as a person needs to read it (ADR 0016)."""
 
@@ -205,6 +220,8 @@ class ResearchRunResponse(BaseModel):
     artifact_ids: list[str] = Field(default_factory=list)
     #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
     actual_cost_usd: float | None = None
+    #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
+    population: ResearchRunPopulation | None = None
 
 
 class ResearchRunList(BaseModel):
@@ -469,6 +486,11 @@ def _run(
         steps=steps,
         artifact_ids=[s.artifact_id for s in steps if s.artifact_id],
         actual_cost_usd=cost,
+        population=(
+            ResearchRunPopulation.model_validate(meta["population"])
+            if isinstance(meta.get("population"), dict)
+            else None
+        ),
     )
 
 

@@ -5,6 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -16,8 +17,18 @@ const base = arg("facade", "http://127.0.0.1:8780");
 assert(["127.0.0.1", "localhost"].includes(new URL(base).hostname), "This journey uses local fictional identity only");
 const out = arg("out", join(repo, "tmp/ui-workbench/ux-journey"));
 mkdirSync(out, { recursive: true });
-const require = createRequire(import.meta.url);
-const module = await import(pathToFileURL(require.resolve("playwright", { paths: [repo, join(repo, "apps/web")] })).href);
+// Repository-local first, then the global install the workbench README documents.
+async function loadPlaywright() {
+  const require = createRequire(import.meta.url);
+  for (const from of [repo, join(repo, "apps/web")]) {
+    try {
+      return await import(pathToFileURL(require.resolve("playwright", { paths: [from] })).href);
+    } catch { /* next */ }
+  }
+  const root = execSync("npm root -g", { encoding: "utf8" }).trim();
+  return await import(pathToFileURL(join(root, "playwright/index.mjs")).href);
+}
+const module = await loadPlaywright();
 const chromium = module.chromium ?? module.default.chromium;
 const browser = await chromium.launch({ executablePath: process.env.AIA_CHROMIUM || undefined });
 const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
