@@ -6,6 +6,7 @@ chunks:
   - "[x] 3. Terraced 3D geometry: display elevation by band, stored height kept on every vertex, relief and the entrance rise as presentation only, measured view size"
   - "[x] 4. The redesigned workspace: dark stage, HUD, toolbar (3D / Shora / Otáčet / Jen názvy / Vztahy / Přehrát animaci), labels that avoid each other and the panels, selected-object, pair and ranked cards, legend, Czech copy"
   - "[x] 5. Boundary tests, full checks, browser comparison against the prototype (top, 3D, pair card, labels-only, relations off, 360 px, both themes), PR"
+  - "[x] 7. Review at real sizes: selected-links cue, 3D base readability, dense labels, sticky rail, PNG fidelity, top view"
   - "[x] 6. Visual fidelity correction: the prototype as the composition acceptance spec (checklist V1-V25 below), paired screenshots, remaining differences named"
 ---
 
@@ -220,6 +221,22 @@ named in the paired-screenshot table at the end of this section.
 | Header | Kicker "Mapa objektů (aia-sociomap-3)" and the battery title, not "Návrh · …" | the design's own text is a mock-up label; the method and title come from the artifact |
 | Narrow | The HUD does not overlap the toolbar | accessibility: in the prototype the two collide and hide text |
 | Dark | A faint inset edge on the stage, legend and pair card | the prototype has no dark theme; without it the stage merges into the graphite page |
+
+## Review at real browser sizes (chunk 7, 2026-10-11)
+
+Checked in Chromium on a production build at 1280 × 800, 1440 × 900 and 1920 × 1080, on the
+fixture and on a denser fictional map from the same builder (14 objects, heights 0.21–0.82,
+50 reliable / 41 weak pairs; a scratch file, not committed). Label gaps were measured from
+each pin to the nearest edge of its label in the DOM.
+
+| Item | Found | Change |
+|---|---|---|
+| Selected links | Clicking an object changes the drawn network with no words saying so | a live caption on the stage, "Čáry: vztahy objektu {name} ({n}) · klikněte na jiný objekt" (`aria-live`); "žádný vztah nesplňuje pravidla pro čáru" when none passes; "Čáry vztahů jsou skryté" when off; tested |
+| 3D base | The lowest band was a full 0.1-high slab, a heavy blue block with a thick stepped wall | terraces drawn at `0.03 + band/10` (the design's thin base sheet): the lowest band is a sheet, the stepped null edge a low lip; display only |
+| Dense labels | Selected label 96 px from its pin (top), labels covering their own pins | finer side slots; every pin, its own included, is an obstacle; slots ranked by the pin-to-label gap the eye reads; a leader line whenever a label sits > 12 px away. Measured max gap: base 16 px top and 3D; dense 28 px top, up to 67 px in the 3D cluster (each with a leader, none over a pin) |
+| Sticky rail | At 1440 × 900 the right rail runs ~1 screen past the map | the map column stays in view while the rail scrolls (screenshot); kept |
+| PNG | Label text overflowed its pill in the export (fallback font) | IBM Plex Sans faces embedded in the exported SVG; the export now matches the screen: caption, labels, leaders, links, colours, shading |
+| Top view | Flat compared with the design's lit terraces | each terrace has a faint upper-left light edge besides its lower-right shadow |
 
 ## Findings
 
