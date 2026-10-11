@@ -14,7 +14,7 @@ chunks:
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
-  - "[ ] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
+  - "[x] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
   - "[ ] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
@@ -559,6 +559,19 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     names the quantiles it used, and reads as before at the defaults. The catalogue's F6, F7 and
     F9 steps name the new parameters; the code constants stay beside them as "before
     aia-sociomap-4". Results reads an object map under -4 too (`OBJECT_MAP_METHODS`).
+  - **Landed (S2b).** The reference set's side tables (`relation`, `relation_rescaled`,
+    `object_scores`) and its K100 read `n_min`, the confidence and the bootstrap (B, seed,
+    quantiles) from the run's last pinned object map (`research_sociomap.side_tables_for`).
+    The body records which, under `side_tables`, and `SOCIOMAP_VERSION` is
+    `aia-research-sociomap-9`, so a body stored under 8 is not reused as if it had them. A run
+    that pinned no object map keeps the code's values (`LEGACY_SIDE_TABLES`). The statuses
+    keep reading the respondent count, the body's documented rule. Under the default pin
+    (-3) every table is what it was (`test_the_default_pin_computes_the_tables_it_always_did`).
+    K100 is copied from a map only when its quantiles also match. Enforcement:
+    - `tools/layer_check.sh` forbids the code constants in application, infrastructure, the
+      API, the worker and the executors.
+    - Inside `research_sociomap.py`, `test_no_run_path_reads_the_codes_constants` checks the
+      names that `battery_sociomap` and `research_sociomaps` compile to.
   - **Finding (fixed in S2a).** The tab offered a field that a preset leaves out of its stored
     form as editable with the value `null` (`relation.effect_floor` under `aia-sociomap-2`). The
     editor works on the stored form, so saving from -2 would have thrown on that field.

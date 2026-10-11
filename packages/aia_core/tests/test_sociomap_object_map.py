@@ -614,7 +614,7 @@ def test_research_sociomaps_names_both_pinned_methods() -> None:
     assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
     (set_body,) = body["batteries"]
     assert set(set_body["maps"]) == {"aia-sociomap-3"}
-    assert body["sociomap_version"] == "aia-research-sociomap-8"
+    assert body["sociomap_version"] == "aia-research-sociomap-9"
     pins = {m.method_id: m for m in default_methods()}
     assert pins["aia-sociomap-3"] == SociomapMethod.of(AIA_SOCIOMAP_V3)
 
