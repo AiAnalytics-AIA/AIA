@@ -114,6 +114,9 @@ apps/
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights): rail,
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ExecutionSteps.tsx: Run, Progress, Results (ADR 0016).
+                            ResultsWorkspace.tsx: accessible views of one frozen research run;
+                            switching data, maps, analysis and report retains the camera/review choice,
+                            changes no result and starts no additional run.
                             What 18.6.6 computed from its panel (audience filters, preview, subpanels,
                             own audiences, panel factors) says "V AIA zatím není" where it is met
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
@@ -743,6 +746,7 @@ ungated fixture.
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
+| **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
