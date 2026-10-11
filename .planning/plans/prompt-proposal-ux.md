@@ -31,3 +31,5 @@ Review map:
 - Shared step primitives: disabled object chips and wrapping section headers/chips for phone layouts; full frontend suite and responsive acceptance.
 - Local verification tool: new proposal_prompt_journey.mjs is guarded to localhost and fictional identity, uses existing APIs, and asserts no paid jobs.
 - Backend APIs, database schema, runtime policy, approval gates and frozen outputs are unchanged.
+
+Integrated develop @ 999be17d: 51 frontend files / 938 tests pass, lint and production webpack build pass. The nine-flow Playwright journey also passes against that production build at all four widths. Repeated executions select the exact newly created prompt version from its API text instead of racing a previously saved card. Session-expiry acceptance confirms sign-in's next=/app/settings#prompts. The new methodology tab remains present.

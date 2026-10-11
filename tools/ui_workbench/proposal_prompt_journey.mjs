@@ -129,9 +129,11 @@ try {
   assert.equal(await page.getByLabel("Instrukce", { exact: true }).inputValue(), text);
   await page.getByRole("button", { name: "Uložit jako novou verzi", exact: true }).click();
   await page.locator('[data-answer="ok"]').waitFor();
-  const version = page.locator('[data-version^="v"]').first(); await version.waitFor();
-  const versionKey = await version.getAttribute("data-version"), label = await version.locator("strong").innerText();
   const activeBefore = await get("/api/v1/system-prompts/aia.research.analyze_brief");
+  const created = activeBefore.versions.find((v) => v.text === text);
+  assert(created, "The API contains the exact newly saved prompt text");
+  const versionKey = `v${created.version_number}`, label = created.label;
+  const version = page.locator(`[data-version="${versionKey}"]`); await version.waitFor();
   assert.notEqual(activeBefore.active.label, label);
   await page.getByLabel("Instrukce", { exact: true }).fill(text + " Unsaved important addition.");
   await page.locator('[data-version="baseline"]').getByRole("button", { name: "Do editoru" }).click();
@@ -152,6 +154,11 @@ try {
   await page.locator('[data-version="baseline"]').getByRole("button", { name: "Vrátit základ z kódu" }).click();
   await page.locator("[data-activation]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   await page.getByText("Teď běží: Základ z kódu.", { exact: true }).waitFor();
+  // Session expiry must return to this settings section after sign-in.
+  await page.route("**/api/v1/system-prompts", (route) => route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "unauthenticated", message: "Local session-expiry acceptance" }) }));
+  await page.reload(); await page.waitForURL("**/login?next=*");
+  assert.equal(new URL(page.url()).searchParams.get("next"), "/app/settings#prompts");
+  checks.push("Expired authentication preserves the prompt section in the sign-in return URL");
   assert.equal(writes.filter((r) => /agent-jobs|research\/runs|deep-research\/runs/.test(r.path)).length, 0);
   assert.deepEqual(errors, []);
   writeFileSync(join(out, "checks.json"), JSON.stringify({ status: "PASS", checks, layouts, writes, pageErrors: errors }, null, 2));
