@@ -17,7 +17,7 @@ chunks:
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
   - "[ ] S4b. Sociomap draft check: the edit computed on the fixtures beside what is in force (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14)"
-  - "[ ] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
+  - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
@@ -419,6 +419,46 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - **Seen in a browser** on the workbench, against the real API. The editor stored
     `terrain.sigma` 0.3, showed the domain's `n_min` refusal at its field, drew a replaced
     kernel and put the version in force, with no console error.
+- **S4c. Landed.** The engine computes every slot from a version's expression.
+  - **The vocabulary.** `domain/sociomap/slots.py` names the 14 slot ids the engine reads
+    (`ENGINE_SLOTS`). It knows nothing of the expression language.
+  - **Each function takes `slots`** (default `NO_SLOTS`) and calls a replaced slot by its
+    variables exactly where its own formula ran. The functions are `_scaled` (F1),
+    `person_minmax` (F2), `derive_pair_relations` (F3: Kish n, either interval bound, and the
+    floor test), `correlation_distances` (F6), the reported Stress-1 over `stress_terms`
+    (F7), `primary_scores` (F8), `_heights` (F8), `connectedness_100` (F9: K and K100 in the
+    full sample and every resample), `envelope_at` / `object_envelope` (F12: the kernel at
+    the hill's height, its reach at height 1) and `_support`.
+  - **The algorithms stay code:** which rows are excluded, which pairs are read, SMACOF, the
+    bootstrap draws, the maximum over hills.
+  - **A replaced interval decides the status** through `status_of_interval`, the same rule.
+  - **The pin.**
+    - `SociomapMethod.formulas` carries what a version replaces. It is left out of the stored
+      form when empty, so every code preset's pin and `methods_fingerprint` are byte for byte
+      as before.
+    - `SociomapMethod.slots()` compiles the formulas again on read. It refuses by name a
+      formula that does not compile, names no engine slot, or sits on a contract-2 map.
+    - The research body's `methods` entry records the formulas beside the map they shaped.
+    - A map computed with a replaced formula never lends its K100 to the body.
+  - **`COMPUTED_SLOTS` is now `ENGINE_SLOTS`.** `formula_not_computed` stays as the guard for
+    a slot added to the catalogue before the engine reads it; a test narrows the set to
+    reach it.
+  - **The step pins moved** for the ten steps whose functions gained `slots`, and were re-read.
+    With no slot replaced, every golden, parity-capture and engine test passes unchanged.
+  - **Tests.**
+    - `test_methodology_engine_slots.py` (36). For each slot, its built-in expression gives the
+      code's map bit for bit (`model_dump` equality) on a weighted panel with gaps, the
+      bootstrap and the terrain. Another expression moves what that slot computes.
+    - The pin's tests.
+    - `test_a_run_computes_the_formula_its_methodology_replaced`, through the real worker.
+- **Hypothesis H5 (not reproduced).** The body's K100 is copied from an object map whose
+  bootstrap matches by B, seed, n_min, confidence and roles
+  (`packages/aia_core/src/aia_core/domain/research_sociomap.py:438` @ 86b967b). The body's correlator reads the
+  respondent count; `aia-sociomap-3`'s reads Kish n. Under unequal weights the statuses, and so
+  K100's denominators, could differ, while the copy calls them the same bootstrap.
+  - Reproduce: compute the body's K100 with the copy disabled, on an unequally weighted
+    panel, and compare.
+  - It is outside this plan unless it reproduces.
 - **Finding H4.** The domain's problems are English sentences, shown verbatim on a Czech page:
   `n_min 2 is below 4: the Fisher interval needs four raters`
   (`packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 41dc1be`).

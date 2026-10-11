@@ -182,14 +182,26 @@ def test_a_long_note_or_reason_is_refused_not_cut(scoped: Any, session: Any) -> 
     assert reason.value.reason == "reason_too_long"
 
 
-def test_a_version_replacing_a_formula_the_engine_does_not_compute_is_not_put_in_force(
-    scoped: Any, session: Any
-) -> None:
-    """Stored and shown, never in force: a run must not compute the built-in formula while
-    its methodology says another (plan A4)."""
+def test_a_version_replacing_a_formula_is_put_in_force(scoped: Any, session: Any) -> None:
+    """The engine computes every slot from its expression (plan S4c)."""
     repo = _repo(scoped, session)
     version = _propose(repo, formulas={"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
-    assert version.payload["formulas"] == {"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"}
+    in_force = repo.activate(SOCIOMAP, version.version_number)
+    assert in_force.version is not None
+    assert in_force.version.payload["formulas"] == {"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"}
+
+
+def test_a_formula_the_engine_does_not_compute_is_never_put_in_force(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Stored and shown, never in force: a run must not compute the built-in formula while
+    its methodology says another (plan A4). Every built-in slot is computed today, so the
+    engine's set is narrowed here to reach the refusal."""
+    from aia_core.domain.methodology import pins
+
+    monkeypatch.setattr(pins, "COMPUTED_SLOTS", frozenset())
+    repo = _repo(scoped, session)
+    version = _propose(repo, formulas={"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
     with pytest.raises(MethodologyRefused) as refused:
         repo.activate(SOCIOMAP, version.version_number)
     assert refused.value.reason == "formula_not_computed"

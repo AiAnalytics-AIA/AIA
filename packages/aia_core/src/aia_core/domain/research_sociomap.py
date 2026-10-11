@@ -40,13 +40,22 @@ Pure: no I/O.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, Final
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    ValidationError,
+    model_serializer,
+)
 
 from .fieldwork import FieldworkDataset
+from .methodology.expressions import ExpressionRefused, compile_formula
+from .methodology.sociomap_formulas import SOCIOMAP_FORMULAS
 from .pipeline import fingerprint
 from .research_design import ResearchSpecification, SpecBattery, SpecQuestion
 from .sociomap import (
@@ -66,6 +75,7 @@ from .sociomap.metrics import connectedness_100, primary_scores, rank_with_ties
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relation_matrix
 from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
+from .sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
 
 __all__ = [
     "CONNECTEDNESS_NOT_COMPUTED",
@@ -174,15 +184,59 @@ class SociomapMethod(BaseModel):
     method_id: str = Field(min_length=1, max_length=100)
     spec: dict[str, Any]
     spec_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    #: The formulas a stored methodology version replaces, by slot (ADR 0023, S4c): the
+    #: engine computes each from its expression. Left out of the stored form when empty,
+    #: so every pin made before it existed -- and every code preset -- stores, and so
+    #: fingerprints, exactly as it did.
+    formulas: dict[str, str] = Field(default_factory=dict)
+
+    @model_serializer(mode="wrap")
+    def _store(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        body: dict[str, Any] = handler(self)
+        if not self.formulas:
+            body.pop("formulas", None)
+        return body
 
     @classmethod
-    def of(cls, spec: SociomapSpec | SociomapSpecV3) -> SociomapMethod:
-        """The pin for ``spec``: its methodology version, its stored form, its fingerprint."""
+    def of(
+        cls, spec: SociomapSpec | SociomapSpecV3, formulas: Mapping[str, str] | None = None
+    ) -> SociomapMethod:
+        """The pin for ``spec``: its methodology version, its stored form, its fingerprint,
+        and the formulas a stored version replaces (none for a code preset)."""
         return cls(
             method_id=spec.methodology_version,
             spec=spec_payload(spec),
             spec_fingerprint=spec.fingerprint(),
+            formulas=dict(formulas or {}),
         )
+
+    def slots(self) -> Slots:
+        """The replaced formulas compiled for the engine; :data:`NO_SLOTS` for none.
+
+        A formula is read only on an object map (contract 3) and only in a slot the engine
+        computes; each is compiled again here, so a pin whose expression no longer compiles
+        is refused by name (:class:`SociomapMethodsInvalid`), never computed as the code's.
+        """
+        if not self.formulas:
+            return NO_SLOTS
+        if self.spec.get("contract_version") != "3":
+            raise SociomapMethodsInvalid(
+                f"{self.method_id}: only an object map's formulas are replaceable"
+            )
+        builtin = {f.slot.id: f.slot for f in SOCIOMAP_FORMULAS}
+        compiled: dict[str, Any] = {}
+        for slot_id, text in sorted(self.formulas.items()):
+            if slot_id not in ENGINE_SLOTS or slot_id not in builtin:
+                raise SociomapMethodsInvalid(
+                    f"{self.method_id}: the engine computes no formula slot {slot_id!r}"
+                )
+            try:
+                compiled[slot_id] = compile_formula(builtin[slot_id], text)
+            except ExpressionRefused as exc:
+                raise SociomapMethodsInvalid(
+                    f"{self.method_id}: formula {slot_id} does not compile: {exc}"
+                ) from exc
+        return compiled
 
     def resolve(self) -> SociomapSpec | SociomapSpecV3:
         """The pinned spec, verified against its fingerprint and its id, and computable.
@@ -372,7 +426,7 @@ def battery_sociomap(
     rated_with: Sequence[SpecBattery],
     connectedness_interval: bool,
     map_spec: SociomapSpec,
-    object_maps: Sequence[SociomapSpecV3],
+    object_maps: Sequence[SociomapSpecV3 | tuple[SociomapSpecV3, Slots]],
     rating_questions: Sequence[SpecQuestion],
 ) -> dict[str, Any]:
     """One tracked set's relation matrix and its Sociomap, as an internal artifact body.
@@ -381,8 +435,9 @@ def battery_sociomap(
     declared standalone rating items: together the rating universe each respondent's own
     scale is read over (audit F2: all the items they rated, not only this family).
     ``map_spec`` is the run's pinned contract-2 spec; only its rating scale is replaced,
-    by the battery's. ``object_maps`` are its pinned contract-3 specs: each is
-    computed over the same rating universe and stored under ``maps`` by method id.
+    by the battery's. ``object_maps`` are its pinned contract-3 specs, each with the
+    formulas its version replaces (a bare spec replaces none): each is computed over the
+    same rating universe and stored under ``maps`` by method id.
     """
     object_ids = [o.id for o in battery.objects]
     qids = [battery.question_id(o) for o in battery.objects]
@@ -422,6 +477,7 @@ def battery_sociomap(
         )
         return drawn.r, drawn.status
 
+    pinned_maps = [m if isinstance(m, tuple) else (m, NO_SLOTS) for m in object_maps]
     maps = {
         spec_v3.methodology_version: compute_object_map(
             object_map_inputs(
@@ -429,17 +485,22 @@ def battery_sociomap(
             ),
             spec_v3,
             connectedness_interval=connectedness_interval,
+            slots=slots,
         )
-        for spec_v3 in object_maps
+        for spec_v3, slots in pinned_maps
     }
+    # A map computed with a replaced formula never lends its numbers to the body, which
+    # the code's formulas compute.
+    code_maps = {spec_v3.methodology_version for spec_v3, slots in pinned_maps if not slots}
     # K100 is computed once: an object map whose bootstrap is this body's -- the same
     # universe, rows, weights, roles, n_min, confidence, B and seed -- already
     # holds it, so it is copied rather than paid for twice (about 90 s per large set).
     same_bootstrap = next(
         (
             a
-            for a in maps.values()
-            if a.connectedness_100.get("status") == "computed"
+            for name, a in maps.items()
+            if name in code_maps
+            and a.connectedness_100.get("status") == "computed"
             and a.spec.connectedness.resamples == CONNECTEDNESS_RESAMPLES
             and a.spec.connectedness.seed == CONNECTEDNESS_SEED
             and a.spec.relation.n_min == AUDIT_PROVISIONAL_N_MIN
@@ -546,13 +607,19 @@ def research_sociomaps(
     :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
     """
     pinned = read_methods([m.model_dump(mode="json") for m in methods])
-    resolved = [m.resolve() for m in pinned]
-    map_spec = next(s for s in resolved if isinstance(s, SociomapSpec))
-    object_maps = [s for s in resolved if isinstance(s, SociomapSpecV3)]
+    resolved = [(m.resolve(), m.slots()) for m in pinned]
+    map_spec = next(s for s, _ in resolved if isinstance(s, SociomapSpec))
+    object_maps = [(s, slots) for s, slots in resolved if isinstance(s, SociomapSpecV3)]
     return {
         "sociomap_version": SOCIOMAP_VERSION,
         "methods": [
-            {"method_id": m.method_id, "spec_fingerprint": m.spec_fingerprint} for m in pinned
+            {
+                "method_id": m.method_id,
+                "spec_fingerprint": m.spec_fingerprint,
+                # What an edited version replaced, beside the map it shaped (ADR 0023).
+                **({"formulas": dict(m.formulas)} if m.formulas else {}),
+            }
+            for m in pinned
         ],
         "methodology_status": _methodology_status().value,
         "data_origin": dataset.origin.value if dataset.origin else None,

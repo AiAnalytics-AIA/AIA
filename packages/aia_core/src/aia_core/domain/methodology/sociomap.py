@@ -96,7 +96,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\qquad a_{kc} \notin [s^{\min}_c, s^{\max}_c] \Rightarrow \text{odmítnuto}"
         ),
         implements=f"{_S}.engine_v2:_scaled",
-        source_sha256="7c2387902eeb5005bb136b3afb2d475844ad5755a6b474b460183c077dbc972c",
+        source_sha256="87ba2885568f944ceb4c7e2e4db4ebdf8e87a6d0289b2954ee32c300a85274d4",
         symbols=(
             Symbol(r"a_{kc}", "hodnocení respondenta k u položky c", "body škály"),
             Symbol(r"s^{\min}_c, s^{\max}_c", "deklarované konce škály položky c", "body škály"),
@@ -122,7 +122,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\qquad l \in \text{všechny položky, které } k \text{ hodnotil}"
         ),
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="26325bce9ced4a0e8ca8eebd12507effadbf76eb7b3637e84cf557daed3d7d1c",
+        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
         symbols=(
             Symbol(r"a_{ki}", "hodnocení respondenta k u objektu i (po F1)"),
             Symbol(r"\tilde a_{ki}", "totéž na vlastní škále respondenta: nejnižší 0, nejvyšší 1"),
@@ -148,7 +148,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\frac{\operatorname{cov}}{\max\left(\sqrt{v_i v_j},\,10^{-12}\right)}"
         ),
         implements=f"{_S}.pairs:derive_pair_relations",
-        source_sha256="070b2d0ffd78f70ddee1fca0b6c8ae1318f32db2b943f92e21ab87e0760b8d06",
+        source_sha256="65c960383625ff990b9bfc07bc45713a3f1620ab6c6d9f90503485e3a13c2d80",
         symbols=(
             Symbol(r"k", "respondenti, kteří hodnotili oba objekty a mají kladnou váhu"),
             Symbol(r"w_k", "váha respondenta (normalizovaná na součet N)"),
@@ -247,7 +247,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="dee4181370c530c8fc97de09052a799a04ca8baeb165b3cf304b0d059bcc79cc",
+        source_sha256="e3db6a8bc5f2f981b1444ec39dbf2cd4f06201fc88b03a0df123898a9c36d768",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -374,7 +374,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"K_i = \frac{1}{k_i}\sum_{j \in \mathcal{K}_i} |r_{ij}|"
         ),
         implements=f"{_S}.metrics:primary_scores",
-        source_sha256="f48066654276a5b29e201101815b750c51c6c759ce007d01f0733c5c1360b2b6",
+        source_sha256="521da7e15361047c5c6ef793197310f57f1c6d4924ba85d101026517910ee021",
         symbols=(
             Symbol(r"\mathcal{K}_i", "známí PRIMÁRNÍ partneři objektu i"),
             Symbol(r"k_i", "jejich počet; bez partnera skóre není (ne nula)"),
@@ -391,7 +391,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Výška objektu",
         formula_latex=r"h_j = \frac{\sum_k w_k \tilde a_{kj}}{\sum_k w_k}\quad\text{(F1, před F2)}",
         implements=f"{_S}.engine_v2:_heights",
-        source_sha256="addd6cb739bf5e0d1fdf48fc172a90cd454477e1e13ff86f3f3bf18f466b01ee",
+        source_sha256="b92511a1a55691a948eed0d03f1e4509a5d4bb2537edafb21e089e6e51494560",
         symbols=(Symbol(r"k", "všichni, kdo objekt hodnotili, i neumístění"),),
         parameters=(ParameterRef("scores.height", "Výška objektu"),),
         evidence=(_rule("AUDIT-F8"), _Q7),
@@ -408,7 +408,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{ (respondenti tažení s vracením)}"
         ),
         implements=f"{_S}.metrics:connectedness_100",
-        source_sha256="536fb53ffd7ad5186f788886f4fd1b91fa1af8ed402f4f80b4a7a6b8f70b91d9",
+        source_sha256="95a41a88d8f88acbf5e9de2d3a842a44577afafa71ff8633827bc16ff4bcb4ca",
         symbols=(Symbol(r"B", "počet převzorkování"),),
         parameters=(
             ParameterRef("connectedness.resamples", "Počet převzorkování B"),
@@ -489,7 +489,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Respondent bez rozptylu není umístěn",
         formula_latex=r"\max_l a_{kl} = \min_l a_{kl} \;\Rightarrow\; k \text{ NEUMÍSTĚN}",
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="26325bce9ced4a0e8ca8eebd12507effadbf76eb7b3637e84cf557daed3d7d1c",
+        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
         evidence=(_rule("AUDIT-F11"),),
         tests=(
             f"{_T}/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
@@ -505,7 +505,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\quad U = \text{umístění respondenti}"
         ),
         implements=f"{_S}.engine_v2:_support",
-        source_sha256="f6e5b38f45b4cf69f4c175451689a00585982581d06e1920643389b94ddd3345",
+        source_sha256="9a71aaf6b5538d7f9df8df8a3d2a0c29183d34c17c00d17377d62d622e5f382d",
         evidence=(_rule("AUDIT-F11"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_the_map_says_what_it_rests_on_and_how_weights_entered_it",
@@ -522,7 +522,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\quad g_t = -S + t\,\frac{2S}{N},\; t = 0..N"
         ),
         implements=f"{_S}.terrain:envelope_at",
-        source_sha256="b3161feea3edc28f3b608a7295a9b3ecd42980275c3611e63cf374ada1a70b99",
+        source_sha256="8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
         symbols=(
             Symbol(r"\sigma", "šířka kopce", "jednotky vzdálenosti"),
             Symbol(r"S, N", "poloviční rozsah a rozlišení mřížky"),

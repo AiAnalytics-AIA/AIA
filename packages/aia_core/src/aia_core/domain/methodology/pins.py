@@ -7,8 +7,10 @@ with an edited object map in force, the reference map is pinned as always beside
 specification, under the version's own name. That is all the engine needs for an edited
 parameter: it already computes whatever specification a run pinned.
 
-A version that replaces a formula is refused here until the engine evaluates that slot's
-expression (:data:`COMPUTED_SLOTS`): a run must never quietly compute the built-in formula
+A version's replaced formulas are pinned with its specification
+(``SociomapMethod.formulas``), and the engine computes each from its expression where the
+code's formula would run (``sociomap.slots``, S4c). A slot the engine does not read is
+refused (:data:`COMPUTED_SLOTS`): a run must never quietly compute the built-in formula
 while its methodology says another.
 
 Pure: stdlib and Pydantic only.
@@ -20,6 +22,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from ..research_sociomap import SociomapMethod, default_methods
+from ..sociomap.slots import ENGINE_SLOTS
 from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
 
 __all__ = [
@@ -29,10 +32,10 @@ __all__ = [
     "uncomputed_formulas",
 ]
 
-#: The slots whose stored expression the engine evaluates in place of its own function.
-#: Empty until the engine is wired to expressions; a version replacing any other slot is
-#: stored and shown, but not put in force.
-COMPUTED_SLOTS: Final[frozenset[str]] = frozenset()
+#: The slots whose stored expression the engine evaluates in place of its own function:
+#: every slot the object map's engine reads. A version replacing any other slot is stored
+#: and shown, but not put in force.
+COMPUTED_SLOTS: Final[frozenset[str]] = ENGINE_SLOTS
 
 
 class FormulaNotComputed(ValueError):
@@ -59,4 +62,7 @@ def sociomap_methods_for(payload: Mapping[str, Any] | None) -> tuple[SociomapMet
     if missing:
         raise FormulaNotComputed(missing)
     edited = SociomapSpecV3.model_validate(payload["spec"])
-    return (SociomapMethod.of(AIA_SOCIOMAP_V1), SociomapMethod.of(edited))
+    return (
+        SociomapMethod.of(AIA_SOCIOMAP_V1),
+        SociomapMethod.of(edited, payload.get("formulas") or {}),
+    )
