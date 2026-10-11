@@ -8,7 +8,10 @@
 // number. What the artifact leaves undefined stays undefined: a cell no hill reaches is not
 // drawn, and an unknown pair draws no link.
 
-/** The object map a run pins, newest first; a run that pinned `aia-sociomap-2` reads it. */
+/** The code's object maps, newest first; a run that pinned `aia-sociomap-2` reads it. A run
+ *  started under an edited methodology (ADR 0023) pins its map under the version's own name,
+ *  `aia-sociomap-3+e<n>`, and is read as well: the map is whichever contract-3 map the run
+ *  stored, a known name first. */
 export const OBJECT_MAP_METHODS = ["aia-sociomap-3", "aia-sociomap-2"] as const;
 
 export type PairState = "reliable" | "weak" | "unknown";
@@ -64,7 +67,8 @@ export type ReadMap =
 /** The battery's object map under the newest pinned method; another contract is refused. */
 export function readObjectMap(battery: BatteryWithMaps): ReadMap {
   const maps = battery.maps ?? {};
-  const methodId = OBJECT_MAP_METHODS.find((m) => m in maps);
+  const known: string[] = [...OBJECT_MAP_METHODS];
+  const methodId = known.find((m) => m in maps) ?? Object.keys(maps).find((m) => !known.includes(m));
   if (!methodId) return { ok: false, reason: "none" };
   const stored = maps[methodId];
   if (stored?.artifact?.contract_version !== "3") return { ok: false, reason: "contract" };
