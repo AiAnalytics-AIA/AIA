@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] M0. Decide the reuse unit, its eligibility and its reach (owner, 2026-10-10)"
   - "[x] M1a. The match, pure: dimension titles in the core, accent-folded words, the fields that matched"
-  - "[ ] M1b. The search, scoped to one client: latest Design Revision, else the working draft, else the name"
+  - "[x] M1b. The search, scoped to one client: latest Design Revision, else the working draft, else the name"
   - "[ ] M1c. The route: GET /clients/{client_id}/memory/search"
   - "[ ] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
   - "[ ] M2. Inspect: a past study's design, method, results and their labels, read-only"
