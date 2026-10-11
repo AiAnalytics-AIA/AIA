@@ -94,6 +94,17 @@ if [ "$had_unit_volume" = 1 ] && ! unit_volume_exists; then
   die "the 18.6.6 unit's working volume $LEGACY_STATE_VOLUME is gone; restore it before anything else (deploy/reference/README.md § The volume)"
 fi
 
+# Each population version's field dictionary, kept with it (population-operations P7a):
+# a version imported before dictionaries were kept gets its own, checked against the
+# version's hash, so its characteristics can be read without the panel. Acts as no one and
+# decides nothing; with no version, or every dictionary kept, it changes nothing. A refusal
+# (a file missing from AIA_POPULATION_DIR, a hash that does not match) is said and does not
+# undo a deploy that is otherwise healthy: the page then says the dictionary is not kept.
+log "keeping each population version's dictionary"
+if ! "$DEPLOY_DIR/bin/population.sh" record-dictionary; then
+  log "WARNING: a population dictionary could not be kept (above); the deploy goes on"
+fi
+
 log "pruning images older than the previous deployment"
 docker image prune -f --filter "until=168h" >/dev/null || true
 

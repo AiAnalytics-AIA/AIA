@@ -8,7 +8,10 @@ chunks:
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
   - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
-  - "[ ] P7. Show the population's characteristics on Společenská inteligence: weights, blocks, each field's evidence status and permitted uses, no row"
+  - "[x] P7a. Keep each version's field dictionary with it (stored at import, hash-checked; a deploy step records it for versions imported before)"
+  - "[ ] P7b. Adopt 18.6.6's 18 built-in subpanels as AIA's catalogue, each checked against a version's dictionary"
+  - "[ ] P7c. A version's characteristics through the API: weights, blocks, every field's evidence and permitted uses, the subpanels; no row"
+  - "[ ] P7d. Show them on Společenská inteligence"
 ---
 # Population operations: the core's import and promotion reach a deployment
 
@@ -228,4 +231,43 @@ permits (`RuntimePopulation.decide`), from the imported dictionary through the o
 18.6.6 built-in subpanels (`BUILTIN_SUBPANELS_v17.json`, 18 views such as Mladí 18-29 or
 Senioři 80+) are configuration, not part of the import contract; whether AIA adopts them is a
 question for P7.
+
+## P7, the design (2026-10-11)
+
+**Decision (owner, 2026-10-11): AIA adopts 18.6.6's 18 built-in subpanels.**
+
+**What the code has.** A field's block, source, evidence status, grade, recommended use and
+description come only from the version's dictionary (`FIELD_DICTIONARY_v17_1.csv`). The
+registry keeps only its hash and location (`tables.py` `PopulationDatasetVersionRow`), and the
+policy exists only behind a full panel load (`application/population.py` `load`). The API has
+no asset source, and `layer_check` forbids building field policy anywhere in `apps/`. The
+subpanels file (`BUILTIN_SUBPANELS_v17.json`) is a companion the contract pins by hash
+(`czech.py`), and it is in Git: 18 entries, each filtering on one field (`vek` 18-29 or an
+`is_*` flag equal to 1), with 18.6.6's own row counts and donor support from `17.1.2`.
+
+**Shape chosen.** The dictionary is a version's metadata, not a respondent row.
+
+- **P7a.** `import_version` stores the dictionary's bytes in
+  `population_version_dictionaries` beside the version, after the import has verified them.
+  `population_ops record-dictionary` stores it for a version imported before. It reads
+  `dictionary_location` under the asset root and stores the bytes only when they hash to the
+  version's `dictionary_sha256`; it acts as no one, because it decides nothing. The develop
+  deploy runs it once per version that lacks a dictionary, so the three versions already
+  imported need nobody to sign in.
+- **P7c.** `aia_core.application.population_characteristics` reads those stored bytes,
+  re-hashes them against the version (refusing on a mismatch), parses them, and builds the
+  policy with `build_field_policy`. It answers, per field: its block, source, evidence status
+  and grade, recommended use and description, and `decide()` for every `FieldUse` (allowed,
+  reason, obligations). It answers too for the contract's weights with their roles and
+  totals, and for the block counts. The API only serialises it. Rejected alternative:
+  mounting the population directory into the API, which would put every panel within the
+  API's reach to show 84 KB of metadata.
+- **P7b.** The 18 subpanels become AIA's own catalogue: a copy in `aia_core` that a test pins
+  to the frozen unit's bytes and the contract's companion hash. Each subpanel is checked
+  against a version's dictionary: its filter field exists, and its policy permits
+  `AUDIENCE_FILTERING`; otherwise it is shown and marked not usable, with the reason.
+  18.6.6's counts are shown as 18.6.6 measured them on `v17_1_2`; AIA computes none, because
+  that would read rows.
+- **Not in P7:** applying a subpanel to a study's audience. The selection is recorded, not
+  applied (OI-91), until panel fieldwork exists.
 
