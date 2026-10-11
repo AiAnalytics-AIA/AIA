@@ -187,13 +187,17 @@ someone other than the methodologist.
    - Writing uses `OrganizationContext.require_administer` (ADR 0019), the gate every Settings
      write uses. No role is introduced.
 
+10. **The small-cell thresholds are the methodologist's, both ways.** `min_cell`, `n_guard`, the
+    donor minimums and `max_donor_share` are editable like any other parameter. They can be raised
+    or lowered, with no floor. The owner decided this on 2026-10-11. Like every value, they are
+    bounded only by their declared domain (for example a count is ≥ 1).
+
+    A lowered threshold also lowers how far an output is kept from reproducing a few licensed donor
+    respondents. So the draft check (decision 7) lists every row a draft would newly report. The
+    version records the thresholds it was activated with.
+
 ## Not decided here
 
-- **Whether a small-cell threshold is also disclosure or licence control.** This covers
-  `min_cell`, `n_guard`, the donor minimums and `max_donor_share`. If any is, it gets a floor the
-  methodologist cannot lower (ADR 0022's `lower_only`), owned with licensing. Until the owner
-  decides, these thresholds can be raised but not lowered below today's values. The tab says so
-  beside each one.
 - **Signing D6 from the tab.** An activated version is not a sign-off, and the map stays
   `INTERNAL_ONLY`.
 - **Per-study methods** (I0 of `sociomap-formula-corrections.md`), and a methodologist role.
