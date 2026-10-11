@@ -197,3 +197,19 @@ def test_the_k100_interval_reads_the_declared_quantiles() -> None:
         if w["low"] is not None:
             assert w["low"] <= n["low"] <= n["high"] <= w["high"]
     assert any(w["low"] is not None and w["low"] < n["low"] for w, n in pairs)
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("layout", "stress_bands"), [0.05, 0.1, True]),
+        (("connectedness", "quantiles"), [False, 0.975]),
+    ],
+)
+def test_a_boolean_inside_a_declared_list_is_refused_not_read_as_a_number(
+    path: tuple[str, str], value: list[Any]
+) -> None:
+    stored = spec_payload(AIA_SOCIOMAP_V4)
+    stored["spec"][path[0]][path[1]] = value
+    with pytest.raises(ValueError, match="not a boolean"):
+        read_spec(stored)

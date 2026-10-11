@@ -196,6 +196,15 @@ def _not_boolean(v: object) -> object:
     return v
 
 
+def _no_boolean_inside(v: object) -> object:
+    """:func:`_not_boolean` for each entry of a list or tuple of numbers: ``[0.05, 0.1,
+    true]`` would otherwise be stored as ``(0.05, 0.1, 1.0)``."""
+    if isinstance(v, list | tuple):
+        for entry in v:
+            _not_boolean(entry)
+    return v
+
+
 def _finite(v: float, what: str) -> float:
     if not math.isfinite(v):
         raise ValueError(f"{what} must be finite")
@@ -437,6 +446,11 @@ class ObjectLayoutSpec(_Frozen):
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
 
+    @field_validator("stress_bands", mode="before")
+    @classmethod
+    def _no_bool_inside(cls, v: object) -> object:
+        return _no_boolean_inside(v)
+
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
@@ -496,6 +510,11 @@ class ConnectednessSpec(_Frozen):
     @classmethod
     def _no_bool(cls, v: object) -> object:
         return _not_boolean(v)
+
+    @field_validator("quantiles", mode="before")
+    @classmethod
+    def _no_bool_inside(cls, v: object) -> object:
+        return _no_boolean_inside(v)
 
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
