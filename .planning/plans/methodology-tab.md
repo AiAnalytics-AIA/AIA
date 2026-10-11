@@ -12,7 +12,7 @@ chunks:
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
   - "[ ] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[ ] S4. Sociomap editable: draft, check (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14), activate"
-  - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec (floor kept, ADR 0023)"
+  - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
@@ -215,7 +215,8 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   difference. Such cases are named, not hidden.
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
-  keep today's values as a floor until the disclosure question in ADR 0023 is answered.
+  are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
+  check lists every row a lowered threshold would newly report.
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
