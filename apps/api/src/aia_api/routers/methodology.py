@@ -11,6 +11,9 @@ Organization-level, like the other settings routes: every route takes an
   code's preset), every stored version and the activation log (chunk A5b).
 * ``POST /methodology/{module_id}/check`` -- validate an edit without storing it: every problem
   at once, and the formulas the engine would not yet compute.
+* ``POST /methodology/{module_id}/compare`` -- the edit beside the methodology in force on
+  fixed fictional panels (plan S4b): maps, Stress-1, status changes, shifts, heights, K100,
+  terrain. Nothing stored; any member.
 * ``POST /methodology/{module_id}/versions`` -- store an edit as the next version (an
   administrator); it is not in force until put.
 * ``PUT /methodology/{module_id}/activation`` -- put a version in force, or with
@@ -40,6 +43,7 @@ from aia_core.domain.methodology import (
 )
 from aia_core.domain.methodology.expressions import compile_formula, latex
 from aia_core.domain.methodology.pins import uncomputed_formulas
+from aia_core.domain.methodology.sociomap_check import PanelComparison, compare_with_in_force
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
@@ -257,6 +261,52 @@ class CheckOut(_Strict):
     formulas_latex: dict[str, str]
 
 
+class MapSummaryOut(_Strict):
+    outcome: str
+    not_mappable: str | None
+    stress_1: float | None
+    quality: str | None
+    status_counts: dict[str, int]
+    effective_n: float | None
+
+
+class StatusChangeOut(_Strict):
+    a: str
+    b: str
+    in_force: str
+    draft: str
+
+
+class PanelOut(_Strict):
+    """The draft beside the methodology in force on one fixed fictional panel."""
+
+    panel: str
+    label_cs: str
+    respondents: int
+    objects: list[str]
+    in_force: MapSummaryOut
+    draft: MapSummaryOut
+    status_changes: list[StatusChangeOut]
+    #: Each object's distance from its place on the map in force, the draft turned onto it.
+    shifts: dict[str, float]
+    alignment_rmsd: float | None
+    #: ``[in force, draft]`` per object; ``null`` where an object has none.
+    heights: dict[str, list[float | None]]
+    k100: dict[str, list[float | None]]
+    terrain_max_change: float | None
+    terrain_note: str | None
+    notes: list[str]
+
+
+class CompareOut(_Strict):
+    """``problems`` refuse the draft (nothing is computed); otherwise every panel."""
+
+    valid: bool
+    problems: dict[str, str]
+    in_force: str
+    panels: list[PanelOut]
+
+
 class ActivationIn(_Strict):
     #: The version to put in force; ``null`` returns to the code's preset.
     version_number: int | None = Field(ge=1)
@@ -385,6 +435,31 @@ def _in_force(found: InForce) -> InForceOut:
     )
 
 
+def _panel(c: PanelComparison) -> PanelOut:
+    return PanelOut(
+        panel=c.panel,
+        label_cs=c.label_cs,
+        respondents=c.respondents,
+        objects=list(c.objects),
+        in_force=MapSummaryOut(**_fields(c.in_force)),
+        draft=MapSummaryOut(**_fields(c.draft)),
+        status_changes=[
+            StatusChangeOut(a=a, b=b, in_force=x, draft=y) for a, b, x, y in c.status_changes
+        ],
+        shifts=dict(c.shifts),
+        alignment_rmsd=c.alignment_rmsd,
+        heights={k: list(v) for k, v in c.heights.items()},
+        k100={k: list(v) for k, v in c.k100.items()},
+        terrain_max_change=c.terrain_max_change,
+        terrain_note=c.terrain_note,
+        notes=list(c.notes),
+    )
+
+
+def _fields(summary: Any) -> dict[str, Any]:
+    return {name: getattr(summary, name) for name in MapSummaryOut.model_fields}
+
+
 def _presets(module_id: str) -> dict[str, dict[str, Any]]:
     """An editable module's presets, whole, as JSON; a read-only module offers none."""
     try:
@@ -504,6 +579,51 @@ def check(module_id: ModuleId, body: EditIn, org: OrganizationDep) -> CheckOut:
             slot: latex(compile_formula(slots[slot], text))
             for slot, text in validated.formulas.items()
         },
+    )
+
+
+@router.post(
+    "/{module_id}/compare",
+    response_model=CompareOut,
+    summary="The edit beside the methodology in force, on fictional panels",
+)
+def compare(
+    module_id: ModuleId, body: EditIn, org: OrganizationDep, session: SessionDep
+) -> CompareOut:
+    """Any member may compare: nothing is stored, and only fixed fictional panels are read."""
+    try:
+        found = module(module_id)
+    except KeyError as exc:
+        raise _not_found("unknown_module", f"no method module {module_id!r}") from exc
+    if module_id != "sociomap":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "no_comparison",
+                "message": f"{module_id}: no draft check is built for this module yet",
+            },
+        )
+    try:
+        validated = validate_version(
+            found,
+            base_preset=body.base_preset,
+            spec=body.spec,
+            formulas=body.formulas,
+            version_name=named(body.base_preset, 1),
+        )
+    except MethodologyVersionInvalid as exc:
+        return CompareOut(valid=False, problems=dict(exc.problems), in_force="", panels=[])
+    try:
+        in_force = MethodologyReader(session, org).in_force(module_id)
+    except MethodologyRefused as exc:
+        raise _refused(exc) from exc
+    stored = None if in_force.version is None else in_force.version.payload
+    panels = compare_with_in_force(stored, version_payload(validated))
+    return CompareOut(
+        valid=True,
+        problems={},
+        in_force=_in_force(in_force).name,
+        panels=[_panel(p) for p in panels],
     )
 
 

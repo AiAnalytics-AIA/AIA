@@ -16,7 +16,8 @@ chunks:
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
-  - "[ ] S4b. Sociomap draft check: the edit computed on the fixtures beside what is in force (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14)"
+  - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
+  - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
@@ -451,6 +452,42 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       bootstrap and the terrain. Another expression moves what that slot computes.
     - The pin's tests.
     - `test_a_run_computes_the_formula_its_methodology_replaced`, through the real worker.
+- **S4b. Landed.** The draft check lives in `domain/methodology/sociomap_check.py`.
+  - **What it computes.** It runs the draft and the methodology in force through the real
+    engine (`compute_object_map`, each with its own slots) on `CHECK_PANELS`, three fixed
+    fictional panels from seeded generators; no client data is read:
+    - balanced: 120 respondents, equal weights;
+    - weighted: 90, weights 0.3 to 3, 8 % blank, one SECONDARY object;
+    - small: 36, near `n_min`.
+  - **What it reports** per panel:
+    - the outcome and its reason;
+    - Stress-1 and its band;
+    - status counts and every pair whose status changes;
+    - each object's shift once the draft is turned onto the map in force
+      (`align_to_reference`: rotation and reflection only);
+    - heights;
+    - the K100 point (`f9.k100` of K);
+    - support n;
+    - the largest terrain-cell change.
+  - **K100's interval is not in the check.** It is computed without the bootstrap, which costs
+    about 1.6 s per map at B = 500 (measured on 120 x 8). The check says so on every panel; the
+    run computes the interval.
+  - **The check resolves both sides through the run's own pin** (`sociomap_methods_for`), so it
+    computes exactly what a run would. All three panels take 0.13 s for parameter edits.
+  - **The route** is `POST /api/v1/methodology/{module}/compare`, for any member, storing
+    nothing. An invalid edit returns its problems; a module other than the object map is 422
+    `no_comparison`.
+  - **The editor** has a "Porovnat s metodikou v platnosti" button and a per-panel comparison
+    (`MethodologyComparison.tsx`). It says plainly what did not move.
+  - **Seen on the workbench.** `n_min` 34 plus `sigma` 0.3 leaves the balanced and weighted
+    maps unchanged except the terrain, which moves by up to 0.07. The small panel becomes
+    unmappable (DISCONNECTED: 13 pairs drop to UNKNOWN).
+  - **Tests.**
+    - `test_methodology_sociomap_check.py` (7): fixed panels; a methodology beside itself moves
+      nothing; `n_min` moves statuses only where the panel is small; `sigma` moves only the
+      terrain; a replaced δ moves objects; a replaced K100 halves it; a payload is checked
+      through the pin.
+    - Four API tests and two web tests.
 - **Finding H5 (fixed in this PR).** The body's K100 was copied from an object map whose
   evidence basis is not the body's.
   1. **Claim.** `battery_sociomap` copies the K100 of an object map whose bootstrap matches by

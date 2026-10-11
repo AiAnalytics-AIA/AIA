@@ -13,6 +13,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import {
   type MethodCheck,
+  type MethodCompare,
   type MethodModuleDetail,
   type MethodModuleSummary,
   type MethodVersion,
@@ -34,6 +35,7 @@ import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
+import { MethodologyComparison } from "./MethodologyComparison";
 import { Formula } from "./MethodologyFormula";
 
 const V = "aia.settings.methodology.versions";
@@ -208,6 +210,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
   );
   const [note, setNote] = useState("");
   const [check, setCheck] = useState<MethodCheck | null>(null);
+  const [comparison, setComparison] = useState<MethodCompare | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -237,6 +240,26 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
       const checked = await methodology.check(summary.id, built.edit);
       setCheck(checked);
       if (store && checked.valid) onSaved(await methodology.propose(summary.id, { ...built.edit, note: note.trim() }));
+    } catch (e) {
+      setError(describeError(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  // The edit beside what is in force on fictional panels; a refused edit shows its problems.
+  const compare = async () => {
+    setError(null);
+    setComparison(null);
+    const built = build();
+    if ("local" in built) {
+      setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} });
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await methodology.compare(summary.id, built.edit);
+      if (result.valid) setComparison(result);
+      else setCheck({ valid: false, problems: result.problems, not_computed: [], formulas_latex: {} });
     } catch (e) {
       setError(describeError(e));
     } finally {
@@ -325,8 +348,10 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
       {check?.valid ? <p role="status" className="text-sm text-status-done">{t(`${V}.checkOk`)}</p> : null}
       {check && !check.valid ? <p role="alert" className="text-sm text-status-fault">{tv(`${V}.checkFailed`, { count: Object.keys(check.problems).length })}</p> : null}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
+      {comparison ? <MethodologyComparison result={comparison} /> : null}
       <div className="flex flex-wrap gap-2">
         <Button disabled={busy} onClick={() => void run(false)}>{t(`${V}.check`)}</Button>
+        <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
         <Button type="submit" variant="primary" disabled={busy}>{t(`${V}.store`)}</Button>
         <Button disabled={busy} onClick={onCancel}>{t(`${V}.cancel`)}</Button>
       </div>

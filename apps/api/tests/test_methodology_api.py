@@ -105,7 +105,7 @@ def test_an_unknown_module_or_preset_is_404(owner: TestClient) -> None:
     assert preset.json()["code"] == "unknown_preset"
 
 
-def test_the_only_writes_are_a_version_a_check_and_an_activation() -> None:
+def test_the_only_writes_are_a_version_an_activation_and_two_checks() -> None:
     from aia_api.config import Environment, Settings
     from aia_api.main import create_app
 
@@ -119,6 +119,7 @@ def test_the_only_writes_are_a_version_a_check_and_an_activation() -> None:
     }
     assert writes == {
         ("/{module_id}/check", "post"),
+        ("/{module_id}/compare", "post"),
         ("/{module_id}/versions", "post"),
         ("/{module_id}/activation", "put"),
     }
@@ -269,3 +270,43 @@ def test_check_writes_each_replaced_formula_as_latex(owner: TestClient) -> None:
     written = owner.post(f"{SOCIOMAP}/check", json=edit).json()["formulas_latex"]
     assert set(written) == {"f12.kernel"}
     assert "\\exp" in written["f12.kernel"] and "\\sigma" in written["f12.kernel"]
+
+
+def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
+    as_user: Any,
+) -> None:
+    member: TestClient = as_user("researcher")
+    body = member.post(f"{SOCIOMAP}/compare", json=_edit(relation__n_min=34)).json()
+    assert (body["valid"], body["in_force"]) == (True, "aia-sociomap-3")
+    panels = {p["panel"]: p for p in body["panels"]}
+    assert set(panels) == {"balanced", "weighted", "small"}
+    small = panels["small"]
+    assert small["status_changes"] and all(c["draft"] == "unknown" for c in small["status_changes"])
+    assert set(small["heights"]) == set(small["objects"])
+    assert all(len(pair) == 2 for pair in small["k100"].values())
+    assert any("interval" in n for n in small["notes"])
+
+
+def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(
+    owner: TestClient,
+) -> None:
+    body = owner.post(f"{SOCIOMAP}/compare", json=_edit(relation__n_min=2)).json()
+    assert body["valid"] is False and body["panels"] == []
+    assert "spec.relation.n_min" in body["problems"]
+
+
+def test_compare_is_for_the_object_map(owner: TestClient) -> None:
+    edit = {"base_preset": "aia-sociomap-1", "spec": {}, "formulas": {}}
+    reference = owner.post(f"{METHODOLOGY}/sociomap_reference/compare", json=edit)
+    assert reference.status_code == 422 and reference.json()["code"] == "no_comparison"
+    assert owner.post(f"{METHODOLOGY}/nothing/compare", json=_edit()).status_code == 404
+
+
+def test_compare_reads_the_stored_version_in_force(owner: TestClient) -> None:
+    number = owner.post(f"{SOCIOMAP}/versions", json=_edit(terrain__sigma=0.3)).json()[
+        "version_number"
+    ]
+    owner.put(f"{SOCIOMAP}/activation", json={"version_number": number})
+    body = owner.post(f"{SOCIOMAP}/compare", json=_edit()).json()
+    assert body["in_force"] == "aia-sociomap-3+e1"
+    assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # 0.3 in force, 0.25 drafted
