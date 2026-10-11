@@ -922,6 +922,22 @@ export type MethodVersions = {
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
 export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string> };
+/** One map of a check panel. */
+export type MethodMapSummary = {
+  outcome: string; not_mappable: string | null; stress_1: number | null; quality: string | null;
+  status_counts: Record<string, number>; effective_n: number | null;
+};
+/** An edit beside the methodology in force on one fixed fictional panel (plan S4b). Pairs are
+ *  `[in force, draft]`; `null` where an object has none. */
+export type MethodPanel = {
+  panel: string; label_cs: string; respondents: number; objects: string[];
+  in_force: MethodMapSummary; draft: MethodMapSummary;
+  status_changes: { a: string; b: string; in_force: string; draft: string }[];
+  shifts: Record<string, number>; alignment_rmsd: number | null;
+  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
+  terrain_max_change: number | null; terrain_note: string | null; notes: string[];
+};
+export type MethodCompare = { valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[] };
 
 const METHODOLOGY = "/api/v1/methodology";
 
@@ -933,6 +949,8 @@ export const methodology = {
     request<MethodModuleDetail>("GET", `${METHODOLOGY}/${enc(moduleId)}${preset ? `?preset=${enc(preset)}` : ""}`),
   versions: (moduleId: string) => request<MethodVersions>("GET", `${METHODOLOGY}/${enc(moduleId)}/versions`),
   check: (moduleId: string, edit: MethodEdit) => request<MethodCheck>("POST", `${METHODOLOGY}/${enc(moduleId)}/check`, edit),
+  /** The edit beside what is in force, on fictional panels; nothing stored. */
+  compare: (moduleId: string, edit: MethodEdit) => request<MethodCompare>("POST", `${METHODOLOGY}/${enc(moduleId)}/compare`, edit),
   propose: (moduleId: string, edit: MethodEdit) => request<MethodVersion>("POST", `${METHODOLOGY}/${enc(moduleId)}/versions`, edit),
   /** `versionNumber` null returns the module to the code's preset. */
   activate: (moduleId: string, versionNumber: number | null, reason: string) =>

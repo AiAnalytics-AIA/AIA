@@ -21,7 +21,7 @@ type Doc = {
 const doc = fixture as unknown as Doc;
 type Sent = { method: string; url: string; body: Record<string, unknown> | null };
 
-function fakeApi({ mayAdminister = true, check }: { mayAdminister?: boolean; check?: (body: Record<string, unknown>) => unknown } = {}) {
+function fakeApi({ mayAdminister = true, check, compare }: { mayAdminister?: boolean; check?: (body: Record<string, unknown>) => unknown; compare?: unknown } = {}) {
   const sent: Sent[] = [];
   const versions: Record<string, unknown>[] = [];
   const history: Record<string, unknown>[] = [];
@@ -36,7 +36,7 @@ function fakeApi({ mayAdminister = true, check }: { mayAdminister?: boolean; che
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
     if (u === "/config") return json({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } });
     if (u === "/api/v1/methodology") return json(doc.modules);
-    const versionsMatch = u.match(/^\/api\/v1\/methodology\/([^/]+)\/(versions|check|activation)$/);
+    const versionsMatch = u.match(/^\/api\/v1\/methodology\/([^/]+)\/(versions|check|activation|compare)$/);
     if (versionsMatch) {
       const [, id, what] = versionsMatch;
       if (what === "versions" && method === "GET") {
@@ -51,6 +51,7 @@ function fakeApi({ mayAdminister = true, check }: { mayAdminister?: boolean; che
           history: [...history].reverse(),
         });
       }
+      if (what === "compare") return json(compare ?? { valid: true, problems: {}, in_force: "aia-sociomap-3", panels: [] });
       if (what === "check") {
         return json(check?.(body as Record<string, unknown>) ?? { valid: true, problems: {}, not_computed: [], formulas_latex: {} });
       }
@@ -214,5 +215,59 @@ describe("the methodology's versions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     await screen.findByRole("heading", { name: "Váhy respondentů" });
     expect(screen.queryByRole("heading", { name: "Verze metodiky" })).toBeNull();
+  });
+});
+
+const summary = (stress: number, reliable: number, unknown: number) => ({
+  outcome: "MAPPED", not_mappable: null, stress_1: stress, quality: "good",
+  status_counts: { reliable, weak: 15 - reliable - unknown, unknown }, effective_n: 36,
+});
+
+describe("the comparison with what is in force", () => {
+  it("shows per panel what the edit moves and says plainly what it does not", async () => {
+    const { sent } = fakeApi({
+      compare: {
+        valid: true,
+        problems: {},
+        in_force: "aia-sociomap-3",
+        panels: [
+          {
+            panel: "small", label_cs: "Malý panel", respondents: 36, objects: ["objekt 1", "objekt 2"],
+            in_force: summary(0.04, 3, 0), draft: summary(0.04, 1, 4),
+            status_changes: [{ a: "objekt 1", b: "objekt 2", in_force: "reliable", draft: "unknown" }],
+            shifts: { "objekt 1": 0, "objekt 2": 0 }, alignment_rmsd: 0,
+            heights: { "objekt 1": [0.5, 0.5], "objekt 2": [0.4, 0.4] },
+            k100: { "objekt 1": [20, 10], "objekt 2": [30, 15] },
+            terrain_max_change: 0, terrain_note: null, notes: ["Kontrola porovnává K100 jako bod; interval spočítá až běh."],
+          },
+        ],
+      },
+    });
+    render(<MethodologyPanel />);
+    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+
+    const panel = await found('[data-compare-panel="small"]', form);
+    expect(within(panel).getByText(/objekt 1 – objekt 2: spolehlivý →/)).toBeTruthy();
+    expect(within(panel).getByText("neznámý")).toBeTruthy();
+    expect(within(panel).getByText("Žádný objekt se neposunul.")).toBeTruthy();
+    expect(within(panel).getAllByText("Beze změny.").length).toBe(2); // heights, terrain
+    expect(within(panel).getByText(/objekt 1: 20 → 10/)).toBeTruthy();
+    expect(within(panel).getByText(/interval spočítá až běh/)).toBeTruthy();
+    const body = sent.find((x) => x.url.endsWith("/compare"))?.body;
+    expect((body?.spec as { relation: { n_min: number } }).relation.n_min).toBe(34);
+    expect(sent.some((x) => x.method === "POST" && x.url.endsWith("/versions"))).toBe(false);
+  });
+
+  it("shows a refused edit's problems at its fields instead of a comparison", async () => {
+    fakeApi({ compare: { valid: false, problems: { "spec.relation.n_min": "must be at least 4" }, in_force: "", panels: [] } });
+    render(<MethodologyPanel />);
+    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    await waitFor(() => expect(within(form).getByText("must be at least 4")).toBeTruthy());
+    expect(form.querySelector("[data-methodology-compare]")).toBeNull();
   });
 });
