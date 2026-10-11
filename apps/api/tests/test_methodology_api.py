@@ -257,3 +257,17 @@ def test_a_malformed_request_is_422_before_the_domain(owner: TestClient) -> None
     assert zero.status_code == 422
     long_note = owner.post(f"{SOCIOMAP}/versions", json={**_edit(), "note": "x" * 501})
     assert long_note.status_code == 422
+
+
+def test_an_edit_starts_from_a_preset_the_versions_route_serves_whole(owner: TestClient) -> None:
+    presets = owner.get(f"{SOCIOMAP}/versions").json()["presets"]
+    assert set(presets) == {"aia-sociomap-3", "aia-sociomap-2"}
+    assert presets["aia-sociomap-3"] == AIA_SOCIOMAP_V3.model_dump(mode="json")
+    assert owner.get(f"{METHODOLOGY}/sociomap_reference/versions").json()["presets"] == {}
+
+
+def test_check_writes_each_replaced_formula_as_latex(owner: TestClient) -> None:
+    edit = _edit({"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"})
+    written = owner.post(f"{SOCIOMAP}/check", json=edit).json()["formulas_latex"]
+    assert set(written) == {"f12.kernel"}
+    assert "\\exp" in written["f12.kernel"] and "\\sigma" in written["f12.kernel"]

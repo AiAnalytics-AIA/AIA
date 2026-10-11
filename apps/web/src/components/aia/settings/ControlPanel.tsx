@@ -813,7 +813,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? []} members={members} />;
-    if (tab === "methodology") return <Section id="methodology"><MethodologyPanel /></Section>;
+    if (tab === "methodology") return <MethodologySection members={members} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
@@ -865,6 +865,16 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
   return (
     <Section id="prompts">
       <SystemPromptsPanel {...props} />
+    </Section>
+  );
+}
+
+/** The Metodika tab: the methodology, its versions and who made them (ADR 0023). */
+function MethodologySection({ members }: { members: Part<Member[]> }) {
+  const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
+  return (
+    <Section id="methodology">
+      <MethodologyPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
     </Section>
   );
 }

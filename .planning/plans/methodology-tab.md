@@ -15,7 +15,9 @@ chunks:
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
-  - "[ ] S4. Sociomap editable: draft, check (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14), activate"
+  - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
+  - "[ ] S4b. Sociomap draft check: the edit computed on the fixtures beside what is in force (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14)"
+  - "[ ] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
@@ -384,6 +386,50 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     covers their LaTeX.
   - Algorithms stay code and have no slot: the status classification, the linear quantile, the
     ranking, SMACOF, mappability, and the envelope's maximum over hills.
+- **S4a. Landed.** The editor is `apps/web/src/components/aia/settings/MethodologyVersions.tsx`;
+  its pure part is `apps/web/src/lib/methodology-edit.ts`.
+  - **What an editable module shows.**
+    - What is in force, with its origin.
+    - Every stored version and what it changes against its base preset (dotted fields, plus
+      `ƒ <slot>` for each replaced formula).
+    - Activation with a reason, back to the code's preset, and the history.
+    - For an administrator, the editor.
+  - **The editor starts from the whole specification** of a preset or a stored version.
+    - The presets come from `GET …/versions`, a field this PR adds.
+    - It offers every specification field the catalogue lists, and each formula slot as an
+      expression.
+    - A typed value keeps its type: a number takes a decimal comma; nothing coerces across
+      types.
+    - A field the base lacks is refused, never created (`withPath`).
+    - Only a formula that differs from its built-in expression is sent.
+  - **The check is the domain's own** (`POST …/check`). Its problems land at the field or slot
+    they name; a problem no field shows is listed above the form. A replaced formula is drawn
+    from the LaTeX the check writes (`formulas_latex`, added here), with the "not in force yet"
+    note while `COMPUTED_SLOTS` is empty.
+  - **The API changes.**
+    - `ModuleSummary.editable` (the reference map is shown and never edited).
+    - `VersionsOut.presets` and `CheckOut.formulas_latex`.
+    - The web fixture now carries `presets`.
+  - **`Formula` moved** to `MethodologyFormula.tsx`, so the panel and the editor do not import
+    each other.
+  - **Tests.**
+    - `methodology-edit.test.ts` (9, against the API's own document).
+    - `MethodologyVersions.test.tsx` (7, a stateful fake of the four routes).
+    - Two new API tests.
+  - **Seen in a browser** on the workbench, against the real API. The editor stored
+    `terrain.sigma` 0.3, showed the domain's `n_min` refusal at its field, drew a replaced
+    kernel and put the version in force, with no console error.
+- **Finding H4.** The domain's problems are English sentences, shown verbatim on a Czech page:
+  `n_min 2 is below 4: the Fisher interval needs four raters`
+  (`packages/aia_core/src/aia_core/domain/sociomap/specification.py:535 @ 41dc1be`).
+  - Reproduce: `MethodologyVersions.test.tsx`-style check with `relation.n_min` 2, or the
+    workbench editor.
+  - Consequence: the methodologist reads the reason in English.
+  - Smallest fix: a problem code beside each message, and Czech words for the codes in
+    `cs.ts`, with the English as the fallback.
+  - Test: one per code, in the web suite.
+  - It is not fixed here because the messages belong to the specification validators, which S2
+    rewrites.
 - **S1d.** Rules for every step the register lacks, and the null and wrong pointers fixed
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that

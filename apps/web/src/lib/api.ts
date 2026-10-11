@@ -901,15 +901,40 @@ export type MethodStepOut = {
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {
   id: string; title_cs: string; note_cs: string; presets: string[]; in_force: string | null;
-  steps: number; groups: MethodGroup[];
+  editable: boolean; steps: number; groups: MethodGroup[];
 };
 export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; step_details: MethodStepOut[] };
 
+/** A stored methodology version: immutable, named by the store `<base>+e<n>`. */
+export type MethodVersion = {
+  version_number: number; name: string; base_preset: string; spec: Record<string, unknown>;
+  formulas: Record<string, string>; payload_sha256: string; note: string; created_by: string; created_at: string;
+};
+export type MethodActivation = {
+  activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
+};
+/** What a run started now pins: a stored version, or the code's preset. */
+export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
+export type MethodVersions = {
+  in_force: MethodInForce; may_administer: boolean; presets: Record<string, Record<string, unknown>>;
+  versions: MethodVersion[]; history: MethodActivation[];
+};
+/** An edit: the whole specification and the formulas it replaces (by slot). */
+export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };
+export type MethodCheck = { valid: boolean; problems: Record<string, string>; not_computed: string[]; formulas_latex: Record<string, string> };
+
 const METHODOLOGY = "/api/v1/methodology";
 
-/** Read by any member. Nothing here writes: stored methodology versions are a later chunk. */
+/** Any member reads and checks; storing a version and changing what is in force need an
+ *  organization OWNER or ADMIN (the API refuses anyone else). */
 export const methodology = {
   list: () => request<MethodModuleSummary[]>("GET", METHODOLOGY),
   get: (moduleId: string, preset?: string) =>
     request<MethodModuleDetail>("GET", `${METHODOLOGY}/${enc(moduleId)}${preset ? `?preset=${enc(preset)}` : ""}`),
+  versions: (moduleId: string) => request<MethodVersions>("GET", `${METHODOLOGY}/${enc(moduleId)}/versions`),
+  check: (moduleId: string, edit: MethodEdit) => request<MethodCheck>("POST", `${METHODOLOGY}/${enc(moduleId)}/check`, edit),
+  propose: (moduleId: string, edit: MethodEdit) => request<MethodVersion>("POST", `${METHODOLOGY}/${enc(moduleId)}/versions`, edit),
+  /** `versionNumber` null returns the module to the code's preset. */
+  activate: (moduleId: string, versionNumber: number | null, reason: string) =>
+    request<MethodInForce>("PUT", `${METHODOLOGY}/${enc(moduleId)}/activation`, { version_number: versionNumber, reason }),
 };

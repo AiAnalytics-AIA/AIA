@@ -2,6 +2,7 @@
  "details": {
   "sociomap": {
    "aia-sociomap-2": {
+    "editable": true,
     "groups": [
      {
       "id": "M",
@@ -1627,6 +1628,7 @@
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
+    "editable": true,
     "groups": [
      {
       "id": "M",
@@ -3254,6 +3256,7 @@
   },
   "sociomap_reference": {
    "aia-sociomap-1": {
+    "editable": false,
     "groups": [
      {
       "id": "M",
@@ -4101,6 +4104,7 @@
  },
  "modules": [
   {
+   "editable": true,
    "groups": [
     {
      "id": "M",
@@ -4245,6 +4249,7 @@
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
+   "editable": false,
    "groups": [
     {
      "id": "M",
@@ -4316,5 +4321,82 @@
    "steps": 18,
    "title_cs": "Sociomapa: referenční mapa (18.6.6)"
   }
- ]
+ ],
+ "presets": {
+  "sociomap": {
+   "aia-sociomap-2": {
+    "connectedness": {
+     "resamples": 500,
+     "seed": 20261007
+    },
+    "layout": {
+     "algorithm": "aia_smacof_objects_v1",
+     "dissimilarity": "correlation_distance",
+     "map_frame": {
+      "extent": 2.0,
+      "method": "fixed_ruler"
+     },
+     "max_iterations": 5000,
+     "tolerance": 1e-12
+    },
+    "methodology_version": "aia-sociomap-2",
+    "ratings": {
+     "person_normalization": "person_minmax_all_rated",
+     "scale_normalization": "declared_ends_0_1"
+    },
+    "relation": {
+     "basis": "respondent_count",
+     "confidence": 0.95,
+     "estimator": "weighted_pearson",
+     "n_min": 30
+    },
+    "respondent_placement": null,
+    "scores": {
+     "height": "mean_rating_0_1"
+    },
+    "terrain": null
+   },
+   "aia-sociomap-3": {
+    "connectedness": {
+     "resamples": 500,
+     "seed": 20261007
+    },
+    "layout": {
+     "algorithm": "aia_smacof_objects_v1",
+     "dissimilarity": "correlation_distance",
+     "map_frame": {
+      "extent": 2.0,
+      "method": "fixed_ruler"
+     },
+     "max_iterations": 5000,
+     "tolerance": 1e-12
+    },
+    "methodology_version": "aia-sociomap-3",
+    "ratings": {
+     "person_normalization": "person_minmax_all_rated",
+     "scale_normalization": "declared_ends_0_1"
+    },
+    "relation": {
+     "basis": "kish_effective_n",
+     "confidence": 0.95,
+     "effect_floor": 0.1,
+     "estimator": "weighted_pearson",
+     "n_min": 30
+    },
+    "respondent_placement": null,
+    "scores": {
+     "height": "mean_rating_0_1"
+    },
+    "terrain": {
+     "grid_resolution": 64,
+     "half_extent": 2.75,
+     "kernel_cutoff": 0.0005,
+     "method": "object_envelope",
+     "sigma": 0.25,
+     "sigma_basis": "aia_provisional_r08_5pct"
+    }
+   }
+  },
+  "sociomap_reference": {}
+ }
 }
