@@ -418,12 +418,25 @@ STRESS_QUALITY_TEXT: dict[StressQuality, str] = {
 }
 
 
-def stress_quality(stress_1: float) -> StressQuality:
+def stress_quality(
+    stress_1: float, bands: tuple[float, float, float] | None = None
+) -> StressQuality:
     """The label every map shows beside its Stress-1. A non-finite or negative value is
-    not a fit and is refused rather than labelled."""
+    not a fit and is refused rather than labelled.
+
+    ``bands`` are the upper bounds of good, fair and weak a specification declares
+    (``layout.stress_bands``, plan ``methodology-tab`` S2a); ``None`` is the audit's
+    :data:`STRESS_QUALITY_BANDS`."""
     if not math.isfinite(stress_1) or stress_1 < 0:
         raise ValueError(f"Stress-1 is a finite non-negative number; got {stress_1!r}")
-    for bound, label in STRESS_QUALITY_BANDS:
+    table = (
+        STRESS_QUALITY_BANDS
+        if bands is None
+        else tuple(
+            zip(bands, (StressQuality.GOOD, StressQuality.FAIR, StressQuality.WEAK), strict=True)
+        )
+    )
+    for bound, label in table:
         if stress_1 < bound:
             return label
     return StressQuality.UNRELIABLE

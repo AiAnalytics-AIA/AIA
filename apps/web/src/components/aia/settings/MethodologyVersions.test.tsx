@@ -120,19 +120,21 @@ describe("the methodology's versions", () => {
     fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
+    fireEvent.change(await field(form, "layout.stress_bands"), { target: { value: "[0.05, 0.1, 0.25]" } });
     fireEvent.change(within(form).getByLabelText("Poznámka k verzi"), { target: { value: "širší kopec" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
 
-    await waitFor(() => expect(within(section).getByText("Uloženo jako aia-sociomap-3+e1. V platnosti bude, až ji uvedete.")).toBeTruthy());
+    await waitFor(() => expect(within(section).getByText("Uloženo jako aia-sociomap-4+e1. V platnosti bude, až ji uvedete.")).toBeTruthy());
     const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/versions"));
-    expect(stored?.body?.base_preset).toBe("aia-sociomap-3");
+    expect(stored?.body?.base_preset).toBe("aia-sociomap-4"); // the newest preset: its own constants are editable
     expect((stored?.body?.spec as { terrain: { sigma: number } }).terrain.sigma).toBe(0.3);
+    expect((stored?.body?.spec as { layout: { stress_bands: number[] } }).layout.stress_bands).toEqual([0.05, 0.1, 0.25]);
     expect(stored?.body?.formulas).toEqual({}); // nothing replaced: no built-in sent as an edit
     expect(sent.filter((s) => s.url.endsWith("/check"))).toHaveLength(1); // checked before stored
     const version = await found('[data-methodology-version="1"]', section);
-    expect(within(version).getByText("terrain.sigma")).toBeTruthy();
+    expect(within(version).getByText(/layout\.stress_bands.*terrain\.sigma/)).toBeTruthy();
 
-    fireEvent.click(within(version).getByRole("button", { name: "Uvést aia-sociomap-3+e1 v platnost" }));
+    fireEvent.click(within(version).getByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
     const confirm = await found("[data-methodology-activate]", section);
     fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "ověřeno" } });
     fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));

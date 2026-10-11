@@ -386,8 +386,16 @@ def _read_or_absent(spec: BaseModel | None, path: str) -> Any:
     if spec is None:
         raise MethodologyReferenceError(f"{path}: the module declares no specification")
     try:
-        return read_path(spec, path)
+        value = read_path(spec, path)
     except MethodologyReferenceError:
         # The path exists in another preset (module_problems guarantees one has it) but not
         # in this one: the part is not used by this preset.
         return ABSENT
+    # An optional part the preset does not declare is left out of its stored form (an
+    # edit starts from that form and cannot set it): absent, not a value of None.
+    stored: Any = spec.model_dump(mode="json")
+    for part in path.split("."):
+        if not isinstance(stored, Mapping) or part not in stored:
+            return ABSENT
+        stored = stored[part]
+    return value

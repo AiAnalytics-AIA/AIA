@@ -273,8 +273,10 @@ LEGACY_METHODS: Final = (SociomapMethod.of(AIA_SOCIOMAP_V1),)
 def default_methods() -> tuple[SociomapMethod, ...]:
     """What a new run pins: ``aia-sociomap-1``, the shipped picture until chunk 5 draws
     another, and ``aia-sociomap-3``, the audit's object map under AIA's Q5-Q7 decisions
-    (2026-10-09), computed beside it. Both are ``INTERNAL_ONLY`` while D6 is open. A run
-    that pinned ``aia-sociomap-2`` keeps it: a pin is never rewritten."""
+    (2026-10-09), computed beside it -- the subject of D6's pending sign-off. Both are
+    ``INTERNAL_ONLY`` while D6 is open. A run that pinned ``aia-sociomap-2`` keeps it: a pin
+    is never rewritten. ``aia-sociomap-4`` (the same numbers, every one declared) is where an
+    edited methodology starts from; a run pins it only through a version put in force."""
     return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
 
 

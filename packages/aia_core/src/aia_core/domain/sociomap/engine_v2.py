@@ -61,6 +61,7 @@ from .pairs import derive_pair_relations
 from .relations import PairStatus, person_minmax
 from .slots import HEIGHT, NO_SLOTS, SCALE, STRESS_1, SUPPORT_EFFECTIVE_N, Slots
 from .specification import (
+    LEGACY_MIN_OBJECTS,
     ObjectHeightMetric,
     PairEvidenceBasis,
     SociomapSpecV3,
@@ -319,10 +320,13 @@ def compute_object_map(
 
     not_mappable: NotMappable | None = None
     layout: ObjectMapLayout | None = None
-    if m < 3:
+    declared = spec.layout.min_objects
+    min_objects = LEGACY_MIN_OBJECTS if declared is None else declared
+    if m < min_objects:
+        needed = "three" if min_objects == LEGACY_MIN_OBJECTS else str(min_objects)
         not_mappable = NotMappable(
             reason=NotMappableReason.TOO_FEW_OBJECTS.value,
-            message=f"an object map needs at least three objects; the family has {m}",
+            message=f"an object map needs at least {needed} objects; the family has {m}",
             objects=tuple(ids),
         )
     elif not any(any(row) for row in known):
@@ -365,7 +369,7 @@ def compute_object_map(
                 extent=spec.layout.map_frame.extent,
                 stress_1=stress_1,
                 raw_stress=fit.raw_stress,
-                quality=stress_quality(stress_1).value,
+                quality=stress_quality(stress_1, spec.layout.stress_bands).value,
                 known_pairs=fit.known_pairs,
                 iterations=fit.iterations,
                 converged=fit.converged,
@@ -404,6 +408,11 @@ def compute_object_map(
             resamples=spec.connectedness.resamples,
             seed=spec.connectedness.seed,
             slots=slots,
+            **(
+                {}
+                if spec.connectedness.quantiles is None
+                else {"quantiles": spec.connectedness.quantiles}
+            ),
         )
         connectedness = {
             "status": "computed",
