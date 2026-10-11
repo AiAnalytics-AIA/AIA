@@ -80,6 +80,21 @@ def test_a_step_carries_its_formula_evidence_and_tests(owner: TestClient) -> Non
     assert step["tests"]
 
 
+def test_a_step_carries_its_editable_formula_written_from_its_expression(
+    owner: TestClient,
+) -> None:
+    body = owner.get(f"{METHODOLOGY}/sociomap").json()
+    step = next(s for s in body["step_details"] if s["id"] == "f6_distance")
+    (formula,) = step["formulas"]
+    assert formula["slot_id"] == "f6.distance"
+    assert formula["expression"] == "sqrt(max(0, 2 * (1 - r)))"
+    assert formula["latex"] == r"\sqrt{\max\left(0, 2 \cdot \left(1 - r_{ij}\right)\right)}"
+    assert [v["name"] for v in formula["variables"]] == ["r"]
+    assert {p["kind"] for p in formula["properties"]} >= {"non_negative", "equals_at"}
+    algorithm = next(s for s in body["step_details"] if s["id"] == "f6_smacof")
+    assert algorithm["formulas"] == []  # an algorithm, not a formula
+
+
 def test_an_unknown_module_or_preset_is_404(owner: TestClient) -> None:
     missing = owner.get(f"{METHODOLOGY}/nothing")
     assert missing.status_code == 404

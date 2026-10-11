@@ -14,7 +14,7 @@ chunks:
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[ ] S2. Sociomap declared: contract 4 -- side-table n_min/confidence, K100 quantiles, Stress bands, minimums into the spec; consumers read the pin"
-  - "[ ] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
+  - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[ ] S4. Sociomap editable: draft, check (Stress, statuses, aligned positions, heights, K100, audit checks C1-C16/P4-P14), activate"
   - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
@@ -298,6 +298,24 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     edited.
   - Shown as code: the 5-rater threshold and 5.5 inside `derive_relation_matrix` are bare literals
     of a ported function. They stay code, because the reference map is not edited.
+- **S3. Landed.**
+  - `domain/methodology/sociomap_formulas.py` declares 14 slots, each with the expression the
+    engine computes: F1 scale, F2 person min-max, F3 Kish n, the lower and upper Fisher bounds,
+    the effect floor, F6 distance, F7 Stress-1, F8 alignment, connectedness and height, F9 K100,
+    the F12 kernel, and the map's support n.
+  - `test_methodology_sociomap_formulas.py` evaluates each against the engine's own function
+    (`_scaled`, `person_minmax`, `kish_effective_n`, `fisher_interval`, `meets_effect_floor`,
+    `correlation_distance`, `_object_stress`, `primary_scores`, `_heights`,
+    `connectedness_100`, `envelope_at`, `_support`). Inputs are random and boundary cases:
+    |r| = 1, an empty weight, all known pairs. The values are equal as floats, not
+    approximately.
+  - `module_problems` now also requires that each built-in formula compiles and keeps its
+    slot's properties.
+  - The API sends each step's `formulas` (expression, LaTeX written from it, variables,
+    properties). The tab shows them in a "Vzorec jako výraz" block, and the web render test
+    covers their LaTeX.
+  - Algorithms stay code and have no slot: the status classification, the linear quantile, the
+    ranking, SMACOF, mappability, and the envelope's maximum over hills.
 - **S1d.** Rules for every step the register lacks, and the null and wrong pointers fixed
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that

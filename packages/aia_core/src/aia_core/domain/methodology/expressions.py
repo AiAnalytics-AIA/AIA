@@ -109,6 +109,7 @@ class PropertyKind(StrEnum):
     NON_INCREASING_IN = "non_increasing_in"  # in one variable, the others fixed
     NON_DECREASING_IN = "non_decreasing_in"
     AT_MOST_VARIABLE = "at_most_variable"  # value <= another variable's value (or its length)
+    AT_LEAST_VARIABLE = "at_least_variable"  # value >= another variable's value
 
 
 @dataclass(frozen=True, slots=True)
@@ -546,13 +547,16 @@ def _counterexample(
         if got != prop.value:
             return f"at {_show(prop.at)} the value must be {prop.value!r}; it is {got!r}"
         return None
-    if kind is PropertyKind.AT_MOST_VARIABLE:
+    if kind in (PropertyKind.AT_MOST_VARIABLE, PropertyKind.AT_LEAST_VARIABLE):
         assert prop.variable is not None
+        at_most = kind is PropertyKind.AT_MOST_VARIABLE
         for point, v in values:
             bound = point[prop.variable]
             limit = float(len(bound)) if isinstance(bound, tuple) else bound
-            if v > limit + 1e-12 * max(1.0, abs(limit)):
-                return f"at {_show(point)} the value {v!r} exceeds {prop.variable} = {limit!r}"
+            slack = 1e-12 * max(1.0, abs(limit))
+            if (v > limit + slack) if at_most else (v < limit - slack):
+                way = "exceeds" if at_most else "falls below"
+                return f"at {_show(point)} the value {v!r} {way} {prop.variable} = {limit!r}"
         return None
     assert prop.variable is not None
     rising = kind is PropertyKind.NON_DECREASING_IN

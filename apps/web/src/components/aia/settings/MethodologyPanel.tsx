@@ -14,7 +14,7 @@ import { useState } from "react";
 import "temml/dist/Temml-Local.css";
 
 import { t } from "@/i18n/t";
-import { type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
+import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
 import { formulaMathML, groupSteps, showValue } from "@/lib/methodology";
 import { Tag } from "../../rehome/ui";
 import { Loaded } from "../states";
@@ -153,6 +153,7 @@ function StepCard({ step }: { step: MethodStepOut }) {
           </tbody>
         </table>
       ) : null}
+      {step.formulas.map((f) => <EditableFormula key={f.slot_id} formula={f} />)}
       {step.evidence.length ? (
         <ul aria-label={t(`${M}.evidence`)} className="flex flex-col gap-1 text-sm">
           {step.evidence.map((e) => (
@@ -177,5 +178,43 @@ function StepCard({ step }: { step: MethodStepOut }) {
         ) : null}
       </details>
     </article>
+  );
+}
+
+/** A step's formula as the expression the engine evaluates, drawn from that expression. */
+function EditableFormula({ formula }: { formula: MethodFormula }) {
+  return (
+    <section aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="flex flex-col gap-2 rounded-sm border border-border p-3">
+      <h5 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</h5>
+      <p className="text-xs text-ink-muted">{t(`${M}.editableHelp`)}</p>
+      <div className="text-ink"><Formula latex={formula.latex} /></div>
+      <p className="text-sm">
+        <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
+        <code className="font-mono text-xs">{formula.expression}</code>
+      </p>
+      {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[max-content_max-content_1fr] gap-x-3 gap-y-1 text-xs">
+        {formula.variables.map((v) => (
+          <div key={v.name} className="contents">
+            <dt className="font-mono">{v.name}</dt>
+            <dd><Formula latex={v.latex} display={false} /></dd>
+            <dd className="text-ink-muted">{v.meaning_cs}{v.unit ? ` [${v.unit}]` : ""}{v.vector ? ` · ${t(`${M}.vector`)}` : ""}</dd>
+          </div>
+        ))}
+      </dl>
+      {formula.properties.length ? (
+        <div className="text-xs">
+          <p className="text-ink-muted">{t(`${M}.properties`)}:</p>
+          <ul className="mt-1 list-disc pl-5">
+            {formula.properties.map((p, i) => (
+              <li key={`${p.kind}-${i}`}>
+                {p.description_cs || t(`${M}.propertyKind.${p.kind}`)}
+                {p.variable ? <span className="font-mono"> ({p.variable})</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
   );
 }
