@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. ADR 0023 and this plan"
   - "[x] A1. Framework: methodology package -- module, step, group, parameter, constant, preset; completeness and source-hash tests (slots land with A2)"
   - "[x] A2. Expression language: parser, whitelist, compiler, LaTeX generator, slot properties on a grid; no eval"
-  - "[ ] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
+  - "[x] A3. Version store: methodology_versions + methodology_activations (migration), repository, audit"
   - "[ ] A4. Run pins: every module's in-force version pinned at start, retry keeps it, fingerprints carry it"
   - "[x] A5a. API: GET /api/v1/methodology and /{module} (steps, values with origin, evidence, tests); read-only"
   - "[ ] A5b. API: methodology version routes (after A3)"
@@ -212,7 +212,33 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - **Checked by hand.** The generated LaTeX of the seven test formulas renders through Temml
     0.13.5 with no error. S3 puts the built-in expressions into the web fixture, so the web
     test enforces this from then on.
-- **A3. Version store.**
+- **A3. Landed.**
+  - **Domain.** `domain/methodology/versions.py` turns a draft into a version and fails closed:
+    `validate_version` (every problem at once), `named` (`<base>+e<n>`, written into the
+    specification by the store, never by its author), `version_payload` (contract
+    `aia-methodology-version-1`) and `payload_sha256`.
+    - The specification must validate as the base preset's own type, under the module's own
+      validator.
+    - Each replaced formula must name a slot, compile in it and keep its properties.
+    - `MethodModule.editable` decides which modules can be edited: the object map can, the
+      reference map cannot.
+  - **Storage.**
+    - Tables `methodology_versions` (immutable) and `methodology_activations` (append-only;
+      newest wins; NULL means the preset). Migration `c4e6a8b0d2f3` follows `b2d4f6a8c0e1`.
+    - Verified on PostgreSQL 16: the upgrade compared with the models shows 0 differences
+      across all tables, and downgrade then upgrade round-trips.
+  - **Repository.** `infrastructure/methodology_repository.py`:
+    - `MethodologyReader` (any member) offers `in_force`, `versions` and `history`.
+    - `MethodologyRepository` (`require_administer`) offers `propose`, and `activate` (a version
+      number, or None to return to the preset). `activate` validates the version again, because
+      one stored under an older engine may no longer compute.
+    - Every change is audited as `METHODOLOGY_PROPOSED`, `METHODOLOGY_ACTIVATED` or
+      `METHODOLOGY_RESET`.
+    - There is no independent-review rule here; access is decision 9's.
+  - **Layer check.** Four new rules keep the rows inside the repository (105 rules).
+  - **Tests.** `test_methodology_versions.py` (9) and `test_methodology_repository.py` (10); the
+    repository tests also pass on PostgreSQL.
+- **A3. Version store, as planned.**
   - Tables `methodology_versions` and `methodology_activations`, and their migration.
   - A repository with `propose` (the module's validator plus the slot checks), `activate`,
     `reset`, `history` and `in_force(org)`.

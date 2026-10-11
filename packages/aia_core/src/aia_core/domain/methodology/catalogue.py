@@ -178,4 +178,6 @@ class MethodModule:
     in_force: str | None = None
     groups: tuple[StepGroup, ...] = ()
     formulas: tuple[BuiltinFormula, ...] = ()
+    #: Whether a methodology version may be stored for it (ADR 0023 decision 4).
+    editable: bool = False
     note_cs: str = ""
