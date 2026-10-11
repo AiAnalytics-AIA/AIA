@@ -20,6 +20,7 @@ import { Icon } from "../rehome/icons";
 import { Field, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { studyHref } from "./clients/ClientOverview";
+import { PopulationCharacteristicsSection } from "./PopulationCharacteristics";
 import { CARD, Empty, Loaded } from "./states";
 import { ControlPanel } from "./settings/ControlPanel";
 import { useResource } from "./useResource";
@@ -38,7 +39,12 @@ export function IntelligencePage() {
         <h2 id="pop-title" className="text-base font-semibold">{t("aia.intelligence.population.title")}</h2>
         <p className="mt-1 text-sm leading-6 text-ink-muted">{t("aia.intelligence.population.text")}</p>
         <Loaded res={res} retry={retry}>
-          {(registry) => <PopulationRegistryView registry={registry} />}
+          {(registry) => (
+            <>
+              <PopulationRegistryView registry={registry} />
+              <PopulationCharacteristicsSection registry={registry} />
+            </>
+          )}
         </Loaded>
       </section>
     </AppShell>

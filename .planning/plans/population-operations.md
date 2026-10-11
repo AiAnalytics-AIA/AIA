@@ -11,7 +11,7 @@ chunks:
   - "[x] P7a. Keep each version's field dictionary with it (stored at import, hash-checked; a deploy step records it for versions imported before)"
   - "[x] P7b. Adopt 18.6.6's 18 built-in subpanels as AIA's catalogue, each checked against a version's dictionary"
   - "[x] P7c. A version's characteristics through the API: weights, blocks, every field's evidence and permitted uses, the subpanels; no row"
-  - "[ ] P7d. Show them on Společenská inteligence"
+  - "[x] P7d. Show them on Společenská inteligence"
 ---
 # Population operations: the core's import and promotion reach a deployment
 
@@ -270,4 +270,41 @@ subpanels file (`BUILTIN_SUBPANELS_v17.json`) is a companion the contract pins b
   that would read rows.
 - **Not in P7:** applying a subpanel to a study's audience. The selection is recorded, not
   applied (OI-91), until panel fieldwork exists.
+
+**P7, 2026-10-12** (`feature/population-characteristics`).
+
+- **P7a.** `population_version_dictionaries` (migration `d6f8a0c2e4b6`) keeps a version's
+  dictionary bytes, insert-once. `import_version` writes them after verifying them.
+  `PopulationRuntime.record_dictionary` stores the file at the version's own
+  `dictionary_location` only when it hashes to `dictionary_sha256`, never reads the panel,
+  and acts as no one (`population_ops record-dictionary`). The develop deploy runs it after
+  replacing services; a refusal warns and does not fail the deploy.
+- **P7b.** `domain/population/subpanels.py` is the catalogue. It is held equal, field by
+  field, to `BUILTIN_SUBPANELS_v17.json`, whose hash the contract pins.
+  `check_subpanel` asks the version's policy for `AUDIENCE_FILTERING`. The counts are
+  `UnitMeasurement`: 18.6.6's, on `17.1.2`.
+- **P7c.** `application/population_characteristics.py` re-hashes the kept bytes and builds
+  the policy as `load()` does. `GET /api/v1/population/versions/{id}/characteristics`
+  answers with the weights, blocks, every field and its seven `FieldUse` answers, and the
+  subpanels. A version without its dictionary answers `dictionary_kept: false` with every
+  subpanel unknown; a mismatch is a 409.
+- **P7d.** Společenská inteligence opens on LIVE, and can switch versions. It shows the
+  weights with their declared totals, the blocks, the 18 subpanels (usable, not usable with
+  the reason, or unknown, with 18.6.6's counts said as 18.6.6's), and every field: searchable,
+  filterable by block, with each use allowed or refused, why, and its obligations.
+
+Tests:
+- `packages/aia_core/tests/test_population_dictionary_kept.py` (4),
+  `test_population_subpanels.py` (10), `test_population_characteristics.py` (6);
+- `apps/executors/tests/test_population_ops.py` (+2) and `test_population_carry_over.py`
+  (+1);
+- `apps/api/tests/test_population_api.py` (+4);
+- `apps/web/src/lib/population.test.ts` (+5) and
+  `src/components/aia/PopulationCharacteristics.test.tsx` (3).
+
+Verified: `alembic upgrade / check / downgrade / upgrade` on PostgreSQL 16, and `next build`.
+
+**Not seen yet:** the real `v17_4_0` dictionary on the page. Which of the 18 subpanels its
+policy lets filter (the `is_*` flags' recommended use) is first known after the deploy
+records the dictionaries. Until then the claim "usable" is the test's, on fictional rows.
 
