@@ -24,6 +24,13 @@ from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.fieldwork import FieldworkSource
+from ..domain.population import (
+    CZ_LIVE,
+    CZ_SYNTHETIC_V17,
+    PopulationBinding,
+    PopulationBindingMissing,
+    PopulationImportContract,
+)
 from ..domain.prompts import PromptPin
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
@@ -56,6 +63,7 @@ from ..infrastructure.workflow_repository import (
     WorkflowRepository,
 )
 from .analysis import MAX_REPAIRS
+from .population import live_binding
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -155,18 +163,61 @@ class RunReservations:
     analysis_usd: float | None
 
 
+def _population_note(binding: PopulationBinding) -> dict[str, Any]:
+    """What the run says about its population: the version it names, and that nothing read it.
+
+    The binding row is the record (``WorkflowRepository.population_binding``); this is how
+    a run reads without a second query. ``read_by_fieldwork`` stays ``False`` until a
+    fieldwork source answers from the population (population-operations P3, OI-61).
+    """
+    return {
+        "population_id": binding.population_id,
+        "version_id": binding.version_id,
+        "version_label": binding.version_label,
+        "read_by_fieldwork": False,
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchRuns:
     """The research runs of the Study in scope. The caller owns the transaction."""
 
     session: Session
     scope: StudyContext
+    #: The population a new run records (``_population_for``); the Czech LIVE in every
+    #: composition, another only in tests over a fictional contract.
+    population_contract: PopulationImportContract = CZ_SYNTHETIC_V17
+    population_id: str = CZ_LIVE
 
     def _designs(self) -> StudyDesignRepository:
         return StudyDesignRepository(self.session, self.scope)
 
     def _workflows(self) -> WorkflowRepository:
         return WorkflowRepository(self.session, self.scope)
+
+    def _recorded_binding(self, run_id: str) -> PopulationBinding | None:
+        try:
+            return self._workflows().population_binding(run_id)
+        except PopulationBindingMissing:
+            return None
+
+    def _population_for(self, key: str, retry_of: str | None) -> PopulationBinding | None:
+        """The population a run records (owner, 2026-10-10: record LIVE, read nothing).
+
+        A start that finds its run names the binding that run recorded, so it is returned
+        as before -- a run made before LIVE existed, or before LIVE moved, keeps what it
+        recorded. A retry keeps the original's, as it keeps its Sociomap methods. A new run
+        records LIVE as it stands, or nothing while LIVE is not established. No step reads
+        it yet: fieldwork answers with fictional respondents (OI-61) and says so.
+        """
+        existing = self._workflows().find_run_by_idempotency_key(key)
+        if existing is not None:
+            return self._recorded_binding(existing)
+        if retry_of is not None:
+            return self._recorded_binding(retry_of)
+        return live_binding(
+            self.session, contract=self.population_contract, population_id=self.population_id
+        )
 
     # -- start ------------------------------------------------------------------
 
@@ -277,6 +328,7 @@ class ResearchRuns:
                 if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
                     raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
                 confirmation = (ceiling.total_usd, limit)
+        population = self._population_for(key, retry_of)
         started = start_workflow(
             self.session,
             self.scope,
@@ -292,6 +344,7 @@ class ResearchRuns:
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"retry_of": retry_of} if retry_of else {}),
+                **({"population": _population_note(population)} if population else {}),
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
@@ -302,6 +355,7 @@ class ResearchRuns:
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
             sociomapping_enabled=sociomapping_enabled,
+            population=population,
         )
         if confirmation is not None and started.created:
             assert confirm_cost_usd is not None

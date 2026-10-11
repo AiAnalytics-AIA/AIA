@@ -19,6 +19,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.population import PopulationBinding
 from aia_core.domain.scope import StudyContext
 from aia_core.domain.workflow_templates import (
     WORKFLOW_TYPES,
@@ -57,6 +58,7 @@ def start_workflow(
     owner: str | None = None,
     analysis_enabled: bool = False,
     sociomapping_enabled: bool = False,
+    population: PopulationBinding | None = None,
 ) -> StartedRun:
     """Create a run of ``workflow_type`` against a revision of the project.
 
@@ -65,6 +67,8 @@ def start_workflow(
     ``step_inputs`` are recorded on the steps by node key, for their executors.
     ``owner`` reaches an owned project (``projects.owner``): a research run names
     the design repository's owner; every other caller runs ordinary projects only.
+    ``population`` is the binding the run records (``WorkflowRepository.create_run``);
+    a re-submission must name the binding its run recorded.
 
     Raises :class:`~aia_core.domain.workflow_templates.UnknownWorkflowType` for a
     type with no template, :class:`~aia_core.infrastructure.repositories.ProjectNotFound`
@@ -102,6 +106,7 @@ def start_workflow(
         metadata={"content_fingerprint": content_fingerprint, **(metadata or {})},
         fingerprints={s.node_key: content_fingerprint for s in steps},
         step_inputs=step_inputs,
+        population=population,
     )
     return StartedRun(
         run_id=run_id,

@@ -87,10 +87,10 @@ from ..domain.population import (
 )
 from ..infrastructure.population_parser import parse_dictionary, parse_panel
 from ..infrastructure.population_repository import PopulationRegistryRepository
-from ..infrastructure.population_source import PopulationAssetSource
+from ..infrastructure.population_source import PopulationAssetMissing, PopulationAssetSource
 from ..infrastructure.workflow_repository import WorkflowRepository
 
-__all__ = ["Enricher", "PopulationRuntime"]
+__all__ = ["Enricher", "PopulationRuntime", "live_binding"]
 
 Cell = str | None
 
@@ -659,3 +659,39 @@ class PopulationRuntime:
                 raise EnrichmentFailed(f"{name} must be text or null, like every source field")
             result[name] = column
         return result
+
+
+class _ResolutionReadsNoAssets:
+    """The asset source of a runtime that only resolves: any read is a defect, said so."""
+
+    def read(self, location: str) -> bytes:
+        raise PopulationAssetMissing(
+            f"resolving a binding reads no population asset; {location!r} was asked for"
+        )
+
+
+def live_binding(
+    session: Session,
+    *,
+    contract: PopulationImportContract,
+    population_id: str,
+    clock: Callable[[], datetime] = _utcnow,
+) -> PopulationBinding | None:
+    """The binding a new run records: ``population_id`` as it stands now, or ``None``.
+
+    ``None`` only when that population has not been established -- no population yet is
+    not a refusal, and the run records none (as every run did before population
+    operations existed). Every other refusal (an unusable version, a contract mismatch)
+    raises: a run never records a population it could not later load.
+
+    Resolution reads the registry, never a panel; the runtime it builds refuses a read.
+    """
+    registry = PopulationRegistryRepository(session)
+    if registry.population(population_id) is None:
+        return None
+    runtime = PopulationRuntime(
+        session, contract=contract, source=_ResolutionReadsNoAssets(), clock=clock
+    )
+    return runtime.resolve(
+        PopulationSelector.population(population_id), view=PopulationView.ANALYSIS
+    )

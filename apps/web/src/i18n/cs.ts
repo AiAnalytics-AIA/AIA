@@ -1403,6 +1403,9 @@ export const cs = {
       aiRuntimeNotice: "Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie. Před každým voláním se ověří licence, trasa a rozpočet. Pokud sběr není povolený, běh počká a výsledky nevzniknou.",
       fictional: "Fiktivní data",
       syntheticNotice: "Fiktivní data. Tento běh používá smyšlené respondenty pro vývoj a testy. Nic z něj není zjištění a nic z něj nesmí jít ke klientovi.",
+      populationRecorded:
+        "Zaznamenaná populace: {label} ({population}). Běh ji jen eviduje: respondenty z ní nečte, odpovídají fiktivní persony.",
+      populationRead: "Populace: {label} ({population}).",
       previous: "Předchozí běhy",
       noRuns: "Tato studie zatím nemá žádný běh.",
       toProgress: "Zobrazit průběh",

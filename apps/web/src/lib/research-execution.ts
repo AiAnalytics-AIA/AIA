@@ -93,6 +93,17 @@ export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean =>
   run.fieldwork_source === SYNTHETIC_SOURCE ||
   ("steps" in run && run.steps.some((s) => s.data_origin !== null && SYNTHETIC_ORIGINS.has(s.data_origin)));
 
+/**
+ * What a run says about its population: the version it recorded, and -- while fieldwork
+ * reads none (OI-61) -- that the respondents did not come from it. Null: it recorded none.
+ */
+export function populationNote(run: Pick<ResearchRun, "population">): string | null {
+  const p = run.population;
+  if (!p) return null;
+  const vars = { label: p.version_label, population: p.population_id ?? p.version_id };
+  return tv(p.read_by_fieldwork ? "research.exec.populationRead" : "research.exec.populationRecorded", vars);
+}
+
 export function stepOf(run: ResearchRun, nodeKey: string): ResearchStep | null {
   return run.steps.find((s) => s.node_key === nodeKey) ?? null;
 }
