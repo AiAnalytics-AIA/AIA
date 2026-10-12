@@ -53,7 +53,7 @@ from aia_core.domain.fieldwork import (
     origin_kind,
     persona_source_of,
 )
-from aia_core.domain.methodology.pins import run_methods
+from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -263,6 +263,10 @@ class ResearchRunMethodology(BaseModel):
     sociomap: ResearchRunMethod
     support: ResearchRunMethod
     aggregation: ResearchRunMethod
+    #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
+    response: ResearchRunMethod
+    #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
+    response_deviates: bool | None
 
 
 class ResearchRunResponse(BaseModel):
@@ -606,7 +610,10 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
 def _methodology(meta: Mapping[str, Any]) -> ResearchRunMethodology:
     methods = run_methods(meta)
     return ResearchRunMethodology(
-        **{module: ResearchRunMethod(name=m.name, stored=m.stored) for module, m in methods.items()}
+        **{
+            module: ResearchRunMethod(name=m.name, stored=m.stored) for module, m in methods.items()
+        },
+        response_deviates=response_deviates(meta),
     )
 
 

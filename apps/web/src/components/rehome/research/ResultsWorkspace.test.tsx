@@ -100,3 +100,54 @@ it("says a pin it cannot read is unreadable, never a preset's name", () => {
   expect(row.textContent).toContain("Sociomapa záznam nelze přečíst");
   expect(row.textContent).not.toContain("aia-sociomap");
 });
+
+it("names the response process and says when it is not 18.6.6's (R1d)", () => {
+  const edited = {
+    ...run,
+    methodology: {
+      sociomap: { name: "aia-sociomap-3", stored: false },
+      support: { name: "aia-support-1", stored: false },
+      aggregation: { name: "aia-aggregate-1", stored: false },
+      response: { name: "aia-response-1+e1", stored: true },
+      response_deviates: true,
+    },
+  } as ResearchRun;
+  render(<ResultsWorkspace run={edited} panels={panels} progressHref={null} notice={null} />);
+  const row = document.querySelector("[data-run-methodology]") as HTMLElement;
+  expect(row.textContent).toContain("Odpověď aia-response-1+e1 (uložená verze)");
+  const note = document.querySelector("[data-response-deviation]") as HTMLElement;
+  expect(note.textContent).toContain("jiným procesem odpovědi než v 18.6.6");
+  expect(note.textContent).toContain("aia-response-1+e1");
+});
+
+it("says nothing about a deviation when the response process is 18.6.6's", () => {
+  const unit = {
+    ...run,
+    methodology: {
+      sociomap: { name: "aia-sociomap-3", stored: false },
+      support: { name: "aia-support-1", stored: false },
+      aggregation: { name: "aia-aggregate-1", stored: false },
+      response: { name: "aia-response-1", stored: false },
+      response_deviates: false,
+    },
+  } as ResearchRun;
+  render(<ResultsWorkspace run={unit} panels={panels} progressHref={null} notice={null} />);
+  expect((document.querySelector("[data-run-methodology]") as HTMLElement).textContent).toContain("Odpověď aia-response-1 (z kódu)");
+  expect(document.querySelector("[data-response-deviation]")).toBeNull();
+});
+
+it("says a response process it cannot read is unreadable, and that it cannot tell", () => {
+  const unreadable = {
+    ...run,
+    methodology: {
+      sociomap: { name: "aia-sociomap-3", stored: false },
+      support: { name: "aia-support-1", stored: false },
+      aggregation: { name: "aia-aggregate-1", stored: false },
+      response: { name: null, stored: false },
+      response_deviates: null,
+    },
+  } as ResearchRun;
+  render(<ResultsWorkspace run={unreadable} panels={panels} progressHref={null} notice={null} />);
+  expect((document.querySelector("[data-run-methodology]") as HTMLElement).textContent).toContain("Odpověď záznam nelze přečíst");
+  expect((document.querySelector("[data-response-deviation]") as HTMLElement).textContent).toContain("nelze říct");
+});

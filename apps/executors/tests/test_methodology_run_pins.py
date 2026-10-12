@@ -545,11 +545,14 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
     support["results"]["min_layer_donors"] = 20
     aggregation = AIA_AGGREGATE_V1.model_dump(mode="json")
     aggregation["top_box"] = 1
+    response = AIA_RESPONSE_V1.model_dump(mode="json")
+    response["extremity"] = 0.5
     with world.sessions() as session:
         repo = MethodologyRepository(session, world.admin_context(session))
         for module, base, spec in (
             ("support", "aia-support-1", support),
             ("aggregation", "aia-aggregate-1", aggregation),
+            ("response", "aia-response-1", response),
         ):
             version = repo.propose(module, base_preset=base, spec=spec, formulas={}, note="test")
             repo.activate(module, version.version_number, reason="test")
@@ -561,10 +564,16 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
         retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
         session.commit()
     original, retry = _run(world, run_id)["metadata"], _run(world, retried.run_id)["metadata"]
-    for key in ("methodology", "support_methodology", "aggregation_methodology"):
+    for key in (
+        "methodology",
+        "support_methodology",
+        "aggregation_methodology",
+        "response_methodology",
+    ):
         assert retry[key] == original[key], key
     assert run_methods(retry) == {
         "sociomap": RunMethod("aia-sociomap-3+e1", stored=True),
         "support": RunMethod("aia-support-1+e1", stored=True),
         "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
+        "response": RunMethod("aia-response-1+e1", stored=True),
     }

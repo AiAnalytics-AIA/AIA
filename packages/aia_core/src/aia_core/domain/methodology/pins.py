@@ -37,9 +37,11 @@ __all__ = [
     "FormulaNotComputed",
     "RunMethod",
     "aggregation_pin_for",
+    "is_units_process",
     "read_aggregation_pin",
     "read_response_pin",
     "read_support_pin",
+    "response_deviates",
     "response_spec_for",
     "run_methods",
     "sociomap_methods_for",
@@ -194,7 +196,8 @@ def _sociomap_name(value: Any) -> str | None:
 
 
 def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
-    """The Sociomap, support and aggregation methods a run's metadata records, by name.
+    """The Sociomap, support, aggregation and response methods a run's metadata records, by
+    name.
 
     A stored version is named as stored. Otherwise the name is the pin's own: the last pinned
     Sociomap method beside the reference map, the support and aggregation specifications'
@@ -206,6 +209,7 @@ def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
     only: nothing is validated or computed, so a list of runs never fails on one run's pin."""
     support_pin = meta.get("support")
     aggregation_pin = meta.get("aggregation")
+    response_pin = meta.get("response")
     pinned = {
         "sociomap": _sociomap_name(meta.get("sociomap_methods")),
         "support": (
@@ -218,14 +222,38 @@ def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
             if isinstance(aggregation_pin, Mapping)
             else None
         ),
+        "response": (
+            AIA_RESPONSE_V1.methodology_version if response_pin is None else _version(response_pin)
+        ),
     }
     keys = {
         "sociomap": "methodology",
         "support": "support_methodology",
         "aggregation": "aggregation_methodology",
+        "response": "response_methodology",
     }
     methods = {}
     for module, key in keys.items():
         stored = _stored_name(meta, key)
         methods[module] = RunMethod(name=stored or pinned[module], stored=stored is not None)
     return methods
+
+
+def response_deviates(meta: Mapping[str, Any]) -> bool | None:
+    """Whether the response process a run's answers came from is not 18.6.6's (plan
+    ``methodology-tab`` R1d). A run started before the process was pinned was answered under
+    ``aia-response-1``: ``False``. A pin that cannot be read gives ``None``: the run's answers
+    came from some process, and saying which would be a guess. The coefficients decide, not
+    the version's name."""
+    try:
+        pinned = read_response_pin(meta.get("response"))
+    except ValueError:
+        return None
+    return not is_units_process(pinned)
+
+
+def is_units_process(spec: ResponseProcessSpec) -> bool:
+    """Whether ``spec`` computes with 18.6.6's coefficients. The numbers decide, not the
+    name: a stored version holding the unit's values is the unit's process."""
+    unit = AIA_RESPONSE_V1.model_dump(exclude={"methodology_version"})
+    return bool(spec.model_dump(exclude={"methodology_version"}) == unit)

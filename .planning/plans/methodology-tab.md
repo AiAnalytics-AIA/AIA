@@ -37,7 +37,7 @@ chunks:
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
   - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
-  - "[ ] R1d. Results name the run's response process and say when it is not 18.6.6's (on Z1a's Metodika běhu, once #338 is merged)"
+  - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
@@ -1105,6 +1105,22 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     many profiles put a style into words. No model is called, nothing is drawn.
   - **R1d split out:** Results naming the process and the deviation sentence belong on the
     "Metodika běhu" line Z1a adds; they follow once #338 is merged, not stacked on it.
+
+- **R1d. Landed** (on Z1a's "Metodika běhu", #338).
+  - The run's `methodology` names its response process like the other three
+    (`run_methods`: the stored version, else the pin's own name, else `aia-response-1` for a
+    run from before the pin, `null` for a pin that cannot be read) and carries
+    `response_deviates`: `true` when the process is not 18.6.6's, `null` when its pin cannot
+    be read, never guessed (`test_run_methods.py::test_a_response_process_says_whether_it_is_the_units`).
+  - The coefficients decide, not the name: a stored version holding the unit's values is the
+    unit's process (`methodology.pins.is_units_process`). R1b's dataset provenance `unit` flag
+    compared whole specifications, names included, and now uses the same function.
+  - Results show "Odpověď <name> (uložená verze | z kódu)" and, when it deviates, that the
+    answers came from another response process than 18.6.6's and are not directly comparable
+    with its results; when it cannot be read, that this cannot be told
+    (`ResultsWorkspace.test.tsx`).
+  - A retry keeps `response_methodology` with the other stored-version records
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 

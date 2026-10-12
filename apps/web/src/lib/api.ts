@@ -664,7 +664,13 @@ export type ResearchRun = {
 /** One pinned method: its name, and whether it is a version stored on the Metodika tab. */
 /** `name: null`: the run recorded a pin that cannot be read as a name; never a guess. */
 export type ResearchRunMethod = { name: string | null; stored: boolean };
-export type ResearchRunMethodology = { sociomap: ResearchRunMethod; support: ResearchRunMethod; aggregation: ResearchRunMethod };
+export type ResearchRunMethodology = {
+  sociomap: ResearchRunMethod; support: ResearchRunMethod; aggregation: ResearchRunMethod;
+  /** How AI respondents' answers were drawn (methodology-tab R1d); absent from an older API. */
+  response?: ResearchRunMethod;
+  /** `true`: not 18.6.6's response process; `null`: its pin cannot be read, never guessed. */
+  response_deviates?: boolean | null;
+};
 /** What a run recorded about its population, and whether fieldwork read it (never, today). */
 export type ResearchRunPopulation = {
   population_id: string | null;

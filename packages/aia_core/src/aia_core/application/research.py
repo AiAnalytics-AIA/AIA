@@ -312,10 +312,11 @@ class ResearchRuns:
         started fictional instead.
 
         ``kept`` is a retry's: the stored-version records (``methodology``,
-        ``support_methodology``, ``aggregation_methodology``) of the run it retries. A retry
-        passes that run's pins explicitly, so they are not resolved from what is in force
-        here; without these records the new run would say its stored versions were the code's
-        (plan ``methodology-tab`` Z1a). They are metadata only, never part of the run's key.
+        ``support_methodology``, ``aggregation_methodology``, ``response_methodology``) of the
+        run it retries. A retry passes that run's pins explicitly, so they are not resolved
+        from what is in force here; without these records the new run would say its stored
+        versions were the code's (plan ``methodology-tab`` Z1a). They are metadata only, never
+        part of the run's key.
 
         The run records the population it names (``population_version_id``: a materialized
         child of the study's client, P4e2; LIVE when not given). A selected child is part of
@@ -426,6 +427,7 @@ class ResearchRuns:
         methodology = methodology or held.get("methodology")
         support_version = support_version or held.get("support_methodology")
         aggregation_version = aggregation_version or held.get("aggregation_methodology")
+        response_version = response_version or held.get("response_methodology")
         support_pin = support_spec.model_dump(mode="json")
         response_pin = response_spec.model_dump(mode="json")
         confirmation: tuple[float, float] | None = None
@@ -541,7 +543,12 @@ class ResearchRuns:
             response=read_response_pin(run["metadata"].get("response")),
             kept={
                 k: run["metadata"][k]
-                for k in ("methodology", "support_methodology", "aggregation_methodology")
+                for k in (
+                    "methodology",
+                    "support_methodology",
+                    "aggregation_methodology",
+                    "response_methodology",
+                )
                 if run["metadata"].get(k)
             },
             persona_source=persona_source_of(run["metadata"]),
