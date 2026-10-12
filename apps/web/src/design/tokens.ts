@@ -46,6 +46,10 @@ export const colors = {
     "light": "#f9f6f2",
     "dark": "#0f1215"
   },
+  "brand-stage": {
+    "light": "#111015",
+    "dark": "#111015"
+  },
   "signal": {
     "light": "#3557e0",
     "dark": "#8aa2ff"
