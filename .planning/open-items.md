@@ -247,7 +247,7 @@ needs the parity suite run against `AIA_LEGACY_REFERENCE`.
 
 ---
 
-## OI-7 · Finding, archive-blocked · The seven enrichment derivations are not recoverable
+## OI-7 · Finding, unblocked · The seven enrichment derivations are not recoverable
 
 **Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
 seven `*_derived` fields, and their derivation logic exists only in the withheld
@@ -269,9 +269,21 @@ EXACT) and why no safe reconstruction exists are in
 `docs/migration/population-enrichment-archive-dependency.md`. This is now a
 data/archive acquisition task, not an engineering one.
 
-**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. The eight runtime
-fields also need a data-owner classification:
-`docs/migration/population-derived-fields-decision.md`.
+**Correction (2026-10-12).** Not archive-blocked. Both files this item pins are vendored in the
+extracted unit (ADR 0011), byte-identical: `legacy/npc-panel-18.6.6/app/audience_dimensions.py`
+SHA256 `6ae1d1f8…c754bf` (`attach_derived`, `audience_dimensions.py:137-182`) and its specification
+`legacy/npc-panel-18.6.6/app/tests/test_audience_dimensions_1793.py` SHA256 `36efe988…a2d602`.
+Reproduction: `sha256sum` of either file @ `a099e5e`. The derivation is an engineering task: an
+`Enricher` ported from `attach_derived`, EXACT against fixtures from the unit's own function,
+[`plans/panel-grounded-respondents.md`](plans/panel-grounded-respondents.md) chunk 2d (found while
+porting the audience filter, PR #298). The test that would have caught it: a check that every
+archive dependency pinned by hash under `docs/migration/` is absent from `legacy/` before it is
+called blocked.
+
+**Status.** Open, unblocked; fixed by chunk 2d. The eight runtime fields still need a data-owner
+classification (`docs/migration/population-derived-fields-decision.md`): until then the field policy
+refuses them for every use, audience filtering included (`policy.py:387`,
+`test_population_audience.py::test_an_unclassified_derived_dimension_is_refused_by_the_field_policy`).
 
 ---
 
