@@ -1,0 +1,180 @@
+[
+  {
+    "id": "C01_no_filter",
+    "filters": {}
+  },
+  {
+    "id": "C02_equality_text",
+    "filters": {
+      "pohlavi": "žena"
+    }
+  },
+  {
+    "id": "C03_list_keeps_existing_only",
+    "filters": {
+      "kraj": [
+        "Hlavní město Praha",
+        "Brno"
+      ]
+    }
+  },
+  {
+    "id": "C04_numeric_min_max",
+    "filters": {
+      "vek": {
+        "min": 30,
+        "max": 50
+      }
+    }
+  },
+  {
+    "id": "C05_numeric_pair_swapped",
+    "filters": {
+      "vek": [
+        50,
+        30
+      ]
+    }
+  },
+  {
+    "id": "C06_numeric_scalar",
+    "filters": {
+      "vek": 40
+    }
+  },
+  {
+    "id": "C07_numeric_invalid",
+    "filters": {
+      "vek": "abc"
+    }
+  },
+  {
+    "id": "C08_numeric_open_max",
+    "filters": {
+      "vek": {
+        "max": 25
+      }
+    }
+  },
+  {
+    "id": "C09_scale_open_min",
+    "filters": {
+      "price_sensitivity_1_10": {
+        "min": 7
+      }
+    }
+  },
+  {
+    "id": "C10_decile_pair_is_interval",
+    "filters": {
+      "prijem_decile": [
+        1,
+        2
+      ]
+    }
+  },
+  {
+    "id": "C11_binary_int_column",
+    "filters": {
+      "is_student": 1
+    }
+  },
+  {
+    "id": "C12_binary_float_column_int_value",
+    "filters": {
+      "is_parent": 1
+    }
+  },
+  {
+    "id": "C13_binary_float_column_bool_value",
+    "filters": {
+      "is_parent": true
+    }
+  },
+  {
+    "id": "C14_binary_float_column_text_value",
+    "filters": {
+      "is_parent": "1.0"
+    }
+  },
+  {
+    "id": "C15_binary_both_values",
+    "filters": {
+      "internet_user_2025": [
+        0,
+        1
+      ]
+    }
+  },
+  {
+    "id": "C16_bool_column",
+    "filters": {
+      "has_partner": true
+    }
+  },
+  {
+    "id": "C17_research_only_refused",
+    "filters": {
+      "PHQ9_2022": 5
+    }
+  },
+  {
+    "id": "C18_unknown_column",
+    "filters": {
+      "neexistuje": 1
+    }
+  },
+  {
+    "id": "C19_empty_list",
+    "filters": {
+      "vzdelani": []
+    }
+  },
+  {
+    "id": "C20_category_list",
+    "filters": {
+      "zamestnani_status": [
+        "employed",
+        "unemployed"
+      ]
+    }
+  },
+  {
+    "id": "C21_derived_dimension",
+    "filters": {
+      "life_stage_derived": "Rodič"
+    }
+  },
+  {
+    "id": "C22_and_across_dimensions",
+    "filters": {
+      "pohlavi": "muž",
+      "vek": {
+        "min": 18,
+        "max": 39
+      }
+    }
+  },
+  {
+    "id": "C23_age_group",
+    "filters": {
+      "vek_skupina": [
+        "18-29",
+        "30-44"
+      ]
+    }
+  },
+  {
+    "id": "C24_not_filterable_text",
+    "filters": {
+      "occupation_isco08": "0110"
+    }
+  },
+  {
+    "id": "C25_mixed_kept_and_dropped",
+    "filters": {
+      "kraj": "Zlínský kraj",
+      "neexistuje": 1
+    }
+  }
+]
