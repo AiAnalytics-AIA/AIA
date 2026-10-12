@@ -30,7 +30,7 @@ def _values() -> dict[str, object]:
 
 
 def test_it_is_registered_after_the_two_maps() -> None:
-    assert [m.id for m in MODULES][-1] == "sociomapping"
+    assert [m.id for m in MODULES][:3] == ["sociomap", "sociomap_reference", "sociomapping"]
 
 
 def test_it_is_shown_and_never_offered_for_editing() -> None:

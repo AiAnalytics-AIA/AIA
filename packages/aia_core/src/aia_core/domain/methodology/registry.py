@@ -11,10 +11,11 @@ from .catalogue import MethodModule
 from .sociomap import SOCIOMAP
 from .sociomap_reference import SOCIOMAP_REFERENCE
 from .sociomapping import SOCIOMAPPING
+from .support import SUPPORT
 
 __all__ = ["MODULES", "module"]
 
-MODULES: tuple[MethodModule, ...] = (SOCIOMAP, SOCIOMAP_REFERENCE, SOCIOMAPPING)
+MODULES: tuple[MethodModule, ...] = (SOCIOMAP, SOCIOMAP_REFERENCE, SOCIOMAPPING, SUPPORT)
 
 
 def module(module_id: str) -> MethodModule:
