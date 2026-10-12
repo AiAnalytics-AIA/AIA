@@ -44,6 +44,7 @@ from aia_core.application.research import (
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
+from aia_core.domain.design_reuse import DesignSource
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -132,6 +133,35 @@ class DesignRevisionResponse(BaseModel):
     created_at: datetime
     created: bool | None = None
     content: dict[str, Any] | None = None
+
+
+class DesignSourceLabels(BaseModel):
+    """What a reused design carries from its source, and what that was derived from."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    synthetic: bool
+    draft: bool
+    never_run: bool
+    unlabelled_data: bool
+    run_ids: list[str]
+    report_artifact_ids: list[str]
+
+
+class DesignSourceResponse(BaseModel):
+    """Where the Study's design came from: a past study's Design Revision (project memory M3)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    revision_id: str
+    source_study_id: str
+    source_revision_id: str
+    source_revision: int
+    source_content_sha256: str
+    labels: DesignSourceLabels
+    created_by: str
+    created_at: datetime
 
 
 class DesignRevisionList(BaseModel):
@@ -341,6 +371,34 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
+def design_source_response(source: DesignSource) -> DesignSourceResponse:
+    """The citation as the API returns it."""
+    labels = source.labels
+    return DesignSourceResponse(
+        study_id=source.study_id,
+        revision_id=source.revision_id,
+        source_study_id=source.source_study_id,
+        source_revision_id=source.source_revision_id,
+        source_revision=source.source_revision,
+        source_content_sha256=source.source_content_sha256,
+        labels=DesignSourceLabels(
+            synthetic=labels.synthetic,
+            draft=labels.draft,
+            never_run=labels.never_run,
+            unlabelled_data=labels.unlabelled_data,
+            run_ids=list(labels.run_ids),
+            report_artifact_ids=list(labels.report_artifact_ids),
+        ),
+        created_by=source.created_by,
+        created_at=source.created_at,
+    )
+
+
+def design_revision_response(r: DesignRevision) -> DesignRevisionResponse:
+    """A Design Revision as the API returns it, without its content."""
+    return _revision(r)
+
+
 def _revision(
     r: DesignRevision, *, created: bool | None = None, content: dict[str, Any] | None = None
 ) -> DesignRevisionResponse:
@@ -420,6 +478,20 @@ def get_design(
         return _revision(repo.get(revision_id), content=repo.content(revision_id))
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+
+
+@router.get(
+    "/design/source",
+    response_model=DesignSourceResponse,
+    summary="Where the Study's design came from, when it was reused",
+    responses={404: {"model": ErrorResponse, "description": "The design was not reused"}},
+)
+def design_source(scope: StudyScopeDep, session: SessionDep) -> DesignSourceResponse:
+    """The past study and Design Revision this Study's design was reused from, with its labels."""
+    source = StudyDesignRepository(session, scope).source()
+    if source is None:
+        raise _not_found("design_source")
+    return design_source_response(source)
 
 
 # --------------------------------------------------------------------------- #

@@ -13,7 +13,7 @@ chunks:
   - "[x] M3a. The source's labels, pure: one conservative rule over every run of the source revision"
   - "[x] M3b. The citation, stored: study_design_sources, one per study, insert-once, written by the design repository"
   - "[x] M3c. Reuse, scoped: into a new research study or an empty one of the same client; working content, first revision, citation in one transaction"
-  - "[ ] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
+  - "[x] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
   - "[ ] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"
   - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
