@@ -396,3 +396,34 @@ def test_a_draft_citing_native_evidence_passes_internally_and_never_client_facin
         ViolationCode.SYNTHETIC_DATA_ORIGIN,
         ViolationCode.JOINT_CERTIFICATE_DEGRADED,
     } <= refused
+
+
+def test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal() -> None:
+    """ADR 0024 §3-§4: a MODELLED_AI_PANEL dataset is declared under -2, every item internal
+    while no validation holds; the system it is judged on names that policy."""
+    from aia_core.domain.evidence import ClaimRule, InstrumentStatus, instrument_policy_version
+
+    spec, dataset, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    evidence = native_evidence(
+        spec,
+        {**aggregate, "data_origin": modelled.value},
+        dataset_sha256=DATASET_SHA,
+        origin=modelled,
+        support=REFERENCE_THRESHOLDS,
+    )
+    simulated = native_evidence(
+        spec,
+        aggregate,
+        dataset_sha256=DATASET_SHA,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
+    assert instrument_policy_version(evidence.origin) == "aia-instrument-evidence-2"
+    policies = [evidence.book.get(f) for f in evidence.book.fields]
+    assert policies and all(
+        p.evidence_status is InstrumentStatus.MODELLED_PANEL_RESPONSE
+        and p.has(ClaimRule.INTERNAL_ONLY)
+        for p in policies
+    )
+    assert evidence.system_fingerprint != simulated.system_fingerprint

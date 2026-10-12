@@ -82,10 +82,10 @@ from ..domain.analysis.native import (
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.evidence import (
-    INSTRUMENT_POLICY_VERSION,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
+    instrument_policy_version,
     method_status,
 )
 from ..domain.evidence.support import SupportSpec
@@ -538,7 +538,7 @@ def module_artifact(
             data_origin=evidence.origin,
         ),
         authority=AuthoritySummary(
-            field_policy_version=INSTRUMENT_POLICY_VERSION,
+            field_policy_version=instrument_policy_version(evidence.origin),
             field_policy_sha256=evidence.book.source_sha256,
             joint_status_fingerprint=joint.fingerprint(),
             joint_degradation=joint.degradation.value if joint.degradation else None,

@@ -17,7 +17,7 @@ chunks:
   - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
   - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
-  - "[ ] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
+  - "[x] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
   - "[ ] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
   - "[ ] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
   - "[ ] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
@@ -699,6 +699,27 @@ Anchors @ `2dc834b1`, under `packages/aia_core/src/aia_core/domain/evidence/`.
   respondents on 40 donors is assessed as 40-donor evidence (ADR §5), never as 1,000.
 * **4e5, the report.** The DOCX marks a modelled number with "modelováno: AI respondenti z
   populace" beside it and, when a validation holds, its date and fingerprint (ADR §7).
+
+**4e1 landed.** `evidence/instrument.py` declares by origin kind (`_declared`): simulated ->
+`-1`, unchanged byte for byte (its declaration identity does not move); `MODELLED_AI_PANEL` ->
+`MODELLED_INSTRUMENT_POLICY_VERSION` (`aia-instrument-evidence-2`),
+`InstrumentStatus.MODELLED_PANEL_RESPONSE`, the rules `MODELLED_INSTRUMENT_RECOMMENDED_USE`
+extracts plus `MODELED_DISCLOSURE_ALWAYS` and `INTERNAL_ONLY`; anything else refused.
+`instrument_policy_version(origin)` is what a module's `AuthoritySummary.field_policy_version`
+now records (`application/analysis_results.py`; it recorded `-1` for every origin). `claims.py`:
+a client-facing claim on a `MODELED_DISCLOSURE_ALWAYS` field needs `Disclosure.MODELED_VALUE`
+whatever its basis. Because `native_evidence` asks the book, a modelled run's evidence is now
+declared under `-2` -- internal only -- ahead of 4e3, which binds it to the respondent system.
+
+Tests: `test_a_modelled_origin_is_declared_under_its_own_policy_chosen_by_the_origin`,
+`test_the_two_policies_never_share_a_declaration_identity`,
+`test_without_a_validation_a_modelled_claim_is_internal_even_fully_disclosed`,
+`test_a_client_facing_modelled_claim_needs_both_disclosures_whatever_its_basis`,
+`test_a_modelled_answer_is_never_a_measured_fact_nor_one_persons` (both surfaces),
+`test_a_segment_claim_on_modelled_answers_is_allowed_internally`,
+`test_no_dictionary_can_declare_the_modelled_status`,
+`test_internal_only_is_never_extracted_from_dictionary_prose` (now both AIA-only rules),
+`test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal`.
 
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.

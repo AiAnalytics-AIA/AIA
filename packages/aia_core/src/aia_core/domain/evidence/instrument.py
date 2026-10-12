@@ -11,14 +11,20 @@ dictionary and never by a caller's choice of status:
 
 * the item is one the Design Revision compiled to (the caller passes the compiled
   items; nothing here invents one);
-* its answers came from **simulated** respondents -- an origin in
-  :data:`~aia_core.domain.fieldwork.NON_EVIDENCE_ORIGINS`: the fictional fixture, or
-  AI respondents on the fictional roster. Any other origin -- including none -- has
-  no policy here and is refused (:class:`InstrumentPolicyRefused`): what observed
-  fieldwork may support is a decision nobody has made yet.
+* its answers' origin has a policy. There are two, each fixed and versioned, chosen by the
+  origin and never by a caller:
 
-There is one policy, fixed and versioned (:data:`INSTRUMENT_POLICY_VERSION`), and it
-is the most restrictive the gate can express short of refusing the item outright:
+  - **simulated** respondents (:data:`~aia_core.domain.fieldwork.NON_EVIDENCE_ORIGINS`: the
+    fictional fixture, or AI respondents on the fictional roster) -> ``-1``
+    (:data:`INSTRUMENT_POLICY_VERSION`), below;
+  - **modelled** respondents (``MODELLED_AI_PANEL``: AI respondents built from the run's own
+    population, ADR 0024) -> ``-2`` (:data:`MODELLED_INSTRUMENT_POLICY_VERSION`), after it.
+
+  Any other origin -- including none -- has no policy here and is refused
+  (:class:`InstrumentPolicyRefused`): what observed fieldwork may support is a decision
+  nobody has made yet.
+
+``-1`` is the most restrictive the gate can express short of refusing the item outright:
 
 * a simulated answer is a **modelled** value, never a measured fact
   (``NEVER_MEASURED_FACT``; provenance ``MODELLED``; no measured-claim eligibility);
@@ -32,6 +38,12 @@ The first three rules are exactly what the reference derivation
 (:func:`.field_policy.claim_rules_for`) extracts from :data:`INSTRUMENT_RECOMMENDED_USE`,
 so the stated phrase and the enforced rules cannot drift apart; ``INTERNAL_ONLY`` is
 added because no dictionary phrase says it.
+
+``-2`` (ADR 0024 §3) keeps every rule of ``-1`` that is about the number -- never a measured
+fact, aggregate only, never one person's -- and adds what a client-facing modelled claim must
+carry: a scope disclosure (``REQUIRES_SCOPE``) and the modelled-value disclosure on every claim,
+not only a measured one (``MODELED_DISCLOSURE_ALWAYS``). It is internal only (``INTERNAL_ONLY``)
+until a validation lifts that, which nothing does yet.
 
 Two refusals already stand between these items and a client before this one: the
 data-origin gate refuses every simulated origin client-facing (``admission``), and a
@@ -49,7 +61,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
 
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin, OriginKind, origin_kind
 from ..pipeline import fingerprint
 from .field_policy import (
     ClaimRule,
@@ -67,12 +79,15 @@ __all__ = [
     "INSTRUMENT_FIELD_PREFIX",
     "INSTRUMENT_POLICY_VERSION",
     "INSTRUMENT_RECOMMENDED_USE",
+    "MODELLED_INSTRUMENT_POLICY_VERSION",
+    "MODELLED_INSTRUMENT_RECOMMENDED_USE",
     "InstrumentItem",
     "InstrumentPolicyRefused",
     "instrument_declaration_sha256",
     "instrument_field",
     "instrument_policy",
     "instrument_policy_book",
+    "instrument_policy_version",
 ]
 
 #: Identifies the policy below. Part of every fingerprint computed on it, so a
@@ -92,6 +107,16 @@ INSTRUMENT_FIELD_PREFIX: Final = "instrument:"
 INSTRUMENT_RECOMMENDED_USE: Final = (
     "study instrument item answered by simulated respondents; aggregate internal "
     "analysis only; individual value modeled; never measured fact"
+)
+
+#: ``-2``: the policy of answers from AI respondents built from the run's population.
+MODELLED_INSTRUMENT_POLICY_VERSION: Final = "aia-instrument-evidence-2"
+
+#: ``-2``'s declared use; its claim rules are extracted from it as ``-1``'s are.
+MODELLED_INSTRUMENT_RECOMMENDED_USE: Final = (
+    "study instrument item answered by AI respondents built from the population; aggregate "
+    "or segmentation analysis WITH_SCOPE; individual value modeled; never measured fact; "
+    "modeled value disclosure"
 )
 
 _ELIGIBILITY: Final = FieldEligibility(
@@ -129,32 +154,65 @@ def instrument_field(question_id: str) -> str:
     return f"{INSTRUMENT_FIELD_PREFIX}{question_id}"
 
 
-def _require_simulated(origin: DataOrigin | None) -> DataOrigin:
-    if origin is None or origin not in NON_EVIDENCE_ORIGINS:
-        raise InstrumentPolicyRefused(
-            f"no instrument evidence policy covers answers of origin "
-            f"{origin.value if origin else 'unknown'!r}; only simulated respondents "
-            f"({', '.join(sorted(o.value for o in NON_EVIDENCE_ORIGINS))}) are declared"
-        )
-    return origin
+@dataclass(frozen=True, slots=True)
+class _Declared:
+    version: str
+    recommended_use: str
+    status: InstrumentStatus
+    #: AIA's own rules, after the ones the declared use extracts.
+    aia_rules: tuple[ClaimRule, ...]
+
+
+_SIMULATED: Final = _Declared(
+    INSTRUMENT_POLICY_VERSION,
+    INSTRUMENT_RECOMMENDED_USE,
+    InstrumentStatus.SIMULATED_RESPONSE,
+    (ClaimRule.INTERNAL_ONLY,),
+)
+_MODELLED: Final = _Declared(
+    MODELLED_INSTRUMENT_POLICY_VERSION,
+    MODELLED_INSTRUMENT_RECOMMENDED_USE,
+    InstrumentStatus.MODELLED_PANEL_RESPONSE,
+    (ClaimRule.MODELED_DISCLOSURE_ALWAYS, ClaimRule.INTERNAL_ONLY),
+)
+
+
+def _declared(origin: DataOrigin | None) -> tuple[DataOrigin, _Declared]:
+    """The policy ``origin``'s answers are declared under, by the origin's kind; else refused."""
+    kind = origin_kind(origin)
+    if origin is not None and kind is OriginKind.SIMULATED:
+        return origin, _SIMULATED
+    if origin is not None and kind is OriginKind.MODELLED:
+        return origin, _MODELLED
+    raise InstrumentPolicyRefused(
+        f"no instrument evidence policy covers answers of origin "
+        f"{origin.value if origin else 'unknown'!r}; only simulated respondents "
+        f"({', '.join(sorted(o.value for o in NON_EVIDENCE_ORIGINS))}) and modelled "
+        f"respondents ({DataOrigin.MODELLED_AI_PANEL.value}) are declared"
+    )
+
+
+def instrument_policy_version(origin: DataOrigin | None) -> str:
+    """The version of the policy ``origin``'s answers are declared under; else refused."""
+    return _declared(origin)[1].version
 
 
 def instrument_policy(
     item: InstrumentItem, *, origin: DataOrigin | None, source: str
 ) -> FieldPolicy:
     """The fixed policy of one instrument item whose answers came from ``origin``."""
-    _require_simulated(origin)
+    _, declared = _declared(origin)
     if not source.strip():
         raise ValueError("an instrument policy names the source of its answers")
-    rules = (*claim_rules_for(INSTRUMENT_RECOMMENDED_USE), ClaimRule.INTERNAL_ONLY)
+    rules = (*claim_rules_for(declared.recommended_use), *declared.aia_rules)
     return FieldPolicy(
         field=instrument_field(item.question_id),
         block=INSTRUMENT_BLOCK,
         source=source.strip(),
-        evidence_status=InstrumentStatus.SIMULATED_RESPONSE,
+        evidence_status=declared.status,
         provenance_class=ProvenanceClass.MODELLED,
         production_grade=None,
-        recommended_use_verbatim=INSTRUMENT_RECOMMENDED_USE,
+        recommended_use_verbatim=declared.recommended_use,
         description=item.text.strip(),
         persona_eligible=False,
         claim_rules=rules,
@@ -167,11 +225,11 @@ def instrument_declaration_sha256(
     items: Sequence[InstrumentItem], *, origin: DataOrigin | None, source: str
 ) -> str:
     """Identity of a declaration: the policy version, the origin, the source, the items."""
-    declared = _require_simulated(origin)
+    declared_origin, declared = _declared(origin)
     return fingerprint(
         {
-            "policy": INSTRUMENT_POLICY_VERSION,
-            "origin": declared.value,
+            "policy": declared.version,
+            "origin": declared_origin.value,
             "source": source.strip(),
             "items": [[i.question_id, i.text.strip()] for i in items],
         }

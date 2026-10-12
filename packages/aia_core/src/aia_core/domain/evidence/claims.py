@@ -153,10 +153,9 @@ def _field_rules(policy: FieldPolicy, request: ClaimRequest) -> Iterable[GateDec
         if policy.has(ClaimRule.REQUIRES_SCOPE) and Disclosure.SCOPE not in request.disclosures:
             yield block(ViolationCode.SCOPE_DISCLOSURE_MISSING, f, "needs a scope disclosure")
         if (
-            policy.has(ClaimRule.REQUIRES_MODELED_DISCLOSURE)
-            and measured
-            and Disclosure.MODELED_VALUE not in request.disclosures
-        ):
+            (policy.has(ClaimRule.REQUIRES_MODELED_DISCLOSURE) and measured)
+            or policy.has(ClaimRule.MODELED_DISCLOSURE_ALWAYS)
+        ) and Disclosure.MODELED_VALUE not in request.disclosures:
             yield block(
                 ViolationCode.MODELED_DISCLOSURE_MISSING, f, "needs a modelled-value disclosure"
             )
