@@ -51,6 +51,7 @@ __all__ = [
     "EvidenceSpec",
     "derive_dimension",
     "derive_dimension_as_unit",
+    "numeric_column",
     "sanitize_dimension_id",
 ]
 
@@ -107,6 +108,24 @@ class DerivedDimension:
 def sanitize_dimension_id(dimension_id: str) -> str:
     """The unit's id: lowercase, every run of other characters one underscore, trimmed."""
     return re.sub(r"[^a-z0-9_]+", "_", str(dimension_id or "").lower()).strip("_")
+
+
+def numeric_column(cells: Sequence[str | None]) -> list[float | None] | None:
+    """A text column as the unit's pandas read it: numbers when every present cell is one.
+
+    ``None`` for a column with a cell that is not a number: pandas types it as text, and the
+    unit's derivation cannot use it (``no_usable_predictor``). A missing cell stays ``None``.
+    """
+    values: list[float | None] = []
+    for cell in cells:
+        if cell is None:
+            values.append(None)
+            continue
+        try:
+            values.append(float(cell))
+        except ValueError:
+            return None
+    return values
 
 
 def _pairwise_sum(values: Sequence[float]) -> float:

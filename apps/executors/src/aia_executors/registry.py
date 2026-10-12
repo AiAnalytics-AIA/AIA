@@ -20,6 +20,8 @@ from collections.abc import Mapping
 from typing import Final
 
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.population_source import FilesystemPopulationSource
+from aia_core.infrastructure.population_store import PopulationStoreSettings
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
@@ -28,6 +30,8 @@ from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
 from .deep_research import DeepResearchRuntime, deep_research_registry
 from .deep_research_runtime import deep_research_runtime
+from .materialize import KIND as MATERIALIZE_KIND
+from .materialize import MaterializeExecutor
 from .report import report_registry
 from .research import AIDatasetProducer, research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
@@ -36,8 +40,10 @@ from .snapshot import SnapshotExecutor
 from .sociomapping_report import sociomapping_report_registry
 
 __all__ = [
+    "POPULATION_ASSET_ROOT_KEY",
     "SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY",
     "build_registry",
+    "materialize_executor",
     "registry_for",
     "sociomap_connectedness_interval",
 ]
@@ -72,9 +78,12 @@ def registry_for(
     analysis: StepExecutor | None = None,
     deep_research: DeepResearchRuntime | None = None,
     sociomap_connectedness_interval: bool = False,
+    materialize: StepExecutor | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
+        # Without a store and the shared population it parks (population-operations P4d3).
+        MATERIALIZE_KIND: materialize or MaterializeExecutor(store=None, shared=None),
         "research_agent": research_agent or ResearchAgentExecutor(store=store, build=build),
         **(
             analysis_registry(store=store, build=build)
@@ -92,6 +101,24 @@ def registry_for(
             sociomap_connectedness_interval=sociomap_connectedness_interval,
         ),
     }
+
+
+#: The read-only directory of the shared population's files (deploy/develop: /srv/population/v17).
+POPULATION_ASSET_ROOT_KEY: Final = "AIA_POPULATION_ASSET_ROOT"
+
+
+def materialize_executor(env: Mapping[str, str]) -> MaterializeExecutor:
+    """The materialize step over the configured store and shared population, if both are set.
+
+    Either missing, the executor parks every materialize run (``RUNTIME_UNAVAILABLE``); a store
+    configured by halves stops the worker (``PopulationStoreSettings.from_env``).
+    """
+    settings = PopulationStoreSettings.from_env(env)
+    root = (env.get(POPULATION_ASSET_ROOT_KEY) or "").strip()
+    return MaterializeExecutor(
+        store=settings.build() if settings is not None else None,
+        shared=FilesystemPopulationSource(root) if root else None,
+    )
 
 
 def build_registry() -> dict[str, StepExecutor]:
@@ -128,6 +155,7 @@ def build_registry() -> dict[str, StepExecutor]:
         )["research_analysis"]
     return registry_for(
         store=store,
+        materialize=materialize_executor(os.environ),
         research_agent=agent,
         analysis=analysis,
         deep_research=deep_research_runtime(settings),

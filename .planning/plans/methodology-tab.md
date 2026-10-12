@@ -32,8 +32,8 @@ chunks:
   - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
   - "[x] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
   - "[x] W1a. Weighting documented and declared: schemes, default role, expected totals and tolerances, the aggregate's weight cleaning (aia-weighting-1, the import contract's declaration exactly); D1 reproduced on its steps"
-  - "[ ] W1b. Weight cleaning a choice a run reads: the weighting pinned per run, a retry keeps it; refuse refuses an aggregate with an invalid weight by name; a non-median cleaning is a deviation from 18.6.6"
-  - "[ ] W1c. Weighting editable: the cleaning and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
+  - "[x] W1b. Weighting tells the truth: a run's dataset refuses every invalid weight (infinity passed), the inert median/refuse switch dropped, the sampler's floor, raking and audit shown as the code's constants, Kish's n in four places"
+  - "[ ] W1c. Weighting a run's choice and editable, once the panel source reaches fieldwork (panel-grounded-respondents 5): the weighting pinned per run, the sampler's values and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
   - "[ ] R1c. Response process editable, with the draft check on fictional respondents; Results say when a run's process is not 18.6.6's"
@@ -964,6 +964,32 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
         negative, the aggregate drops it (1.8 for `[1, -1, 2]`) while the other two refuse
         (`::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights`).
       - D1 is a fact, not a defect, until W1b makes the cleaning a choice.
+  - **W1b. Re-scoped, then landed.** The cleaning was never going to be a choice a run reads:
+    a run's aggregate receives only `FieldworkDataset` weights, and making a switch of a rule
+    that cannot fire would have been a control that does nothing. What W1b did instead:
+    - **Finding: infinity reached the aggregate.** `FieldworkRespondent.weight` was
+      `Field(gt=0)` (`fieldwork.py:132 @ a19af14d`): 0, negatives and NaN were refused but
+      `inf` passed, and `clean_weights` then replaced it by the median. Now
+      `allow_inf_nan=False`; the dataset refuses every weight that is not a positive finite
+      number (`test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite`).
+      With that, `clean_weights`' median never fires on a run: it is the unit's port, kept
+      for parity, and its step says so.
+    - **The switch is gone.** `WeightCleaning` and `WeightingSpec.aggregate_cleaning` are
+      removed; a payload naming it is refused
+      (`::test_a_cleaning_choice_is_no_longer_part_of_a_weighting`).
+    - **W1a's "no raking" was wrong.** The sampler (`population/sampling.py`, panel-grounded
+      chunk 2e) floors the base weight at `1e-12` (`_WEIGHT_FLOOR`), targets the audience's
+      weighted shares, rakes the sample to them (`rake`: IPF, 60 iterations, floor `1e-6`, cap
+      `8 x q0.99`, mean 1, converged below `1e-8`) and audits it (`judge`: weighted
+      `max(0.25, 100/n)` pp refuses, raw `max(0.50, 100/n)` warns). The panel persona carries
+      the raked weight (`panel_persona.py:276 @ a19af14d`). A new group, *Váha respondenta
+      běhu*, shows each step; its values are `ConstantRef`s, shown as the code's and never
+      offered, because no run reads them yet: the panel source is not wired to fieldwork
+      (panel-grounded-respondents chunk 5), AI respondents weigh 1
+      (`ai_respondent.py:284 @ a19af14d`). GREG and other calibration do not exist; the
+      module says that instead.
+    - **Kish's n in four places**, the sample's audit `effective_n` the fourth
+      (`sampling.py:draw_panel_sample`); its weights are positive by construction.
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
@@ -1009,8 +1035,10 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     whether it is the unit's
     (`test_ai_fieldwork.py::test_ai_respondents_answer_under_the_response_process_their_run_pinned`:
     a threshold of 10 keeps every style out of the requests the unit's 0.7 puts them in).
-  - `panel_personas` takes the process too, for when the panel source is wired; the panel's
-    profile has its own wording and no threshold.
+  - A panel run (panel-grounded-respondents 5a/5b) is styled under the same pin:
+    `panel_source.panel_plans` passes it to `panel_personas`; who is sampled does not depend
+    on it (`test_panel_source.py::test_panel_personas_are_styled_under_the_runs_response_process`).
+    The panel's profile has its own wording and no describe threshold.
   - Results do not say yet when a run's process is not the unit's: nothing can be stored
     until R1c, which adds that sentence with the editor.
 

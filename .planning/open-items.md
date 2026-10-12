@@ -3394,7 +3394,9 @@ filter's keys) could differ from the unit's.
 (`persona_age_out_of_scope`, `domain/panel_persona.py` @ `09c93f0`, PR #315), so a run fails closed
 before fieldwork.
 
-**Status.** Open until chunk 5's preflight reports the count on develop's `v17_4_0`.
+**Status.** Open until the first panel run on develop reports the count on `v17_4_0`. Chunk 5
+(PR #332) composes the refusal into fieldwork: a panel run on such a population fails
+`persona_age_out_of_scope` before any call.
 
 ---
 
