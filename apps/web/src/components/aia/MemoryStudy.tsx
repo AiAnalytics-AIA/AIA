@@ -7,10 +7,12 @@
 // study must be a research of the client in the URL. Nothing here writes.
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
+  ApiError,
   type DesignRevision,
   type ResearchReport,
   type ResearchRun,
@@ -26,7 +28,7 @@ import { PERSONA_DIM_LABELS } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { RunResults } from "../rehome/research/ExecutionSteps";
 import { type StudyFrame, StudyFrameProvider } from "../rehome/research/frame";
-import { Chip, Tag } from "../rehome/ui";
+import { Button, Chip, Field, Select, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { useClient } from "./clients/ClientContext";
 import { CARD, Empty, Loaded, NotFound } from "./states";
@@ -92,7 +94,7 @@ function PastStudy({ w }: { w: StudyWorkspace }) {
       {(list) =>
         list.length ? (
           <StudyFrameProvider frame={frame}>
-            <Revisions studyId={studyId} revisions={list} labels={labels} />
+            <Revisions studyId={studyId} studyName={w.study.name} revisions={list} labels={labels} />
           </StudyFrameProvider>
         ) : (
           <Draft studyId={studyId} labels={labels} />
@@ -102,7 +104,7 @@ function PastStudy({ w }: { w: StudyWorkspace }) {
   );
 }
 
-function Revisions({ studyId, revisions, labels }: { studyId: string; revisions: DesignRevision[]; labels: Record<string, string> }) {
+function Revisions({ studyId, studyName, revisions, labels }: { studyId: string; studyName: string; revisions: DesignRevision[]; labels: Record<string, string> }) {
   const [chosen, setChosen] = useState(revisions[0].revision_id);
   const revision = revisions.find((r) => r.revision_id === chosen) ?? revisions[0];
   return (
@@ -128,6 +130,7 @@ function Revisions({ studyId, revisions, labels }: { studyId: string; revisions:
         </ul>
       </section>
       <RevisionDesign key={revision.revision_id} studyId={studyId} revision={revision} labels={labels} />
+      <ReuseDesign key={`reuse-${revision.revision_id}`} studyId={studyId} studyName={studyName} revision={revision} />
       <RevisionRuns key={`runs-${revision.revision_id}`} studyId={studyId} revision={revision} />
     </div>
   );
@@ -162,6 +165,79 @@ function RevisionDesign({ studyId, revision, labels }: { studyId: string; revisi
         {t(`${S}.design`)} · {tv(`${S}.revision`, { revision: revision.revision })}
       </h2>
       <Loaded res={res} retry={retry}>{(r) => <DesignFields content={r.content} labels={labels} />}</Loaded>
+    </section>
+  );
+}
+
+/**
+ * Start a study from this revision (project memory M3e): a new research study of the client, or
+ * one of its empty ones. The server derives the labels and refuses a target with content; this
+ * only asks where, then opens the study it started.
+ */
+function ReuseDesign({ studyId, studyName, revision }: { studyId: string; studyName: string; revision: DesignRevision }) {
+  const { client } = useClient();
+  const router = useRouter();
+  const [into, setInto] = useState<"new" | "empty">("new");
+  const [name, setName] = useState(tv(`${S}.reuse.nameDefault`, { name: studyName }));
+  const [target, setTarget] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [studies] = useResource(() => workspace.studies(client.client_id, "RESEARCH"), [client.client_id]);
+  // Empty as far as the list knows; the server checks the design too and refuses otherwise.
+  const empty = studies.state === "ready" ? studies.data.filter((x) => x.study_id !== studyId && !x.has_working_content && x.content_state === "EMPTY") : [];
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const done = await workspace.memoryReuse(client.client_id, {
+        source_study_id: studyId,
+        source_revision_id: revision.revision_id,
+        ...(into === "new" ? { new_study_name: name.trim() } : { target_study_id: target }),
+      });
+      router.push(appRoutes.study(client.client_id, done.study_id, "RESEARCH"));
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : null;
+      setError(code && [`target_not_empty`, `not_research`, `not_found`].includes(code) ? t(`${S}.reuse.refused.${code}`) : e instanceof Error ? e.message : String(e));
+      setBusy(false);
+    }
+  };
+  const ready = into === "new" ? name.trim().length > 0 : target !== "";
+  return (
+    <section className={CARD} aria-labelledby="mem-reuse">
+      <h2 id="mem-reuse" className="mb-1 text-base font-semibold">{t(`${S}.reuse.title`)}</h2>
+      <p className="mb-3 text-sm text-ink-muted">{t(`${S}.reuse.text`)}</p>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="sr-only">{t(`${S}.reuse.title`)}</legend>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="reuse-into" checked={into === "new"} onChange={() => setInto("new")} />
+          {t(`${S}.reuse.intoNew`)}
+        </label>
+        {into === "new" ? (
+          <Field label={t(`${S}.reuse.name`)} className="max-w-md pl-6">
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+        ) : null}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="radio" name="reuse-into" checked={into === "empty"} onChange={() => setInto("empty")} />
+          {t(`${S}.reuse.intoEmpty`)}
+        </label>
+        {into === "empty" ? (
+          empty.length ? (
+            <Field label={t(`${S}.reuse.empty`)} className="max-w-md pl-6">
+              <Select value={target} onChange={(e) => setTarget(e.target.value)}>
+                <option value="">—</option>
+                {empty.map((x) => <option key={x.study_id} value={x.study_id}>{x.name}</option>)}
+              </Select>
+            </Field>
+          ) : (
+            <p className="pl-6 text-sm text-ink-muted">{t(`${S}.reuse.noEmpty`)}</p>
+          )
+        ) : null}
+      </fieldset>
+      <Button variant="primary" className="mt-4" disabled={!ready || busy} onClick={() => void start()}>
+        {busy ? t(`${S}.reuse.starting`) : t(`${S}.reuse.start`)}
+      </Button>
+      {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
     </section>
   );
 }

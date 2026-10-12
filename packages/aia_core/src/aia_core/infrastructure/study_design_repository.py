@@ -24,10 +24,17 @@ from ..domain.design import (
     DesignRevision,
     validate_design,
 )
+from ..domain.design_reuse import DesignSource, SourceLabels
 from ..domain.pipeline import ProjectType
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
 from .repositories import ProjectRepository
-from .tables import ProjectRevisionRow, StudyDesignRow, StudyRow, as_utc
+from .tables import (
+    ProjectRevisionRow,
+    StudyDesignRow,
+    StudyDesignSourceRow,
+    StudyRow,
+    as_utc,
+)
 
 __all__ = ["DesignRevisionNotFound", "StudyDesignRepository"]
 
@@ -50,6 +57,20 @@ def _to_domain(row: ProjectRevisionRow, study_id: str) -> DesignRevision:
         content_sha256=row.content_sha256,
         parent_revision=row.parent_revision,
         source_stage=stage,
+        created_by=row.created_by,
+        created_at=as_utc(row.created_at),
+    )
+
+
+def _source_to_domain(row: StudyDesignSourceRow) -> DesignSource:
+    return DesignSource(
+        study_id=row.study_id,
+        revision_id=row.revision_id,
+        source_study_id=row.source_study_id,
+        source_revision_id=row.source_revision_id,
+        source_revision=row.source_revision,
+        source_content_sha256=row.source_content_sha256,
+        labels=SourceLabels.model_validate(row.labels),
         created_by=row.created_by,
         created_at=as_utc(row.created_at),
     )
@@ -162,7 +183,64 @@ class StudyDesignRepository:
             )
         return self.submit(content=content, source_stage=source_stage)
 
+    def record_source(
+        self,
+        *,
+        revision_id: str,
+        source_study_id: str,
+        source_revision_id: str,
+        source_revision: int,
+        source_content_sha256: str,
+        labels: SourceLabels,
+    ) -> DesignSource:
+        """Record, once, that the Study's design was reused from a past study's revision.
+
+        ``revision_id`` must be this Study's own revision (the reused design, submitted
+        first). A second citation is refused (``source_already_recorded``): a Study's design
+        comes from one place. The caller has resolved the source under its own scope; this
+        records what it was told, and the caller commits.
+        """
+        s = self._scope
+        s.require(Permission.EDIT_STUDY)
+        s.require_open_study()
+        self._require_research(lock=True)
+        self.get(revision_id)
+        if self._source_row() is not None:
+            raise DesignRejected(
+                "the Study's design already has a source", reason="source_already_recorded"
+            )
+        row = StudyDesignSourceRow(
+            study_id=s.study_id,
+            organization_id=s.organization_id,
+            client_id=s.client_id,
+            revision_id=revision_id,
+            source_study_id=source_study_id,
+            source_revision_id=source_revision_id,
+            source_revision=source_revision,
+            source_content_sha256=source_content_sha256,
+            labels=labels.model_dump(mode="json"),
+            created_by=s.actor_id,
+        )
+        self._session.add(row)
+        self._session.flush()
+        return _source_to_domain(row)
+
     # -- reads --------------------------------------------------------------
+
+    def _source_row(self) -> StudyDesignSourceRow | None:
+        s = self._scope
+        return self._session.scalar(
+            select(StudyDesignSourceRow).where(
+                StudyDesignSourceRow.study_id == s.study_id,
+                StudyDesignSourceRow.client_id == s.client_id,
+                StudyDesignSourceRow.organization_id == s.organization_id,
+            )
+        )
+
+    def source(self) -> DesignSource | None:
+        """Where the Study's design came from, or ``None`` when it was not reused."""
+        row = self._source_row()
+        return _source_to_domain(row) if row is not None else None
 
     def _revision_row(self, project_id: str, revision: int) -> ProjectRevisionRow:
         found = self._session.scalar(

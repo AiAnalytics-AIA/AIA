@@ -10,7 +10,8 @@ import { t, tv } from "@/i18n/t";
 import { ClientValue } from "./clients/ClientContext";
 import { MemoryStudy } from "./MemoryStudy";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-a/memory/STU-1", useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+const push = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-a/memory/STU-1", useRouter: () => ({ push, replace: vi.fn() }) }));
 
 const S = "aia.memory.study";
 const CLIENT = { client_id: "CLI-a", name: "Klient A", slug: "a", status: "ACTIVE", your_role: "RESEARCHER", permissions: [] };
@@ -52,17 +53,18 @@ const AGGREGATE = {
   payload: { aggregate: { data_origin: "SYNTHETIC_AI_FICTIONAL", questions: {}, batteries: {} } },
 };
 
-type Call = { method: string; url: string };
+type Call = { method: string; url: string; body: unknown };
 let calls: Call[] = [];
-function api(routes: Record<string, () => unknown>) {
+function api(routes: Record<string, (body: unknown) => unknown>) {
   calls = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
       const u = String(url);
       const method = init?.method ?? "GET";
-      calls.push({ method, url: u });
-      const all: Record<string, () => unknown> = {
+      const body = init?.body ? JSON.parse(String(init.body)) : null;
+      calls.push({ method, url: u, body });
+      const all: Record<string, (body: unknown) => unknown> = {
         "GET /config": () => ({ apiBase: "", aiRuntime: null }),
         "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "a@example.test", organization_role: "MEMBER", may_administer: false }),
         "GET /api/v1/workspace/clients": () => [],
@@ -70,12 +72,15 @@ function api(routes: Record<string, () => unknown>) {
         ...routes,
       };
       const answer = all[`${method} ${u.split("?")[0]}`];
-      return answer ? new Response(JSON.stringify(answer()), { status: 200 }) : new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
+      if (!answer) return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
+      const value = answer(body);
+      return value instanceof Response ? value : new Response(JSON.stringify(value), { status: 200 });
     }),
   );
 }
 
 beforeEach(() => {
+  push.mockReset();
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "a@example.test" }));
 });
 afterEach(() => {
@@ -147,5 +152,43 @@ describe("a past research in project memory", () => {
       expect(calls.some((c) => c.url.includes("/design/revisions") || c.url.includes("/research/runs"))).toBe(false);
       cleanup();
     }
+  });
+});
+
+describe("using a past design (M3e)", () => {
+  const routes = (reuse: (body: unknown) => unknown) => ({
+    "GET /api/v1/studies/STU-1/workspace": () => study(),
+    "GET /api/v1/studies/STU-1/design/revisions": () => ({ items: [revision(2)] }),
+    "GET /api/v1/studies/STU-1/design/revisions/REV-2": () => ({ ...revision(2), content: DESIGN }),
+    "GET /api/v1/studies/STU-1/research/runs": () => ({ items: [] }),
+    "GET /api/v1/clients/CLI-a/studies": () => [
+      { ...study().study, study_id: "STU-9", name: "Prázdný", has_working_content: false, content_state: "EMPTY" },
+      { ...study().study, study_id: "STU-8", name: "Rozepsaný", has_working_content: true, content_state: "NATIVE" },
+    ],
+    "POST /api/v1/clients/CLI-a/memory/reuse": reuse,
+  });
+
+  it("starts a new study from the chosen revision and opens it", async () => {
+    api(routes(() => ({ study_id: "STU-NEW", created_study: true })));
+    page();
+    const name = await screen.findByLabelText(t(`${S}.reuse.name`));
+    fireEvent.change(name, { target: { value: "Ranní káva 2" } });
+    fireEvent.click(screen.getByRole("button", { name: t(`${S}.reuse.start`) }));
+    await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/app/clients/CLI-a/research/STU-NEW"));
+    const posted = calls.filter((c) => c.method === "POST");
+    expect(posted.map((c) => c.body)).toEqual([{ source_study_id: "STU-1", source_revision_id: "REV-2", new_study_name: "Ranní káva 2" }]);
+  });
+
+  it("offers only the client's empty studies, and says why the server refused one", async () => {
+    api(routes(() => new Response(JSON.stringify({ code: "target_not_empty", message: "x" }), { status: 409 })));
+    page();
+    fireEvent.click(await screen.findByLabelText(t(`${S}.reuse.intoEmpty`)));
+    const select = (await screen.findByLabelText(t(`${S}.reuse.empty`))) as HTMLSelectElement;
+    expect([...select.options].map((o) => o.textContent)).toEqual(["—", "Prázdný"]);
+    fireEvent.change(select, { target: { value: "STU-9" } });
+    fireEvent.click(screen.getByRole("button", { name: t(`${S}.reuse.start`) }));
+    expect(await screen.findByText(t(`${S}.reuse.refused.target_not_empty`))).toBeTruthy();
+    expect(push).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.method === "POST").map((c) => c.body)).toEqual([{ source_study_id: "STU-1", source_revision_id: "REV-2", target_study_id: "STU-9" }]);
   });
 });

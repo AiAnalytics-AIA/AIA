@@ -21,11 +21,13 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.application.design_reuse import ReuseRefused, reuse_design
 from aia_core.application.project_memory import (
     MIN_QUERY_LENGTH,
     search_client_studies,
 )
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeItem,
@@ -59,6 +61,7 @@ from aia_core.infrastructure.questionnaire_file import (
     template_xlsx,
 )
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
@@ -76,6 +79,12 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .research import (
+    DesignRevisionResponse,
+    DesignSourceResponse,
+    design_revision_response,
+    design_source_response,
+)
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -700,6 +709,90 @@ def client_memory_search(
         )
         for h in hits
     ]
+
+
+class MemoryReuse(BaseModel):
+    """Start a study from a past study's Design Revision: a new one, or an empty one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_study_id: str = Field(min_length=1, max_length=64)
+    source_revision_id: str = Field(min_length=1, max_length=64)
+    #: An existing, empty research study of the client; or ``new_study_name`` for a new one.
+    target_study_id: str | None = Field(default=None, min_length=1, max_length=64)
+    new_study_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class MemoryReuseResponse(BaseModel):
+    """The study the design now starts, its first Design Revision and its citation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    created_study: bool
+    revision: DesignRevisionResponse
+    source: DesignSourceResponse
+
+
+@router.post(
+    "/clients/{client_id}/memory/reuse",
+    response_model=MemoryReuseResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a new or empty study from a past study's design",
+    responses={
+        404: {"model": ErrorResponse, "description": "Outside the client"},
+        409: {"model": ErrorResponse, "description": "The target is not an empty research study"},
+    },
+)
+def client_memory_reuse(
+    client_id: ClientIdPath,
+    body: MemoryReuse,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> MemoryReuseResponse:
+    """Reuse a past research design of this client (project memory M3, owner 2026-10-12).
+
+    Into a new research study, or one with no working content and no Design Revision: nothing
+    anyone wrote is replaced. The target's design cites its source with the labels every run of
+    the source revision carries. Anything outside the client is a 404, like an unknown study.
+    """
+    if (body.target_study_id is None) == (body.new_study_name is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "target_required",
+                "message": "Name either target_study_id or new_study_name.",
+            },
+        )
+    _client_scope(principal, resolver, client_id)  # 404 before anything is read
+    name = body.new_study_name.strip() if body.new_study_name else None
+    try:
+        reused = reuse_design(
+            session,
+            resolver,
+            principal,
+            store,
+            client_id=client_id,
+            source_study_id=body.source_study_id,
+            source_revision_id=body.source_revision_id,
+            target_study_id=body.target_study_id,
+            new_study=(_slug(name), name) if name else None,
+        )
+    except (ScopeDenied, DesignRevisionNotFound) as exc:
+        raise _not_found() from exc
+    except (ReuseRefused, DesignRejected) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": exc.reason, "message": str(exc)},
+        ) from None
+    return MemoryReuseResponse(
+        study_id=reused.study_id,
+        created_study=reused.created_study,
+        revision=design_revision_response(reused.revision),
+        source=design_source_response(reused.source),
+    )
 
 
 @router.post(
