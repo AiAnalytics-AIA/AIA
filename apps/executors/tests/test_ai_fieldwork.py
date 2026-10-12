@@ -237,10 +237,13 @@ def run_with(
         *,
         env: dict[str, str] | None = None,
         lease_seconds: int = 30,
+        population: Any = None,
     ) -> Worker:
         settings = AIRuntimeSettings.from_env(env if env is not None else _env())
         ai = (
-            build_ai_fieldwork(settings, build=build, transport=transport, signer=Signer())
+            build_ai_fieldwork(
+                settings, build=build, transport=transport, signer=Signer(), population=population
+            )
             if settings is not None
             else None
         )
@@ -441,11 +444,11 @@ def test_client_allowlist_does_not_classify_an_unknown_questionnaire(
     assert error["reason"] == "egress_unclassified_material"
 
 
-def test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exists(
+def test_a_roster_run_given_population_built_personas_fails_before_any_call(
     world: Any, run_with: Callable[..., Worker], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """OI-61 lets panel lineage reach the EU route; the executor still has no panel
-    persona source, so it refuses before anything is reserved or sent."""
+    """Population-built personas come only through a run's pinned panel source: a run pinned to
+    the roster whose roster is not fictional refuses before anything is reserved or sent."""
     real = ai_fieldwork.fictional_roster
 
     def panel_roster(n: int, *, seed: int) -> Any:
@@ -982,3 +985,171 @@ def test_an_ssl_failure_after_sending_needs_recovery_and_is_never_settled_as_fre
     assert reservation.status == "SETTLED_UNCERTAIN", "never settled as a known zero-cost failure"
     assert attempt is not None
     assert attempt.paid_call_dispatched and not attempt.paid_call_outcome_known
+
+
+# --------------------------------------------------------------------------- #
+# respondents drawn from the run's population (plan panel-grounded-respondents 5d)
+# --------------------------------------------------------------------------- #
+
+GROUNDED_N = 200
+GROUNDED_DESIGN: dict[str, Any] = {
+    "title": "Ranní nápoj",
+    "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
+    "n": GROUNDED_N,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často pijete kávu?", "typ": "skala", "skala": [1, 5]},
+                {
+                    "id": "q2",
+                    "text": "Co si ráno koupíte?",
+                    "typ": "vyber",
+                    "kategorie": ["Kávu", "Čaj", "Nic"],
+                },
+            ],
+        }
+    ],
+}
+
+
+def _grounded_env(design: dict[str, Any] = GROUNDED_DESIGN) -> dict[str, str]:
+    """A route approved for client material (a panel persona is Class A), the switch on."""
+    return _env(
+        AIA_AI_ROUTE_APPROVED_FOR="CLASS_A_CLIENT_CONFIDENTIAL,CLASS_C_INTERNAL",
+        AIA_AI_ROUTE_RETENTION_DAYS="0",
+        AIA_AI_POPULATION_PERSONAS_ENABLED="true",
+        AIA_POPULATION_ASSET_ROOT="/nonexistent-the-test-loader-replaces-it",
+        AIA_AI_MATERIAL_CLASSIFICATIONS="["
+        + MaterialApproval(
+            sha256=material_sha256(design),
+            data_class=DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
+            provenance="test material explicitly classified as confidential",
+        ).model_dump_json()
+        + "]",
+    )
+
+
+def _start_grounded(world: Any, grounded: Any, design: dict[str, Any] = GROUNDED_DESIGN) -> str:
+    from aia_core.domain.fieldwork import PersonaSource
+    from grounded_world import LIVE
+
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=design, source_stage="run"
+        )
+        started = ResearchRuns(
+            session, scope, population_contract=grounded.contract, population_id=LIVE
+        ).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.AI_RUNTIME,
+            persona_source=PersonaSource.PANEL,
+        )
+        session.commit()
+        return started.run_id
+
+
+@pytest.fixture
+def grounded(world: Any) -> Any:
+    from grounded_world import grounded_population
+
+    with world.sessions() as session:
+        return grounded_population(session)
+
+
+def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """5d end to end under the real worker: sample, personas and plans from the population the
+    run recorded; the dataset is MODELLED_AI_PANEL, names its respondent system, and the
+    deterministic steps run over it unchanged."""
+    from aia_core.domain.evidence import respondent_system_fingerprint
+    from aia_core.domain.fieldwork import RESPONDENT_SYSTEM_METADATA
+    from aia_core.domain.licence_determinations import PANEL_DERIVED_DATASETS
+
+    bedrock = ScriptedBedrock()
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(bedrock, env=_grounded_env(), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    run = _run(world, run_id)
+    steps = _steps(run)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    assert run["metadata"]["population"]["read_by_fieldwork"] is True
+
+    sent = len(bedrock.requests)
+    assert sent > 0 and sent % GROUNDED_N == 0  # one request per respondent per block
+    body = "".join(r.raw_body.decode() for r in bedrock.requests if r.raw_body)
+    for secret in (world.study_id, world.client_id, world.organization_id):
+        assert secret not in body, "scope must never be sent to a provider"
+
+    output = steps["run"]["output"]
+    assert output["data_origin"] == DataOrigin.MODELLED_AI_PANEL.value
+    assert output["respondents"] == GROUNDED_N
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        artifact = research.get(output["artifact_id"])
+        payload = research.read_json(output["artifact_id"])
+    dataset, provenance = payload["dataset"], payload["provenance"]
+    assert dataset["origin"] == "MODELLED_AI_PANEL"
+    assert all(r["respondent_id"].startswith("FIC-ROW-") for r in dataset["respondents"])
+    assert all(r["donor_id"].startswith("FIC-DONOR-") for r in dataset["respondents"])
+    source = provenance["persona_source"]
+    assert source["source"] == "panel" and source["fictional"] is False
+    assert source["binding"]["version_label"] == "v1_4"
+    assert isinstance(source["sample"]["seed"], int)
+    assert source["sample"]["audit"]["sample_n"] == GROUNDED_N
+    assert source["personas"]["persona_source"] == "aia-panel-persona-source-1"
+    assert provenance["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    assert set(provenance["lineage"]) == set(PANEL_DERIVED_DATASETS)
+
+    system = artifact.metadata[RESPONDENT_SYSTEM_METADATA]
+    assert system["population_version"] == source["binding"]["version_id"]
+    assert system["model_binding"] == f"aws_bedrock/{PROFILE}/bedrock-eu-primary"
+    assert len(respondent_system_fingerprint(system)) == 64
+
+    events = _ledger(world, run_id)
+    assert {e.data_class.value for e in events} == {"CLASS_A_CLIENT_CONFIDENTIAL"}
+    for node in ("aggregate", "sociomap"):
+        assert steps[node]["status"] is StepRunStatus.SUCCEEDED
+        assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
+
+
+def test_a_design_the_population_cannot_sample_fails_before_any_call(
+    world: Any, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """More respondents than the population holds: refused by name, never drawn smaller."""
+    design = {**GROUNDED_DESIGN, "n": grounded.rows + 1}
+    bedrock = ScriptedBedrock()
+    run_id = _start_grounded(world, grounded, design)
+    _drain(run_with(bedrock, env=_grounded_env(design), population=grounded.loader()))
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.FAILED
+    assert fw["attempts"][-1]["failure_class"] is FailureClass.SCHEMA_VIOLATION
+    assert fw["attempts"][-1]["error"]["reason"] == "sampling_n_exceeds_support"
+    assert bedrock.requests == [] and _ledger(world, run_id) == []
+
+
+def test_a_population_that_cannot_build_personas_fails_before_any_call(
+    world: Any, run_with: Callable[..., Worker]
+) -> None:
+    from grounded_world import grounded_population
+
+    with world.sessions() as session:
+        grounded = grounded_population(session, omit=("PERSONA_SIGNAL_CATALOG_v17.csv",))
+    bedrock = ScriptedBedrock()
+    run_id = _start_grounded(world, grounded)
+    _drain(run_with(bedrock, env=_grounded_env(), population=grounded.loader()))
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.FAILED
+    assert fw["attempts"][-1]["error"]["reason"] == "persona_catalog_missing"
+    assert bedrock.requests == [] and _ledger(world, run_id) == []
+
+
+def test_the_population_switch_needs_the_directory_it_reads() -> None:
+    env = _grounded_env()
+    del env["AIA_POPULATION_ASSET_ROOT"]
+    with pytest.raises(AIRuntimeConfigError, match="AIA_POPULATION_ASSET_ROOT"):
+        AIRuntimeSettings.from_env(env)
+    off = AIRuntimeSettings.from_env(_env())
+    assert off is not None and off.population_personas_enabled is False

@@ -25,7 +25,7 @@ chunks:
   - "[x] 5a. Persona source contract (plan before code): pinned at start, the panel path, refusals, provenance, cost"
   - "[x] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
   - "[x] 5c. A run pins its persona source at start (AIA_AI_POPULATION_PERSONAS_ENABLED, off by default); a retry keeps it"
-  - "[ ] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
+  - "[x] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
   - "[ ] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -878,6 +878,31 @@ Tests: `test_a_run_pins_its_persona_source_and_a_run_before_the_pin_reads_as_the
 `test_a_retry_keeps_the_persona_source_its_original_pinned` (both sources),
 `test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population`,
 `test_a_run_stored_before_the_pin_reads_as_the_fictional_roster`.
+
+**5d landed.** `apps/executors/src/aia_executors/ai_fieldwork.py`: `AIFieldwork` reads the run's
+pin from its step input. A panel pin on a worker without a population loader parks
+(`panel_personas_unavailable`); with one, the population the run recorded is loaded in the step's
+transaction (`population_loader`: `PopulationRuntime(CZ_SYNTHETIC_V17, the asset source,
+AudienceDimensionsEnricher).load_for_run`; a load failure parks, `population_unavailable`), then
+`panel_plans` -- a `SamplingRefused` or `PersonaRefused` fails the step by its own reason before any
+call. The rest is the roster's path: Class A (panel personas are never internal), the gateway's
+gates, one request per respondent per block. The provenance's `persona_source` is
+`PanelPlans.provenance`; `ProducedDataset.respondent_system` (from the preflight's resolved model
+binding) goes into the dataset artifact's metadata as `RESPONDENT_SYSTEM_METADATA`
+(`aia_executors/research.py`). `ai_runtime.py`: `AIA_AI_POPULATION_PERSONAS_ENABLED` (off by
+default) needs `AIA_POPULATION_ASSET_ROOT` (refused at start without it); `build_ai_fieldwork(population=)`
+replaces the loader for a test's fictional population and never adds a path the switch did not.
+The OI-61 reasons are rewritten (`ai_respondent.py`, `ai_fieldwork.py`, `research-execution.ts`).
+
+Tests (`apps/executors/tests/test_ai_fieldwork.py`, over the sampler's 3,000 fictional rows
+imported and established LIVE in the worker's database, `grounded_world.py`):
+`test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it` (the real worker,
+200 respondents: `MODELLED_AI_PANEL`, row and donor ids, panel provenance, Class A on the ledger,
+the respondent system in the metadata, aggregate and sociomap over it),
+`test_a_design_the_population_cannot_sample_fails_before_any_call`,
+`test_a_population_that_cannot_build_personas_fails_before_any_call`,
+`test_the_population_switch_needs_the_directory_it_reads`,
+`test_a_run_pinned_to_its_population_waits_on_a_worker_without_that_path`.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
