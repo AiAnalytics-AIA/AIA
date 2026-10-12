@@ -72,3 +72,12 @@ def test_every_register_rule_cited_is_in_the_register() -> None:
         if e.kind is EvidenceKind.REGISTER_RULE
     }
     assert cited and cited <= rules, sorted(cited - rules)
+
+
+def test_every_step_cites_a_register_rule() -> None:
+    bare = [
+        s.id
+        for s in SOCIOMAPPING.steps
+        if not any(e.kind is EvidenceKind.REGISTER_RULE for e in s.evidence)
+    ]
+    assert bare == []

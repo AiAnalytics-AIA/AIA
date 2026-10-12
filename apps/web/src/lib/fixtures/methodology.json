@@ -6073,7 +6073,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "j\\ \\text{bez definovaného vztahu} \\Rightarrow \\text{neumístěn, s důvodem}",
       "formulas": [],
       "id": "placeable",
@@ -6088,7 +6094,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{klasické MDS na pořadích} \\;\\cup\\; \\{U(\\text{seed} + k)\\}_{k=1}^{R}",
       "formulas": [],
       "id": "starts",
@@ -6126,7 +6138,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\max\\ \\operatorname{corr}(L, -D)",
       "formulas": [],
       "id": "smooth",
@@ -6156,7 +6174,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\min \\sum (d_{rs} - \\hat d_{rs})^2,\\quad \\hat d\\ \\text{izotonní, ostře rostoucí o mezeru}\\ g",
       "formulas": [],
       "id": "ordinal",
@@ -6194,7 +6218,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{bod po bodu: nejlepší z}\\ m\\ \\text{posunů o}\\ \\delta\\ \\text{zvyšující}\\ A;\\quad \\delta \\leftarrow \\delta/2\\ \\text{až po}\\ \\delta_{\\min}",
       "formulas": [],
       "id": "exact",
@@ -6253,7 +6283,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{kloub s malou rezervou na párech mimo pořadí;}\\ \\text{ponechán jen když}\\ A\\uparrow",
       "formulas": [],
       "id": "repair",
@@ -6406,7 +6442,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "SOMECS-C1"
+       }
+      ],
       "formula_latex": "\\text{třídy}\\ \\alpha\\text{-řezů matice 0-1, od nejvyšší úrovně}",
       "formulas": [],
       "id": "coherences",
