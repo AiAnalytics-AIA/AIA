@@ -11,7 +11,7 @@ chunks:
   - "[x] A3b. Delete the root Fastify stub and its root npm package (no consumer)"
   - "[x] A3c. Remove the unconnected small surfaces the owner confirmed; test the kept snapshot route"
   - "[ ] A3d. Decide the Sociomap body's duplicated side tables, then measure and simplify (queue item 3)"
-  - "[ ] A3e. One reader of a stored contract-3 map for the report and its figures (queue item 4)"
+  - "[x] A3e. One reader of a stored contract-3 map for the report and its figures (queue item 4)"
   - "[ ] A4. Run the complete four-area recorded acceptance on a release candidate"
   - "[ ] A5. Verify bounded deployed acceptance and record the release decision"
 ---
@@ -513,6 +513,19 @@ rewritten over `modules_to_run` and `run_analysis_module`, its assertions unchan
 when the route's snapshot-id pattern is loosened (checked by mutation). `modules_to_run` now has
 no production caller; it stays as the domain's statement of the unit's resume rule, which its
 tests pin.
+
+**A3e (owner, 2026-10-12: "start A3e").** `domain/sociomap/models_v3.py` `read_object_maps`
+is now the one reader of a battery's stored `maps`: each read by `read_artifact` (fingerprints
+verified), contract 3, and computed under the method it is stored by, or
+`ArtifactIntegrityError`. `application/report_maps.py` `compose_map_sections` and
+`infrastructure/report_docx/object_map_figure.py` `object_map_snapshots` both call it; their two
+copies of the loop are gone. The copies had drifted: the figure renderer did not check the
+stored key against the map's method, so it would draw a map stored under another method's
+name (the report then refused it; the work was wasted, nothing wrong was printed).
+`test_report_map_snapshots.py::test_a_map_stored_under_another_method_is_refused_by_report_and_figure_alike`
+holds the shared rule, and fails when the key check is removed (checked by mutation);
+`test_read_object_maps_reads_in_stored_order_and_refuses_another_contract` holds the reader.
+The web's reader (`apps/web/src/lib/object-map-view.ts`) is TypeScript and stays separate.
 
 ## Findings
 
