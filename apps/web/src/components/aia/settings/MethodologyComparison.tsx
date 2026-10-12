@@ -150,7 +150,7 @@ function SupportCheck({ support }: { support: MethodSupportCompare }) {
     </ul>
   );
   return (
-    <div data-compare-support className="flex flex-col gap-3">
+    <div data-compare-support className="flex min-w-0 flex-col gap-3">
       <p className="max-w-3xl text-xs text-ink-muted">{t(`${S}.intro`)}</p>
       <Part title={t(`${S}.newlyReported`)} empty={t(`${S}.noneReported`)} has={support.newly_reported.length > 0}>
         {moved(support.newly_reported)}
@@ -158,8 +158,9 @@ function SupportCheck({ support }: { support: MethodSupportCompare }) {
       <Part title={t(`${S}.newlySuppressed`)} empty={t(`${S}.noneSuppressed`)} has={support.newly_suppressed.length > 0}>
         {moved(support.newly_suppressed)}
       </Part>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs" aria-label={t(`${S}.cells`)}>
+      <details className="min-w-0">
+        <summary className="cursor-pointer text-xs font-medium">{tv(`${S}.cells`, { count: support.cells.length })}</summary>
+        <div className="mt-2 min-w-0 overflow-x-auto"><table className="w-full min-w-[36rem] text-xs" aria-label={tv(`${S}.cells`, { count: support.cells.length })}>
           <thead>
             <tr className="text-left text-ink-muted">
               <th scope="col" className="py-1 pr-3 font-normal">{t(`${S}.cell`)}</th>
@@ -182,8 +183,8 @@ function SupportCheck({ support }: { support: MethodSupportCompare }) {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </table></div>
+      </details>
     </div>
   );
 }

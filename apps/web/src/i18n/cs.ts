@@ -574,7 +574,7 @@ export const cs = {
               noneReported: "Úprava žádnou buňku nově neukáže.",
               newlySuppressed: "Nově potlačené (dosud ukázané)",
               noneSuppressed: "Úprava žádnou buňku nově nepotlačí.",
-              cells: "Všechny buňky",
+              cells: "Všechny buňky ({count})",
               cell: "Buňka",
               donors: "Dárci",
               results: "Výsledky",

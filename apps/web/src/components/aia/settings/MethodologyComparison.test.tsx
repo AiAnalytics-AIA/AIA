@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The support draft check as the Metodika tab shows it (plan G1d): every fictional cell the edit
 // newly shows or newly suppresses is named with its surface, what does not move says so, and
-// every cell is listed with both statuses on both surfaces.
+// every cell is listed with both statuses on both surfaces, folded away until asked for.
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -40,6 +40,10 @@ describe("the support draft check", () => {
     expect(within(moved).getByText("indikativní").tagName).toBe("STRONG");
     const still = document.querySelector('[data-support-cell="velky.q1"]') as HTMLElement;
     expect(within(still).getAllByText("reportovatelné")).toHaveLength(2);
+    // What moved is in view; the full list of cells waits behind its summary.
+    const all = document.querySelector("[data-compare-support] details") as HTMLDetailsElement;
+    expect(all.open).toBe(false);
+    expect(within(all).getByText("Všechny buňky (2)")).toBeTruthy();
     expect(document.querySelector("[data-compare-panel]")).toBeNull();
   });
 
