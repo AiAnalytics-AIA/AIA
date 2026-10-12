@@ -121,16 +121,20 @@ apps/
                             slot, the domain's check at the field) and MethodologyComparison (an edit
                             beside what is in force on fictional panels or support cells); lib/methodology-edit.ts is
                             the editor's pure part,
-                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+                            FrontDoor (the Graphite frame of /login, /logout, /auth/callback; the
+                            identity's cyan, `brand-apex`, is the signal there)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
                             --status-running when code does; aria-hidden beside the status it decorates.
                             64 px in a running step's panel and the job dialog, 32 px by default.
-                            Liftoff: the lift-off film (public/skin/brand/aia-liftoff.{webm,mp4}) in
-                            the front door's mark slot after a sign-in the person started
-                            (lib/liftoff.ts arms and takes it); muted, decoration, its end the way in;
-                            on `brand-stage`, the film's ground, used on the front door only
+                            DotField: the front door's 144-dot field (lib/dot-field.ts, pure) on a
+                            full-viewport canvas; on a sign-in the person started (lib/liftoff.ts)
+                            25 primes fly into the mark at the launch film's frame-0 geometry
+                            (lattice, checked by tools/film_frame0.py) and `aia:mark-formed` fires;
+                            LaunchFilm then plays public/skin/brand/aia-liftoff.{webm,mp4}
+                            full-screen on `brand-stage`, takes over on its first frame, and its
+                            end is the way in
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -702,6 +706,8 @@ docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/film_frame0.py        Checks the launch film's frame 0 is the mark the handoff forms (stdlib
+                            over ffmpeg; fails above 0.5 px)
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
