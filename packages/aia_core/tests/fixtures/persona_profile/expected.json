@@ -1,0 +1,439 @@
+{
+ "captured_with": {
+  "pandas": "2.3.3"
+ },
+ "cases": [
+  {
+   "id": "P001",
+   "text": "Jsem muž, ve věku 70 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 90. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: manažeři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 14. místo ze 14"
+  },
+  {
+   "id": "P002",
+   "text": "Jsem žena, ve věku 59 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "id": "P003",
+   "text": "Jsem muž, ve věku neuvedeno. Mám střední bez maturity vzdělání. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "id": "P004",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P005",
+   "text": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 54. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Domácnost: svobodný(á), bydlí v nájemním bytě, děti v domácnosti, žije sám"
+  },
+  {
+   "id": "P006",
+   "text": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P007",
+   "text": "Jsem muž, ve věku 78 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 66. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 10. místo ze 14"
+  },
+  {
+   "id": "P008",
+   "text": "Jsem muž, ve věku 67 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: pracuje Aktuální profesní skupina: úředníci Velikost domácnosti: 2 osoba/y Kvalita života v kraji: 1. místo ze 14"
+  },
+  {
+   "id": "P009",
+   "text": "Jsem žena, ve věku 47 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 71. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: úředníci Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "P010",
+   "text": "Jsem žena, ve věku 46 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: špatné Kvalita života v kraji: 13. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: svobodný(á), bydlí v bytě v osobním vlastnictví, auto v domácnosti"
+  },
+  {
+   "id": "P011",
+   "text": "Jsem muž, ve věku 71 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 23. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P012",
+   "text": "Jsem muž, ve věku 79 let. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 13. místo ze 14"
+  },
+  {
+   "id": "P013",
+   "text": "Jsem žena, ve věku 51 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P014",
+   "text": "Jsem muž, ve věku 89 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 20–30 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 26. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 5. místo ze 14"
+  },
+  {
+   "id": "P015",
+   "text": "Jsem muž, ve věku 48 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 57. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P016",
+   "text": "Jsem žena, ve věku 61 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 35. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: obsluha strojů a zařízení Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: velmi dobré Kvalita života v kraji: 13. místo ze 14"
+  },
+  {
+   "id": "P017",
+   "text": "Jsem žena, ve věku 41 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 59. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: špatné Kvalita života v kraji: 3. místo ze 14 Domácnost: ženatý/vdaná, děti v domácnosti"
+  },
+  {
+   "id": "P018",
+   "text": "Jsem žena, ve věku 23 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 44. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Domácnost: ovdovělý(á), bydlí v rodinném domě, děti v domácnosti, žije sám"
+  },
+  {
+   "id": "P019",
+   "text": "Jsem muž, ve věku 72 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 9/10 Pracovní status: nezaměstnaný/á Velikost domácnosti: 5 osoba/y Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 8. místo ze 14 Domácnost: bez auta"
+  },
+  {
+   "id": "P020",
+   "text": "Jsem žena, ve věku 76 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P021",
+   "text": "Jsem muž, ve věku 54 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "id": "P022",
+   "text": "Jsem muž, ve věku 81 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 10. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "P023",
+   "text": "Jsem muž, ve věku 65 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 51. percentil v harmonizované příjmové pozici Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 12. místo ze 14 Domácnost: ženatý/vdaná, bez auta, děti v domácnosti"
+  },
+  {
+   "id": "P024",
+   "text": "Jsem žena, ve věku 38 let. Mám základní vzdělání. Osobní příjem: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 43. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 2. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P025",
+   "text": "Jsem muž, ve věku 50 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 9. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P026",
+   "text": "Jsem žena, ve věku 73 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Kvalita života v kraji: 2. místo ze 14"
+  },
+  {
+   "id": "P027",
+   "text": "Jsem muž, ve věku 92 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 9. místo ze 14"
+  },
+  {
+   "id": "P028",
+   "text": "Jsem žena, ve věku 34 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 12. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P029",
+   "text": "Jsem žena, ve věku 60 let. Mám střední bez maturity vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 1 osoba/y Kvalita života v kraji: 1. místo ze 14"
+  },
+  {
+   "id": "P030",
+   "text": "Jsem muž, ve věku 78 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 69. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 6. místo ze 14 Domácnost: ovdovělý(á), děti v domácnosti"
+  },
+  {
+   "id": "P031",
+   "text": "Jsem žena, ve věku 81 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 10/10 Pracovní status: pracuje Současně: student/ka Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 9. místo ze 14 Domácnost: bydlí v rodinném domě, děti v domácnosti"
+  },
+  {
+   "id": "P032",
+   "text": "Jsem muž, ve věku 62 let. Mám voš/vš vzdělání. Žiju v kraji Hlavní město Praha. Osobní příjem: 20–30 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 5/10 Pracovní status: jiná ekonomická neaktivita Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Domácnost: bez auta"
+  },
+  {
+   "id": "P033",
+   "text": "Jsem žena, ve věku 70 let. Mám základní vzdělání. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 10. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14"
+  },
+  {
+   "id": "P034",
+   "text": "Jsem muž, ve věku 68 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 45. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 8. místo ze 14"
+  },
+  {
+   "id": "P035",
+   "text": "Jsem muž, ve věku 35 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: pracuje Aktuální profesní skupina: řemeslníci a opraváři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 2. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P036",
+   "text": "Jsem žena, ve věku 87 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 14. místo ze 14 Domácnost: druh_druzka, bydlí v bytě v osobním vlastnictví, bez auta, žije sám"
+  },
+  {
+   "id": "P037",
+   "text": "Jsem žena, ve věku 53 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 73. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 5. místo ze 14 Domácnost: bez auta"
+  },
+  {
+   "id": "P038",
+   "text": "Jsem muž, ve věku 74 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 98. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 8. místo ze 14 Domácnost: bydlí v nájemním bytě"
+  },
+  {
+   "id": "P039",
+   "text": "Jsem žena, ve věku 36 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 72. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 6. místo ze 14"
+  },
+  {
+   "id": "P040",
+   "text": "Jsem muž, ve věku 74 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14"
+  },
+  {
+   "id": "P041",
+   "text": "Jsem žena, ve věku 47 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 1. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 10. místo ze 14"
+  },
+  {
+   "id": "P042",
+   "text": "Jsem žena, ve věku 63 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 24. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 5. místo ze 14"
+  },
+  {
+   "id": "P043",
+   "text": "Jsem žena, ve věku 55 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 29. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 14. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P044",
+   "text": "Jsem žena, ve věku 31 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 45. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P045",
+   "text": "Jsem muž, ve věku 36 let. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 76. percentil v harmonizované příjmové pozici Pracovní status: pracuje Současně: student/ka Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 8. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P046",
+   "text": "Jsem muž, ve věku 67 let. Mám voš/vš vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 20. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 9. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P047",
+   "text": "Jsem žena, ve věku 78 let. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 8. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "P048",
+   "text": "Jsem muž, ve věku 81 let. Mám voš/vš vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 1/10 Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: řemeslníci a opraváři Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 14. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P049",
+   "text": "Jsem muž, ve věku 67 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 2. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 3. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: bydlí v nájemním bytě, auto v domácnosti"
+  },
+  {
+   "id": "P050",
+   "text": "Jsem žena, ve věku 35 let. Mám střední bez maturity vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 64. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 9. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P051",
+   "text": "Jsem žena, ve věku 62 let. Mám střední bez maturity vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 84. percentil v harmonizované příjmové pozici Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 8. místo ze 14 Domácnost: bydlí v nájemním bytě"
+  },
+  {
+   "id": "P052",
+   "text": "Jsem žena, ve věku 89 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 2. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "id": "P053",
+   "text": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Zlínský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 10/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 4 osoba/y Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14"
+  },
+  {
+   "id": "P054",
+   "text": "Jsem žena, ve věku 52 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 84. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 8. místo ze 14 Domácnost: bydlí v bytě v osobním vlastnictví"
+  },
+  {
+   "id": "P055",
+   "text": "Jsem muž, ve věku 38 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 2/10 Pracovní status: pracuje Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: výborné Kvalita života v kraji: 8. místo ze 14"
+  },
+  {
+   "id": "P056",
+   "text": "Jsem žena, ve věku 80 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 86. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: výborné Kvalita života v kraji: 3. místo ze 14 Domácnost: druh_druzka, žije sám"
+  },
+  {
+   "id": "P057",
+   "text": "Jsem muž, ve věku 67 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 12. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 9. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P058",
+   "text": "Jsem muž, ve věku 59 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 9. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 10. místo ze 14 Domácnost: bez auta"
+  },
+  {
+   "id": "P059",
+   "text": "Jsem žena, ve věku 62 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: neuvedeno Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 13. místo ze 14"
+  },
+  {
+   "id": "P060",
+   "text": "Jsem žena, ve věku 27 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 5. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "P061",
+   "text": "Jsem muž, ve věku 44 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 18. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Velikost domácnosti: 5 osoba/y Kvalita života v kraji: 7. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P062",
+   "text": "Jsem muž, ve věku 71 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 71. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: výborné Kvalita života v kraji: 11. místo ze 14 Domácnost: svobodný(á), bydlí v bytě v osobním vlastnictví, bez auta, děti v domácnosti, žije sám"
+  },
+  {
+   "id": "P063",
+   "text": "Jsem muž, ve věku 59 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 5. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P064",
+   "text": "Jsem muž, ve věku 26 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 11. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: obsluha strojů a zařízení Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 8. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P065",
+   "text": "Jsem žena, ve věku 64 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Relativní příjmová pozice: přibližně 12. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 6. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P066",
+   "text": "Jsem žena, ve věku 73 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 99. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 13. místo ze 14"
+  },
+  {
+   "id": "P067",
+   "text": "Jsem žena, ve věku neuvedeno. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 43. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 12. místo ze 14 Domácnost: bydlí v nájemním bytě"
+  },
+  {
+   "id": "P068",
+   "text": "Jsem muž, ve věku 87 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 44. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: výborné Kvalita života v kraji: 6. místo ze 14"
+  },
+  {
+   "id": "P069",
+   "text": "Jsem žena, ve věku 42 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 45. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 5. místo ze 14"
+  },
+  {
+   "id": "P070",
+   "text": "Jsem žena, ve věku 21 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 20–30 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: rozvedený(á), bydlí v nájemním bytě"
+  },
+  {
+   "id": "P071",
+   "text": "Jsem žena, ve věku 27 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 9/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 1. místo ze 14 Domácnost: bez auta"
+  },
+  {
+   "id": "P072",
+   "text": "Jsem muž, ve věku 89 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 90. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14"
+  },
+  {
+   "id": "P073",
+   "text": "Jsem žena, ve věku 73 let. Mám voš/vš vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 10/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 2 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 11. místo ze 14"
+  },
+  {
+   "id": "P074",
+   "text": "Jsem muž, ve věku 69 let. Mám voš/vš vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 68. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 2 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 7. místo ze 14"
+  },
+  {
+   "id": "P075",
+   "text": "Jsem žena, ve věku 88 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 2. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 6 osoba/y Zdraví v core datech: velmi dobré Kvalita života v kraji: 10. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: ženatý/vdaná, bydlí v bytě v osobním vlastnictví, bez auta"
+  },
+  {
+   "id": "P076",
+   "text": "Jsem muž, ve věku 76 let. Mám střední bez maturity vzdělání. Žiju v kraji Jihomoravský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 38. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 6. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P077",
+   "text": "Jsem žena, ve věku 66 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 7. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "P078",
+   "text": "Jsem muž, ve věku neuvedeno. Mám voš/vš vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 17. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 7. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P079",
+   "text": "Jsem muž, ve věku 54 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 51. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 9. místo ze 14"
+  },
+  {
+   "id": "P080",
+   "text": "Jsem žena, ve věku 88 let. Mám voš/vš vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 68. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 12. místo ze 14 Domácnost: bydlí v bytě v osobním vlastnictví"
+  },
+  {
+   "id": "P081",
+   "text": "Jsem muž, ve věku 70 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 20–30 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 90. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: manažeři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 14. místo ze 14"
+  },
+  {
+   "id": "P082",
+   "text": "Jsem žena, ve věku 59 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 6/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 4 osoba/y Zdraví v core datech: uspokojivé Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "id": "P083",
+   "text": "Jsem muž, ve věku neuvedeno. Mám střední bez maturity vzdělání. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 3/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 4. místo ze 14 Domácnost: rozvedený(á)"
+  },
+  {
+   "id": "P084",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "P085",
+   "text": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 54. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "P086",
+   "text": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "T01",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14"
+  },
+  {
+   "id": "T02",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "T03",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 2. místo ze 14"
+  },
+  {
+   "id": "T04",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "T05",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: bydlí v rodinném domě, děti v domácnosti"
+  },
+  {
+   "id": "T06",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "T07",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
+  },
+  {
+   "id": "T08",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "id": "T09",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "T10",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 2. místo ze 14 Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: bydlí v rodinném domě, auto v domácnosti, děti v domácnosti"
+  },
+  {
+   "id": "T11",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: auto v domácnosti"
+  },
+  {
+   "id": "T12",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: bydlí v rodinném domě"
+  },
+  {
+   "id": "T13",
+   "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
+  }
+ ],
+ "cases_sha256": "5edd40045d0c1bbda0948a581184a36df3d9d6cec288807e98691a044b4cab67",
+ "prose": [
+  {
+   "id": "F01_prefixes",
+   "text": "Jsem žena, ve věku 31 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Můj příjem je zhruba v pásmu 20–30 tisíc Kč čistého měsíčně. Můj modelovaný socioekonomický kontext: střední vrstva. Mediální chování — z médií a platforem je pro mě typické: TV 8/10 (hodně) Nákupní a značkový profil — při nákupu je pro mě typické: slevy 9/10 Když reaguji na značku, obvykle rozhoduje: cena 8/10 V hodnotách a postojích mám sklon k: tradice 7/10 V běžném a digitálním životě je pro mě typické: online 9/10 Moje chování v relevantních situacích je vyhraněné takto: klidný; pečlivý Když odpovídám v dotazníku, odpovídá rychle"
+  },
+  {
+   "id": "F02_no_sex",
+   "text": "Jsem člověk, ve věku neuvedeno. "
+  },
+  {
+   "id": "F03_long",
+   "text": "Jsem muž, ve věku 52 let. Signál 0: cena sport nákup značka značka, Signál 1: nákup kvalita nákup značka sport sport značka. Signál 2: sport nákup značka. Signál 3: nákup sport nákup kvalita nákup cena zpráva sport. Signál 4: značka zpráva cena značka kvalita televize značka; Signál 5: nákup kvalita rodina sport televize rodina rodina, Signál 6: kvalita cena kvalita značka zpráva Signál 7: rodina zpráva značka značka sport. Signál 8: televize cena rodina sport nákup značka televize televize televize Signál 9: rodina značka značka zpráva rodina značka nákup, Signál 10: rodina zpráva sport televize nákup rodina televize cena; Signál 11: nákup kvalita zpráva cena kvalita sport Signál 12: rodina značka cena rodina sport zpráva cena sport zpráva Signál 13: sport kvalita cena značka cena. Signál 14: kvalita nákup rodina cena, Signál 15: nákup cena sport televize televize. Signál 16: nákup rodina sport sport sport sport značka rodina Signál 17: kvalita značka kvalita Signál 18: značka televize nákup značka; Signál 19: cena značka televize nákup značka kvalita sport."
+  },
+  {
+   "id": "F04_long_no_clause",
+   "text": "Jsem muž, ve věku 52 let. Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo."
+  },
+  {
+   "id": "F05_clause_below_the_floor",
+   "text": "Jsem muž, ve věku 52 let. Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo; slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo."
+  },
+  {
+   "id": "F06_clause_above_the_floor",
+   "text": "Jsem muž, ve věku 52 let. Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo."
+  }
+ ],
+ "rows_sha256": "58ad03034a1105088d4a88fed32892e1cbe1fd923d3923d62533cf6dce7402e5",
+ "unit_sources": {
+  "audience_profile.py": "65a89d5cef442433d7a86809c80714a3507f87a8a010455f833b5fe8b2c6e2b0",
+  "dispozice.py": "7b8c277e7712a1e6fc3ac461e44b77897b742bc5407c1a9effc1b2b9c2366613",
+  "persona_calibration.py": "09afc6af704cc49ae8a4867d52d42835335759b66518d381014e88d71404deec",
+  "persona_depth.py": "734e45701f78fc1c7109be6f40da53b5847e4b834d0ffe8174e29031879d2285",
+  "persona_grounded.py": "2cc44db6b2c427238822f59d78bc6253e5e5886aa923d4f5a5d67504c7f57b81",
+  "pipeline.py": "774592a22ae9661d12756c7ece281ee8933e0341b8fbae34c11067afc055458f"
+ }
+}

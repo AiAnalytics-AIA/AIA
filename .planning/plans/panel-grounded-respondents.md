@@ -8,8 +8,8 @@ chunks:
   - "[x] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
   - "[x] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
   - "[x] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
-  - "[ ] 3a. Persona contract (plan before code): the mode 18.6.6 ran, its inputs, topics, the policy gate, parity"
-  - "[ ] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
+  - "[x] 3a. Persona contract (plan before code): the mode 18.6.6 ran, its inputs, topics, the policy gate, parity"
+  - "[x] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
   - "[ ] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[ ] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[ ] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
@@ -399,6 +399,29 @@ texts. Styles: EXACT against `styly.prirad_styly` over a fictional population.
 **Refusals:** `persona_joint_refused`; `persona_catalog_missing` when the version has no
 `PERSONA_SIGNAL_CATALOG` companion (the unit returned an empty block silently, `_catalog`,
 `persona_grounded.py:63-65`).
+
+### 3b. Landed: the profile's core
+
+`domain/persona_profile.py`: `profile_lines(row, topics, behaviour)` (the unit's `KEY: value`
+lines in its order, `pipeline.py:560-783`), `first_person` (`_first_person_persona`,
+`:450-501`, cut at 185 words), `household_facts` (`dispozice.popis_faktu`), `age_band`,
+`income_band`, `persona_text`; `PROFILE_VERSION` and `PERSONA_MODE`. A row is a mapping of
+column to the value `read_csv` holds (`audience._typed` over the column's `column_type`); the
+behavioural block (3d) arrives as lines, the topics (3c) as a list. Nothing calls it yet.
+
+Parity, in `tests/test_persona_profile.py` against `tests/fixtures/persona_profile/`
+(`tools/persona_capture.py`: the unit's own `generate_persona_text(row, temata=topics,
+persona_mode="calibrated")` with the catalog pointed away, on 86 fictional rows (6 with incomes on
+the band edges) and 13 topic sets, 99 cases; and its `_first_person_persona` on 6 line lists that
+reach its prefix rewrites, its drops and its word cap; re-captured byte-identical): every text
+EXACT, character for character. Mutating the cap, the clause floor, a band edge, a topic set, a
+partner branch or a label fails the suite.
+
+Two deliberate differences, each a guess the unit stamped on a missing cell (tested beside the
+fixture, which holds neither): a missing `pohlavi` is "neuvedeno", where `str(NaN)` made it
+"žena" (`pipeline.py:561-562`); a missing `is_student` is not a student, where `bool(NaN)` made an
+employed person "Současně: student/ka" (`:598`). Kept from the unit, because it states the gap
+rather than filling it: a missing age reads "ve věku neuvedeno".
 
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
