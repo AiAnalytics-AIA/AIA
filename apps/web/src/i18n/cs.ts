@@ -2180,6 +2180,8 @@ export const cs = {
   },
   session: {
     opening: "Otevírám AIA…",
+    verifying: "Ověřuji účet…",
+    awaitingGoogle: "Čeká na odpověď Google Workspace",
     notMember:
       "AIA je přístupná aktivním členům organizace. O přidání požádejte vlastníka nebo správce organizace.",
     loop: "Přihlášení se nepodařilo udržet. Zkuste to znovu, případně povolte cookies pro tento web.",

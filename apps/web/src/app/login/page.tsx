@@ -9,7 +9,8 @@
 // automatic sign-in would undo the sign-out the user just asked for.
 //
 // After a sign-in the person started here (lib/liftoff.ts), the session opening
-// plays the lift-off film where the mark is, and its end is the way in.
+// starts the handoff: the dot field forms the mark, the launch film takes over,
+// and its end is the way in (FrontDoor).
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -31,6 +32,7 @@ type View =
   | { kind: "working" }
   | { kind: "liftoff" }
   | { kind: "signed-out" }
+  | { kind: "authenticating" }
   | { kind: "denied"; message: string }
   | { kind: "loop" }
   | { kind: "error"; message: string };
@@ -53,6 +55,7 @@ function Login() {
   const [attempt, setAttempt] = useState(0);
   // Armed by the sign-in button, taken once per page (a ref survives React's
   // development double-run of effects); the film loads while the session opens.
+  // Armed, the form stays on screen as it was left, so the handoff fades it out.
   const armed = useRef<boolean | null>(null);
   const [liftoff, setLiftoff] = useState(false);
 
@@ -104,30 +107,37 @@ function Login() {
   }, [next, attempt]);
 
   const finishLiftoff = useCallback(() => enter(next), [next]);
-  // Only while the session is opening or open: a refusal or a fault puts the mark back.
-  const lifting = liftoff && (view.kind === "working" || view.kind === "liftoff");
+  const signIn = useCallback(() => {
+    armLiftoff();
+    setView({ kind: "authenticating" });
+    // Back here after Google, with the same destination.
+    login(`/login?next=${encodeURIComponent(next)}`).catch((e: unknown) => setView({ kind: "error", message: String(e) }));
+  }, [next]);
+  // Only while the session is opening or open: a refusal or a fault leaves the field idle.
+  const handingOff = liftoff && (view.kind === "working" || view.kind === "liftoff");
+  const form = view.kind === "signed-out" || view.kind === "authenticating" || handingOff;
 
   return (
-    <FrontDoor title={t("home.signInTitle")} liftoff={lifting ? { playing: view.kind === "liftoff", onDone: finishLiftoff } : undefined}>
-      {(view.kind === "working" || view.kind === "liftoff") && (
-        <p className="text-ink-muted" role="status">
+    <FrontDoor title={t("home.signInTitle")} handoff={handingOff ? { leaving: view.kind === "liftoff", onDone: finishLiftoff } : undefined}>
+      {!form && view.kind === "working" && (
+        <p className="m-0 text-ink-muted" role="status">
           {t("session.opening")}
         </p>
       )}
-      {view.kind === "signed-out" && (
+      {form && (
         <>
-          <p className="leading-relaxed text-ink-muted">{t("home.liveIntro")}</p>
+          <p className="m-0 text-ink-muted">{t("home.liveIntro")}</p>
           <Button
             variant="primary"
-            className="w-full justify-center"
-            // Back here after Google, with the same destination.
-            onClick={() => {
-              armLiftoff();
-              void login(`/login?next=${encodeURIComponent(next)}`);
-            }}
+            className="mt-3.5 h-[42px] w-full justify-center"
+            disabled={view.kind !== "signed-out"}
+            onClick={signIn}
           >
-            {t("home.signInGoogle")}
+            {view.kind === "signed-out" ? t("home.signInGoogle") : t("session.verifying")}
           </Button>
+          <p className="m-0 min-h-[22px] text-[13px] text-ink-faint" role="status">
+            {view.kind === "authenticating" ? t("session.awaitingGoogle") : view.kind === "signed-out" ? "" : t("session.opening")}
+          </p>
         </>
       )}
       {view.kind === "denied" && (
