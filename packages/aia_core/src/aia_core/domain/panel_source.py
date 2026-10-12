@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Final
 
 from .ai_respondent import PROMPT_SHA256, RespondentPlan
+from .fieldwork import PersonaSource
 from .panel_persona import PANEL_PERSONA_VERSION, PanelPersonas, panel_personas
 from .persona_profile import PERSONA_MODE, PROFILE_VERSION
 from .population.runtime import RuntimePopulation
@@ -44,7 +45,7 @@ __all__ = [
 
 #: The persona source a run pins when its respondents are drawn from its population
 #: (5a, decision 1); the other is ``fictional_roster``.
-PANEL_SOURCE: Final = "panel"
+PANEL_SOURCE: Final = PersonaSource.PANEL.value
 
 
 @dataclass(frozen=True, slots=True)

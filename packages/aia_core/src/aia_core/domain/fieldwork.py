@@ -13,8 +13,9 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -33,7 +34,9 @@ __all__ = [
     "FieldworkSource",
     "InvalidDataset",
     "OriginKind",
+    "PersonaSource",
     "origin_kind",
+    "persona_source_of",
     "validate_dataset",
 ]
 
@@ -86,6 +89,34 @@ CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.
 #: What every modelled number carries beside it (ADR 0024 §7). Never "respondents said",
 #: "measured" or "the survey found".
 MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
+
+
+class PersonaSource(StrEnum):
+    """Who the AI respondents of an ``ai_runtime`` run are, pinned on the run at start.
+
+    Never read from a switch at execution: a retry keeps the original's, so a run's respondents
+    are what it was created to have (plan ``panel-grounded-respondents`` 5a, decision 1).
+    """
+
+    #: Invented personas (``ai_respondent.fictional_roster``): ``SYNTHETIC_AI_FICTIONAL``.
+    FICTIONAL_ROSTER = "fictional_roster"
+    #: Respondents drawn from the run's recorded population (``panel_source``):
+    #: ``MODELLED_AI_PANEL``.
+    PANEL = "panel"
+
+
+def persona_source_of(metadata: Mapping[str, Any]) -> PersonaSource:
+    """The persona source a run pinned; a run started before the pin existed is the roster.
+
+    A value this code does not know is refused, never read as either source.
+    """
+    raw = metadata.get("persona_source")
+    if raw is None:
+        return PersonaSource.FICTIONAL_ROSTER
+    try:
+        return PersonaSource(raw)
+    except ValueError:
+        raise ValueError(f"unknown persona source {raw!r}") from None
 
 
 #: The fieldwork dataset artifact's metadata key holding the components of the respondent system

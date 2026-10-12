@@ -24,7 +24,7 @@ chunks:
   - "[x] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[x] 5a. Persona source contract (plan before code): pinned at start, the panel path, refusals, provenance, cost"
   - "[x] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
-  - "[ ] 5c. A run pins its persona source at start (AIA_AI_PANEL_PERSONAS_ENABLED, off by default); a retry keeps it"
+  - "[x] 5c. A run pins its persona source at start (AIA_AI_POPULATION_PERSONAS_ENABLED, off by default); a retry keeps it"
   - "[ ] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
   - "[ ] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
@@ -801,8 +801,12 @@ nothing: `draw_panel_sample` (2e), `panel_personas` and `PanelPersonas.plan` (3e
 1. **The source is pinned to the run at start, never read at execution.** `ResearchRuns.start`
    records `persona_source` in the run's metadata (`fictional_roster` | `panel`) beside the
    methods it pins (`application/research.py:315-384`): `panel` only when the API's
-   `AIA_AI_PANEL_PERSONAS_ENABLED` is on, the source is `ai_runtime` and the run recorded a
-   population binding; otherwise `fictional_roster`. A retry keeps the original's; a run
+   `AIA_AI_POPULATION_PERSONAS_ENABLED` is on and the source is `ai_runtime`; otherwise
+   `fictional_roster`. A panel run is its own identity (its idempotency key carries
+   `:personas:panel`, so a start never returns the revision's fictional run), and a panel start
+   with no population established is refused (`PanelPopulationMissing`, API 409
+   `population_not_established`) -- never started fictional instead (amended in 5c: the first
+   draft fell back to the roster). A retry keeps the original's; a run
    recorded before 5c has no key and reads as `fictional_roster`. Reading the switch at
    execution would let a retry of a fictional run come back modelled, under the same run.
 2. **The worker composes the panel path only behind the same switch**, off by default and in
@@ -856,13 +860,32 @@ companions): `test_a_panel_run_is_sampled_built_and_planned_in_that_order`,
 refused as unrepresentative: OI-99), `test_a_persona_refusal_surfaces_by_name`,
 `test_the_respondent_system_names_every_component_and_fingerprints`.
 
+**5c landed.** `domain/fieldwork.py`: `PersonaSource` (`fictional_roster` | `panel`) and
+`persona_source_of(metadata)` (no key: the roster; an unknown value refused).
+`application/research.py`: `ResearchRuns.start(persona_source=)` pins it in the run's metadata and
+the `run` step's input; a panel run's key carries `:personas:panel`; a panel start needs
+`ai_runtime` and an established population (`PanelPopulationMissing`); the population note's
+`read_by_fieldwork` is true exactly for a panel run. `retry` passes the original's pin. API:
+`AIA_AI_POPULATION_PERSONAS_ENABLED` (`Settings.ai_population_personas_enabled`, off by default) decides a
+new run's pin; `persona_source` on every run response; 409 `population_not_established`. The switch is named for the population, not "panel":
+`test_session_api.py::test_the_session_and_its_gate_need_nothing_of_18_6_6` refuses any API
+setting naming "panel", so the 18.6.6 panel gate cannot return (ADR 0018). The step
+templates keep `consumes_population: false`: whether fieldwork reads the population is the run's
+pin, enforced at start, not the template's.
+
+Tests: `test_a_run_pins_its_persona_source_and_a_run_before_the_pin_reads_as_the_roster`,
+`test_a_panel_run_is_its_own_run_reads_its_population_and_needs_one`,
+`test_a_retry_keeps_the_persona_source_its_original_pinned` (both sources),
+`test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population`,
+`test_a_run_stored_before_the_pin_reads_as_the_fictional_roster`.
+
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
 (`research_sociomapping.py:359`) and report read it as modelled, never synthetic
 fiction and never measured.
 
 **5. Executor.** `ai_fieldwork` takes a persona source per run: fictional roster or
-panel. Behind `AIA_AI_PANEL_PERSONAS_ENABLED`, off by default and in test. The
+panel. Behind `AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default and in test. The
 profile is longer than four facts: measure input tokens and cost per respondent and
 state them in the commit body. The run's provenance names the source, binding,
 roster or sample version and the persona mode.
