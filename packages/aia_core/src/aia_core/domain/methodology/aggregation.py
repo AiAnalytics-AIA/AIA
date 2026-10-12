@@ -17,10 +17,11 @@ Its estimators -- the weighted mean, the share, the top box, Kish n and the vari
 formula slots (G2b, :mod:`.aggregation_formulas`), each with the expression the aggregate
 computes bit for bit.
 
-Every aggregate is computed under it. A run does not pin it yet, and it is not editable; both
-come in G3. An aggregate computed under any changed value or replaced formula is no longer the
-unit's port and says so (G2c): its ``deviation`` names each change, and Results shows it above
-the numbers. A version that only renames computes the unit's numbers and claims nothing.
+A run pins the aggregation version in force when it starts, and a retry keeps it (G3a); with
+nothing stored that is ``aia-aggregate-1``. It is not editable yet (G3b). An aggregate
+computed under any changed value or replaced formula is no longer the unit's port and says so
+(G2c): its ``deviation`` names each change, and Results shows it above the numbers. A version
+that only renames computes the unit's numbers and claims nothing.
 
 The findings this module carries are named on their steps:
 
@@ -352,9 +353,9 @@ AGGREGATION: Final = MethodModule(
         "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné "
         "s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, "
         "OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily "
-        "intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy "
-        "přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není "
-        "přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, "
-        "co se změnilo."
+        "intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si "
+        "při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. "
+        "Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 "
+        "a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo."
     ),
 )

@@ -28,7 +28,9 @@ chunks:
   - "[x] G2a. Aggregation documented and declared: estimators, Kish, bootstrap reps/seeds/quantiles, top-2-box in AggregationSpec (aia-aggregate-1, the unit's literals bit for bit); D1, D5, D7 named on their steps"
   - "[x] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
   - "[x] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
-  - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
+  - "[x] G3a. Aggregation pinned: a run pins the aggregation version in force (spec + replaced formulas), a retry keeps it, the aggregate computes under it and its deviation label is reachable"
+  - "[ ] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
+  - "[ ] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
@@ -754,6 +756,34 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - **D7, tested.** `test_the_keyword_lists_decide_what_is_refused`: "Kolik byste zaplatili…"
       is refused, while "Jakou částku … považujete za přiměřenou?" passes as AMBER. The refusal
       is only as good as the lists.
+  - **G3 splits into G3a-G3c.** Support has been editable since G1d, so G3 is aggregation's.
+    It follows support's order: pin (G1c), then editing with its draft check (G1d). The
+    label's reach past Results is its own chunk.
+  - **G3a. Landed.**
+    - **The pin.** `ResearchRuns.start(…, aggregation=)` pins the organization's aggregation
+      version in force (`methodology_in_force_for_study(…, "aggregation")`). With nothing
+      stored, that is `UNIT_AGGREGATION_PIN`: `aia-aggregate-1`, no formula replaced.
+      - The pin is `{"spec", "formulas"}`, in the run's metadata (`aggregation`, with
+        `aggregation_methodology` naming a stored version) and the aggregate step's input.
+      - A retry keeps the original's pin (`_aggregation_of`). A run stored before the pin
+        retries as 18.6.6's port.
+      - A stored version, or a pin the caller chooses over the unit's, is part of the run's
+        identity, like the support rules.
+    - **Refused before any run.** A pin is read at start exactly as the aggregate will read it
+      (`pins.read_aggregation_pin`): a formula that does not compile, or a slot the aggregate
+      does not read, never reaches a run. `aggregation_pin_for` refuses a stored version
+      replacing a formula outside `COMPUTED_SLOTS`. `COMPUTED_SLOTS` is now
+      `ENGINE_SLOTS | AGGREGATE_SLOTS`, and the two sets are disjoint.
+    - **The step.** The aggregate step computes `aggregate_dataset(…, method=, slots=)` under
+      the pin. A pin that does not read fails as `aggregation_pin_invalid`. Only a pin other
+      than the unit's enters the artifact's reuse key, so every earlier aggregate is reused as
+      it was.
+    - **The label is reachable.** A run under an edited pin stores an aggregate whose
+      `deviation` names the changed value and the replaced formula
+      (`test_a_run_aggregates_under_the_aggregation_it_pinned_and_says_so`, through the real
+      worker).
+    - Tests: `test_aggregation_pin.py`; `test_methodology_run_pins.py`, four aggregation
+      tests; `test_methodology_engine_slots.py` restates the computed set for both modules.
   - **G2c. Landed.**
     - **When an aggregate departs.** `research_aggregate.aggregation_deviation(method, slots)`
       is `None` for 18.6.6's port. Otherwise it names every value of `aia-aggregate-1` the
@@ -771,7 +801,7 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
         always "Horní dva body".
       - A deviation the page cannot read is still shown as a deviation, with nothing named;
         it never passes as the port (`research-execution.ts`, `aggregateDeviation`).
-    - **Reachable from G3.** No run passes a method or slots yet, so no stored aggregate can
+    - **Reachable from G3 (now G3a).** No run passed a method or slots yet, so no stored aggregate can
       deviate until a run pins the aggregation version in force. Analysis and the report read
       the aggregate's numbers; carrying the label into them belongs with that pin.
     - Tests: `test_aggregate_deviation.py`; `research-execution.test.ts`

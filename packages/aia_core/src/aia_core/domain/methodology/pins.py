@@ -22,13 +22,19 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
+from ..research_aggregate import AGGREGATE_SLOTS, AIA_AGGREGATE_V1, AggregationSpec
 from ..research_sociomap import SociomapMethod, default_methods
-from ..sociomap.slots import ENGINE_SLOTS
+from ..sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
 from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
+from .aggregation_formulas import AGGREGATION_FORMULAS
+from .expressions import compile_formula
 
 __all__ = [
     "COMPUTED_SLOTS",
+    "UNIT_AGGREGATION_PIN",
     "FormulaNotComputed",
+    "aggregation_pin_for",
+    "read_aggregation_pin",
     "read_support_pin",
     "sociomap_methods_for",
     "support_spec_for",
@@ -36,9 +42,16 @@ __all__ = [
 ]
 
 #: The slots whose stored expression the engine evaluates in place of its own function:
-#: every slot the object map's engine reads. A version replacing any other slot is stored
-#: and shown, but not put in force.
-COMPUTED_SLOTS: Final[frozenset[str]] = ENGINE_SLOTS
+#: every slot the object map's engine reads, and every estimator the aggregate reads (plan
+#: G3a). A version replacing any other slot is stored and shown, but not put in force.
+COMPUTED_SLOTS: Final[frozenset[str]] = ENGINE_SLOTS | AGGREGATE_SLOTS
+
+#: A run's aggregation pin when nothing is stored: 18.6.6's values, no formula replaced.
+UNIT_AGGREGATION_PIN: Final[Mapping[str, Any]] = {
+    "spec": AIA_AGGREGATE_V1.model_dump(mode="json"),
+    "formulas": {},
+}
+_AGGREGATION_SLOTS: Final = {f.slot.id: f.slot for f in AGGREGATION_FORMULAS}
 
 
 class FormulaNotComputed(ValueError):
@@ -88,3 +101,35 @@ def read_support_pin(value: Any) -> SupportSpec:
     if value is None:
         return AIA_SUPPORT_V1
     return SupportSpec.model_validate(value)
+
+
+def aggregation_pin_for(payload: Mapping[str, Any] | None) -> dict[str, Any]:
+    """What a run started under ``payload`` pins for its aggregation (plan G3a): the whole
+    specification and the formulas the version replaces. ``None`` -- nothing stored -- is
+    ``aia-aggregate-1`` with none replaced, 18.6.6's port. A version replacing a formula the
+    aggregate does not read is refused (:class:`FormulaNotComputed`), never pinned."""
+    if payload is None:
+        return {"spec": dict(UNIT_AGGREGATION_PIN["spec"]), "formulas": {}}
+    missing = uncomputed_formulas(payload)
+    if missing:
+        raise FormulaNotComputed(missing)
+    spec = AggregationSpec.model_validate(payload["spec"])
+    return {"spec": spec.model_dump(mode="json"), "formulas": dict(payload.get("formulas") or {})}
+
+
+def read_aggregation_pin(value: Any) -> tuple[AggregationSpec, Slots]:
+    """A run's pinned aggregation from its stored form: the specification, and each replaced
+    formula compiled into the slot the aggregate reads. A run started before aggregation was
+    pinned (``None``) was computed as 18.6.6's port, so that is what it reads. A pin that does
+    not validate or compile raises ``ValueError``; nothing falls back to the code's formula."""
+    if value is None:
+        return AIA_AGGREGATE_V1, NO_SLOTS
+    if not isinstance(value, Mapping):
+        raise ValueError("an aggregation pin is a mapping of spec and formulas")
+    spec = AggregationSpec.model_validate(value.get("spec"))
+    formulas = value.get("formulas") or {}
+    unknown = sorted(set(formulas) - set(_AGGREGATION_SLOTS))
+    if unknown:
+        raise ValueError(f"the aggregate reads no formula {', '.join(unknown)}")
+    slots = {sid: compile_formula(_AGGREGATION_SLOTS[sid], text) for sid, text in formulas.items()}
+    return spec, slots

@@ -15,6 +15,8 @@ import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_sociomap import default_methods
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.models_v3 import SociomapArtifactV3, read_artifact
@@ -357,3 +359,81 @@ def test_a_retry_keeps_the_support_rules_its_run_pinned(world: Any) -> None:
         session.commit()
     run = _run(world, retried.run_id)
     assert run["metadata"]["support"] == strict.model_dump(mode="json")
+
+
+# ------------------------------------------------ G3a: the aggregation a run pins --
+
+
+def _start_aggregation(world: Any, aggregation: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            aggregation=aggregation,
+        )
+        session.commit()
+        return started.run_id
+
+
+def _wider_top_box() -> dict[str, Any]:
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    spec["methodology_version"] = "aia-aggregate-1+e1"
+    spec["top_box"] = 3
+    return {"spec": spec, "formulas": {"agg.mean": "max(x)"}}
+
+
+def test_with_nothing_stored_a_run_pins_the_units_aggregation_and_claims_no_deviation(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    run_id = _start(world)
+    run = _run(world, run_id)
+    assert run["metadata"]["aggregation"] == UNIT_AGGREGATION_PIN
+    assert "aggregation_methodology" not in run["metadata"]
+    _drain(worker)
+    assert "deviation" not in _aggregate(world, store, run_id)
+
+
+def test_a_run_aggregates_under_the_aggregation_it_pinned_and_says_so(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    today, edited = _start(world), _start_aggregation(world, _wider_top_box())
+    assert today != edited  # another aggregation is another run of the same revision
+    _drain(worker)
+    unit, ours = _aggregate(world, store, today), _aggregate(world, store, edited)
+    assert ours["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 3}]
+    assert ours["deviation"]["replaced_formulas"] == ["agg.mean"]
+    unit_objects = next(iter(unit["batteries"].values()))["objects"]
+    our_objects = next(iter(ours["batteries"].values()))["objects"]
+    for oid, cell in our_objects.items():
+        if cell["prumer"] is not None:
+            # max(x) as the mean: each object's mean is its largest answer
+            assert cell["prumer"] == round(max(float(k) for k in cell["rozlozeni"]), 2), oid
+            assert cell["prumer"] >= unit_objects[oid]["prumer"], oid
+
+
+def test_a_retry_keeps_the_aggregation_its_run_pinned(world: Any) -> None:
+    pin = _wider_top_box()
+    run_id = _start_aggregation(world, pin)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    assert _run(world, retried.run_id)["metadata"]["aggregation"] == pin
+
+
+def test_an_aggregation_pin_that_cannot_be_computed_is_refused_before_any_run(
+    world: Any,
+) -> None:
+    bad = _wider_top_box()
+    bad["formulas"] = {"agg.mean": "open('x')"}
+    with pytest.raises(ValueError):
+        _start_aggregation(world, bad)
+    unknown = _wider_top_box()
+    unknown["formulas"] = {"f6.distance": "1"}
+    with pytest.raises(ValueError, match=r"no formula f6\.distance"):
+        _start_aggregation(world, unknown)
