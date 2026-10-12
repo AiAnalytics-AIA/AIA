@@ -28,10 +28,10 @@ chunks:
   - "[x] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
   - "[x] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
   - "[x] 6a. Screens contract (plan before code): catalogue at import, the API's preview, readiness, the screen"
-  - "[ ] 6b. The audience catalogue: computed once per version (EXACT), kept insert-once, served by the API"
-  - "[ ] 6c. The feasibility preview: the API counts LIVE under the filters and asks the sampler; measured"
-  - "[ ] 6d. Readiness says whether the filters will be applied, by what a run started now would pin"
-  - "[ ] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
+  - "[x] 6b. The audience catalogue: computed once per version (EXACT), kept insert-once, served by the API"
+  - "[x] 6c. The feasibility preview: the API counts LIVE under the filters and asks the sampler; measured"
+  - "[x] 6d. Readiness says whether the filters will be applied, by what a run started now would pin"
+  - "[x] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
   - "[ ] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
 ---
@@ -1018,6 +1018,116 @@ its population. Readiness still says they are never used (`domain/research_desig
     `docs/migration/interface-screens.json` (a code-checked ledger, it changes with the code)
     records the audience screen's new state.
 
+**6b landed.** `domain/population/audience_catalogue.py`: `audience_catalogue(columns)` is the
+unit's `catalog` EXACT on the audience filter's fictional panel
+(`tools/audience_capture.py capture` now also writes `fixtures/audience_filter/catalogue.json`,
+the unit's own `catalog` on the same rows; `expected.json` re-captured byte-identical);
+quantiles are NumPy's linear `_lerp`, bit for bit; value ties keep first appearance (stable),
+which is `value_counts`' order wherever NumPy's quicksort is stable (16 distinct values or
+fewer) -- a declared difference beyond that, in the display order of equal counts only.
+`with_policy` / `catalogue_of(population)` add each factor's `AUDIENCE_FILTERING` answer;
+`for_the_screen` drops the research-only factors (their category and count stay).
+`PopulationRuntime.record_audience_catalogue` loads the version's ANALYSIS view and keeps the
+canonical JSON in `population_version_audience_catalogues` (migration `a2c4e6f8b0d3`,
+insert-once, keyed by version and catalogue version), re-hashed on read
+(`kept_audience_catalogue`). A version no population has been on cannot be loaded, so it has no
+catalogue until it is promoted (`VersionNotRuntimeEligible`). `population_ops record-catalogue
+[--version]` (no one; default: every population's current version), run by the develop deploy
+after `record-dictionary`, a refusal said and not failing the deploy. `GET
+/api/v1/population/audience-catalogue` (any member): CZ_LIVE's current version, its kept
+catalogue for the screen, and the 18 subpanels with their filters (`subpanel_filters`),
+18.6.6's counts and this version's `check_subpanel`; 404 `population_not_established` / 404
+`audience_catalogue_missing`; 409 `audience_catalogue_mismatch`.
+
+Tests: `test_population_audience_catalogue.py` (`test_the_catalogue_is_the_units_exactly`,
+`test_the_fixture_exercises_every_shape_a_factor_takes`,
+`test_a_population_catalogue_carries_each_factors_policy_answer`,
+`test_a_versions_catalogue_is_computed_once_and_kept`,
+`test_a_kept_catalogue_that_does_not_hash_is_refused`); `test_population_ops.py`
+(`test_record_catalogue_acts_as_no_one_and_keeps_each_populations_version_once`,
+`test_record_catalogue_of_an_unknown_version_writes_nothing`); `test_population_carry_over.py`
+(`test_the_deploy_keeps_each_populations_catalogue_after_its_dictionary`);
+`test_population_api.py` (`test_the_audience_catalogue_is_lives_kept_one_without_what_is_not_drawn`,
+`test_no_live_population_or_no_kept_catalogue_says_which`,
+`test_a_kept_catalogue_that_does_not_hash_is_a_conflict`).
+
+**6c landed.** `domain/population/audience_preview.py`: `audience_preview(population, filters,
+n)` asks `select_audience` (rows, distinct donors, the filters as applied) and, given `n`,
+`draw_panel_sample` with `PREVIEW_SEED` (stated in the answer: the run draws with its own seed,
+so where the verdict depends on the draw the run's may differ); every refusal by its reason,
+message and reasons; counts only. `application/audience_preview.py`: `AudiencePreviewer` loads
+`population_id`'s current version through `PopulationRuntime` (ANALYSIS view, every hash
+re-verified) once per process and version under a lock, and lets the old one go when LIVE
+moves. API: `AIA_POPULATION_ASSET_ROOT` (`Settings.population_asset_root`, empty by default:
+no previewer); `POST /api/v1/population/audience-preview` `{filters, n}` (any member): 503
+`audience_preview_unavailable` without a root, 404 `population_not_established`, 503
+`population_unavailable` when LIVE will not load. Develop: the API service mounts the
+population directory read-only and points the key at it
+(`AIA_API_POPULATION_ASSET_ROOT=` empty turns it off). The compose guard that only the worker
+sees the population is narrowed, not dropped, by the owner's choice:
+`test_population_carry_over.py::test_the_worker_alone_gets_the_operators_and_the_api_only_the_read_only_population`
+(the API gets the read-only directory and its root, never `AIA_POPULATION_OPERATORS`; web, Caddy
+and PostgreSQL nothing).
+
+Measured (nothing deployed; scratch scripts, not committed). The population's text
+columns for a fictional panel of v17's shape (18,766 rows x 400 columns, 9.1 MB gzip): parse
+3.6 s; ~97 MB held after parsing, 360 MB peak during it (tracemalloc); process max RSS 492 MB
+including building the fictional CSV in the same process. The real panel holds more distinct
+strings than this fixture, so the held figure is a floor; the real one is the develop API
+container's after its first preview. Preview latency over the 3,000-row fixture (median of 5,
+loaded): no filter, count only 1 ms; an age filter 6 ms; n = 200 17-18 ms; n = 1,000 35 ms --
+scaling with rows, about 6x that on v17's 18,766. The first preview after a deploy or a
+promotion pays the load (seconds); the rest only the count.
+
+Tests: `test_population_audience_preview.py` (`test_a_filter_and_an_n_the_sampler_can_draw`,
+`test_without_an_n_only_the_audience_is_counted`,
+`test_a_filter_the_run_would_refuse_is_said_with_every_reason`,
+`test_an_n_the_sampler_refuses_is_said_before_a_run_is_started`); `test_population_api.py`
+(`test_the_preview_counts_the_audience_and_asks_the_sampler`,
+`test_the_preview_loads_live_once_per_version`, `test_without_an_asset_root_there_is_no_preview`,
+`test_a_preview_over_no_live_population_is_404_and_needs_a_member`,
+`test_a_population_that_will_not_load_is_unavailable_not_an_error`) over a fictional LIVE in
+the API's database (`apps/api/tests/population_world.py`).
+
+**6d landed.** `assess_readiness(spec, pair_n_min=, filters_applied=False)` (and `prepare`):
+with `filters_applied`, a population audience's filters PASS ("Filtry se uplatní při výběru
+respondentů z populace."); an own audience or special dataset stays WARN and says the run draws
+from the population instead (under the stored filters, if any); without it, today's WARN.
+`READINESS_RULES` is unchanged: a roster run's checks are the same, and its preflight
+artifact's key is too (`filters_applied` enters the key only when true). The API's readiness
+asks with the pin a start would make now (`_persona_source`); `ResearchRuns.start` pins
+`persona_source` in the `preflight` step's input too, which the worker's preflight reads (a run
+stored before reads as the roster; an unknown value fails the step, `persona_source_unknown`).
+
+Tests: `test_research_design.py::test_the_audience_check_says_whether_the_run_will_apply_the_filters`,
+`test_research_api.py::test_readiness_says_the_filters_apply_only_where_a_new_run_would_draw_from_the_population`,
+`test_ai_fieldwork.py::test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them`
+(the real worker: the stored readiness PASSes and the sample's recorded filters are the design's).
+
+**6e landed.** `lib/api.ts`: `population.audienceCatalogue()` / `audiencePreview(filters, n)`
+and their types. `research/audience.ts`: `liveCatalog` (a factor keeps its policy answer),
+`factorRefusal` (research-only, or the policy's reason), `liveSubpanels` (18.6.6's counts kept
+as 18.6.6's), `setRange` (an empty bound is left out, so the population's own bound stands --
+OI-50 does not carry over; the classic `setAudienceRange` stays as the parity port), `liveVerdict`
+(the preview in Czech, each refusal reason in words, the unit's own reasons appended).
+`AudienceStep.tsx`: the step reads the catalogue once; with it, the "filters" strategy and Special
+Audience lose their "V AIA zatím není" tag, the factor editor offers categories, search, a range
+per numeric factor and values with counts per other factor (a refused factor listed and
+disabled, its reason said), the chips say "Vybrané filtry", and "Ověřit proveditelnost" asks the
+preview (the seed it drew with said); Special Audience offers the 18 built-in subpanels (an
+unusable one disabled with its reason; unknown while the dictionary is not kept), and special
+panels and own audience still say they are not in AIA. Without a catalogue -- no population
+(`population_not_established`), none kept, or a failure -- the step is as before, with the
+reason first. Results already say "modelováno" on every surface for a modelled run (4d,
+`ExecutionSteps.test.tsx` › *says a modelled run is modelled on its banner and its steps*), so
+no new screen test was needed for it. `docs/migration/interface-screens.json`: the audience
+screen's notes.
+
+Tests: `research/audience.live.test.ts` (catalogue, subpanels, the range without OI-50, the
+preview in words); `AudienceStep.test.tsx` › *from AIA's population* (filters chosen and saved,
+an empty bound left out, a refused factor disabled; the preview counted and its body; the
+preview unavailable; a subpanel chosen as its filter and the step ready, a refused one disabled).
+
 Out of scope: own audience upload and special panels (no audience store in AIA), the AI's
 proposal of filters (the native job proposes a description only, `research_agents.py`),
 materialized dimensions in the catalogue (P4), any client-facing claim (chunk 7).
@@ -1157,3 +1267,31 @@ respondents, compared. No client-facing claim until the holdout result is record
   a companion.
 - `.planning/open-items.md`: the two 2e findings above (the overfilled cell, fixed here; the
   small-n refusal, open for the owner).
+- (6b) `CLAUDE.md` § 2 map: under `domain/population/`, `audience_catalogue.py`, "the audience
+  factor catalogue: 18.6.6's `catalog` (EXACT, `catalogue.json`), each factor's
+  AUDIENCE_FILTERING answer (`catalogue_of`), research-only factors not sent (`for_the_screen`)";
+  under `application/`, `audience_catalogue.py`, "LIVE's kept catalogue and the 18 subpanels as
+  filters; reads no row"; `routers/population`: "GET /population/audience-catalogue: LIVE's kept
+  catalogue and the subpanels as filters, any member"; `population_ops`: "record-catalogue (acts
+  as no one; run by the develop deploy) keeps each population's current version's catalogue";
+  `population_repository.py`: "each version's audience catalogue
+  (population_version_audience_catalogues), insert-once"; `tools/audience_capture.py`: "also the
+  unit's own `catalog` (`catalogue.json`)".
+- (6b) `deploy/develop/README.md` § The population: each deploy runs `bin/population.sh
+  record-catalogue` after `record-dictionary`; a version no population has been on has no
+  catalogue until it is promoted (the next deploy records it).
+- (6c) `CLAUDE.md` § 2 map: under `domain/population/`, `audience_preview.py`, "the audience
+  step's preview: select_audience's counts and draw_panel_sample's verdict at PREVIEW_SEED;
+  counts only"; under `application/`, `audience_preview.py`, "AudiencePreviewer: LIVE loaded
+  once per process and version, through PopulationRuntime"; `routers/population`: "POST
+  /population/audience-preview (any member; 503 without AIA_POPULATION_ASSET_ROOT)"; `config.py`
+  / § The develop site: the API reads `AIA_POPULATION_ASSET_ROOT` for the preview only.
+- (6c) `deploy/develop/README.md` § The population: the API service mounts the population
+  read-only for the preview; `AIA_API_POPULATION_ASSET_ROOT=` (empty) turns it off; the first
+  preview after a deploy or a promotion loads LIVE (seconds, memory as measured in 6c).
+- (6e) `CLAUDE.md` § 2 map, `src/components/rehome/`: "the audience step's factor editor, preview
+  and built-in subpanels from AIA's population (GET /population/audience-catalogue, POST
+  /population/audience-preview); special panels and own audience say V AIA zatím není";
+  `.planning/open-items.md` OI-50: AIA's live editor leaves an empty bound out
+  (`research/audience.ts` `setRange`, `audience.live.test.ts`); the classic port keeps the
+  classic's 0 for parity only.
