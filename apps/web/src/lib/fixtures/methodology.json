@@ -1220,8 +1220,8 @@
       "formulas": [],
       "id": "styles",
       "implements": "aia_core.domain.respondent_behavior:assign_styles",
-      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící údaj nepřispívá ničím.",
-      "source_sha256": "90ce38208464d13bdf304e391233c4d13e1714dfbe318b19586844ddad15dfc8",
+      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící vzdělání nebo věk nepřispívá ničím; chybějící pohlaví se počítá jako ne-muž (-1), stejně jako v 18.6.6 (styly.py).",
+      "source_sha256": "0ee31228933919923cbead02ee072b3fa59b0456cd930ef4565e092be9280ed7",
       "symbols": [
        {
         "latex": "z_{\\mathrm{vzd}},\\ z_{\\text{věk}}",
@@ -1420,7 +1420,7 @@
       "formulas": [],
       "id": "noise",
       "implements": "aia_core.domain.respondent_behavior:_stable_noise",
-      "note_cs": "Šum závisí jen na respondentovi: stejný respondent má vždy stejný styl.",
+      "note_cs": "Šum závisí jen na respondentovi. Styl jako celek ne: z-skóre vzdělání a věku, rozptyl signálu i závěrečná standardizace se počítají přes celý soubor, takže tentýž respondent má v jiném souboru jiný styl.",
       "source_sha256": "4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
       "symbols": [
        {
@@ -1430,7 +1430,8 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster"
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster",
+       "packages/aia_core/tests/test_methodology_response.py::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster"
       ],
       "title_cs": "Stabilní šum",
       "values": []
@@ -1475,7 +1476,7 @@
       "evidence": [
        {
         "kind": "aia_decision",
-        "note_cs": "Fiktivní soubor má max(3, ⌊n/3⌋) dárců; s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců.",
+        "note_cs": "Fiktivní soubor losuje dárce s opakováním z fondu max(3, ⌊n/3⌋) identifikátorů, takže skutečných dárců je méně. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou.",
         "ref": "plan methodology-tab, nález D6"
        }
       ],
@@ -1483,12 +1484,12 @@
       "formulas": [],
       "id": "roster",
       "implements": "aia_core.domain.ai_respondent:fictional_roster",
-      "note_cs": "Nález D6: s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců. Fiktivní soubor nese AI běh, dokud zdroj panelu nedojde do sběru.",
+      "note_cs": "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu.",
       "source_sha256": "6b9afbd58fb01abcb0c405d231e6434b5a033055298f6283391acbdec27d17df",
       "symbols": [
        {
         "latex": "D",
-        "meaning_cs": "počet fiktivních dárců",
+        "meaning_cs": "fond identifikátorů dárců; dárci se z něj losují s opakováním",
         "unit": ""
        },
        {
@@ -1499,7 +1500,7 @@
       ],
       "tests": [
        "packages/aia_core/tests/test_ai_respondent.py::test_the_roster_is_fictional_deterministic_and_carries_its_lineage",
-       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors"
+       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support"
       ],
       "title_cs": "Fiktivní soubor: dárci a váhy",
       "values": []

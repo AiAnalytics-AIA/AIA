@@ -14,9 +14,10 @@ Not ported, and said so on its step: 18.6.6's dispersion temperature
 (``dispersion_calibration``), which AIA has no calibration for; the temperature is 1, the
 identity. The model is asked at temperature 0.
 
-Finding D6 is named on its step: a fictional roster has ``max(3, n // 3)`` donors, so under
+Finding D6 is named on its step: a fictional roster draws its donors, with replacement, from a
+pool of ``max(3, n // 3)`` ids, so it has fewer distinct donors than that; under
 ``aia-support-1``'s 25 donors a run of fewer than 75 fictional respondents suppresses every
-donor-layer value (``test_methodology_response.py``).
+donor-layer value, and most runs below about 90 do (``test_methodology_response.py``).
 
 Pure: stdlib and Pydantic only.
 """
@@ -83,8 +84,10 @@ _OI62: Final = Evidence(
 _D6: Final = Evidence(
     EvidenceKind.AIA_DECISION,
     "plan methodology-tab, nález D6",
-    "Fiktivní soubor má max(3, ⌊n/3⌋) dárců; s pravidlem aia-support-1 (25 dárců) běh "
-    "s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců.",
+    "Fiktivní soubor losuje dárce s opakováním z fondu max(3, ⌊n/3⌋) identifikátorů, takže "
+    "skutečných dárců je méně. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 "
+    "fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 "
+    "respondentů většinou.",
 )
 
 _STYLE_CS: Final = {
@@ -285,7 +288,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\varepsilon,\quad \text{styl} = z(x)"
         ),
         implements=f"{_B}:assign_styles",
-        source_sha256="90ce38208464d13bdf304e391233c4d13e1714dfbe318b19586844ddad15dfc8",
+        source_sha256="0ee31228933919923cbead02ee072b3fa59b0456cd930ef4565e092be9280ed7",
         symbols=(
             Symbol(r"z_{\mathrm{vzd}},\ z_{\text{věk}}", "z-skóre vzdělání a věku v souboru"),
             Symbol("m", "pohlaví: muž 1, jinak -1"),
@@ -305,7 +308,8 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         tests=(_STYLES,),
         note_cs=(
             "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu "
-            "stylu je individuální. Chybějící údaj nepřispívá ničím."
+            "stylu je individuální. Chybějící vzdělání nebo věk nepřispívá ničím; chybějící "
+            "pohlaví se počítá jako ne-muž (-1), stejně jako v 18.6.6 (styly.py)."
         ),
     ),
     MethodStep(
@@ -319,8 +323,15 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
         symbols=(Symbol("H_{12}", "prvních 12 šestnáctkových číslic SHA-256"),),
         evidence=(_STYLY,),
-        tests=(f"{_TB}::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster",),
-        note_cs="Šum závisí jen na respondentovi: stejný respondent má vždy stejný styl.",
+        tests=(
+            f"{_TB}::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster",
+            f"{_TR}::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster",
+        ),
+        note_cs=(
+            "Šum závisí jen na respondentovi. Styl jako celek ne: z-skóre vzdělání a věku, "
+            "rozptyl signálu i závěrečná standardizace se počítají přes celý soubor, takže "
+            "tentýž respondent má v jiném souboru jiný styl."
+        ),
     ),
     MethodStep(
         id="describe",
@@ -341,16 +352,21 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         formula_latex=r"D = \max\!\left(3,\ \left\lfloor n/3 \right\rfloor\right),\quad w_i = 1",
         implements=f"{_R}:fictional_roster",
         source_sha256="6b9afbd58fb01abcb0c405d231e6434b5a033055298f6283391acbdec27d17df",
-        symbols=(Symbol("D", "počet fiktivních dárců"), Symbol("n", "počet respondentů")),
+        symbols=(
+            Symbol("D", "fond identifikátorů dárců; dárci se z něj losují s opakováním"),
+            Symbol("n", "počet respondentů"),
+        ),
         evidence=(_D6,),
         tests=(
             f"{_TA}::test_the_roster_is_fictional_deterministic_and_carries_its_lineage",
-            f"{_TR}::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors",
+            f"{_TR}::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support",
         ),
         note_cs=(
-            "Nález D6: s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními "
-            "respondenty potlačí každou hodnotu vrstvy dárců. Fiktivní soubor nese AI běh, "
-            "dokud zdroj panelu nedojde do sběru."
+            "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže "
+            "skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina "
+            "souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními "
+            "respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů "
+            "většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu."
         ),
     ),
 )

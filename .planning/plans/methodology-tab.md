@@ -1016,11 +1016,18 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     the mechanisms (the soft reweighting, then social desirability, acquiescence, extremity,
     "don't know", satisficing); the draw by code; the styles (the links, the stable noise,
     the threshold that puts a style into words); the fictional roster.
-  - **Finding D6, reproduced.** A fictional roster has `max(3, n // 3)` donors
-    (`ai_respondent.py:278 @ 8e70d7d2`), so under `aia-support-1`'s 25 donors a run
-    below 75 fictional respondents suppresses every donor-layer value
-    (`test_methodology_response.py::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors`).
-    The fictional roster carries every AI run until the panel source reaches fieldwork.
+  - **Finding D6, reproduced.** A fictional roster draws its donors with replacement from a
+    pool of `max(3, n // 3)` ids (`ai_respondent.py:278 @ 8e70d7d2`), so it has fewer
+    distinct donors than the pool. Under `aia-support-1`'s 25 donors every run below 75
+    fictional respondents suppresses every donor-layer value; at 75 only about a quarter of
+    rosters reach 25 donors, from 90 every one tried does
+    (`test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+    The fictional roster carries every AI run that does not take its respondents from the panel.
+  - **Corrected in review (#342):** the pool is not the donor count; only a respondent's hash
+    noise is their own, the style depends on the roster
+    (`::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster`); a
+    missing sex where the column exists counts as not male, as in 18.6.6
+    (`::test_a_missing_sex_counts_as_not_male_as_in_the_unit`). The notes said otherwise.
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
