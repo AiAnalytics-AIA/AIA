@@ -509,10 +509,88 @@ const query = (q: Record<string, string | undefined>) => {
   return s ? `?${s}` : "";
 };
 
+// GET /api/v1/population/audience-catalogue (panel-grounded-respondents 6b): what a study's
+// audience may be filtered by -- LIVE's kept factor catalogue (the research-only factors not
+// sent) and the 18 built-in subpanels as filters. Counts are rows, unweighted, as 18.6.6 counted.
+export type AudienceCatalogueFactor = {
+  id: string;
+  column: string;
+  label: string;
+  category: string;
+  category_label: string;
+  kind: "numeric" | "binary" | "category";
+  status: string;
+  filterable: boolean;
+  sensitive: boolean;
+  source: string;
+  non_null: number;
+  min?: number | null;
+  max?: number | null;
+  p10?: number | null;
+  p90?: number | null;
+  scale_hint?: string | null;
+  values?: { value: string; count: number }[] | null;
+  /** The version's field policy for audience filtering; a refused factor is not a filter. */
+  policy_allowed: boolean;
+  policy_reason: string;
+};
+export type AudienceCatalogueSubpanel = {
+  key: string;
+  name: string;
+  description: string;
+  filters: Record<string, unknown>;
+  status: string;
+  support_tier: string;
+  measured_by_18_6_6: { rows: number; weighted_population: number; unique_core_donors: number; effective_core_donors: number; max_core_reuse: number };
+  /** null while the version's dictionary is not kept: unknown, never usable. */
+  usable: boolean | null;
+  reason: string | null;
+};
+export type AudienceCatalogue = {
+  version_id: string;
+  version_label: string;
+  catalogue_version: string;
+  categories: { id: string; label: string; description: string; count: number; filterable_count: number }[];
+  factors: AudienceCatalogueFactor[];
+  filterable_count: number;
+  factor_count: number;
+  logic: string;
+  subpanels: AudienceCatalogueSubpanel[];
+  subpanels_measured_on: string;
+  subpanel_note: string;
+};
+
+// POST /api/v1/population/audience-preview (6c): counted by the API over LIVE through the
+// run's own functions; counts and the sampler's verdict, never a row.
+export type AudiencePreviewVerdict = {
+  ok: boolean;
+  reason?: string | null;
+  message?: string | null;
+  reasons?: string[] | null;
+  status?: string | null;
+  sample_donors?: number | null;
+  effective_n?: number | null;
+};
+export type AudiencePreview = {
+  version_id: string;
+  version_label: string;
+  population_rows: number;
+  selected_rows: number | null;
+  selected_donors: number | null;
+  filters_applied: Record<string, unknown> | null;
+  audience: AudiencePreviewVerdict;
+  n: number | null;
+  sample: AudiencePreviewVerdict | null;
+  seed: number;
+};
+
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
   characteristics: (versionId: string) =>
     request<PopulationCharacteristics>("GET", `/api/v1/population/versions/${enc(versionId)}/characteristics`),
+  audienceCatalogue: () => request<AudienceCatalogue>("GET", "/api/v1/population/audience-catalogue"),
+  audiencePreview: (filters: Record<string, unknown>, n: number | null) =>
+    request<AudiencePreview>("POST", "/api/v1/population/audience-preview", { filters, n }),
 };
 
 export const workspace = {

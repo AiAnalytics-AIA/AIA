@@ -1,0 +1,92 @@
+// The live audience functions (panel-grounded-respondents 6e): AIA's catalogue, subpanels and
+// preview as the step reads them, and the range filter that no longer stores OI-50's 0.
+import { describe, expect, it } from "vitest";
+
+import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
+
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange } from "./audience";
+import type { ResearchProject } from "./model";
+
+const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
+
+export const CATALOGUE: AudienceCatalogue = {
+  version_id: "DSV-1",
+  version_label: "v17_4_0",
+  catalogue_version: "aia-audience-catalogue-1",
+  categories: [
+    { id: "demography", label: "Demografie a životní fáze", description: "", count: 3, filterable_count: 3 },
+    { id: "research_only", label: "Research-only / citlivé", description: "", count: 2, filterable_count: 0 },
+  ],
+  factors: [
+    { id: "vek", column: "vek", label: "Věk", category: "demography", category_label: "Demografie a životní fáze", kind: "numeric", status: "PANEL_EXISTING", filterable: true, sensitive: false, source: "Panel v17", non_null: 100, min: 18, max: 89, p10: 22, p90: 80, policy_allowed: true, policy_reason: "allowed" },
+    { id: "kraj", column: "kraj", label: "Kraj", category: "demography", category_label: "Demografie a životní fáze", kind: "category", status: "PANEL_EXISTING", filterable: true, sensitive: false, source: "Panel v17", non_null: 100, values: [{ value: "Hlavní město Praha", count: 60 }, { value: "Zlínský kraj", count: 40 }], policy_allowed: true, policy_reason: "allowed" },
+    { id: "life_stage_derived", column: "life_stage_derived", label: "Životní fáze", category: "demography", category_label: "Demografie a životní fáze", kind: "category", status: "DERIVED_EXISTING_SIGNALS", filterable: true, sensitive: false, source: "Deterministický overlay", non_null: 100, values: [{ value: "Rodič", count: 30 }], policy_allowed: false, policy_reason: "unclassified_derived_field" },
+  ],
+  filterable_count: 3,
+  factor_count: 5,
+  logic: "OR uvnitř jedné dimenze, AND mezi dimenzemi",
+  subpanels: [
+    { key: "young_18_29", name: "Mladí 18–29", description: "Vestavěný pohled: Mladí 18–29.", filters: { vek: [18, 29] }, status: "ready", support_tier: "ROBUST", measured_by_18_6_6: { rows: 2785, weighted_population: 1.2, unique_core_donors: 900, effective_core_donors: 687.4, max_core_reuse: 8 }, usable: true, reason: null },
+    { key: "students", name: "Studenti", description: "Studenti.", filters: { is_student: 1 }, status: "ready", support_tier: "GOOD", measured_by_18_6_6: { rows: 869, weighted_population: 0.4, unique_core_donors: 300, effective_core_donors: 240.1, max_core_reuse: 5 }, usable: false, reason: "audit_only" },
+  ],
+  subpanels_measured_on: "17.1.2",
+  subpanel_note: "",
+};
+
+describe("AIA's catalogue", () => {
+  it("is the factor editor's catalogue, a policy-refused factor listed and said", () => {
+    const cat = liveCatalog(CATALOGUE);
+    const { shown, total } = filterableFactors(cat, "demography", "");
+    expect(total).toBe(3);
+    expect(shown.map((f) => f.id)).toEqual(["vek", "kraj", "life_stage_derived"]);
+    expect(factorRefusal(shown[0]!)).toBeNull();
+    expect(factorRefusal(shown[2]!)).toContain("unclassified_derived_field");
+    expect(shown[1]!.values).toEqual([{ value: "Hlavní město Praha", count: 60 }, { value: "Zlínský kraj", count: 40 }]);
+  });
+
+  it("gives a subpanel its filter and 18.6.6's counts, and choosing one sets exactly that filter", () => {
+    const sub = liveSubpanels(CATALOGUE);
+    const next = applyPopulationSubpanel(project({ filters: { kraj: ["Zlínský kraj"] } }), "young_18_29", sub);
+    expect(next.audience).toMatchObject({ builtin_subpanel: "young_18_29", source_mode: "population", strategy: "filters", filters: { vek: [18, 29] } });
+    expect((next.audience as Record<string, unknown>).support_summary).toMatchObject({ rows: 2785, unique_core_donors: 900 });
+  });
+});
+
+describe("the range filter (OI-50 does not carry over)", () => {
+  it("leaves an empty bound out, where the classic stored 0", () => {
+    expect(setRange(project(), "vek", "25", "").project.audience.filters).toEqual({ vek: { min: 25 } });
+    expect(setRange(project(), "vek", "", "40").project.audience.filters).toEqual({ vek: { max: 40 } });
+    expect(setRange(project({ filters: { vek: { min: 1 } } }), "vek", " ", "").project.audience.filters).toEqual({});
+    // The classic's, kept for parity: an empty bound becomes 0.
+    expect(setAudienceRange(project(), "vek", "25", "").project.audience.filters).toEqual({ vek: { min: 25, max: 0 } });
+  });
+});
+
+const PREVIEW: AudiencePreview = {
+  version_id: "DSV-1",
+  version_label: "v17_4_0",
+  population_rows: 18766,
+  selected_rows: 5120,
+  selected_donors: 1400,
+  filters_applied: { vek: { min: 30, max: 59 } },
+  audience: { ok: true },
+  n: 500,
+  sample: { ok: true, status: "PASS", sample_donors: 380, effective_n: 470.2 },
+  seed: 20261012,
+};
+
+describe("the preview in words", () => {
+  it("says what the filters select and whether n can be drawn", () => {
+    expect(liveVerdict(PREVIEW)).toEqual({ ok: true, lines: ["Filtry vyberou 5 120 z 18 766 lidí populace v17_4_0 (1 400 různých dárců).", "Vzorek N=500 z tohoto publika lze vybrat."] });
+    expect(liveVerdict({ ...PREVIEW, sample: { ok: true, status: "PASS_WEIGHTED" } }).lines[1]).toContain("až po kalibraci");
+  });
+
+  it("says each refusal in Czech, with the unit's own reasons", () => {
+    const small = liveVerdict({ ...PREVIEW, n: 8, sample: { ok: false, reason: "sampling_unrepresentative", message: "a sample of 8 ..." } });
+    expect(small.ok).toBe(false);
+    expect(small.lines[1]).toMatch(/nebyl reprezentativní/);
+    const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
+    expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
+    expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  });
+});

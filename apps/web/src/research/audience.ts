@@ -9,11 +9,14 @@
 // characterised, not fixed: OI-50 (an empty range bound is 0) and OI-51 (a
 // special preset keeps the previous subpanel and filters).
 //
-// Since ADR 0018 the product draws only what needs no 18.6.6: the factor
-// catalogue, the preview and preflight, the special subpanels and the customer
-// audience upload were the unit's, and the audience step says they are not in
-// AIA. Their ports stay here, pure and parity-tested, for when AIA has an
-// imported population to compute them from.
+// Since ADR 0018 the product draws only what needs no 18.6.6. Since
+// panel-grounded-respondents 6e the factor catalogue, the preview and the
+// built-in subpanels are AIA's again, computed from its own population (the
+// "live" functions at the end of this file read the API's answers); the special
+// panels and the customer audience upload were the unit's audience store, and the
+// step still says they are not in AIA.
+
+import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -118,7 +121,7 @@ export const SPECIAL_AUDIENCE_PRESETS: readonly Preset[] = [
   { key: "health_buyers", name: "Zdravotnický materiál · ekosystém", kind: "special", source: "healthcare_material_ecosystem", note: "Strukturální ekosystém; pro ostré buyer claimy doporučena klientská measured audience." },
 ];
 
-type Subpanel = { key: string; name?: string; description?: string; filter?: Obj; status?: string; support_tier?: string; rows?: Json; weighted_population?: Json; unique_core_donors?: Json; effective_core_donors?: Json; max_core_reuse?: Json };
+export type Subpanel = { key: string; name?: string; description?: string; filter?: Obj; status?: string; support_tier?: string; rows?: Json; weighted_population?: Json; unique_core_donors?: Json; effective_core_donors?: Json; max_core_reuse?: Json };
 type SpecialPanel = { key: string; name?: string; support?: string };
 export type Catalogues = { population_subpanels?: Subpanel[]; special_panels?: SpecialPanel[] };
 
@@ -246,6 +249,9 @@ export type Factor = {
   min?: number;
   max?: number;
   values?: { value: string; count?: number }[];
+  /** AIA's catalogue only: the version's field policy for audience filtering. */
+  policy_allowed?: boolean;
+  policy_reason?: string;
 };
 export type Catalog = {
   categories?: { id: string; label?: string; filterable_count?: number; count?: number }[];
@@ -442,4 +448,103 @@ export function applyProposal(p: ResearchProject, text: string, r: { filtry?: Ob
     preview: r.feasibility || null,
     uncovered: !!r.nepokryto,
   };
+}
+
+// ---- live: AIA's own catalogue, subpanels and preview (panel-grounded-respondents 6e) ----
+
+/** Why a factor is not offered as a filter, in words; null when it is. */
+export function factorRefusal(f: Factor): string | null {
+  if (!f.filterable) return "Research-only signál, ne filtr cílové skupiny.";
+  if (f.policy_allowed === false) return `Politika pole tento faktor k filtrování nepovoluje (${f.policy_reason || "neznámý důvod"}).`;
+  return null;
+}
+
+/** The API's catalogue as the factor editor reads it; a factor keeps its policy answer. */
+export function liveCatalog(api: AudienceCatalogue): Catalog {
+  return {
+    categories: api.categories.map((c) => ({ id: c.id, label: c.label, count: c.count, filterable_count: c.filterable_count })),
+    factors: api.factors.map((f) => ({
+      id: f.id,
+      label: f.label,
+      category: f.category,
+      category_label: f.category_label,
+      kind: f.kind,
+      status: f.status,
+      source: f.source,
+      filterable: f.filterable,
+      min: f.min ?? undefined,
+      max: f.max ?? undefined,
+      values: f.values ?? undefined,
+      policy_allowed: f.policy_allowed,
+      policy_reason: f.policy_reason,
+    })),
+    filterable_count: api.filterable_count,
+  };
+}
+
+/** The API's subpanels as applyPopulationSubpanel reads them: 18.6.6's counts, as 18.6.6's. */
+export function liveSubpanels(api: AudienceCatalogue): Catalogues {
+  return {
+    population_subpanels: api.subpanels.map((s) => ({
+      key: s.key,
+      name: s.name,
+      description: s.description,
+      filter: s.filters as Obj,
+      status: s.status,
+      support_tier: s.support_tier,
+      rows: s.measured_by_18_6_6.rows,
+      weighted_population: s.measured_by_18_6_6.weighted_population,
+      unique_core_donors: s.measured_by_18_6_6.unique_core_donors,
+      effective_core_donors: s.measured_by_18_6_6.effective_core_donors,
+      max_core_reuse: s.measured_by_18_6_6.max_core_reuse,
+    })),
+    special_panels: [],
+  };
+}
+
+/**
+ * AIA's range filter (OI-50 does not carry over). The classic stored an empty bound as 0
+ * (setAudienceRange, kept above as the classic's); a filter that now decides who is sampled
+ * leaves an empty bound out, and the population's own minimum or maximum stands for it.
+ */
+export function setRange(p: ResearchProject, id: string, rawMin: string, rawMax: string): Change {
+  const bound = (raw: string) => (raw.trim() === "" ? null : Number(raw));
+  const lo = bound(rawMin);
+  const hi = bound(rawMax);
+  const f = filters(p);
+  const range: Obj = {};
+  if (lo !== null && Number.isFinite(lo)) range.min = lo;
+  if (hi !== null && Number.isFinite(hi)) range.max = hi;
+  if (Object.keys(range).length) f[id] = range;
+  else delete f[id];
+  return { project: withAudience(p, { ...aud(p), filters: f }), reason: "aud_range", invalidateCheck: true };
+}
+
+const PREVIEW_REASONS: Record<string, string> = {
+  sampling_filter_invalid: "Některý filtr nelze použít",
+  sampling_field_refused: "Politika pole nepovoluje filtrovat podle",
+  sampling_empty: "Filtry nevyberou žádného člověka z populace.",
+  sampling_n_exceeds_support: "Publikum má méně různých lidí, než kolik respondentů studie chce; vzorek se vybírá bez opakování.",
+  sampling_unrepresentative: "Vzorek této velikosti by z tohoto publika nebyl reprezentativní ani po kalibraci; zvětšete N nebo rozšiřte publikum.",
+  sampling_n_invalid: "Studie nemá platné N.",
+};
+
+function verdictWords(v: { reason?: string | null; reasons?: string[] | null }): string {
+  const base = PREVIEW_REASONS[v.reason || ""] || `Výběr odmítnut (${v.reason || "neznámý důvod"}).`;
+  return v.reasons?.length ? `${base}: ${v.reasons.join("; ")}.` : base;
+}
+
+const cs = (n: number) => n.toLocaleString("cs-CZ");
+
+/** The preview's answer in words: what the filters select, and whether a run could draw n. */
+export function liveVerdict(r: AudiencePreview): { ok: boolean; lines: string[] } {
+  if (!r.audience.ok) return { ok: false, lines: [verdictWords(r.audience)] };
+  const lines = [
+    `Filtry vyberou ${cs(r.selected_rows ?? 0)} z ${cs(r.population_rows)} lidí populace ${r.version_label}` +
+      (r.selected_donors != null ? ` (${cs(r.selected_donors)} různých dárců).` : "."),
+  ];
+  if (!r.sample) return { ok: true, lines };
+  if (!r.sample.ok) return { ok: false, lines: [...lines, verdictWords(r.sample)] };
+  const weighted = r.sample.status === "PASS_WEIGHTED" ? " Reprezentativní až po kalibraci vah." : "";
+  return { ok: true, lines: [...lines, `Vzorek N=${r.n} z tohoto publika lze vybrat.${weighted}`] };
 }
