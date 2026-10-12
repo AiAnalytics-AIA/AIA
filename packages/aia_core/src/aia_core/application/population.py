@@ -567,10 +567,11 @@ class PopulationRuntime:
                 joint_status=cached.joint_status,
                 columns=cached._columns,
                 analysis_weight=cached._analysis_weight,
+                companions=cached._companions,
             )
 
         panel, dictionary = self._verified_panel(version)
-        joint = self._verified_joint(version, companions)
+        joint, companion_bytes = self._verified_joint(version, companions)
         policy = build_field_policy(
             dictionary.rows,
             dictionary_sha256=version.dictionary_sha256,
@@ -596,6 +597,7 @@ class PopulationRuntime:
             joint_status=joint,
             columns=columns,
             analysis_weight=weights,
+            companions=companion_bytes,
         )
         self._cache[key] = population
         while len(self._cache) > self._cache_size:
@@ -604,11 +606,19 @@ class PopulationRuntime:
 
     def _verified_joint(
         self, version: DatasetVersion, companions: CompanionSet | None
-    ) -> JointStatus:
-        """Re-verify every companion's bytes and re-evaluate the certificate."""
+    ) -> tuple[JointStatus, dict[str, bytes]]:
+        """Re-verify every companion's bytes and re-evaluate the certificate.
+
+        Returns the certificate's verdict and the verified bytes of every companion, which the
+        loaded population hands out (``RuntimePopulation.companion``): one read, one check.
+        """
         if companions is None:
-            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+            return (
+                JointStatus.fallback(JointState.MISSING, "the contract declares no certificate"),
+                {},
+            )
         certificate: bytes | None = None
+        verified: dict[str, bytes] = {}
         for spec in self._contract.companions:
             sha, location = companions.assets[spec.asset_id]
             data = self._source.read(location)
@@ -617,17 +627,21 @@ class PopulationRuntime:
                     f"companion {spec.asset_id} at {location} is not the one attached to "
                     f"{version.label}; refusing to load a swapped companion"
                 )
+            verified[spec.asset_id] = data
             if spec.kind is CompanionKind.CORE_JOINT_STATUS:
                 certificate = data
         if certificate is None:
-            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+            return (
+                JointStatus.fallback(JointState.MISSING, "the contract declares no certificate"),
+                verified,
+            )
         joint = evaluate_joint_certificate(certificate, panel_sha256=version.content_sha256)
         if joint.state is not companions.joint_state:
             raise VersionIntegrityError(
                 f"{version.label}'s certificate now evaluates to {joint.state.value}, "
                 f"not the recorded {companions.joint_state.value}"
             )
-        return joint
+        return joint, verified
 
     def _verified_panel(self, version: DatasetVersion) -> tuple[ParsedPanel, ParsedDictionary]:
         panel_bytes = self._source.read(version.storage_location)

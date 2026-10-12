@@ -174,7 +174,7 @@ class Persona(BaseModel):
     persona_id: str
     donor_id: str
     weight: float = Field(gt=0)
-    facts: dict[str, str | int]
+    facts: dict[str, str | int | float | bool]
     style: dict[str, float]
     lineage: frozenset[str]
     fictional: bool
@@ -400,6 +400,13 @@ class RespondentPlan:
     persona: Persona
     facts: dict[str, Answer] = field(default_factory=dict)
     blocks: tuple[Block, ...] = ()
+    #: The profile shown with each block, by block index, when it depends on the block's topics
+    #: (a panel persona, ``panel_persona.PanelPersonas.plan``); empty: ``persona.profile()``.
+    profiles: tuple[str, ...] = ()
+
+    def profile(self, block: Block) -> str:
+        """The profile a model is shown with ``block``."""
+        return self.profiles[block.index] if self.profiles else self.persona.profile()
 
 
 def plan_respondent(spec: ResearchSpecification, persona: Persona) -> RespondentPlan:
@@ -590,7 +597,7 @@ def build_request(
     ]
     content = (
         "PROFIL RESPONDENTA:\n"
-        + plan.persona.profile()
+        + plan.profile(block)
         + "\n\nPŘEDCHOZÍ ODPOVĚDI V TOMTO ROZHOVORU:\n"
         + _history(answers_so_far, items_by_id)
         + "\n\n"

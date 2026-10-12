@@ -8,7 +8,11 @@ chunks:
   - "[x] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
   - "[x] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
   - "[x] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
-  - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
+  - "[x] 3a. Persona contract (plan before code): the mode 18.6.6 ran, its inputs, topics, the policy gate, parity"
+  - "[x] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
+  - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
+  - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
+  - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
@@ -320,6 +324,187 @@ Corrections to the § 2a contract, from reading the unit's caller:
   donors can support before fieldwork is paid for).
 - **A full cell takes no seat** (Findings): the one place AIA draws where the unit refused.
 
+### 3a. The persona contract (2026-10-12)
+
+Unit anchors are under `legacy/npc-panel-18.6.6/app/`, frozen. Nothing under its `tests/`
+pins persona content, so parity is by capture from the unit's own functions, as in 2c-2e.
+
+**What 18.6.6 ran.** `RUN_DEFAULTS["persona_mode"] = "calibrated"` (`runtime_config.py:149-152`).
+`generate_persona_text` (`pipeline.py:528-784`) resolves it through
+`persona_calibration.resolve_effective_mode` (`persona_calibration.py:131-153`), which returns
+`core` when no active calibration profile exists (`:135-137`). None ships: neither the unit's Git
+tree nor its data bundle (`data-manifest.json`) has `data/persona_calibration/active_profile.json`.
+So every live 18.6.6 persona was **`core`, adaptive** (`adaptive_persona = True`, `:552`). Adaptive
+mode drops the HEXACO anchors, "Povaha", the life trajectory, dispositions, attitudes and the
+style line (`:655-739`); none of them needs the population-wide z-scores. AIA ports that mode
+and no other. `full`, `demographics` and `none` are the persona ablation's arms (chunk 7), not
+fieldwork; `PERSONA_MODE = "calibrated->core (no active profile)"` is recorded in the sample's
+provenance.
+
+**The profile, in the unit's order** (`pipeline.py:560-784`), as `KEY: value` lines turned into
+first-person prose by `_first_person_persona` (`:450-501`), at most 185 words, cut at the last
+`. ` or `; ` past 55 % (`:491-501`):
+
+1. Base (3b): `pohlavi`, `vek` (exact years, else `_age_band_label`), `vzdelani`, `kraj`.
+2. Socio-economic and household (3b): `prijem_osobni_mesicni` else `prijem_cisty_mesicni`
+   (`_income_band_label`, labelled by `prijem_definice`), `prijem_pozice_0_1` else
+   `prijem_decile`, `zamestnani_status` (+ `is_student`), `occupation_major` (the ISCO map),
+   `velikost_domacnosti`, `pocet_deti_celkem`, `has_partner` / `partner_cohabiting`,
+   `zdravi_sebehodnoceni` (only for the topics `zdravi`, `mentalni_zdravi`),
+   `kraj_kvalita_zivota_poradi`. `trida_spolecenska` is never shown (adaptive, `:639-642`).
+3. Behaviour (3d): `persona_depth.deep_profile_text(row, topics, mode="core", adaptive=True)`
+   (`persona_depth.py:497`): `persona_grounded.grounded_profile_text` (`persona_grounded.py:270`)
+   over `PERSONA_SIGNAL_CATALOG_v17.csv` (in the unit's data bundle; AIA imports it as the
+   `PERSONA_SIGNAL_CATALOG` companion, `czech.py:82`) and `PERSONA_VALUE_LABELS_v17.json` (unit
+   configuration, `czech.py:173`): candidates whose topics meet the question's, at most 3 per
+   block and one per concept, within `persona_signal_budget` (`product_policy.py:91`). The `P_*`
+   compatibility fallback runs only when the catalog yields nothing. AIA records each companion's
+   location at import (`application/population.py:244-249`) but hands none to a consumer; 3d adds
+   one read through the canonical loader, re-verified against the contract's SHA256 (`czech.py:82`),
+   never a second path to the files.
+4. Household facts (3b): `dispozice.popis_faktu(row, topics)` (`dispozice.py:579`) over `F_*`.
+5. The brand disclaimer for the topics `znacka`, `kampan`, `reklama` (`pipeline.py:757-762`).
+   `AUDIENCE_FACTS_TEXT` (uploaded audiences, `audience_registry.py:193`) and
+   `FS_SIMULATION_PROFILE` (Simulation Lab, `full_simulation.py:626`) are not panel columns: absent.
+
+**Topics (3c).** A question's topics are its declared ones, else
+`dispozice.odvod_temata(text + options)` (`dispozice.py:431`), as `dotaznik.py:1046-1057`.
+AIA asks one block (at most 8 closed items) per request, as the unit's block mode did
+(`dotaznik.py:985-990`): one persona per block, over the union of its items' topics.
+
+**The policy gate.** Every column the profile reads asks
+`RuntimePopulation.decide(column, PERSONA_CONSTRUCTION)`. A refused column is left out, never
+replaced, and the refusal is listed once per run in the sample's provenance (field, reason). The
+fields read jointly ask `decide_joint(..., client_facing=False)`; if refused, the run is refused
+(`persona_joint_refused`), since a persona is a same-person combination. A catalog signal from a
+`MODELED_BEHAVIOR_PRIOR` row is skipped as in the unit (`persona_grounded.py`), and every column
+it names passes the same gate.
+
+**The persona (3e).** One `Persona` per `SampledRespondent`:
+- `facts`: the row's columns that the factual layer reads (`respondent_facts._DIRECT_PATTERNS`), as
+  the row holds them. The unit's `zamestnan` pattern names a column the v17 panel lacks
+  (`factual_layer.py:34-47`), so that question is `UNSUPPORTED` there, and here too.
+- `style`: `assign_styles` over the **whole** population, as `Panel.__init__` z-scored it
+  (`pipeline.py:172-173`, `styly.py:66`), then read at the sampled rows. Its id is
+  `panel_row_id` when there is no `respondent_id` (`styly.py`).
+- `donor_id`: `core_donor_id`; `weight`: the raked analysis weight; `lineage`: the panel's
+  datasets (`licence_determinations.py`); `fictional = False`.
+- the profile text per block from 3b-3d. The style line is not shown (adaptive).
+
+**Parity.** EXACT against the unit's own `generate_persona_text(row, temata=topics,
+persona_mode="calibrated")` on fictional rows, with a fictional catalog patched in for
+`persona_grounded.CATALOG` and the unit's own value labels; `odvod_temata` EXACT on question
+texts. Styles: EXACT against `styly.prirad_styly` over a fictional population.
+
+**Refusals:** `persona_joint_refused`; `persona_catalog_missing` when the version has no
+`PERSONA_SIGNAL_CATALOG` companion (the unit returned an empty block silently, `_catalog`,
+`persona_grounded.py:63-65`).
+
+### 3b. Landed: the profile's core
+
+`domain/persona_profile.py`: `profile_lines(row, topics, behaviour)` (the unit's `KEY: value`
+lines in its order, `pipeline.py:560-783`), `first_person` (`_first_person_persona`,
+`:450-501`, cut at 185 words), `household_facts` (`dispozice.popis_faktu`), `age_band`,
+`income_band`, `persona_text`; `PROFILE_VERSION` and `PERSONA_MODE`. A row is a mapping of
+column to the value `read_csv` holds (`audience._typed` over the column's `column_type`); the
+behavioural block (3d) arrives as lines, the topics (3c) as a list. Nothing calls it yet.
+
+Parity, in `tests/test_persona_profile.py` against `tests/fixtures/persona_profile/`
+(`tools/persona_capture.py`: the unit's own `generate_persona_text(row, temata=topics,
+persona_mode="calibrated")` with the catalog pointed away, on 86 fictional rows (6 with incomes on
+the band edges) and 13 topic sets, 99 cases; and its `_first_person_persona` on 6 line lists that
+reach its prefix rewrites, its drops and its word cap; re-captured byte-identical): every text
+EXACT, character for character. Mutating the cap, the clause floor, a band edge, a topic set, a
+partner branch or a label fails the suite.
+
+Two deliberate differences, each a guess the unit stamped on a missing cell (tested beside the
+fixture, which holds neither): a missing `pohlavi` is "neuvedeno", where `str(NaN)` made it
+"žena" (`pipeline.py:561-562`); a missing `is_student` is not a student, where `bool(NaN)` made an
+employed person "Současně: student/ka" (`:598`). Kept from the unit, because it states the gap
+rather than filling it: a missing age reads "ve věku neuvedeno".
+
+### 3c. Landed: topics
+
+`domain/persona_topics.py`: `question_topics` (`dispozice.odvod_temata`, `dispozice.py:431-462`)
+over `TOPIC_KEYS` (its `TEMATA_KLICE`, `:348-422`, 54 topics), and `block_topics`, the union
+`run_dotaznik` built for a block (`dotaznik.py:937-948`). AIA's questions declare no topics, so
+each is derived from its text and options, as the unit did for a question without them.
+EXACT in `tests/test_persona_profile.py` against the unit's own function on 56 fictional
+questions (every topic reached; `auto`/`automaticky`, `byt`/`být`, a phrase key's first word
+alone, more than five topics) and 4 blocks; the table compared with the unit's own dictionary
+(`tools/persona_capture.py`; re-captured byte-identical). Mutating the phrase rule, the short-stem
+rule, the `byt` and `auto`/`obec` rules, the tie order or the cap fails it.
+
+### 3d. Landed: grounded signals
+
+`domain/persona_signals.py`: `parse_catalog` (`persona_grounded._catalog` as `read_csv` reads the
+catalog: an empty `block`, `kind`, `wave` or `topics` cell reads `"nan"`, an empty `priority` or
+`min_abs_z` NaN; a `wave` column with a gap reads as float, so "ISSP 2021.0"), `parse_value_labels`,
+`render` (`_render`: value labels first, then the 15 kinds, each with the unit's score),
+`grounded_text` (`grounded_profile_text`: topic match, the `MODELED_BEHAVIOR_PRIOR` gate, the
+specific-topic multiplier, the order, three per block, one per concept, the budget
+`signal_budget`, `PRODUCT_POLICY.json:34-38`), `_compact_anchor`, `compatibility_columns`. The
+`P_*` compatibility block (`persona_depth.py:521-560`) is not ported: v17 replaced it
+(`persona_grounded.py:10`), and 3e refuses a population that carries its columns rather than
+differ silently.
+
+The companions reach it only through the loader: `RuntimePopulation.companion(asset_id)` hands
+out the bytes `_verified_joint` already reads and checks against the recorded SHA256 at every load
+(`application/population.py`), `companion_missing` otherwise
+(`test_population_companions.py::test_a_loaded_population_hands_out_its_verified_companions`).
+The cache keeps them with the population (about 3 MB for v17's 15 companions).
+
+Parity, in `tests/test_persona_profile.py` against the unit's own functions with a fictional
+`catalog.csv` (26 signals: every kind and evidence role, a five-signal block, a repeated concept,
+a modelled prior, empty cells, an absent column, four real column names the unit's value labels
+describe) and the unit's own `PERSONA_VALUE_LABELS_v17.json`, on 40 fictional `signals.csv` rows:
+the parsed catalog; every signal's text and score on every row (`_render`); 6 anchors
+(`_compact_anchor`); `grounded_profile_text` and the whole persona with its signals on 60 cases
+across 11 topic sets. All EXACT; re-captured byte-identical. Mutating a score constant, the
+specific-topic multiplier or the generic set, the per-block cap, the concept rule, the prior gate,
+the order, the budget, a threshold, the anchor rules or the `"nan"` reading fails it.
+
+One difference, found by CI: an empty catalog `priority` reads NaN, so the signal's score is NaN,
+and `candidates.sort(key=lambda x: (-x[0], x[1]["column"]))` (`persona_grounded.py:290`) leaves a
+NaN key where the sort's internals put it. The unit's own output then differs by Python version:
+captured on 3.13, the first fixture ranked `SIG_risk01` (empty priority) before `SIG_brand`; CI's
+Python ranked it after (PR #315, run 38250340111, `test_the_grounded_signals_are_the_units[3]`).
+AIA ranks a NaN score last (`test_a_signal_with_an_unknown_priority_ranks_last`); the fixture's
+ranked signals all carry a priority, and the empty one sits on `SIG_raw`, which never renders, so
+the parse of an empty priority is still compared.
+
+### 3e. Landed: panel personas
+
+`domain/panel_persona.py`: `panel_personas(population, sample) -> PanelPersonas`, one `Persona`
+per sampled respondent (id `panel_row_id`, donor `core_donor_id`, the sample's raked weight,
+lineage `PANEL_DERIVED_DATASETS`, `fictional=False`, the factual layer's fields as the row holds
+them, styles from `assign_styles` over every row of the population, as `Panel.__init__` styled its
+whole panel), and `PanelPersonas.plan(spec, persona)`: `plan_respondent` with each block's profile
+(`RespondentPlan.profiles`, by block index) built from that block's topics. `build_request` shows
+`plan.profile(block)`: the block's profile for a panel persona, `persona.profile()` otherwise, so
+the fictional roster's requests are unchanged. `Persona.facts` widens to `str | int | float | bool`
+to hold a typed row's values. Nothing calls it yet: chunk 5's executor does, after the sample.
+
+**The joint gate, refined from § 3a.** One `decide_joint` over every persona column would refuse
+every v17 persona: the catalog's signals come from matched donor blocks, and the certificate
+refuses cross-block same-person joints (`CORE_JOINT_STATUS.json`: `core_same_person_joint`,
+`specialist_block_internal_joint`, `cross_block_same_person_joint: false`). It is also not what
+18.6.6 claimed: each matched signal carries "statisticky přiřazený celý donor blok"
+(`persona_grounded.py:93-95`). So the core fields (every dictionary block not in the certificate's
+`matched_blocks`) are decided jointly, and each matched block's fields within that block; a
+refusal refuses every persona (`persona_joint_refused`). The certificate certifies `v17_4_0`, the
+LIVE panel a run binds (its `panel_sha256` is `deploy/develop/population/v17.files:17`); a run
+bound to an uncertified version gets no personas
+(`test_a_population_whose_joint_use_is_refused_gets_no_personas`).
+
+Tests, in `tests/test_panel_persona.py`, through the canonical loader on a population built from
+the persona fixture's rows with the fictional catalog and the unit's value labels as companions:
+a persona's profile equals what 18.6.6 showed for its row and topics (`expected.json`, EXACT), each
+block gets the profile of its own topics and the request carries it, styles are the population's
+(not the sample's), a policy-refused field is left out and recorded, the joint gate, and every
+refusal by name. Mutating the policy gate, the joint grouping, the age check, the compatibility
+check, the style scope, the weight or the block profile fails them.
+
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
 `RuntimePopulation.decide(field, FieldUse.PERSONA_CONSTRUCTION)` and, combined,
@@ -407,6 +592,17 @@ respondents, compared. No client-facing claim until the holdout result is record
   only; (c) the attempts the comment describes: redraw under derived seeds and keep the
   first that passes, recorded in the sample. Not decided here.
 
+- **18.6.6 sampled and styled only rows with an age of 18 or more; AIA's 2e sampler takes every
+  row.** `Panel(df, min_vek=18)` drops rows whose `vek` is missing or under 18 before anything
+  else (`legacy/npc-panel-18.6.6/app/pipeline.py:147-152`); `draw_panel_sample` has no such step
+  (`domain/population/sampling.py @ a1fcc60`). Hypothesis for v17: no row is affected (its core
+  donors are PIAAC 18-65 and ISSP 66+, `CORE_JOINT_STATUS.json` `core_sources`); not verified, no
+  panel rows here. Consequence if wrong: AIA could sample a row 18.6.6 never could, and its column
+  types (hence filter keys) could differ. Fix taken: `panel_personas` refuses a population with
+  any such row (`persona_age_out_of_scope`), so a run fails closed before fieldwork; chunk 5's
+  preflight reports the count on develop. Tests:
+  `test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused[minor]`, `[no_age]`.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § research run: "Panel-derived data reaches no model provider until OI-61
@@ -420,5 +616,20 @@ respondents, compared. No client-facing claim until the holdout result is record
   by name; PanelSample.provenance() is what a run records"; under `tools/`:
   `sampling_capture.py`, "Sample fixtures from the unit's own draw_representative, the MILP
   made to fail (`inputs`, `capture` in the unit's venv)".
+- `CLAUDE.md` § 2 map, `domain/`: `persona_profile.py` ("a panel respondent's profile:
+  18.6.6's generate_persona_text in the mode it ran, calibrated -> core adaptive, EXACT"),
+  `persona_topics.py` ("a question's topics: odvod_temata, a block's union, EXACT"),
+  `persona_signals.py` ("the catalog's topic-matched signals: grounded_profile_text, EXACT"),
+  `panel_persona.py` ("a run's sample as personas: the policy and joint gates, styles over the
+  population, a profile per block; refusals by name"); `population/runtime.py`:
+  "`companion(asset_id)`: a companion's bytes as the loader verified them"; `tools/`:
+  `persona_capture.py`.
+- `AGENTS.md` § mypy: running `mypy` over a subset of the source trees (e.g.
+  `packages/aia_core/src apps/executors/src`) then the full invocation reported three false
+  `create_model` errors in `domain/ai_respondent.py`; `rm -rf .mypy_cache` and the full
+  invocation passed. Wrong: a partial run on a shared cache. Right: always the Makefile's four
+  trees, or clear the cache after a partial run.
+- `docs/architecture/population.md`: `RuntimePopulation.companion` is the one way a consumer reads
+  a companion.
 - `.planning/open-items.md`: the two 2e findings above (the overfilled cell, fixed here; the
   small-n refusal, open for the owner).
