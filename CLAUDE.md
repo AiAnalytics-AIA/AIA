@@ -94,7 +94,11 @@ apps/
                             activation (an organization OWNER or ADMIN)),
                             population (GET /population: the registry, read-only, any member;
                             status derived, never stored; GET /population/versions/{id}/
-                            characteristics: a version's weights, blocks, fields and subpanels)
+                            characteristics: a version's weights, blocks, fields and subpanels;
+                            GET /population/audience-catalogue: LIVE's kept factor catalogue and the
+                            18 subpanels as filters, reading no row; POST /population/audience-preview:
+                            what filters select in LIVE and whether n can be drawn, counts only,
+                            503 without AIA_POPULATION_ASSET_ROOT, the API's one population read)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -156,8 +160,10 @@ apps/
                             ResultsWorkspace.tsx: accessible views of one frozen research run;
                             switching data, maps, analysis and report retains the camera/review choice,
                             changes no result and starts no additional run.
-                            What 18.6.6 computed from its panel (audience filters, preview, subpanels,
-                            own audiences, panel factors) says "V AIA zatím není" where it is met
+                            The audience step's factor editor, feasibility preview and built-in
+                            subpanels come from AIA's population (the two /population audience
+                            routes; without them the step says why); special panels, own audiences
+                            and panel factors say "V AIA zatím není" where they are met
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
@@ -291,7 +297,9 @@ apps/
                             -> permissions; unset: nobody); bundles under AIA_POPULATION_ASSET_ROOT;
                             --all-companions reads each companion the contract declares by its id;
                             record-dictionary (acts as no one; run by the develop deploy) keeps a
-                            version's verified dictionary with it
+                            version's verified dictionary with it; record-catalogue (the same) keeps
+                            each population's current version's audience catalogue, which establish
+                            and promote also keep for the version they move to
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -405,6 +413,11 @@ packages/aia_core/src/aia_core/
       audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
                             from the column as pandas types it; subpanel_filters; select_audience over
                             a run's population, refusing where the unit dropped a filter
+      audience_catalogue.py The factor catalogue: 18.6.6's catalog (EXACT, fixture catalogue.json),
+                            each factor's AUDIENCE_FILTERING answer (catalogue_of), the research-only
+                            factors not sent to the screen (for_the_screen)
+      audience_preview.py   The audience step's preview: select_audience's counts and
+                            draw_panel_sample's verdict at PREVIEW_SEED; counts only
       enrichment.py         The ANALYSIS view's seven runtime dimensions: 18.6.6's attach_derived
                             (EXACT); AudienceDimensionsEnricher, the view's Enricher (composed by
                             the worker's population_loader)
@@ -530,6 +543,10 @@ packages/aia_core/src/aia_core/
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
                             dictionary, re-hashed; reads no row
+    audience_catalogue.py   LIVE's kept audience catalogue and the 18 subpanels as filters; reads
+                            no row (PopulationRuntime.record_audience_catalogue keeps it)
+    audience_preview.py     AudiencePreviewer: LIVE loaded once per process and version through
+                            PopulationRuntime, then the domain preview
     project_memory.py       search_client_studies: one client's studies through ScopeResolver,
                             each under its own study context; latest Design Revision, else the
                             working draft, else the name
@@ -653,7 +670,8 @@ packages/aia_core/src/aia_core/
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
     population_repository.py  Population registry: versions, populations, history; each version's
-                            dictionary bytes (population_version_dictionaries), insert-once
+                            dictionary bytes (population_version_dictionaries) and audience
+                            catalogue (population_version_audience_catalogues), insert-once
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
@@ -716,7 +734,8 @@ tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / comp
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
 tools/audience_capture.py  Audience-filter fixtures: fictional rows and cases (`inputs`), the unit's
-                            own sanitize_filters / _mask / factor_map on them (`capture`, with pandas)
+                            own sanitize_filters / _mask / factor_map and catalog on them (`capture`,
+                            with pandas)
 tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the unit's own
                             enrich_panel on them (`capture`, with pandas)
 tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
@@ -935,7 +954,7 @@ ungated fixture.
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
-| Operate the population | `python -m aia_executors.population_ops <status\|import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`) |
+| Operate the population | `python -m aia_executors.population_ops <import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`); `status`, `record-dictionary` and `record-catalogue [--version]` act as no one and take no `--as` (no `AIA_POPULATION_OPERATORS`) |
 | **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
