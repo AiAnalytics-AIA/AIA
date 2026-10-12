@@ -8,6 +8,7 @@ LIVE now, superseded, or only registered. Nothing about the response can write.
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -128,3 +129,101 @@ def test_any_member_reads_it_and_nobody_unauthenticated(
 def test_the_registry_offers_no_write(lead: Any, api_prefix: str) -> None:
     for method in ("post", "put", "patch", "delete"):
         assert getattr(lead, method)(f"{api_prefix}/population").status_code == 405
+
+
+# ------------------------------------------------- a version's characteristics (P7c)
+
+#: A fictional dictionary in the reference's layout: three fields of the Czech contract's
+#: names, so the route's contract builds a policy over them. No respondent row anywhere.
+FICTIONAL_DICTIONARY = (
+    "field,block,source,evidence_status,production_grade,recommended_use,description,"
+    "persona_eligible\n"
+    "vek,population_anchor,Census 2021,POPULATION_ANCHOR,A,PERSONA_OR_ANALYSIS_WITH_SCOPE,"
+    "Věk (fictional),yes\n"
+    "is_student,core,fictional,CANONICAL_CORE,C,AUDIT_ONLY,Student (fictional),no\n"
+    "vaha_strukturalni_2025,weight,fictional,NEW_WEIGHT,T,AUDIT_ONLY,Váha (fictional),no\n"
+).encode()
+
+
+@pytest.fixture
+def characterised(app: FastAPI) -> dict[str, str]:
+    """Two fictional versions: one keeping its dictionary, one imported before."""
+    kept = replace(_version("v_kept", None, 0), dictionary_sha256=_sha_bytes(FICTIONAL_DICTIONARY))
+    older = replace(_version("v_older", None, 1), dictionary_sha256=kept.dictionary_sha256)
+    with create_session_factory(app.state.engine)() as session:
+        repo = PopulationRegistryRepository(session)
+        for v in (kept, older):
+            repo.insert_version(v, validation={})
+        repo.insert_dictionary(
+            kept.version_id,
+            sha256=kept.dictionary_sha256,
+            content=FICTIONAL_DICTIONARY,
+            recorded_at=AT,
+            recorded_by="test",
+        )
+        session.commit()
+    return {"kept": kept.version_id, "older": older.version_id}
+
+
+def _sha_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _characteristics(member: Any, api_prefix: str, version_id: str) -> Any:
+    return member.get(f"{api_prefix}/population/versions/{version_id}/characteristics")
+
+
+def test_a_version_says_what_it_is_made_of(
+    characterised: dict[str, str], viewer: Any, api_prefix: str
+) -> None:
+    response = _characteristics(viewer, api_prefix, characterised["kept"])
+    assert response.status_code == 200
+    body = response.json()
+    assert body["dictionary_kept"] is True and body["label"] == "v_kept"
+    by_name = {f["field"]: f for f in body["fields"]}
+    assert list(by_name)[:3] == ["vek", "is_student", "vaha_strukturalni_2025"]
+    vek = {u["use"]: u for u in by_name["vek"]["uses"]}
+    assert vek["AUDIENCE_FILTERING"]["allowed"] is True
+    assert by_name["vek"]["description"] == "Věk (fictional)"
+    assert by_name["vaha_strukturalni_2025"]["is_weight"] is True
+    assert [w["role"] for w in body["weights"] if w["is_default"]] == ["default_current"]
+    subpanels = {s["key"]: s for s in body["subpanels"]}
+    assert len(subpanels) == 18
+    assert (subpanels["young_18_29"]["usable"], subpanels["young_18_29"]["reason"]) == (True, None)
+    assert (subpanels["students"]["usable"], subpanels["students"]["reason"]) == (
+        False,
+        "audit_only",
+    )
+    assert subpanels["employed"]["reason"] == "unknown_field"
+    assert subpanels["young_18_29"]["measured_by_18_6_6"]["rows"] == 2785
+    assert body["subpanels_measured_on"] == "17.1.2"
+
+
+def test_a_version_without_its_dictionary_says_so_and_calls_nothing_usable(
+    characterised: dict[str, str], viewer: Any, api_prefix: str
+) -> None:
+    body = _characteristics(viewer, api_prefix, characterised["older"]).json()
+    assert body["dictionary_kept"] is False and body["fields"] == []
+    assert {(s["usable"], s["reason"]) for s in body["subpanels"]} == {(None, None)}
+
+
+def test_a_dictionary_that_does_not_match_its_pin_is_a_conflict(
+    app: FastAPI, characterised: dict[str, str], viewer: Any, api_prefix: str
+) -> None:
+    from aia_core.infrastructure.tables import PopulationVersionDictionaryRow
+    from sqlalchemy import update
+
+    with create_session_factory(app.state.engine)() as session:
+        session.execute(update(PopulationVersionDictionaryRow).values(content=b"field\nvek\n"))
+        session.commit()
+    response = _characteristics(viewer, api_prefix, characterised["kept"])
+    assert response.status_code == 409
+    assert response.json()["code"] == "population_dictionary_mismatch"
+
+
+def test_an_unknown_version_is_404_and_nobody_unauthenticated_reads_one(
+    characterised: dict[str, str], outsider: Any, client: Any, api_prefix: str
+) -> None:
+    assert _characteristics(outsider, api_prefix, "nope@sha256:00").status_code == 404
+    assert _characteristics(outsider, api_prefix, characterised["kept"]).status_code == 200
+    assert _characteristics(client, api_prefix, characterised["kept"]).status_code == 401

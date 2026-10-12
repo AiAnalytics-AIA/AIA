@@ -46,6 +46,7 @@ from aia_core.domain.research_sociomap import (
     methods_fingerprint,
     read_methods,
     research_sociomaps,
+    side_tables_of,
 )
 from aia_core.domain.research_sociomapping import SOCIOMAPPING_VERSION, research_sociomappings
 from aia_core.domain.sociomap import (
@@ -233,20 +234,34 @@ class PreflightExecutor(_Step):
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        # The pair n_min the run's Sociomap will compute with (plan methodology-tab S2c): its
+        # pinned methods, which the start put in this step's input. A run started before
+        # that has none here and reads as aia-sociomap-1, whose n_min is the same 30.
+        try:
+            pair_n_min = side_tables_of(read_methods(step.payload.get("methods"))).n_min
+        except (SociomapMethodsInvalid, UnsupportedMethodology) as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "sociomap_method_invalid", "message": str(exc)},
+            )
         with context.transaction() as (session, workflow):
             spec_id = upstream_artifact(workflow, step, "compile")
             if spec_id is None:
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-            readiness = assess_readiness(spec)
+            readiness = assess_readiness(spec, pair_n_min=pair_n_min)
             artifact, created = self._put(
                 repo,
                 step,
                 payload={"kind": READINESS, "readiness": readiness.model_dump(mode="json")},
                 artifact_type=READINESS,
                 input_fingerprint=fingerprint(
-                    {"spec": spec.fingerprint(), "rules": readiness.rules}
+                    {
+                        "spec": spec.fingerprint(),
+                        "rules": readiness.rules,
+                        "pair_n_min": pair_n_min,
+                    }
                 ),
                 depends_on=[spec_id],
             )

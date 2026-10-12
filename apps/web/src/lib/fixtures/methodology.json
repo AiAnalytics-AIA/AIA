@@ -5918,6 +5918,563 @@
     "steps": 18,
     "title_cs": "Sociomapa: referenční mapa (18.6.6)"
    }
+  },
+  "sociomapping": {
+   "aia_hmodel_candidate_v1": {
+    "editable": false,
+    "groups": [
+     {
+      "id": "V",
+      "note_cs": "",
+      "step_ids": [
+       "complete_cases",
+       "scale"
+      ],
+      "title_cs": "Vstupy"
+     },
+     {
+      "id": "R",
+      "note_cs": "",
+      "step_ids": [
+       "correlations",
+       "declared"
+      ],
+      "title_cs": "Vztahy objektů"
+     },
+     {
+      "id": "H",
+      "note_cs": "",
+      "step_ids": [
+       "accuracy",
+       "placeable",
+       "starts",
+       "smooth",
+       "ordinal",
+       "exact",
+       "repair",
+       "frame",
+       "search"
+      ],
+      "title_cs": "Rozložení (H-Model, kandidát AIA)"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "heights",
+       "fuzzy",
+       "coherences"
+      ],
+      "title_cs": "Výšky a koherence"
+     }
+    ],
+    "id": "sociomapping",
+    "in_force": "aia_hmodel_candidate_v1",
+    "note_cs": "Experiment AIA, ne metoda SOMECS: jak SOMECS hledá rozložení, není zdokumentováno (AIA-H8). Každý výsledek nese status EXPERIMENTAL_AIA a nikdy nejde ke klientovi. Parametry hledání se ukazují, needitují.",
+    "preset": "aia_hmodel_candidate_v1",
+    "presets": [
+     "aia_hmodel_candidate_v1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "RTS sbírá každou odpověď; AIA drží jen úplné a ostatní počítá.",
+        "ref": "AIA-D2"
+       }
+      ],
+      "formula_latex": "K = \\{k : a_{kj}\\ \\text{zodpovězeno pro všechna}\\ j\\},\\quad w_k = 1",
+      "formulas": [],
+      "id": "complete_cases",
+      "implements": "aia_core.domain.research_sociomapping:battery_sociomapping",
+      "note_cs": "Váhy respondentů se nepoužijí (žádný zdroj Sociomapu neváží, M7). Sada pod tři objekty nebo pod dva úplné respondenty se nemapuje a výsledek řekne proč.",
+      "source_sha256": "405812d3899dfdccde38ea60ce950758d0f70520d6aa94b30412bf5dec01811e",
+      "symbols": [
+       {
+        "latex": "K",
+        "meaning_cs": "respondenti, kteří ohodnotili každý objekt sady",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_sociomapping.py::test_difficult_answers_are_kept_named_and_explained",
+       "packages/aia_core/tests/test_research_sociomapping.py::test_insufficient_support_is_not_mapped_and_says_why"
+      ],
+      "title_cs": "Jen úplní respondenti, bez vah",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Pravidlo vyřazení",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_sociomapping:_COMPLETE_CASES_RULE",
+        "unit": "",
+        "value": "AIA-D2"
+       },
+       {
+        "absent": false,
+        "label_cs": "Méně umístěných objektů: mapa se označí",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_sociomapping:_FEW_OBJECTS",
+        "unit": "",
+        "value": 6
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "RTS-N1"
+       }
+      ],
+      "formula_latex": "x_{kj} = \\frac{a_{kj} - s^{\\min}}{s^{\\max} - s^{\\min}}",
+      "formulas": [],
+      "id": "scale",
+      "implements": "aia_core.domain.sociomap.fuzzy:rts_scale_answers",
+      "note_cs": "",
+      "source_sha256": "fd203e7bb93a530834f36c900900efe2fa447fe037ca4a6bb298a7361fc6963d",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_sociomapping.py::test_relations_and_heights_match_an_independent_computation"
+      ],
+      "title_cs": "Odpovědi na škále sady",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "RTS-O1"
+       }
+      ],
+      "formula_latex": "v_{rs} = \\operatorname{corr}(x_{\\cdot r}, x_{\\cdot s})",
+      "formulas": [],
+      "id": "correlations",
+      "implements": "aia_core.domain.sociomap.fuzzy:rts_object_correlations",
+      "note_cs": "Pearsonova korelace se znaménkem; nic se neořezává ani neposouvá.",
+      "source_sha256": "ba7df2fbc7f3aecf9d52e0131eaf2eb2621ea5ec8bf7015d4fc190da8ca14dc5",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_sociomapping.py::test_relations_and_heights_match_an_independent_computation"
+      ],
+      "title_cs": "Korelace objektů",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-D1"
+       }
+      ],
+      "formula_latex": "V = (v_{rs}),\\quad v_{rs}\\ \\text{nedefinováno} \\Rightarrow \\text{pojmenováno, nedoplněno}",
+      "formulas": [],
+      "id": "declared",
+      "implements": "aia_core.domain.sociomap.declared:declared_from_correlations",
+      "note_cs": "",
+      "source_sha256": "3272d6d6c5471734c704d77a23ef8a2824fe27f6802f6279db5f5ad545ee25a9",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_declared.py::test_correlations_stay_signed_and_undefined_pairs_keep_their_reason"
+      ],
+      "title_cs": "Deklarovaná matice vztahů",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "SOMECS-H3"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "QED-H2"
+       }
+      ],
+      "formula_latex": "A = \\rho_S\\big(v_{rs},\\ -d_{rs}\\big)\\quad\\text{přes definované uspořádané páry}",
+      "formulas": [],
+      "id": "accuracy",
+      "implements": "aia_core.domain.sociomap.hmodel:hmodel_accuracy",
+      "note_cs": "Všechny body váží stejně; důležitost bodu (SOMECS, s. 56) se nemodeluje.",
+      "source_sha256": "a3936fe51d510e607147c6a41f6c86d8537ca4a23e1217ffd650db77dd030cda",
+      "symbols": [
+       {
+        "latex": "\\rho_S",
+        "meaning_cs": "Spearmanova korelace s průměrnými pořadími",
+        "unit": ""
+       },
+       {
+        "latex": "d_{rs}",
+        "meaning_cs": "vzdálenost objektů na mapě",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_somecs_fig22_layout_scores_as_somecs_lists_it",
+       "packages/aia_core/tests/test_sociomapping_hmodel_accuracy.py::test_accuracy_ignores_rotation_translation_reflection_and_scale"
+      ],
+      "title_cs": "Přesnost rozložení (cíl hledání)",
+      "values": []
+     },
+     {
+      "evidence": [],
+      "formula_latex": "j\\ \\text{bez definovaného vztahu} \\Rightarrow \\text{neumístěn, s důvodem}",
+      "formulas": [],
+      "id": "placeable",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_placeable",
+      "note_cs": "Nikdy se nevypustí potichu ani nepoloží na výchozí místo.",
+      "source_sha256": "1dd0accd503b2417744a16fd92494bce71fa8f5529f169ef63c6377df6fe3a3c",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_a_constant_object_is_listed_unplaced_with_its_reason"
+      ],
+      "title_cs": "Objekty, které nejde umístit",
+      "values": []
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\text{klasické MDS na pořadích} \\;\\cup\\; \\{U(\\text{seed} + k)\\}_{k=1}^{R}",
+      "formulas": [],
+      "id": "starts",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_classical_start",
+      "note_cs": "Vyhrává nejvyšší konečná přesnost, při shodě dřívější start. Přesnost startu klasickým MDS se uvádí jako základna.",
+      "source_sha256": "ac386127825d1a1716f19d111a363c19a99f1682cedd943527cba58a383199e8",
+      "symbols": [
+       {
+        "latex": "R",
+        "meaning_cs": "počet náhodných startů",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_random_matrices_never_end_below_the_classical_mds_baseline"
+      ],
+      "title_cs": "Starty hledání",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Semínko náhodných startů",
+        "origin": "specification",
+        "reference": "seed",
+        "unit": "",
+        "value": 20261005
+       },
+       {
+        "absent": false,
+        "label_cs": "Počet náhodných startů",
+        "origin": "specification",
+        "reference": "random_starts",
+        "unit": "",
+        "value": 4
+       }
+      ]
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\max\\ \\operatorname{corr}(L, -D)",
+      "formulas": [],
+      "id": "smooth",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_smooth",
+      "note_cs": "Gradientní výstup: po úspěchu krok krát 1,2, po neúspěchu poloviční.",
+      "source_sha256": "b5b2e6cd75f10b7b666479aadd7c924eb7542bf542b0c13247f27a0613071b78",
+      "symbols": [
+       {
+        "latex": "L",
+        "meaning_cs": "pevná průměrná pořadí definovaných vztahů",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly"
+      ],
+      "title_cs": "Hladká fáze",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Iterace hladké fáze",
+        "origin": "specification",
+        "reference": "smooth_iterations",
+        "unit": "",
+        "value": 150
+       }
+      ]
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\min \\sum (d_{rs} - \\hat d_{rs})^2,\\quad \\hat d\\ \\text{izotonní, ostře rostoucí o mezeru}\\ g",
+      "formulas": [],
+      "id": "ordinal",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_ordinal",
+      "note_cs": "Z hladkého rozložení vedou dvě větve, přímá a ordinální; ponechá se lepší.",
+      "source_sha256": "ffe73908e9ce18203c4dc26883a6e8c5d7ff1e6691c8b10d8e3686c443134e34",
+      "symbols": [
+       {
+        "latex": "g",
+        "meaning_cs": "mezera mezi po sobě jdoucími cíli",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly"
+      ],
+      "title_cs": "Ordinální větev",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Iterace ordinální fáze",
+        "origin": "specification",
+        "reference": "ordinal_iterations",
+        "unit": "",
+        "value": 300
+       },
+       {
+        "absent": false,
+        "label_cs": "Mezera g",
+        "origin": "specification",
+        "reference": "ordinal_gap",
+        "unit": "",
+        "value": 0.05
+       }
+      ]
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\text{bod po bodu: nejlepší z}\\ m\\ \\text{posunů o}\\ \\delta\\ \\text{zvyšující}\\ A;\\quad \\delta \\leftarrow \\delta/2\\ \\text{až po}\\ \\delta_{\\min}",
+      "formulas": [],
+      "id": "exact",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_exact",
+      "note_cs": "",
+      "source_sha256": "cf676542df87449d4a63cd6aa558075caa8b04ad71ca4dfacb996743047bac2d",
+      "symbols": [
+       {
+        "latex": "m",
+        "meaning_cs": "počet směrů",
+        "unit": ""
+       },
+       {
+        "latex": "\\delta",
+        "meaning_cs": "krok",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_fig22_a_provisional_comparison_not_a_target"
+      ],
+      "title_cs": "Přesná fáze",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejvýše průchodů",
+        "origin": "specification",
+        "reference": "exact_max_sweeps",
+        "unit": "",
+        "value": 400
+       },
+       {
+        "absent": false,
+        "label_cs": "Počet směrů m",
+        "origin": "specification",
+        "reference": "directions",
+        "unit": "",
+        "value": 16
+       },
+       {
+        "absent": false,
+        "label_cs": "Počáteční krok",
+        "origin": "specification",
+        "reference": "initial_step",
+        "unit": "násobek RMS poloměru startu",
+        "value": 0.25
+       },
+       {
+        "absent": false,
+        "label_cs": "Nejmenší krok",
+        "origin": "specification",
+        "reference": "min_step",
+        "unit": "",
+        "value": 1e-06
+       }
+      ]
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\text{kloub s malou rezervou na párech mimo pořadí;}\\ \\text{ponechán jen když}\\ A\\uparrow",
+      "formulas": [],
+      "id": "repair",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_repair",
+      "note_cs": "",
+      "source_sha256": "5f563d9afac07b0a38e3fa6abfedc9444629dcd8a1bf5629f53b9536efd1d432",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_asymmetric_planted_relations_expose_pooled_versus_per_point"
+      ],
+      "title_cs": "Oprava párů mimo pořadí",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Kola opravy",
+        "origin": "specification",
+        "reference": "repair_rounds",
+        "unit": "",
+        "value": 30
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "SOMECS-H7"
+       }
+      ],
+      "formula_latex": "\\text{vystředit, otočit na hlavní osy, třetí moment} \\ge 0,\\ \\text{měřítko do}\\ [0{,}05;\\ 0{,}95]",
+      "formulas": [],
+      "id": "frame",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:_frame",
+      "note_cs": "Přesnost A se rámcem nemění.",
+      "source_sha256": "09aed091ddb59aa9ea274bc29ed37784d6f7ae6243974ef3523c3df15f4cd6fd",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_the_result_is_deterministic_framed_and_says_what_it_is"
+      ],
+      "title_cs": "Rámec mapy",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Rozsah rámce",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.hmodel_candidate:_FRAME",
+        "unit": "",
+        "value": [
+         0.05,
+         0.95
+        ]
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "Jak SOMECS hledá rozložení, není zdokumentováno.",
+        "ref": "AIA-H8"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       },
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "SOMECS-H6"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Kandidát AIA, ne metoda SOMECS.",
+        "ref": "docs/architecture/sociomapping-hmodel.md § 4"
+       }
+      ],
+      "formula_latex": "\\text{výsledek} = \\arg\\max_{\\text{starty, větve}} A,\\ \\text{status EXPERIMENTAL\\_AIA}",
+      "formulas": [],
+      "id": "search",
+      "implements": "aia_core.domain.sociomap.hmodel_candidate:fit_hmodel_candidate",
+      "note_cs": "Objekty se zpracují v kanonickém pořadí (podle id), takže jiné pořadí na vstupu dá stejnou mapu.",
+      "source_sha256": "18d30f799fb56f8be4e8c28ed42303a57cfc180556fd304eabd07b6582cda8d8",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_reordered_objects_give_the_same_map_reported_in_the_callers_order",
+       "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_the_result_is_deterministic_framed_and_says_what_it_is"
+      ],
+      "title_cs": "Hledání jako celek a jeho status",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze metody",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.hmodel_candidate:CANDIDATE_METHOD",
+        "unit": "",
+        "value": "aia_hmodel_candidate_v1"
+       },
+       {
+        "absent": false,
+        "label_cs": "Status",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.sociomap.hmodel_candidate:CANDIDATE_STATUS",
+        "unit": "",
+        "value": "EXPERIMENTAL_AIA"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "RTS-W3"
+       }
+      ],
+      "formula_latex": "h_j = \\frac{1}{|K|}\\sum_{k \\in K} x_{kj}",
+      "formulas": [],
+      "id": "heights",
+      "implements": "aia_core.domain.sociomap.heights:object_average_answers",
+      "note_cs": "",
+      "source_sha256": "fb41ccae8efa407c138ce56b940de34836a30564b5aebfb10a3d988b5aaa244e",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_sociomapping.py::test_relations_and_heights_match_an_independent_computation"
+      ],
+      "title_cs": "Výšky objektů",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "RTS-O2"
+       }
+      ],
+      "formula_latex": "v_{rs} \\in [0, 1]\\ \\text{jen když každá korelace je definovaná a nezáporná}",
+      "formulas": [],
+      "id": "fuzzy",
+      "implements": "aia_core.domain.sociomap.fuzzy:rts_fuzzy_from_correlations",
+      "note_cs": "Jinak se uvede důvod (M12) a záporné páry zůstanou vidět.",
+      "source_sha256": "a5821d213d6799adec929c857854886614b864d6ff58f95e9dc4af7d8402cf30",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_sociomapping.py::test_negative_correlations_alone_block_the_0_1_matrix_by_name_not_the_map"
+      ],
+      "title_cs": "Matice vztahů 0-1",
+      "values": []
+     },
+     {
+      "evidence": [],
+      "formula_latex": "\\text{třídy}\\ \\alpha\\text{-řezů matice 0-1, od nejvyšší úrovně}",
+      "formulas": [],
+      "id": "coherences",
+      "implements": "aia_core.domain.sociomap.coherence:coherences",
+      "note_cs": "",
+      "source_sha256": "e50ba558dee1b2a40ae742da63d04b8b704e2b8814ac5855cd524afa81bb9b67",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_coherence.py::test_the_help_example_is_reproduced_exactly",
+       "packages/aia_core/tests/test_sociomap_coherence.py::test_alpha_cuts_are_the_classes_at_each_level"
+      ],
+      "title_cs": "Koherence",
+      "values": []
+     }
+    ],
+    "steps": 16,
+    "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
+   }
   }
  },
  "modules": [
@@ -6139,6 +6696,63 @@
    ],
    "steps": 18,
    "title_cs": "Sociomapa: referenční mapa (18.6.6)"
+  },
+  {
+   "editable": false,
+   "groups": [
+    {
+     "id": "V",
+     "note_cs": "",
+     "step_ids": [
+      "complete_cases",
+      "scale"
+     ],
+     "title_cs": "Vstupy"
+    },
+    {
+     "id": "R",
+     "note_cs": "",
+     "step_ids": [
+      "correlations",
+      "declared"
+     ],
+     "title_cs": "Vztahy objektů"
+    },
+    {
+     "id": "H",
+     "note_cs": "",
+     "step_ids": [
+      "accuracy",
+      "placeable",
+      "starts",
+      "smooth",
+      "ordinal",
+      "exact",
+      "repair",
+      "frame",
+      "search"
+     ],
+     "title_cs": "Rozložení (H-Model, kandidát AIA)"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "heights",
+      "fuzzy",
+      "coherences"
+     ],
+     "title_cs": "Výšky a koherence"
+    }
+   ],
+   "id": "sociomapping",
+   "in_force": "aia_hmodel_candidate_v1",
+   "note_cs": "Experiment AIA, ne metoda SOMECS: jak SOMECS hledá rozložení, není zdokumentováno (AIA-H8). Každý výsledek nese status EXPERIMENTAL_AIA a nikdy nejde ke klientovi. Parametry hledání se ukazují, needitují.",
+   "presets": [
+    "aia_hmodel_candidate_v1"
+   ],
+   "steps": 16,
+   "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
   }
  ],
  "presets": {
@@ -6266,6 +6880,7 @@
     }
    }
   },
-  "sociomap_reference": {}
+  "sociomap_reference": {},
+  "sociomapping": {}
  }
 }

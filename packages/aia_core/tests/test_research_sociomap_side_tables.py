@@ -20,10 +20,14 @@ from aia_core.domain import research_sociomap
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.research_sociomap import (
+    LEGACY_METHODS,
     LEGACY_SIDE_TABLES,
     SideTables,
+    SociomapMethod,
     battery_sociomap,
+    default_methods,
     side_tables_for,
+    side_tables_of,
 )
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
@@ -171,3 +175,11 @@ def test_an_edited_bootstrap_moves_the_bodys_k100() -> None:
     pairs = list(zip(wide["objects"], narrow["objects"], strict=True))
     assert all(w["k100"] == n["k100"] for w, n in pairs)
     assert any(w["low"] is not None and w["low"] < n["low"] for w, n in pairs)
+
+
+def test_a_runs_pinned_methods_give_its_side_tables() -> None:
+    """What the readiness warning and the side tables both read (S2c)."""
+    assert side_tables_of(default_methods()) == side_tables_for((AIA_SOCIOMAP_V3,))
+    assert side_tables_of(LEGACY_METHODS) == LEGACY_SIDE_TABLES
+    edited = SociomapMethod.of(_edited(n_min=45))
+    assert side_tables_of((*LEGACY_METHODS, edited)).n_min == 45

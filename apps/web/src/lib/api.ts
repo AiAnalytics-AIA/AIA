@@ -384,6 +384,94 @@ export type PopulationRegistry = {
   history: PopulationPromotion[];
 };
 
+// GET /api/v1/clients/{id}/memory/search (project memory M1).
+export type MemoryField =
+  | "name"
+  | "title"
+  | "goal"
+  | "decision_use"
+  | "research_questions"
+  | "objectives"
+  | "sections"
+  | "dimensions";
+export type MemoryHit = {
+  study_id: string;
+  name: string;
+  kind: StudyKind;
+  status: string;
+  modified_at: string | null;
+  /** design: its latest Design Revision; draft: its working content (no Design Revision); name: its name alone. */
+  source: "design" | "draft" | "name";
+  design_revision: number | null;
+  matches: { field: MemoryField; texts: string[] }[];
+};
+
+// GET /api/v1/population/versions/{id}/characteristics (population-operations P7c): what a
+// version is made of, from the dictionary it keeps; no respondent row.
+export type PopulationFieldUse =
+  | "AUDIENCE_FILTERING"
+  | "PERSONA_CONSTRUCTION"
+  | "AGGREGATE_ANALYSIS"
+  | "SIMULATION"
+  | "CLIENT_MEASURED_CLAIM"
+  | "CLIENT_MODELLED_CLAIM"
+  | "WEIGHTING";
+export type PopulationUseAnswer = { use: PopulationFieldUse; allowed: boolean; reason: string; obligations: string[] };
+export type PopulationField = {
+  field: string;
+  block: string;
+  source: string;
+  evidence_status: string;
+  provenance_class: string;
+  production_grade: string;
+  recommended_use: string;
+  description: string;
+  persona_eligible: boolean;
+  is_weight: boolean;
+  derived: boolean;
+  uses: PopulationUseAnswer[];
+};
+export type PopulationWeight = {
+  role: string;
+  column: string;
+  is_default: boolean;
+  expected_total: number | null;
+  tolerance: number | null;
+};
+export type PopulationSubpanel = {
+  key: string;
+  name: string;
+  description: string;
+  filter: { field: string; minimum: number | null; maximum: number | null; equals: number | null };
+  focus_domains: string[];
+  status: string;
+  support_tier: string;
+  /** 18.6.6's own counts, on `subpanels_measured_on`; never AIA's measurement. */
+  measured_by_18_6_6: {
+    rows: number;
+    weighted_population: number;
+    unique_core_donors: number;
+    effective_core_donors: number;
+    max_core_reuse: number;
+  };
+  /** null while the version's dictionary is not kept: unknown, never usable. */
+  usable: boolean | null;
+  reason: string | null;
+};
+export type PopulationCharacteristics = {
+  version_id: string;
+  label: string;
+  dictionary_sha256: string;
+  dictionary_kept: boolean;
+  weights: PopulationWeight[];
+  blocks: { block: string; fields: number }[];
+  fields: PopulationField[];
+  subpanels: PopulationSubpanel[];
+  subpanels_measured_on: string;
+  subpanels_measured_under_weight: string;
+  subpanel_note: string;
+};
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -395,6 +483,8 @@ const query = (q: Record<string, string | undefined>) => {
 
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
+  characteristics: (versionId: string) =>
+    request<PopulationCharacteristics>("GET", `/api/v1/population/versions/${enc(versionId)}/characteristics`),
 };
 
 export const workspace = {
@@ -405,6 +495,9 @@ export const workspace = {
   overview: (clientId: string) => request<ClientOverview>("GET", `/api/v1/clients/${enc(clientId)}/overview`),
   studies: (clientId: string, kind?: StudyKind) =>
     request<WorkspaceStudy[]>("GET", `/api/v1/clients/${enc(clientId)}/studies${query({ kind })}`),
+  /** Project memory M1: this client's past studies whose name or design holds every word of q. */
+  memorySearch: (clientId: string, q: string) =>
+    request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>

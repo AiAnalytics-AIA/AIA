@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { PopulationRegistry, PopulationVersion } from "./api";
-import { labelOf, shortSha, summarize } from "./population";
+import type { PopulationField, PopulationRegistry, PopulationVersion } from "./api";
+import { defaultVersionId, filterFields, labelOf, reasonKey, shortSha, subpanelFilterText, summarize, usability } from "./population";
 
 const version = (label: string, status: PopulationVersion["status"]): PopulationVersion => ({
   version_id: `DSV-${label}`,
@@ -54,3 +54,55 @@ describe("the population registry, as Společenská inteligence reads it", () =>
     expect(shortSha("0123456789abcdef")).toBe("0123456789ab");
   });
 });
+
+describe("characteristics (P7d)", () => {
+  it("opens on LIVE, else the reference, else the newest version", () => {
+    expect(defaultVersionId(registry)).toBe("DSV-v_5");
+    expect(defaultVersionId({ ...registry, populations: registry.populations.filter((p) => p.kind === "STATIC") })).toBe("DSV-v_1");
+    const later = { ...version("v_9", "REGISTERED"), imported_at: "2026-10-11T09:00:00Z" };
+    expect(defaultVersionId({ ...registry, populations: [], versions: [...registry.versions, later] })).toBe("DSV-v_9");
+    expect(defaultVersionId({ ...registry, populations: [], versions: [] })).toBeNull();
+  });
+
+  it("reads a filter as a range or a value", () => {
+    expect(subpanelFilterText({ field: "vek", minimum: 18, maximum: 29, equals: null })).toBe("vek 18–29");
+    expect(subpanelFilterText({ field: "is_student", minimum: null, maximum: null, equals: 1 })).toBe("is_student = 1");
+  });
+
+  it("never reads an unknown check as usable", () => {
+    expect(usability({ usable: null })).toBe("unknown");
+    expect(usability({ usable: false })).toBe("unusable");
+    expect(usability({ usable: true })).toBe("usable");
+  });
+
+  const field = (name: string, block: string, description: string): PopulationField => ({
+    field: name,
+    block,
+    source: "fictional",
+    evidence_status: "CANONICAL_CORE",
+    provenance_class: "DONOR_MATCHED",
+    production_grade: "A",
+    recommended_use: "",
+    description,
+    persona_eligible: true,
+    is_weight: false,
+    derived: false,
+    uses: [],
+  });
+
+  it("filters fields by search and block", () => {
+    const fields = [field("vek", "population_anchor", "Věk"), field("vzdelani", "core", "Nejvyšší vzdělání")];
+    expect(filterFields(fields, "", null).map((f) => f.field)).toEqual(["vek", "vzdelani"]);
+    expect(filterFields(fields, "VZDĚL", null).map((f) => f.field)).toEqual(["vzdelani"]);
+    expect(filterFields(fields, "", "population_anchor").map((f) => f.field)).toEqual(["vek"]);
+    expect(filterFields(fields, "věk", "core")).toEqual([]);
+  });
+
+  it("words every policy reason, and shows an unknown code as it is", () => {
+    expect(reasonKey("audit_only")).toEqual({ key: "audit_only", values: {} });
+    expect(reasonKey("grade_C_not_client_facing")).toEqual({ key: "grade_not_client_facing", values: { grade: "C" } });
+    expect(reasonKey("rule_internal_only")).toEqual({ key: "rule", values: { rule: "internal_only" } });
+    expect(reasonKey("something_new")).toEqual({ key: "raw", values: { code: "something_new" } });
+  });
+});
+

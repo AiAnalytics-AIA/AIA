@@ -112,6 +112,7 @@ __all__ = [
     "rescaled_battery_ratings",
     "research_sociomaps",
     "side_tables_for",
+    "side_tables_of",
 ]
 
 #: The version of this module's artifact body. ``2``: the relation block carries
@@ -349,6 +350,14 @@ def default_methods() -> tuple[SociomapMethod, ...]:
     is never rewritten. ``aia-sociomap-4`` (the same numbers, every one declared) is where an
     edited methodology starts from; a run pins it only through a version put in force."""
     return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
+
+
+def side_tables_of(methods: Sequence[SociomapMethod]) -> SideTables:
+    """:func:`side_tables_for` over a run's pinned methods, each resolved (verified and
+    computable) first: what the readiness warning and the side tables both read, so the two
+    never disagree on a pair's ``n_min`` (plan ``methodology-tab`` S2c)."""
+    specs = [m.resolve() for m in methods]
+    return side_tables_for([s for s in specs if isinstance(s, SociomapSpecV3)])
 
 
 def methods_fingerprint(methods: Sequence[SociomapMethod]) -> str:
