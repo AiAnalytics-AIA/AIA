@@ -17,7 +17,11 @@ chunks:
   - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
   - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
-  - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
+  - "[ ] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
+  - "[ ] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
+  - "[ ] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
+  - "[ ] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
+  - "[ ] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -663,6 +667,41 @@ Tests: `research-execution.test.ts` (three new), `memory.test.ts`
 `ObjectMapView.test.tsx` (`says modelled data is modelled, never fictional and never measured`),
 `ExecutionSteps.test.tsx` (`says a modelled run is modelled on its banner and its steps…`,
 `says an origin it has no word for is unknown, never real`).
+
+### 4e. The split (ADR 0024 §3-§5, §7)
+
+Anchors @ `2dc834b1`, under `packages/aia_core/src/aia_core/domain/evidence/`.
+
+* **4e1, the `-2` policy.** `instrument.py` declares by origin: a simulated origin keeps `-1`
+  unchanged (`INSTRUMENT_POLICY_VERSION`, `_require_simulated` :73-80); `MODELLED_AI_PANEL` gets
+  `aia-instrument-evidence-2`, status `InstrumentStatus.MODELLED_PANEL_RESPONSE`, provenance
+  `MODELLED`, and the rules its declared use extracts (`NEVER_MEASURED_FACT`,
+  `PERSON_VALUE_MODELED`, `AGGREGATE_ONLY`, `REQUIRES_SCOPE`, `REQUIRES_MODELED_DISCLOSURE`).
+  Two AIA-only rules beside them, never extracted from prose (like `INTERNAL_ONLY`,
+  `field_policy.py:143`): `MODELED_DISCLOSURE_ALWAYS` -- the dictionary's
+  `REQUIRES_MODELED_DISCLOSURE` fires only on a *measured* claim (`claims.py:155-161`), which
+  `NEVER_MEASURED_FACT` already refuses, so on its own it would let a modelled claim reach a
+  client undisclosed -- and `INTERNAL_ONLY`, which 4e1 always adds. Any other origin, `None`
+  included, is still refused.
+* **4e2, the validation.** `validation.py` gains the respondent system fingerprint (ADR §4: the
+  respondent prompt SHA-256, persona builder and mode, sampler version, population version,
+  model binding, response-process version; every component required) beside today's panel
+  fingerprint. `instrument_policy_book` takes the validation state and the current respondent
+  system; only `HOLDOUT_VALIDATED` earned on that fingerprint (`effective_validation_status`
+  :115) drops `INTERNAL_ONLY` from `-2`. Smoke never does; a stale one never does. The book's
+  identity (`source_sha256`) carries the system fingerprint and the effective status, so a
+  module judged under one validation is not reused under another.
+* **4e3, native evidence.** `analysis/native.py` (`native_evidence` :465-476) builds `-2` for a
+  modelled dataset, with the respondent system the run records; no validation is stored
+  anywhere yet (chunk 7 earns the first), so every modelled claim stays internal.
+* **4e4, support in donors.** Native evidence already asks donor support
+  (`native.py:257-258`, `requires_donor_support=True`); a test proves a modelled run of 1,000
+  respondents on 40 donors is assessed as 40-donor evidence (ADR §5), never as 1,000.
+* **4e5, the report.** The DOCX marks a modelled number with "modelováno: AI respondenti z
+  populace" beside it and, when a validation holds, its date and fingerprint (ADR §7).
+
+Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
+4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
