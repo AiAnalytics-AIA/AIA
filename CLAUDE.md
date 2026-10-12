@@ -309,7 +309,8 @@ packages/aia_core/src/aia_core/
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
-    licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
+    licence_determinations.py  The determinations as data: panel sources APPROVED for
+                            bedrock-eu-primary alone (OI-61, data owner 2026-10-12)
     design.py               A Study's Design Revision: immutable content, provenance, the owner tag
     design_reuse.py         A reused design's labels (derive_source_labels: the union over every run of
                             the source revision, never chosen) and its citation (DesignSource)
@@ -344,6 +345,9 @@ packages/aia_core/src/aia_core/
       authority.py          Population-operator capability (establish / promote)
       subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
                             BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
+      audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
+                            from the column as pandas types it; subpanel_filters; select_audience over
+                            a run's population, refusing where the unit dropped a filter
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -627,6 +631,8 @@ tools/progress.py           Every plan's status from its front-matter; `--check`
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
+tools/audience_capture.py  Audience-filter fixtures: fictional rows and cases (`inputs`), the unit's
+                            own sanitize_filters / _mask / factor_map on them (`capture`, with pandas)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
@@ -858,6 +864,7 @@ ungated fixture.
 | **AIA with 18.6.6 absent** | `make ui-workbench` (no unit; its old paths are the web client's 404), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to a path the unit served |
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
+| Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
