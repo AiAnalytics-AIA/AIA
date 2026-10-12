@@ -5,7 +5,7 @@ chunks:
   - "[x] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
   - "[x] P3. A run records its population binding at creation, and population-consuming steps say so"
   - "[x] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
-  - "[ ] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
+  - "[x] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
   - "[ ] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
   - "[ ] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
   - "[ ] P4d. A researcher materializes an eligible dimension: a worker step that registers the child, never promotes"
@@ -459,3 +459,23 @@ registry, and a promotion would move every organization's LIVE. So a child versi
 
 K5 still owns the knowledge-side definition and its acceptance. P4d accepts a typed definition
 so the population side can land and be tested first, and K5 then supplies that same shape.
+
+**P4a, 2026-10-12** (`feature/population-child-versions`). `domain/population/versions.py`
+`VersionOwner` (organization and client) and `DatasetVersion.owner` / `extension_sha256`, both or
+neither, an owned version always a child; `plan_establish` and `plan_promotion` refuse an owned
+version (`OwnedVersionNotShared`, reason `owned_version`), so STATIC and LIVE stay shared.
+`domain/population/materialized.py`: `MaterializedField` (name, `binary` / `scale_1_10`, the
+definition's hash, the method and its version), `PopulationContractExtension` (the base
+contract, its ordered field names and dictionary by hash, the added fields; its identity the
+SHA256 of its canonical JSON, `from_payload` refusing any other contract), `field_names` (the
+base's in order, then the added; a shadowing name refused), `materialized_policy_entry` (M3 as
+one policy entry: `MODELLED`, persona-eligible, `PERSON_VALUE_MODELED` +
+`REQUIRES_MODELED_DISCLOSURE`, `MODELLED_AGGREGATE`; so `FieldPolicy.decide` allows persona,
+audience, simulation and internal aggregate analysis, a disclosed aggregate modelled claim, and
+refuses a measured claim and weighting), `with_materialized_fields`, and `check_child_version`
+(owned, the base shared and its parent, same dataset, contract, dictionary and rows, the
+extension by hash, the fields the base's followed by the added ones). Internal aggregate
+analysis follows from the existing rules for any classified field; M3's list did not name it.
+Tests: `test_population_materialized.py` (16); the guard in `plan_promotion` and the parent
+check each fail a test when removed (checked by mutation).
+
