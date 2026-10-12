@@ -364,7 +364,8 @@ packages/aia_core/src/aia_core/
                             synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
                             CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
                             origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
-                            uses) and MODELLED_DISCLOSURE
+                            uses), MODELLED_DISCLOSURE and RESPONDENT_SYSTEM_METADATA (the dataset's
+                            record of its respondent system)
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
@@ -477,7 +478,9 @@ packages/aia_core/src/aia_core/
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
       model.py              The document: metadata, sections, every block — numbers only as refs
-      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades
+      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades;
+                            modelled_panel: the refs that print "modelováno: AI respondenti z
+                            populace" beside them (ADR 0024 §7)
       validation.py         Every rule a report must keep before it renders; fails closed
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
@@ -491,7 +494,11 @@ packages/aia_core/src/aia_core/
       claims.py             Permissible-claim policy: measured vs modelled, disclosures
       support.py            Kish effective n, SUPPRESS by default, intervals required
       metrics.py            The allowed analysis metrics, one unit each
-      validation.py         Validation bound to system fingerprint; tier gate
+      validation.py         Validation bound to system fingerprint; tier gate;
+                            respondent_system_fingerprint (ADR 0024 §4) and lifts_internal_only (a
+                            current holdout on it, nothing else)
+      instrument.py         A Study's own items as evidence fields: -1 (simulated) and -2
+                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until lifted
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
