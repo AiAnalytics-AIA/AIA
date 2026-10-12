@@ -32,7 +32,7 @@ chunks:
   - "[x] 6c. The feasibility preview: the API counts LIVE under the filters and asks the sampler; measured"
   - "[x] 6d. Readiness says whether the filters will be applied, by what a run started now would pin"
   - "[x] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
-  - "[ ] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
+  - "[x] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
 ---
 # Panel-grounded AI respondents
@@ -1133,6 +1133,28 @@ preview in words); `AudienceStep.test.tsx` › *from AIA's population* (filters 
 an empty bound left out, a refused factor disabled; the preview counted and its body; the
 preview unavailable; a subpanel chosen as its filter and the step ready, a refused one disabled).
 
+**6f landed.** The workbench has a population for the audience step. Its API stand-in
+imports the sampler's 3,000 fictional rows under a contract of its own
+(`tools/ui_workbench/fictional_population.py`, idempotent across restarts, about 15 s on a
+fresh start), keeps LIVE's catalogue, and points the audience routes at it through one seam
+in the composition root: `aia_api.dependencies.AudiencePopulation` on `app.state` (the Czech
+LIVE in every deployment, `CZECH_AUDIENCE`; nothing in configuration changes it) and the
+installed previewer. Research runs keep recording the Czech LIVE, which the workbench never
+establishes. `make ui-audience` (`audience_journey.mjs`) drives the step in Chromium: filters
+from the catalogue saved as chosen with the empty bound left out and read back after a reload,
+the preview's count and verdict, a usable subpanel saved as its filter and a policy-refused
+one disabled, no request to a unit path. **Run 2026-10-12: PASS**, 104 requests.
+
+Finding, fixed here: the journey's first run got a 503 from the preview. The stand-in installs
+its previewer, then the server's startup runs `init_app_state` again (the setup client's
+shutdown disposed the engine), which rebuilt the previewer from settings: none. `init_app_state`
+now keeps a previewer already installed, as it keeps the engine
+(`test_population_api.py::test_a_previewer_already_installed_survives_the_servers_startup`).
+In a deployment nothing installs one, so nothing changes there.
+
+Tests: `test_population_api.py::test_the_audience_routes_read_the_population_the_composition_names`,
+`::test_a_previewer_already_installed_survives_the_servers_startup`; the journey.
+
 **Two findings on #332 (Codex, after it merged), fixed here.** (1) A panel start with no
 population and a spend limit the run reaches was asked to confirm its cost before being refused
 (`application/research.py`, the population check after the cost gate @ `abd3ce88`): the person
@@ -1312,3 +1334,10 @@ respondents, compared. No client-facing claim until the holdout result is record
   `.planning/open-items.md` OI-50: AIA's live editor leaves an empty bound out
   (`research/audience.ts` `setRange`, `audience.live.test.ts`); the classic port keeps the
   classic's 0 for parity only.
+- (6f) `CLAUDE.md` § 3 commands: "**Audience step, end to end** | After `make ui-workbench` +
+  `make ui-fixtures`, `make ui-audience` (Playwright + Chromium): filters from the workbench's
+  fictional population, the preview, the built-in subpanels; fictional rows only"; § 2 map,
+  `tools/ui_workbench/`: "fictional_population.py: the audience step's fictional LIVE (the
+  sampler's rows), installed through `aia_api.dependencies.AudiencePopulation`";
+  `dependencies.py`: "AudiencePopulation: the population the audience routes read (the Czech
+  LIVE; the workbench's fictional one)".

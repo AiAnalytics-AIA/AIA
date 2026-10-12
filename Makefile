@@ -11,7 +11,7 @@ PY := $(shell [ -x $(VENV)/bin/python ] && echo $(VENV)/bin/python || command -v
 PIP := $(PY) -m pip
 BIN := $(shell [ -d $(VENV)/bin ] && echo $(VENV)/bin/ || echo "")
 
-.PHONY: help setup deps services migrate migration dev dev-api dev-web dev-worker \
+.PHONY: ui-audience help setup deps services migrate migration dev dev-api dev-web dev-worker \
         test test-core test-api test-worker test-executors test-parity test-golden test-oracle parity-status test-web report-preview web_design ui-workbench ui-workbench-reference ui-workbench-status ui-workbench-down ui-capture ui-fixtures ui-research ui-sociomapping ui-workspace \
         lint format typecheck \
         layer_check exposure_check check verify openapi clean
@@ -118,6 +118,9 @@ ui-research: ## One research run end to end in a browser on the workbench: Run -
 ui-sociomapping: ## The experimental Sociomapping in a browser on the workbench: run, map, report download (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/sociomapping_journey.mjs --fixture sociomapping
 	@$(PY) tools/sociomapping_independent_check.py
+
+ui-audience: ## The audience step from the workbench's fictional population: filters, preview, subpanels (needs ui-workbench + ui-fixtures)
+	@node tools/ui_workbench/audience_journey.mjs
 
 ui-workspace: ## A study's working content in a browser on AIA alone: brief file, template import, audience, dimensions (needs ui-workbench + ui-fixtures)
 	@node tools/ui_workbench/workspace_journey.mjs
