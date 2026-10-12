@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Audit every live tab and introduce clear task-based navigation and setting explanations"
   - "[x] 2. Rebuild Methodology browsing/editing with focused sections, plain-language guidance and protected drafts"
   - "[x] 3. Upgrade AI, research policy, access, budgets, audit and reference usability"
-  - "[ ] 4. Verify all tabs and editing journeys across desktop/tablet/phone, integrate and deploy"
+  - "[x] 4. Verify all tabs and editing journeys across desktop/tablet/phone, integrate and deploy"
 ---
 # Pleasant settings workspace
 
@@ -33,3 +33,5 @@ Review map: settings presentation/navigation/explanation catalogue; existing aud
 Final local production browser journey: 52 layout assertions including expanded formula/provenance details pass; seven complete settings journeys, zero page errors and zero paid jobs. Technical text wraps and comparison tables scroll inside their panels. Full frontend remains 1125 passing; current production build and lint pass. Screenshot captures reviewed for reader/editor, policy and access pages.
 
 Latest integration at 43b90ca2 includes develop ea5210e2 and its editable support rules, preserving both the support-cell comparison and grouped fictional map panels. All 57 frontend files / 1153 tests, lint, types and production build pass. The settings browser acceptance still passes seven flows / 52 layout checks with zero page errors and paid jobs; the existing proposal/prompt acceptance also passes all nine flows / 20 layout checks. CI and live deployment acceptance remain the final release gate.
+
+Live completion receipt — 12 October 2026: PR #290 merged as 2edf6b7f after all exact-head checks passed (CI 38228642228). Later successful deployment 38277094013 serves 400fa241, which contains the settings feature; both web /version and API /api/v1/health identify that SHA. Renewing the cached signed-in browser session loaded the new workspace. All eight tabs at 1440/1024/768/390 passed 32 live overflow checks with zero page errors and zero API writes; Methodology parameter search and open/cancel of its section-focused editor passed. No live organization, member, budget, prompt or methodology version was changed. A subsequent unrelated deployment failed while pulling an image because the host disk was full; this does not undo the successful settings release.
