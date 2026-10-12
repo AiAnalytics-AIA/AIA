@@ -82,6 +82,8 @@ class ResearchAgentConfig:
     reservation_usd: float
     fictional_client_ids: frozenset[str]
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
+    step_events: bool = False
 
 
 class ResearchAgentExecutor:
@@ -198,6 +200,7 @@ class ResearchAgentExecutor:
             runtime_version=self._build.sha or "",
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
+            announce=cfg.step_events,
         )
         try:
             caller.preflight(request)

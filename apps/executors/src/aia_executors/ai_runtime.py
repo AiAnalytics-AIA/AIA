@@ -231,6 +231,11 @@ class AIRuntimeSettings:
     #: -- to the route's model. Never read from the environment here: the Deep Research
     #: composition sets it when its lead switch is on (``deep_research_runtime``).
     research_lead_enabled: bool = False
+    #: ``AIA_AI_STEP_EVENTS`` (off by default): a research agent's and an analysis module's
+    #: model requests each write a "sent" and an "answered" event to their run's feed
+    #: (``StepModelCaller(announce=)``): counts, cost and latency, never text. Two
+    #: lease-fenced writes per request, so it is a switch (CLAUDE.md § 8).
+    step_events: bool = False
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> AIRuntimeSettings | None:
@@ -327,6 +332,7 @@ class AIRuntimeSettings:
             research_reservation_usd=float(_number(env, "AIA_AI_RESEARCH_RESERVATION_USD") or 0)
             if _flag(env, "AIA_AI_RESEARCH_AGENTS_ENABLED", required=False)
             else 0,
+            step_events=_flag(env, "AIA_AI_STEP_EVENTS", required=False),
             analysis_enabled=_flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False),
             analysis_max_output_tokens=_positive_int(env, "AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS")
             if _flag(env, "AIA_AI_ANALYSIS_ENABLED", required=False)
