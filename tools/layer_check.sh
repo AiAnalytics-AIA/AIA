@@ -627,6 +627,11 @@ forbid "workers never read the Sociomap's code constants" \
 forbid "executors never read the Sociomap's code constants" \
   "$SOCIOMAP_CODE_CONSTANTS" \
   "$EXECUTORS"
+# The readiness warning says what a run's own Sociomap will need (S2c): it is given the
+# pair n_min of the methods the run pins and never reads the code's.
+forbid "readiness never reads the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$CORE/domain/research_design.py"
 
 # --- Tests: the signal is never deleted ------------------------------------
 #

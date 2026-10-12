@@ -15,7 +15,7 @@ chunks:
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
   - "[x] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
-  - "[ ] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
+  - "[x] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
   - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
@@ -572,6 +572,19 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       API, the worker and the executors.
     - Inside `research_sociomap.py`, `test_no_run_path_reads_the_codes_constants` checks the
       names that `battery_sociomap` and `research_sociomaps` compile to.
+  - **Landed (S2c).** The readiness warning ("n is below the respondents each pair needs")
+    reads the pair `n_min` of the methods the run pins, through the same
+    `research_sociomap.side_tables_of` as the side tables, so the two never disagree.
+    `assess_readiness` and `prepare` take `pair_n_min` and have no default.
+    - `ResearchRuns.readiness` reads the methodology in force, and `start` reads the methods it
+      is about to pin. Both resolve the methods through one `_methods`, and an uncomputable pin
+      is refused before the checks.
+    - The worker's preflight step reads the run's own pin from its step input
+      (`step_inputs["preflight"]["methods"]`). A run started before S2c has none there and
+      reads as `aia-sociomap-1`, whose `n_min` is the same 30.
+    - Tests: `test_readiness_warns_with_the_n_min_of_the_methodology_in_force`,
+      `test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later`.
+    - A layer rule keeps the code constants out of `research_design.py`.
   - **Finding (fixed in S2a).** The tab offered a field that a preset leaves out of its stored
     form as editable with the value `null` (`relation.effect_floor` under `aia-sociomap-2`). The
     editor works on the stored form, so saving from -2 would have thrown on that field.
