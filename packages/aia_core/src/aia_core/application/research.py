@@ -369,6 +369,14 @@ class ResearchRuns:
         if retry_of:
             key += f":retry:{retry_of}"
         support_pin = support_spec.model_dump(mode="json")
+        # Before the cost gate: a panel run with no population to draw from can never start,
+        # so it is refused as that, never put to the person as a cost to confirm.
+        population = self._population_for(key, retry_of)
+        if panel and population is None:
+            raise PanelPopulationMissing(
+                "the panel persona source draws from the run's population, and none is "
+                "established; nothing was started"
+            )
         confirmation: tuple[float, float] | None = None
         limit = self.spend_limit()
         if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
@@ -386,12 +394,6 @@ class ResearchRuns:
                 if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
                     raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
                 confirmation = (ceiling.total_usd, limit)
-        population = self._population_for(key, retry_of)
-        if panel and population is None:
-            raise PanelPopulationMissing(
-                "the panel persona source draws from the run's population, and none is "
-                "established; nothing was started"
-            )
         started = start_workflow(
             self.session,
             self.scope,
