@@ -30,7 +30,7 @@ chunks:
   - "[x] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
   - "[x] G3a. Aggregation pinned: a run pins the aggregation version in force (spec + replaced formulas), a retry keeps it, the aggregate computes under it and its deviation label is reachable"
   - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
-  - "[ ] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
+  - "[x] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
@@ -759,6 +759,38 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - **G3 splits into G3a-G3c.** Support has been editable since G1d, so G3 is aggregation's.
     It follows support's order: pin (G1c), then editing with its draft check (G1d). The
     label's reach past Results is its own chunk.
+  - **G3c. Landed.** The deviation G2c records on the aggregate now reaches everything that
+    reads the aggregate's numbers.
+    - **Analysis evidence.** `native_evidence` puts the deviation (method name, changed values,
+      replaced formulas) into the system fingerprint, only when there is one, the way a
+      non-reference support rule enters it.
+      - A validation recorded for 18.6.6's method never vouches for numbers another method
+        computed.
+      - Every analysis under the port keeps the fingerprint its validations are bound to.
+      - A deviation that cannot be read is refused (`NativeEvidenceRefused`), never taken for
+        the port.
+    - **Reconstruction and API.** `RunAnalysis.aggregation_deviation` is read once from the
+      verified sources by `reconstruct_run`. `GET …/analysis` returns it as
+      `aggregation_deviation` (`null` for the port).
+    - **The web.** The AI analysis card shows G2c's "Odchylka od 18.6.6" banner above the
+      modules, naming each change and each replaced formula.
+    - **The internal report** (`compose_internal_report`), following the synthetic-respondents
+      disclosure it already makes:
+      - a LIMITATION callout titled "Odchylka od 18.6.6" in the introduction;
+      - a paragraph in "Metodika a způsob interpretace" naming the version, each changed value
+        ("top_box (18.6.6: 2, zde 1)") and each replaced formula;
+      - a limitation callout in the limitations chapter;
+      - "Metodika agregace" in the audit appendix.
+
+      None of it appears for the port. The DOCX still lints clean.
+    - Tests:
+      - `test_analysis_results.py::test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_report`
+        (fingerprint moves; garbled refused; reconstruct carries it; every report place),
+        with the negative added to the existing composition test;
+      - `test_research_api.py` (the key, `null` before any module read an aggregate);
+      - `ExecutionSteps.test.tsx` (the banner on the analysis, and none on the port).
+  - **G3 complete.** Support has been editable since G1d, and aggregation since G3b. Both are
+    pinned by every run, and any departure from 18.6.6 is said wherever the numbers go.
   - **G3b. Landed.**
     - **Editable.** Module `aggregation` is `editable`. A version may change any declared value
       and replace any of the five estimator slots. `validate_version` checks both: the

@@ -40,7 +40,7 @@ from aia_core.domain.analysis.artifact import (
     ProducedBy,
     parse_module_artifact,
 )
-from aia_core.domain.analysis.native import NativeEvidenceRefused
+from aia_core.domain.analysis.native import NativeEvidenceRefused, native_evidence
 from aia_core.domain.analysis.steps import (
     ANALYSIS_STEP_KIND,
     analysis_step_definitions,
@@ -52,11 +52,12 @@ from aia_core.domain.evidence import (
     Violation,
     ViolationCode,
 )
-from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
 from aia_core.domain.report.model import (
+    AuditBlock,
     BulletList,
     Callout,
     Classification,
@@ -67,7 +68,7 @@ from aia_core.domain.report.model import (
     Text,
 )
 from aia_core.domain.report.validation import cited_refs
-from aia_core.domain.research_aggregate import aggregate_dataset
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
 from aia_core.domain.research_design import compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 from aia_core.domain.workflow_templates import RESEARCH, steps_for_workflow
@@ -717,6 +718,9 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
     assert "Ranní nápoj" in "".join(i.text for i in intro[0].content if isinstance(i, Text))
     assert any(isinstance(b, BulletList) for b in intro)
     assert any(isinstance(b, Callout) and b.title == "Rámec interpretace" for b in intro)
+    # 18.6.6's own aggregation: no deviation is claimed anywhere (G3c).
+    assert run.aggregation_deviation is None
+    assert not any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
     assert doc.meta.approvals == ()
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
@@ -1043,3 +1047,64 @@ def test_a_support_pin_that_does_not_read_is_refused_by_name(world: World) -> No
     with pytest.raises(SourcesRefused) as refused:
         native_sources(world.session, world.scope, world.store, broken)
     assert refused.value.reason == "support_pin"
+
+
+def _text(blocks: Any) -> str:
+    return "\n".join(
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, (Paragraph, Callout))
+    )
+
+
+def test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_report(
+    world: World,
+) -> None:
+    """Plan methodology-tab G3c: the deviation the aggregate records reaches the analysis
+    (its system fingerprint, so no validation of the unit's method vouches for it) and the
+    internal report (introduction, methodology, limitations, audit)."""
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    dataset = synthetic_dataset(spec, seed=20260816)
+    method = AIA_AGGREGATE_V1.model_copy(
+        update={"methodology_version": "aia-aggregate-1+e1", "top_box": 1}
+    )
+    deviating = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1, method=method)
+    unit = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
+    assert deviating["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 1}]
+
+    # The fingerprint moves with the method, and only with it.
+    args: dict[str, Any] = {
+        "dataset_sha256": "d" * 64,
+        "origin": dataset.origin,
+        "support": REFERENCE_THRESHOLDS,
+    }
+    assert (
+        native_evidence(spec, deviating, **args).system_fingerprint
+        != native_evidence(spec, unit, **args).system_fingerprint
+    )
+    with pytest.raises(NativeEvidenceRefused, match="deviation"):
+        native_evidence(spec, {**unit, "deviation": "garbled"}, **args)
+
+    run_id = world.start()
+    world.upstream(payloads={"aggregate": {"kind": AGGREGATE_ARTIFACT, "aggregate": deviating}})
+    world.store_outcomes(run_id, completed, count=8)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    assert run.complete and run.aggregation_deviation == deviating["deviation"]
+
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    doc = compose_internal_report(run, report_meta(first.method_status))
+    sections = {s.id: s for s in doc.sections}
+    intro = sections["intro"].blocks
+    assert any(isinstance(b, Callout) and b.title == "Odchylka od 18.6.6" for b in intro)
+    methodology = _text(sections["methodology"].blocks)
+    assert "aia-aggregate-1+e1" in methodology and "top_box (18.6.6: 2, zde 1)" in methodology
+    ordinal = next(
+        m.ordinal for m in ANALYSIS_MODULES if m.module_id is AnalysisModuleId.LIMITATIONS
+    )
+    limitations = sections[f"ch-{ordinal}"]
+    assert "odchyluje od přenosu 18.6.6" in _text(limitations.blocks)
+    audit = next(b for b in sections["app-audit"].blocks if isinstance(b, AuditBlock))
+    assert ("Metodika agregace", "aia-aggregate-1+e1") in audit.entries
+    assert not lint_docx(DocxRenderer().render(doc))

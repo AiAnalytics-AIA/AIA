@@ -979,6 +979,9 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
       </p>
       {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
       {loaded.state === "loading" ? <p>{t("research.loading")}</p> : null}
+      {loaded.state === "ready" && loaded.value.aggregation_deviation ? (
+        <div className="mb-3"><Deviation deviation={aggregateDeviation({ deviation: loaded.value.aggregation_deviation }) as AggregateDeviation} /></div>
+      ) : null}
       {loaded.state === "ready" ? (
         <div className="flex flex-col gap-4">
           {ANALYSIS_ORDER.map((id) => {

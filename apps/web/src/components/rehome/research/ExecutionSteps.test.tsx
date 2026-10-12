@@ -706,6 +706,41 @@ describe("Results", () => {
     expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
     expect(screen.getByText(/Čeká: WAITING_PROVIDER/)).toBeTruthy();
+    expect(document.querySelector("[data-aggregate-deviation]")).toBeNull(); // the unit's port
+  });
+
+  it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
+    const partial = run({
+      status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
+      steps: [
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "SYNTHETIC_FIXTURE" }),
+        step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+      ],
+    });
+    api({
+      ...listed(partial),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({
+        run_id: "RUN-1", complete: false, internal_only: true, synthetic: true, pending: {},
+        aggregation_deviation: {
+          from: "aia-aggregate-1", methodology_version: "aia-aggregate-1+e1",
+          changed: [{ path: "top_box", unit: 2, used: 1 }], replaced_formulas: ["agg.kish"], note_cs: "…",
+        },
+        modules: { executive: { outcome: "COMPLETED", artifact_id: "ART-6",
+          summary: "Ověřené shrnutí.", research_question_answers: [], key_findings: [], claims: [], violations: [] } },
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    await screen.findByText("Ověřené shrnutí.");
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-aggregate-deviation]");
+      if (!found) throw new Error("the deviation note is not shown yet");
+      return found as HTMLElement;
+    });
+    expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
+    expect(within(note).getByText("top_box: 2 v 18.6.6, zde 1")).toBeTruthy();
+    expect(within(note).getByText("Nahrazený vzorec: agg.kish")).toBeTruthy();
   });
 
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {

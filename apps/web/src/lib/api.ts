@@ -674,6 +674,9 @@ export type ResearchAnalysis = {
   complete: boolean;
   internal_only: true;
   synthetic: boolean;
+  /** The aggregate the modules read is no longer 18.6.6's port (methodology-tab G3c);
+   *  `null` (or absent, from an API before it) when it is the port. */
+  aggregation_deviation?: Record<string, unknown> | null;
   pending: Record<string, string>;
   modules: Record<string, {
     outcome: "COMPLETED" | "BLOCKED";

@@ -8,6 +8,8 @@ does not ask a model to invent a second interpretation of the results.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
+from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -54,6 +56,27 @@ _TITLES = {
     AnalysisModuleId.IMPLICATIONS: "Implikace pro rozhodnutí",
     AnalysisModuleId.LIMITATIONS: "Limity",
 }
+
+
+def _deviation_text(deviation: Mapping[str, Any]) -> str:
+    """What a reader of the report must know about an aggregate that is not 18.6.6's port:
+    the method it was computed under, every value it changed and every formula it replaced."""
+    parts = [
+        f"{c.get('path')} (18.6.6: {c.get('unit')}, zde {c.get('used')})"
+        for c in deviation.get("changed") or []
+        if isinstance(c, Mapping)
+    ]
+    formulas = [str(f) for f in deviation.get("replaced_formulas") or []]
+    named = "; ".join(
+        ([f"změněno: {', '.join(parts)}"] if parts else [])
+        + ([f"nahrazené vzorce: {', '.join(formulas)}"] if formulas else [])
+    )
+    return (
+        "Agregace v tomto běhu se odchyluje od přenosu 18.6.6: počítala podle metodiky "
+        f"{deviation.get('methodology_version') or 'neuvedené verze'}"
+        + (f" ({named})" if named else "")
+        + ". Odhady a intervaly proto nejsou bez této výhrady srovnatelné s výsledky 18.6.6."
+    )
 
 
 def compose_internal_report(
@@ -140,8 +163,17 @@ def compose_internal_report(
                 title="Rámec interpretace",
             )
         )
+    deviation = run.aggregation_deviation
+    if deviation is not None:
+        introduction.append(
+            Callout(
+                CalloutKind.LIMITATION, text(_deviation_text(deviation)), title="Odchylka od 18.6.6"
+            )
+        )
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
+    if deviation is not None:
+        audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
     # Put the population context before object-level findings; keep module IDs
     # and their admitted paragraphs intact rather than rewriting the evidence.
     order = (
@@ -194,6 +226,11 @@ def compose_internal_report(
                                 "evidenční příloze. Ta slouží k ověření zjištění, zatímco "
                                 "následující kapitoly rozvíjejí jejich věcný význam."
                             )
+                        ),
+                        *(
+                            ()
+                            if deviation is None
+                            else (Paragraph(text(_deviation_text(deviation))),)
                         ),
                     ),
                     id="methodology",
@@ -259,6 +296,16 @@ def compose_internal_report(
                 Callout(
                     CalloutKind.LIMITATION,
                     text("Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob."),
+                )
+            )
+        if spec.module_id is AnalysisModuleId.LIMITATIONS and deviation is not None:
+            blocks.append(
+                Callout(
+                    CalloutKind.LIMITATION,
+                    text(
+                        "Agregace se odchyluje od přenosu 18.6.6. Srovnání s výsledky 18.6.6 "
+                        "platí jen s touto výhradou."
+                    ),
                 )
             )
         sections.append(Section(_TITLES[spec.module_id], tuple(blocks), id=f"ch-{spec.ordinal}"))
