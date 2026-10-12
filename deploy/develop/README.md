@@ -721,6 +721,67 @@ After reopening, a rollback discards everything saved in AIA since that dump, so
 needs its own decision and an export first. The rehearsal covered the database, the
 migration and both code revisions; it did not cover the Compose or SSM steps.
 
+## Disk retention
+
+Every deployment acquires the host's `.deploy.lock`, then runs image retention
+and checks disk headroom **before ECR login, downloads, backup, migration or
+service replacement**. This includes manual `bin/deploy.sh` calls. The
+CloudWatch `aia-develop-disk-85-percent` alarm and its existing notifications
+remain unchanged; cleanup runs with deployments, not with every alarm.
+
+Only local `aia-api`, `aia-worker` and `aia-web` images in this deployment's
+registry, tagged by a full git SHA and older than 48 hours, can be removed.
+Retention keeps:
+
+- Every image used by any running **or stopped** container.
+- The incoming SHA, the currently responding release, and all images less than
+  48 hours old.
+- The latest four distinct successful releases: current plus three rollback
+  releases, even when older than 48 hours.
+- Untagged, shared/floating-tag, other-registry and reference-unit images.
+
+The successful list is written atomically to
+`.deploy-state/successful-releases.json` **after smoke passes**, never after a
+failed pull, migration or smoke test. On the first deployment with this policy,
+the list is initialized from the incoming successful release and the previously
+running SHA; the 48-hour window and container references also protect recent
+images. Until four distinct releases are recorded, automatic retention keeps
+**all** images: older pre-policy rollback images cannot be inferred from image
+creation dates. An operator may seed the ledger from four verified successful
+deployment receipts (oldest first, using the `record --sha` command); do not
+substitute arbitrary local image tags. Corrupt history or an unreadable Docker
+inventory stops the deployment.
+Do not delete the history file to work around that refusal: repair it from
+successful deploy receipts. Abbreviated operator SHAs protect all matching
+full-SHA tags conservatively.
+
+No force removal, broad Docker prune, container deletion or volume deletion is
+used. Backups, PostgreSQL, research files and ECR images are untouched. A
+concurrent container referencing an eligible image makes Docker refuse removal;
+the deploy then stops before downloads.
+
+After retention, root, Docker storage, containerd storage and deployment
+filesystems must each have at least **8 GiB available** and be at or below
+**85% used**. Each distinct filesystem is checked once; reserved filesystem
+blocks do not count as available. A refusal prints available space and the
+thresholds, while the running services remain in place. Cleanup cannot solve
+growth in retained images, logs, volumes or backups: investigate those, or use
+the Resize procedure below. It never broadens its deletion rules to clear a gate.
+
+To inspect without deleting anything, on the host:
+
+```bash
+python3 bin/image_retention.py preflight \
+  --registry "$AIA_IMAGE_REGISTRY" \
+  --state-file /opt/aia/develop/.deploy-state/successful-releases.json \
+  --protect <current-full-sha> --protect <incoming-full-sha>
+```
+
+Use the registry from the host's deployment configuration, without printing the
+rest of `.env`. Standalone preflight is a dry run by default; `--apply` opts into
+the same authorized policy as deploy. Full deployment provides the host lock;
+do not run standalone `--apply` concurrently with a deployment.
+
 ## Resize
 
 Change `instance_type` in `infra/develop/terraform.tfvars` and `terraform apply`

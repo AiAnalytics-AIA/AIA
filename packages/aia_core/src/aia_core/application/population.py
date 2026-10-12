@@ -110,7 +110,14 @@ from ..infrastructure.population_repository import PopulationRegistryRepository
 from ..infrastructure.population_source import PopulationAssetMissing, PopulationAssetSource
 from ..infrastructure.workflow_repository import WorkflowRepository
 
-__all__ = ["ChildStore", "Enricher", "MaterializedChild", "PopulationRuntime", "live_binding"]
+__all__ = [
+    "ChildStore",
+    "Enricher",
+    "MaterializedChild",
+    "PopulationRuntime",
+    "child_binding",
+    "live_binding",
+]
 
 Cell = str | None
 
@@ -1061,3 +1068,29 @@ def live_binding(
     return runtime.resolve(
         PopulationSelector.population(population_id), view=PopulationView.ANALYSIS
     )
+
+
+def child_binding(
+    session: Session,
+    *,
+    contract: PopulationImportContract,
+    version_id: str,
+    owner: VersionOwner,
+    clock: Callable[[], datetime] = _utcnow,
+) -> PopulationBinding:
+    """The binding a run records when its study selects ``owner``'s child ``version_id`` (P4e2).
+
+    A child is its client's (P4d): another client's child, even in the same organization, and
+    any shared version answer as unknown (:class:`UnknownDatasetVersion`), as a scope miss
+    does. Resolution reads the registry, never a panel; the run's load verifies the child
+    against its base (P4e1).
+    """
+    version = PopulationRegistryRepository(session).visible_version(
+        version_id, organization_id=owner.organization_id
+    )
+    if version is None or version.owner != owner:
+        raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+    runtime = PopulationRuntime(
+        session, contract=contract, source=_ResolutionReadsNoAssets(), clock=clock
+    )
+    return runtime.resolve_child(version_id, organization_id=owner.organization_id)
