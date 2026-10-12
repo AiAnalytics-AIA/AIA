@@ -152,3 +152,28 @@ def test_d6_a_fictional_run_below_75_respondents_has_too_few_donors() -> None:
         assert len(donors) <= max(3, n // 3) < floor, n
     assert {p.weight for p in fictional_roster(30, seed=7)} == {1.0}
     assert max(3, 75 // 3) == floor  # from 75 the roster can reach the floor
+
+
+# ------------------------------------------------------------------------------- R1b
+
+
+def test_with_nothing_stored_a_run_pins_the_units_process_and_an_old_run_reads_it() -> None:
+    from aia_core.domain.methodology.pins import read_response_pin, response_spec_for
+
+    assert response_spec_for(None) is AIA_RESPONSE_V1
+    assert read_response_pin(None) is AIA_RESPONSE_V1  # a run started before the pin
+    pinned = AIA_RESPONSE_V1.model_dump(mode="json")
+    assert read_response_pin(pinned) == AIA_RESPONSE_V1
+    assert response_spec_for({"spec": pinned}) == AIA_RESPONSE_V1
+    with pytest.raises(ValueError):
+        read_response_pin({**pinned, "acquiescence": "much"})  # never the code's value instead
+
+
+def test_the_roster_profile_and_answers_follow_the_process_they_are_given() -> None:
+    from aia_core.domain.ai_respondent import fictional_roster
+
+    edited = _with(style_noise_floor=1.0, describe_threshold=10.0)
+    unit, other = fictional_roster(12, seed=3), fictional_roster(12, seed=3, response=edited)
+    assert [p.style for p in unit] != [p.style for p in other]
+    assert all("Jak odpovídá" not in p.profile(edited.describe_threshold) for p in other)
+    assert any("Jak odpovídá" in p.profile() for p in unit)

@@ -48,9 +48,11 @@ from aia_core.domain.ai_respondent import (
     plan_respondent,
 )
 from aia_core.domain.fieldwork import Answer
+from aia_core.domain.methodology.pins import read_response_pin
+from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
-from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, BEHAVIOR_VERSION
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -118,7 +120,14 @@ class AIFieldwork:
         if spec.n is None or spec.n < 1:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
         seed = fieldwork_seed(spec)
-        personas = fictional_roster(spec.n, seed=seed)
+        try:
+            response = read_response_pin(step.payload.get("response"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "response_pin_invalid", "message": str(exc)},
+            )
+        personas = fictional_roster(spec.n, seed=seed, response=response)
         if not all(p.fictional for p in personas):
             # The licence gate now passes panel lineage on the EU route (OI-61), but no
             # panel persona source exists and assemble_dataset refuses one: fail here,
@@ -179,6 +188,7 @@ class AIFieldwork:
                 data_class=data_class,
                 lineage=lineage,
                 max_output_tokens=cfg.max_output_tokens,
+                response=response,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -207,7 +217,9 @@ class AIFieldwork:
                 result = caller.invoke(request_for(index, block.index, answers))
                 assert result.output is not None  # a structured agent's result has one
                 try:
-                    drawn, _ = interpret_block(block, result.output, plan.persona, seed=seed)
+                    drawn, _ = interpret_block(
+                        block, result.output, plan.persona, seed=seed, response=response
+                    )
                 except RespondentOutputInvalid as exc:
                     return Failed(
                         FailureClass.SCHEMA_VIOLATION,
@@ -246,6 +258,11 @@ class AIFieldwork:
             "contract_version": CONTRACT_VERSION,
             "generator": GENERATOR,
             "behavior_version": BEHAVIOR_VERSION,
+            "response_process": {
+                "name": response.methodology_version,
+                "sha256": fingerprint(response.model_dump(mode="json")),
+                "unit": response == AIA_RESPONSE_V1,
+            },
             "fact_layer_version": FACT_LAYER_VERSION,
             "persona_source": {"roster": ROSTER_VERSION, "fictional": True, "seed": seed},
             "data_class": data_class.value,

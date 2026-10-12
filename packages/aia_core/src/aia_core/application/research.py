@@ -29,7 +29,9 @@ from ..domain.methodology.pins import (
     UNIT_AGGREGATION_PIN,
     aggregation_pin_for,
     read_aggregation_pin,
+    read_response_pin,
     read_support_pin,
+    response_spec_for,
     sociomap_methods_for,
     support_spec_for,
 )
@@ -58,6 +60,7 @@ from ..domain.research_sociomap import (
     read_methods,
     side_tables_of,
 )
+from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
@@ -269,8 +272,15 @@ class ResearchRuns:
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
+        response: ResponseProcessSpec | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run also pins its response process (``response``; the organization's response
+        version in force when not given, plan ``methodology-tab`` R1b): AI fieldwork assigns
+        styles, puts them into words and turns the model's probabilities into answers under
+        it. Like the support rules, a stored version or a process the caller chooses over the
+        unit's is part of the run's identity.
 
         The run also pins its aggregation (``aggregation``: the specification and the formulas
         it replaces; the organization's aggregation version in force when not given, plan
@@ -315,6 +325,7 @@ class ResearchRuns:
         methods, methodology = self._methods(sociomap_methods)
         support_spec, support_version = self._support(support)
         aggregation_pin, aggregation_version = self._aggregation(aggregation)
+        response_spec, response_version = self._response(response)
         _spec, readiness = prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
@@ -347,9 +358,14 @@ class ResearchRuns:
             key += f":aggregation:{aggregation_version['payload_sha256'][:16]}"
         elif aggregation is not None and aggregation_pin != UNIT_AGGREGATION_PIN:
             key += f":aggregation:{fingerprint(aggregation_pin)[:16]}"
+        if response_version is not None:
+            key += f":response:{response_version['payload_sha256'][:16]}"
+        elif response is not None and response_spec != AIA_RESPONSE_V1:
+            key += f":response:{fingerprint(response_spec.model_dump(mode='json'))[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
         support_pin = support_spec.model_dump(mode="json")
+        response_pin = response_spec.model_dump(mode="json")
         confirmation: tuple[float, float] | None = None
         limit = self.spend_limit()
         if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
@@ -387,13 +403,15 @@ class ResearchRuns:
                 **({"support_methodology": support_version} if support_version else {}),
                 "aggregation": aggregation_pin,
                 **({"aggregation_methodology": aggregation_version} if aggregation_version else {}),
+                "response": response_pin,
+                **({"response_methodology": response_version} if response_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"population": _population_note(population)} if population else {}),
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
                 "preflight": {"methods": pinned},
-                "run": {"fieldwork_source": fieldwork_source.value},
+                "run": {"fieldwork_source": fieldwork_source.value, "response": response_pin},
                 "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
                 "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
@@ -442,6 +460,7 @@ class ResearchRuns:
             sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
+            response=read_response_pin(run["metadata"].get("response")),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:
@@ -510,6 +529,23 @@ class ResearchRuns:
             return support_spec_for(None), None
         return support_spec_for(in_force.version.payload), {
             "module": "support",
+            "version": in_force.version.version_number,
+            "name": in_force.version.name,
+            "payload_sha256": in_force.version.payload_sha256,
+        }
+
+    def _response(
+        self, response: ResponseProcessSpec | None
+    ) -> tuple[ResponseProcessSpec, dict[str, Any] | None]:
+        """The response process a start pins, and the stored version it comes from (``None``:
+        the code's preset, ``aia-response-1``, or the caller's own process)."""
+        if response is not None:
+            return response, None
+        in_force = methodology_in_force_for_study(self.session, self.scope, "response")
+        if in_force.version is None:
+            return response_spec_for(None), None
+        return response_spec_for(in_force.version.payload), {
+            "module": "response",
             "version": in_force.version.version_number,
             "name": in_force.version.name,
             "payload_sha256": in_force.version.payload_sha256,

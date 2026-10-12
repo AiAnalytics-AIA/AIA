@@ -8,7 +8,8 @@ draw by code picks the answer. The model never chooses the answer.
 Declared in ``ResponseProcessSpec`` (``respondent_behavior.py``), whose preset
 ``aia-response-1`` is the unit's values, and read by the code that computes: what the tab
 shows is what runs, and the EXACT captures of the unit's own functions hold it there
-(``fixtures/response_process``). A run pins it from R1b; it is editable from R1c.
+(``fixtures/response_process``). A run pins it when it starts and a retry keeps it (R1b);
+it is editable from R1c.
 
 Not ported, and said so on its step: 18.6.6's dispersion temperature
 (``dispersion_calibration``), which AIA has no calibration for; the temperature is 1, the
@@ -124,7 +125,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Pravděpodobnosti od modelu",
         formula_latex=r"p = (p_1, \dots, p_K) \text{ od modelu, jeden respondent, teplota } 0",
         implements=f"{_R}:build_request",
-        source_sha256="024e1fb18276662447f6332ad0df3eeae7b38564dce03b991882f52beae3e6c6",
+        source_sha256="df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
         symbols=(Symbol("K", "počet možností otázky (u škály body a případně „nevím“)"),),
         evidence=(_DIVISION,),
         tests=(f"{_TA}::test_the_request_carries_class_lineage_prompt_and_no_scope",),
@@ -340,7 +341,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Fiktivní soubor: dárci a váhy",
         formula_latex=r"D = \max\!\left(3,\ \left\lfloor n/3 \right\rfloor\right),\quad w_i = 1",
         implements=f"{_R}:fictional_roster",
-        source_sha256="6b9afbd58fb01abcb0c405d231e6434b5a033055298f6283391acbdec27d17df",
+        source_sha256="70f80c16faef7718b30696b87c735b47c6442607ce9eb38ac2da7f1868230bca",
         symbols=(Symbol("D", "počet fiktivních dárců"), Symbol("n", "počet respondentů")),
         evidence=(_D6,),
         tests=(
@@ -386,6 +387,7 @@ RESPONSE: Final = MethodModule(
         "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle "
         "jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze "
         "aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. "
-        "Běh si proces odpovědi zapamatuje od R1b, upravit ho půjde od R1c."
+        "Každý běh si proces odpovědi zapamatuje a opakování ho drží; upravit ho půjde "
+        "od R1c."
     ),
 )

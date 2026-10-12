@@ -35,8 +35,8 @@ chunks:
   - "[ ] W1b. Weight cleaning a choice a run reads: the weighting pinned per run, a retry keeps it; refuse refuses an aggregate with an invalid weight by name; a non-median cleaning is a deviation from 18.6.6"
   - "[ ] W1c. Weighting editable: the cleaning and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
-  - "[ ] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; a process that is not the unit's is a deviation from 18.6.6"
-  - "[ ] R1c. Response process editable, with the draft check on fictional respondents"
+  - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
+  - "[ ] R1c. Response process editable, with the draft check on fictional respondents; Results say when a run's process is not 18.6.6's"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
@@ -995,6 +995,24 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     below 75 fictional respondents suppresses every donor-layer value
     (`test_methodology_response.py::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors`).
     The fictional roster carries every AI run until the panel source reaches fieldwork.
+
+- **R1b. Landed.** A run pins its response process like its support rules.
+  - `ResearchRuns.start` pins the organization's `response` version in force, else
+    `aia-response-1`, into the run's metadata (`response`, `response_methodology` when stored)
+    and the fieldwork step's input; a stored version or a caller's process other than the
+    unit's is part of the run's key, and a retry keeps the original's
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_response_process_its_run_pinned`).
+  - AI fieldwork reads the pin (`methodology.pins.read_response_pin`; a pin that does not read
+    fails `response_pin_invalid` before any call, never the code's values instead) and
+    assigns styles, words them and adjusts the model's probabilities under it. The dataset's
+    provenance carries `response_process`: its name, the SHA256 of its specification and
+    whether it is the unit's
+    (`test_ai_fieldwork.py::test_ai_respondents_answer_under_the_response_process_their_run_pinned`:
+    a threshold of 10 keeps every style out of the requests the unit's 0.7 puts them in).
+  - `panel_personas` takes the process too, for when the panel source is wired; the panel's
+    profile has its own wording and no threshold.
+  - Results do not say yet when a run's process is not the unit's: nothing can be stored
+    until R1c, which adds that sentence with the editor.
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
