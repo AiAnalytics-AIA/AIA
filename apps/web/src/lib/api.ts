@@ -470,6 +470,8 @@ export type DesignSourceLabels = {
   unlabelled_data: boolean;
   run_ids: string[];
   report_artifact_ids: string[];
+  /** Some run answered AI respondents built from its population (ADR 0024); absent from an older API. */
+  modelled?: boolean;
 };
 export type DesignSource = {
   study_id: string;
@@ -623,6 +625,8 @@ export type ResearchStep = {
   error_message: string | null;
   artifact_id: string | null;
   data_origin: string | null;
+  /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
+  data_origin_kind?: string | null;
 };
 export type ResearchRun = {
   run_id: string;
@@ -662,6 +666,8 @@ export type ResearchAnalysis = {
   complete: boolean;
   internal_only: true;
   synthetic: boolean;
+  modelled?: boolean;
+  data_origin_kind?: string | null;
   /** The aggregate the modules read is no longer 18.6.6's port (methodology-tab G3c);
    *  `null` (or absent, from an API before it) when it is the port. */
   aggregation_deviation?: Record<string, unknown> | null;
@@ -687,6 +693,8 @@ export type ResearchReport = {
   sha256?: string;
   size_bytes?: number;
   synthetic?: boolean;
+  modelled?: boolean;
+  data_origin_kind?: string | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;

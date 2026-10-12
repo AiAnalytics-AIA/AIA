@@ -447,6 +447,33 @@ describe("Progress", () => {
     expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
   });
 
+  it("says a modelled run is modelled on its banner and its steps, never fictional or fieldwork (ADR 0024 §7)", async () => {
+    const modelled = run({
+      status: "RUNNING", phase: "RUNNING",
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "MODELLED_AI_PANEL", data_origin_kind: "MODELLED" }),
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "MODELLED_AI_PANEL" }),
+      ],
+    });
+    api(listed(modelled));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const banner = await screen.findByText(/^Modelováno: AI respondenti z populace\. Odpovědi vytvořil model/);
+    expect(banner.getAttribute("data-origin")).toBe("modelled");
+    expect(screen.queryByText(t("research.exec.syntheticNotice"))).toBeNull();
+    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const kinds = steps.flatMap((li) => [...li.querySelectorAll("[data-origin-kind]")].map((e) => e.getAttribute("data-origin-kind")));
+    expect(kinds).toEqual(["MODELLED", "MODELLED"]);
+    expect(within(steps[1]).getByText("Modelovaná data")).toBeTruthy();
+    expect(within(steps[1]).queryByText("MODELLED_AI_PANEL")).toBeNull(); // the raw value is a title, not a fault chip
+  });
+
+  it("says an origin it has no word for is unknown, never real", async () => {
+    api(listed(run({ status: "RUNNING", phase: "RUNNING", steps: [step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "PANEL" })] })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect((await screen.findByText(t("research.exec.unknownOriginNotice"))).getAttribute("data-origin")).toBe("unknown");
+  });
+
   it("shows an orb beside every running step, as AI where a model thinks and as work where code runs", async () => {
     api(listed(run({
       steps: [

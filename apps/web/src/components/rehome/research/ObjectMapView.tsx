@@ -41,6 +41,14 @@ import {
   resolveVars,
 } from "@/lib/object-map-view";
 import { num } from "@/lib/sociomapping-view";
+import { type OriginKind, originKind } from "@/lib/research-execution";
+
+/** The chip and the sentence each origin kind says on the map; an unknown origin is never real. */
+const ORIGIN_CHIP: Record<OriginKind, { chip: string; text: string; className: string; dot: string }> = {
+  SIMULATED: { chip: "research.exec.objectMap.syntheticChip", text: "research.exec.objectMap.synthetic", className: "border-status-fault text-status-fault", dot: "bg-status-fault" },
+  MODELLED: { chip: "research.exec.objectMap.modelledChip", text: "research.exec.objectMap.modelled", className: "border-ink text-ink", dot: "bg-ink" },
+  UNKNOWN: { chip: "research.exec.objectMap.unknownChip", text: "research.exec.objectMap.unknown", className: "border-status-fault text-status-fault", dot: "bg-status-fault" },
+};
 
 /** The stage's size before it is measured (and in tests, where nothing is laid out). */
 const DEFAULT_VIEW: ViewSize = { width: 964, height: 602 };
@@ -57,8 +65,10 @@ export function ObjectMapView({ battery, dataOrigin }: { battery: BatteryWithMap
     return read.reason === "contract" ? <p role="alert" className="text-sm text-status-fault">{t("research.exec.objectMap.unreadable")}</p> : null;
   }
   const { map, methodId, fingerprint } = read;
-  const synthetic = dataOrigin !== null && dataOrigin.startsWith("SYNTHETIC");
-  const facts = <Facts map={map} title={battery.title} methodId={methodId} fingerprint={fingerprint} dataOrigin={synthetic ? dataOrigin : null} />;
+  const kind = originKind(dataOrigin);
+  const origin = ORIGIN_CHIP[kind];
+  const originText = tv(origin.text, { origin: dataOrigin ?? "—" });
+  const facts = <Facts map={map} title={battery.title} methodId={methodId} fingerprint={fingerprint} originText={originText} />;
   return (
     <section aria-label={battery.title} className="flex flex-col gap-4 text-sm leading-5" data-testid={`object-map-${battery.battery_id}`}>
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -72,11 +82,9 @@ export function ObjectMapView({ battery, dataOrigin }: { battery: BatteryWithMap
         <span title={t("research.exec.results.internal")} className="inline-flex items-center gap-1.5 rounded-full bg-status-world-wash px-2.5 py-1 text-ink">
           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink" />{t("research.exec.objectMap.internalChip")}
         </span>
-        {synthetic ? (
-          <span title={tv("research.exec.objectMap.synthetic", { origin: dataOrigin! })} data-testid="object-map-synthetic" className="inline-flex items-center gap-1.5 rounded-full border border-status-fault px-2.5 py-1 text-status-fault">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-status-fault" />{t("research.exec.objectMap.syntheticChip")}
-          </span>
-        ) : null}
+        <span title={originText} data-testid="object-map-origin" data-origin-kind={kind} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${origin.className}`}>
+          <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${origin.dot}`} />{t(origin.chip)}
+        </span>
       </div>
       {map.outcome === "MAPPED" && map.layout ? (
         <MappedView key={fingerprint} battery={battery} map={map} methodId={methodId} fingerprint={fingerprint} facts={facts} />
@@ -522,7 +530,7 @@ function Legend({ map, scale }: { map: ObjectMapArtifact; scale?: [number, numbe
 
 /** What the artifact says about its pairs, support and itself; none of it recomputed. The
  * first three lines are the approved design's; the rest waits behind a disclosure. */
-function Facts({ map, title, methodId, fingerprint, dataOrigin }: { map: ObjectMapArtifact; title: string; methodId: string; fingerprint: string; dataOrigin: string | null }) {
+function Facts({ map, title, methodId, fingerprint, originText }: { map: ObjectMapArtifact; title: string; methodId: string; fingerprint: string; originText: string }) {
   const quality = map.layout?.quality;
   const s = map.support;
   const c = map.status_counts;
@@ -545,7 +553,7 @@ function Facts({ map, title, methodId, fingerprint, dataOrigin }: { map: ObjectM
           <span>{tv("research.exec.objectMap.support", { placed: s.placed, respondents: s.respondents, effective: s.effective_n === null ? "—" : num(s.effective_n, 1) })}</span>
           {hidden && map.relations.effect_floor !== undefined ? <span>{tv("research.exec.objectMap.belowFloor", { floor: num(map.relations.effect_floor, 2), count: hidden })}</span> : null}
           {map.spec.terrain ? <span>{tv("research.exec.objectMap.provisional", { sigma: num(map.spec.terrain.sigma, 2) })}</span> : null}
-          {dataOrigin ? <span className="text-status-fault">{tv("research.exec.objectMap.synthetic", { origin: dataOrigin })}</span> : null}
+          <span>{originText}</span>
         </span>
       </details>
     </div>

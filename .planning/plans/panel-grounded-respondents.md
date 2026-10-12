@@ -16,7 +16,7 @@ chunks:
   - "[x] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
   - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
   - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
-  - "[ ] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
+  - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
   - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
@@ -635,6 +635,34 @@ Tests: `test_every_origin_has_one_kind_and_nothing_reads_as_measured`,
 
 Not here: the "beside the number" mark in the DOCX ledger is 4e's, with the policy that makes a
 modelled number admissible; the web client is 4d.
+
+### 4d. Landed: the web client's labels
+
+`apps/web/src/lib/research-execution.ts`: `OriginKind`, `originKind` (the same three-way reading as
+`domain/fieldwork.py`; `null`, empty and unknown strings are UNKNOWN), `MODELLED_ORIGINS`,
+`MODELLED_DISCLOSURE`; `stepOriginKind` (the API's `data_origin_kind` when it is one of the three,
+else the page's own reading; `null` when the step stamped no origin), `runOriginKinds`,
+`isModelled`, `hasUnknownOrigin` beside `isSynthetic`, and `resultOriginKind` for an analysis or a
+report (an older API's `synthetic` flag reads SIMULATED, its absence UNKNOWN). Every surface reads
+them:
+
+* `ExecutionSteps.tsx`: `OriginBanners` (fictional, modelled, unknown; each said when it applies) on
+  Progress and Results; the run list's chips; a step's chip says its kind ("Modelovaná data"), the
+  raw origin moved to its title (it was a fault chip); the report and analysis notes, one text per
+  kind.
+* `ObjectMapView.tsx`: the `startsWith("SYNTHETIC")` test is gone; one origin chip per kind
+  (`object-map-origin`, `data-origin-kind`), and a map with no recorded origin says unknown.
+* `SociomappingView.tsx`: one sentence per kind, unknown said.
+* `memory.ts`: `RunDataLabel` gains `modelled` (an unknown origin outranks it); `sourceLabelWords`
+  says `modelled`.
+* `api.ts`: optional `data_origin_kind` / `modelled` on steps, analysis, reports and design-source
+  labels (absent from an older API).
+
+Tests: `research-execution.test.ts` (three new), `memory.test.ts`
+(`labels a modelled run modelled, and an origin it has no word for unknown, never good`),
+`ObjectMapView.test.tsx` (`says modelled data is modelled, never fictional and never measured`),
+`ExecutionSteps.test.tsx` (`says a modelled run is modelled on its banner and its steps…`,
+`says an origin it has no word for is unknown, never real`).
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling

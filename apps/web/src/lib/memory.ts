@@ -3,7 +3,7 @@
 // sending and how a hit explains itself.
 
 import type { DesignSourceLabels, MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, StudyKind } from "./api";
-import { isSynthetic } from "./research-execution";
+import { hasUnknownOrigin, isModelled, isSynthetic } from "./research-execution";
 
 /** The server refuses a shorter query (MIN_QUERY_LENGTH); the page does not send one. */
 export const MIN_QUERY = 2;
@@ -27,11 +27,12 @@ export function evidence(hit: MemoryHit): { field: MemoryHit["matches"][number][
 /**
  * What a past run's data is, as far as the page knows:
  * - `synthetic`: fictional, by its source or by a step's origin, never evidence;
+ * - `modelled`: AI respondents built from the run's population (ADR 0024), never measured;
  * - `no_data`: read in full, and no step produced respondent data;
  * - `unknown`: a summary (no steps) of a run not on the fixture, or an origin AIA has no word
- *   for. Never "measured": no origin AIA stamps today is evidence.
+ *   for. Never "measured": no origin AIA stamps is measured.
  */
-export type RunDataLabel = "synthetic" | "no_data" | "unknown";
+export type RunDataLabel = "synthetic" | "modelled" | "no_data" | "unknown";
 /** A run's report: none in the run, a draft, approved for internal use, or not yet known. */
 export type RunReportLabel = "none" | "draft" | "approved_internal" | "unknown";
 
@@ -53,6 +54,9 @@ export function runLabels(run: ResearchRun | ResearchRunSummary, report?: Resear
   const steps = "steps" in run ? run.steps : null;
   let data: RunDataLabel = "unknown";
   if (isSynthetic(run)) data = "synthetic";
+  // An origin the page has no word for outranks a modelled one: unknown is said, never good.
+  else if (hasUnknownOrigin(run)) data = "unknown";
+  else if (isModelled(run)) data = "modelled";
   // Fieldwork is the step that makes respondent data; without its artifact there is none.
   else if (steps && !steps.some((s) => s.node_key === "run" && s.artifact_id)) data = "no_data";
   const hasReport = steps ? steps.some((s) => s.kind === "research_report") : null;
@@ -105,9 +109,10 @@ export function designSummary(content: Record<string, unknown>, labels: Readonly
 }
 
 /** The words a reused design's labels are said in, in a fixed order; none for a clean source. */
-export function sourceLabelWords(labels: DesignSourceLabels): ("synthetic" | "draft" | "neverRun" | "unlabelled")[] {
-  const out: ("synthetic" | "draft" | "neverRun" | "unlabelled")[] = [];
+export function sourceLabelWords(labels: DesignSourceLabels): ("synthetic" | "modelled" | "draft" | "neverRun" | "unlabelled")[] {
+  const out: ("synthetic" | "modelled" | "draft" | "neverRun" | "unlabelled")[] = [];
   if (labels.synthetic) out.push("synthetic");
+  if (labels.modelled) out.push("modelled");
   if (labels.unlabelled_data) out.push("unlabelled");
   if (labels.draft) out.push("draft");
   if (labels.never_run) out.push("neverRun");
