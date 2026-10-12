@@ -21,6 +21,10 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.application.project_memory import (
+    MIN_QUERY_LENGTH,
+    search_client_studies,
+)
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
@@ -114,6 +118,28 @@ class WorkspaceStudy(BaseModel):
     content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
+
+
+class MemoryFieldMatch(BaseModel):
+    """A field of a past study that holds the searched words, and the texts that do."""
+
+    field: str
+    texts: list[str]
+
+
+class MemoryHitResponse(BaseModel):
+    """A past study of the client that says what was searched for (project memory M1)."""
+
+    study_id: str
+    name: str
+    kind: str
+    status: str
+    modified_at: datetime | None
+    #: ``design``: its latest Design Revision; ``draft``: its working content, the study has
+    #: no Design Revision; ``name``: its name alone.
+    source: Literal["design", "draft", "name"]
+    design_revision: int | None
+    matches: list[MemoryFieldMatch]
 
 
 class ClientCard(BaseModel):
@@ -631,6 +657,49 @@ def client_studies(
     )
     bound = StudyWorkspaceRepository(session).in_client(scope)
     return [_study(s, bound.get(s.study_id)) for s in studies]
+
+
+@router.get(
+    "/clients/{client_id}/memory/search",
+    response_model=list[MemoryHitResponse],
+    summary="Search this client's past studies on their designs",
+    responses={404: {"model": ErrorResponse, "description": "No such client"}},
+)
+def client_memory_search(
+    client_id: ClientIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    q: Annotated[str, Query(min_length=MIN_QUERY_LENGTH, max_length=200)],
+) -> list[MemoryHitResponse]:
+    """The client's studies whose name or design holds every word of ``q``, and where.
+
+    Only this client's studies are searched (project memory M1, owner 2026-10-10); a study
+    with no Design Revision is searched on its working draft and says so.
+    """
+    _client_scope(principal, resolver, client_id)  # 404 before anything is searched
+    try:
+        hits = search_client_studies(session, resolver, principal, client_id=client_id, query=q)
+    except ScopeDenied as exc:  # pragma: no cover - resolved just above
+        raise _not_found() from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "query_too_short", "message": str(exc)},
+        ) from None
+    return [
+        MemoryHitResponse(
+            study_id=h.study_id,
+            name=h.name,
+            kind=h.kind.value,
+            status=h.status.value,
+            modified_at=h.modified_at,
+            source=h.source.value,
+            design_revision=h.design_revision,
+            matches=[MemoryFieldMatch(field=m.field, texts=list(m.texts)) for m in h.matches],
+        )
+        for h in hits
+    ]
 
 
 @router.post(
