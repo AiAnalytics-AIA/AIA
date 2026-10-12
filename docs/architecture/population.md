@@ -113,6 +113,26 @@ On develop the bundle's files are synced read-only from the EU ops bucket to the
 `CZ_STATIC_REFERENCE` is `v17_1_2` and LIVE `CZ_LIVE` is `v17_4_0`
 (`.planning/plans/population-operations.md` P6b).
 
+## Characteristics
+
+Each version keeps its field dictionary beside it: `import_version` stores the verified bytes
+in `population_version_dictionaries` (insert-once), and `population_ops record-dictionary`
+stores it for a version imported before the table existed, taking the file at the version's
+own `dictionary_location` only when it hashes to `dictionary_sha256`. It never reads the
+panel. The develop deploy runs `record-dictionary` after replacing services.
+
+`application/population_characteristics.py` reads those bytes, re-hashes them and builds the
+field policy exactly as `load()` does, so the page and a run cannot disagree on what a field
+may serve. `GET /api/v1/population/versions/{id}/characteristics` returns the weights, the
+field blocks, every field with its answer for each `FieldUse`, and the 18 built-in subpanels
+adopted from 18.6.6 (owner, 2026-10-11; `domain/population/subpanels.py`, pinned to the
+unit's `BUILTIN_SUBPANELS_v17.json`). Each subpanel is checked against the version's policy
+for `AUDIENCE_FILTERING`. Its counts are 18.6.6's, measured on `17.1.2`, never AIA's. A
+version without a kept dictionary says `dictionary_kept: false`, and every subpanel check is
+unknown (`null`), never usable. A mismatch is a 409, `population_dictionary_mismatch`. The
+section sits under the registry on **Společenská inteligence**. A subpanel is not yet
+applied to a study's audience (OI-91).
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |

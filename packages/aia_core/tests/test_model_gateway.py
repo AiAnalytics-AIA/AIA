@@ -405,9 +405,10 @@ def test_egress_is_refused_before_dispatch(
     ("lineage", "reason"),
     [
         (None, "licence_lineage_undeclared"),
-        (DataLineage.of("czech_population_panel"), "licence_undetermined"),
-        (DataLineage.of("piaac"), "licence_undetermined"),
-        (DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp"), "licence_undetermined"),
+        # Panel lineage is approved for the EU Bedrock route alone (OI-61), not these.
+        (DataLineage.of("czech_population_panel"), "licence_not_approved_for_route"),
+        (DataLineage.of("piaac"), "licence_not_approved_for_route"),
+        (DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp"), "licence_not_approved_for_route"),
         (DataLineage.of("never_heard_of_it"), "licence_dataset_unknown"),
     ],
 )
@@ -420,7 +421,7 @@ def test_licence_is_a_second_gate_refused_before_dispatch(
 ) -> None:
     """ADR 0016 decision 5: residency passes here (internal material, an approved
     route) and the call is still refused, because a dataset it derives from is not
-    cleared for any provider -- and nothing is offered instead."""
+    cleared for this route -- and nothing is offered instead."""
     adapter = ScriptedAdapter(Provider.OPENAI, [_ok()])
     failure = _fail(_gateway(model_registry, adapter), _request(data_lineage=lineage), context)
     assert failure.failure is FailureClass.PERMISSION
@@ -1077,10 +1078,13 @@ def test_preflight_resolves_an_allowed_request_and_sends_nothing(
             "egress_route_not_approved_for_class",
         ),
         ({"data_lineage": None}, "licence_lineage_undeclared"),
-        ({"data_lineage": DataLineage.of("czech_population_panel")}, "licence_undetermined"),
+        (
+            {"data_lineage": DataLineage.of("czech_population_panel")},
+            "licence_not_approved_for_route",
+        ),
         (
             {"data_lineage": DataLineage.of("piaac", SYNTHETIC_FIXTURE_DATASET)},
-            "licence_undetermined",
+            "licence_not_approved_for_route",
         ),
     ],
 )

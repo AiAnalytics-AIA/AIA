@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.methodology import MODULES
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
@@ -296,7 +297,7 @@ def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(
     assert "spec.relation.n_min" in body["problems"]
 
 
-def test_compare_is_for_the_object_map(owner: TestClient) -> None:
+def test_compare_is_for_the_object_map_and_support(owner: TestClient) -> None:
     edit = {"base_preset": "aia-sociomap-1", "spec": {}, "formulas": {}}
     reference = owner.post(f"{METHODOLOGY}/sociomap_reference/compare", json=edit)
     assert reference.status_code == 422 and reference.json()["code"] == "no_comparison"
@@ -311,3 +312,68 @@ def test_compare_reads_the_stored_version_in_force(owner: TestClient) -> None:
     body = owner.post(f"{SOCIOMAP}/compare", json=_edit()).json()
     assert body["in_force"] == "aia-sociomap-3+e1"
     assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # 0.3 in force, 0.25 drafted
+
+
+# --------------------------------------------------------------------------- support (G1d)
+
+SUPPORT = f"{METHODOLOGY}/support"
+
+
+def _support_edit(**lines: Any) -> dict[str, Any]:
+    """``aia-support-1`` with lines changed: ``results__min_layer_donors=10``."""
+    spec = AIA_SUPPORT_V1.model_dump(mode="json")
+    for path, value in lines.items():
+        rule, line = path.split("__")
+        spec[rule][line] = value
+    return {"base_preset": "aia-support-1", "spec": spec, "formulas": {}}
+
+
+def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None:
+    presets = owner.get(f"{SUPPORT}/versions").json()["presets"]
+    assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
+    looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
+    stricter = owner.post(
+        f"{SUPPORT}/versions",
+        json=_support_edit(results__min_cell=80, analysis__min_cell=80, analysis__n_guard=None),
+    )
+    assert (looser.status_code, stricter.status_code) == (201, 201)
+    assert stricter.json()["spec"]["results"]["min_cell"] == 80
+    assert stricter.json()["spec"]["analysis"]["n_guard"] is None
+    put = owner.put(f"{SUPPORT}/activation", json={"version_number": 2, "reason": "přísněji"})
+    assert put.json()["name"] == "aia-support-1+e2"
+
+
+def test_a_support_rule_that_suppresses_nothing_is_refused(owner: TestClient) -> None:
+    edit = _support_edit(results__min_layer_donors=None)
+    checked = owner.post(f"{SUPPORT}/check", json=edit).json()
+    assert checked["valid"] is False and set(checked["problems"]) == {"spec.results"}
+    refused = owner.post(f"{SUPPORT}/versions", json=edit)
+    assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
+    backwards = owner.post(f"{SUPPORT}/check", json=_support_edit(analysis__indicative=10.0)).json()
+    assert backwards["valid"] is False and "spec.analysis" in backwards["problems"]
+
+
+def test_the_support_draft_check_lists_every_cell_newly_reported_or_suppressed(
+    as_user: Any,
+) -> None:
+    member: TestClient = as_user("researcher")
+    same = member.post(f"{SUPPORT}/compare", json=_support_edit()).json()
+    assert (same["valid"], same["in_force"], same["panels"]) == (True, "aia-support-1", [])
+    assert len(same["support"]["cells"]) == 16
+    assert same["support"]["newly_reported"] == same["support"]["newly_suppressed"] == []
+    assert all(c["changes"] == {} for c in same["support"]["cells"])
+
+    looser = member.post(
+        f"{SUPPORT}/compare",
+        json=_support_edit(results__min_layer_donors=10, results__indicative_layer_donors=20),
+    ).json()["support"]
+    assert looser["draft"] == "aia-support-1+e1"
+    assert ["maly.q1", "results"] in looser["newly_reported"]
+    assert ["maly.q1", "analysis"] not in looser["newly_reported"]  # the gate still says no
+    assert looser["newly_suppressed"] == []
+
+    stricter = member.post(f"{SUPPORT}/compare", json=_support_edit(analysis__min_cell=200)).json()[
+        "support"
+    ]
+    assert ["stredni.q2", "analysis"] in stricter["newly_suppressed"]
+    assert all(surface == "analysis" for _, surface in stricter["newly_suppressed"])

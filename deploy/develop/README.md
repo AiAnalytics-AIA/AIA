@@ -443,7 +443,7 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    ```
 
    Unset or empty, `aia_population_operators` names nobody, and every command but
-   `status` is refused. A value that does not read stops the command and names the key.
+   `status` and `record-dictionary` (which act as no one) is refused. A value that does not read stops the command and names the key.
 
 2. **Back up**, so the import can be undone by a restore (§ Database). Nothing un-imports
    a version:
@@ -495,6 +495,11 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    registry. A research run started from now on says on its page that `v17_4_0` was
    recorded and that its respondents did not come from it. Runs started before keep
    what they recorded, which is nothing.
+
+   Each deploy then runs `bin/population.sh record-dictionary`, which keeps every
+   version's verified field dictionary in the database for the characteristics section
+   on Společenská inteligence. It acts as no one and needs no sign-in. A refusal is logged
+   as a warning and does not fail the deploy.
 
 **Exit codes.** `2` means refused before anything was written: a person the
 configuration does not name, a malformed argument. `3` means the population itself

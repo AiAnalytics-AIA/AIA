@@ -5,12 +5,13 @@
 // this shows, per panel, what moved -- whether each maps, Stress-1 and its band, every pair
 // whose status changes, how far each object moves once the draft is turned onto the map in
 // force, heights, K100 and the terrain. What did not move says so, so silence is never read
-// as "not checked".
+// as "not checked". For the support rules (plan G1d) the API decides fixed fictional cells
+// instead, and this lists every cell the edit newly shows or newly suppresses, then all of them.
 
 import type { ReactNode } from "react";
 
 import { t, tv } from "@/i18n/t";
-import type { MethodCompare, MethodMapSummary, MethodPanel } from "@/lib/api";
+import type { MethodCompare, MethodMapSummary, MethodPanel, MethodSupportCompare } from "@/lib/api";
 
 const C = "aia.settings.methodology.versions.compare";
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 4 });
@@ -42,8 +43,14 @@ export function MethodologyComparison({ result }: { result: MethodCompare }) {
   return (
     <section aria-label={t(`${C}.title`)} data-methodology-compare className="flex flex-col gap-3">
       <h5 className="text-sm font-semibold">{tv(`${C}.heading`, { name: result.in_force })}</h5>
-      <p className="max-w-3xl text-xs text-ink-muted">{t(`${C}.intro`)}</p>
-      {result.panels.map((p) => <Panel key={p.panel} panel={p} />)}
+      {result.support ? (
+        <SupportCheck support={result.support} />
+      ) : (
+        <>
+          <p className="max-w-3xl text-xs text-ink-muted">{t(`${C}.intro`)}</p>
+          {result.panels.map((p) => <Panel key={p.panel} panel={p} />)}
+        </>
+      )}
     </section>
   );
 }
@@ -127,5 +134,65 @@ function Changes({ rows }: { rows: [string, number | null, number | null][] }) {
     <ul className="flex flex-col gap-0.5 font-mono text-xs tabular-nums">
       {rows.map(([id, a, b]) => <li key={id}>{id}: {show(a)} → {show(b)}</li>)}
     </ul>
+  );
+}
+
+const S = `${C}.support`;
+const status = (s: string) => t(`${S}.status.${s}`);
+
+function SupportCheck({ support }: { support: MethodSupportCompare }) {
+  const labels = new Map(support.cells.map((c) => [c.cell, c.label_cs]));
+  const moved = (rows: [string, string][]) => (
+    <ul className="flex flex-col gap-0.5 text-xs">
+      {rows.map(([cell, surface]) => (
+        <li key={`${cell}|${surface}`}>{labels.get(cell) ?? cell} · {t(`${S}.surface.${surface}`)}</li>
+      ))}
+    </ul>
+  );
+  return (
+    <div data-compare-support className="flex min-w-0 flex-col gap-3">
+      <p className="max-w-3xl text-xs text-ink-muted">{t(`${S}.intro`)}</p>
+      <Part title={t(`${S}.newlyReported`)} empty={t(`${S}.noneReported`)} has={support.newly_reported.length > 0}>
+        {moved(support.newly_reported)}
+      </Part>
+      <Part title={t(`${S}.newlySuppressed`)} empty={t(`${S}.noneSuppressed`)} has={support.newly_suppressed.length > 0}>
+        {moved(support.newly_suppressed)}
+      </Part>
+      <details className="min-w-0">
+        <summary className="cursor-pointer text-xs font-medium">{tv(`${S}.cells`, { count: support.cells.length })}</summary>
+        <div className="mt-2 min-w-0 overflow-x-auto"><table className="w-full min-w-[36rem] text-xs" aria-label={tv(`${S}.cells`, { count: support.cells.length })}>
+          <thead>
+            <tr className="text-left text-ink-muted">
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${S}.cell`)}</th>
+              <th scope="col" className="py-1 pr-3 font-normal">n</th>
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${C}.effectiveN`)}</th>
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${S}.donors`)}</th>
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${S}.results`)}</th>
+              <th scope="col" className="py-1 font-normal">{t(`${S}.analysis`)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {support.cells.map((c) => (
+              <tr key={c.cell} data-support-cell={c.cell} className="border-t border-border">
+                <th scope="row" className="py-1 pr-3 text-left font-normal">{c.label_cs}</th>
+                <td className="py-1 pr-3 font-mono tabular-nums">{c.n}</td>
+                <td className="py-1 pr-3 font-mono tabular-nums">{number.format(c.effective_n)}</td>
+                <td className="py-1 pr-3 font-mono tabular-nums">{c.donors}</td>
+                <StatusCell pair={c.results} />
+                <StatusCell pair={c.analysis} />
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </details>
+    </div>
+  );
+}
+
+function StatusCell({ pair: [a, b] }: { pair: [string, string] }) {
+  return (
+    <td className="py-1 pr-3">
+      {a === b ? status(a) : <>{status(a)} → <strong>{status(b)}</strong></>}
+    </td>
   );
 }

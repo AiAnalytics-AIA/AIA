@@ -57,6 +57,7 @@ describe("the Metodika tab", () => {
     expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual([
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)",
       "Sociomapping: experimentální H-Model (kandidát AIA)",
+      "Podpora a potlačení: kdy se číslo smí ukázat",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
@@ -124,6 +125,16 @@ describe("the Metodika tab", () => {
     expect(calls).toContain("/api/v1/methodology/sociomapping?preset=aia_hmodel_candidate_v1");
     expect(screen.getAllByText(/EXPERIMENTAL_AIA/).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
+  });
+
+  it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
+    expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
+    expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
+    await waitFor(() => expect(calls).toContain("/api/v1/methodology/support/versions")); // its versions, so its editor
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

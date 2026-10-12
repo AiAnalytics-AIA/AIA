@@ -687,6 +687,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
@@ -2357,6 +2362,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
        {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
@@ -4029,6 +4039,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
@@ -5128,6 +5143,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R2"
+       },
+       {
         "kind": "legacy_port",
         "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
         "ref": "project_engine.py:34-35 (vaha)"
@@ -5154,6 +5174,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "Deklarované konce škály; referenční mapa hodnocení na 0-1 nepřevádí.",
+        "ref": "AUDIT-F1"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5340,6 +5365,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R3"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5577,6 +5607,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R4"
+       },
+       {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
         "ref": "F6"
@@ -5684,6 +5719,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R7"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Rozhodnutí AIA, ne převzatá funkce.",
         "ref": "docs/architecture/sociomapa-methodology-decision.md § 1"
@@ -5694,7 +5734,7 @@
       "id": "mean_rating",
       "implements": "aia_core.domain.sociomap.metrics:object_rating_summaries",
       "note_cs": "Nevážený průměr; matice vztahů výše počítá vážený.",
-      "source_sha256": "dc29b1dea0005c2c747fa9617c6a4142140078b55aa4ada0a6d4d6bd6b2cf48f",
+      "source_sha256": "6532c9f3db04cc9df23cce989217acddb488be1ec30acdfe6beb040ef6582a1b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_metrics.py::test_rating_summaries_use_observed_cells_only"
@@ -5704,6 +5744,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R5"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5835,6 +5880,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R6"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -6073,7 +6123,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "j\\ \\text{bez definovaného vztahu} \\Rightarrow \\text{neumístěn, s důvodem}",
       "formulas": [],
       "id": "placeable",
@@ -6088,7 +6144,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{klasické MDS na pořadích} \\;\\cup\\; \\{U(\\text{seed} + k)\\}_{k=1}^{R}",
       "formulas": [],
       "id": "starts",
@@ -6126,7 +6188,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\max\\ \\operatorname{corr}(L, -D)",
       "formulas": [],
       "id": "smooth",
@@ -6156,7 +6224,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\min \\sum (d_{rs} - \\hat d_{rs})^2,\\quad \\hat d\\ \\text{izotonní, ostře rostoucí o mezeru}\\ g",
       "formulas": [],
       "id": "ordinal",
@@ -6194,7 +6268,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{bod po bodu: nejlepší z}\\ m\\ \\text{posunů o}\\ \\delta\\ \\text{zvyšující}\\ A;\\quad \\delta \\leftarrow \\delta/2\\ \\text{až po}\\ \\delta_{\\min}",
       "formulas": [],
       "id": "exact",
@@ -6253,7 +6333,13 @@
       ]
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-H9"
+       }
+      ],
       "formula_latex": "\\text{kloub s malou rezervou na párech mimo pořadí;}\\ \\text{ponechán jen když}\\ A\\uparrow",
       "formulas": [],
       "id": "repair",
@@ -6406,7 +6492,13 @@
       "values": []
      },
      {
-      "evidence": [],
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "SOMECS-C1"
+       }
+      ],
       "formula_latex": "\\text{třídy}\\ \\alpha\\text{-řezů matice 0-1, od nejvyšší úrovně}",
       "formulas": [],
       "id": "coherences",
@@ -6424,6 +6516,330 @@
     ],
     "steps": 16,
     "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
+   }
+  },
+  "support": {
+   "aia-support-1": {
+    "editable": true,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Pravidla"
+     },
+     {
+      "id": "U",
+      "note_cs": "",
+      "step_ids": [
+       "unit_weights",
+       "unit_kish",
+       "unit_donors",
+       "unit_status"
+      ],
+      "title_cs": "Pravidlo jednotky 18.6.6 (Výsledky)"
+     },
+     {
+      "id": "A",
+      "note_cs": "",
+      "step_ids": [
+       "gate_kish",
+       "gate_assess",
+       "gate_reassess"
+      ],
+      "title_cs": "Brána důkazů AIA (analýza)"
+     }
+    ],
+    "id": "support",
+    "in_force": "aia-support-1",
+    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
+    "preset": "aia-support-1",
+    "presets": [
+     "aia-support-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Dvě sady pravidel; jednu vybere metodik (G1c).",
+        "ref": ".planning/plans/methodology-tab.md, finding D2"
+       }
+      ],
+      "formula_latex": "\\text{pravidla} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.evidence.support:SupportSpec",
+      "note_cs": "",
+      "source_sha256": "2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_evidence_support.py::test_today_is_declared_both_rule_sets",
+       "packages/aia_core/tests/test_methodology_support.py::test_a_rule_that_suppresses_nothing_is_refused"
+      ],
+      "title_cs": "Pojmenování pravidel",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze pravidel",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-support-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
+       }
+      ],
+      "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
+      "formulas": [],
+      "id": "unit_weights",
+      "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA takové váhy odmítá místo čištění (nález D1).",
+      "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
+      ],
+      "title_cs": "Čištění vah",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "unit_kish",
+      "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "note_cs": "",
+      "source_sha256": "3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
+      ],
+      "title_cs": "Kishovo efektivní n (jednotka)",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
+       }
+      ],
+      "formula_latex": "n_D = |\\{d_k\\}|,\\quad n_{\\mathrm{eff}} = \\min\\!\\left(n_{\\mathrm{Kish}}\\tfrac{n_D}{n},\\ n_{\\mathrm{Kish}},\\ n_D,\\ n_{\\mathrm{core}}\\right),\\quad s_{\\max} = \\max_d \\tfrac{n_d}{n}",
+      "formulas": [],
+      "id": "unit_donors",
+      "implements": "aia_core.domain.research_aggregate:donor_support",
+      "note_cs": "Efektivní n se zaokrouhlí na jedno desetinné místo. Podíl největšího dárce se spočítá a uloží, ale žádné pravidlo ho nečte (nález D4).",
+      "source_sha256": "817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+      "symbols": [
+       {
+        "latex": "n_D",
+        "meaning_cs": "počet různých dárců (vrstva core)",
+        "unit": ""
+       },
+       {
+        "latex": "s_{\\max}",
+        "meaning_cs": "podíl největšího dárce",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds",
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Dárci, efektivní n buňky a podíl největšího dárce",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Dvě sady pravidel; jednu vybere metodik (G1c).",
+        "ref": ".planning/plans/methodology-tab.md, finding D2"
+       }
+      ],
+      "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{jinak REPORTOVATELNÉ}",
+      "formulas": [],
+      "id": "unit_status",
+      "implements": "aia_core.domain.research_aggregate:donor_support",
+      "note_cs": "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky se píše z pravidla, které platí.",
+      "source_sha256": "817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_uncertainty_note_states_the_lines_of_the_rule_in_force"
+      ],
+      "title_cs": "Stav podpory pro Výsledky (pravidlo results)",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejmenší surové n buňky",
+        "origin": "specification",
+        "reference": "results.min_cell",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod efektivním n",
+        "origin": "specification",
+        "reference": "results.n_guard",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod efektivním n",
+        "origin": "specification",
+        "reference": "results.indicative",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod",
+        "origin": "specification",
+        "reference": "results.min_layer_donors",
+        "unit": "dárců",
+        "value": 25
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod",
+        "origin": "specification",
+        "reference": "results.indicative_layer_donors",
+        "unit": "dárců",
+        "value": 50
+       }
+      ]
+     },
+     {
+      "evidence": [],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k \\notin (0, \\infty) \\Rightarrow \\text{odmítnuto}",
+      "formulas": [],
+      "id": "gate_kish",
+      "implements": "aia_core.domain.evidence.support:kish_effective_n",
+      "note_cs": "Stejný vzorec jako u jednotky, ale neplatné váhy odmítne (nález D1).",
+      "source_sha256": "dd0bd83ed33fce776c48ee8111788ff6418084214626c468c7f8dda0e5d5f08c",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_evidence_support.py::test_kish_effective_n",
+       "packages/aia_core/tests/test_evidence_support.py::test_kish_refuses_weights_it_would_otherwise_have_to_clean"
+      ],
+      "title_cs": "Kishovo efektivní n (brána AIA)",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Prahy z ledgeru; práh 50 dárců pro indikativní je čtení prahu, ne převzatý kód.",
+        "ref": "methodology ledger M16 (dotaznik.agreguj_otazku, uncertainty.py, fidelity.evidence_rating)"
+       }
+      ],
+      "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{neznámé} \\Rightarrow \\text{POTLAČIT}",
+      "formulas": [],
+      "id": "gate_assess",
+      "implements": "aia_core.domain.evidence.support:assess_support",
+      "note_cs": "Bez důkazů je stav vždy POTLAČIT; vyšší stav vydá jen tato funkce.",
+      "source_sha256": "51fe30afce2c3de516b6405efcae8dac7420840b103250a6470284d7021c1c2d",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_evidence_support.py::test_reference_thresholds",
+       "packages/aia_core/tests/test_evidence_support.py::test_support_decisions",
+       "packages/aia_core/tests/test_evidence_support.py::test_donor_layer_support",
+       "packages/aia_core/tests/test_evidence_support.py::test_default_assessment_is_suppress"
+      ],
+      "title_cs": "Brána důkazů AIA",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejmenší surové n buňky",
+        "origin": "specification",
+        "reference": "analysis.min_cell",
+        "unit": "",
+        "value": 50
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod efektivním n",
+        "origin": "specification",
+        "reference": "analysis.n_guard",
+        "unit": "",
+        "value": 25.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod efektivním n",
+        "origin": "specification",
+        "reference": "analysis.indicative",
+        "unit": "",
+        "value": 50.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod",
+        "origin": "specification",
+        "reference": "analysis.min_layer_donors",
+        "unit": "dárců",
+        "value": 25
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod",
+        "origin": "specification",
+        "reference": "analysis.indicative_layer_donors",
+        "unit": "dárců",
+        "value": 50
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Dvě sady pravidel; jednu vybere metodik (G1c).",
+        "ref": ".planning/plans/methodology-tab.md, finding D2"
+       }
+      ],
+      "formula_latex": "\\text{stav}_{\\mathrm{analýza}} = \\text{přísnější z}\\ \\left(\\text{stav}_{\\mathrm{jednotka}},\\ \\text{brána}(n, n_{\\mathrm{eff}}, n_D)\\right)",
+      "formulas": [],
+      "id": "gate_reassess",
+      "implements": "aia_core.domain.analysis.native:reassess_support",
+      "note_cs": "Brána dostává jako efektivní n kombinované efektivní n jednotky zaokrouhlené na jedno místo, ne Kishovo (nález D3). Buňka tak může být ve Výsledcích INDIKATIVNÍ a v analýze potlačená (nález D2).",
+      "source_sha256": "89ecd1adeb1e29d417d4120873f4f8fc9149ca07cf2c7592f960fcd7f4252cbc",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_stricter_of_the_two_rules_still_wins_in_analysis"
+      ],
+      "title_cs": "Analýza přehodnotí stav jednotky branou AIA",
+      "values": []
+     }
+    ],
+    "steps": 8,
+    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
    }
   }
  },
@@ -6703,6 +7119,48 @@
    ],
    "steps": 16,
    "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
+  },
+  {
+   "editable": true,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Pravidla"
+    },
+    {
+     "id": "U",
+     "note_cs": "",
+     "step_ids": [
+      "unit_weights",
+      "unit_kish",
+      "unit_donors",
+      "unit_status"
+     ],
+     "title_cs": "Pravidlo jednotky 18.6.6 (Výsledky)"
+    },
+    {
+     "id": "A",
+     "note_cs": "",
+     "step_ids": [
+      "gate_kish",
+      "gate_assess",
+      "gate_reassess"
+     ],
+     "title_cs": "Brána důkazů AIA (analýza)"
+    }
+   ],
+   "id": "support",
+   "in_force": "aia-support-1",
+   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
+   "presets": [
+    "aia-support-1"
+   ],
+   "steps": 8,
+   "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
   }
  ],
  "presets": {
@@ -6831,6 +7289,25 @@
    }
   },
   "sociomap_reference": {},
-  "sociomapping": {}
+  "sociomapping": {},
+  "support": {
+   "aia-support-1": {
+    "analysis": {
+     "indicative": 50.0,
+     "indicative_layer_donors": 50,
+     "min_cell": 50,
+     "min_layer_donors": 25,
+     "n_guard": 25.0
+    },
+    "methodology_version": "aia-support-1",
+    "results": {
+     "indicative": null,
+     "indicative_layer_donors": 50,
+     "min_cell": null,
+     "min_layer_donors": 25,
+     "n_guard": null
+    }
+   }
+  }
  }
 }

@@ -654,6 +654,21 @@ export const cs = {
             noChange: "Beze změny.",
             terrain: "Terén",
             terrainChange: "Největší změna výšky buňky: {value}.",
+            support: {
+              intro:
+                "Úprava a pravidla v platnosti rozhodnou tytéž pevné smyšlené buňky stejnými funkcemi jako běh; data klienta se nečtou. Výsledky ukazují stav podle pravidla results, analýza podle pravidla analysis a platí přísnější z obou.",
+              newlyReported: "Nově ukázané (dosud potlačené)",
+              noneReported: "Úprava žádnou buňku nově neukáže.",
+              newlySuppressed: "Nově potlačené (dosud ukázané)",
+              noneSuppressed: "Úprava žádnou buňku nově nepotlačí.",
+              cells: "Všechny buňky ({count})",
+              cell: "Buňka",
+              donors: "Dárci",
+              results: "Výsledky",
+              analysis: "Analýza",
+              surface: { results: "Výsledky", analysis: "analýza" },
+              status: { SUPPRESS: "potlačeno", INDICATIVE: "indikativní", REPORTABLE: "reportovatelné" },
+            },
           },
           parse: {
             number: "Zadejte číslo (desetinná čárka i tečka).",

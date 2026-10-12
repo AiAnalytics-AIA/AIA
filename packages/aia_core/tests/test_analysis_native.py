@@ -29,6 +29,7 @@ from aia_core.domain.evidence import (
     SupportStatus,
     ViolationCode,
 )
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.fieldwork import DataOrigin, FieldworkDataset
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import ResearchSpecification, compile_design
@@ -83,13 +84,19 @@ def run(design: dict[str, Any] = DESIGN) -> tuple[ResearchSpecification, Fieldwo
     spec, problems = compile_design(design)
     assert spec is not None, problems
     dataset = synthetic_dataset(spec, seed=20260816)
-    return spec, dataset, aggregate_dataset(spec, dataset)
+    return spec, dataset, aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
 
 
 @pytest.fixture(scope="module")
 def built() -> tuple[ResearchSpecification, Any, NativeEvidence]:
     spec, dataset, aggregate = run()
-    evidence = native_evidence(spec, aggregate, dataset_sha256=DATASET_SHA, origin=dataset.origin)
+    evidence = native_evidence(
+        spec,
+        aggregate,
+        dataset_sha256=DATASET_SHA,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
     return spec, aggregate, evidence
 
 
@@ -182,7 +189,13 @@ def test_support_is_the_units_reassessed_by_aias_stricter_thresholds(
 
 def test_a_thin_run_has_no_citable_evidence_and_says_why() -> None:
     spec, dataset, aggregate = run({**DESIGN, "n": 60})  # 20 fictional donors < 25
-    evidence = native_evidence(spec, aggregate, dataset_sha256=DATASET_SHA, origin=dataset.origin)
+    evidence = native_evidence(
+        spec,
+        aggregate,
+        dataset_sha256=DATASET_SHA,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
     assert evidence.table.rows == {}
     reasons = evidence.table.suppressed["q1.mean"].reasons
     assert any("unique layer donors" in r for r in reasons)
@@ -222,7 +235,13 @@ def test_a_number_without_what_it_needs_is_removed_keeping_why(mutate: Any, why:
     spec, dataset, aggregate = run()
     changed = copy.deepcopy(aggregate)
     mutate(changed["questions"]["q2"])
-    evidence = native_evidence(spec, changed, dataset_sha256=DATASET_SHA, origin=dataset.origin)
+    evidence = native_evidence(
+        spec,
+        changed,
+        dataset_sha256=DATASET_SHA,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
     assert "q2.pct.1" not in evidence.table.rows
     assert any(why in r for r in evidence.table.suppressed["q2.pct.1"].reasons)
 
@@ -250,18 +269,32 @@ def test_artifacts_that_do_not_describe_one_computation_are_refused(
     changed = copy.deepcopy(aggregate)
     mutate(changed)
     with pytest.raises(NativeEvidenceRefused, match=match):
-        native_evidence(spec, changed, dataset_sha256=DATASET_SHA, origin=dataset.origin)
+        native_evidence(
+            spec,
+            changed,
+            dataset_sha256=DATASET_SHA,
+            origin=dataset.origin,
+            support=REFERENCE_THRESHOLDS,
+        )
 
 
 def test_answers_of_no_known_origin_have_no_policy() -> None:
     spec, _, aggregate = run()
     with pytest.raises(InstrumentPolicyRefused):
         native_evidence(
-            spec, {**aggregate, "data_origin": None}, dataset_sha256=DATASET_SHA, origin=None
+            spec,
+            {**aggregate, "data_origin": None},
+            dataset_sha256=DATASET_SHA,
+            origin=None,
+            support=REFERENCE_THRESHOLDS,
         )
     with pytest.raises(NativeEvidenceRefused, match="SHA-256"):
         native_evidence(
-            spec, aggregate, dataset_sha256="short", origin=DataOrigin.SYNTHETIC_FIXTURE
+            spec,
+            aggregate,
+            dataset_sha256="short",
+            origin=DataOrigin.SYNTHETIC_FIXTURE,
+            support=REFERENCE_THRESHOLDS,
         )
 
 
@@ -272,7 +305,11 @@ def test_a_native_run_has_no_certificate_and_its_system_is_its_own(
     assert not evidence.joint_status.certified
     assert evidence.joint_status.degradation is JointDegradation.MISSING
     other = native_evidence(
-        spec, aggregate, dataset_sha256="e" * 64, origin=DataOrigin.SYNTHETIC_FIXTURE
+        spec,
+        aggregate,
+        dataset_sha256="e" * 64,
+        origin=DataOrigin.SYNTHETIC_FIXTURE,
+        support=REFERENCE_THRESHOLDS,
     )
     assert other.system_fingerprint != evidence.system_fingerprint
     assert other.book.source_sha256 != evidence.book.source_sha256

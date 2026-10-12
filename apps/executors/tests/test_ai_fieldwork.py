@@ -441,10 +441,11 @@ def test_client_allowlist_does_not_classify_an_unknown_questionnaire(
     assert error["reason"] == "egress_unclassified_material"
 
 
-def test_panel_derived_personas_are_refused_by_the_licence_gate_on_any_route(
+def test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exists(
     world: Any, run_with: Callable[..., Worker], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """OI-61: even over a route approved for client material, panel lineage never leaves."""
+    """OI-61 lets panel lineage reach the EU route; the executor still has no panel
+    persona source, so it refuses before anything is reserved or sent."""
     real = ai_fieldwork.fictional_roster
 
     def panel_roster(n: int, *, seed: int) -> Any:
@@ -462,10 +463,13 @@ def test_panel_derived_personas_are_refused_by_the_licence_gate_on_any_route(
         AIA_AI_ROUTE_RETENTION_DAYS="0",
     )
     run_id = _start(world)
-    assert _drain(run_with(bedrock, env=env)) == ["completed", "completed", "failed"]
-    error = _assert_parked_before_network(world, run_id, bedrock)
-    assert error["reason"] == "licence_undetermined"
-    assert error["lineage"] == ["czech_population_panel"]
+    _drain(run_with(bedrock, env=env))
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.FAILED
+    assert fw["attempts"][-1]["failure_class"] is FailureClass.SCHEMA_VIOLATION
+    assert fw["attempts"][-1]["error"]["reason"] == "persona_source_unsupported"
+    assert bedrock.requests == [], "nothing may reach the adapter"
+    assert _ledger(world, run_id) == []
 
 
 def test_a_route_approved_for_nothing_parks(world: Any, run_with: Callable[..., Worker]) -> None:
