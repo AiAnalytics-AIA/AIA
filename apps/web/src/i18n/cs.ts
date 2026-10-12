@@ -508,6 +508,14 @@ export const cs = {
         },
       },
       methodology: {
+        search: "Hledat oblast metodiky", searchPlaceholder: "Objektová mapa, referenční mapa…",
+        noMatch: "Žádná část neodpovídá hledání.", findStep: "Hledat výpočet nebo parametr", findStepPlaceholder: "Např. spolehlivost, terén, velikost vzorku…",
+        leaveEditor: "Přepnutí oblasti zavře rozpracovaný editor metodiky. Chcete pokračovat?", discardEditor: "Zahodit úpravy a přepnout",
+        editableModule: "Postup výpočtu mapy. Vlastník nebo správce může vytvořit novou verzi parametrů a vzorců; již hotové běhy zůstanou stejné.",
+        readOnlyModule: "Tento postup je dostupný ke čtení. Úpravy zde nejsou podporované; nejde o nastavení, které lze změnit přepínačem.",
+        methodNote: "Podrobnosti o metodě a jejích omezeních", catalogueTitle: "Prohlédnout výchozí postup výpočtu",
+        catalogueHelp: "Zvolená předvolba je dokumentace z kódu. Její prohlížení nic neaktivuje. Skutečně platnou verzi a její úpravy najdete v části Verze metodiky.",
+        codeDefault: "výchozí v kódu", fieldReference: "Pole metodiky", calculation: "Výpočet",
         malformed: "Odpověď API nemá podobu metodiky. Nic se nezobrazí, aby to nevypadalo jako prázdná metodika.",
         modules: "Oblasti metodiky",
         preset: "Metodika",
@@ -558,6 +566,12 @@ export const cs = {
           at_least_variable: "není pod proměnnou",
         },
         versions: {
+          versionChangeCount: "{fields} parametrů a {formulas} vzorců", changeDetails: "Která pole se změnila",
+          workflow: "1. Upravte → 2. Zkontrolujte a porovnejte → 3. Uložte verzi → 4. Uveďte v platnost",
+          editorLabel: "Editor metodiky", chooseSection: "Část metodiky k úpravě", changeCount: "Změněných hodnot a vzorců: {count}. Ostatní části návrhu se zachovají.",
+          originalValue: "Původní hodnota", fieldReference: "Technické pole", advancedFormulas: "Pokročilé úpravy vzorců",
+          advancedHelp: "Vzorce upravujte pouze se znalostí metody. Kontrola ověří povolený výraz a jeho podmínky; porovnání ukáže dopad na fiktivních datech.",
+          replaceDraft: "Máte neuložené úpravy metodiky. Tato akce je zahodí.", discardDraft: "Zahodit neuložené úpravy",
           title: "Verze metodiky",
           inForce: "Teď v platnosti",
           origin: { stored: "uložená verze", code: "z kódu" },
@@ -650,6 +664,9 @@ export const cs = {
         },
       },
       deepResearch: {
+        organizationScope: "Tato pravidla platí pro celou organizaci. Rozpočet studie a schválená testovací výjimka mají vlastní rozsah; zde se nemění.",
+        search: "Hledat pravidlo rešerše", searchPlaceholder: "Např. cena, zdroj, délka odpovědi…", filter: "Stav pravidel", all: "Všechna pravidla", missingFilter: "Vyžadují schválení", approvedFilter: "Schválená pravidla", noMatch: "Žádné pravidlo neodpovídá hledání.",
+        missingDetails: "Zobrazit chybějící schválení", technical: "Technický identifikátor", draftGuard: "Máte neuložený návrh pravidla. Zavření nebo přepnutí ho zahodí.", discardDraft: "Zahodit návrh a pokračovat", revertDraft: "Vrátit neuložené změny",
         adminNote: "Hodnoty navrhuje a schvaluje vlastník nebo správce; ostatní členové je vidí.",
         intro:
           "Pravidla, podle kterých Deep Research plánuje, utrácí, posuzuje zdroje a sbírá data. Dokud hodnotu nikdo neschválí, platí navržená výchozí hodnota z kódu a běh ji tak označí. Schválená hodnota platí jen pro běhy zařazené po schválení. Přepínače, tajné klíče a trasa modelu zůstávají v nasazení; ochrany (robots.txt, žádné přihlášení ani paywall, kontrola osobních údajů, třída dat C) jsou v kódu a vypnout nejdou.",
@@ -798,10 +815,14 @@ export const cs = {
         },
       },
       panel: {
+        referenceSearch: "Hledat technickou hodnotu", referenceSearchPlaceholder: "Název, účel nebo technický identifikátor…",
+        studySearch: "Hledat studii nebo klienta", studySearchPlaceholder: "Název studie nebo klienta…", auditSearch: "Hledat v historii", auditSearchPlaceholder: "Událost, osoba, studie nebo důvod…", noSearchResults: "Žádný záznam neodpovídá hledání.",
+        relatedSettings: "Související hodnoty a technická pravidla", activityTechnical: "Technické údaje této schopnosti", runtimeConfiguration: "Model a konfigurace nasazení (pouze ke čtení)",
+        technical: "Technický zdroj",
         legendTitle: "Jak jsou nastavení spravována",
         title: "Ovládání systému",
         intro:
-          "Všechny ovládací prvky AIA na jednom místě. U každé položky je uvedeno, jak se mění: živě přes API, proměnnou nasazení, změnou kódu — nebo vůbec, jde-li o invariant. Co je povoleno, rozhoduje API; jeho odmítnutí se zobrazí tak, jak přišlo.",
+          "Vyberte oblast podle toho, co potřebujete změnit. U každé hodnoty je uvedený její účel, platnost a způsob úpravy.",
         malformed: "API nevrátilo dokument nastavení.",
         unavailable: "{what}: nedostupné.",
         notConfigured: "nenastaveno",
@@ -814,7 +835,7 @@ export const cs = {
         save: "Uložit",
         saved: "Uloženo.",
         sending: "Odesílám…",
-        control: { API: "API", DEPLOYMENT: "Nasazení", CODE: "Kód", INVARIANT: "Invariant" },
+        control: { API: "V aplikaci", DEPLOYMENT: "Spravuje nasazení", CODE: "Spravuje AIA", INVARIANT: "Pevné pravidlo" },
         controlHelp: {
           API: "Mění se živě, přes auditovanou cestu API; kdo smí, určuje oprávnění.",
           DEPLOYMENT: "Proměnná prostředí, čtená a validovaná při startu procesu.",
@@ -849,7 +870,7 @@ export const cs = {
           },
           approvals: {
             title: "Schvalování",
-            intro: "Nezávislá revize je výchozí. Samoschválení může povolit jen správce, na úrovni organizace, klienta nebo studie.",
+            intro: "Pravidla určují, kdy autor může schválit vlastní návrh. Nastavuje je správce pro organizaci, klienta nebo konkrétní studii.",
           },
           ai: {
             title: "AI v AIA",
@@ -888,7 +909,7 @@ export const cs = {
           methodology: {
             title: "Metodika",
             intro:
-              "Matematika a statistika AIA tak, jak běží: každý krok výpočtu, jeho vzorec, hodnoty, které čte, a odkud každá pochází (ADR 0023). Hodnoty se čtou přímo z kódu a z metodiky v platnosti, nic se sem neopisuje. Upravit metodiku a uvést úpravu v platnost může vlastník nebo správce organizace; platí pro běhy spuštěné potom.",
+              "Prohlédněte si kroky výpočtu map a statistik, jejich parametry a vysvětlení. Upravit postup může vlastník nebo správce. Aktivovaná verze se použije u nově spuštěných běhů.",
           },
           roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím a zakládá klienty. Správce k tomu spravuje členy, stav klientů a nastavení systému. API kontroluje oprávnění, nikdy role." },
           audit: { title: "Audit přístupu", intro: "Posledních 50 udělení, odebrání, odmítnutí a změn nastavení." },
@@ -961,6 +982,8 @@ export const cs = {
         },
         clientStatus: { ACTIVE: "Aktivní", DORMANT: "Neaktivní", ARCHIVED: "Archivovaný" },
         members: {
+          edit: "Upravit jméno a roli", noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
+          editHelp: "Změna role mění oprávnění tohoto člena v celé organizaci. Přístup k jednotlivým studiím se zde nenastavuje.",
           title: "Členové organizace",
           name: "Jméno",
           role: "Role",

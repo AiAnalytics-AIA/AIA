@@ -18,11 +18,11 @@ export function Formula({ latex, display = true }: { latex: string; display?: bo
   if (mathml === null) {
     return (
       <span className="flex flex-col gap-1">
-        <code className="font-mono text-xs">{latex}</code>
+        <code className="whitespace-pre-wrap break-all font-mono text-xs">{latex}</code>
         <span className="text-xs text-status-fault">{t(`${M}.formulaError`)}</span>
       </span>
     );
   }
   // Temml's own output, trust off: built from the catalogue's LaTeX, no link or HTML passes.
-  return <span className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: mathml }} />;
+  return <span className={display ? "block min-w-0 max-w-full overflow-x-auto" : "inline-block max-w-full overflow-x-auto align-middle"} dangerouslySetInnerHTML={{ __html: mathml }} />;
 }
