@@ -560,3 +560,49 @@ def test_a_population_that_will_not_load_is_unavailable_not_an_error(
     response = viewer.post(f"{api_prefix}/population/audience-preview", json={"filters": {}})
     assert response.status_code == 503
     assert response.json()["code"] == "population_unavailable"
+
+
+def test_the_audience_routes_read_the_population_the_composition_names(
+    app: FastAPI, fictional_live: Any, viewer: Any, api_prefix: str
+) -> None:
+    """Every deployment names the Czech LIVE; the UI workbench names a fictional one, the
+    only way fictional rows reach these routes (panel-grounded-respondents 6f)."""
+    from aia_api.dependencies import CZECH_AUDIENCE, AudiencePopulation
+
+    assert CZECH_AUDIENCE.population_id == "CZ_LIVE"
+    url = f"{api_prefix}/population/audience-catalogue"
+    assert viewer.get(url).json()["code"] == "population_not_established"  # no Czech LIVE here
+
+    with create_session_factory(app.state.engine)() as session:
+        rt = fictional_live.runtime(session)
+        live = PopulationRegistryRepository(session).population(fictional_live.live_id)
+        assert live is not None
+        version_id = live.current_version_id
+        rt.record_audience_catalogue(version_id, recorded_by="test")
+        session.commit()
+    app.state.audience_population = AudiencePopulation(
+        contract=fictional_live.contract, population_id=fictional_live.live_id
+    )
+    body = viewer.get(url).json()
+    assert body["version_id"] == version_id and body["version_label"] == "v1_4"
+    assert "vek" in [f["id"] for f in body["factors"]]
+
+
+def test_a_previewer_already_installed_survives_the_servers_startup(
+    app: FastAPI, fictional_live: Any
+) -> None:
+    """The workbench installs its previewer, then the server's startup runs again; the 6f
+    journey found it reset to none (a 503)."""
+    from aia_api.dependencies import init_app_state
+
+    installed = fictional_live.previewer()
+    app.state.audience_previewer = installed
+    kept = {k: getattr(app.state, k) for k in ("engine", "session_factory", "artifact_store")}
+    app.state.engine = None  # as after the setup client's shutdown
+    try:
+        init_app_state(app, app.state.settings)
+        assert app.state.audience_previewer is installed
+    finally:
+        app.state.engine.dispose()
+        for name, value in kept.items():
+            setattr(app.state, name, value)
