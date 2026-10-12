@@ -443,7 +443,7 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    ```
 
    Unset or empty, `aia_population_operators` names nobody, and every command but
-   `status` is refused. A value that does not read stops the command and names the key.
+   `status` and `record-dictionary` (which act as no one) is refused. A value that does not read stops the command and names the key.
 
 2. **Back up**, so the import can be undone by a restore (§ Database). Nothing un-imports
    a version:
