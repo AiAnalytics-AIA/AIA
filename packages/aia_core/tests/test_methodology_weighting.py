@@ -45,7 +45,7 @@ def _values() -> dict[str, object]:
 
 
 def test_it_is_registered_after_aggregation_and_is_complete() -> None:
-    assert [m.id for m in MODULES][-3:] == ["support", "aggregation", "weighting"]
+    assert [m.id for m in MODULES][-4:-1] == ["support", "aggregation", "weighting"]
     assert module_problems(WEIGHTING) == {}
 
 

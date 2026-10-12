@@ -713,6 +713,802 @@
     "title_cs": "Agregace: z odpovědí odhad s intervalem"
    }
   },
+  "response": {
+   "aia-response-1": {
+    "editable": false,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Proces odpovědi"
+     },
+     {
+      "id": "P",
+      "note_cs": "",
+      "step_ids": [
+       "request",
+       "normalise"
+      ],
+      "title_cs": "Pravděpodobnosti od modelu"
+     },
+     {
+      "id": "B",
+      "note_cs": "",
+      "step_ids": [
+       "reweight",
+       "social_desirability",
+       "acquiescence",
+       "extremity",
+       "dont_know",
+       "satisficing"
+      ],
+      "title_cs": "Mechanismy odpovědi"
+     },
+     {
+      "id": "D",
+      "note_cs": "",
+      "step_ids": [
+       "draw"
+      ],
+      "title_cs": "Losování"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "styles",
+       "noise",
+       "describe"
+      ],
+      "title_cs": "Styly respondenta"
+     },
+     {
+      "id": "F",
+      "note_cs": "",
+      "step_ids": [
+       "roster"
+      ],
+      "title_cs": "Fiktivní soubor"
+     }
+    ],
+    "id": "response",
+    "in_force": "aia-response-1",
+    "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Běh si proces odpovědi zapamatuje od R1b, upravit ho půjde od R1c.",
+    "preset": "aia-response-1",
+    "presets": [
+     "aia-response-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       }
+      ],
+      "formula_latex": "\\text{proces} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.respondent_behavior:ResponseProcessSpec",
+      "note_cs": "",
+      "source_sha256": "fa9721580547dfe726c8203ee519be5ea58f2b8c676356355b7f8ff3fed3a373",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_response.py::test_the_preset_is_the_units_values_and_the_code_reads_it"
+      ],
+      "title_cs": "Pojmenování procesu odpovědi",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze procesu odpovědi",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-response-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Model odhaduje pravděpodobnosti jednoho respondenta, odpověď losuje kód. Model odpověď nikdy nevybírá.",
+        "ref": "docs/architecture/research-agents.md; ai_respondent.py"
+       }
+      ],
+      "formula_latex": "p = (p_1, \\dots, p_K) \\text{ od modelu, jeden respondent, teplota } 0",
+      "formulas": [],
+      "id": "request",
+      "implements": "aia_core.domain.ai_respondent:build_request",
+      "note_cs": "Model dostane profil jednoho respondenta a vrátí pro každou uzavřenou otázku rozdělení pravděpodobností, nikdy odpověď. Disperzní teplota 18.6.6 (dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1.",
+      "source_sha256": "024e1fb18276662447f6332ad0df3eeae7b38564dce03b991882f52beae3e6c6",
+      "symbols": [
+       {
+        "latex": "K",
+        "meaning_cs": "počet možností otázky (u škály body a případně „nevím“)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_ai_respondent.py::test_the_request_carries_class_lineage_prompt_and_no_scope"
+      ],
+      "title_cs": "Pravděpodobnosti od modelu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       }
+      ],
+      "formula_latex": "p_k := \\frac{\\max(0, p_k)}{\\sum_j \\max(0, p_j)}",
+      "formulas": [],
+      "id": "normalise",
+      "implements": "aia_core.domain.respondent_behavior:normalise",
+      "note_cs": "Nekonečná hodnota nebo NaN se odmítne ještě před ořezem: max(0, NaN) je 0 a z rozbité odpovědi by se tiše stala věrohodná.",
+      "source_sha256": "33f01949292172b274eb0f67c46e4cb107251b6f495c013d19e2c1dd856b8276",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_vector_without_positive_finite_mass_is_refused"
+      ],
+      "title_cs": "Normalizace",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "p_k := \\frac{p_k\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_k))}}{\\sum_j p_j\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_j))}}",
+      "formulas": [],
+      "id": "reweight",
+      "implements": "aia_core.domain.respondent_behavior:_soft_reweight",
+      "note_cs": "Každý z prvních čtyř mechanismů je jedno takové převážení se svým β a s.",
+      "source_sha256": "a33179e2b6d74fc8d728435f4b5221bd55fee967b57876611492cadc5d013b19",
+      "symbols": [
+       {
+        "latex": "\\beta",
+        "meaning_cs": "síla mechanismu u respondenta",
+        "unit": ""
+       },
+       {
+        "latex": "s_k",
+        "meaning_cs": "skóre možnosti k ve směru mechanismu",
+        "unit": ""
+       },
+       {
+        "latex": "L",
+        "meaning_cs": "mez exponentu",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Měkké převážení",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Mez exponentu (L)",
+        "origin": "specification",
+        "reference": "reweight_limit",
+        "unit": "",
+        "value": 8.0
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\beta = \\sigma \\left(a + b\\, z_{\\mathrm{sds}}\\right)",
+      "formulas": [],
+      "id": "social_desirability",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka směr žádoucnosti deklaruje; nikdy se nehádá.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{sds}}",
+        "meaning_cs": "styl: citlivost na společenskou žádoucnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit",
+       "packages/aia_core/tests/test_respondent_behavior.py::test_every_mechanism_is_exercised_by_the_captures"
+      ],
+      "title_cs": "Společenská žádoucnost",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Základ (a)",
+        "origin": "specification",
+        "reference": "social_desirability.base",
+        "unit": "",
+        "value": 0.18
+       },
+       {
+        "absent": false,
+        "label_cs": "Sklon se stylem (b)",
+        "origin": "specification",
+        "reference": "social_desirability.slope",
+        "unit": "",
+        "value": 0.1
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\beta = \\sigma\\, c\\, z_{\\mathrm{souhlas}}",
+      "formulas": [],
+      "id": "acquiescence",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka deklaruje, která odpověď je souhlas.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{souhlas}}",
+        "meaning_cs": "styl: souhlasný sklon",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Souhlasný sklon",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (c)",
+        "origin": "specification",
+        "reference": "acquiescence",
+        "unit": "",
+        "value": 0.16
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "s_k = \\left|-1 + \\frac{2(k-1)}{n-1}\\right|,\\quad \\beta = \\sigma\\, e\\, z_{\\mathrm{vyhr}}",
+      "formulas": [],
+      "id": "extremity",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "„Nevím“ má skóre 0: není střed ani krajnost.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet bodů škály (aspoň 3)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{vyhr}}",
+        "meaning_cs": "styl: vyhraněnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Vyhraněnost na škále",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (e)",
+        "origin": "specification",
+        "reference": "extremity",
+        "unit": "",
+        "value": 0.22
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "s = (0, \\dots, 0, 1),\\quad \\beta = \\sigma\\, d\\, z_{\\text{nevím}}",
+      "formulas": [],
+      "id": "dont_know",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka „nevím“ připouští; je vždy poslední možností.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\text{nevím}}",
+        "meaning_cs": "styl: ochota přiznat „nevím“",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Ochota přiznat „nevím“",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (d)",
+        "origin": "specification",
+        "reference": "dont_know",
+        "unit": "",
+        "value": 0.24
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\lambda = \\min\\!\\left(\\lambda_{\\max},\\ \\sigma\\, \\mathrm{clamp}_{[0,1]}\\!\\left(g + h\\, z_{\\mathrm{sat}}\\right)\\right),\\quad p := \\frac{(1-\\lambda)\\,p + \\lambda\\, u}{\\sum}",
+      "formulas": [],
+      "id": "satisficing",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Otázka může heuristiku vypnout (satisficing_strategy: none).",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{sat}}",
+        "meaning_cs": "styl: satisficing",
+        "unit": ""
+       },
+       {
+        "latex": "u",
+        "meaning_cs": "heuristika otázky: rovnoměrně (výchozí), střed škály, nebo první možnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Satisficing",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Základ (g)",
+        "origin": "specification",
+        "reference": "satisficing.base",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "Sklon se stylem (h)",
+        "origin": "specification",
+        "reference": "satisficing.slope",
+        "unit": "",
+        "value": 0.06
+       },
+       {
+        "absent": false,
+        "label_cs": "Strop podílu (λ max)",
+        "origin": "specification",
+        "reference": "satisficing.cap",
+        "unit": "",
+        "value": 0.35
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Model odhaduje pravděpodobnosti jednoho respondenta, odpověď losuje kód. Model odpověď nikdy nevybírá.",
+        "ref": "docs/architecture/research-agents.md; ai_respondent.py"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Losování ze standardní knihovny (random.Random), ne z NumPy: stejné rozdělení, jiné konkrétní losy než v 18.6.6.",
+        "ref": "open-items OI-62"
+       }
+      ],
+      "formula_latex": "u \\sim U[0, 1),\\quad k^{*} = \\min\\left\\{k : \\textstyle\\sum_{j \\le k} p_j > u\\right\\}",
+      "formulas": [],
+      "id": "draw",
+      "implements": "aia_core.domain.respondent_behavior:draw_index",
+      "note_cs": "Semínko je pro každého respondenta a otázku vlastní (sha256 ze semínka běhu, respondenta a otázky): stejný běh vylosuje stejné odpovědi.",
+      "source_sha256": "aa7e348734aaa6a401ea185e126032b2312aa11b54a8447ed2315e559e669deb",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_the_draw_is_seeded_and_follows_the_distribution",
+       "packages/aia_core/tests/test_ai_respondent.py::test_answers_are_drawn_by_code_reproducibly_and_zero_mass_is_refused"
+      ],
+      "title_cs": "Losování odpovědi kódem",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "x = \\alpha z_{\\mathrm{vzd}} + \\gamma z_{\\text{věk}} + \\delta m + \\sqrt{\\max\\!\\left(1 - \\operatorname{var}(\\text{signál}),\\ \\phi\\right)}\\ \\varepsilon,\\quad \\text{styl} = z(x)",
+      "formulas": [],
+      "id": "styles",
+      "implements": "aia_core.domain.respondent_behavior:assign_styles",
+      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící údaj nepřispívá ničím.",
+      "source_sha256": "90ce38208464d13bdf304e391233c4d13e1714dfbe318b19586844ddad15dfc8",
+      "symbols": [
+       {
+        "latex": "z_{\\mathrm{vzd}},\\ z_{\\text{věk}}",
+        "meaning_cs": "z-skóre vzdělání a věku v souboru",
+        "unit": ""
+       },
+       {
+        "latex": "m",
+        "meaning_cs": "pohlaví: muž 1, jinak -1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, \\gamma, \\delta",
+        "meaning_cs": "vazby stylu na vzdělání, věk a pohlaví",
+        "unit": ""
+       },
+       {
+        "latex": "\\phi",
+        "meaning_cs": "dolní mez váhy šumu",
+        "unit": ""
+       },
+       {
+        "latex": "\\varepsilon",
+        "meaning_cs": "stabilní šum respondenta",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_styles_match_the_unit"
+      ],
+      "title_cs": "Styly respondenta",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.education",
+        "unit": "",
+        "value": -0.3
+       },
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: věk",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.age",
+        "unit": "",
+        "value": 0.2
+       },
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: muž",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.education",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: věk",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.age",
+        "unit": "",
+        "value": 0.15
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: muž",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.male",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.education",
+        "unit": "",
+        "value": -0.25
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: věk",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.age",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: muž",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.male",
+        "unit": "",
+        "value": -0.15
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.education",
+        "unit": "",
+        "value": 0.3
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: věk",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.age",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: muž",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.satisficing.education",
+        "unit": "",
+        "value": -0.25
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: věk",
+        "origin": "specification",
+        "reference": "style_links.satisficing.age",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: muž",
+        "origin": "specification",
+        "reference": "style_links.satisficing.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.education",
+        "unit": "",
+        "value": -0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: věk",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.age",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: muž",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.male",
+        "unit": "",
+        "value": -0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "Dolní mez váhy šumu (φ)",
+        "origin": "specification",
+        "reference": "style_noise_floor",
+        "unit": "",
+        "value": 0.05
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       }
+      ],
+      "formula_latex": "\\varepsilon = \\Phi^{-1}\\!\\left(\\frac{H_{12}(\\text{id} \\Vert \\text{styl}) + \\frac{1}{2}}{16^{12}}\\right)",
+      "formulas": [],
+      "id": "noise",
+      "implements": "aia_core.domain.respondent_behavior:_stable_noise",
+      "note_cs": "Šum závisí jen na respondentovi: stejný respondent má vždy stejný styl.",
+      "source_sha256": "4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
+      "symbols": [
+       {
+        "latex": "H_{12}",
+        "meaning_cs": "prvních 12 šestnáctkových číslic SHA-256",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster"
+      ],
+      "title_cs": "Stabilní šum",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       }
+      ],
+      "formula_latex": "|z| \\ge \\theta \\;\\Rightarrow\\; \\text{popis stylu v profilu}",
+      "formulas": [],
+      "id": "describe",
+      "implements": "aia_core.domain.ai_respondent:describe_style",
+      "note_cs": "Slovy se do profilu dostane jen výrazná strana stylu.",
+      "source_sha256": "3118f0838c18417235f4a50ea2bd6d29720b8e6e00087dba3730c8d2f65cce39",
+      "symbols": [
+       {
+        "latex": "\\theta",
+        "meaning_cs": "práh výraznosti stylu",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_response.py::test_a_style_is_put_into_words_from_the_threshold"
+      ],
+      "title_cs": "Styl slovy v profilu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Práh výraznosti (θ)",
+        "origin": "specification",
+        "reference": "describe_threshold",
+        "unit": "",
+        "value": 0.7
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Fiktivní soubor má max(3, ⌊n/3⌋) dárců; s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců.",
+        "ref": "plan methodology-tab, nález D6"
+       }
+      ],
+      "formula_latex": "D = \\max\\!\\left(3,\\ \\left\\lfloor n/3 \\right\\rfloor\\right),\\quad w_i = 1",
+      "formulas": [],
+      "id": "roster",
+      "implements": "aia_core.domain.ai_respondent:fictional_roster",
+      "note_cs": "Nález D6: s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců. Fiktivní soubor nese AI běh, dokud zdroj panelu nedojde do sběru.",
+      "source_sha256": "6b9afbd58fb01abcb0c405d231e6434b5a033055298f6283391acbdec27d17df",
+      "symbols": [
+       {
+        "latex": "D",
+        "meaning_cs": "počet fiktivních dárců",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_ai_respondent.py::test_the_roster_is_fictional_deterministic_and_carries_its_lineage",
+       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors"
+      ],
+      "title_cs": "Fiktivní soubor: dárci a váhy",
+      "values": []
+     }
+    ],
+    "steps": 14,
+    "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "editable": true,
@@ -8406,6 +9202,75 @@
    ],
    "steps": 9,
    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
+  },
+  {
+   "editable": false,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Proces odpovědi"
+    },
+    {
+     "id": "P",
+     "note_cs": "",
+     "step_ids": [
+      "request",
+      "normalise"
+     ],
+     "title_cs": "Pravděpodobnosti od modelu"
+    },
+    {
+     "id": "B",
+     "note_cs": "",
+     "step_ids": [
+      "reweight",
+      "social_desirability",
+      "acquiescence",
+      "extremity",
+      "dont_know",
+      "satisficing"
+     ],
+     "title_cs": "Mechanismy odpovědi"
+    },
+    {
+     "id": "D",
+     "note_cs": "",
+     "step_ids": [
+      "draw"
+     ],
+     "title_cs": "Losování"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "styles",
+      "noise",
+      "describe"
+     ],
+     "title_cs": "Styly respondenta"
+    },
+    {
+     "id": "F",
+     "note_cs": "",
+     "step_ids": [
+      "roster"
+     ],
+     "title_cs": "Fiktivní soubor"
+    }
+   ],
+   "id": "response",
+   "in_force": "aia-response-1",
+   "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Běh si proces odpovědi zapamatuje od R1b, upravit ho půjde od R1c.",
+   "presets": [
+    "aia-response-1"
+   ],
+   "steps": 14,
+   "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
   }
  ],
  "presets": {
@@ -8425,6 +9290,7 @@
     "top_box": 2
    }
   },
+  "response": {},
   "sociomap": {
    "aia-sociomap-2": {
     "connectedness": {

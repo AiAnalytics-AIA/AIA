@@ -62,6 +62,7 @@ describe("the Metodika tab", () => {
       "Podpora a potlačení: kdy se číslo smí ukázat",
       "Agregace: z odpovědí odhad s intervalem",
       "Vážení: která váha patří respondentovi a co s neplatnou",
+      "Odpověď respondenta: od pravděpodobností modelu k odpovědi",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
@@ -172,6 +173,20 @@ describe("the Metodika tab", () => {
     expect(screen.getAllByText(/nález D1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Kalibrace, raking ani GREG/).length).toBeGreaterThan(0);
     // Read-only until W1c, and the page says so.
+    expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
+    expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
+  });
+
+  it("opens the response process read-only: the unit's coefficients, the draw by code and D6", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Odpověď respondenta: od pravděpodobností modelu k odpovědi" }));
+    await screen.findByRole("heading", { name: "Mechanismy odpovědi" });
+    expect(screen.getAllByText(/aia-response-1/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Losování odpovědi kódem")).toBeTruthy();
+    expect(screen.getByText("Strop podílu (λ max)")).toBeTruthy();
+    expect(screen.getAllByText(/Nález D6/).length).toBeGreaterThan(0);
+    // Read-only until R1c, and the page says so.
     expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
     expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
   });

@@ -51,6 +51,7 @@ from .licence_determinations import PANEL_DERIVED_DATASETS, SYNTHETIC_FIXTURE_DA
 from .research_design import ResearchSpecification, SpecQuestion
 from .residency import DataClass
 from .respondent_behavior import (
+    AIA_RESPONSE_V1,
     EDUCATION_ORDER,
     STYLES,
     ResponseQuestion,
@@ -223,8 +224,11 @@ _STYLE_WORDS: Final[dict[str, tuple[str, str]]] = {
 }
 
 
-def describe_style(style: Mapping[str, float], threshold: float = 0.7) -> str:
-    """``styly.popis_stylu``: only the pronounced sides of a style, joined by '; '."""
+def describe_style(
+    style: Mapping[str, float], threshold: float = AIA_RESPONSE_V1.describe_threshold
+) -> str:
+    """``styly.popis_stylu``: only the pronounced sides of a style, joined by '; '. The
+    threshold is the response process's (``aia-response-1``: the unit's 0.7)."""
     parts: list[str] = []
     for name in STYLES:
         value = float(style.get(name, 0.0))
