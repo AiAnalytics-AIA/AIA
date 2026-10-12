@@ -94,6 +94,10 @@ panel. Behind `AIA_AI_PANEL_PERSONAS_ENABLED`, off by default and in test. The
 profile is longer than four facts: measure input tokens and cost per respondent and
 state them in the commit body. The run's provenance names the source, binding,
 roster or sample version and the persona mode.
+Code comments that still give OI-61 as the reason fieldwork is fictional change with it:
+`domain/ai_respondent.py:19-24`, `application/research.py:176,216`,
+`apps/api/src/aia_api/routers/research.py:187`, `apps/web/src/lib/research-execution.ts:98`
+(all @ `ea5210e`); after OI-61 the reason is that no panel persona source exists.
 
 **6. Screens.** Audience filters and the 18 subpanels become live where they now say
 "V AIA zatím není"; results say "modelováno" every time.
