@@ -21,7 +21,7 @@ chunks:
   - "[x] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
   - "[x] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
   - "[x] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
-  - "[ ] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
+  - "[x] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -764,6 +764,23 @@ aggregate counted (`domain/analysis/native.py` `reassess_support`, `requires_don
 respondents on 40 donors are INDICATIVE (under the donor floor of 50), the same answers on 1,000
 donors REPORTABLE, and on 20 donors (under 25) no row is shown at all.
 
+**4e5 landed.** `domain/report/evidence.py`: `EvidenceLedger.modelled_panel(refs)` -- does any
+held ref rest on `MODELLED_AI_PANEL` (read through `origin_kind`). The DOCX
+(`infrastructure/report_docx/`) prints "(modelováno: AI respondenti z populace)" beside such a
+number wherever one is printed: an inline value (before "orientační"), a paragraph's marks, a
+callout's or finding's title marks, a KPI tile; a table or a figure says it once in its caption
+beside its base and grade, not in every cell. A simulated run's report never says it (its own
+"syntetičtí respondenti" callout frames it, 4c). The grade mark is unchanged.
+
+Not here: the validation's date and fingerprint beside the disclosure (ADR §7). No validation is
+recorded, and `ValidationState` carries no date; chunk 7, which records the first, prints them.
+
+Tests: `test_only_numbers_on_ai_respondents_from_the_population_carry_the_modelled_words`;
+`test_values_print_as_the_evidence_rounded_them_with_intervals`,
+`test_captions_number_figures_and_state_base_and_suppression` and
+`test_the_caption_numbers_titles_and_states_the_base` now expect the words: every client-facing
+number in the shared `report_ledger` rests on the one admissible origin.
+
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.
 
@@ -791,6 +808,20 @@ population marginals are known (ISSP items in the panel), asked of panel-grounde
 respondents, compared. No client-facing claim until the holdout result is recorded.
 
 ## Findings
+
+- **A client-facing number can print "měřeno" beside "modelováno: AI respondenti z populace".**
+  Hypothesis about production, reproduced in tests: the print grade follows the claim's basis
+  and the composer's `field_grades` (`domain/report/evidence.py:58-65 @ 5f204ce1`), never the
+  row's origin, and since 4b the only client-admissible origin is `MODELLED_AI_PANEL`. So a
+  measured-basis claim on a population field graded `MEASURED` prints the measured mark beside
+  the modelled disclosure. Reproduction:
+  `pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers` (the caption
+  reads "n = 480; měřeno; modelováno: AI respondenti z populace"). Consequence: once a
+  client report exists, a reader sees two contradictory words on one number. No production
+  composer passes `field_grades` today (OI-9), so no report prints it yet. Smallest fix, for
+  analysis-governance with OI-9: a `MODELLED_AI_PANEL` row grades `MODELLED` whatever its
+  basis, or such a row cannot back a measured claim at admission. Test that catches it: a
+  ledger test asserting a modelled-panel row never grades `MEASURED`.
 
 - **OI-7 is not archive-blocked: the source it waits for is vendored.** OI-7 says the seven
   enrichment derivations exist only in the withheld archive, so the ANALYSIS view, which every
