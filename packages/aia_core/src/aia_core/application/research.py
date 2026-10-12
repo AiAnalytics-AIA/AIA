@@ -24,7 +24,7 @@ from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
-from ..domain.fieldwork import FieldworkSource
+from ..domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
 from ..domain.methodology.pins import (
     UNIT_AGGREGATION_PIN,
     aggregation_pin_for,
@@ -84,6 +84,7 @@ __all__ = [
     "CostCeilingUnknown",
     "CostConfirmationRequired",
     "DesignNotReady",
+    "PanelPopulationMissing",
     "ResearchAgentJobs",
     "ResearchRunNotFound",
     "ResearchRunNotRetryable",
@@ -112,6 +113,10 @@ class DesignNotReady(Exception):
     def __init__(self, readiness: Readiness) -> None:
         super().__init__("the design is not ready to run")
         self.readiness = readiness
+
+
+class PanelPopulationMissing(Exception):
+    """A panel run asked for, and no population established to draw its respondents from."""
 
 
 class ResearchRunNotFound(LookupError):
@@ -176,18 +181,19 @@ class RunReservations:
     analysis_usd: float | None
 
 
-def _population_note(binding: PopulationBinding) -> dict[str, Any]:
-    """What the run says about its population: the version it names, and that nothing read it.
+def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> dict[str, Any]:
+    """What the run says about its population: the version it names, and whether fieldwork
+    draws its respondents from it.
 
     The binding row is the record (``WorkflowRepository.population_binding``); this is how
-    a run reads without a second query. ``read_by_fieldwork`` stays ``False`` until a
-    fieldwork source answers from the population (population-operations P3, OI-61).
+    a run reads without a second query. ``read_by_fieldwork`` is whether the run pinned the
+    panel persona source; a fictional-roster run records its population and reads nothing.
     """
     return {
         "population_id": binding.population_id,
         "version_id": binding.version_id,
         "version_label": binding.version_label,
-        "read_by_fieldwork": False,
+        "read_by_fieldwork": read_by_fieldwork,
     }
 
 
@@ -223,9 +229,8 @@ class ResearchRuns:
         as before -- a run made before LIVE existed, or before LIVE moved, keeps what it
         recorded. A retry keeps the original's, as it keeps its Sociomap methods. A new run
         records the child its study selected (``selected``, resolved by :meth:`_selected`)
-        or LIVE as it stands, or nothing while LIVE is not
-        established. No step reads it yet: fieldwork answers with fictional respondents
-        (OI-61) and says so.
+        or LIVE as it stands, or nothing while LIVE is not established. Fieldwork reads it
+        only when the run pinned the panel persona source.
         """
         existing = self._workflows().find_run_by_idempotency_key(key)
         if existing is not None:
@@ -289,9 +294,17 @@ class ResearchRuns:
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
+        persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         population_version_id: str | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run pins who its AI respondents are (``persona_source``, plan
+        ``panel-grounded-respondents`` 5a): the fieldwork step reads the pin, never a switch,
+        and a retry keeps it. A panel run is its own identity (a start over a revision whose
+        run is fictional makes a new run), needs the ``ai_runtime`` source, and is refused
+        (:class:`PanelPopulationMissing`) when there is no population to draw from -- never
+        started fictional instead.
 
         The run records the population it names (``population_version_id``: a materialized
         child of the study's client, P4e2; LIVE when not given). A selected child is part of
@@ -379,6 +392,11 @@ class ResearchRuns:
         if population_version_id is not None and retry_of is None:
             # A retry keeps the original's population; its key carries the original's id.
             key += f":population:{fingerprint(population_version_id)[:16]}"
+        panel = persona_source is PersonaSource.PANEL
+        if panel and fieldwork_source is not FieldworkSource.AI_RUNTIME:
+            raise ValueError("panel personas answer only through the ai_runtime source")
+        if panel:
+            key += ":personas:panel"
         if retry_of:
             key += f":retry:{retry_of}"
         support_pin = support_spec.model_dump(mode="json")
@@ -400,6 +418,11 @@ class ResearchRuns:
                     raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
                 confirmation = (ceiling.total_usd, limit)
         population = self._population_for(key, retry_of, selected)
+        if panel and population is None:
+            raise PanelPopulationMissing(
+                "the panel persona source draws from the run's population, and none is "
+                "established; nothing was started"
+            )
         started = start_workflow(
             self.session,
             self.scope,
@@ -420,12 +443,20 @@ class ResearchRuns:
                 "aggregation": aggregation_pin,
                 **({"aggregation_methodology": aggregation_version} if aggregation_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
-                **({"population": _population_note(population)} if population else {}),
+                "persona_source": persona_source.value,
+                **(
+                    {"population": _population_note(population, read_by_fieldwork=panel)}
+                    if population
+                    else {}
+                ),
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
                 "preflight": {"methods": pinned},
-                "run": {"fieldwork_source": fieldwork_source.value},
+                "run": {
+                    "fieldwork_source": fieldwork_source.value,
+                    "persona_source": persona_source.value,
+                },
                 "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
                 "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
@@ -458,7 +489,9 @@ class ResearchRuns:
         A retry spends again, so it asks again: the limit and the confirmation work as they do
         for :meth:`start`. It pins the Sociomap methods the run it retries pinned, never the
         current default; a run stored before methods were pinned retries as
-        ``aia-sociomap-1``, the method that computed it.
+        ``aia-sociomap-1``, the method that computed it. It keeps the original's persona
+        source whatever the deployment's switch now says; a run stored before the source was
+        pinned retries on the fictional roster, which answered it.
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
@@ -474,6 +507,7 @@ class ResearchRuns:
             sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
+            persona_source=persona_source_of(run["metadata"]),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

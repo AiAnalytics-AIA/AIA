@@ -158,6 +158,26 @@ persona signal catalog and the value labels, are read only through
 `RuntimePopulation.companion(asset_id)`: the bytes the loader verified against their recorded
 SHA256 at load, never the asset source.
 
+## Materialized dimensions (P4, domain only)
+
+An accepted dimension becomes respondent values as an **owned child** `DatasetVersion`: the
+shared base's panel plus one column per materialized field, the base as its parent, owned by the
+organization and client it was made for (`VersionOwner`; plan
+`population-operations.md` P4, M1-M5). What a child adds is a `PopulationContractExtension`
+pinned by its own SHA256 (`domain/population/materialized.py @ d44e178a`); the base's import
+contract is unchanged. `check_child_version` refuses any child that is not exactly its shared
+base extended, and `plan_establish` / `plan_promotion` refuse an owned version
+(`OwnedVersionNotShared`, reason `owned_version`): STATIC and LIVE stay shared
+(`test_an_owned_child_is_never_a_shared_populations_version`).
+
+A materialized field's policy is fixed, not read from the dictionary (M3): modelled, persona-,
+audience- and simulation-eligible, a client claim only as a disclosed modelled aggregate, never a
+measured claim and never weighting (`materialized_policy_entry`). Its values come from 18.6.6's
+evidence rule, ported EXACT (`domain/population/derivation.py`, method
+`npc-18.6.6-evidence-overlay` v1, fixtures `tests/fixtures/materialize_dimension/` from
+`tools/materialize_capture.py`), with one named deviation: a dimension no predictor varies for
+is refused (`no_varying_predictor`) where the unit wrote hash noise.
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
@@ -166,3 +186,4 @@ SHA256 at load, never the asset source.
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
 | An S3 asset source read directly by the loader (today: the host's synced copy) | a deployment without a host disk | `.planning/overview.md` Next |
 | Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
+| Storing an owned child version, the materialize step, binding a child to a run | any materialized dimension | `plans/population-operations.md` P4c-P4e |

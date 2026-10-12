@@ -157,7 +157,10 @@ apps/
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
-                            fictional data is labelled every time, the park is explained
+                            fictional data is labelled every time, the park is explained;
+                            originKind / resultOriginKind: the API's three-way reading of an
+                            origin (fictional, modelled, unknown -- never fieldwork), the one
+                            every screen's label uses
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
@@ -218,8 +221,12 @@ apps/
                             only under the same engine version and pins
     research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
                             provenance artifact; no automatic write or retry
-    ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
-                            (a refusal parks), one request per respondent block, answers drawn by code
+    ai_fieldwork.py         The ai_runtime source: AI respondents, fictional or drawn from the run's
+                            population as the run pinned (persona_source); class + lineage, gateway
+                            preflight (a refusal parks), one request per respondent block, answers
+                            drawn by code. population_loader: the run's recorded binding, v17 contract,
+                            the ANALYSIS enricher; a panel run on a worker without it parks
+                            (panel_personas_unavailable); a sample or persona refusal fails by name
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
@@ -329,7 +336,8 @@ packages/aia_core/src/aia_core/
       steps.py              what each step stores; reusable (by content) vs this run's own;
                             tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
-                            contract, fictional roster, facts by code, interpretation, the dataset
+                            contract, fictional roster, facts by code, interpretation, the dataset;
+                            dataset_origin: the origin derived from the personas (a mixed roster refused)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -340,8 +348,10 @@ packages/aia_core/src/aia_core/
     panel_persona.py        A run's sample as personas: every column through
                             decide(PERSONA_CONSTRUCTION), the joint gate per dictionary block (core
                             jointly, each matched donor block within itself), styles over the whole
-                            population, a profile per request block; refusals by name (called by
-                            nothing yet: chunk 5 of panel-grounded-respondents)
+                            population, a profile per request block; refusals by name
+    panel_source.py         A run's panel respondents: panel_plans (the sample under the design's
+                            audience filters, the personas, a plan per respondent, in that order);
+                            respondent_system (ADR 0024 §4's components); PanelPlans.provenance
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
@@ -356,7 +366,13 @@ packages/aia_core/src/aia_core/
                             below n_min 30); a declaration not made is out of the fingerprint
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
-    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
+    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
+                            synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
+                            CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
+                            origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
+                            uses), MODELLED_DISCLOSURE and RESPONDENT_SYSTEM_METADATA (the dataset's
+                            record of its respondent system); PersonaSource (fictional_roster | panel)
+                            and persona_source_of (a run before the pin: the roster)
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
@@ -387,11 +403,17 @@ packages/aia_core/src/aia_core/
                             a run's population, refusing where the unit dropped a filter
       enrichment.py         The ANALYSIS view's seven runtime dimensions: 18.6.6's attach_derived
                             (EXACT); AudienceDimensionsEnricher, the view's Enricher (composed by
-                            chunk 5 of panel-grounded-respondents, not yet)
+                            the worker's population_loader)
       sampling.py           A run's sample: the audience (audience.py), 18.6.6's largest-remainder
                             quotas over sex x age group x region (+ education from n 700), weighted
                             draw without replacement, raking and the audit; refusals by name;
-                            PanelSample.provenance() is what a run records (called by nothing yet)
+                            PanelSample.provenance() is what a run records
+      materialized.py       A materialized dimension (P4): the hash-pinned contract extension, the M3
+                            field policy (modelled; never measured, never weighting),
+                            check_child_version; a child is owned by one organization and never a
+                            shared population's version (OwnedVersionNotShared)
+      derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
+                            refuses a dimension no predictor varies for (no_varying_predictor)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -463,7 +485,9 @@ packages/aia_core/src/aia_core/
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
       model.py              The document: metadata, sections, every block — numbers only as refs
-      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades
+      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades;
+                            modelled_panel: the refs that print "modelováno: AI respondenti z
+                            populace" beside them (ADR 0024 §7)
       validation.py         Every rule a report must keep before it renders; fails closed
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
@@ -477,7 +501,11 @@ packages/aia_core/src/aia_core/
       claims.py             Permissible-claim policy: measured vs modelled, disclosures
       support.py            Kish effective n, SUPPRESS by default, intervals required
       metrics.py            The allowed analysis metrics, one unit each
-      validation.py         Validation bound to system fingerprint; tier gate
+      validation.py         Validation bound to system fingerprint; tier gate;
+                            respondent_system_fingerprint (ADR 0024 §4) and lifts_internal_only (a
+                            current holdout on it, nothing else)
+      instrument.py         A Study's own items as evidence fields: -1 (simulated) and -2
+                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until lifted
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
@@ -525,8 +553,9 @@ packages/aia_core/src/aia_core/
                             a retry keeps the original's; ResearchAgentJobs.accept: a
                             person applies an agent's proposal (APPROVE_GATE), recorded (gate 1);
                             start records the LIVE population binding when it creates a run (a
-                            found run keeps what it recorded, a retry the original's); no step
-                            reads it while fieldwork is fictional
+                            found run keeps what it recorded, a retry the original's), and pins
+                            its persona source (a panel run is its own identity and needs an
+                            established population: PanelPopulationMissing); a retry keeps it
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
@@ -683,6 +712,8 @@ tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the
                             enrich_panel on them (`capture`, with pandas)
 tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
                             draw_representative with the MILP made to fail, and _rake (`capture`)
+tools/materialize_capture.py  Materialization fixtures: fictional rows and cases (`inputs`), the
+                            unit's own materialize_evidence_dimension (`capture`, pandas + NumPy)
 tools/persona_capture.py    Persona fixtures: fictional rows, questions, a fictional signal catalog
                             (`inputs`); the unit's own generate_persona_text, odvod_temata,
                             grounded_profile_text, _render and _compact_anchor (`capture`, with pandas
@@ -802,7 +833,10 @@ exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The mod
 returns one respondent's probabilities; code answers facts and draws the answer.
 Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
 owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
-and refuses it on any other route. No persona source reads the panel yet
+and refuses it on any other route. A run pins its persona source at start
+(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker): a panel run's
+respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
+worker without the path parks it, never answering with the roster instead
 ([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
 The Sociomap is computed but `INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
@@ -815,8 +849,9 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
 before combining fields, `decide_joint(...)` — never the dictionary directly. The
 contract is [docs/architecture/population.md](docs/architecture/population.md).
-A research run records the LIVE binding at creation (owner, 2026-10-10); no research
-step reads it yet, and the run says its respondents did not come from it. On develop,
+A research run records the LIVE binding at creation (owner, 2026-10-10); only a run that
+pinned the panel persona source reads it (fieldwork), and the run says whether its respondents
+came from it (`read_by_fieldwork`). On develop,
 STATIC is `v17_1_2` and LIVE is `v17_4_0`, imported from 18.6.6 on 2026-10-11.
 
 **Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
@@ -918,7 +953,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
-| Enrichment, sample and persona fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
+| Enrichment, sample, persona and materialization fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` / `materialize_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |

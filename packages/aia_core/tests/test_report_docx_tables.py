@@ -104,7 +104,10 @@ def test_the_caption_numbers_titles_and_states_the_base(report_ledger: Any) -> N
     )
     instr = [(i.text or "").strip() for i in caption.iter(f"{W}instrText")]
     assert instr == ["SEQ Tabulka \\* ARABIC"]
-    assert _t(caption) == f"Tabulka 1 — Důvěra v banky podle regionu (n{NB}={NB}480; měřeno)"
+    assert _t(caption) == (
+        f"Tabulka 1 — Důvěra v banky podle regionu (n{NB}={NB}480; měřeno; "
+        "modelováno: AI respondenti z populace)"
+    )
     assert "viz tabulka 1" in _t(root).lower()
     assert 'TOC \\h \\z \\c "Tabulka"' in [
         (i.text or "").strip() for i in root.iter(f"{W}instrText")

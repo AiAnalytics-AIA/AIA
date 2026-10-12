@@ -9,7 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any
@@ -33,6 +33,7 @@ from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
     DesignNotReady,
+    PanelPopulationMissing,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
@@ -45,6 +46,13 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
+from aia_core.domain.fieldwork import (
+    FieldworkSource,
+    OriginKind,
+    PersonaSource,
+    origin_kind,
+    persona_source_of,
+)
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -147,6 +155,8 @@ class DesignSourceLabels(BaseModel):
     unlabelled_data: bool
     run_ids: list[str]
     report_artifact_ids: list[str]
+    #: Some run answered AI respondents built from its population (ADR 0024).
+    modelled: bool = False
 
 
 class DesignSourceResponse(BaseModel):
@@ -213,13 +223,16 @@ class ResearchStepResponse(BaseModel):
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
+    #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
+    #: when the step stamped no origin.
+    data_origin_kind: OriginKind | None = None
 
 
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
-    ``read_by_fieldwork`` is ``False`` for every run today: fieldwork answers with
-    fictional respondents (OI-61), so the recorded population is a record, not a source.
+    ``read_by_fieldwork`` is whether the run pinned the panel persona source: only then is the
+    recorded population where its respondents come from; otherwise it is a record.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -257,6 +270,8 @@ class ResearchRunResponse(BaseModel):
     actual_cost_usd: float | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
+    #: Who its AI respondents are, as the run pinned it: ``fictional_roster`` or ``panel``.
+    persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
 
 
 class ResearchRunList(BaseModel):
@@ -388,6 +403,24 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
+def _artifact_origin_kind(metadata: Mapping[str, Any]) -> OriginKind:
+    """A report artifact's origin kind; one written before it recorded ``data_origin`` was
+    labelled only ``synthetic``, so anything else it says is unknown."""
+    if metadata.get("data_origin"):
+        return origin_kind(str(metadata["data_origin"]))
+    return OriginKind.SIMULATED if metadata.get("synthetic") else OriginKind.UNKNOWN
+
+
+def _origin_flags(kinds: set[OriginKind]) -> dict[str, Any]:
+    """``modelled`` and the one ``data_origin_kind`` of what was read (``None``: nothing; mixed
+    kinds read as ``UNKNOWN``)."""
+    kind = next(iter(kinds)) if len(kinds) == 1 else (OriginKind.UNKNOWN if kinds else None)
+    return {
+        "modelled": OriginKind.MODELLED in kinds,
+        "data_origin_kind": kind.value if kind is not None else None,
+    }
+
+
 def design_source_response(source: DesignSource) -> DesignSourceResponse:
     """The citation as the API returns it."""
     labels = source.labels
@@ -405,6 +438,7 @@ def design_source_response(source: DesignSource) -> DesignSourceResponse:
             unlabelled_data=labels.unlabelled_data,
             run_ids=list(labels.run_ids),
             report_artifact_ids=list(labels.report_artifact_ids),
+            modelled=labels.modelled,
         ),
         created_by=source.created_by,
         created_at=source.created_at,
@@ -541,6 +575,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         error_message=str(error.get("message")) if error.get("message") else None,
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
+        data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
     )
 
 
@@ -581,6 +616,33 @@ def _run(
             if isinstance(meta.get("population"), dict)
             else None
         ),
+        persona_source=persona_source_of(meta).value,
+    )
+
+
+def _persona_source(request: Request) -> PersonaSource:
+    """The deployment's choice for a new run: the panel only with the switch on and the AI
+    runtime as the source; the run pins it, and a retry keeps the original's instead."""
+    settings = request.app.state.settings
+    if (
+        settings.ai_population_personas_enabled
+        and _fieldwork_source(request) is FieldworkSource.AI_RUNTIME
+    ):
+        return PersonaSource.PANEL
+    return PersonaSource.FICTIONAL_ROSTER
+
+
+def _no_population(exc: PanelPopulationMissing) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_not_established",
+            "message": (
+                "Respondenti se berou z populace, ale žádná populace není založená. "
+                "Nic nebylo spuštěno."
+            ),
+            "details": {"reason": str(exc)},
+        },
     )
 
 
@@ -683,6 +745,7 @@ def start_run(
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
             population_version_id=body.population_version_id,
+            persona_source=_persona_source(request),
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -692,6 +755,8 @@ def start_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
     except UnknownDatasetVersion as exc:
         # Another client's or organization's child reads as not there, like any scope miss.
         raise _not_found("population_version") from exc
@@ -869,6 +934,8 @@ def retry_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -957,6 +1024,9 @@ def run_analysis(
         "complete": analysis.complete,
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
+        **_origin_flags(
+            {origin_kind(o.record.labels.data_origin) for o in analysis.modules.values()}
+        ),
         # The aggregate every module read is no longer 18.6.6's port (methodology-tab G3c).
         "aggregation_deviation": (
             dict(analysis.aggregation_deviation)
@@ -1086,6 +1156,7 @@ def run_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 
@@ -1216,6 +1287,7 @@ def run_sociomapping_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 

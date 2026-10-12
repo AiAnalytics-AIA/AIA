@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, MODELLED_DISCLOSURE, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -48,6 +48,37 @@ describe("research execution", () => {
     expect(isSynthetic(run({ steps: [step("SYNTHETIC_AI_FICTIONAL")] }))).toBe(true);
     expect(isSynthetic(run({ steps: [step(null)] }))).toBe(false);
     expect(isSynthetic(run({ steps: [step("SOMETHING_ELSE")] }))).toBe(false);
+  });
+
+  it("reads every origin as simulated, modelled or unknown, the API's way (plan chunk 4d)", () => {
+    expect(originKind("SYNTHETIC_FIXTURE")).toBe("SIMULATED");
+    expect(originKind("SYNTHETIC_AI_FICTIONAL")).toBe("SIMULATED");
+    expect(originKind("MODELLED_AI_PANEL")).toBe("MODELLED");
+    for (const odd of [null, undefined, "", "PANEL", "SYNTHETIC_SOMETHING"]) expect(originKind(odd)).toBe("UNKNOWN");
+    expect(MODELLED_DISCLOSURE).toBe("modelováno: AI respondenti z populace");
+  });
+
+  it("says a modelled run and an unknown origin, and never reads either as fieldwork", () => {
+    const step = (origin: string | null, kind?: string) => ({ node_key: "run", data_origin: origin, data_origin_kind: kind }) as ResearchRun["steps"][number];
+    const modelled = run({ fieldwork_source: "ai_runtime", steps: [step("MODELLED_AI_PANEL")] });
+    expect([isModelled(modelled), isSynthetic(modelled), hasUnknownOrigin(modelled)]).toEqual([true, false, false]);
+    const odd = run({ fieldwork_source: "ai_runtime", steps: [step("PANEL")] });
+    expect([isModelled(odd), isSynthetic(odd), hasUnknownOrigin(odd)]).toEqual([false, false, true]);
+    expect(stepOriginKind(step(null))).toBeNull();
+    // The API's stated kind wins over the page's own reading: an origin added later is not unknown.
+    expect(stepOriginKind(step("MODELLED_AI_PANEL_V2", "MODELLED"))).toBe("MODELLED");
+    expect(stepOriginKind(step("PANEL", "MEASURED"))).toBe("UNKNOWN");
+  });
+
+  it("reads an analysis or a report by its stated kind, an older API by its synthetic flag", () => {
+    expect(resultOriginKind({ synthetic: false, data_origin_kind: "MODELLED" })).toBe("MODELLED");
+    expect(resultOriginKind({ synthetic: true })).toBe("SIMULATED");
+    expect(resultOriginKind({ synthetic: false })).toBe("UNKNOWN");
+    expect(resultOriginKind({})).toBe("UNKNOWN");
+    // The API states no kind while nothing with an origin exists (analysis pending): neutral.
+    expect(resultOriginKind({ synthetic: false, data_origin_kind: null })).toBeNull();
+    expect(resultOriginKind({ synthetic: true, data_origin_kind: null })).toBe("SIMULATED");
+    expect(resultOriginKind({ data_origin_kind: "MEASURED" })).toBe("UNKNOWN");
   });
 });
 

@@ -58,3 +58,32 @@ def test_data_without_an_origin_is_unlabelled_never_measured() -> None:
     assert derive_source_labels([blank]).unlabelled_data
     assert derive_source_labels([odd]).unlabelled_data
     assert not derive_source_labels([blank]).synthetic
+
+
+def test_a_modelled_run_is_labelled_modelled_never_unlabelled_or_synthetic() -> None:
+    modelled = SourceRun(
+        run_id="RUN-1",
+        fieldwork_source="ai_runtime",
+        data_origins=("MODELLED_AI_PANEL",),
+        produced_data=True,
+    )
+    labels = derive_source_labels([modelled])
+    assert (labels.modelled, labels.synthetic, labels.unlabelled_data) == (True, False, False)
+    fixture = SourceRun(run_id="RUN-2", fieldwork_source="synthetic_fixture")
+    both = derive_source_labels([modelled, fixture])
+    assert both.modelled and both.synthetic
+    assert not derive_source_labels([fixture]).modelled
+
+
+def test_labels_recorded_before_the_modelled_origin_still_read() -> None:
+    from aia_core.domain.design_reuse import SourceLabels
+
+    old = {
+        "synthetic": True,
+        "draft": False,
+        "never_run": False,
+        "unlabelled_data": False,
+        "run_ids": ["RUN-1"],
+        "report_artifact_ids": [],
+    }
+    assert SourceLabels.model_validate(old).modelled is False

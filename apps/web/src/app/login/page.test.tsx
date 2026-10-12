@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 // The front door (ADR 0018 decision 3): any active member gets AIA's session and is
 // sent back where they were going. Nothing of 18.6.6 is asked for.
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
+import { MARK_FORMED_EVENT } from "@/lib/dot-field";
 import LoginPage from "./page";
 
 let search = "";
@@ -34,6 +35,7 @@ function api(session: () => Response) {
 const answer = (status: number, body?: unknown) => () => new Response(body === undefined ? null : JSON.stringify(body), { status });
 
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   search = "";
   replace = vi.fn();
   vi.stubGlobal("location", { ...window.location, replace });
@@ -41,6 +43,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   sessionStorage.clear();
 });
@@ -94,24 +97,43 @@ describe("/login", () => {
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
   });
 
-  it("arms the lift-off film when the person presses sign in", async () => {
+  it("arms the handoff when the person presses sign in, and says it is waiting on Google", async () => {
     sessionStorage.clear();
     api(answer(204));
     render(<LoginPage />);
     fireEvent.click(await screen.findByRole("button", { name: t("home.signInGoogle") }));
     expect(Number(sessionStorage.getItem("aia.liftoff.armedAt"))).toBeGreaterThan(0);
     expect(login).toHaveBeenCalledWith("/login?next=%2Fapp%2Fclients");
+    const button = screen.getByRole("button", { name: t("session.verifying") }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByRole("status").textContent).toBe(t("session.awaitingGoogle"));
   });
 
-  it("after a sign-in the person started, plays the film where the mark is and goes in when it ends", async () => {
+  it("says so when the sign-in cannot start", async () => {
+    sessionStorage.clear();
+    api(answer(204));
+    login.mockRejectedValueOnce(new Error("Cognito is not configured"));
+    render(<LoginPage />);
+    fireEvent.click(await screen.findByRole("button", { name: t("home.signInGoogle") }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("Cognito is not configured");
+  });
+
+  it("after a sign-in the person started, hands off on the opened session and goes in when the film ends", async () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
     sessionStorage.setItem("aia.liftoff.armedAt", String(Date.now()));
     search = "next=%2Fapp%2Fclients%2FCLI-1%2Fresearch";
     api(answer(204));
     const { container } = render(<LoginPage />);
-    await vi.waitFor(() => expect(container.querySelector("aside")?.dataset.liftoff).toBe("playing"));
-    expect(play).toHaveBeenCalledTimes(1);
+    // The form stays as it was left while the session opens, then fades in the handoff.
+    expect((screen.getByRole("button", { name: t("session.verifying") }) as HTMLButtonElement).disabled).toBe(true);
+    await vi.waitFor(() => expect((container.firstElementChild as HTMLElement).dataset.handoff).toBe("leaving"));
     expect(screen.getByRole("status").textContent).toBe(t("session.opening"));
+    expect(play).not.toHaveBeenCalled();
+    act(() => void window.dispatchEvent(new CustomEvent(MARK_FORMED_EVENT)));
+    container.querySelector("video")!.dispatchEvent(new Event("loadeddata"));
+    await vi.waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    expect(container.querySelector("canvas")).toBeNull();
     expect(replace).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("aia.session.openedAt")).toBeNull();
     container.querySelector("video")!.dispatchEvent(new Event("ended"));
@@ -119,15 +141,22 @@ describe("/login", () => {
     expect(Number(sessionStorage.getItem("aia.session.openedAt"))).toBeGreaterThan(0);
     // Once: it is disarmed for every later visit.
     expect(sessionStorage.getItem("aia.liftoff.armedAt")).toBeNull();
-    play.mockRestore();
   });
 
-  it("puts the mark back when the armed sign-in is refused", async () => {
+  it("leaves the field idle and the film unloaded when the armed sign-in is refused", async () => {
     sessionStorage.setItem("aia.liftoff.armedAt", String(Date.now()));
     api(answer(403, { code: "not_a_member", message: "no" }));
     const { container } = render(<LoginPage />);
     expect(await screen.findByText(t("session.notMember"))).toBeTruthy();
     expect(container.querySelector("video")).toBeNull();
+    expect(container.querySelector("canvas")?.dataset.dotField).toBe("idle");
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("goes straight in, with no handoff, when nobody pressed sign in here", async () => {
+    api(answer(204));
+    const { container } = render(<LoginPage />);
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
+    expect(container.querySelector("video")).toBeNull();
   });
 });

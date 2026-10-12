@@ -404,7 +404,10 @@ def test_fieldwork_without_a_runtime_parks_the_run_and_nothing_downstream_runs(
     assert runs().get(run_id)["phase"] is ResearchPhase.RUNNING
     assert [r["phase"] for r in runs().runs()] == [ResearchPhase.RUNNING]
     fieldwork = engine.claim_next(worker_id="w", kinds={"research_fieldwork"})
-    assert fieldwork is not None and fieldwork.payload == {"fieldwork_source": "ai_runtime"}
+    assert fieldwork is not None and fieldwork.payload == {
+        "fieldwork_source": "ai_runtime",
+        "persona_source": "fictional_roster",
+    }
     engine.fail_attempt(
         fieldwork.attempt_id,
         worker_id="w",

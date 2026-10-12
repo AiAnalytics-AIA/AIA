@@ -76,6 +76,12 @@ describe("a past run's labels", () => {
     expect(runLabels({ ...summary, fieldwork_source: "synthetic_fixture" } as ResearchRunSummary).data).toBe("synthetic");
   });
 
+  it("labels a modelled run modelled, and an origin it has no word for unknown, never good", () => {
+    const of = (origin: string) => fullRun("ai_runtime", [step("run", "research_fieldwork", { artifact_id: "ART-3", data_origin: origin })]);
+    expect(runLabels(of("MODELLED_AI_PANEL")).data).toBe("modelled");
+    expect(runLabels(of("PANEL")).data).toBe("unknown");
+  });
+
   it("says a run whose fieldwork made nothing has no data and no report", () => {
     const parked = fullRun("ai_runtime", [step("compile", "research_compile", { artifact_id: "ART-1" }), step("run", "research_fieldwork", { status: "WAITING_PROVIDER" })]);
     expect(runLabels(parked)).toEqual({ data: "no_data", report: "none", internal: false });
@@ -107,5 +113,6 @@ describe("a reused design's labels, in words", () => {
     expect(sourceLabelWords({ ...base, synthetic: true, draft: true, never_run: false, unlabelled_data: true })).toEqual(["synthetic", "unlabelled", "draft"]);
     expect(sourceLabelWords({ ...base, never_run: true })).toEqual(["neverRun"]);
     expect(sourceLabelWords(base)).toEqual([]);
+    expect(sourceLabelWords({ ...base, modelled: true })).toEqual(["modelled"]);
   });
 });

@@ -830,3 +830,15 @@ run start over a study setting.
 - No research step reads the binding yet (fieldwork is still fictional, OI-61); the web
   client sends no selection until P4d4's screen.
 
+
+**Finding for P4e2 (with panel-grounded-respondents 5a, merged meanwhile).** A panel run now
+reads its recorded binding in fieldwork, so a panel run over a selected child loads the child.
+The worker's panel loader reads only the shared population's directory
+(`apps/executors/src/aia_executors/ai_fieldwork.py` `population_loader`, given a
+`FilesystemPopulationSource` in `registry.py`), never the population store, so a child's
+`s3://` location does not load and the fieldwork step parks (`_POPULATION_UNAVAILABLE`):
+nothing is drawn or sent. A hypothesis until a test runs it.
+- Smallest fix: compose `RoutingPopulationSource(shared, store)` for the panel loader when
+  the population store is configured, as the materialize executor already does.
+- Test that would catch it: a panel run over a child under the real worker loop, reading
+  the child's added field.

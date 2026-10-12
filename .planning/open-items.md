@@ -3394,7 +3394,9 @@ filter's keys) could differ from the unit's.
 (`persona_age_out_of_scope`, `domain/panel_persona.py` @ `09c93f0`, PR #315), so a run fails closed
 before fieldwork.
 
-**Status.** Open until chunk 5's preflight reports the count on develop's `v17_4_0`.
+**Status.** Open until the first panel run on develop reports the count on `v17_4_0`. Chunk 5
+(PR #332) composes the refusal into fieldwork: a panel run on such a population fails
+`persona_age_out_of_scope` before any call.
 
 ---
 
@@ -3447,3 +3449,28 @@ version while keeping it readable for stored runs and versions.
 still reads and retries.
 
 **Status.** Open; reproduce or delete.
+
+---
+
+## OI-103 · Finding · A client-facing number can print "měřeno" beside "modelováno: AI respondenti z populace"
+
+**Claim.** The print grade follows the claim's basis and the composer's `field_grades`, never
+the row's origin, and since ADR 0024 §2 the only client-admissible origin is
+`MODELLED_AI_PANEL`; so a measured-basis claim on a population field graded `MEASURED` prints the
+measured mark beside the modelled disclosure.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/report/evidence.py:58-65` (`grade_of`) @
+`5f204ce1`; the disclosure, `report_docx/tables.py` caption @ `88fbacef` (PR #329).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers`:
+the caption reads "n = 480; měřeno; modelováno: AI respondenti z populace".
+
+**Consequence.** Once a client report exists, a reader sees two contradictory words on one
+number. No production composer passes `field_grades` today (OI-9), so no report prints it yet.
+
+**Smallest fix.** With OI-9: a `MODELLED_AI_PANEL` row grades `MODELLED` whatever its basis, or
+such a row cannot back a measured claim at admission.
+
+**Test.** A ledger test asserting a modelled-panel row never grades `MEASURED`.
+
+**Status.** Open; analysis-governance's call, with OI-9.
