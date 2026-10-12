@@ -32,9 +32,11 @@ chunks:
   - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
   - "[x] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
   - "[x] W1a. Weighting documented and declared: schemes, default role, expected totals and tolerances, the aggregate's weight cleaning (aia-weighting-1, the import contract's declaration exactly); D1 reproduced on its steps"
-  - "[ ] W1b. Weight cleaning a choice a run reads: the weighting pinned per run, a retry keeps it; refuse refuses an aggregate with an invalid weight by name; a non-median cleaning is a deviation from 18.6.6"
-  - "[ ] W1c. Weighting editable: the cleaning and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
-  - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
+  - "[x] W1b. Weighting tells the truth: a run's dataset refuses every invalid weight (infinity passed), the inert median/refuse switch dropped, the sampler's floor, raking and audit shown as the code's constants, Kish's n in four places"
+  - "[ ] W1c. Weighting a run's choice and editable, once the panel source reaches fieldwork (panel-grounded-respondents 5): the weighting pinned per run, the sampler's values and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
+  - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
+  - "[ ] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; a process that is not the unit's is a deviation from 18.6.6"
+  - "[ ] R1c. Response process editable, with the draft check on fictional respondents"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
@@ -962,10 +964,76 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
         negative, the aggregate drops it (1.8 for `[1, -1, 2]`) while the other two refuse
         (`::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights`).
       - D1 is a fact, not a defect, until W1b makes the cleaning a choice.
+  - **W1b. Re-scoped, then landed.** The cleaning was never going to be a choice a run reads:
+    a run's aggregate receives only `FieldworkDataset` weights, and making a switch of a rule
+    that cannot fire would have been a control that does nothing. What W1b did instead:
+    - **Finding: infinity reached the aggregate.** `FieldworkRespondent.weight` was
+      `Field(gt=0)` (`fieldwork.py:132 @ a19af14d`): 0, negatives and NaN were refused but
+      `inf` passed, and `clean_weights` then replaced it by the median. Now
+      `allow_inf_nan=False`; the dataset refuses every weight that is not a positive finite
+      number (`test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite`).
+      With that, `clean_weights`' median never fires on a run: it is the unit's port, kept
+      for parity, and its step says so.
+    - **The switch is gone.** `WeightCleaning` and `WeightingSpec.aggregate_cleaning` are
+      removed; a payload naming it is refused
+      (`::test_a_cleaning_choice_is_no_longer_part_of_a_weighting`).
+    - **W1a's "no raking" was wrong.** The sampler (`population/sampling.py`, panel-grounded
+      chunk 2e) floors the base weight at `1e-12` (`_WEIGHT_FLOOR`), targets the audience's
+      weighted shares, rakes the sample to them (`rake`: IPF, 60 iterations, floor `1e-6`, cap
+      `8 x q0.99`, mean 1, converged below `1e-8`) and audits it (`judge`: weighted
+      `max(0.25, 100/n)` pp refuses, raw `max(0.50, 100/n)` warns). The panel persona carries
+      the raked weight (`panel_persona.py:276 @ a19af14d`). A new group, *Váha respondenta
+      běhu*, shows each step; its values are `ConstantRef`s, shown as the code's and never
+      offered, because no run reads them yet: the panel source is not wired to fieldwork
+      (panel-grounded-respondents chunk 5), AI respondents weigh 1
+      (`ai_respondent.py:284 @ a19af14d`). GREG and other calibration do not exist; the
+      module says that instead.
+    - **Kish's n in four places**, the sample's audit `effective_n` the fourth
+      (`sampling.py:draw_panel_sample`); its weights are positive by construction.
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
   check lists every row a lowered threshold would newly report.
+
+- **R1a. Landed.** `domain/methodology/response.py` is module `response`, read-only,
+  registered after `weighting`.
+  - **Declared and read.** `ResponseProcessSpec` (`respondent_behavior.py`): social
+    desirability's base and slope, acquiescence, extremity, "don't know", satisficing's base,
+    slope and cap, the reweighting limit, the six style links in the unit's order, the noise
+    floor and the describe threshold. `aia-response-1` holds the unit's values, and
+    `adjust_probabilities`, `assign_styles` and `describe_style` now read them: the inline
+    literals (`respondent_behavior.py:67-74, 132, 174-207, 315 @ 8e70d7d2`,
+    `ai_respondent.py:226 @ 8e70d7d2`) are gone, so the declaration cannot drift from
+    what computes. The EXACT captures are unchanged and pass
+    (`test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit`,
+    `::test_styles_match_the_unit`); the default is the preset bit for bit, and changing any
+    one value changes what is computed
+    (`test_methodology_response.py::test_the_preset_is_the_units_values_and_the_code_reads_it`).
+  - **Not declared: the dispersion temperature.** 18.6.6's `dispersion_calibration` is not
+    ported; the temperature is 1, the identity. A value that nothing reads is not offered;
+    the step says so. The model is asked at temperature 0 (`ai_respondent.py:614 @ 8e70d7d2`).
+  - **Steps, in six groups:** the method; the model's probabilities and their normalisation;
+    the mechanisms (the soft reweighting, then social desirability, acquiescence, extremity,
+    "don't know", satisficing); the draw by code; the styles (the links, the stable noise,
+    the threshold that puts a style into words); the fictional roster.
+  - **Finding D6, reproduced.** A fictional roster draws its donors with replacement from a
+    pool of `max(3, n // 3)` ids (`ai_respondent.py:278 @ 8e70d7d2`), so it has fewer
+    distinct donors than the pool. Under `aia-support-1`'s 25 donors every run below 75
+    fictional respondents suppresses every donor-layer value; at 75 only about a quarter of
+    rosters reach 25 donors, from 90 every one tried does
+    (`test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+    The fictional roster carries every AI run that does not take its respondents from the panel.
+  - **Corrected in review (#342):** the pool is not the donor count; only a respondent's hash
+    noise is their own, the style depends on the roster
+    (`::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster`); a
+    missing sex where the column exists counts as not male, as in 18.6.6
+    (`::test_a_missing_sex_counts_as_not_male_as_in_the_unit`). The notes said otherwise.
+  - **Found by CI on #344:** a pin read back from PostgreSQL's JSONB has its keys reordered,
+    and the specification refused six style links that were not in the unit's order, so
+    every retry failed there (SQLite keeps the order; the local suites passed). The links
+    are now put back in the unit's order on read; each style is computed on its own, so the
+    order moves no value
+    (`test_methodology_response.py::test_a_pin_read_back_with_its_keys_reordered_is_the_same_process`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 

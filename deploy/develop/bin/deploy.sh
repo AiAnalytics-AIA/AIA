@@ -3,6 +3,8 @@
 #
 #   bin/deploy.sh <git-sha> [--no-migrate]
 #
+#   disk preflight       retain protected releases, remove old unused AIA images,
+#                        then require disk headroom before downloading anything
 #   pull images          immutable <sha> tags from ECR, with the instance role
 #   check Caddy          the Caddyfile loaded with this host's .env; a failure stops
 #                        here and the running services are untouched
@@ -34,9 +36,22 @@ require_sha "$SHA"
 require_env_file
 cd "$DEPLOY_DIR" || exit 1
 
+# The CI workflow serializes its deployments; this also protects against an
+# operator deploying simultaneously, including the successful-release history.
+exec 9>"$DEPLOY_DIR/.deploy.lock"
+flock -n 9 || die "another deployment holds $DEPLOY_DIR/.deploy.lock; retry after it finishes"
+
 export AIA_IMAGE_TAG="$SHA"
 previous="$(deployed_sha)"
 log "deploying $SHA (currently running: ${previous:-nothing})"
+
+release_history="$DEPLOY_DIR/.deploy-state/successful-releases.json"
+protected=(--protect "$SHA")
+[ -z "$previous" ] || protected+=(--protect "$previous")
+log "protected image retention and disk preflight"
+python3 "$DEPLOY_DIR/bin/image_retention.py" preflight \
+  --registry "$AIA_IMAGE_REGISTRY" --state-file "$release_history" \
+  --deploy-dir "$DEPLOY_DIR" "${protected[@]}" --apply
 
 log "logging in to ECR and pulling images"
 ecr_login
@@ -116,9 +131,9 @@ if ! "$DEPLOY_DIR/bin/population.sh" record-catalogue; then
   log "WARNING: an audience catalogue could not be kept (above); the deploy goes on"
 fi
 
-log "pruning images older than the previous deployment"
-docker image prune -f --filter "until=168h" >/dev/null || true
 
 log "smoke tests"
 "$DEPLOY_DIR/bin/smoke.sh" "$SHA"
+python3 "$DEPLOY_DIR/bin/image_retention.py" record \
+  --state-file "$release_history" --sha "$SHA" --previous "$previous"
 log "deployed $SHA"

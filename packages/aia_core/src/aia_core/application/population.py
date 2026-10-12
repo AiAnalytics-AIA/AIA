@@ -70,6 +70,7 @@ from ..domain.population import (
     PopulationPermission,
     PopulationSelector,
     PopulationView,
+    ResolutionMode,
     RuntimePopulation,
     UnknownDatasetVersion,
     VersionIntegrityError,
@@ -88,11 +89,13 @@ from ..domain.population import (
     plan_establish,
     plan_promotion,
     require_operator,
+    require_runtime_eligible,
     resolve_binding,
     resolve_weight_scheme,
     validate_companions,
     validate_import,
     version_status,
+    with_materialized_fields,
 )
 from ..domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION, catalogue_of
 from ..domain.population.definition import DimensionDefinition
@@ -114,6 +117,7 @@ __all__ = [
     "Enricher",
     "MaterializedChild",
     "PopulationRuntime",
+    "child_binding",
     "kept_audience_catalogue",
     "live_binding",
 ]
@@ -170,6 +174,19 @@ def _child_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
         "achieved": float(outcome["achieved"]),
         "usable_predictors": tuple(outcome["usable_predictors"]),
     }
+
+
+def _holds(kind: MaterializedKind, cell: str | None) -> bool:
+    """Whether ``cell`` is a value a materialized field of ``kind`` may hold (never missing)."""
+    if cell is None:
+        return False
+    if kind is MaterializedKind.BINARY:
+        return cell in ("0", "1")
+    try:
+        value = float(cell)
+    except ValueError:
+        return False
+    return 1.0 <= value <= 10.0
 
 
 def _refuse_owned(version: DatasetVersion) -> None:
@@ -592,6 +609,63 @@ class PopulationRuntime:
             joint_state=companions.joint_state if companions is not None else JointState.MISSING,
         )
 
+    def resolve_child(
+        self,
+        version_id: str,
+        *,
+        organization_id: str,
+        view: PopulationView = PopulationView.ANALYSIS,
+        weight_role: str | None = None,
+    ) -> PopulationBinding:
+        """Resolve an owned child a study selected to the binding its run records (P4e).
+
+        Only ``organization_id``'s own child resolves; any other answers as an unknown version.
+        A child is never a population's version, so it is eligible when its shared base is (a
+        version a run may be resolved against) and its base is usable. The binding pins the
+        child (``PINNED``); its companions and certificate are the base's.
+        """
+        version = self._registry.visible_version(version_id, organization_id=organization_id)
+        if version is None or version.shared or version.dataset_id != self._contract.dataset_id:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if version.contract_id != self._contract.contract_id:
+            raise PopulationError(
+                f"{version_id} was made under {version.contract_id}, not "
+                f"{self._contract.contract_id}",
+                reason="contract_mismatch",
+            )
+        base = self._joint_version(version)
+        dataset = self._contract.dataset_id
+        require_runtime_eligible(
+            base.version_id,
+            version_status(
+                base.version_id,
+                self._registry.populations(dataset),
+                self._registry.promotions(dataset),
+            ),
+        )
+        self._require_usable(base.version_id)
+        companions = self._registry.companion_set(base.version_id)
+        weight = resolve_weight_scheme(self._contract, weight_role)
+        return PopulationBinding(
+            dataset_id=version.dataset_id,
+            version_id=version.version_id,
+            version_label=version.label,
+            content_sha256=version.content_sha256,
+            contract_id=self._contract.contract_id,
+            population_id=None,
+            resolution=ResolutionMode.PINNED,
+            weight_role=weight.role,
+            weight_column=weight.column,
+            view=view,
+            resolved_at=self._clock(),
+            dictionary_sha256=version.dictionary_sha256,
+            field_policy_version=FIELD_POLICY_VERSION,
+            companion_set_sha256=(
+                companions.set_sha256 if companions is not None else companion_set_sha256({})
+            ),
+            joint_state=companions.joint_state if companions is not None else JointState.MISSING,
+        )
+
     # ------------------------------------------------------------------- load --
 
     def load_for_run(self, workflow: WorkflowRepository, run_id: str) -> RuntimePopulation:
@@ -626,7 +700,11 @@ class PopulationRuntime:
                 f"{contract.contract_id} declares {weight.column}",
                 reason="weight_mismatch",
             )
-        companions = self._registry.companion_set(version.version_id)
+        # An owned child carries its shared base's companions and certificate: the certificate
+        # is bound to the base panel's hash, and the child's base columns are verified equal to
+        # the base's on every load (``_verified_child``).
+        joint_version = self._joint_version(version)
+        companions = self._registry.companion_set(joint_version.version_id)
         if contract.companions and companions is None:
             raise CompanionsIncomplete(f"{version.version_id} has no validated companion set")
         recorded_set = companions.set_sha256 if companions is not None else companion_set_sha256({})
@@ -673,14 +751,20 @@ class PopulationRuntime:
                 companions=cached._companions,
             )
 
-        panel, dictionary = self._verified_panel(version)
-        joint, companion_bytes = self._verified_joint(version, companions)
+        extension: PopulationContractExtension | None = None
+        if version.shared:
+            panel, dictionary = self._verified_panel(version)
+        else:
+            panel, dictionary, extension = self._verified_child(version)
+        joint, companion_bytes = self._verified_joint(joint_version, companions)
         policy = build_field_policy(
             dictionary.rows,
             dictionary_sha256=version.dictionary_sha256,
             weight_columns=contract.weight_columns,
             derived_fields=contract.derived_policy_fields,
         )
+        if extension is not None:
+            policy = with_materialized_fields(policy, extension)
         columns: dict[str, tuple[Cell, ...]] = {
             name: panel.columns[position] for position, name in enumerate(panel.header)
         }
@@ -828,6 +912,59 @@ class PopulationRuntime:
         self._registry.insert_version(child, validation={"materialized": outcome})
         return MaterializedChild(version=child, created=True, **_child_outcome(outcome))
 
+    def _joint_version(self, version: DatasetVersion) -> DatasetVersion:
+        """Whose companions and certificate apply: a child's shared base, else the version."""
+        if version.shared:
+            return version
+        base = self._registry.get_version(version.parent_version_id or "")
+        if base is None or not base.shared:
+            raise VersionIntegrityError(f"{version.version_id} does not extend a shared version")
+        return base
+
+    def _verified_child(
+        self, child: DatasetVersion
+    ) -> tuple[ParsedPanel, ParsedDictionary, PopulationContractExtension]:
+        """An owned child's panel, re-verified against its base and its extension.
+
+        The base contract judges the base, read and verified as any load; the child's bytes
+        must hash to their pin, the child must be exactly its base extended
+        (``check_child_version``), every base column must be the base's cell for cell, and every
+        added cell must be a value its kind holds. Anything else refuses the load.
+        """
+        base = self._joint_version(child)
+        base_panel, dictionary = self._verified_panel(base)
+        if child.extension_sha256 is None:  # pragma: no cover - an owned version names one
+            raise VersionIntegrityError(f"{child.version_id} names no extension")
+        extension = self._registry.extension(child.extension_sha256)
+        if extension is None:
+            raise VersionIntegrityError(f"{child.version_id} names an extension that is not stored")
+        check_child_version(
+            base=base, child=child, extension=extension, base_field_names=base_panel.header
+        )
+        data = self._source.read(child.storage_location)
+        if content_sha256(data) != child.content_sha256:
+            raise VersionIntegrityError(
+                f"the bytes at {child.storage_location} are not {child.label}; refusing to load "
+                "a swapped or altered child"
+            )
+        panel = parse_panel(data)
+        width = len(base_panel.header)
+        if (
+            panel.header != extension.field_names(base_panel.header)
+            or panel.row_count != base_panel.row_count
+            or panel.columns[:width] != base_panel.columns
+        ):
+            raise VersionIntegrityError(
+                f"{child.label} is not {base.label}'s rows and columns followed by its added fields"
+            )
+        for offset, added in enumerate(extension.fields):
+            cells = panel.columns[width + offset]
+            if not all(_holds(added.kind, cell) for cell in cells):
+                raise VersionIntegrityError(
+                    f"{child.label}: {added.name} holds a value a {added.kind.value} field cannot"
+                )
+        return panel, dictionary, extension
+
     def _verified_joint(
         self, version: DatasetVersion, companions: CompanionSet | None
     ) -> tuple[JointStatus, dict[str, bytes]]:
@@ -968,6 +1105,32 @@ def live_binding(
     return runtime.resolve(
         PopulationSelector.population(population_id), view=PopulationView.ANALYSIS
     )
+
+
+def child_binding(
+    session: Session,
+    *,
+    contract: PopulationImportContract,
+    version_id: str,
+    owner: VersionOwner,
+    clock: Callable[[], datetime] = _utcnow,
+) -> PopulationBinding:
+    """The binding a run records when its study selects ``owner``'s child ``version_id`` (P4e2).
+
+    A child is its client's (P4d): another client's child, even in the same organization, and
+    any shared version answer as unknown (:class:`UnknownDatasetVersion`), as a scope miss
+    does. Resolution reads the registry, never a panel; the run's load verifies the child
+    against its base (P4e1).
+    """
+    version = PopulationRegistryRepository(session).visible_version(
+        version_id, organization_id=owner.organization_id
+    )
+    if version is None or version.owner != owner:
+        raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+    runtime = PopulationRuntime(
+        session, contract=contract, source=_ResolutionReadsNoAssets(), clock=clock
+    )
+    return runtime.resolve_child(version_id, organization_id=owner.organization_id)
 
 
 def kept_audience_catalogue(

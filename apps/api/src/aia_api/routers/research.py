@@ -53,6 +53,7 @@ from aia_core.domain.fieldwork import (
     origin_kind,
     persona_source_of,
 )
+from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -189,6 +190,8 @@ class RunStart(BaseModel):
     #: What the person confirms a run can cost at most. Only read when the study has a limit
     #: the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    #: A materialized child of this study's client to run over instead of LIVE (P4e2).
+    population_version_id: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class RunRetry(BaseModel):
@@ -371,6 +374,18 @@ def _not_found(what: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail={"code": f"{what}_not_found", "message": "No such resource."},
+    )
+
+
+def _population_refused(exc: PopulationError) -> HTTPException:
+    """409: the selected child exists but its population cannot be resolved now."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_unavailable",
+            "message": "The selected population cannot be used for a run now.",
+            "details": {"reason": exc.reason},
+        },
     )
 
 
@@ -729,6 +744,7 @@ def start_run(
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
+            population_version_id=body.population_version_id,
             persona_source=_persona_source(request),
         )
     except ScopeDenied as exc:
@@ -741,6 +757,11 @@ def start_run(
         raise _cost_refused(exc) from exc
     except PanelPopulationMissing as exc:
         raise _no_population(exc) from exc
+    except UnknownDatasetVersion as exc:
+        # Another client's or organization's child reads as not there, like any scope miss.
+        raise _not_found("population_version") from exc
+    except PopulationError as exc:
+        raise _population_refused(exc) from exc
     return _started(runs, started, response)
 
 

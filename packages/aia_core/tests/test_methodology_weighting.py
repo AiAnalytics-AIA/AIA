@@ -2,9 +2,11 @@
 
 What every registered module must be (complete, pinned, its tests present) is held by
 ``test_methodology.py``; this file pins what is particular to this one: its preset is the
-import contract's declaration exactly, the aggregate's cleaning is declared as the unit's, and
-finding D1 is reproduced -- three cleaning rules for the same weight, and Kish's n computed in
-three places that agree only on positive finite weights.
+import contract's declaration exactly, a run's dataset refuses every weight that is not a
+positive finite number (so the aggregate's median never fires on a run, W1b), the sampler's
+values are shown as the code's constants, and finding D1 is reproduced -- cleaning rules that
+impute or refuse the same weight, and Kish's n computed in places that agree only on positive
+finite weights.
 """
 
 from __future__ import annotations
@@ -17,20 +19,18 @@ from pydantic import ValidationError
 
 from aia_core.domain import research_aggregate
 from aia_core.domain.evidence import support
+from aia_core.domain.fieldwork import FieldworkRespondent
 from aia_core.domain.methodology import MODULES, describe, module_problems
+from aia_core.domain.methodology.resolution import ValueOrigin
 from aia_core.domain.methodology.weighting import AIA_WEIGHTING_V1, WEIGHTING
 from aia_core.domain.population import (
     WeightResolutionError,
     analysis_weights,
     resolve_weight_scheme,
+    sampling,
 )
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
-from aia_core.domain.population.weights import (
-    SchemeSpec,
-    WeightCleaning,
-    WeightingSpec,
-    weighting_spec,
-)
+from aia_core.domain.population.weights import SchemeSpec, WeightingSpec, weighting_spec
 from aia_core.domain.sociomap import relations
 
 _KISH = (
@@ -45,7 +45,7 @@ def _values() -> dict[str, object]:
 
 
 def test_it_is_registered_after_aggregation_and_is_complete() -> None:
-    assert [m.id for m in MODULES][-3:] == ["support", "aggregation", "weighting"]
+    assert [m.id for m in MODULES][-4:-1] == ["support", "aggregation", "weighting"]
     assert module_problems(WEIGHTING) == {}
 
 
@@ -72,7 +72,26 @@ def test_every_value_is_shown_from_the_specification() -> None:
     assert values["default_role"] == "default_current"
     assert values["schemes.census_2021.tolerance"] == 1e-3
     assert values["schemes.party_2021_aggregate.expected_total"] is None  # said, not zero
-    assert values["aggregate_cleaning"] is WeightCleaning.MEDIAN
+    assert "aggregate_cleaning" not in values  # W1b: a switch no run reads is not shown
+    assert "aggregate_cleaning" not in AIA_WEIGHTING_V1.model_dump()
+
+
+def test_the_samplers_values_are_shown_as_the_codes_constants() -> None:
+    """Shown, never offered: nothing reads them as a run's choice until W1c."""
+    constants = {
+        v.reference.rsplit(":", 1)[1]: v.value
+        for s in describe(WEIGHTING).steps
+        for v in s.values
+        if v.origin is ValueOrigin.CODE_CONSTANT
+    }
+    assert constants == {
+        "_WEIGHT_FLOOR": sampling._WEIGHT_FLOOR,
+        "_RAKE_ITERATIONS": sampling._RAKE_ITERATIONS,
+        "_RAKE_FLOOR": sampling._RAKE_FLOOR,
+        "_RAKE_CAP": sampling._RAKE_CAP,
+        "_RAKE_CONVERGED": sampling._RAKE_CONVERGED,
+    }
+    assert constants["_WEIGHT_FLOOR"] == 1e-12 and constants["_RAKE_ITERATIONS"] == 60
 
 
 def test_it_is_declared_in_force_and_not_editable_yet() -> None:
@@ -117,11 +136,15 @@ def test_two_schemes_on_one_column_are_refused() -> None:
 
 
 def test_the_spec_follows_whatever_contract_it_is_built_from() -> None:
-    spec = weighting_spec(
-        CZ_SYNTHETIC_V17, methodology_version="x", aggregate_cleaning=WeightCleaning.REFUSE
-    )
-    assert spec.aggregate_cleaning is WeightCleaning.REFUSE
+    spec = weighting_spec(CZ_SYNTHETIC_V17, methodology_version="x")
+    assert spec.methodology_version == "x"
     assert spec.schemes == AIA_WEIGHTING_V1.schemes
+
+
+def test_a_cleaning_choice_is_no_longer_part_of_a_weighting() -> None:
+    payload = {**AIA_WEIGHTING_V1.model_dump(mode="json"), "aggregate_cleaning": "refuse"}
+    with pytest.raises(ValidationError, match="aggregate_cleaning"):
+        WeightingSpec.model_validate(payload)
 
 
 # ------------------------------------------------------------------------------- D1
@@ -140,6 +163,17 @@ def test_three_cleaning_rules_impute_or_refuse_the_same_weight() -> None:
         analysis_weights(["1", None, "3", "5"], resolve_weight_scheme(CZ_SYNTHETIC_V17))
     with pytest.raises(WeightResolutionError, match="unusable"):
         analysis_weights(["1", "-2", "3", "5"], resolve_weight_scheme(CZ_SYNTHETIC_V17))
+
+
+@pytest.mark.parametrize("weight", [0.0, -1.0, math.nan, math.inf, -math.inf])
+def test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite(
+    weight: float,
+) -> None:
+    """W1b: the weight a run's aggregate receives is already valid, so ``clean_weights``'s
+    median never fires on a run. Infinity used to pass and be replaced by the median."""
+    with pytest.raises(ValidationError):
+        FieldworkRespondent(respondent_id="r", donor_id="d", weight=weight, answers={})
+    assert FieldworkRespondent(respondent_id="r", donor_id="d", weight=1e-300, answers={})
 
 
 def test_kish_is_computed_three_times_and_agrees_only_on_valid_weights() -> None:

@@ -167,7 +167,10 @@ class FieldworkRespondent(BaseModel):
 
     respondent_id: str
     donor_id: str
-    weight: float = Field(gt=0)
+    #: A positive finite number, or the dataset is refused: the one rule a run's weights meet
+    #: (plan ``methodology-tab`` W1b). ``gt=0`` alone let infinity through to the aggregate,
+    #: whose ``clean_weights`` then replaced it by the median.
+    weight: float = Field(gt=0, allow_inf_nan=False)
     answers: dict[str, Answer]
 
 
