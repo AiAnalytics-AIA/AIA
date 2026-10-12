@@ -683,6 +683,43 @@ class StudyDesignRow(Base):
     )
 
 
+class StudyDesignSourceRow(Base):
+    """Where a research Study's design came from, when it was reused. **Insert-once.**
+
+    Project memory M3 (plans/project-memory-reuse.md): a past study's design may start a new
+    or empty research Study of the same client. The citation belongs to the Study, not to one
+    revision -- every later revision descends from the reused one -- and is found only
+    through the Study (all three scope columns). ``labels`` are derived by one rule from every
+    run of the source revision (``aia_core.domain.design_reuse``) and keep the run and report
+    artifact ids they were read from. The source columns are a record, not a reference: no
+    foreign key, so the citation stays what it was whatever later happens to the source.
+    Written only by ``StudyDesignRepository``.
+    """
+
+    __tablename__ = "study_design_sources"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: The target's first Design Revision: the reused design itself.
+    revision_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_revision_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    labels: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint("source_study_id <> study_id", name="study_design_source_not_itself"),
+    )
+
+
 # Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
 # narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
 # client_id and is reached only through ClientKnowledgeRepository, which takes an

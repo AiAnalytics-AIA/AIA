@@ -11,7 +11,7 @@ chunks:
   - "[x] M2c. The page: /app/clients/<client>/memory/<study>, its revisions, their runs, results and labels, read-only"
   - "[x] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
   - "[x] M3a. The source's labels, pure: one conservative rule over every run of the source revision"
-  - "[ ] M3b. The citation, stored: study_design_sources, one per study, insert-once, written by the design repository"
+  - "[x] M3b. The citation, stored: study_design_sources, one per study, insert-once, written by the design repository"
   - "[ ] M3c. Reuse, scoped: into a new research study or an empty one of the same client; working content, first revision, citation in one transaction"
   - "[ ] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
   - "[ ] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"

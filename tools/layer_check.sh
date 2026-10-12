@@ -274,6 +274,15 @@ forbid "the study design table is touched only by its repository" \
 forbid "the API, worker and executors never touch the study design table" \
   'StudyDesignRow' \
   apps
+# A reused design's citation is written once, by the only writer of a Study's design
+# (project memory M3); read through the Study, never queried by its source.
+forbid "the design source table is touched only by the design repository" \
+  'StudyDesignSourceRow|study_design_sources' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the design source table" \
+  'StudyDesignSourceRow|study_design_sources' \
+  apps
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).

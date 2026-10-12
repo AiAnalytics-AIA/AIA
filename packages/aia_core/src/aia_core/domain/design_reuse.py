@@ -14,13 +14,20 @@ Unknown is never good: a run whose fieldwork produced data with no origin stampe
 from __future__ import annotations
 
 from collections.abc import Iterable
+from datetime import datetime
 from typing import Final
 
 from pydantic import BaseModel, ConfigDict
 
 from .fieldwork import NON_EVIDENCE_ORIGINS, FieldworkSource
 
-__all__ = ["REUSE_SOURCE_STAGE", "SourceLabels", "SourceRun", "derive_source_labels"]
+__all__ = [
+    "REUSE_SOURCE_STAGE",
+    "DesignSource",
+    "SourceLabels",
+    "SourceRun",
+    "derive_source_labels",
+]
 
 #: The ``source_stage`` of a Design Revision made by reusing a past design.
 REUSE_SOURCE_STAGE: Final = "memory"
@@ -83,3 +90,20 @@ def derive_source_labels(runs: Iterable[SourceRun]) -> SourceLabels:
         run_ids=tuple(r.run_id for r in seen),
         report_artifact_ids=tuple(r.report_artifact_id for r in seen if r.report_artifact_id),
     )
+
+
+class DesignSource(BaseModel):
+    """Where a Study's design came from: its citation, recorded once when it was reused."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    study_id: str
+    #: The Study's first Design Revision: the reused design itself.
+    revision_id: str
+    source_study_id: str
+    source_revision_id: str
+    source_revision: int
+    source_content_sha256: str
+    labels: SourceLabels
+    created_by: str
+    created_at: datetime
