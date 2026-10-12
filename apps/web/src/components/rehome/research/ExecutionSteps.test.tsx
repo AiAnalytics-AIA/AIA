@@ -706,6 +706,28 @@ describe("Results", () => {
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
   });
 
+  it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
+    const pending = run({
+      status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "ai_runtime",
+      steps: [
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "MODELLED_AI_PANEL" }),
+        step("analysis_executive", "WAITING_PROVIDER", { kind: "research_analysis" }),
+      ],
+    });
+    api({
+      ...listed(pending),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({
+        run_id: "RUN-1", complete: false, internal_only: true, synthetic: false, modelled: false,
+        data_origin_kind: null, pending: { executive: "WAITING_PROVIDER" }, modules: {},
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    expect(await screen.findByText(t("research.exec.results.analysisInternal"))).toBeTruthy();
+    expect(screen.queryByText(t("research.exec.results.analysisUnknownOrigin"))).toBeNull();
+  });
+
   it("shows evidence-checked internal analysis while another module waits", async () => {
     const partial = run({
       status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",

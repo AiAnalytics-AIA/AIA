@@ -17,7 +17,11 @@ chunks:
   - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
   - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
-  - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
+  - "[x] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
+  - "[x] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
+  - "[x] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
+  - "[x] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
+  - "[x] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -664,6 +668,122 @@ Tests: `research-execution.test.ts` (three new), `memory.test.ts`
 `ExecutionSteps.test.tsx` (`says a modelled run is modelled on its banner and its steps…`,
 `says an origin it has no word for is unknown, never real`).
 
+### 4e. The split (ADR 0024 §3-§5, §7)
+
+Anchors @ `2dc834b1`, under `packages/aia_core/src/aia_core/domain/evidence/`.
+
+* **4e1, the `-2` policy.** `instrument.py` declares by origin: a simulated origin keeps `-1`
+  unchanged (`INSTRUMENT_POLICY_VERSION`, `_require_simulated` :73-80); `MODELLED_AI_PANEL` gets
+  `aia-instrument-evidence-2`, status `InstrumentStatus.MODELLED_PANEL_RESPONSE`, provenance
+  `MODELLED`, and the rules its declared use extracts (`NEVER_MEASURED_FACT`,
+  `PERSON_VALUE_MODELED`, `AGGREGATE_ONLY`, `REQUIRES_SCOPE`, `REQUIRES_MODELED_DISCLOSURE`).
+  Two AIA-only rules beside them, never extracted from prose (like `INTERNAL_ONLY`,
+  `field_policy.py:143`): `MODELED_DISCLOSURE_ALWAYS` -- the dictionary's
+  `REQUIRES_MODELED_DISCLOSURE` fires only on a *measured* claim (`claims.py:155-161`), which
+  `NEVER_MEASURED_FACT` already refuses, so on its own it would let a modelled claim reach a
+  client undisclosed -- and `INTERNAL_ONLY`, which 4e1 always adds. Any other origin, `None`
+  included, is still refused.
+* **4e2, the validation.** `validation.py` gains the respondent system fingerprint (ADR §4: the
+  respondent prompt SHA-256, persona builder and mode, sampler version, population version,
+  model binding, response-process version; every component required) beside today's panel
+  fingerprint. `instrument_policy_book` takes the validation state and the current respondent
+  system; only `HOLDOUT_VALIDATED` earned on that fingerprint (`effective_validation_status`
+  :115) drops `INTERNAL_ONLY` from `-2`. Smoke never does; a stale one never does. The book's
+  identity (`source_sha256`) carries the system fingerprint and the effective status, so a
+  module judged under one validation is not reused under another.
+* **4e3, native evidence.** `analysis/native.py` (`native_evidence` :465-476) builds `-2` for a
+  modelled dataset, with the respondent system the run records; no validation is stored
+  anywhere yet (chunk 7 earns the first), so every modelled claim stays internal.
+* **4e4, support in donors.** Native evidence already asks donor support
+  (`native.py:257-258`, `requires_donor_support=True`); a test proves a modelled run of 1,000
+  respondents on 40 donors is assessed as 40-donor evidence (ADR §5), never as 1,000.
+* **4e5, the report.** The DOCX marks a modelled number with "modelováno: AI respondenti z
+  populace" beside it and, when a validation holds, its date and fingerprint (ADR §7).
+
+**4e1 landed.** `evidence/instrument.py` declares by origin kind (`_declared`): simulated ->
+`-1`, unchanged byte for byte (its declaration identity does not move); `MODELLED_AI_PANEL` ->
+`MODELLED_INSTRUMENT_POLICY_VERSION` (`aia-instrument-evidence-2`),
+`InstrumentStatus.MODELLED_PANEL_RESPONSE`, the rules `MODELLED_INSTRUMENT_RECOMMENDED_USE`
+extracts plus `MODELED_DISCLOSURE_ALWAYS` and `INTERNAL_ONLY`; anything else refused.
+`instrument_policy_version(origin)` is what a module's `AuthoritySummary.field_policy_version`
+now records (`application/analysis_results.py`; it recorded `-1` for every origin). `claims.py`:
+a client-facing claim on a `MODELED_DISCLOSURE_ALWAYS` field needs `Disclosure.MODELED_VALUE`
+whatever its basis. Because `native_evidence` asks the book, a modelled run's evidence is now
+declared under `-2` -- internal only -- ahead of 4e3, which binds it to the respondent system.
+
+Tests: `test_a_modelled_origin_is_declared_under_its_own_policy_chosen_by_the_origin`,
+`test_the_two_policies_never_share_a_declaration_identity`,
+`test_without_a_validation_a_modelled_claim_is_internal_even_fully_disclosed`,
+`test_a_client_facing_modelled_claim_needs_both_disclosures_whatever_its_basis`,
+`test_a_modelled_answer_is_never_a_measured_fact_nor_one_persons` (both surfaces),
+`test_a_segment_claim_on_modelled_answers_is_allowed_internally`,
+`test_no_dictionary_can_declare_the_modelled_status`,
+`test_internal_only_is_never_extracted_from_dictionary_prose` (now both AIA-only rules),
+`test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal`.
+
+**4e2 landed.** `evidence/validation.py`: `RESPONDENT_SYSTEM_COMPONENTS` (the respondent
+prompt's SHA-256, persona builder, persona mode, sampler version, population version, model
+binding, response-process version) and `respondent_system_fingerprint` (every component
+required, none blank, no extra name, the prompt a SHA-256), beside the panel's
+`system_fingerprint`; `lifts_internal_only(state, current)`: true only for `HOLDOUT_VALIDATED`
+earned on `current` -- none, stale, smoke or no current system keep a claim internal.
+`evidence/instrument.py`: `instrument_policy`, `instrument_declaration_sha256` and
+`instrument_policy_book` take `respondent_system` and `validation`; `-2` drops `INTERNAL_ONLY`
+only when `lifts_internal_only`, every other rule kept. A modelled declaration's identity binds
+the system and whether the validation lifted it (a stale validation is the same declaration as
+none). A simulated origin is never validated: a system or a validation for it is refused, and
+`-1`'s identity does not move.
+
+Tests: `test_the_respondent_system_fingerprint_moves_with_every_component`,
+`test_the_respondent_system_refuses_a_missing_or_blank_component`,
+`test_the_respondent_system_refuses_a_name_it_does_not_bind_and_a_prompt_not_hashed`,
+`test_only_a_current_holdout_lifts_internal_only`,
+`test_a_current_holdout_takes_a_fully_disclosed_modelled_claim_to_a_client`,
+`test_no_validation_a_stale_one_or_smoke_keeps_a_modelled_claim_internal`,
+`test_the_declaration_identity_moves_with_the_system_and_the_validation`,
+`test_simulated_answers_are_never_validated_and_their_identity_never_moves`,
+`test_a_validation_needs_the_current_system_and_a_system_is_a_fingerprint`.
+
+**4e3 landed.** `domain/fieldwork.py`: `RESPONDENT_SYSTEM_METADATA` (`"respondent_system"`), the
+fieldwork dataset artifact's metadata key for the respondent system's components; chunk 5's
+executor writes it. `application/analysis_results.py`: `NativeSources.respondent_system`, read by
+`_respondent_system` for a modelled origin only (a simulated dataset names none, whatever it
+recorded), fingerprinted by `respondent_system_fingerprint`; a record that does not fingerprint
+is refused (`SourcesRefused("respondent_system")`), never read as no system.
+`domain/analysis/native.py`: `native_evidence(respondent_system=, validation=)` passes both to
+the book, so they enter the evidence's system fingerprint. `prepare_module` passes the dataset's
+system and `validation=None`: nothing stores a validation yet, so a modelled run's analysis is
+judged internal, bound to the system it came from.
+
+Tests: `test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its_validation`,
+`test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused`.
+
+**4e4 landed (a test, no code).** Native evidence already re-assesses support from the donors the
+aggregate counted (`domain/analysis/native.py` `reassess_support`, `requires_donor_support=True`);
+`test_a_modelled_run_counts_its_donors_not_its_respondents` proves it for a modelled run: 1,000
+respondents on 40 donors are INDICATIVE (under the donor floor of 50), the same answers on 1,000
+donors REPORTABLE, and on 20 donors (under 25) no row is shown at all.
+
+**4e5 landed.** `domain/report/evidence.py`: `EvidenceLedger.modelled_panel(refs)` -- does any
+held ref rest on `MODELLED_AI_PANEL` (read through `origin_kind`). The DOCX
+(`infrastructure/report_docx/`) prints "(modelováno: AI respondenti z populace)" beside such a
+number wherever one is printed: an inline value (before "orientační"), a paragraph's marks, a
+callout's or finding's title marks, a KPI tile; a table or a figure says it once in its caption
+beside its base and grade, not in every cell. A simulated run's report never says it (its own
+"syntetičtí respondenti" callout frames it, 4c). The grade mark is unchanged.
+
+Not here: the validation's date and fingerprint beside the disclosure (ADR §7). No validation is
+recorded, and `ValidationState` carries no date; chunk 7, which records the first, prints them.
+
+Tests: `test_only_numbers_on_ai_respondents_from_the_population_carry_the_modelled_words`;
+`test_values_print_as_the_evidence_rounded_them_with_intervals`,
+`test_captions_number_figures_and_state_base_and_suppression` and
+`test_the_caption_numbers_titles_and_states_the_base` now expect the words: every client-facing
+number in the shared `report_ledger` rests on the one admissible origin.
+
+Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
+4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.
+
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
 (`research_sociomapping.py:359`) and report read it as modelled, never synthetic
@@ -688,6 +808,20 @@ population marginals are known (ISSP items in the panel), asked of panel-grounde
 respondents, compared. No client-facing claim until the holdout result is recorded.
 
 ## Findings
+
+- **A client-facing number can print "měřeno" beside "modelováno: AI respondenti z populace".**
+  Hypothesis about production, reproduced in tests: the print grade follows the claim's basis
+  and the composer's `field_grades` (`domain/report/evidence.py:58-65 @ 5f204ce1`), never the
+  row's origin, and since 4b the only client-admissible origin is `MODELLED_AI_PANEL`. So a
+  measured-basis claim on a population field graded `MEASURED` prints the measured mark beside
+  the modelled disclosure. Reproduction:
+  `pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers` (the caption
+  reads "n = 480; měřeno; modelováno: AI respondenti z populace"). Consequence: once a
+  client report exists, a reader sees two contradictory words on one number. No production
+  composer passes `field_grades` today (OI-9), so no report prints it yet. Smallest fix, for
+  analysis-governance with OI-9: a `MODELLED_AI_PANEL` row grades `MODELLED` whatever its
+  basis, or such a row cannot back a measured claim at admission. Test that catches it: a
+  ledger test asserting a modelled-panel row never grades `MEASURED`.
 
 - **OI-7 is not archive-blocked: the source it waits for is vendored.** OI-7 says the seven
   enrichment derivations exist only in the withheld archive, so the ANALYSIS view, which every
