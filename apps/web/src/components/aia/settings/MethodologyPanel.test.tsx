@@ -35,7 +35,9 @@ function fakeApi(list: unknown = doc.modules) {
 
 const card = (title: string) =>
   waitFor(() => {
-    const heading = screen.getByRole("heading", { name: title });
+    const heading = screen.getByRole("heading", { name: title, hidden: true });
+    const group = heading.closest("details") as HTMLDetailsElement;
+    if (group && !group.open) fireEvent.click(group.querySelector("summary")!);
     return heading.closest("article") as HTMLElement;
   });
 
@@ -59,9 +61,9 @@ describe("the Metodika tab", () => {
       "Sociomapping: experimentální H-Model (kandidát AIA)",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
-    const groups = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 4)).toEqual(["Metoda", "F1 Které položky jsou hodnocení", "F2 Hodnoticí zvyklosti", "F3 Vztah dvou objektů a jeho spolehlivost"]);
-    expect(screen.getByRole("radio", { name: /aia-sociomap-3 · v platnosti/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: /aia-sociomap-3 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("shows each value with where it comes from, and draws the formula as MathML", async () => {
@@ -85,6 +87,7 @@ describe("the Metodika tab", () => {
     const slot = terrain.querySelector('[data-slot="f12.kernel"]') as HTMLElement;
     expect(within(slot).getByText("h * exp(-d2 / (2 * sigma * sigma))")).toBeTruthy();
     expect(slot.querySelector("math")).not.toBeNull();
+    fireEvent.click(slot.querySelector("summary")!);
     expect(within(slot).getByText("kopec má ve svém středu přesně svou výšku")).toBeTruthy();
     const smacof = await card("Rozložení objektů (SMACOF na pevném pravítku)");
     expect(smacof.querySelector("[data-slot]")).toBeNull();
@@ -132,3 +135,15 @@ describe("the Metodika tab", () => {
     await screen.findByText(/nemá podobu metodiky/);
   });
 });
+
+  it("focuses the calculation with search and keeps provenance available on demand", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    const input = await screen.findByRole("searchbox", { name: "Hledat výpočet nebo parametr" });
+    fireEvent.change(input, { target: { value: "Kish" } });
+    const cards = [...document.querySelectorAll("article")];
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.every((c) => c.textContent?.includes("Kish"))).toBe(true);
+    expect([...document.querySelectorAll("section > details")].every((d) => (d as HTMLDetailsElement).open)).toBe(true);
+    fireEvent.change(input, { target: { value: "no-such-calculation" } });
+    expect(screen.getByRole("status").textContent).toBe("Žádná část neodpovídá hledání.");
+  });

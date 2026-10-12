@@ -449,6 +449,14 @@ export const cs = {
         },
       },
       methodology: {
+        search: "Hledat oblast metodiky", searchPlaceholder: "Objektová mapa, referenční mapa…",
+        noMatch: "Žádná část neodpovídá hledání.", findStep: "Hledat výpočet nebo parametr", findStepPlaceholder: "Např. spolehlivost, terén, velikost vzorku…",
+        leaveEditor: "Přepnutí oblasti zavře rozpracovaný editor metodiky. Chcete pokračovat?", discardEditor: "Zahodit úpravy a přepnout",
+        editableModule: "Postup výpočtu mapy. Vlastník nebo správce může vytvořit novou verzi parametrů a vzorců; již hotové běhy zůstanou stejné.",
+        readOnlyModule: "Tento postup je dostupný ke čtení. Úpravy zde nejsou podporované; nejde o nastavení, které lze změnit přepínačem.",
+        methodNote: "Podrobnosti o metodě a jejích omezeních", catalogueTitle: "Prohlédnout výchozí postup výpočtu",
+        catalogueHelp: "Zvolená předvolba je dokumentace z kódu. Její prohlížení nic neaktivuje. Skutečně platnou verzi a její úpravy najdete v části Verze metodiky.",
+        codeDefault: "výchozí v kódu", fieldReference: "Pole metodiky", calculation: "Výpočet",
         malformed: "Odpověď API nemá podobu metodiky. Nic se nezobrazí, aby to nevypadalo jako prázdná metodika.",
         modules: "Oblasti metodiky",
         preset: "Metodika",
@@ -499,6 +507,12 @@ export const cs = {
           at_least_variable: "není pod proměnnou",
         },
         versions: {
+          versionChangeCount: "{fields} parametrů a {formulas} vzorců", changeDetails: "Která pole se změnila",
+          workflow: "1. Upravte → 2. Zkontrolujte a porovnejte → 3. Uložte verzi → 4. Uveďte v platnost",
+          editorLabel: "Editor metodiky", chooseSection: "Část metodiky k úpravě", changeCount: "Změněných hodnot a vzorců: {count}. Ostatní části návrhu se zachovají.",
+          originalValue: "Původní hodnota", fieldReference: "Technické pole", advancedFormulas: "Pokročilé úpravy vzorců",
+          advancedHelp: "Vzorce upravujte pouze se znalostí metody. Kontrola ověří povolený výraz a jeho podmínky; porovnání ukáže dopad na fiktivních datech.",
+          replaceDraft: "Máte neuložené úpravy metodiky. Tato akce je zahodí.", discardDraft: "Zahodit neuložené úpravy",
           title: "Verze metodiky",
           inForce: "Teď v platnosti",
           origin: { stored: "uložená verze", code: "z kódu" },
@@ -576,6 +590,9 @@ export const cs = {
         },
       },
       deepResearch: {
+        organizationScope: "Tato pravidla platí pro celou organizaci. Rozpočet studie a schválená testovací výjimka mají vlastní rozsah; zde se nemění.",
+        search: "Hledat pravidlo rešerše", searchPlaceholder: "Např. cena, zdroj, délka odpovědi…", filter: "Stav pravidel", all: "Všechna pravidla", missingFilter: "Vyžadují schválení", approvedFilter: "Schválená pravidla", noMatch: "Žádné pravidlo neodpovídá hledání.",
+        missingDetails: "Zobrazit chybějící schválení", technical: "Technický identifikátor", draftGuard: "Máte neuložený návrh pravidla. Zavření nebo přepnutí ho zahodí.", discardDraft: "Zahodit návrh a pokračovat", revertDraft: "Vrátit neuložené změny",
         adminNote: "Hodnoty navrhuje a schvaluje vlastník nebo správce; ostatní členové je vidí.",
         intro:
           "Pravidla, podle kterých Deep Research plánuje, utrácí, posuzuje zdroje a sbírá data. Dokud hodnotu nikdo neschválí, platí navržená výchozí hodnota z kódu a běh ji tak označí. Schválená hodnota platí jen pro běhy zařazené po schválení. Přepínače, tajné klíče a trasa modelu zůstávají v nasazení; ochrany (robots.txt, žádné přihlášení ani paywall, kontrola osobních údajů, třída dat C) jsou v kódu a vypnout nejdou.",

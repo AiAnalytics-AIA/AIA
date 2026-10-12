@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Audit every live tab and introduce clear task-based navigation and setting explanations"
-  - "[ ] 2. Rebuild Methodology browsing/editing with focused sections, plain-language guidance and protected drafts"
+  - "[x] 2. Rebuild Methodology browsing/editing with focused sections, plain-language guidance and protected drafts"
   - "[ ] 3. Upgrade AI, research policy, access, budgets, audit and reference usability"
   - "[ ] 4. Verify all tabs and editing journeys across desktop/tablet/phone, integrate and deploy"
 ---
@@ -19,3 +19,5 @@ Verification: existing contracts/unit tests plus real local browser → API → 
 Doc follow-up: new settings navigation/explanation map and the browser acceptance command, with any reproducible defects anchored to tests. Shared docs stay out of this feature PR.
 
 Chunk 1: live audit of all eight tabs completed. Descriptive responsive navigation, per-tab action guidance, purpose text for catalogued settings, optional technical sources, readable control ownership and rounded display-only USD amounts implemented. ControlPanel: 28 tests pass; frontend types/lint pass. Unknown future setting names now remain readable instead of exposing translation keys.
+
+Chunk 2: Methodology module/step search, grouped disclosure browsing, clearly labelled code documentation versus active versions, section-focused parameter editing, original-value/change summaries, optional expert formula controls, stale-check invalidation, locked inputs during requests, preset/cancel/module/navigation draft guards. Methodology: 21 tests pass; frontend types/lint pass. Existing immutable version, compare, validation and activation contracts are preserved.

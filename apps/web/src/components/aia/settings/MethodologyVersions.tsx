@@ -8,8 +8,10 @@
 // Storing makes a new immutable version; it is in force only once put, and then only for runs
 // started afterwards. The API refuses a non-administrator whatever this page shows.
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 
+import { useRouter } from "next/navigation";
+import { InlineConfirm } from "../../rehome/step";
 import { t, tv } from "@/i18n/t";
 import {
   type MethodCheck,
@@ -42,18 +44,24 @@ const V = "aia.settings.methodology.versions";
 export type People = (id: string | null) => string;
 const when = (iso: string) => relative(iso) ?? iso;
 
-export function MethodologyVersions({ summary, people }: { summary: MethodModuleSummary; people: People }) {
+export function MethodologyVersions({ summary, people, onEditing }: { summary: MethodModuleSummary; people: People; onEditing?: (value: boolean) => void }) {
   const [res, retry] = useResource(() => methodology.versions(summary.id), [summary.id]);
-  return <Loaded res={res} retry={retry}>{(data) => <Body summary={summary} data={data} people={people} reload={retry} />}</Loaded>;
+  return <Loaded res={res} retry={retry}>{(data) => <Body summary={summary} data={data} people={people} reload={retry} onEditing={onEditing} />}</Loaded>;
 }
 
 /** Where an edit starts: a code preset, or a stored version (its spec and its formulas). */
 type Start = { base: string; spec: Record<string, unknown>; formulas: Record<string, string>; from: string };
 
-function Body({ summary, data, people, reload }: { summary: MethodModuleSummary; data: MethodVersions; people: People; reload: () => void }) {
+function Body({ summary, data, people, reload, onEditing }: { summary: MethodModuleSummary; data: MethodVersions; people: People; reload: () => void; onEditing?: (value: boolean) => void }) {
   const [done, setDone] = useState<string | null>(null);
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const [start, setStart] = useState<Start | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [pending, setPending] = useState<{ next: Start | null } | null>(null);
+  const changeStart = (next: Start | null) => {
+    if (start && dirty) { setPending({ next }); return; }
+    setStart(next); setDirty(false); onEditing?.(next !== null);
+  };
   const inForce = data.in_force;
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
   const versionStart = (v: MethodVersion): Start => ({ base: v.base_preset, spec: v.spec, formulas: v.formulas, from: v.name });
@@ -64,7 +72,9 @@ function Body({ summary, data, people, reload }: { summary: MethodModuleSummary;
         {t(`${V}.inForce`)}: <strong className="font-mono">{inForce.name}</strong>{" "}
         <Tag>{t(`${V}.origin.${inForce.origin}`)}</Tag>
       </p>
-      <p className="max-w-3xl text-xs text-ink-muted">{t(`${V}.pinNote`)}</p>
+      <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>
+      {data.may_administer ? <p className="rounded-sm border border-signal-edge bg-signal-wash p-3 text-sm font-medium text-signal">{t(`${V}.workflow`)}</p> : null}
+      {pending ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setStart(pending.next); onEditing?.(pending.next !== null); setDirty(false); setPending(null); }} /> : null}
       {data.may_administer ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
       {done ? <p role="status" className="text-sm text-status-done">{done}</p> : null}
 
@@ -83,19 +93,19 @@ function Body({ summary, data, people, reload }: { summary: MethodModuleSummary;
                     {inForce.version_number === v.version_number ? <Tag>{t(`${V}.current`)}</Tag> : null}
                   </div>
                   {v.note ? <p className="text-ink-muted">{v.note}</p> : null}
-                  <p className="text-xs">
+                  <div className="text-xs">
                     {changed.length || formulas.length ? (
                       <>
                         {tv(`${V}.changes`, { base: v.base_preset })}{" "}
-                        <span className="font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span>
+                        <span>{tv(`${V}.versionChangeCount`, { fields: changed.length, formulas: formulas.length })}</span><details className="mt-1"><summary className="cursor-pointer text-ink-muted">{t(`${V}.changeDetails`)}</summary><span className="break-all font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span></details>
                       </>
                     ) : tv(`${V}.noChanges`, { base: v.base_preset })}
-                  </p>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {data.may_administer && inForce.version_number !== v.version_number ? (
                       <Button small onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
                     ) : null}
-                    {data.may_administer ? <Button small onClick={() => { setDone(null); setStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
+                    {data.may_administer ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
                   </div>
                 </li>
               );
@@ -124,21 +134,22 @@ function Body({ summary, data, people, reload }: { summary: MethodModuleSummary;
             summary={summary}
             start={start}
             presets={Object.keys(data.presets)}
-            onBase={(name) => setStart(presetStart(name))}
-            onCancel={() => setStart(null)}
-            onSaved={(saved) => { setStart(null); setDone(tv(`${V}.saved`, { name: saved.name })); reload(); }}
+            onBase={(name) => changeStart(presetStart(name))}
+            onDirty={setDirty}
+            onCancel={() => changeStart(null)}
+            onSaved={(saved) => { setStart(null); setDirty(false); onEditing?.(false); setDone(tv(`${V}.saved`, { name: saved.name })); reload(); }}
           />
         ) : (
           <div>
-            <Button variant="primary" small onClick={() => { setDone(null); setStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.presets[0] ?? summary.in_force ?? "")); }}>
+            <Button variant="primary" small onClick={() => { setDone(null); changeStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.presets[0] ?? summary.in_force ?? "")); }}>
               {t(`${V}.edit`)}
             </Button>
           </div>
         )
       ) : null}
 
-      <div>
-        <h4 className="text-sm font-semibold">{t(`${V}.history`)}</h4>
+      <details>
+        <summary className="cursor-pointer text-sm font-semibold">{t(`${V}.history`)}</summary>
         {data.history.length ? (
           <ul className="mt-1 flex flex-col gap-1 text-sm">
             {data.history.map((h) => (
@@ -150,7 +161,7 @@ function Body({ summary, data, people, reload }: { summary: MethodModuleSummary;
             ))}
           </ul>
         ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.noHistory`)}</p>}
-      </div>
+      </details>
     </section>
   );
 }
@@ -189,16 +200,16 @@ function Activate({ moduleId, version, name, onCancel, onDone }: { moduleId: str
 
 function Editor(props: {
   summary: MethodModuleSummary; start: Start; presets: string[];
-  onBase: (name: string) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
+  onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   // The labels and slots of the preset the edit is based on; the values come from `start`.
   const [res, retry] = useResource(() => methodology.get(props.summary.id, props.start.base), [props.summary.id, props.start.base]);
   return <Loaded res={res} retry={retry}>{(detail) => <EditorForm {...props} detail={detail} />}</Loaded>;
 }
 
-function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved }: {
+function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel, onSaved }: {
   summary: MethodModuleSummary; start: Start; presets: string[]; detail: MethodModuleDetail;
-  onBase: (name: string) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
+  onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   const steps = useMemo(() => editableSteps(detail), [detail]);
   const builtin = useMemo(() => new Map(steps.flatMap(({ step }) => step.formulas.map((f) => [f.slot_id, f.expression] as const))), [steps]);
@@ -213,6 +224,30 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
   const [comparison, setComparison] = useState<MethodCompare | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const router = useRouter();
+  const [selectedStep, setSelectedStep] = useState(steps[0]?.step.id ?? "");
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
+  const changedCount = Object.keys(raw).filter((r) => raw[r] !== toInput(readPath(start.spec, r))).length + [...builtin.keys()].filter((slot) => exprs[slot] !== (start.formulas[slot] ?? builtin.get(slot))).length;
+  const dirty = changedCount > 0 || !!note.trim();
+  useEffect(() => { onDirty(dirty); }, [dirty, onDirty]);
+  useEffect(() => {
+    if (!dirty) return;
+    const unload = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    const leave = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+      const link = (e.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link || link.target || link.download || link.origin !== location.origin || link.pathname === location.pathname) return;
+      e.preventDefault(); setLeaveHref(link.pathname + link.search + link.hash);
+    };
+    window.addEventListener("beforeunload", unload); document.addEventListener("click", leave, true);
+    return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener("click", leave, true); };
+  }, [dirty]);
+  const clearPreview = () => { setCheck(null); setComparison(null); setError(null); };
+  const showFirstProblem = (problems: Record<string, string>) => {
+    const first = steps.find(({ step, fields }) => fields.some((f) => problemsFor(problems, `spec.${f.reference}`).length) || step.formulas.some((f) => problemsFor(problems, `formula.${f.slot_id}`).length));
+    if (first) setSelectedStep(first.step.id);
+  };
 
   // The whole edit, or the fields the page itself cannot read (a word where a number was).
   const build = (): { edit: { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string> } } | { local: Record<string, string> } => {
@@ -232,13 +267,13 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
     setError(null);
     const built = build();
     if ("local" in built) {
-      setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} });
+      setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} }); showFirstProblem(built.local);
       return;
     }
     setBusy(true);
     try {
       const checked = await methodology.check(summary.id, built.edit);
-      setCheck(checked);
+      setCheck(checked); showFirstProblem(checked.problems);
       if (store && checked.valid) onSaved(await methodology.propose(summary.id, { ...built.edit, note: note.trim() }));
     } catch (e) {
       setError(describeError(e));
@@ -252,14 +287,14 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
     setComparison(null);
     const built = build();
     if ("local" in built) {
-      setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} });
+      setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} }); showFirstProblem(built.local);
       return;
     }
     setBusy(true);
     try {
       const result = await methodology.compare(summary.id, built.edit);
       if (result.valid) setComparison(result);
-      else setCheck({ valid: false, problems: result.problems, not_computed: [], formulas_latex: {} });
+      else { setCheck({ valid: false, problems: result.problems, not_computed: [], formulas_latex: {} }); showFirstProblem(result.problems); }
     } catch (e) {
       setError(describeError(e));
     } finally {
@@ -275,14 +310,15 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
   const placed = [...Object.keys(raw).map((r) => `spec.${r}`), ...[...builtin.keys()].map((s) => `formula.${s}`)];
   const elsewhere = unplacedProblems(problems, placed);
   return (
-    <form data-methodology-editor onSubmit={submit} className="flex flex-col gap-4 rounded-sm border border-border p-3">
+    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit} className="flex min-w-0 flex-col gap-4 rounded-md border border-signal-edge bg-surface p-4">
+      {leaveHref ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
       <div className="flex flex-col gap-1">
         <h4 className="text-sm font-semibold">{tv(`${V}.editorTitle`, { from: start.from })}</h4>
         <p className="max-w-3xl text-xs text-ink-muted">{t(`${V}.editorHelp`)}</p>
       </div>
       {presets.length > 1 ? (
         <Field label={t(`${V}.base`)} className="max-w-xs">
-          <Select value={start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
+          <Select disabled={busy} value={start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
             {start.from === start.base ? null : <option value="">{start.from}</option>}
             {presets.map((p) => <option key={p} value={p}>{p}</option>)}
           </Select>
@@ -293,9 +329,13 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
           {elsewhere.map(([k, m]) => <li key={k}><span className="font-mono">{k}</span>: {m}</li>)}
         </ul>
       ) : null}
+      <div className="rounded-sm border border-border bg-surface-sunken p-3">
+        <Field label={t(`${V}.chooseSection`)}><Select disabled={busy} value={selectedStep} onChange={(e) => setSelectedStep(e.target.value)}>{steps.map(({ step }) => <option key={step.id} value={step.id}>{step.title_cs}</option>)}</Select></Field>
+        <p className="mt-2 text-xs text-ink-muted">{tv(`${V}.changeCount`, { count: changedCount })}</p>
+      </div>
       {steps.map(({ step, fields }) => (
-        <fieldset key={step.id} data-edit-step={step.id} className="flex flex-col gap-2 border-t border-border pt-3">
-          <legend className="text-sm font-semibold">{step.title_cs}</legend>
+        <fieldset key={step.id} hidden={selectedStep !== step.id} disabled={busy} data-edit-step={step.id} className="flex flex-col gap-2 border-t border-border pt-3">
+          <legend className="text-sm font-semibold">{step.title_cs}</legend>{step.note_cs ? <p className="mb-2 text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
           {fields.map((f) => {
             const own = problemsFor(problems, `spec.${f.reference}`);
             const changed = raw[f.reference] !== toInput(readPath(start.spec, f.reference));
@@ -307,14 +347,16 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
                     aria-invalid={own.length > 0}
                     data-field={f.reference}
                     className="font-mono"
-                    onChange={(e) => setRaw((r) => ({ ...r, [f.reference]: e.target.value }))}
+                    inputMode={typeof readPath(start.spec, f.reference) === "number" ? "decimal" : undefined}
+                    onChange={(e) => { setRaw((r) => ({ ...r, [f.reference]: e.target.value })); clearPreview(); }}
                   />
                 </Field>
-                <span className="font-mono text-xs text-ink-faint">{f.reference}{changed ? ` · ${t(`${V}.changed`)}` : ""}</span>
+                <p className="text-xs text-ink-muted">{t(`${V}.originalValue`)}: <span className="font-mono break-all">{toInput(readPath(start.spec, f.reference))}</span>{changed ? ` · ${t(`${V}.changed`)}` : ""}</p><details className="text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${V}.fieldReference`)}</summary><code className="break-all">{f.reference}</code></details>
                 {own.map((m) => <span key={m} role="alert" className="text-xs text-status-fault">{m}</span>)}
               </div>
             );
           })}
+          <details className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">{t(`${V}.advancedFormulas`)} ({step.formulas.length})</summary><p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${V}.advancedHelp`)}</p><div className="mt-3 flex min-w-0 flex-col gap-4">
           {step.formulas.map((f) => {
             const own = problemsFor(problems, `formula.${f.slot_id}`);
             const replaced = (exprs[f.slot_id] ?? "").trim() !== f.expression;
@@ -324,10 +366,11 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
                 <Field label={`${t(`${V}.formula`)} · ${f.title_cs}`}>
                   <TextArea
                     rows={2}
+                    aria-label={`${t(`${V}.formula`)} · ${f.title_cs}`}
                     value={exprs[f.slot_id]}
                     aria-invalid={own.length > 0}
                     className="font-mono"
-                    onChange={(e) => setExprs((x) => ({ ...x, [f.slot_id]: e.target.value }))}
+                    onChange={(e) => { setExprs((x) => ({ ...x, [f.slot_id]: e.target.value })); clearPreview(); }}
                   />
                 </Field>
                 <span className="text-xs text-ink-faint">
@@ -339,17 +382,17 @@ function EditorForm({ summary, start, presets, detail, onBase, onCancel, onSaved
                 {own.map((m) => <span key={m} role="alert" className="text-xs text-status-fault">{m}</span>)}
               </div>
             );
-          })}
+          })}</div></details>
         </fieldset>
       ))}
       <Field label={t(`${V}.note`)}>
-        <TextInput value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
+        <TextInput disabled={busy} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
       </Field>
       {check?.valid ? <p role="status" className="text-sm text-status-done">{t(`${V}.checkOk`)}</p> : null}
       {check && !check.valid ? <p role="alert" className="text-sm text-status-fault">{tv(`${V}.checkFailed`, { count: Object.keys(check.problems).length })}</p> : null}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
       {comparison ? <MethodologyComparison result={comparison} /> : null}
-      <div className="flex flex-wrap gap-2">
+      <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-md border border-border bg-surface-raised p-3 shadow-sm">
         <Button disabled={busy} onClick={() => void run(false)}>{t(`${V}.check`)}</Button>
         <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
         <Button type="submit" variant="primary" disabled={busy}>{t(`${V}.store`)}</Button>
