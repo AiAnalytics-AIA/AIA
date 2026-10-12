@@ -26,7 +26,7 @@ chunks:
   - "[x] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
   - "[x] 5c. A run pins its persona source at start (AIA_AI_POPULATION_PERSONAS_ENABLED, off by default); a retry keeps it"
   - "[x] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
-  - "[ ] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
+  - "[x] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
 ---
@@ -903,6 +903,25 @@ the respondent system in the metadata, aggregate and sociomap over it),
 `test_a_population_that_cannot_build_personas_fails_before_any_call`,
 `test_the_population_switch_needs_the_directory_it_reads`,
 `test_a_run_pinned_to_its_population_waits_on_a_worker_without_that_path`.
+
+**5e, cost (measured, nothing called).** Request characters, built by `build_request` exactly as
+the executor builds them, never sent. Measured @ `2163d0e8` with two throwaway tests that were not
+committed:
+
+| What | Requests | Mean chars | Max chars | Profile chars (mean / max) |
+|---|---|---|---|---|
+| Fictional roster, 2-question design, n 200 | 200 | 3,018 | 3,174 | none |
+| Population, same design, the sampler's rows (few profile columns, no signals) | 200 | 2,849 | 2,908 | 147 / 206 |
+| Population, the 3e fixture's 39 rows (every profile column, catalog signals) | 39 | 3,561 | 3,687 | 832 / 958 |
+| The same 39 personas without a profile (`plan_respondent`) | | 3,052 | | none |
+
+So a full profile adds about 509 characters to a request (+17 %), bounded by the 185-word cap and
+the signal budget (3-9 signals): the longest seen is 958. At an assumed ~3 characters per token
+for Czech (an assumption, not measured), that is ~170 input tokens more per request, ~$0.0005 per
+request at $3 / MTok input -- far inside the per-request reservation
+(`AIA_AI_FIELDWORK_RESERVATION_USD`, which caps a request at the model's window and output
+limit), so the run's cost ceiling does not move. The real number is the first develop run's
+ledger (`ai_usage_events.input_tokens` per call), which records what Bedrock counted.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
