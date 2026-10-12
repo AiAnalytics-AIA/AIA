@@ -232,7 +232,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="a1f1186816f6aebe935a6a62b0c9f852e37066ddcc7e15af70617363cd31d57a",
         symbols=(Symbol(r"r_{\min}", "práh účinku"),),
         parameters=(ParameterRef("relation.effect_floor", "Práh účinku"),),
-        evidence=(_Q6,),
+        evidence=(_rule("AUDIT-F3"), _Q6),
         tests=(
             f"{_T}/test_sociomap_evidence_policy.py::test_a_precisely_small_relation_is_reliable_and_below_the_floor",
             f"{_T}/test_sociomap_evidence_policy.py::test_the_floor_is_recorded_beside_the_status_never_inside_it",

@@ -31,6 +31,7 @@ import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction } from "@/lib/api";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
+import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
 
 // The "AI pomoc" bar (Studio v3) offers an action only where it helps: the plan can be
@@ -135,6 +136,7 @@ function StageChrome({ frame, step, status, children }: { frame: StudyFrame; ste
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
       ) : null}
+      <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
       {children}
     </AppShell>
   );
@@ -271,7 +273,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         </div>
       </section> : null}
       </StageChrome>
-      {job ? <JobPanel job={job} onCancel={onCancel} /> : null}
+      {job ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />

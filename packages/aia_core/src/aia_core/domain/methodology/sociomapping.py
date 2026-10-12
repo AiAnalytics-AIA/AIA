@@ -144,6 +144,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         formula_latex=r"j\ \text{bez definovaného vztahu} \Rightarrow \text{neumístěn, s důvodem}",
         implements=f"{_C}:_placeable",
         source_sha256="1dd0accd503b2417744a16fd92494bce71fa8f5529f169ef63c6377df6fe3a3c",
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_a_constant_object_is_listed_unplaced_with_its_reason",
         ),
@@ -162,6 +163,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("seed", "Semínko náhodných startů"),
             ParameterRef("random_starts", "Počet náhodných startů"),
         ),
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_random_matrices_never_end_below_the_classical_mds_baseline",
         ),
@@ -178,6 +180,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="b5b2e6cd75f10b7b666479aadd7c924eb7542bf542b0c13247f27a0613071b78",
         symbols=(Symbol("L", "pevná průměrná pořadí definovaných vztahů"),),
         parameters=(ParameterRef("smooth_iterations", "Iterace hladké fáze"),),
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly",
         ),
@@ -197,6 +200,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("ordinal_iterations", "Iterace ordinální fáze"),
             ParameterRef("ordinal_gap", "Mezera g"),
         ),
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_planted_symmetric_relations_are_recovered_exactly",
         ),
@@ -218,6 +222,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("initial_step", "Počáteční krok", "násobek RMS poloměru startu"),
             ParameterRef("min_step", "Nejmenší krok"),
         ),
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_fig22_a_provisional_comparison_not_a_target",
         ),
@@ -232,6 +237,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         implements=f"{_C}:_repair",
         source_sha256="5f563d9afac07b0a38e3fa6abfedc9444629dcd8a1bf5629f53b9536efd1d432",
         parameters=(ParameterRef("repair_rounds", "Kola opravy"),),
+        evidence=(_rule("AIA-H9"),),
         tests=(
             f"{_T}/test_sociomapping_hmodel_candidate.py::test_asymmetric_planted_relations_expose_pooled_versus_per_point",
         ),
@@ -312,6 +318,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         formula_latex=r"\text{třídy}\ \alpha\text{-řezů matice 0-1, od nejvyšší úrovně}",
         implements=f"{_S}.coherence:coherences",
         source_sha256="e50ba558dee1b2a40ae742da63d04b8b704e2b8814ac5855cd524afa81bb9b67",
+        evidence=(_rule("SOMECS-C1"),),
         tests=(
             f"{_T}/test_sociomap_coherence.py::test_the_help_example_is_reproduced_exactly",
             f"{_T}/test_sociomap_coherence.py::test_alpha_cuts_are_the_classes_at_each_level",

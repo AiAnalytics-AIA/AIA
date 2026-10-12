@@ -83,6 +83,10 @@ const found = (selector: string, root: ParentNode = document) =>
   waitFor(() => {
     const element = root.querySelector(selector);
     if (!element) throw new Error(`nothing at ${selector}`);
+    const group = element.closest("fieldset");
+    if (group?.hidden) fireEvent.change(screen.getByLabelText("Část metodiky k úpravě"), { target: { value: group.getAttribute("data-edit-step") } });
+    const disclosure = element.closest("details");
+    if (disclosure && !disclosure.open) fireEvent.click(disclosure.querySelector("summary")!);
     return element as HTMLElement;
   });
 const editor = () => found("[data-methodology-editor]");
@@ -90,6 +94,8 @@ const field = (form: HTMLElement, reference: string) =>
   waitFor(() => {
     const input = form.querySelector(`[data-field="${reference}"]`);
     if (!input) throw new Error(`no field ${reference}`);
+    const group = input.closest("fieldset")!;
+    if (group.hidden) fireEvent.change(within(form).getByLabelText("Část metodiky k úpravě"), { target: { value: group.getAttribute("data-edit-step") } });
     return input as HTMLInputElement;
   });
 
@@ -298,5 +304,51 @@ describe("the comparison with what is in force", () => {
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
     await waitFor(() => expect(within(form).getByText("must be at least 4")).toBeTruthy());
     expect(form.querySelector("[data-methodology-compare]")).toBeNull();
+  });
+});
+
+describe("guided methodology editing", () => {
+  it("preserves changes across sections, guards preset replacement and cancellation, and warns before leaving", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
+    expect((await field(form, "terrain.sigma")).value).toBe("0,35");
+    const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload); expect(unload.defaultPrevented).toBe(true);
+    fireEvent.change(within(form).getByLabelText("Vycházet z metodiky z kódu"), { target: { value: "aia-sociomap-2" } });
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect((await field(form, "terrain.sigma")).value).toBe("0,35");
+    fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
+    fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Zahodit neuložené úpravy" }));
+    expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+  });
+
+  it("requires confirmation before changing modules while the editor is open", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
+    await editor();
+    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
+    expect(await screen.findByRole("heading", { name: "Sociomapa: referenční mapa (18.6.6)" })).toBeTruthy();
+    expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+  });
+
+  it("invalidates a previous successful check when the parameter changes", async () => {
+    const { sent } = fakeApi(); render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
+    expect(await screen.findByText("Kontrola prošla.")).toBeTruthy();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
+    expect(screen.queryByText("Kontrola prošla.")).toBeNull();
+    expect(sent.filter((c) => c.url.endsWith("/versions") && c.method === "POST")).toEqual([]);
   });
 });

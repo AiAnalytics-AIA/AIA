@@ -84,7 +84,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         implements="aia_core.domain.research_sociomap:battery_sociomap",
         source_sha256="077f152acd4f9273218f43ceb5f05cfb214471556f81fd1dc9ce84a43d6a7a9a",
         symbols=(Symbol(r"N", "počet respondentů baterie"),),
-        evidence=(_legacy("project_engine.py:34-35 (vaha)"),),
+        evidence=(_rule("LEGACY-R2"), _legacy("project_engine.py:34-35 (vaha)")),
         tests=(
             f"{_T}/test_research_sociomap.py::test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only",
         ),
@@ -103,7 +103,13 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("ratings.rating_scale_min", "Dolní konec škály", "body škály"),
             ParameterRef("ratings.rating_scale_max", "Horní konec škály", "body škály"),
         ),
-        evidence=(_fixture("F1"), _fixture("F8")),
+        evidence=(
+            _rule(
+                "AUDIT-F1", "Deklarované konce škály; referenční mapa hodnocení na 0-1 nepřevádí."
+            ),
+            _fixture("F1"),
+            _fixture("F8"),
+        ),
         tests=(
             f"{_T}/test_sociomap_engine.py::test_a_rating_off_the_declared_scale_is_refused",
             f"{_T}/test_research_sociomap.py::test_the_battery_scale_is_the_datas_and_is_recorded",
@@ -193,7 +199,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         implements=f"{_S}.relations:mutual_from_1_10",
         source_sha256="d5ae50da12aedcbe09ad71770657ee3f630d1b3d8275376791bffaa3dd312434",
         parameters=(ParameterRef("relation.position_projection", "Projekce pro polohu"),),
-        evidence=(_fixture("F2"),),
+        evidence=(_rule("LEGACY-R3"), _fixture("F2")),
         tests=(f"{_T}/test_sociomap_relations.py::test_f2_mutual_relation_matches_the_reference",),
         note_cs="Ukládá se, ale polohu neurčuje: tu dává rozvinutí hodnocení níže.",
     ),
@@ -289,7 +295,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("metrics.object_height_metric", "Metrika výšky"),
             ParameterRef("metrics.object_colour_metric", "Metrika barvy"),
         ),
-        evidence=(_fixture("F6"),),
+        evidence=(_rule("LEGACY-R4"), _fixture("F6")),
         tests=(
             f"{_T}/test_sociomap_metrics.py::test_unknown_metric_id_is_refused_not_turned_into_a_tscore",
         ),
@@ -330,8 +336,8 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Průměrné hodnocení objektu",
         formula_latex=r"\bar a_j = \frac{1}{n_j}\sum_{k} a_{kj},\quad n_j = \#\text{pozorovaných}",
         implements=f"{_S}.metrics:object_rating_summaries",
-        source_sha256="dc29b1dea0005c2c747fa9617c6a4142140078b55aa4ada0a6d4d6bd6b2cf48f",
-        evidence=(_D6,),
+        source_sha256="6532c9f3db04cc9df23cce989217acddb488be1ec30acdfe6beb040ef6582a1b",
+        evidence=(_rule("LEGACY-R7"), _D6),
         tests=(f"{_T}/test_sociomap_metrics.py::test_rating_summaries_use_observed_cells_only",),
         note_cs="Nevážený průměr; matice vztahů výše počítá vážený.",
     ),
@@ -353,7 +359,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             ParameterRef("terrain.respondent.kernel_cutoff", "Práh jádra"),
             ParameterRef("terrain.respondent.z_scale", "Převýšení"),
         ),
-        evidence=(_fixture("F7"),),
+        evidence=(_rule("LEGACY-R5"), _fixture("F7")),
         tests=(
             f"{_T}/test_sociomap_terrain.py::test_f7_every_sample_matches",
             f"{_T}/test_sociomap_terrain.py::test_empty_terrain_is_flat_at_zero_not_a_plateau",
@@ -399,7 +405,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         implements=f"{_S}.metrics:build_normalizer",
         source_sha256="22fafbf0d80250de2e10eae2af0f31f1f4c33319b3f267c3e8a96e09a4f77e40",
         parameters=(ParameterRef("terrain.normalization", "Normalizace"),),
-        evidence=(_fixture("F5"),),
+        evidence=(_rule("LEGACY-R6"), _fixture("F5")),
         tests=(
             f"{_T}/test_sociomap_metrics.py::test_f5_normaliser_matches_the_reference",
             f"{_T}/test_sociomap_metrics.py::test_sigma_mode_spans_plus_minus_two_and_a_half_sd",

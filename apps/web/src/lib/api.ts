@@ -384,6 +384,28 @@ export type PopulationRegistry = {
   history: PopulationPromotion[];
 };
 
+// GET /api/v1/clients/{id}/memory/search (project memory M1).
+export type MemoryField =
+  | "name"
+  | "title"
+  | "goal"
+  | "decision_use"
+  | "research_questions"
+  | "objectives"
+  | "sections"
+  | "dimensions";
+export type MemoryHit = {
+  study_id: string;
+  name: string;
+  kind: StudyKind;
+  status: string;
+  modified_at: string | null;
+  /** design: its latest Design Revision; draft: its working content (no Design Revision); name: its name alone. */
+  source: "design" | "draft" | "name";
+  design_revision: number | null;
+  matches: { field: MemoryField; texts: string[] }[];
+};
+
 // GET /api/v1/population/versions/{id}/characteristics (population-operations P7c): what a
 // version is made of, from the dictionary it keeps; no respondent row.
 export type PopulationFieldUse =
@@ -450,6 +472,34 @@ export type PopulationCharacteristics = {
   subpanel_note: string;
 };
 
+// GET /api/v1/studies/{id}/design/source, POST /api/v1/clients/{id}/memory/reuse (project memory M3).
+export type DesignSourceLabels = {
+  synthetic: boolean;
+  draft: boolean;
+  never_run: boolean;
+  unlabelled_data: boolean;
+  run_ids: string[];
+  report_artifact_ids: string[];
+};
+export type DesignSource = {
+  study_id: string;
+  revision_id: string;
+  source_study_id: string;
+  source_revision_id: string;
+  source_revision: number;
+  source_content_sha256: string;
+  labels: DesignSourceLabels;
+  created_by: string;
+  created_at: string;
+};
+export type MemoryReuse = {
+  source_study_id: string;
+  source_revision_id: string;
+  target_study_id?: string;
+  new_study_name?: string;
+};
+export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -473,6 +523,12 @@ export const workspace = {
   overview: (clientId: string) => request<ClientOverview>("GET", `/api/v1/clients/${enc(clientId)}/overview`),
   studies: (clientId: string, kind?: StudyKind) =>
     request<WorkspaceStudy[]>("GET", `/api/v1/clients/${enc(clientId)}/studies${query({ kind })}`),
+  /** Project memory M1: this client's past studies whose name or design holds every word of q. */
+  memorySearch: (clientId: string, q: string) =>
+    request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
+  /** Project memory M3: start a new or empty research study of this client from a past design. */
+  memoryReuse: (clientId: string, body: MemoryReuse) =>
+    request<MemoryReused>("POST", `/api/v1/clients/${enc(clientId)}/memory/reuse`, body),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
@@ -551,7 +607,21 @@ export type Readiness = {
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
+/** One entry of a run's event feed, read after a cursor (lib/step-activity.ts folds them). */
+export type RunEvent = {
+  event_id: number;
+  step_id: string | null;
+  attempt_id: string | null;
+  event_type: string;
+  level: string;
+  message: string;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+};
+const eventsQuery = (since: number) => `?since=${encodeURIComponent(String(since))}`;
 export type ResearchStep = {
+  /** The id the run's events name. */
+  step_id: string;
   node_key: "compile" | "preflight" | "run" | "aggregate" | "sociomap" | string;
   kind: string;
   stage_type: string;
@@ -635,6 +705,11 @@ export const research = {
     request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  /** Where the study's design came from, when it was reused (404: it was not). */
+  designSource: (studyId: string) => request<DesignSource>("GET", `${studyPath(studyId)}/design/source`),
+  /** One Design Revision with its content (project memory M2c reads a past study's). */
+  revision: (studyId: string, revisionId: string) =>
+    request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
   /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
@@ -652,6 +727,8 @@ export const research = {
   runs: (studyId: string) =>
     request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
   run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
@@ -685,7 +762,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { node_key: string; status: string; waiting_reason: string | null; error_message: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
@@ -714,6 +791,8 @@ export const deepResearch = {
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
   run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
@@ -748,6 +827,8 @@ export const researchAgents = {
     return jobs as ResearchAgentJob[];
   },
   job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
+  events: (studyId: string, jobId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${agentsPath(studyId)}/${enc(jobId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
   resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),

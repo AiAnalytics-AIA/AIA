@@ -13,7 +13,8 @@ import { useState } from "react";
 import { t } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
 import { groupSteps, showValue } from "@/lib/methodology";
-import { Tag } from "../../rehome/ui";
+import { Button, Tag, TextInput } from "../../rehome/ui";
+import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { Formula } from "./MethodologyFormula";
@@ -38,83 +39,85 @@ export function MethodologyPanel({ people = anyone }: { people?: People }) {
 
 function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: People }) {
   const [active, setActive] = useState(modules[0]?.id ?? null);
+  const [query, setQuery] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
   const current = modules.find((m) => m.id === active) ?? null;
-  return (
-    <div className="flex flex-col gap-4">
-      <nav aria-label={t(`${M}.modules`)} className="flex flex-wrap gap-2">
-        {modules.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            aria-pressed={m.id === active}
-            onClick={() => setActive(m.id)}
-            className={`rounded-sm border px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${m.id === active ? "border-border-strong bg-surface-raised font-semibold text-ink" : "border-border text-ink-muted hover:text-ink"}`}
-          >
-            {m.title_cs}
-          </button>
-        ))}
-      </nav>
-      {current ? <ModuleView key={current.id} summary={current} people={people} /> : null}
-    </div>
-  );
+  const visible = modules.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  return <div className="flex min-w-0 flex-col gap-4">
+    <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+    <nav aria-label={t(`${M}.modules`)} className="flex flex-wrap gap-2">
+      {visible.map((m) => <Button key={m.id} className="max-w-full !whitespace-normal text-left" aria-pressed={m.id === active} variant={m.id === active ? "primary" : "quiet"} onClick={() => {
+        if (m.id === active) return;
+        if (editing) setPending(m.id); else setActive(m.id);
+      }}>{m.title_cs}</Button>)}
+    </nav>
+    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
+    {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => setPending(null)} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); }} /> : null}
+    {current ? <ModuleView key={current.id} summary={current} people={people} onEditing={setEditing} /> : null}
+  </div>;
 }
 
-function ModuleView({ summary, people }: { summary: MethodModuleSummary; people: People }) {
+function ModuleView({ summary, people, onEditing }: { summary: MethodModuleSummary; people: People; onEditing: (value: boolean) => void }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
+  const [editing, setEditing] = useState(false);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
-  return (
-    <div className="flex flex-col gap-4">
-      {summary.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{summary.note_cs}</p> : null}
-      {summary.editable ? <MethodologyVersions summary={summary} people={people} /> : null}
-      {summary.presets.length > 1 ? (
-        <div role="radiogroup" aria-label={t(`${M}.preset`)} className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-xs font-medium text-ink-muted">{t(`${M}.preset`)}</span>
-          {summary.presets.map((p) => (
-            <button
-              key={p}
-              type="button"
-              role="radio"
-              aria-checked={p === preset}
-              onClick={() => setPreset(p)}
-              className={`rounded-sm border px-2 py-1 font-mono text-xs ${p === preset ? "border-border-strong bg-surface-raised text-ink" : "border-border text-ink-muted hover:text-ink"}`}
-            >
-              {p}
-              {p === summary.in_force ? ` · ${t(`${M}.inForce`)}` : ""}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <Loaded res={res} retry={retry}>{(detail) => <Steps detail={detail} />}</Loaded>
+  return <div className="flex min-w-0 flex-col gap-4">
+    <header className="rounded-md border border-border bg-surface-sunken p-4">
+      <h3 className="text-base font-semibold">{summary.title_cs}</h3>
+      <p className="mt-1 text-sm leading-6 text-ink-muted">{summary.editable ? t(`${M}.editableModule`) : t(`${M}.readOnlyModule`)}</p>
+      {summary.note_cs ? <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">{t(`${M}.methodNote`)}</summary><p className="mt-2 leading-5">{summary.note_cs}</p></details> : null}
+    </header>
+    {summary.editable ? <MethodologyVersions summary={summary} people={people} onEditing={(value) => { setEditing(value); onEditing(value); }} /> : null}
+    <div hidden={editing} className="flex min-w-0 flex-col gap-4">
+      <div className="rounded-md border border-border p-3">
+        <p className="text-sm font-semibold">{t(`${M}.catalogueTitle`)}</p>
+        <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${M}.catalogueHelp`)}</p>
+        {summary.presets.length > 1 ? <div role="radiogroup" aria-label={t(`${M}.preset`)} className="mt-3 flex flex-wrap gap-2">
+          {summary.presets.map((p) => <button key={p} type="button" role="radio" aria-checked={p === preset} onClick={() => setPreset(p)} className={`rounded-sm border px-3 py-2 font-mono text-xs focus-visible:outline-2 focus-visible:outline-focus-ring ${p === preset ? "border-signal-edge bg-signal-wash text-signal" : "border-border text-ink-muted"}`}>
+            {p}{p === summary.in_force ? ` · ${t(`${M}.codeDefault`)}` : ""}
+          </button>)}
+        </div> : null}
+      </div>
+      <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
     </div>
-  );
+  </div>;
 }
 
 function Steps({ detail }: { detail: MethodModuleDetail }) {
-  return (
-    <div className="flex flex-col gap-6">
-      {groupSteps(detail).map(({ group, steps }) => (
-        <section key={group?.id ?? "all"} aria-labelledby={group ? `mg-${detail.id}-${group.id}` : undefined} className="flex flex-col gap-3">
-          {group ? (
-            <header className="border-b border-border pb-1">
-              <h3 id={`mg-${detail.id}-${group.id}`} className="text-sm font-semibold">{group.title_cs}</h3>
-              {group.note_cs ? <p className="mt-1 max-w-3xl text-sm text-ink-muted">{group.note_cs}</p> : null}
-            </header>
-          ) : null}
-          {steps.length ? steps.map((s) => <StepCard key={s.id} step={s} editable={detail.editable} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
-        </section>
-      ))}
-    </div>
-  );
+  const groups = groupSteps(detail);
+  const [query, setQuery] = useState("");
+  const shown = groups.map((item) => ({ ...item, steps: item.steps.filter((step) => `${step.title_cs} ${step.note_cs} ${step.values.map((v) => `${v.label_cs} ${v.reference} ${String(v.value)}`).join(" ")} ${step.formulas.map((f) => `${f.title_cs} ${f.note_cs}`).join(" ")}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))) }));
+  return <div className="flex min-w-0 flex-col gap-3">
+    <TextInput type="search" aria-label={t(`${M}.findStep`)} placeholder={t(`${M}.findStepPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+    {shown.map(({ group, steps }, i) => {
+      const original = groups[i];
+      if (query.trim() && !steps.length && original.steps.length) return null;
+      return <section key={group?.id ?? "all"} aria-labelledby={group ? `mg-${detail.id}-${group.id}` : undefined}>
+        <details open={!!query.trim() || (i === 1 || groups.length === 1)} className="group rounded-md border border-border bg-surface-raised">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
+            <div className="min-w-0"><h3 id={group ? `mg-${detail.id}-${group.id}` : undefined} className="text-sm font-semibold">{group?.title_cs ?? t(`${M}.calculation`)}</h3>
+            {group?.note_cs ? <p className="mt-1 text-xs leading-5 text-ink-muted">{group.note_cs}</p> : null}</div>
+            <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
+          </summary>
+          <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
+            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} editable={detail.editable} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+          </div>
+        </details>
+      </section>;
+    })}
+    {query.trim() && !shown.some((g) => g.steps.length) ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
+  </div>;
 }
 
 function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }) {
   return (
-    <article aria-labelledby={`ms-${step.id}`} className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
+    <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
       <h4 id={`ms-${step.id}`} className="text-sm font-semibold">{step.title_cs}</h4>
       <div className="text-ink"><Formula latex={step.formula_latex} /></div>
       {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
       {step.symbols.length ? (
-        <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+        <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
           {step.symbols.map((y) => (
             <div key={y.latex} className="contents">
               <dt><Formula latex={y.latex} display={false} /></dt>
@@ -124,16 +127,16 @@ function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }
         </dl>
       ) : null}
       {step.values.length ? (
-        <table className="w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <caption className="sr-only">{t(`${M}.values`)}</caption>
           <tbody>
             {step.values.map((v) => (
               <tr key={v.reference} className="border-t border-border">
                 <th scope="row" className="py-1.5 pr-3 text-left font-normal">
                   {v.label_cs}
-                  <span className="block font-mono text-xs text-ink-faint">{v.reference}</span>
+                  <details className="mt-1 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${M}.fieldReference`)}</summary><code className="break-all">{v.reference}</code></details>
                 </th>
-                <td className="py-1.5 pr-3 font-mono tabular-nums">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</td>
+                <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</td>
                 <td className="py-1.5 text-right" title={t(`${M}.originHelp.${v.origin}`)}><Tag>{t(`${M}.origin.${v.origin}`)}</Tag></td>
               </tr>
             ))}
@@ -146,20 +149,20 @@ function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }
           {step.evidence.map((e) => (
             <li key={`${e.kind}:${e.ref}`} className="flex flex-wrap items-baseline gap-2">
               <Tag>{t(`${M}.evidenceKind.${e.kind}`)}</Tag>
-              <span className="font-mono text-xs">{e.ref}</span>
+              <span className="min-w-0 break-all font-mono text-xs">{e.ref}</span>
               {e.note_cs ? <span className="text-ink-muted">{e.note_cs}</span> : null}
             </li>
           ))}
         </ul>
       ) : null}
       <details className="text-xs text-ink-muted">
-        <summary className="cursor-pointer">{t(`${M}.implements`)}: <span className="font-mono">{step.implements}</span></summary>
+        <summary className="cursor-pointer">{t(`${M}.implements`)}: <span className="break-all font-mono">{step.implements}</span></summary>
         <p className="mt-1">{t(`${M}.pin`)}: <span className="font-mono">{step.source_sha256.slice(0, 16)}…</span></p>
         {step.tests.length ? (
           <>
             <p className="mt-2">{t(`${M}.tests`)}:</p>
             <ul className="mt-1 flex flex-col gap-0.5 font-mono">
-              {step.tests.map((test) => <li key={test}>{test}</li>)}
+              {step.tests.map((test) => <li key={test} className="break-all">{test}</li>)}
             </ul>
           </>
         ) : null}
@@ -172,16 +175,16 @@ function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }
  *  help says it can be replaced only where the module has a version editor. */
 function EditableFormula({ formula, editable }: { formula: MethodFormula; editable: boolean }) {
   return (
-    <section aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="flex flex-col gap-2 rounded-sm border border-border p-3">
-      <h5 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</h5>
+    <details aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="rounded-sm border border-border p-3">
+      <summary className="cursor-pointer text-xs font-semibold text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</summary><div className="mt-3 flex min-w-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{t(editable ? `${M}.editableHelp` : `${M}.editableHelpLater`)}</p>
       <div className="text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
-        <code className="font-mono text-xs">{formula.expression}</code>
+        <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
       {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
-      <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[max-content_max-content_1fr] gap-x-3 gap-y-1 text-xs">
+      <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[minmax(0,3rem)_minmax(0,4rem)_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
         {formula.variables.map((v) => (
           <div key={v.name} className="contents">
             <dt className="font-mono">{v.name}</dt>
@@ -203,6 +206,6 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
           </ul>
         </div>
       ) : null}
-    </section>
+    </div></details>
   );
 }

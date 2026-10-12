@@ -71,7 +71,8 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
-                            a study's frame and its working content in AIA, ADR 0015, ADR 0018),
+                            a study's frame and its working content in AIA, ADR 0015, ADR 0018;
+                            GET /clients/{id}/memory/search: project memory, one client's studies),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
@@ -89,7 +90,8 @@ apps/
                             its versions, POST check and compare (any member); POST versions and PUT
                             activation (an organization OWNER or ADMIN)),
                             population (GET /population: the registry, read-only, any member;
-                            status derived, never stored)
+                            status derived, never stored; GET /population/versions/{id}/
+                            characteristics: a version's weights, blocks, fields and subpanels)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -102,18 +104,24 @@ apps/
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
-                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
+                            optional technical details and protected policy drafts; settings-guide.ts
+                            explains each setting and its scope; every control from GET /settings, how each is set;
                             live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
                             the one AI section: ai_runtime beside /config's switches, never "connected"),
-                            settings/MethodologyPanel (the Metodika tab: each module's steps, formulas
+                            settings/MethodologyPanel (the Metodika tab: searchable modules and grouped steps, formulas
                             as MathML via Temml, every value with its origin), MethodologyVersions (in
                             force, stored versions and what each changes, activation with a reason,
-                            history; for an administrator the editor: the whole spec and each formula
+                            history; for an administrator the editor: one section at a time with original values,
+                            draft replacement guards, fresh check/compare results and optional expert formula
                             slot, the domain's check at the field) and MethodologyComparison (an edit
-                            beside what is in force on fictional panels); lib/methodology-edit.ts is
+                            beside what is in force on fictional panels or support cells); lib/methodology-edit.ts is
                             the editor's pure part,
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
-    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
+    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
+                            ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
+                            the API reports a step RUNNING, tinted --ai-ink when a model works on it and
+                            --status-running when code does; aria-hidden beside the status it decorates
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -139,7 +147,14 @@ apps/
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
-                            labelOf, shortSha); read-only
+                            labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
+                            a version's weights, blocks, the 18 subpanels and every field's uses
+    src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
+                            components/aia/MemorySearch.tsx: one client's search, on Projektová
+                            paměť (a client chosen first) and on the client's Výzkumy
+    src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
+                            that hold a model caller): agent jobs, run steps, Deep Research steps; a
+                            queued, waiting or finished step shows none
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
@@ -227,7 +242,9 @@ apps/
     population_ops.py       Operator command: status / import / attach / establish / promote over
                             PopulationRuntime, as a person AIA_POPULATION_OPERATORS names (user id
                             -> permissions; unset: nobody); bundles under AIA_POPULATION_ASSET_ROOT;
-                            --all-companions reads each companion the contract declares by its id
+                            --all-companions reads each companion the contract declares by its id;
+                            record-dictionary (acts as no one; run by the develop deploy) keeps a
+                            version's verified dictionary with it
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -312,6 +329,8 @@ packages/aia_core/src/aia_core/
       policy.py             Field policy as code: what each field may be used for
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
+      subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
+                            BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -332,6 +351,8 @@ packages/aia_core/src/aia_core/
     workspace_migration.py  The 18.6.6 migration's rules: file references, the record rewrite, the
                             copy checked against the unit's own hashes, one-for-one validation, report
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
+    project_memory.py       Project memory's match: every word, accent-folded, a four-letter stem;
+                            DIMENSION_LABELS, the canonical dimension titles pinned to the web's
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
     methodology/            The Metodika tab's model (ADR 0023), pure: catalogue.py (module, step,
@@ -411,6 +432,12 @@ packages/aia_core/src/aia_core/
                             the binding a new run records (None until the population is
                             established; reads no panel)
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
+    population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
+                            per-use policy answers, the subpanels checked; from the kept
+                            dictionary, re-hashed; reads no row
+    project_memory.py       search_client_studies: one client's studies through ScopeResolver,
+                            each under its own study context; latest Design Revision, else the
+                            working draft, else the name
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
@@ -525,7 +552,8 @@ packages/aia_core/src/aia_core/
     fan_out_coordination.py  ModelSlots (model requests in flight across processes, PostgreSQL
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
-    population_repository.py  Population registry: versions, populations, history
+    population_repository.py  Population registry: versions, populations, history; each version's
+                            dictionary bytes (population_version_dictionaries), insert-once
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
@@ -696,9 +724,11 @@ runtime is configured and the gateway's gates pass; otherwise it **parks**
 its datasets say so (`SYNTHETIC_AI_FICTIONAL`); the fixture's invented respondents
 exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The model
 returns one respondent's probabilities; code answers facts and draws the answer.
-Panel-derived data reaches no model provider until OI-61 records a licence
-determination -- a gate of its own beside residency. The Sociomap is computed but
-`INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
+Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
+owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
+and refuses it on any other route. No persona source reads the panel yet
+([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
+The Sociomap is computed but `INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
 (ADR 0019 gate 2).
 
@@ -816,6 +846,7 @@ ungated fixture.
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |

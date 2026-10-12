@@ -1386,6 +1386,17 @@ def test_cancellation_between_turns_keeps_the_answered_turn_and_sends_no_other(
 # --------------------------------------------------------------------------- #
 
 
+def test_the_step_events_switch_reaches_the_analysis_configuration(world: Any) -> None:
+    """AIA_AI_STEP_EVENTS: each module turn's model request writes its sent and answered."""
+    off = AnalysisConfig.from_settings(
+        _settings(world), max_output_tokens=4096, reservation_usd=1.0
+    )
+    on = AnalysisConfig.from_settings(
+        _settings(world, AIA_AI_STEP_EVENTS="true"), max_output_tokens=4096, reservation_usd=1.0
+    )
+    assert (off.step_events, on.step_events) == (False, True)
+
+
 def test_the_configuration_refuses_what_would_fail_at_run_time(
     world: Any, store: InMemoryArtifactStore, build: BuildIdentity
 ) -> None:

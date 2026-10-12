@@ -9,7 +9,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -25,8 +25,8 @@ import {
   type Study,
   research,
 } from "@/lib/api";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
 import { researchStepOrb } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
 import { saveBlob } from "@/lib/download";
 import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
 import {
@@ -57,8 +57,11 @@ import { withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
-import { useResearch } from "./context";
+import { ResearchContext, useResearch } from "./context";
+import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -108,8 +111,17 @@ function PopulationNote({ run }: { run: ResearchRun }) {
   ) : null;
 }
 
-function useFrame() {
-  return useResearch().frame;
+/**
+ * The study these views are in: the research session's frame on a stage, the frame alone where
+ * there is no session (project memory's read-only page, plans/project-memory-reuse.md M2a). The
+ * result views below read nothing else, so they draw a run outside a study's working content.
+ */
+function useFrame(): StudyFrame {
+  const session = useContext(ResearchContext);
+  const own = useStudyFrame();
+  const frame = session?.frame ?? own;
+  if (!frame) throw new Error("a research view outside a study frame");
+  return frame;
 }
 
 // ---------------------------------------------------------------- Run --------
@@ -592,18 +604,15 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
-/** An orb beside a step while it runs (lib/activity-orb.ts), else nothing. */
-function StepOrb({ run, step }: { run: ResearchRun; step: ResearchStep }) {
-  const orb = researchStepOrb(run, step);
-  return orb ? <ActivityOrb orb={orb} /> : null;
-}
-
 export function ProgressStep() {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -655,7 +664,6 @@ export function ProgressStep() {
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
-                <StepOrb run={run} step={s} />
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {s.data_origin ? <Chip tone="fault">{s.data_origin}</Chip> : null}
               </div>
@@ -665,6 +673,7 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
               {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
                 <BudgetLift run={run} step={s} act={act} busy={busy} />
               ) : null}
@@ -810,6 +819,18 @@ function IntervalBar({ bar }: { bar: NonNullable<ResultTable["rows"][number]["ba
 export function ResultsStep() {
   const [run, refresh, , error] = useRun();
   const frame = useFrame();
+  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
+  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
+  return <RunResults key={run?.run_id ?? "none"} run={run} progressHref={run ? `${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}` : null} />;
+}
+
+/**
+ * One run's results, every label with them: the Results stage's body for the run it is given.
+ * Read-only where the frame says so (`canEdit: false`): no download, and no Interpretation
+ * Research, which starts work.
+ */
+export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
+  const frame = useFrame();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -817,8 +838,6 @@ export function ResultsStep() {
     ? <InternalReport key={run.run_id} run={run} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
-  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
-  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
@@ -832,7 +851,7 @@ export function ResultsStep() {
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
-  return <ResultsWorkspace run={run} progressHref={`${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}`}
+  return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
@@ -864,7 +883,7 @@ export function ResultsStep() {
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
       </> },
     ]} />;
 }

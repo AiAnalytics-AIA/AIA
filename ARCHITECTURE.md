@@ -292,7 +292,8 @@ can grant approval or supply deployment prices.
   (where the data may go) and licence eligibility (whether its source's licence
   permits that route) are separate refusals; `ModelRequest.data_lineage` has no
   default, and `GovernedModelGateway` runs both before any adapter. Every panel
-  source is `UNDETERMINED` until OI-61 records a determination.
+  source is `APPROVED` for `bedrock-eu-primary` alone (OI-61, data owner,
+  2026-10-12); any other route refuses it.
 - **Integrated is not exposed.** The research Sociomap is computed from the
   unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
   PROGRESS D6 is open; every client-facing surface, export or report calls

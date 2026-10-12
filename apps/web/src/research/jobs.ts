@@ -109,4 +109,6 @@ export type JobUpdate = {
   startedAt: number;
   /** The orb while a model works on the job's step, else null (lib/activity-orb.ts). */
   orb: Orb | null;
+  /** The job's step, by the id its events name; null before it has one. */
+  stepId: string | null;
 };

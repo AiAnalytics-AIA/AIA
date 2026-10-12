@@ -21,7 +21,13 @@ from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
+from aia_core.application.design_reuse import ReuseRefused, reuse_design
+from aia_core.application.project_memory import (
+    MIN_QUERY_LENGTH,
+    search_client_studies,
+)
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeItem,
@@ -55,6 +61,7 @@ from aia_core.infrastructure.questionnaire_file import (
     template_xlsx,
 )
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
 from aia_core.infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
@@ -72,6 +79,12 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .research import (
+    DesignRevisionResponse,
+    DesignSourceResponse,
+    design_revision_response,
+    design_source_response,
+)
 from .runs import artifact_corrupt
 
 router = APIRouter(
@@ -114,6 +127,28 @@ class WorkspaceStudy(BaseModel):
     content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
+
+
+class MemoryFieldMatch(BaseModel):
+    """A field of a past study that holds the searched words, and the texts that do."""
+
+    field: str
+    texts: list[str]
+
+
+class MemoryHitResponse(BaseModel):
+    """A past study of the client that says what was searched for (project memory M1)."""
+
+    study_id: str
+    name: str
+    kind: str
+    status: str
+    modified_at: datetime | None
+    #: ``design``: its latest Design Revision; ``draft``: its working content, the study has
+    #: no Design Revision; ``name``: its name alone.
+    source: Literal["design", "draft", "name"]
+    design_revision: int | None
+    matches: list[MemoryFieldMatch]
 
 
 class ClientCard(BaseModel):
@@ -631,6 +666,133 @@ def client_studies(
     )
     bound = StudyWorkspaceRepository(session).in_client(scope)
     return [_study(s, bound.get(s.study_id)) for s in studies]
+
+
+@router.get(
+    "/clients/{client_id}/memory/search",
+    response_model=list[MemoryHitResponse],
+    summary="Search this client's past studies on their designs",
+    responses={404: {"model": ErrorResponse, "description": "No such client"}},
+)
+def client_memory_search(
+    client_id: ClientIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    q: Annotated[str, Query(min_length=MIN_QUERY_LENGTH, max_length=200)],
+) -> list[MemoryHitResponse]:
+    """The client's studies whose name or design holds every word of ``q``, and where.
+
+    Only this client's studies are searched (project memory M1, owner 2026-10-10); a study
+    with no Design Revision is searched on its working draft and says so.
+    """
+    _client_scope(principal, resolver, client_id)  # 404 before anything is searched
+    try:
+        hits = search_client_studies(session, resolver, principal, client_id=client_id, query=q)
+    except ScopeDenied as exc:  # pragma: no cover - resolved just above
+        raise _not_found() from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "query_too_short", "message": str(exc)},
+        ) from None
+    return [
+        MemoryHitResponse(
+            study_id=h.study_id,
+            name=h.name,
+            kind=h.kind.value,
+            status=h.status.value,
+            modified_at=h.modified_at,
+            source=h.source.value,
+            design_revision=h.design_revision,
+            matches=[MemoryFieldMatch(field=m.field, texts=list(m.texts)) for m in h.matches],
+        )
+        for h in hits
+    ]
+
+
+class MemoryReuse(BaseModel):
+    """Start a study from a past study's Design Revision: a new one, or an empty one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_study_id: str = Field(min_length=1, max_length=64)
+    source_revision_id: str = Field(min_length=1, max_length=64)
+    #: An existing, empty research study of the client; or ``new_study_name`` for a new one.
+    target_study_id: str | None = Field(default=None, min_length=1, max_length=64)
+    new_study_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class MemoryReuseResponse(BaseModel):
+    """The study the design now starts, its first Design Revision and its citation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    created_study: bool
+    revision: DesignRevisionResponse
+    source: DesignSourceResponse
+
+
+@router.post(
+    "/clients/{client_id}/memory/reuse",
+    response_model=MemoryReuseResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Start a new or empty study from a past study's design",
+    responses={
+        404: {"model": ErrorResponse, "description": "Outside the client"},
+        409: {"model": ErrorResponse, "description": "The target is not an empty research study"},
+    },
+)
+def client_memory_reuse(
+    client_id: ClientIdPath,
+    body: MemoryReuse,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> MemoryReuseResponse:
+    """Reuse a past research design of this client (project memory M3, owner 2026-10-12).
+
+    Into a new research study, or one with no working content and no Design Revision: nothing
+    anyone wrote is replaced. The target's design cites its source with the labels every run of
+    the source revision carries. Anything outside the client is a 404, like an unknown study.
+    """
+    if (body.target_study_id is None) == (body.new_study_name is None):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": "target_required",
+                "message": "Name either target_study_id or new_study_name.",
+            },
+        )
+    _client_scope(principal, resolver, client_id)  # 404 before anything is read
+    name = body.new_study_name.strip() if body.new_study_name else None
+    try:
+        reused = reuse_design(
+            session,
+            resolver,
+            principal,
+            store,
+            client_id=client_id,
+            source_study_id=body.source_study_id,
+            source_revision_id=body.source_revision_id,
+            target_study_id=body.target_study_id,
+            new_study=(_slug(name), name) if name else None,
+        )
+    except (ScopeDenied, DesignRevisionNotFound) as exc:
+        raise _not_found() from exc
+    except (ReuseRefused, DesignRejected) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": exc.reason, "message": str(exc)},
+        ) from None
+    return MemoryReuseResponse(
+        study_id=reused.study_id,
+        created_study=reused.created_study,
+        revision=design_revision_response(reused.revision),
+        source=design_source_response(reused.source),
+    )
 
 
 @router.post(

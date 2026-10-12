@@ -8,7 +8,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
+import type { ResearchRun } from "@/lib/api";
 import { CONFLICT_MESSAGE } from "@/research/store";
+import { RunResults } from "./ExecutionSteps";
+import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -28,7 +31,7 @@ const READY = {
   ],
 };
 const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
-  node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+  step_id: `STEP-${node}`, node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
   started_at: "2026-09-25T08:00:00Z", finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra,
 });
 const run = (extra: Record<string, unknown> = {}) => ({
@@ -465,6 +468,49 @@ describe("Progress", () => {
     for (const orb of list.querySelectorAll("[data-orb]")) expect(orb.getAttribute("aria-hidden")).toBe("true");
   });
 
+  it("opens a running step's space with a large orb and what its events said, and no other", async () => {
+    const running = run({
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("run", "RUNNING", { started_at: new Date(Date.now() - 65_000).toISOString() }),
+        step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+      ],
+    });
+    const feed = (id: number, step_id: string | null, event_type: string, message: string, payload: Record<string, unknown> = {}) => ({
+      event_id: id, step_id, attempt_id: "ATT-1", event_type, level: "INFO", message, payload, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(running),
+      [`GET /api/v1/studies/STU-1/research/runs/${running.run_id}/events`]: () => [
+        feed(1, null, "RUN_CREATED", "created"),
+        feed(2, "STEP-compile", "STEP_SUCCEEDED", "compile completed"),
+        feed(3, "STEP-run", "ATTEMPT_CLAIMED", "run claimed by worker-1"),
+        feed(4, "STEP-run", "STEP_PROGRESS", "AI respondenti odpověděli", { respondents: 40, of: 300 }),
+        feed(5, "STEP-run", "STEP_PROGRESS", "ai_request_answered", { input_tokens: 1200, output_tokens: 380, cost_usd: 0.004, latency_ms: 3200 }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
+    // The finished and the waiting step keep their row; only the running one opens.
+    expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
+    expect(li("aggregate").querySelector("[data-step-activity]")).toBeNull();
+    const panel = li("run").querySelector<HTMLElement>("[data-step-activity]")!;
+    expect(panel.dataset.stepActivity).toBe("open");
+    expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
+    const log = await within(panel).findByRole("log");
+    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+      "Worker krok převzal",
+      "AI respondenti odpověděli · 40 z 300 respondentů",
+      "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
+    ]);
+    // Its counts as the step reported them, and how long it has run: never a percentage.
+    expect(panel.textContent).toContain("40 z 300 respondentů");
+    expect(panel.textContent).toContain("1 odpovědí modelu · 1580 tokenů · $0.004");
+    expect(panel.textContent).toMatch(/Běží 1 min 0[56] s/);
+    expect(panel.textContent).not.toMatch(/%/);
+  });
+
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
@@ -719,7 +765,12 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    const note = await waitFor(() => document.querySelector("[data-aggregate-deviation]") as HTMLElement);
+    // Wait until the aggregate has loaded: querySelector's null does not throw, so it is thrown.
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-aggregate-deviation]");
+      if (!found) throw new Error("the deviation note is not shown yet");
+      return found as HTMLElement;
+    });
     expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
     expect(within(note).getByText(/upravené metodiky aia-aggregate-1\+e2/)).toBeTruthy();
     expect(within(note).getByText("top_box: 2 v 18.6.6, zde 3")).toBeTruthy();
@@ -815,6 +866,39 @@ describe("Results", () => {
   });
 });
 
+
+describe("A run's results outside a study session (project memory M2a)", () => {
+  it("draws a run from the frame alone, read-only: every label, no download, no interpretation research, only reads", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps,
+        step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", stage_type: "ANALYSIS", artifact_id: "ART-a" }),
+        step("report", "SUCCEEDED", { kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report" })],
+    });
+    api({
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ run_id: "RUN-1", internal_only: true, synthetic: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+    });
+    render(
+      <StudyFrameProvider frame={{ ...TEST_FRAME, canEdit: false }}>
+        <RunResults run={reportRun as unknown as ResearchRun} progressHref={null} />
+      </StudyFrameProvider>,
+    );
+    expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    expect(screen.queryByRole("link", { name: /Průběh tohoto běhu/ })).toBeNull();
+    expect(called("GET", "/api/v1/studies/STU-1/deep-research")).toHaveLength(0);
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+});
 
 describe("Interpretation research", () => {
   it("requires confirmation before cancelling an active interpretation review", async () => {
