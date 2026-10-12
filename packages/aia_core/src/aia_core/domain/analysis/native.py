@@ -47,6 +47,7 @@ from ..evidence import (
     AnalysisMetric,
     ClaimBasis,
     ClaimLevel,
+    ClaimRule,
     ClaimSurface,
     Disclosure,
     EvidenceRow,
@@ -556,13 +557,16 @@ def native_preflight(
                     "(ADR 0024 §2)",
                 )
             )
-        found.append(
-            Violation(
-                ViolationCode.FIELD_INTERNAL_ONLY,
-                "preflight",
-                "the study instrument's evidence policy is internal only (decision ANL-1)",
+        # Only while the book still says so: a current holdout on the respondent system lifts it
+        # from a modelled run's policy (ADR 0024 §4), and the gate then judges every claim.
+        if any(evidence.book.get(f).has(ClaimRule.INTERNAL_ONLY) for f in evidence.book.fields):
+            found.append(
+                Violation(
+                    ViolationCode.FIELD_INTERNAL_ONLY,
+                    "preflight",
+                    "the study instrument's evidence policy is internal only (decision ANL-1)",
+                )
             )
-        )
         if not evidence.joint_status.certified:
             joint = evidence.joint_status
             found.append(

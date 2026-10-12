@@ -499,3 +499,38 @@ def test_a_modelled_run_counts_its_donors_not_its_respondents() -> None:
     assert {r.support.status for r in q1(many)} == {SupportStatus.REPORTABLE}
     # Under the donor floor nothing is shown at all, however many respondents.
     assert not [r for r in modelled(20).table.rows.values() if r.question_id == "q1"]
+
+
+def test_preflight_blocks_client_facing_only_while_the_policy_is_internal() -> None:
+    """A current holdout on the respondent system lifts INTERNAL_ONLY from -2; preflight then
+    leaves the claims to the gate instead of blocking the module outright. Unvalidated, it
+    blocks as before."""
+    from aia_core.domain.evidence import ValidationState, ValidationStatus
+
+    spec, _, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    system = "a" * 64
+
+    def preflight(state: ValidationState | None) -> set[ViolationCode]:
+        evidence = native_evidence(
+            spec,
+            {**aggregate, "data_origin": modelled.value},
+            dataset_sha256=DATASET_SHA,
+            origin=modelled,
+            support=REFERENCE_THRESHOLDS,
+            respondent_system=system,
+            validation=state,
+        )
+        found = native_preflight(
+            module_spec(AnalysisModuleId.EXECUTIVE),
+            evidence,
+            surface=ClaimSurface.CLIENT_FACING,
+            research_questions=("Q?",),
+        )
+        return {v.code for v in found}
+
+    assert ViolationCode.FIELD_INTERNAL_ONLY in preflight(None)
+    lifted = preflight(ValidationState(ValidationStatus.HOLDOUT_VALIDATED, system))
+    assert ViolationCode.FIELD_INTERNAL_ONLY not in lifted
+    # The certificate is still required client-facing (ADR 0024 §6); no run has one yet.
+    assert ViolationCode.JOINT_CERTIFICATE_DEGRADED in lifted
