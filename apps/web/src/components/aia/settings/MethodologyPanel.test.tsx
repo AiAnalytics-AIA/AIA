@@ -61,6 +61,7 @@ describe("the Metodika tab", () => {
       "Sociomapping: experimentální H-Model (kandidát AIA)",
       "Podpora a potlačení: kdy se číslo smí ukázat",
       "Agregace: z odpovědí odhad s intervalem",
+      "Vážení: která váha patří respondentovi a co s neplatnou",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
@@ -150,11 +151,29 @@ describe("the Metodika tab", () => {
     expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/nález D5/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/nález D7/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeTruthy();
     // Its estimators are shown as expressions, replaceable in the version editor (G3b).
     const mean = document.querySelector('[data-slot="agg.mean"]') as HTMLElement;
     expect(within(mean).getByText("sum(w * x) / sum(w)")).toBeTruthy();
     expect(within(mean).getByText(/V editoru verzí ho lze nahradit/)).toBeTruthy();
     expect(within(mean).queryByText(/až bude tato oblast upravitelná/)).toBeNull();
+  });
+
+  it("opens weighting read-only: the contract's schemes, its totals, the cleaning and D1", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
+    await screen.findByRole("heading", { name: "Kishovo efektivní n na třech místech" });
+    expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
+    expect(screen.getByText("vaha_strukturalni_2025")).toBeTruthy();
+    expect(screen.getByText("median")).toBeTruthy();
+    // A total the contract does not declare is said, never shown as 0.
+    expect(screen.getAllByText("žádná (null)").length).toBe(4);
+    expect(screen.getAllByText(/nález D1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Kalibrace, raking ani GREG/).length).toBeGreaterThan(0);
+    // Read-only until W1c, and the page says so.
+    expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
+    expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

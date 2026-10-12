@@ -128,8 +128,8 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         tests=(_EXACT,),
         note_cs=(
             "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA "
-            "a populační váhy takové váhy odmítají místo čištění (nález D1); volbou se to "
-            "stane ve W1."
+            "a populační váhy takové váhy odmítají místo čištění (nález D1). Volba je "
+            "deklarovaná v modulu Vážení (aggregate_cleaning)."
         ),
     ),
     MethodStep(

@@ -31,7 +31,9 @@ chunks:
   - "[x] G3a. Aggregation pinned: a run pins the aggregation version in force (spec + replaced formulas), a retry keeps it, the aggregate computes under it and its deviation label is reachable"
   - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
   - "[x] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
-  - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
+  - "[x] W1a. Weighting documented and declared: schemes, default role, expected totals and tolerances, the aggregate's weight cleaning (aia-weighting-1, the import contract's declaration exactly); D1 reproduced on its steps"
+  - "[ ] W1b. Weight cleaning a choice a run reads: the weighting pinned per run, a retry keeps it; refuse refuses an aggregate with an invalid weight by name; a non-median cleaning is a deviation from 18.6.6"
+  - "[ ] W1c. Weighting editable: the cleaning and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
@@ -932,6 +934,34 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       share is stored and never read).
     - Checked before writing: `max_donor_share` is written at `research_aggregate.py:270, 438`
       and read nowhere; `effective_n` is `effective_n_combined` at `:433` (@ ca56fd00).
+- **W1, split three ways** like G1-G3: W1a documents and declares, W1b makes the cleaning a
+  choice a run reads, W1c makes it editable.
+  - **W1a. Landed.** `domain/methodology/weighting.py` is module `weighting`, read-only,
+    registered after `aggregation`.
+    - **Declared.** `WeightingSpec` (`population/weights.py`): `contract_id`, `default_role`,
+      `schemes` keyed by role (column, expected total, tolerance) and `aggregate_cleaning`
+      (`median`, the unit's; `refuse`). Its preset `aia-weighting-1` is built by
+      `weighting_spec(CZ_SYNTHETIC_V17, ...)`, so it is the contract's declaration exactly,
+      never a copy that can drift
+      (`test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly`).
+      A default role that is not a scheme, a total without its tolerance, a negative tolerance
+      and two schemes on one column are refused.
+    - **Nothing reads it yet.** The loader still resolves through the contract and the
+      aggregate still cleans with the median; the module says so, and that a run reads it
+      from W1b.
+    - **Steps, in five groups:** the method; the scheme (role to column, one weight's parse,
+      the column refused whole); the import's totals; the aggregate's cleaning; Kish's n in its
+      three places. There is no calibration, raking or GREG step, and the module says that too.
+    - **Finding D1, reproduced.**
+      - Three cleaning rules for one weight: `clean_weights([1, nan, 3, 5])` gives
+        `[1, 3, 3, 5]`; `evidence.support.kish_effective_n` raises; `analysis_weights`
+        raises `unusable_weight` (`::test_three_cleaning_rules_impute_or_refuse_the_same_weight`).
+      - Kish's n is computed in three places, not two: `research_aggregate`, `evidence.support`
+        and `sociomap.relations`. All three give the same float on 200 random positive weight
+        vectors. On a zero, the Sociomap's pair refuses while the other two agree. On a
+        negative, the aggregate drops it (1.8 for `[1, -1, 2]`) while the other two refuse
+        (`::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights`).
+      - D1 is a fact, not a defect, until W1b makes the cleaning a choice.
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
@@ -952,7 +982,8 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - refusal (`evidence/support.py:244-257`);
   - refusal (`population/weights.py:85-118`).
 
-  Kish n is computed twice. Tested in W1.
+  Kish n is computed twice. Tested in W1. **Reproduced in W1a:** three times, not twice
+  (`test_methodology_weighting.py`); equal on positive finite weights only.
 - **D2.** There are two suppression rule sets: the unit's (donors 25/50) and AIA's (raw n 50,
   n_eff 25/50). Results shows the unit's (`apps/web/src/lib/research-execution.ts:134-177`), so a
   cell can read INDICATIVE on screen while its evidence row is suppressed. Tested in G1, and

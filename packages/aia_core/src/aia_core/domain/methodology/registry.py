@@ -13,6 +13,7 @@ from .sociomap import SOCIOMAP
 from .sociomap_reference import SOCIOMAP_REFERENCE
 from .sociomapping import SOCIOMAPPING
 from .support import SUPPORT
+from .weighting import WEIGHTING
 
 __all__ = ["MODULES", "module"]
 
@@ -22,6 +23,7 @@ MODULES: tuple[MethodModule, ...] = (
     SOCIOMAPPING,
     SUPPORT,
     AGGREGATION,
+    WEIGHTING,
 )
 
 
