@@ -120,6 +120,18 @@ if ! "$DEPLOY_DIR/bin/population.sh" record-dictionary; then
   log "WARNING: a population dictionary could not be kept (above); the deploy goes on"
 fi
 
+# Each established population's audience factor catalogue, computed once from its current
+# version's ANALYSIS view and kept with it (panel-grounded-respondents 6b), so the audience
+# step's factor editor is served without reading a row. Acts as no one and decides nothing;
+# with every catalogue kept it changes nothing. A refusal (the population will not load) is
+# said and does not undo a deploy that is otherwise healthy: the step then says the
+# catalogue is not kept.
+log "keeping each population's audience catalogue"
+if ! "$DEPLOY_DIR/bin/population.sh" record-catalogue; then
+  log "WARNING: an audience catalogue could not be kept (above); the deploy goes on"
+fi
+
+
 log "smoke tests"
 "$DEPLOY_DIR/bin/smoke.sh" "$SHA"
 python3 "$DEPLOY_DIR/bin/image_retention.py" record \

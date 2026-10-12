@@ -33,7 +33,7 @@ from .persona_profile import PERSONA_MODE, PROFILE_VERSION
 from .population.runtime import RuntimePopulation
 from .population.sampling import SAMPLER_VERSION, PanelSample, draw_panel_sample
 from .research_design import ResearchSpecification
-from .respondent_behavior import BEHAVIOR_VERSION
+from .respondent_behavior import AIA_RESPONSE_V1, BEHAVIOR_VERSION, ResponseProcessSpec
 from .respondent_facts import FACT_LAYER_VERSION
 
 __all__ = [
@@ -74,7 +74,11 @@ class PanelPlans:
 
 
 def panel_plans(
-    population: RuntimePopulation, spec: ResearchSpecification, *, seed: int
+    population: RuntimePopulation,
+    spec: ResearchSpecification,
+    *,
+    seed: int,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> PanelPlans:
     """The run's respondents from ``population``, or the refusal of the step that could not.
 
@@ -85,7 +89,7 @@ def panel_plans(
         raise ValueError("a panel sample needs the design's n")
     filters = dict(spec.selection.audience_filters) if spec.selection is not None else None
     sample = draw_panel_sample(population, filters, spec.n, seed)
-    personas = panel_personas(population, sample)
+    personas = panel_personas(population, sample, response=response)
     plans = tuple(personas.plan(spec, persona) for persona in personas.personas)
     return PanelPlans(sample=sample, personas=personas, plans=plans)
 

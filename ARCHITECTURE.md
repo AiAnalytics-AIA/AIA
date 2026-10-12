@@ -616,6 +616,20 @@ revision is always visible: `/api/v1/health` reports `build.sha`, the web
 client's `/version` reports the same, and every artifact records it as its
 `runtime_version`. Production compute remains undecided.
 
+The host deployment lock serializes both CI and operator deploys. Before ECR
+login or downloads, `bin/image_retention.py` removes only unused, singly tagged
+product images older than 48 hours in this deployment's registry, preserving
+all container references, incoming/current SHAs, recent images and four recorded
+successful releases (current plus three rollback releases). Unknown/shared/unit
+images, registry copies, volumes, backups and research files are outside that
+authority. History is written atomically only after smoke passes; until four
+releases are recorded, all images are kept. Corrupt history/inventory or less
+than 8 GiB available / more than 85% used on any relevant filesystem refuses
+deployment before pull, migration or replacement. The existing CloudWatch disk
+alarm remains enabled. Policy, dry-run, bootstrap and recovery are in the
+[runbook](deploy/develop/README.md#disk-retention); executable ordering and
+refusal proofs are in `test_develop_image_retention.py`.
+
 **The product hostname is AIA, client-first
 ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).**
 Caddy answers `/` itself with `302 /app/clients`. `/api/v1/*` goes to the API;

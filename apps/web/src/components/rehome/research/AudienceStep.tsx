@@ -10,40 +10,58 @@
 //
 // In AIA (ADR 0018) the step keeps what it can decide without 18.6.6: the source,
 // the whole population, the outcome-based definition, the AI's proposed
-// description, and the summary. What 18.6.6 computed from its licensed panel or
-// its own audience store -- the factor catalogue and its filters, the feasibility
-// preview, the special subpanels, customer audience upload and preflight -- is
-// not in AIA, and each says so where the person meets it. A choice stored before
-// (a migrated study's filters or dataset) stays visible, and a run in AIA says it
-// does not use it (research readiness: "audience").
+// description, and the summary. Since panel-grounded-respondents 6e the factor
+// catalogue and its filters, the feasibility preview and the built-in subpanels
+// are AIA's own, from its population (GET /population/audience-catalogue, POST
+// /population/audience-preview); where this deployment has none, the step says
+// why, as before. Special panels and customer audience upload were 18.6.6's
+// audience store, and still say they are not in AIA. Whether a run applies the
+// filters is the run's pin, and readiness says it ("audience").
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { t, tv } from "@/i18n/t";
 import {
+  type Catalog,
+  type Catalogues,
   type Change,
+  DEFAULT_CATEGORY,
+  type Factor,
   PROPOSE_EMPTY,
   PROPOSE_FAILED_SUFFIX,
   PROPOSE_TITLE,
   PROPOSE_UNCOVERED,
   PROPOSE_WARN_MS,
   type Strategy,
+  applyPopulationSubpanel,
   applyProposal,
   audienceReady,
   audienceView,
   chooseAudience,
   discoverText,
+  factorRefusal,
+  filterCategories,
   filterChips,
+  filterableFactors,
   humanFilters,
   humanSummary,
+  liveCatalog,
+  liveSubpanels,
+  liveVerdict,
   proposePayload,
   proposeText,
+  rangeOf,
   removeAudienceFactor,
+  searchKey,
+  selectedValues,
   setAnalyticsChoice,
+  setAudienceCategory,
   setAudienceEntry,
   setDiscoverField,
+  setRange,
 } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
@@ -68,6 +86,32 @@ function NotInAia({ title, children }: { title: string; children: string }) {
   );
 }
 
+/** AIA's own catalogue of filters and subpanels, or why this deployment has none. */
+type Live =
+  | { state: "loading" }
+  | { state: "ready"; api: AudienceCatalogue; catalog: Catalog; subpanels: Catalogues }
+  | { state: "missing"; text: string };
+
+function useLiveAudience(): Live {
+  const [live, setLive] = useState<Live>({ state: "loading" });
+  useEffect(() => {
+    let on = true;
+    population.audienceCatalogue().then(
+      (api) => on && setLive({ state: "ready", api, catalog: liveCatalog(api), subpanels: liveSubpanels(api) }),
+      (e: unknown) => {
+        if (!on) return;
+        if (e instanceof ApiError && e.code === "population_not_established") return setLive({ state: "missing", text: t("research.audience.catalogueNoPopulation") });
+        if (e instanceof ApiError && e.status === 404) return setLive({ state: "missing", text: t("research.audience.catalogueMissing") });
+        setLive({ state: "missing", text: tv("research.audience.catalogueFailed", { message: e instanceof Error ? e.message : String(e) }) });
+      },
+    );
+    return () => {
+      on = false;
+    };
+  }, []);
+  return live;
+}
+
 export function AudienceStep() {
   const { store, state, stepHref } = useResearch();
   const router = useRouter();
@@ -77,6 +121,8 @@ export function AudienceStep() {
   const entry = String(ui(p).audience_entry || "choose");
   const choice = String(ui(p).analytics_choice || "");
   const strategy = (p.audience.strategy || "population") as Strategy;
+  const live = useLiveAudience();
+  const isLive = live.state === "ready";
 
   const apply = (c: Change | null) => {
     if (!c) return;
@@ -132,8 +178,8 @@ export function AudienceStep() {
               <RadioCard checked={choice === "cz_coming"} onSelect={() => pickPopulation("cz_coming")} title={<>{t("research.audience.czComing")} <Tagged tone="you">{t("research.audience.comingSoon")}</Tagged></>}>
                 {t("research.audience.czComingText")}
               </RadioCard>
-              <RadioCard checked={choice === "special"} onSelect={() => pickPopulation("special")} title={<>{t("research.audience.special")} <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged></>}>
-                {t("research.audience.specialText")}
+              <RadioCard checked={choice === "special"} onSelect={() => pickPopulation("special")} title={<>{t("research.audience.special")} {isLive ? null : <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged>}</>}>
+                {isLive ? t("research.audience.liveSpecialText") : t("research.audience.specialText")}
               </RadioCard>
             </div>
             {view === "cz_coming" ? (
@@ -141,7 +187,8 @@ export function AudienceStep() {
                 <b>{t("research.audience.czComingTitle")}</b> · {t("research.audience.czComingNote")}
               </p>
             ) : null}
-            {view === "special" ? (
+            {view === "special" && live.state === "ready" ? <Subpanels live={live} /> : null}
+            {view === "special" && live.state !== "ready" ? (
               <div className="mt-3 flex flex-col gap-3">
                 <NotInAia title={t("research.audience.special")}>{t("research.audience.specialNotInAia")}</NotInAia>
                 {p.audience.special_catalog_key ? (
@@ -165,13 +212,13 @@ export function AudienceStep() {
                   key={k}
                   checked={strategy === k}
                   onSelect={() => pickStrategy(k)}
-                  title={<>{t(`research.audience.${key}`)} {k === "filters" ? <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged> : null}</>}
+                  title={<>{t(`research.audience.${key}`)} {k === "filters" && !isLive ? <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged> : null}</>}
                 >
                   {t(`research.audience.${key}Text`)}
                 </RadioCard>
               ))}
             </div>
-            {p.audience.strategy === "filters" ? <FilterEditor /> : null}
+            {p.audience.strategy === "filters" ? <FilterEditor live={live} /> : null}
             {p.audience.strategy === "discover" ? <DiscoverEditor /> : null}
           </StepSection>
         ) : null}
@@ -179,7 +226,7 @@ export function AudienceStep() {
         <ActionDock
           back={{ href: stepHref("questionnaire"), label: `3. ${t("aia.stages.questionnaire")}` }}
           ready={ready}
-          note={ready ? t("research.audience.checkNotInAia") : t("research.audience.nextHint")}
+          note={ready ? (isLive ? t("research.audience.liveCheck") : t("research.audience.checkNotInAia")) : t("research.audience.nextHint")}
         >
           <Button variant="primary" className="!rounded-control" disabled={!ready} onClick={() => router.push(stepHref("persona"))}>
             {t("research.audience.next")}
@@ -203,16 +250,17 @@ function Tagged({ tone, children }: { tone: "done" | "you"; children: string }) 
 const ui = (p: ResearchProject) => (p.ui_state || {}) as Record<string, unknown>;
 
 /**
- * filterEditor without its catalogue: the factors, their values and counts were
- * 18.6.6's licensed panel, which AIA does not have. What is kept is what needs no
- * panel -- the filters a study already stores (removable), and the AI's proposed
- * description of the audience (a native job, ADR 0016/0018).
+ * filterEditor. With AIA's catalogue: the factors of its population, their values and
+ * counts, the chips of what is chosen and the feasibility preview. Without one (this
+ * deployment has no population or no kept catalogue): what needs no panel -- the filters
+ * a study already stores (removable) -- and why the rest is missing. Either way the AI's
+ * proposed description of the audience (a native job, ADR 0016/0018).
  */
-function FilterEditor() {
+function FilterEditor({ live }: { live: Live }) {
   const { store, state, runJob, toast } = useResearch();
   const step = useAiStep();
   const [text, setText] = useState(String(state.project.audience.description || ""));
-  const chips = filterChips(state.project, null);
+  const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
   const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
@@ -230,7 +278,10 @@ function FilterEditor() {
 
   return (
     <div className="mt-4 flex flex-col gap-3">
-      <NotInAia title={t("research.audience.filterTitle")}>{t("research.audience.filtersNotInAia")}</NotInAia>
+      {live.state === "ready" ? <LiveFilters live={live} /> : null}
+      {live.state === "missing" ? (
+        <NotInAia title={t("research.audience.filterTitle")}>{`${live.text} ${t("research.audience.filtersNotInAia")}`}</NotInAia>
+      ) : null}
       <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
         {step.failure ? (
           <div className="mb-4">
@@ -247,7 +298,7 @@ function FilterEditor() {
         </Field>
         {chips.length ? (
           <>
-            <p className="mt-3 text-xs text-ink-muted">{t("research.audience.storedFilters")}</p>
+            <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
             <ul className="mt-1 flex flex-wrap gap-1.5">
               {chips.map((c) => (
                 <li key={c.id} className="inline-flex items-center gap-1 rounded-sm border border-signal-edge bg-signal-wash py-0.5 pl-2 pr-0.5 text-xs">
@@ -266,6 +317,156 @@ function FilterEditor() {
           </>
         ) : null}
       </section>
+    </div>
+  );
+}
+
+/** The factor editor over AIA's catalogue (filterEditor + factorEditor1793), and the preview. */
+function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
+  const { store, state } = useResearch();
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [query, setQuery] = useState("");
+  const { categories, sensitive } = filterCategories(live.catalog);
+  const { shown, total } = filterableFactors(live.catalog, category, searchKey(query));
+  const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  return (
+    <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-live-filters">
+      <div className={EYEBROW}>{t("research.audience.filterTag")}</div>
+      <h2 id="aud-live-filters" className="mt-1 text-base font-semibold">{t("research.audience.filterTitle")}</h2>
+      <p className="mt-1 text-xs text-ink-muted">
+        {tv("research.audience.liveFiltersIntro", { version: live.api.version_label })} {t("research.audience.liveLogic")}
+      </p>
+      <div role="group" aria-label={t("research.audience.filterTitle")} className="mt-3 flex flex-wrap gap-1.5">
+        {[{ id: "all", label: t("research.audience.categoryAll") }, ...categories].map((c) => (
+          <Button key={c.id} small variant={category === c.id ? "primary" : "secondary"} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>
+            {c.label || c.id}
+          </Button>
+        ))}
+      </div>
+      {sensitive ? <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.sensitiveCount", { n: sensitive })}</p> : null}
+      <Field label={t("research.audience.searchFactors")} className="mt-3">
+        <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
+      </Field>
+      <p className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
+      <ul className="mt-2 flex flex-col gap-2">
+        {shown.map((f) => (
+          <li key={f.id}>
+            <FactorEditor factor={f} project={state.project} onChange={change} />
+          </li>
+        ))}
+      </ul>
+      <Preview />
+    </section>
+  );
+}
+
+/** One factor: a range for a numeric one, its values (with counts) for any other. */
+function FactorEditor({ factor, project, onChange }: { factor: Factor; project: ResearchProject; onChange: (c: Change) => void }) {
+  const refusal = factorRefusal(factor);
+  const legend = `${factor.label || factor.id}`;
+  if (factor.kind === "numeric") {
+    const { lo, hi } = rangeOf(project, factor.id);
+    const commit = (min: string, max: string) => onChange(setRange(project, factor.id, min, max));
+    return (
+      <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
+        <legend className="px-1 text-sm font-medium">{legend}</legend>
+        {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label={t("research.audience.rangeMin")}>
+            <TextInput key={`lo-${String(lo)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={lo == null ? "" : String(lo)} onBlur={(e) => commit(e.target.value, hi == null ? "" : String(hi))} />
+          </Field>
+          <Field label={t("research.audience.rangeMax")}>
+            <TextInput key={`hi-${String(hi)}`} type="number" disabled={!!refusal} className="w-28" defaultValue={hi == null ? "" : String(hi)} onBlur={(e) => commit(lo == null ? "" : String(lo), e.target.value)} />
+          </Field>
+        </div>
+        {factor.min != null && factor.max != null ? (
+          <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.rangeHint", { min: factor.min, max: factor.max })}</p>
+        ) : null}
+      </fieldset>
+    );
+  }
+  const chosen = selectedValues(project, factor.id);
+  const toggle = (value: string, on: boolean) => {
+    const next = new Set(chosen);
+    if (on) next.add(value);
+    else next.delete(value);
+    onChange(setAudienceCategory(project, factor.id, [...next]));
+  };
+  return (
+    <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
+      <legend className="px-1 text-sm font-medium">{legend}</legend>
+      {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {(factor.values || []).map((v) => (
+          <label key={v.value} className="inline-flex items-center gap-1.5 text-sm">
+            <input type="checkbox" disabled={!!refusal} checked={chosen.has(v.value)} onChange={(e) => toggle(v.value, e.target.checked)} />
+            {v.value}
+            {v.count != null ? <span className="text-xs text-ink-muted">({tv("research.audience.valueCount", { count: v.count.toLocaleString("cs-CZ") })})</span> : null}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** The feasibility preview: counted by the API over AIA's population, through the run's own functions. */
+function Preview() {
+  const { store } = useResearch();
+  const [answer, setAnswer] = useState<{ ok: boolean; lines: string[]; seed?: number } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const check = async () => {
+    setBusy(true);
+    const p = store.get().project;
+    const n = Number(p.n);
+    try {
+      const r = await population.audiencePreview((p.audience.filters as Record<string, unknown>) || {}, Number.isFinite(n) && n >= 1 ? n : null);
+      setAnswer({ ...liveVerdict(r), seed: r.seed });
+    } catch (e: unknown) {
+      if (e instanceof ApiError && e.code === "audience_preview_unavailable") setAnswer({ ok: false, lines: [t("research.audience.previewUnavailable")] });
+      else setAnswer({ ok: false, lines: [tv("research.audience.previewFailed", { message: e instanceof Error ? e.message : String(e) })] });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <Button disabled={busy} onClick={() => void check()}>
+        {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
+      </Button>
+      {answer ? (
+        <div role="status" className={`mt-2 rounded-control border p-3 text-sm ${answer.ok ? "border-signal-edge bg-signal-tint" : "border-status-you-ink/40 bg-status-you-wash"}`}>
+          {answer.lines.map((l) => (
+            <p key={l}>{l}</p>
+          ))}
+          {answer.seed != null ? <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.previewSeed", { seed: answer.seed })}</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** The 18 built-in subpanels: each a filter on one factor, chosen like any audience (usePopulationSubpanel). */
+function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
+  const { store, state } = useResearch();
+  const current = String(state.project.audience.builtin_subpanel || "");
+  const pick = (key: string) =>
+    store.update(({ project }) => ({ project: applyPopulationSubpanel(project, key, live.subpanels) }), { reason: "population_subpanel", invalidateCheck: true });
+  return (
+    <div className="mt-3 flex flex-col gap-3">
+      <section aria-labelledby="aud-subpanels">
+        <h3 id="aud-subpanels" className="text-sm font-semibold">{t("research.audience.subpanelsTitle")}</h3>
+        <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.subpanelsIntro", { measured: live.api.subpanels_measured_on })}</p>
+        <div role="radiogroup" aria-label={t("research.audience.subpanelsTitle")} className="mt-2 grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+          {live.api.subpanels.map((sp) => (
+            <RadioCard key={sp.key} checked={current === sp.key} disabled={sp.usable !== true} onSelect={() => current !== sp.key && pick(sp.key)} title={sp.name}>
+              {tv("research.audience.subpanelRows", { rows: sp.measured_by_18_6_6.rows.toLocaleString("cs-CZ"), donors: sp.measured_by_18_6_6.unique_core_donors.toLocaleString("cs-CZ") })}
+              {sp.usable === false ? <> · {tv("research.audience.subpanelUnusable", { reason: sp.reason || "?" })}</> : null}
+              {sp.usable == null ? <> · {t("research.audience.subpanelUnknown")}</> : null}
+            </RadioCard>
+          ))}
+        </div>
+      </section>
+      <NotInAia title={t("research.audience.special")}>{t("research.audience.specialPanelsNotInAia")}</NotInAia>
     </div>
   );
 }

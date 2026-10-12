@@ -1,23 +1,17 @@
 """The panel persona source (chunk 5b): sample, personas and plans from a run's population.
 
-The population is the sampler's fictional fixture (``fixtures/representative_draw/rows.csv``:
-3,000 rows aged 18 or more on 400 donors, every quota field and the profile's basic columns),
-imported with the persona companions (the fictional signal catalog and the unit's value labels)
-and loaded as the ANALYSIS view a run binds. What the sampler and the personas compute is tested
-in their own suites against the unit; here, that they compose in the contract's order and that
-each refusal surfaces by name before anything else is built.
+The population is the sampler's fictional fixture, 3,000 rows on 400 donors with the persona
+companions, loaded as the ANALYSIS view a run binds (``conftest.sampled_population``). What
+the sampler and the personas compute is tested in their own suites against the unit; here,
+that they compose in the contract's order and that each refusal surfaces by name before
+anything else is built.
 """
 
 from __future__ import annotations
 
-import csv
-import io
-import math
-from pathlib import Path
 from typing import Any
 
 import pytest
-from sqlalchemy.orm import Session
 
 from aia_core.domain.ai_respondent import PROMPT_SHA256, dataset_origin
 from aia_core.domain.evidence import respondent_system_fingerprint
@@ -26,143 +20,6 @@ from aia_core.domain.panel_persona import PersonaRefused
 from aia_core.domain.panel_source import PANEL_SOURCE, panel_plans, respondent_system
 from aia_core.domain.population.sampling import SAMPLER_VERSION, SamplingRefused
 from aia_core.domain.research_design import ResearchSpecification, compile_design
-
-TESTS = Path(__file__).parent
-ROWS_CSV = TESTS / "fixtures" / "representative_draw" / "rows.csv"
-CATALOG = (TESTS / "fixtures" / "persona_profile" / "catalog.csv").read_bytes()
-LABELS = (
-    TESTS.parents[2] / "legacy" / "npc-panel-18.6.6" / "app" / "PERSONA_VALUE_LABELS_v17.json"
-).read_bytes()
-WEIGHT = "vaha_strukturalni_2025"
-
-
-def _rows() -> tuple[tuple[str, ...], list[dict[str, str]]]:
-    header, *raw = list(csv.reader(io.StringIO(ROWS_CSV.read_text("utf-8"))))
-    return tuple(header), [dict(zip(header, r, strict=True)) for r in raw]
-
-
-HEADER, ROWS = _rows()
-
-
-class _NoEnrichment:
-    enricher_id = "test-no-enrichment/v1"
-
-    def derive(self, panel: Any) -> dict[str, tuple[str | None, ...]]:
-        return {}
-
-
-def _population(session: Session, kit: Any, *, omit: tuple[str, ...] = ()) -> Any:
-    """The fixture rows as a LIVE population with the persona companions, as a run loads it."""
-    from aia_core.application.population import PopulationRuntime
-    from aia_core.domain.population import (
-        CompanionKind,
-        CompanionSpec,
-        KnownVersion,
-        PopulationImportContract,
-        PopulationKind,
-        PopulationSelector,
-        PopulationView,
-        WeightScheme,
-        content_sha256,
-        field_names_fingerprint,
-    )
-    from aia_core.infrastructure.population_source import InMemoryPopulationSource
-
-    versions = {
-        label: [{**r, "panel_row_id": f"{r['panel_row_id']}-{label}"} for r in ROWS]
-        for label in ("v1_BASE", "v1_1", "v1_4")
-    }
-    panels = {label: kit.gzip_csv(HEADER, rows) for label, rows in versions.items()}
-    dictionary = kit.policy_dictionary_csv(
-        HEADER,
-        {
-            "panel_row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
-            "core_donor_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
-            WEIGHT: ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
-        },
-    )
-    certificate = kit.joint_certificate_json(content_sha256(panels["v1_4"]))
-    assets = {
-        asset: data
-        for asset, data in (
-            ("CORE_JOINT_STATUS.json", certificate),
-            ("PERSONA_SIGNAL_CATALOG_v17.csv", CATALOG),
-            ("PERSONA_VALUE_LABELS_v17.json", LABELS),
-        )
-        if asset not in omit
-    }
-    specs = tuple(
-        CompanionSpec(
-            asset_id=asset,
-            kind=CompanionKind.CORE_JOINT_STATUS
-            if asset == "CORE_JOINT_STATUS.json"
-            else CompanionKind.INTEGRITY_ONLY,
-            sha256=content_sha256(data),
-            byte_size=len(data),
-            fmt="json" if asset.endswith(".json") else "csv",
-        )
-        for asset, data in assets.items()
-    )
-    total = math.fsum(float(r[WEIGHT] or 0) for r in ROWS)
-    contract = PopulationImportContract(
-        contract_id="panel_source_population/v1",
-        dataset_id="panel_source_population",
-        field_count=len(HEADER),
-        field_names_sha256=field_names_fingerprint(HEADER),
-        dictionary_sha256=content_sha256(dictionary),
-        primary_key="panel_row_id",
-        expected_rows=len(ROWS),
-        weight_schemes=(
-            WeightScheme("default_current", WEIGHT, expected_total=total, tolerance=1e-6),
-        ),
-        default_weight_role="default_current",
-        known_versions=(
-            KnownVersion("v1_BASE", content_sha256(panels["v1_BASE"]), len(panels["v1_BASE"])),
-            KnownVersion("v1_1", content_sha256(panels["v1_1"]), len(panels["v1_1"]), "v1_BASE"),
-            KnownVersion("v1_4", content_sha256(panels["v1_4"]), len(panels["v1_4"]), "v1_1"),
-        ),
-        static_reference_label="v1_1",
-        enrichment_fields=(),
-        companions=specs,
-        joint_certified_labels=frozenset({"v1_4"}),
-    )
-    source = InMemoryPopulationSource({"dictionary.csv": dictionary})
-    for label, data in panels.items():
-        source.put(f"panels/{label}.csv.gz", data)
-        for asset, blob in assets.items():
-            source.put(f"companions/{label}/{asset}", blob)
-    rt = PopulationRuntime(session, contract=contract, source=source, enricher=_NoEnrichment())
-
-    def load(label: str) -> Any:
-        return rt.import_version(
-            label=label,
-            panel_location=f"panels/{label}.csv.gz",
-            dictionary_location="dictionary.csv",
-            provenance="fictional sampling rows",
-            imported_by="importer",
-            companion_locations={a: f"companions/{label}/{a}" for a in assets},
-        )
-
-    load("v1_BASE")
-    anchor = load("v1_1")
-    rt.establish(
-        population_id="PANEL_SOURCE_STATIC",
-        kind=PopulationKind.STATIC,
-        version_id=anchor.version_id,
-        operator=kit.operator,
-        reason="the anchor",
-    )
-    version = load("v1_4")
-    rt.establish(
-        population_id="PANEL_SOURCE_LIVE",
-        kind=PopulationKind.LIVE,
-        version_id=version.version_id,
-        operator=kit.operator,
-        reason="the panel source's test population",
-    )
-    return rt.load(
-        rt.resolve(PopulationSelector.population("PANEL_SOURCE_LIVE"), view=PopulationView.ANALYSIS)
-    )
 
 
 def _spec(n: int = 200, audience: dict[str, Any] | None = None) -> ResearchSpecification:
@@ -192,8 +49,8 @@ def _spec(n: int = 200, audience: dict[str, Any] | None = None) -> ResearchSpeci
 
 
 @pytest.fixture
-def population(session: Session, population_kit: Any) -> Any:
-    return _population(session, population_kit)
+def population(sampled_population: Any) -> Any:
+    return sampled_population().population
 
 
 def test_a_panel_run_is_sampled_built_and_planned_in_that_order(population: Any) -> None:
@@ -214,6 +71,26 @@ def test_a_panel_run_is_sampled_built_and_planned_in_that_order(population: Any)
     assert panel_plans(population, spec, seed=12).sample != built.sample
 
 
+def test_panel_personas_are_styled_under_the_runs_response_process(population: Any) -> None:
+    """Plan methodology-tab R1b: the same sample, styled under the process the run pinned."""
+    from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
+
+    spec = _spec(60)
+    unit = panel_plans(population, spec, seed=11)
+    edited = AIA_RESPONSE_V1.model_copy(
+        update={"methodology_version": "aia-response-1+e1", "style_noise_floor": 1.0}
+    )
+    other = panel_plans(population, spec, seed=11, response=edited)
+    assert other.sample == unit.sample  # who is drawn does not depend on the process
+    assert [p.style for p in other.personas.personas] != [p.style for p in unit.personas.personas]
+    # Naming the default process is the default. Compared as the sibling test compares (the
+    # catalog's NaN priorities never compare equal, so the whole object cannot be): the
+    # sample, every plan, and every persona's style, which is what the process decides.
+    same = panel_plans(population, spec, seed=11, response=AIA_RESPONSE_V1)
+    assert same.sample == unit.sample and same.plans == unit.plans
+    assert [p.style for p in same.personas.personas] == [p.style for p in unit.personas.personas]
+
+
 def test_the_designs_audience_filters_are_what_the_sample_draws_under(population: Any) -> None:
     """5a decision 4: applied, as 18.6.6 did; recorded in the sample's provenance."""
     spec = _spec(100, audience={"vek": {"min": 60, "max": 89}})
@@ -232,7 +109,7 @@ def test_a_sampling_refusal_surfaces_by_name_before_any_persona_is_built(
     population: Any,
 ) -> None:
     with pytest.raises(SamplingRefused) as exceeded:
-        panel_plans(population, _spec(len(ROWS) + 1), seed=1)
+        panel_plans(population, _spec(population.row_count + 1), seed=1)
     assert exceeded.value.reason == "sampling_n_exceeds_support"
     with pytest.raises(SamplingRefused) as small:
         panel_plans(population, _spec(8), seed=1)
@@ -241,8 +118,8 @@ def test_a_sampling_refusal_surfaces_by_name_before_any_persona_is_built(
         panel_plans(population, _spec(10).model_copy(update={"n": None}), seed=1)
 
 
-def test_a_persona_refusal_surfaces_by_name(session: Session, population_kit: Any) -> None:
-    population = _population(session, population_kit, omit=("PERSONA_SIGNAL_CATALOG_v17.csv",))
+def test_a_persona_refusal_surfaces_by_name(sampled_population: Any) -> None:
+    population = sampled_population(omit=("PERSONA_SIGNAL_CATALOG_v17.csv",)).population
     with pytest.raises(PersonaRefused) as missing:
         panel_plans(population, _spec(200), seed=1)
     assert missing.value.reason == "persona_catalog_missing"

@@ -17,7 +17,9 @@ the unit needs pandas:
         ``expected.json``: each case's kept filters (every value as its type and its
         ``str``), the dropped reasons, and the matching row positions; and every
         factor's kind as ``audience_dimensions.factor_map`` computes it. Pins the
-        panel, the cases and the unit sources by SHA256.
+        panel, the cases and the unit sources by SHA256. Writes ``catalogue.json``: the
+        unit's own ``audience_dimensions.catalog`` on the same panel, as its
+        ``/api/audience/dimensions`` route served it (6b).
 
 No network and no real panel data: every row is fictional.
 """
@@ -226,6 +228,27 @@ def capture() -> None:
         encoding="utf-8",
     )
     print(f"wrote {OUT / 'expected.json'}: {len(results)} cases, {len(factors)} factors")
+
+    # The factor catalogue (panel-grounded-respondents 6b) as the unit's route serves it:
+    # ``catalog(core.load_panel_cached(), include_research_only=True)``
+    # (``ui_server.py:1755``), the loaded panel being the enriched one.
+    catalogue = audience_dimensions.catalog(df, include_research_only=True)
+    (OUT / "catalogue.json").write_text(
+        json.dumps(
+            {
+                "captured_with": {"pandas": pd.__version__},
+                "panel_sha256": _sha(panel_bytes),
+                "unit_sources": {name: _sha((UNIT / name).read_bytes()) for name in UNIT_SOURCES},
+                "catalogue": catalogue,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"wrote {OUT / 'catalogue.json'}: {catalogue['factor_count']} factors")
 
 
 def main() -> None:

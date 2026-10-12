@@ -1,0 +1,522 @@
+{
+  "captured_with": {
+    "pandas": "2.3.3"
+  },
+  "catalogue": {
+    "base_columns": 25,
+    "categories": [
+      {
+        "count": 11,
+        "description": "Kdo člověk je a v jaké životní situaci se nachází.",
+        "filterable_count": 11,
+        "id": "demography",
+        "label": "Demografie a životní fáze"
+      },
+      {
+        "count": 1,
+        "description": "Používání internetu, zařízení a digitálních služeb.",
+        "filterable_count": 1,
+        "id": "digital",
+        "label": "Digitální chování a zařízení"
+      },
+      {
+        "count": 1,
+        "description": "Cena, slevy, premium, plánování, recenze, loajalita, convenience a značky.",
+        "filterable_count": 1,
+        "id": "shopping",
+        "label": "Nákupní a značkové chování"
+      },
+      {
+        "count": 7,
+        "description": "Deterministické souhrny vytvořené pouze z již existujících respondentních signálů.",
+        "filterable_count": 7,
+        "id": "derived",
+        "label": "Odvozené praktické profily"
+      },
+      {
+        "count": 1,
+        "description": "Dostupné pro metodický research, ale ne jako běžný audience targeting filtr.",
+        "filterable_count": 0,
+        "id": "research_only",
+        "label": "Research-only / citlivé"
+      }
+    ],
+    "factor_count": 21,
+    "factors": [
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "vek",
+        "filterable": true,
+        "id": "vek",
+        "kind": "numeric",
+        "label": "Věk",
+        "max": 89.0,
+        "min": 20.0,
+        "non_null": 60,
+        "p10": 27.0,
+        "p90": 82.2,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING"
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "pohlavi",
+        "filterable": true,
+        "id": "pohlavi",
+        "kind": "category",
+        "label": "Pohlaví",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 33,
+            "value": "muž"
+          },
+          {
+            "count": 27,
+            "value": "žena"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "kraj",
+        "filterable": true,
+        "id": "kraj",
+        "kind": "category",
+        "label": "Kraj",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 21,
+            "value": "Hlavní město Praha"
+          },
+          {
+            "count": 14,
+            "value": "Zlínský kraj"
+          },
+          {
+            "count": 14,
+            "value": "Středočeský kraj"
+          },
+          {
+            "count": 11,
+            "value": "Jihomoravský kraj"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "vzdelani",
+        "filterable": true,
+        "id": "vzdelani",
+        "kind": "category",
+        "label": "Vzdělání",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 20,
+            "value": "střední bez maturity"
+          },
+          {
+            "count": 15,
+            "value": "střední s maturitou"
+          },
+          {
+            "count": 13,
+            "value": "základní"
+          },
+          {
+            "count": 12,
+            "value": "VOŠ/VŠ"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "zamestnani_status",
+        "filterable": true,
+        "id": "zamestnani_status",
+        "kind": "category",
+        "label": "Ekonomická aktivita",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 22,
+            "value": "employed"
+          },
+          {
+            "count": 20,
+            "value": "inactive"
+          },
+          {
+            "count": 18,
+            "value": "unemployed"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "prijem_decile",
+        "filterable": true,
+        "id": "prijem_decile",
+        "kind": "numeric",
+        "label": "Příjmový decil",
+        "max": 10.0,
+        "min": 1.0,
+        "non_null": 60,
+        "p10": 1.0,
+        "p90": 10.0,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING"
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "has_partner",
+        "filterable": true,
+        "id": "has_partner",
+        "kind": "binary",
+        "label": "Má partnera",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 39,
+            "value": "True"
+          },
+          {
+            "count": 21,
+            "value": "False"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "is_parent",
+        "filterable": true,
+        "id": "is_parent",
+        "kind": "binary",
+        "label": "Rodič",
+        "non_null": 55,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 28,
+            "value": "0.0"
+          },
+          {
+            "count": 27,
+            "value": "1.0"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "is_student",
+        "filterable": true,
+        "id": "is_student",
+        "kind": "binary",
+        "label": "Is student",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 54,
+            "value": "0"
+          },
+          {
+            "count": 6,
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "is_employed",
+        "filterable": true,
+        "id": "is_employed",
+        "kind": "binary",
+        "label": "Is employed",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 35,
+            "value": "1"
+          },
+          {
+            "count": 25,
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "category": "demography",
+        "category_label": "Demografie a životní fáze",
+        "column": "vek_skupina",
+        "filterable": true,
+        "id": "vek_skupina",
+        "kind": "category",
+        "label": "Vek skupina",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 29,
+            "value": "60+"
+          },
+          {
+            "count": 12,
+            "value": "30-44"
+          },
+          {
+            "count": 10,
+            "value": "45-59"
+          },
+          {
+            "count": 9,
+            "value": "18-29"
+          }
+        ]
+      },
+      {
+        "category": "digital",
+        "category_label": "Digitální chování a zařízení",
+        "column": "internet_user_2025",
+        "filterable": true,
+        "id": "internet_user_2025",
+        "kind": "binary",
+        "label": "Internet user",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING",
+        "values": [
+          {
+            "count": 41,
+            "value": "1"
+          },
+          {
+            "count": 19,
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "category": "shopping",
+        "category_label": "Nákupní a značkové chování",
+        "column": "price_sensitivity_1_10",
+        "filterable": true,
+        "id": "price_sensitivity_1_10",
+        "kind": "numeric",
+        "label": "Price sensitivity",
+        "max": 10.0,
+        "min": 1.0,
+        "non_null": 60,
+        "p10": 2.317,
+        "p90": 9.564,
+        "scale_hint": "1–10",
+        "sensitive": false,
+        "source": "Panel v17",
+        "status": "PANEL_EXISTING"
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "life_stage_derived",
+        "filterable": true,
+        "id": "life_stage_derived",
+        "kind": "category",
+        "label": "Životní fáze",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": [
+          {
+            "count": 27,
+            "value": "Rodič"
+          },
+          {
+            "count": 15,
+            "value": "Senior 65+"
+          },
+          {
+            "count": 10,
+            "value": "Střední věk · partner bez dětí v domácnosti"
+          },
+          {
+            "count": 4,
+            "value": "Dospělý / ostatní"
+          },
+          {
+            "count": 3,
+            "value": "Student / mladý dospělý"
+          },
+          {
+            "count": 1,
+            "value": "Mladý bez dětí"
+          }
+        ]
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "digital_engagement_tier_derived",
+        "filterable": true,
+        "id": "digital_engagement_tier_derived",
+        "kind": "category",
+        "label": "Digitální angažovanost",
+        "non_null": 0,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": []
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "dominant_media_derived",
+        "filterable": true,
+        "id": "dominant_media_derived",
+        "kind": "category",
+        "label": "Dominantní mediální kanál",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": [
+          {
+            "count": 60,
+            "value": "Bez dominantního kanálu"
+          }
+        ]
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "dominant_leisure_derived",
+        "filterable": true,
+        "id": "dominant_leisure_derived",
+        "kind": "category",
+        "label": "Dominantní volnočasová aktivita",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": [
+          {
+            "count": 60,
+            "value": "Bez dominantní aktivity"
+          }
+        ]
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "shopping_orientation_derived",
+        "filterable": true,
+        "id": "shopping_orientation_derived",
+        "kind": "category",
+        "label": "Nákupní orientace",
+        "non_null": 60,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": [
+          {
+            "count": 60,
+            "value": "Value / slevy"
+          }
+        ]
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "ad_receptivity_tier_derived",
+        "filterable": true,
+        "id": "ad_receptivity_tier_derived",
+        "kind": "category",
+        "label": "Receptivita k reklamě",
+        "non_null": 0,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": []
+      },
+      {
+        "category": "derived",
+        "category_label": "Odvozené praktické profily",
+        "column": "financial_capability_tier_derived",
+        "filterable": true,
+        "id": "financial_capability_tier_derived",
+        "kind": "category",
+        "label": "Finanční capability tier",
+        "non_null": 0,
+        "sensitive": false,
+        "source": "Deterministický overlay z existujících signálů",
+        "status": "DERIVED_EXISTING_SIGNALS",
+        "values": []
+      },
+      {
+        "category": "research_only",
+        "category_label": "Research-only / citlivé",
+        "column": "PHQ9_2022",
+        "filterable": false,
+        "id": "PHQ9_2022",
+        "kind": "numeric",
+        "label": "PHQ9",
+        "max": 27.0,
+        "min": 0.0,
+        "non_null": 60,
+        "p10": 4.0,
+        "p90": 24.0,
+        "sensitive": true,
+        "source": "Research-only panel signal",
+        "status": "PANEL_EXISTING_RESEARCH_ONLY"
+      }
+    ],
+    "filterable_count": 20,
+    "logic": "OR uvnitř jedné dimenze, AND mezi dimenzemi",
+    "runtime_columns": 25,
+    "version": "17.9.4"
+  },
+  "panel_sha256": "238b07a9311233531eac13126150cffa978bb54c88ae96c4e1fe7598832c5f0b",
+  "unit_sources": {
+    "audience.py": "f76dca34624c86090ae98efa13ba95b6ef2e63ee5b0bb6cb5ae069147f41cf8d",
+    "audience_dimensions.py": "6ae1d1f8d9ae8a5a9e007e0aee1b842b2c087ca16e888cc2cbf0e55ab7c754bf"
+  }
+}
