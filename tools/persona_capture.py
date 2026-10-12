@@ -15,7 +15,9 @@ adaptive flag because no calibration profile ships (plan § 3a). Two steps, two 
         pointed at a path that does not exist, so the behavioural block (chunk 3d) is empty, as
         ``persona_grounded._catalog`` makes it without the file. Writes ``expected.json``: each
         case's text, and the unit's ``_first_person_persona`` on line lists that reach its prefix
-        rewrites and its word cap, pinned to the inputs and the unit sources by SHA256.
+        rewrites and its word cap; and ``dispozice.odvod_temata`` on fictional questions, their
+        union over a block (``dotaznik.py:937-948``) and the unit's keyword table itself; all
+        pinned to the inputs and the unit sources by SHA256.
 
 No network and no real panel data: every row is fictional.
 """
@@ -208,6 +210,72 @@ def _prose() -> list[dict[str, Any]]:
     ]
 
 
+QUESTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Kolik korun měsíčně utratíte za potraviny a nápoje?", ("do 3000", "3000 a více")),
+    ("Jak často nakupujete v supermarketu nebo diskontní prodejně?", ("denně", "týdně")),
+    ("Objednáváte zboží přes e-shop nebo mobilní aplikaci?", ("ano", "ne")),
+    ("Jak důležité je pro vás doručení kurýrem domů?", ()),
+    ("Která značka kávy je vaše nejoblíbenější?", ("Značka A", "Značka B")),
+    ("Viděl(a) jste v poslední době reklamní spot nebo kampaň s influencerem?", ("ano", "ne")),
+    ("Kolik času denně trávíte u televize, rádia nebo na YouTube?", ()),
+    ("Jak hodnotíte svůj zdravotní stav a péči lékaře?", ("dobře", "špatně")),
+    ("Jak často sportujete, cvičíte nebo jezdíte na kole?", ()),
+    ("Třídíte odpad a záleží vám na udržitelnosti a klimatu?", ()),
+    ("Kupujete nápoje v plastových nebo zálohovaných obalech?", ()),
+    ("Kolik platíte za elektřinu, plyn a teplo?", ()),
+    ("Jezdíte do práce autem, vlakem nebo MHD?", ("autem", "vlakem", "MHD")),
+    ("Automaticky obnovujete předplatné?", ("ano", "ne")),
+    ("Bydlíte v bytě nebo v rodinném domě?", ("byt", "dům")),
+    ("Může se to být stát kdykoli?", ()),
+    ("Máte hypotéku, úvěr nebo spoříte?", ()),
+    ("Důvěřujete vládě, parlamentu a politickým stranám?", ()),
+    ("Jaká je role státu v ekonomice?", ()),
+    ("Jaké hodnoty a tradice jsou pro vás důležité?", ()),
+    ("Jak hodnotíte služby obecního úřadu ve vašem městě?", ()),
+    ("Obecně řečeno, souhlasíte s novým zákonem o daních?", ()),
+    ("Využíváte prémiové nebo luxusní služby a zákaznický servis?", ()),
+    ("Kolik utratíte za oblečení, obuv a kosmetiku?", ()),
+    ("Pracujete z domova (home office) nebo v kanceláři?", ()),
+    ("Co děláte ve volném čase: kino, koncert, divadlo, četba?", ()),
+    ("Máte psa nebo kočku?", ("pes", "kočka", "nemám")),
+    ("Jste firemní zákazník s rozhodovací pravomocí o nákupu pro firmu?", ()),
+    ("Doporučil(a) byste nás přátelům? Jak hodnotíte věrnostní program?", ()),
+    ("Používáte umělou inteligenci, AI nebo chytré technologie?", ()),
+    ("Jak snadné je pro vás vyplnění formuláře a porozumění textu?", ()),
+    ("Sdílíte příspěvky na sociálních sítích, Facebooku nebo TikToku?", ()),
+    ("Jak spokojený(á) jste ve vztahu s partnerem a rodinou?", ()),
+    ("Cítil(a) jste v posledních týdnech úzkost, stres nebo depresi?", ()),
+    ("Důvěřujete soudům, policii a dalším institucím?", ()),
+    ("Jak vnímáte migraci a uprchlíky?", ()),
+    ("Cítíte se ve svém okolí bezpečně? Bojíte se kriminality?", ()),
+    ("Jak se vyvíjí inflace a životní úroveň v ČR?", ()),
+    ("Kolik máte dětí a jak často vídáte rodiče?", ()),
+    ("Zapojujete se do komunity, se sousedy nebo dobrovolnictví?", ()),
+    ("Podle čeho se rozhodujete, kterou možnost vybrat?", ()),
+    ("Jak byste popsal(a) svou povahu a osobnost?", ()),
+    ("Používáte mobilní bankovnictví a platby kartou?", ()),
+    ("Jaký význam má pro vás víra a náboženství?", ()),
+    ("Víte, co je RPSN a máte finanční rezervu?", ()),
+    ("Co si myslíte o slogan a claim nové kampaně?", ()),
+    ("Kupujete stavební materiál pro stavby?", ()),
+    ("Jednal(a) jste s realitním makléřem o nemovitosti?", ()),
+    ("Používáte zdravotnický materiál nebo zdravotnické pomůcky?", ()),
+    ("Účastníte se jako nákupčí výběrového řízení nebo tendru?", ()),
+    ("Hlásíte se k národnostní menšině?", ("moravská", "slezská", "romská")),
+    ("Romantický film nebo seriál?", ()),
+    ("Jaké je počasí?", ("hezky", "ošklivě")),
+    # "volný čas" is a phrase: "volný den" alone must not reach volny_cas.
+    ("Kdy máte volný den?", ()),
+    # More than five topics: the cap keeps the five with most hits, ties by name.
+    (
+        "Kolik korun utratíte online za potraviny v obchodě, za auto, bydlení, zdraví a sport?",
+        (),
+    ),
+    ("", ()),
+)
+BLOCKS: tuple[tuple[int, ...], ...] = ((0, 1, 2), (12, 13, 14, 15), (52, 53), (5, 45, 4, 5))
+
+
 def _cases(rows: int) -> list[dict[str, Any]]:
     cases = [
         {"id": f"P{i + 1:03d}", "row": i, "topics": list(TOPICS[i % len(TOPICS)])}
@@ -236,7 +304,12 @@ def write_inputs() -> None:
     (OUT / "rows.csv").write_bytes(data)
     (OUT / "cases.json").write_text(
         json.dumps(
-            {"profiles": _cases(data.count(b"\n") - 1), "prose": _prose()},
+            {
+                "profiles": _cases(data.count(b"\n") - 1),
+                "prose": _prose(),
+                "questions": [{"text": t, "options": list(o)} for t, o in QUESTIONS],
+                "blocks": [list(b) for b in BLOCKS],
+            },
             ensure_ascii=False,
             indent=1,
         )
@@ -267,6 +340,17 @@ def capture() -> None:
         {"id": c["id"], "text": _first_person_persona(c["lines"], max_words=185)}
         for c in cases["prose"]
     ]
+    from dispozice import TEMATA_KLICE, odvod_temata
+
+    topics = [odvod_temata(q["text"] + " " + " ".join(q["options"])) for q in cases["questions"]]
+    blocks = []
+    for block in cases["blocks"]:  # dotaznik.py:937-948, the union over a block's questions
+        union: list[str] = []
+        for i in block:
+            for topic in topics[i]:
+                if topic not in union:
+                    union.append(topic)
+        blocks.append(union)
     for case in cases["profiles"]:
         row = df.iloc[case["row"]]
         text = generate_persona_text(row, temata=case["topics"], persona_mode="calibrated")
@@ -278,6 +362,9 @@ def capture() -> None:
         "unit_sources": {name: _sha((UNIT / name).read_bytes()) for name in UNIT_SOURCES},
         "cases": out,
         "prose": prose,
+        "question_topics": topics,
+        "block_topics": blocks,
+        "topic_keys": TEMATA_KLICE,
     }
     (OUT / "expected.json").write_text(
         json.dumps(expected, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"

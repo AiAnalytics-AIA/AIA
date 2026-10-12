@@ -1,4 +1,30 @@
 {
+ "block_topics": [
+  [
+   "potraviny",
+   "cena",
+   "predplatne",
+   "retail",
+   "nakup",
+   "online"
+  ],
+  [
+   "doprava",
+   "auto",
+   "prace",
+   "predplatne",
+   "bydleni",
+   "rodina",
+   "vztahy"
+  ],
+  [],
+  [
+   "kampan",
+   "reklama",
+   "socialni_site",
+   "znacka"
+  ]
+ ],
  "captured_with": {
   "pandas": "2.3.3"
  },
@@ -400,7 +426,7 @@
    "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
   }
  ],
- "cases_sha256": "5edd40045d0c1bbda0948a581184a36df3d9d6cec288807e98691a044b4cab67",
+ "cases_sha256": "a83ffadfd9b0674f8e8e19d2d346b82b47fe79d8ed37c93bc94f8ff813202d08",
  "prose": [
   {
    "id": "F01_prefixes",
@@ -427,7 +453,687 @@
    "text": "Jsem muž, ve věku 52 let. Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo."
   }
  ],
+ "question_topics": [
+  [
+   "potraviny",
+   "cena",
+   "predplatne"
+  ],
+  [
+   "retail",
+   "nakup"
+  ],
+  [
+   "online",
+   "nakup"
+  ],
+  [
+   "doruceni"
+  ],
+  [
+   "znacka"
+  ],
+  [
+   "kampan",
+   "reklama",
+   "socialni_site"
+  ],
+  [
+   "media",
+   "cena"
+  ],
+  [
+   "hodnoty",
+   "zdravi"
+  ],
+  [
+   "sport",
+   "finance"
+  ],
+  [
+   "eko"
+  ],
+  [
+   "obaly",
+   "potraviny"
+  ],
+  [
+   "energie",
+   "cena"
+  ],
+  [
+   "doprava",
+   "auto",
+   "prace"
+  ],
+  [
+   "predplatne"
+  ],
+  [
+   "bydleni",
+   "rodina",
+   "vztahy"
+  ],
+  [],
+  [
+   "finance",
+   "bydleni"
+  ],
+  [
+   "politika",
+   "duvera"
+  ],
+  [
+   "politika",
+   "ekonomika"
+  ],
+  [
+   "hodnoty"
+  ],
+  [
+   "hodnoty",
+   "sluzby",
+   "verejne"
+  ],
+  [
+   "regulace"
+  ],
+  [
+   "sluzby",
+   "premium",
+   "regulace"
+  ],
+  [
+   "moda",
+   "cena"
+  ],
+  [
+   "prace"
+  ],
+  [
+   "volny_cas"
+  ],
+  [
+   "volny_cas"
+  ],
+  [
+   "B2B",
+   "nakup",
+   "regulace",
+   "rozhodovani"
+  ],
+  [
+   "loajalita",
+   "hodnoty",
+   "vztahy"
+  ],
+  [
+   "technologie"
+  ],
+  [
+   "dovednosti"
+  ],
+  [
+   "socialni_site",
+   "media"
+  ],
+  [
+   "vztahy",
+   "rodina"
+  ],
+  [
+   "mentalni_zdravi"
+  ],
+  [
+   "duvera",
+   "instituce"
+  ],
+  [
+   "migrace"
+  ],
+  [
+   "bezpecnost"
+  ],
+  [
+   "ekonomika"
+  ],
+  [
+   "rodina",
+   "cena"
+  ],
+  [
+   "komunita"
+  ],
+  [
+   "rozhodovani"
+  ],
+  [
+   "osobnost"
+  ],
+  [
+   "bankovnictvi",
+   "online"
+  ],
+  [
+   "nabozenstvi",
+   "vira"
+  ],
+  [
+   "gramotnost"
+  ],
+  [
+   "kampan",
+   "reklama"
+  ],
+  [
+   "stavebnictvi"
+  ],
+  [
+   "reality",
+   "bydleni"
+  ],
+  [
+   "zdravi",
+   "zdravotnicky_material"
+  ],
+  [
+   "procurement",
+   "nakup"
+  ],
+  [
+   "mensiny"
+  ],
+  [
+   "volny_cas"
+  ],
+  [],
+  [],
+  [
+   "cena",
+   "auto",
+   "bydleni",
+   "finance",
+   "online"
+  ],
+  []
+ ],
  "rows_sha256": "58ad03034a1105088d4a88fed32892e1cbe1fd923d3923d62533cf6dce7402e5",
+ "topic_keys": {
+  "B2B": [
+   "dodavatel",
+   "firemní zákazník",
+   "rozhodovací pravomoc",
+   "rozpočet firmy",
+   "nákup pro firmu"
+  ],
+  "auto": [
+   "auto",
+   "auta",
+   "autem",
+   "autu",
+   "automobil",
+   "vůz",
+   "vozu",
+   "vozidl",
+   "elektromobil"
+  ],
+  "bankovnictvi": [
+   "bankovnict",
+   "bankovní",
+   "bankovni",
+   "platb",
+   "fintech"
+  ],
+  "bezpecnost": [
+   "bezpeč",
+   "bezpec",
+   "kriminal",
+   "násil",
+   "nasil"
+  ],
+  "bydleni": [
+   "bydl",
+   "byt",
+   "dům",
+   "nájem",
+   "hypoté",
+   "nemovit"
+  ],
+  "cena": [
+   "cena",
+   "cenu",
+   "ceny",
+   "drah",
+   "levn",
+   "sleva",
+   "slev",
+   "akce",
+   "připlat",
+   "kolik",
+   "korun",
+   "zaplat",
+   "rozpoč",
+   "úspor"
+  ],
+  "doprava": [
+   "doprav",
+   "vlak",
+   "mhd",
+   "jízd",
+   "cest",
+   "palivo"
+  ],
+  "doruceni": [
+   "doruč",
+   "rozvoz",
+   "závoz",
+   "kurýr",
+   "výdejn",
+   "dovezl"
+  ],
+  "dovednosti": [
+   "gramotnost",
+   "čtení textu",
+   "vyplnění formuláře",
+   "porozumění textu",
+   "orientace v textu"
+  ],
+  "duvera": [
+   "důvěr",
+   "duver",
+   "nedůvěr",
+   "neduver"
+  ],
+  "eko": [
+   "ekolog",
+   "udržiteln",
+   "recykl",
+   "tříd",
+   "bio",
+   "uhlík",
+   "klima"
+  ],
+  "ekonomika": [
+   "ekonom",
+   "inflac",
+   "hospodář",
+   "hospodar",
+   "životní úroveň",
+   "zivotni uroven"
+  ],
+  "energie": [
+   "energi",
+   "elektřin",
+   "plyn",
+   "teplo",
+   "solár",
+   "fotovolt"
+  ],
+  "finance": [
+   "banka",
+   "úvěr",
+   "půjč",
+   "spoř",
+   "investic",
+   "pojist",
+   "splátk",
+   "příjm"
+  ],
+  "gramotnost": [
+   "finanční gramotnost",
+   "financni gramotnost",
+   "rpsn",
+   "finanční znalost",
+   "rozpočet",
+   "rezerva"
+  ],
+  "hodnoty": [
+   "hodnot",
+   "morálk",
+   "etik",
+   "tradice",
+   "genderov",
+   "manželství",
+   "rovnost pohlaví",
+   "liberáln",
+   "konzervativn"
+  ],
+  "instituce": [
+   "instituc",
+   "soud",
+   "justice",
+   "policie",
+   "ústavn",
+   "ustavn",
+   "demokrac",
+   "korupc"
+  ],
+  "kampan": [
+   "kampaň",
+   "kampan",
+   "reklam",
+   "kreativ",
+   "spot",
+   "claim",
+   "slogan",
+   "brand asset"
+  ],
+  "komunita": [
+   "komunit",
+   "soused",
+   "dobrovol",
+   "místní vaz",
+   "mistni vaz"
+  ],
+  "loajalita": [
+   "věrnost",
+   "loajal",
+   "věrnostn",
+   "doporučil"
+  ],
+  "media": [
+   "televiz",
+   "rádi",
+   "zprávy",
+   "média",
+   "media",
+   "sociální sít",
+   "youtube",
+   "facebook",
+   "instagram",
+   "podcast"
+  ],
+  "mensiny": [
+   "menšin",
+   "mensin",
+   "národnost",
+   "narodnost",
+   "rom",
+   "moravan",
+   "slezan"
+  ],
+  "mentalni_zdravi": [
+   "psychick",
+   "duševn",
+   "dusevn",
+   "úzkost",
+   "uzkost",
+   "depres",
+   "stres",
+   "phq",
+   "gad",
+   "wellbeing",
+   "well-being",
+   "vyhořen",
+   "vyhoren"
+  ],
+  "migrace": [
+   "migrac",
+   "imigr",
+   "uprchl",
+   "cizinc"
+  ],
+  "moda": [
+   "oblečen",
+   "móda",
+   "obuv",
+   "kosmetik"
+  ],
+  "nabozenstvi": [
+   "nábožen",
+   "nabozen",
+   "víra",
+   "vira",
+   "duchovn"
+  ],
+  "nakup": [
+   "nakup",
+   "nákup",
+   "koupit",
+   "koupil",
+   "pořídit",
+   "zboží",
+   "objedn"
+  ],
+  "obaly": [
+   "obal",
+   "plast",
+   "zálohov"
+  ],
+  "online": [
+   "online",
+   "internet",
+   "e-shop",
+   "eshop",
+   "web",
+   "aplikac",
+   "mobil"
+  ],
+  "osobnost": [
+   "povah",
+   "osobnost",
+   "charakter",
+   "temperament"
+  ],
+  "politika": [
+   "polit",
+   "vlád",
+   "volb",
+   "stran",
+   "prezident",
+   "parlament",
+   "státní",
+   "statni",
+   "státu",
+   "statu",
+   "role státu",
+   "role statu"
+  ],
+  "potraviny": [
+   "potravin",
+   "jídl",
+   "jidl",
+   "nápoj",
+   "napoj",
+   "maso",
+   "mléč",
+   "pečiv",
+   "zelenin",
+   "ovoce",
+   "vaři",
+   "restaurac",
+   "káv"
+  ],
+  "prace": [
+   "prac",
+   "práce",
+   "zaměstn",
+   "kolega",
+   "kancelář",
+   "home office"
+  ],
+  "predplatne": [
+   "předplat",
+   "tarif",
+   "měsíčně",
+   "členstv"
+  ],
+  "premium": [
+   "prémi",
+   "luxus",
+   "kvalit",
+   "nadstandard"
+  ],
+  "procurement": [
+   "procurement",
+   "nákupčí",
+   "nakupci",
+   "tendr",
+   "výběrové řízení",
+   "verejne zakazk"
+  ],
+  "reality": [
+   "realit",
+   "makléř",
+   "makler",
+   "nemovitost",
+   "developer nemovit"
+  ],
+  "regulace": [
+   "zákon",
+   "regulac",
+   "povinn",
+   "zákaz",
+   "daň",
+   "poplat"
+  ],
+  "reklama": [
+   "reklam",
+   "kampaň",
+   "spot",
+   "influenc",
+   "sponzor"
+  ],
+  "retail": [
+   "obchod",
+   "prodejn",
+   "řetěz",
+   "supermarket",
+   "diskont",
+   "regál"
+  ],
+  "rodina": [
+   "rodin",
+   "dítě",
+   "dite",
+   "děti",
+   "deti",
+   "rodič",
+   "rodic",
+   "partner",
+   "manžel",
+   "manzel"
+  ],
+  "rozhodovani": [
+   "rozhod",
+   "volba",
+   "vybral",
+   "vybrat",
+   "prefer"
+  ],
+  "sluzby": [
+   "služb",
+   "servis",
+   "zákaznick",
+   "rezervac"
+  ],
+  "socialni_site": [
+   "sociální sít",
+   "facebook",
+   "instagram",
+   "tiktok",
+   "x (twitter)",
+   "sdílí",
+   "sdílet",
+   "lajk",
+   "komentář na síti",
+   "influencer",
+   "story",
+   "příspěvek"
+  ],
+  "sport": [
+   "sport",
+   "cvič",
+   "fitn",
+   "běh",
+   "kolo"
+  ],
+  "stavebnictvi": [
+   "stavebn",
+   "stavební materiál",
+   "stavby",
+   "stavari"
+  ],
+  "technologie": [
+   "technolog",
+   " ai",
+   "umělá inteligence",
+   "chytr",
+   "digitál",
+   "software"
+  ],
+  "verejne": [
+   "obec",
+   "město",
+   "kraj",
+   "úřad",
+   "veřejn",
+   "samospráv"
+  ],
+  "vira": [
+   "víra",
+   "vira",
+   "nábožen",
+   "nabozen",
+   "církev",
+   "cirkev",
+   "religio"
+  ],
+  "volny_cas": [
+   "volný čas",
+   "koníček",
+   "hobby",
+   "kniha",
+   "čtení",
+   "dovolen",
+   "cestování",
+   "výlet",
+   "mazlíček",
+   "pes",
+   "kočka",
+   "kino",
+   "kina",
+   "film",
+   "seriál",
+   "serial",
+   "divadl",
+   "koncert",
+   "hudb",
+   "stream"
+  ],
+  "vztahy": [
+   "vztah",
+   "partner",
+   "manžel",
+   "rodin",
+   "přátel",
+   "kamarád",
+   "osamě",
+   "blízk",
+   "kontakt s lidmi"
+  ],
+  "zdravi": [
+   "zdrav",
+   "lék",
+   "nemoc",
+   "doktor",
+   "pacient",
+   "pojišť",
+   "výživ"
+  ],
+  "zdravotnicky_material": [
+   "zdravotnický materiál",
+   "zdravotnicke pomucky",
+   "medical device",
+   "medical material"
+  ],
+  "znacka": [
+   "značk",
+   "brand",
+   "logo",
+   "výrobc"
+  ]
+ },
  "unit_sources": {
   "audience_profile.py": "65a89d5cef442433d7a86809c80714a3507f87a8a010455f833b5fe8b2c6e2b0",
   "dispozice.py": "7b8c277e7712a1e6fc3ac461e44b77897b742bc5407c1a9effc1b2b9c2366613",

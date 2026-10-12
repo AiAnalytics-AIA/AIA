@@ -10,7 +10,7 @@ chunks:
   - "[x] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
   - "[x] 3a. Persona contract (plan before code): the mode 18.6.6 ran, its inputs, topics, the policy gate, parity"
   - "[x] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
-  - "[ ] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
+  - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[ ] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[ ] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
@@ -422,6 +422,18 @@ fixture, which holds neither): a missing `pohlavi` is "neuvedeno", where `str(Na
 "žena" (`pipeline.py:561-562`); a missing `is_student` is not a student, where `bool(NaN)` made an
 employed person "Současně: student/ka" (`:598`). Kept from the unit, because it states the gap
 rather than filling it: a missing age reads "ve věku neuvedeno".
+
+### 3c. Landed: topics
+
+`domain/persona_topics.py`: `question_topics` (`dispozice.odvod_temata`, `dispozice.py:431-462`)
+over `TOPIC_KEYS` (its `TEMATA_KLICE`, `:348-422`, 54 topics), and `block_topics`, the union
+`run_dotaznik` built for a block (`dotaznik.py:937-948`). AIA's questions declare no topics, so
+each is derived from its text and options, as the unit did for a question without them.
+EXACT in `tests/test_persona_profile.py` against the unit's own function on 56 fictional
+questions (every topic reached; `auto`/`automaticky`, `byt`/`být`, a phrase key's first word
+alone, more than five topics) and 4 blocks; the table compared with the unit's own dictionary
+(`tools/persona_capture.py`; re-captured byte-identical). Mutating the phrase rule, the short-stem
+rule, the `byt` and `auto`/`obec` rules, the tie order or the cap fails it.
 
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks

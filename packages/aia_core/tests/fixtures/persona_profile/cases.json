@@ -845,5 +845,293 @@
     "Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo; slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo"
    ]
   }
+ ],
+ "questions": [
+  {
+   "text": "Kolik korun měsíčně utratíte za potraviny a nápoje?",
+   "options": [
+    "do 3000",
+    "3000 a více"
+   ]
+  },
+  {
+   "text": "Jak často nakupujete v supermarketu nebo diskontní prodejně?",
+   "options": [
+    "denně",
+    "týdně"
+   ]
+  },
+  {
+   "text": "Objednáváte zboží přes e-shop nebo mobilní aplikaci?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Jak důležité je pro vás doručení kurýrem domů?",
+   "options": []
+  },
+  {
+   "text": "Která značka kávy je vaše nejoblíbenější?",
+   "options": [
+    "Značka A",
+    "Značka B"
+   ]
+  },
+  {
+   "text": "Viděl(a) jste v poslední době reklamní spot nebo kampaň s influencerem?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Kolik času denně trávíte u televize, rádia nebo na YouTube?",
+   "options": []
+  },
+  {
+   "text": "Jak hodnotíte svůj zdravotní stav a péči lékaře?",
+   "options": [
+    "dobře",
+    "špatně"
+   ]
+  },
+  {
+   "text": "Jak často sportujete, cvičíte nebo jezdíte na kole?",
+   "options": []
+  },
+  {
+   "text": "Třídíte odpad a záleží vám na udržitelnosti a klimatu?",
+   "options": []
+  },
+  {
+   "text": "Kupujete nápoje v plastových nebo zálohovaných obalech?",
+   "options": []
+  },
+  {
+   "text": "Kolik platíte za elektřinu, plyn a teplo?",
+   "options": []
+  },
+  {
+   "text": "Jezdíte do práce autem, vlakem nebo MHD?",
+   "options": [
+    "autem",
+    "vlakem",
+    "MHD"
+   ]
+  },
+  {
+   "text": "Automaticky obnovujete předplatné?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Bydlíte v bytě nebo v rodinném domě?",
+   "options": [
+    "byt",
+    "dům"
+   ]
+  },
+  {
+   "text": "Může se to být stát kdykoli?",
+   "options": []
+  },
+  {
+   "text": "Máte hypotéku, úvěr nebo spoříte?",
+   "options": []
+  },
+  {
+   "text": "Důvěřujete vládě, parlamentu a politickým stranám?",
+   "options": []
+  },
+  {
+   "text": "Jaká je role státu v ekonomice?",
+   "options": []
+  },
+  {
+   "text": "Jaké hodnoty a tradice jsou pro vás důležité?",
+   "options": []
+  },
+  {
+   "text": "Jak hodnotíte služby obecního úřadu ve vašem městě?",
+   "options": []
+  },
+  {
+   "text": "Obecně řečeno, souhlasíte s novým zákonem o daních?",
+   "options": []
+  },
+  {
+   "text": "Využíváte prémiové nebo luxusní služby a zákaznický servis?",
+   "options": []
+  },
+  {
+   "text": "Kolik utratíte za oblečení, obuv a kosmetiku?",
+   "options": []
+  },
+  {
+   "text": "Pracujete z domova (home office) nebo v kanceláři?",
+   "options": []
+  },
+  {
+   "text": "Co děláte ve volném čase: kino, koncert, divadlo, četba?",
+   "options": []
+  },
+  {
+   "text": "Máte psa nebo kočku?",
+   "options": [
+    "pes",
+    "kočka",
+    "nemám"
+   ]
+  },
+  {
+   "text": "Jste firemní zákazník s rozhodovací pravomocí o nákupu pro firmu?",
+   "options": []
+  },
+  {
+   "text": "Doporučil(a) byste nás přátelům? Jak hodnotíte věrnostní program?",
+   "options": []
+  },
+  {
+   "text": "Používáte umělou inteligenci, AI nebo chytré technologie?",
+   "options": []
+  },
+  {
+   "text": "Jak snadné je pro vás vyplnění formuláře a porozumění textu?",
+   "options": []
+  },
+  {
+   "text": "Sdílíte příspěvky na sociálních sítích, Facebooku nebo TikToku?",
+   "options": []
+  },
+  {
+   "text": "Jak spokojený(á) jste ve vztahu s partnerem a rodinou?",
+   "options": []
+  },
+  {
+   "text": "Cítil(a) jste v posledních týdnech úzkost, stres nebo depresi?",
+   "options": []
+  },
+  {
+   "text": "Důvěřujete soudům, policii a dalším institucím?",
+   "options": []
+  },
+  {
+   "text": "Jak vnímáte migraci a uprchlíky?",
+   "options": []
+  },
+  {
+   "text": "Cítíte se ve svém okolí bezpečně? Bojíte se kriminality?",
+   "options": []
+  },
+  {
+   "text": "Jak se vyvíjí inflace a životní úroveň v ČR?",
+   "options": []
+  },
+  {
+   "text": "Kolik máte dětí a jak často vídáte rodiče?",
+   "options": []
+  },
+  {
+   "text": "Zapojujete se do komunity, se sousedy nebo dobrovolnictví?",
+   "options": []
+  },
+  {
+   "text": "Podle čeho se rozhodujete, kterou možnost vybrat?",
+   "options": []
+  },
+  {
+   "text": "Jak byste popsal(a) svou povahu a osobnost?",
+   "options": []
+  },
+  {
+   "text": "Používáte mobilní bankovnictví a platby kartou?",
+   "options": []
+  },
+  {
+   "text": "Jaký význam má pro vás víra a náboženství?",
+   "options": []
+  },
+  {
+   "text": "Víte, co je RPSN a máte finanční rezervu?",
+   "options": []
+  },
+  {
+   "text": "Co si myslíte o slogan a claim nové kampaně?",
+   "options": []
+  },
+  {
+   "text": "Kupujete stavební materiál pro stavby?",
+   "options": []
+  },
+  {
+   "text": "Jednal(a) jste s realitním makléřem o nemovitosti?",
+   "options": []
+  },
+  {
+   "text": "Používáte zdravotnický materiál nebo zdravotnické pomůcky?",
+   "options": []
+  },
+  {
+   "text": "Účastníte se jako nákupčí výběrového řízení nebo tendru?",
+   "options": []
+  },
+  {
+   "text": "Hlásíte se k národnostní menšině?",
+   "options": [
+    "moravská",
+    "slezská",
+    "romská"
+   ]
+  },
+  {
+   "text": "Romantický film nebo seriál?",
+   "options": []
+  },
+  {
+   "text": "Jaké je počasí?",
+   "options": [
+    "hezky",
+    "ošklivě"
+   ]
+  },
+  {
+   "text": "Kdy máte volný den?",
+   "options": []
+  },
+  {
+   "text": "Kolik korun utratíte online za potraviny v obchodě, za auto, bydlení, zdraví a sport?",
+   "options": []
+  },
+  {
+   "text": "",
+   "options": []
+  }
+ ],
+ "blocks": [
+  [
+   0,
+   1,
+   2
+  ],
+  [
+   12,
+   13,
+   14,
+   15
+  ],
+  [
+   52,
+   53
+  ],
+  [
+   5,
+   45,
+   4,
+   5
+  ]
  ]
 }

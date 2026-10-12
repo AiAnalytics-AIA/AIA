@@ -27,6 +27,7 @@ from aia_core.domain.persona_profile import (
     persona_text,
     profile_lines,
 )
+from aia_core.domain.persona_topics import TOPIC_KEYS, block_topics, question_topics
 from aia_core.domain.population.audience import Typed, _typed, column_type
 
 FIXTURES = Path(__file__).parent / "fixtures" / "persona_profile"
@@ -140,3 +141,38 @@ def test_household_facts_follow_the_topics() -> None:
     assert household_facts(row, []) == ""
     assert household_facts(row, ["vztahy"]) == "rozvedený(á), děti v domácnosti"
     assert household_facts(row, ["auto"]) == "bez auta"
+
+
+# --------------------------------------------------------------------------- #
+# Topics (3c)
+# --------------------------------------------------------------------------- #
+
+QUESTIONS: list[dict[str, Any]] = _INPUTS["questions"]
+
+
+def test_the_keyword_table_is_the_units() -> None:
+    assert {k: list(v) for k, v in TOPIC_KEYS.items()} == EXPECTED["topic_keys"]
+
+
+@pytest.mark.parametrize("index", range(len(QUESTIONS)))
+def test_a_questions_topics_are_the_units(index: int) -> None:
+    q = QUESTIONS[index]
+    assert (
+        question_topics(q["text"] + " " + " ".join(q["options"]))
+        == (EXPECTED["question_topics"][index])
+    )
+
+
+@pytest.mark.parametrize("index", range(len(_INPUTS["blocks"])))
+def test_a_blocks_topics_are_the_union_in_first_seen_order(index: int) -> None:
+    block = [(QUESTIONS[i]["text"], QUESTIONS[i]["options"]) for i in _INPUTS["blocks"][index]]
+    assert block_topics(block) == EXPECTED["block_topics"][index]
+
+
+def test_the_fixture_reaches_every_topic_and_the_ambiguous_words() -> None:
+    seen = {t for topics in EXPECTED["question_topics"] for t in topics}
+    assert seen == set(TOPIC_KEYS)
+    by_text = {q["text"]: t for q, t in zip(QUESTIONS, EXPECTED["question_topics"], strict=True)}
+    assert by_text["Automaticky obnovujete předplatné?"] == ["predplatne"]  # auto != automaticky
+    assert "bydleni" not in by_text["Může se to být stát kdykoli?"]  # byt != být
+    assert by_text["Jaké je počasí?"] == []
