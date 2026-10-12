@@ -274,8 +274,13 @@ can grant approval or supply deployment prices.
   (`respondent_behavior`). Personas are the fictional roster only: its datasets
   carry `data_origin = SYNTHETIC_AI_FICTIONAL`, and the fixture's
   `SYNTHETIC_FIXTURE` (in `aia_executors.workbench`, refused unless `AIA_ENV` is
-  `local`/`test`); the evidence gate refuses every origin in `NON_EVIDENCE_ORIGINS`
-  as a client-facing claim.
+  `local`/`test`). The client-facing origin gate is an allowlist,
+  `CLIENT_ADMISSIBLE_ORIGINS` (ADR 0024 §2): a synthetic origin is refused as
+  `SYNTHETIC_DATA_ORIGIN`, and a missing origin or any origin not on the list as
+  `ORIGIN_NOT_ADMISSIBLE`, so an origin added later is refused until it is decided.
+  Labels read an origin only through `origin_kind` (SIMULATED / MODELLED / UNKNOWN);
+  no surface tests origin-set membership itself, and an unknown origin is labelled
+  unknown, never read as real fieldwork.
 - **A model call from a step goes through `StepModelCaller`, and nowhere else.**
   One reservation per logical request (PROGRESS D11, resolved), checked by the
   gateway on every call and settled once with their sum; dispatch is
