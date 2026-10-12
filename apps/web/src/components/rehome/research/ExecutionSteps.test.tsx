@@ -28,7 +28,7 @@ const READY = {
   ],
 };
 const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
-  node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+  step_id: `STEP-${node}`, node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
   started_at: "2026-09-25T08:00:00Z", finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra,
 });
 const run = (extra: Record<string, unknown> = {}) => ({
@@ -463,6 +463,49 @@ describe("Progress", () => {
     // Preflight is code at work; AI fieldwork thinks; a queued or blocked step shows nothing.
     expect(orbs).toEqual([["compile", null], ["preflight", "solving/running"], ["run", "listening/ai"], ["aggregate", null], ["analysis_executive", null]]);
     for (const orb of list.querySelectorAll("[data-orb]")) expect(orb.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("opens a running step's space with a large orb and what its events said, and no other", async () => {
+    const running = run({
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("run", "RUNNING", { started_at: new Date(Date.now() - 65_000).toISOString() }),
+        step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+      ],
+    });
+    const feed = (id: number, step_id: string | null, event_type: string, message: string, payload: Record<string, unknown> = {}) => ({
+      event_id: id, step_id, attempt_id: "ATT-1", event_type, level: "INFO", message, payload, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(running),
+      [`GET /api/v1/studies/STU-1/research/runs/${running.run_id}/events`]: () => [
+        feed(1, null, "RUN_CREATED", "created"),
+        feed(2, "STEP-compile", "STEP_SUCCEEDED", "compile completed"),
+        feed(3, "STEP-run", "ATTEMPT_CLAIMED", "run claimed by worker-1"),
+        feed(4, "STEP-run", "STEP_PROGRESS", "AI respondenti odpověděli", { respondents: 40, of: 300 }),
+        feed(5, "STEP-run", "STEP_PROGRESS", "ai_request_answered", { input_tokens: 1200, output_tokens: 380, cost_usd: 0.004, latency_ms: 3200 }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
+    // The finished and the waiting step keep their row; only the running one opens.
+    expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
+    expect(li("aggregate").querySelector("[data-step-activity]")).toBeNull();
+    const panel = li("run").querySelector<HTMLElement>("[data-step-activity]")!;
+    expect(panel.dataset.stepActivity).toBe("open");
+    expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
+    const log = await within(panel).findByRole("log");
+    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+      "Worker krok převzal",
+      "AI respondenti odpověděli · 40 z 300 respondentů",
+      "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
+    ]);
+    // Its counts as the step reported them, and how long it has run: never a percentage.
+    expect(panel.textContent).toContain("40 z 300 respondentů");
+    expect(panel.textContent).toContain("1 odpovědí modelu · 1580 tokenů · $0.004");
+    expect(panel.textContent).toMatch(/Běží 1 min 0[56] s/);
+    expect(panel.textContent).not.toMatch(/%/);
   });
 
   it("shows no orb while fieldwork waits for the AI runtime", async () => {

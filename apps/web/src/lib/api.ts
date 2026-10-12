@@ -576,7 +576,21 @@ export type Readiness = {
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
+/** One entry of a run's event feed, read after a cursor (lib/step-activity.ts folds them). */
+export type RunEvent = {
+  event_id: number;
+  step_id: string | null;
+  attempt_id: string | null;
+  event_type: string;
+  level: string;
+  message: string;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+};
+const eventsQuery = (since: number) => `?since=${encodeURIComponent(String(since))}`;
 export type ResearchStep = {
+  /** The id the run's events name. */
+  step_id: string;
   node_key: "compile" | "preflight" | "run" | "aggregate" | "sociomap" | string;
   kind: string;
   stage_type: string;
@@ -677,6 +691,8 @@ export const research = {
   runs: (studyId: string) =>
     request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
   run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
@@ -710,7 +726,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { node_key: string; status: string; waiting_reason: string | null; error_message: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
@@ -739,6 +755,8 @@ export const deepResearch = {
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
   run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
@@ -773,6 +791,8 @@ export const researchAgents = {
     return jobs as ResearchAgentJob[];
   },
   job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
+  events: (studyId: string, jobId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${agentsPath(studyId)}/${enc(jobId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
   resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
