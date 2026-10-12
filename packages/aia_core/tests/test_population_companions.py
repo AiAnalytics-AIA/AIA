@@ -654,3 +654,19 @@ def test_a_binding_recorded_under_other_rules_is_refused(
     binding = rt.resolve(PopulationSelector.population("SYN_LIVE"), view=PopulationView.BASE)
     with pytest.raises(VersionIntegrityError, match="no longer matches"):
         rt.load(replace(binding, **drift))
+
+
+def test_a_loaded_population_hands_out_its_verified_companions(usable: dict[str, Any]) -> None:
+    """The persona catalog reaches a run only through the loader, as the bytes it verified."""
+    from aia_core.domain.population import PopulationError
+
+    rt, companions = usable["rt"], usable["companions"]
+    population = load_base(rt, "SYN_LIVE")
+    assert population.companion("PERSONA_CATALOG.csv") == companions.assets["PERSONA_CATALOG.csv"]
+    with pytest.raises(PopulationError) as missing:
+        population.companion("NOT_A_COMPANION.csv")
+    assert missing.value.reason == "companion_missing"
+    # A cached load carries them too.
+    assert (
+        load_base(rt, "SYN_LIVE").companion("SCORECARD.csv") == companions.assets["SCORECARD.csv"]
+    )
