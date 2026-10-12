@@ -13,9 +13,14 @@ The values the unit wrote inline are declared in ``AggregationSpec``, whose pres
 * its percentile quantiles (0.025, 0.975);
 * the top-2-box width.
 
+Its estimators -- the weighted mean, the share, the top box, Kish n and the variance -- are
+formula slots (G2b, :mod:`.aggregation_formulas`), each with the expression the aggregate
+computes bit for bit.
+
 Every aggregate is computed under it. A run does not pin it yet, and it is not editable; both
-come in G3, and an aggregate computed under any other version is a deviation from 18.6.6 and
-will say so (G2c).
+come in G3. An aggregate computed under any changed value or replaced formula is no longer the
+unit's port and says so (G2c): its ``deviation`` names each change, and Results shows it above
+the numbers. A version that only renames computes the unit's numbers and claims nothing.
 
 The findings this module carries are named on their steps:
 
@@ -33,6 +38,7 @@ from typing import Final
 from pydantic import BaseModel
 
 from ..research_aggregate import AIA_AGGREGATE_V1, AggregationSpec
+from .aggregation_formulas import AGGREGATION_FORMULAS
 from .catalogue import (
     ConstantRef,
     Evidence,
@@ -81,6 +87,10 @@ _SPREAD: Final = (
     f"{_T}/test_research_aggregate.py::test_every_bound_lies_within_the_units_own_seed_spread"
 )
 _SELF: Final = f"{_T}/test_research_aggregate.py::test_aias_own_bounds_are_pinned"
+_FORMULAS: Final = (
+    f"{_T}/test_methodology_aggregation_formulas.py"
+    "::test_every_fixture_aggregates_identically_through_its_built_in_expressions"
+)
 _DECLARED: Final = (
     f"{_T}/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
 )
@@ -100,7 +110,10 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
         parameters=(ParameterRef("methodology_version", "Verze agregace"),),
         evidence=(_AGG,),
-        tests=(_DECLARED,),
+        tests=(
+            _DECLARED,
+            f"{_T}/test_aggregate_deviation.py::test_a_changed_value_is_named_and_the_numbers_follow_it",
+        ),
     ),
     # ------------------------------------------------------------------- weights
     MethodStep(
@@ -122,9 +135,10 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Kishovo efektivní n",
         formula_latex=r"n_{\mathrm{Kish}} = \frac{\left(\sum_k w_k\right)^2}{\sum_k w_k^2}",
         implements=f"{_A}:kish_effective_n",
-        source_sha256="3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+        source_sha256="c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
         evidence=(_UNC,),
         tests=(
+            _FORMULAS,
             f"{_T}/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds",
         ),
         note_cs="Podporu buňky z něj počítá modul Podpora a potlačení.",
@@ -138,10 +152,13 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\quad\text{(na 1 desetinné místo)}"
         ),
         implements=f"{_A}:bootstrap_weighted_distribution",
-        source_sha256="76887249ce329c16fca883d708015a576151cdd6aa94c44e3e35ff15c490f92c",
+        source_sha256="753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
         symbols=(Symbol("p_c", "podíl možnosti c", "%"),),
         evidence=(_UNC, _CAPTURES),
-        tests=(_EXACT,),
+        tests=(
+            _FORMULAS,
+            _EXACT,
+        ),
         note_cs="Odhad i meze se zaokrouhlí na jedno desetinné místo.",
     ),
     MethodStep(
@@ -151,9 +168,17 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\bar{x} = \frac{\sum_k w_k x_k}{\sum_k w_k}\quad\text{(na 2 desetinná místa)}"
         ),
         implements=f"{_A}:bootstrap_weighted_mean",
-        source_sha256="534b02464606c4f63bcc8dfb2a0d5ce29e88811e325cd919de75312ba39e4a1a",
+        note_cs=(
+            "Stejný vážený průměr počítá i podíl top boxu a podíl každé možnosti u výběru více "
+            "možností (průměr ukazatelů 0/1) a každou replikaci bootstrapu. Úprava vzorce "
+            "průměru proto mění i je."
+        ),
+        source_sha256="91e8c6f4c2d0216e310f68038d5be443312ee9d324f55dc469f87e9dac00726d",
         evidence=(_UNC, _CAPTURES),
-        tests=(_EXACT,),
+        tests=(
+            _FORMULAS,
+            _EXACT,
+        ),
     ),
     MethodStep(
         id="median",
@@ -179,9 +204,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\quad\text{(ddof 0, na 2 desetinná místa)}"
         ),
         implements=f"{_A}:weighted_variance",
-        source_sha256="8619db992b4e63b28d35fd2d2540ea3ee7edbba0b9bcd5663c8db38a784bef1a",
+        source_sha256="3d8e38e6261391bd78ef35b58ef5407f44a66a26c38f900801586dc80d4838c2",
         evidence=(_UNC, _CAPTURES),
-        tests=(_EXACT,),
+        tests=(
+            _FORMULAS,
+            _EXACT,
+        ),
         note_cs="Vážená populační odchylka; pod dvěma platnými odpověďmi se nepočítá.",
     ),
     MethodStep(
@@ -189,14 +217,14 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Top box škály",
         formula_latex=(r"T = 100\,\frac{\sum_k w_k\,[x_k \ge \max - (b - 1)]}{\sum_k w_k}"),
         implements=f"{_A}:aggregate_question",
-        source_sha256="0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
+        source_sha256="cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
         symbols=(Symbol("b", "šířka top boxu", "bodů škály"),),
         parameters=(
             ParameterRef("top_box", "Šířka top boxu", "bodů škály"),
             ParameterRef("bootstrap.seed_top_box", "Semínko bootstrapu top boxu"),
         ),
         evidence=(_AGG, _CAPTURES),
-        tests=(_EXACT, _DECLARED),
+        tests=(_FORMULAS, _EXACT, _DECLARED),
         note_cs="Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
     ),
     MethodStep(
@@ -207,7 +235,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{semínko}_i = \text{semínko} + i"
         ),
         implements=f"{_A}:aggregate_question",
-        source_sha256="0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
+        source_sha256="cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
         parameters=(ParameterRef("bootstrap.reps_multi", "Replikace bootstrapu na možnost"),),
         evidence=(_AGG, _CAPTURES),
         tests=(_EXACT, _DECLARED),
@@ -319,11 +347,14 @@ AGGREGATION: Final = MethodModule(
     presets=(Preset("aia-aggregate-1", AIA_AGGREGATE_V1, _validate),),
     in_force="aia-aggregate-1",
     groups=_GROUPS,
+    formulas=AGGREGATION_FORMULAS,
     note_cs=(
         "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné "
         "s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, "
         "OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily "
         "intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy "
-        "přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to."
+        "přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není "
+        "přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, "
+        "co se změnilo."
     ),
 )

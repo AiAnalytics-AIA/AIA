@@ -101,7 +101,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
             <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
           </summary>
           <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} editable={detail.editable} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
           </div>
         </details>
       </section>;
@@ -110,7 +110,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
   </div>;
 }
 
-function StepCard({ step }: { step: MethodStepOut }) {
+function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }) {
   return (
     <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
       <h4 id={`ms-${step.id}`} className="text-sm font-semibold">{step.title_cs}</h4>
@@ -143,7 +143,7 @@ function StepCard({ step }: { step: MethodStepOut }) {
           </tbody>
         </table>
       ) : null}
-      {step.formulas.map((f) => <EditableFormula key={f.slot_id} formula={f} />)}
+      {step.formulas.map((f) => <EditableFormula key={f.slot_id} formula={f} editable={editable} />)}
       {step.evidence.length ? (
         <ul aria-label={t(`${M}.evidence`)} className="flex flex-col gap-1 text-sm">
           {step.evidence.map((e) => (
@@ -171,12 +171,13 @@ function StepCard({ step }: { step: MethodStepOut }) {
   );
 }
 
-/** A step's formula as the expression the engine evaluates, drawn from that expression. */
-function EditableFormula({ formula }: { formula: MethodFormula }) {
+/** A step's formula as the expression the engine evaluates, drawn from that expression. Its
+ *  help says it can be replaced only where the module has a version editor. */
+function EditableFormula({ formula, editable }: { formula: MethodFormula; editable: boolean }) {
   return (
     <details aria-label={`${t(`${M}.editable`)}: ${formula.title_cs}`} data-slot={formula.slot_id} className="rounded-sm border border-border p-3">
       <summary className="cursor-pointer text-xs font-semibold text-ink-muted">{t(`${M}.editable`)} · {formula.title_cs}</summary><div className="mt-3 flex min-w-0 flex-col gap-2">
-      <p className="text-xs text-ink-muted">{t(`${M}.editableHelp`)}</p>
+      <p className="text-xs text-ink-muted">{t(editable ? `${M}.editableHelp` : `${M}.editableHelpLater`)}</p>
       <div className="text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>

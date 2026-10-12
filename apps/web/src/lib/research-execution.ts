@@ -142,8 +142,39 @@ type QuestionResult = Record<string, unknown> & {
 const num = (x: number, decimals: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 const range = (i: Interval, decimals: number) => (i ? `${num(i.low, decimals)}–${num(i.high, decimals)}` : null);
 
-/** One question's aggregate as rows. A suppressed cell has rows but no values. */
-export function resultTable(id: string, result: QuestionResult): ResultTable {
+/**
+ * How an aggregate departs from 18.6.6's port (plan methodology-tab G2c): every value the
+ * methodology in use changed, with the unit's and the one used, and every replaced formula.
+ * Null: the aggregate is the unit's port. A deviation the page cannot read is still a
+ * deviation -- it says so with nothing named, never passes as the port.
+ */
+export type AggregateDeviation = {
+  version: string | null;
+  changed: { path: string; unit: unknown; used: unknown }[];
+  formulas: string[];
+};
+
+export function aggregateDeviation(aggregate: Record<string, unknown> | null | undefined): AggregateDeviation | null {
+  if (!aggregate || !("deviation" in aggregate)) return null;
+  const raw = aggregate.deviation;
+  if (typeof raw !== "object" || raw === null) return { version: null, changed: [], formulas: [] };
+  const d = raw as Record<string, unknown>;
+  const changed = Array.isArray(d.changed)
+    ? d.changed.filter((c): c is { path: string; unit: unknown; used: unknown } => typeof c === "object" && c !== null && typeof (c as { path?: unknown }).path === "string")
+    : [];
+  const formulas = Array.isArray(d.replaced_formulas) ? d.replaced_formulas.filter((f): f is string => typeof f === "string") : [];
+  return { version: typeof d.methodology_version === "string" ? d.methodology_version : null, changed, formulas };
+}
+
+/** How many top points the aggregate's top box holds: the unit's two, unless a version changed it. */
+export function topBoxWidth(deviation: AggregateDeviation | null): number {
+  const used = deviation?.changed.find((c) => c.path === "top_box")?.used;
+  return typeof used === "number" && Number.isInteger(used) && used >= 1 ? used : 2;
+}
+
+/** One question's aggregate as rows. A suppressed cell has rows but no values. `topBox` is how
+ *  many top points its top box holds (2 unless the aggregate's methodology changed it). */
+export function resultTable(id: string, result: QuestionResult, topBox = 2): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);
   const rows: ResultRow[] = [];
@@ -169,7 +200,7 @@ export function resultTable(id: string, result: QuestionResult): ResultTable {
     const top = result.top2box_pct as number | null;
     const topIv = result.top2box_interval_95 as Interval;
     rows.push({
-      label: t("research.exec.results.top2"),
+      label: topBox === 2 ? t("research.exec.results.top2") : tv("research.exec.results.topN", { n: topBox }),
       value: hide(top === null || top === undefined ? null : `${num(top, 1)} %`),
       interval: hide(range(topIv, 1)),
       ...(suppressed || typeof top !== "number" ? {} : { bar: { value: top, low: topIv?.low ?? null, high: topIv?.high ?? null } }),

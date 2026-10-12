@@ -578,6 +578,8 @@ export const cs = {
         editable: "Vzorec jako výraz",
         editableHelp:
           "Tento výraz dává přesně stejná čísla jako kód (ověřeno testem). V editoru verzí ho lze nahradit; náhrada musí splnit podmínky níže.",
+        editableHelpLater:
+          "Tento výraz dává přesně stejná čísla jako kód (ověřeno testem). Nahradit ho půjde, až bude tato oblast upravitelná; náhrada pak bude muset splnit podmínky níže.",
         expression: "Výraz",
         variables: "Proměnné",
         vector: "vektor",
@@ -1891,6 +1893,15 @@ export const cs = {
         analysisEvidence: "Odkazy na podklady",
         mean: "Průměr",
         top2: "Horní dva body",
+        topN: "Horní body ({n})",
+        deviation: {
+          chip: "Odchylka od 18.6.6",
+          text: "Agregace počítala podle upravené metodiky {version}, ne podle hodnot a vzorců jednotky 18.6.6. Čísla nejsou bez této výhrady srovnatelná s 18.6.6.",
+          unknownVersion: "(neznámá verze)",
+          changed: "{path}: {unit} v 18.6.6, zde {used}",
+          formula: "Nahrazený vzorec: {slot}",
+          unreadable: "Podrobnosti odchylky nejdou přečíst.",
+        },
         value: "Hodnota",
         interval: "95% interval",
         verbatims: "Ukázky odpovědí",

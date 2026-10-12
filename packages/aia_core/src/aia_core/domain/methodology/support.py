@@ -130,7 +130,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Kishovo efektivní n (jednotka)",
         formula_latex=r"n_{\mathrm{Kish}} = \frac{\left(\sum_k w_k\right)^2}{\sum_k w_k^2}",
         implements=f"{_A}:kish_effective_n",
-        source_sha256="3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+        source_sha256="c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
         evidence=(_UNIT,),
         tests=(
             f"{_T}/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds",
@@ -145,7 +145,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"s_{\max} = \max_d \tfrac{n_d}{n}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+        source_sha256="3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
         symbols=(
             Symbol("n_D", "počet různých dárců (vrstva core)"),
             Symbol(r"s_{\max}", "podíl největšího dárce"),
@@ -170,7 +170,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{INDIKATIVNÍ};\ \text{jinak REPORTOVATELNÉ}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+        source_sha256="3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
         parameters=(
             ParameterRef("results.min_cell", "Nejmenší surové n buňky"),
             ParameterRef("results.n_guard", "Potlačit pod efektivním n"),

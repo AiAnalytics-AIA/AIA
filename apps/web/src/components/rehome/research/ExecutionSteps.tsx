@@ -37,6 +37,7 @@ import {
   waitingDetail,
   phaseLabel,
   phaseTone,
+  aggregateDeviation,
   resultTable,
   shouldPoll,
   sociomapObjects,
@@ -46,6 +47,8 @@ import {
   stepStatusLabel,
   stepTone,
   supportNote,
+  topBoxWidth,
+  type AggregateDeviation,
   type ResultTable,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -1007,6 +1010,7 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
 
 type AggregatePayload = {
   aggregate: {
+    deviation?: unknown;
     questions: Record<string, Parameters<typeof resultTable>[1]>;
     batteries: Record<string, { title: string; objects: Record<string, Parameters<typeof resultTable>[1] & { label: string }> }>;
   };
@@ -1016,12 +1020,15 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
   const payload = artifact.payload as AggregatePayload | null;
   if (!payload) return null;
   const { questions, batteries } = payload.aggregate;
+  const deviation = aggregateDeviation(payload.aggregate);
+  const box = topBoxWidth(deviation);
   return (
     <div className="flex flex-col gap-5">
+      {deviation ? <Deviation deviation={deviation} /> : null}
       {Object.entries(questions).map(([id, result]) => (
         <section key={id} aria-label={id}>
           <h3 className="text-sm font-semibold">{id}</h3>
-          <Table table={resultTable(id, result)} />
+          <Table table={resultTable(id, result, box)} />
         </section>
       ))}
       {Object.entries(batteries).map(([id, battery]) => (
@@ -1030,12 +1037,31 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
           {Object.entries(battery.objects).map(([oid, result]) => (
             <div key={oid} className="mt-2">
               <p className="text-sm">{result.label}</p>
-              <Table table={resultTable(oid, result)} />
+              <Table table={resultTable(oid, result, box)} />
             </div>
           ))}
         </section>
       ))}
       <Provenance artifact={artifact} run={run} />
+    </div>
+  );
+}
+
+/** The aggregate is no longer 18.6.6's port: said above its numbers, with what changed. */
+function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
+  const D = "research.exec.results.deviation";
+  const shown = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
+  const named = d.changed.length + d.formulas.length;
+  return (
+    <div role="note" data-aggregate-deviation className="flex flex-col gap-1 rounded-sm border border-status-fault p-3 text-sm">
+      <div><Chip tone="fault">{t(`${D}.chip`)}</Chip></div>
+      <p>{tv(`${D}.text`, { version: d.version ?? t(`${D}.unknownVersion`) })}</p>
+      {named ? (
+        <ul className="list-disc pl-5 text-xs">
+          {d.changed.map((c) => <li key={c.path}>{tv(`${D}.changed`, { path: c.path, unit: shown(c.unit), used: shown(c.used) })}</li>)}
+          {d.formulas.map((f) => <li key={f}>{tv(`${D}.formula`, { slot: f })}</li>)}
+        </ul>
+      ) : <p className="text-xs text-ink-muted">{t(`${D}.unreadable`)}</p>}
     </div>
   );
 }

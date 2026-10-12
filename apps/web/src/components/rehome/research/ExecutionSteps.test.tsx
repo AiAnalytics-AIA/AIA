@@ -735,6 +735,50 @@ describe("Results", () => {
     // No hand-off to 18.6.6: the report AIA does not have yet is said, not linked (ADR 0018).
     expect(screen.queryByRole("link", { name: /18\.6\.6/ })).toBeNull();
     expect(screen.getByText(t("research.exec.results.reportNotInAia"))).toBeTruthy();
+    // 18.6.6's own aggregation: no deviation is claimed.
+    expect(document.querySelector("[data-aggregate-deviation]")).toBeNull();
+  });
+
+  it("says above the numbers when the aggregate is no longer 18.6.6's port, and what changed", async () => {
+    const deviating = {
+      ...AGGREGATE,
+      payload: {
+        aggregate: {
+          ...AGGREGATE.payload.aggregate,
+          questions: {
+            t2: { typ: "skala", ...support("REPORTABLE", 140), prumer: 3.9, prumer_interval_95: { low: 3.5, high: 4.2 }, top2box_pct: 41.0, top2box_interval_95: { low: 35, high: 47 } },
+          },
+          deviation: {
+            from: "aia-aggregate-1",
+            methodology_version: "aia-aggregate-1+e2",
+            changed: [{ path: "top_box", unit: 2, used: 3 }],
+            replaced_formulas: ["agg.mean"],
+            note_cs: "…",
+          },
+        },
+      },
+    };
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => deviating,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    // Wait until the aggregate has loaded: querySelector's null does not throw, so it is thrown.
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-aggregate-deviation]");
+      if (!found) throw new Error("the deviation note is not shown yet");
+      return found as HTMLElement;
+    });
+    expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
+    expect(within(note).getByText(/upravené metodiky aia-aggregate-1\+e2/)).toBeTruthy();
+    expect(within(note).getByText("top_box: 2 v 18.6.6, zde 3")).toBeTruthy();
+    expect(within(note).getByText("Nahrazený vzorec: agg.mean")).toBeTruthy();
+    // The top box is named by the width this aggregate used, not the unit's two.
+    const t2 = screen.getByRole("region", { name: "t2" });
+    expect(within(t2).getByText("Horní body (3)")).toBeTruthy();
+    expect(within(t2).queryByText("Horní dva body")).toBeNull();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
