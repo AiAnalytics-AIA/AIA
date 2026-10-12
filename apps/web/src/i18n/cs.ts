@@ -724,10 +724,11 @@ export const cs = {
         },
       },
       panel: {
+        technical: "Technický zdroj",
         legendTitle: "Jak jsou nastavení spravována",
         title: "Ovládání systému",
         intro:
-          "Všechny ovládací prvky AIA na jednom místě. U každé položky je uvedeno, jak se mění: živě přes API, proměnnou nasazení, změnou kódu — nebo vůbec, jde-li o invariant. Co je povoleno, rozhoduje API; jeho odmítnutí se zobrazí tak, jak přišlo.",
+          "Vyberte oblast podle toho, co potřebujete změnit. U každé hodnoty je uvedený její účel, platnost a způsob úpravy.",
         malformed: "API nevrátilo dokument nastavení.",
         unavailable: "{what}: nedostupné.",
         notConfigured: "nenastaveno",
@@ -740,7 +741,7 @@ export const cs = {
         save: "Uložit",
         saved: "Uloženo.",
         sending: "Odesílám…",
-        control: { API: "API", DEPLOYMENT: "Nasazení", CODE: "Kód", INVARIANT: "Invariant" },
+        control: { API: "V aplikaci", DEPLOYMENT: "Spravuje nasazení", CODE: "Spravuje AIA", INVARIANT: "Pevné pravidlo" },
         controlHelp: {
           API: "Mění se živě, přes auditovanou cestu API; kdo smí, určuje oprávnění.",
           DEPLOYMENT: "Proměnná prostředí, čtená a validovaná při startu procesu.",

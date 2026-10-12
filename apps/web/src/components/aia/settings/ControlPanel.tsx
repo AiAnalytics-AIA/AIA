@@ -37,6 +37,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
+import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
@@ -151,7 +152,7 @@ export function Value({ value, unit }: { value: SettingValue; unit?: string | nu
   }
   return (
     <span className="font-mono text-sm tabular-nums">
-      {String(value)}
+      {typeof value === "number" ? new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: unit === "USD" ? 2 : 6 }).format(value) : String(value)}
       {unit ? <span className="ml-1 text-xs text-ink-faint">{unit}</span> : null}
     </span>
   );
@@ -178,8 +179,9 @@ export function SettingRow({ item }: { item: SettingItem }) {
   return (
     <div data-setting={item.key} className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto] md:items-center md:gap-4">
       <div className="min-w-0">
-        <div className="text-sm text-ink">{t(`${P}.items.${item.key}`)}</div>
-        <code className="break-all text-[11px] text-ink-faint">{item.source}</code>
+        <div className="text-sm font-medium text-ink">{t(`${P}.items.${item.key}`).startsWith(P) ? item.key.replaceAll("_", " ") : t(`${P}.items.${item.key}`)}</div>
+        {SETTING_HELP[item.key] ? <p className="mt-1 text-xs leading-5 text-ink-muted">{SETTING_HELP[item.key]}</p> : null}
+        <details className="mt-1 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${P}.technical`)}</summary><code className="block break-all py-1">{item.source}</code></details>
       </div>
       <div className="min-w-0">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</div>
       <ControlBadge control={item.control} />
@@ -240,7 +242,7 @@ function ActionForm({
       reload();
     } catch (err) {
       if (err instanceof Unauthenticated) {
-        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
         return;
       }
       setAnswer({ ok: false, text: describe(err) });
@@ -783,8 +785,8 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = TABS.indexOf(active);
     const next =
-      e.key === "ArrowRight" ? TABS[(at + 1) % TABS.length]
-      : e.key === "ArrowLeft" ? TABS[(at + TABS.length - 1) % TABS.length]
+      (e.key === "ArrowRight" || e.key === "ArrowDown") ? TABS[(at + 1) % TABS.length]
+      : (e.key === "ArrowLeft" || e.key === "ArrowUp") ? TABS[(at + TABS.length - 1) % TABS.length]
       : e.key === "Home" ? TABS[0]
       : e.key === "End" ? TABS[TABS.length - 1]
       : null;
@@ -844,28 +846,31 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
           ))}
         </ul></details>
       </div>
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex flex-wrap gap-1 border-b border-border">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[15rem_minmax(0,1fr)]">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="grid h-fit grid-cols-2 gap-1 rounded-md border border-border bg-surface-raised p-2 sm:grid-cols-4 xl:sticky xl:top-6 xl:grid-cols-1">
         {TABS.map((tab) => (
           <button
             key={tab}
             id={`tab-${tab}`}
             type="button"
             role="tab"
+            aria-label={t(`${P}.tabs.${tab}`)}
             aria-selected={active === tab}
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`-mb-px rounded-t-sm border border-b-0 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-border bg-surface-raised font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}
+            className={`rounded-sm border px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            {t(`${P}.tabs.${tab}`)}
+            <span className="block">{t(`${P}.tabs.${tab}`)}</span><span aria-hidden="true" className="mt-1 hidden text-xs font-normal leading-5 text-ink-muted xl:block">{TAB_GUIDE[tab].purpose}</span>
           </button>
         ))}
       </div>
-      {TABS.map((tab) => (
+      <div className="min-w-0">{TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
+          <div className="rounded-md border border-signal-edge bg-signal-wash px-4 py-3"><p className="text-sm font-semibold">{TAB_GUIDE[tab].purpose}</p><p className="mt-1 text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p></div>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
-      ))}
+      ))}</div></div>
     </div>
   );
 }

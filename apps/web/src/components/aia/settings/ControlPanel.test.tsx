@@ -192,7 +192,7 @@ describe("the settings control panel", () => {
   it("still renders a group the page has no panel for", async () => {
     api();
     render(<ControlPanel />);
-    const row = (await screen.findByText("aia.settings.panel.items.something_new")).closest("[data-setting]") as HTMLElement;
+    const row = (await screen.findByText("something new")).closest("[data-setting]") as HTMLElement;
     expect(within(row).getByText("3")).toBeTruthy();
   });
 
@@ -453,7 +453,7 @@ describe("the settings tabs", () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+    expect(screen.getAllByRole("tab").map((t) => t.getAttribute("aria-label"))).toEqual([
       "AI běh", "Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
     ]);
     expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
@@ -476,7 +476,7 @@ describe("the settings tabs", () => {
     const reference = panelOf("Reference");
     for (const id of ["deployment", "invariants"]) expect(reference.contains(section(id))).toBe(true);
     // A group the page has no tab for lands in Reference rather than disappearing.
-    expect(within(reference).getByText("aia.settings.panel.items.something_new")).toBeTruthy();
+    expect(within(reference).getByText("something new")).toBeTruthy();
   });
 
   it("shows one panel at a time and keeps the others' state when switching back", async () => {
@@ -562,3 +562,15 @@ it("follows changed settings hashes and preserves the framework's navigation sta
   fireEvent(window, new HashChangeEvent("hashchange"));
   await waitFor(() => expect(tab("Reference").getAttribute("aria-selected")).toBe("true"));
 });
+
+ it("explains what a setting does, keeps its technical source optional and formats money for a reader", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 20, spent_usd: 12.714524700000009, remaining_usd: 7.285475299999991 }) });
+    render(<ControlPanel />);
+    const env = (await screen.findByText("Prostředí")).closest("[data-setting]")!;
+    expect(within(env as HTMLElement).getByText(/Rozlišuje vývojové/)).toBeTruthy();
+    expect((env.querySelector("details") as HTMLDetailsElement).open).toBe(false);
+    fireEvent.click(screen.getByRole("tab", { name: "Studie a rozpočty" }));
+    expect(await screen.findByText("12,71")).toBeTruthy();
+    expect(screen.getByText("7,29")).toBeTruthy();
+    expect(screen.queryByText("12.714524700000009")).toBeNull();
+  });
