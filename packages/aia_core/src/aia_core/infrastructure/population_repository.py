@@ -59,6 +59,7 @@ from .tables import (
     PopulationDatasetVersionRow,
     PopulationPromotionRow,
     PopulationRow,
+    PopulationVersionAudienceCatalogueRow,
     PopulationVersionDictionaryRow,
     as_utc,
 )
@@ -282,6 +283,36 @@ class PopulationRegistryRepository:
                 version_id=version_id,
                 sha256=sha256,
                 byte_size=len(content),
+                content=content,
+                recorded_at=recorded_at,
+                recorded_by=recorded_by,
+            )
+        )
+        self._session.flush()
+
+    def audience_catalogue(self, version_id: str, catalogue_version: str) -> tuple[str, str] | None:
+        """The kept audience catalogue of a version, ``(sha256, json)``, or ``None``."""
+        row = self._session.get(
+            PopulationVersionAudienceCatalogueRow, (version_id, catalogue_version)
+        )
+        return None if row is None else (row.sha256, row.content)
+
+    def insert_audience_catalogue(
+        self,
+        version_id: str,
+        *,
+        catalogue_version: str,
+        sha256: str,
+        content: str,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        """Keep a version's audience catalogue. Insert-once; there is no update."""
+        self._session.add(
+            PopulationVersionAudienceCatalogueRow(
+                version_id=version_id,
+                catalogue_version=catalogue_version,
+                sha256=sha256,
                 content=content,
                 recorded_at=recorded_at,
                 recorded_by=recorded_by,

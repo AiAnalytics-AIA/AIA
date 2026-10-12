@@ -25,7 +25,11 @@ import logging
 from collections.abc import Callable, Iterator
 from typing import Annotated
 
+from aia_core.application.audience_preview import AudiencePreviewer
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.population import CZ_LIVE
+from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
+from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 from aia_core.domain.scope import (
     OrganizationContext,
     Permission,
@@ -33,6 +37,7 @@ from aia_core.domain.scope import (
     StudyContext,
 )
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
+from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
@@ -102,6 +107,7 @@ def init_app_state(app: FastAPI, settings: Settings) -> None:
     # The store's S3 client is created on first use, so building it here costs
     # nothing and needs no credentials until an artifact is actually read.
     app.state.artifact_store = build_artifact_store(settings.storage_settings())
+    app.state.audience_previewer = build_audience_previewer(settings)
     logger.info(
         "identity provider configured",
         extra={"context": {"provider": app.state.identity_provider.name}},
@@ -110,6 +116,27 @@ def init_app_state(app: FastAPI, settings: Settings) -> None:
         "artifact store configured",
         extra={"context": {"backend": settings.storage_backend}},
     )
+
+
+def build_audience_previewer(settings: Settings) -> AudiencePreviewer | None:
+    """The audience preview over LIVE, or ``None`` when no asset root is configured.
+
+    Builds nothing that reads: the population is loaded on the first preview.
+    """
+    if not settings.population_asset_root:
+        return None
+    return AudiencePreviewer(
+        contract=CZ_SYNTHETIC_V17,
+        source=FilesystemPopulationSource(settings.population_asset_root),
+        enricher=AudienceDimensionsEnricher(),
+        population_id=CZ_LIVE,
+    )
+
+
+def get_audience_previewer(request: Request) -> AudiencePreviewer | None:
+    """The process's audience previewer; ``None`` when this deployment has none."""
+    previewer: AudiencePreviewer | None = getattr(request.app.state, "audience_previewer", None)
+    return previewer
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -407,3 +434,4 @@ ProjectRepositoryDep = Annotated[ProjectRepository, Depends(get_project_reposito
 ScopeRepositoryDep = Annotated[ScopeRepository, Depends(get_scope_repository)]
 ResolverDep = Annotated[ScopeResolver, Depends(get_scope_resolver)]
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
+AudiencePreviewerDep = Annotated[AudiencePreviewer | None, Depends(get_audience_previewer)]

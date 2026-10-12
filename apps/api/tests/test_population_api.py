@@ -8,12 +8,14 @@ LIVE now, superseded, or only registered. Nothing about the response can write.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 from aia_core.domain.population import PopulationKind
+from aia_core.domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.population.versions import (
     DatasetVersion,
@@ -23,7 +25,12 @@ from aia_core.domain.population.versions import (
 )
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
+from aia_core.infrastructure.tables import (
+    PopulationDatasetVersionRow,
+    PopulationVersionAudienceCatalogueRow,
+)
 from fastapi import FastAPI
+from sqlalchemy import update
 
 DATASET = CZ_SYNTHETIC_V17.dataset_id
 AT = datetime(2026, 10, 10, 9, 0, tzinfo=UTC)
@@ -329,3 +336,227 @@ def test_a_childs_characteristics_are_its_organizations_and_404_to_any_other(
     assert _characteristics(outsider, api_prefix, children["ours"]).status_code == 200
     theirs = _characteristics(viewer, api_prefix, children["theirs"])
     assert theirs.status_code == 404 and theirs.json()["code"] == "not_found"
+
+
+# ------------------------------------------- the audience catalogue (panel-grounded 6b)
+
+#: A catalogue as ``population_ops record-catalogue`` keeps it: fictional counts, one
+#: research-only factor the screen is not sent.
+FICTIONAL_CATALOGUE: dict[str, Any] = {
+    "catalogue_version": AUDIENCE_CATALOGUE_VERSION,
+    "categories": [
+        {"id": "demography", "label": "Demografie a životní fáze", "description": "d",
+         "count": 2, "filterable_count": 2},
+        {"id": "research_only", "label": "Research-only / citlivé", "description": "r",
+         "count": 1, "filterable_count": 0},
+    ],
+    "factors": [
+        {"id": "vek", "column": "vek", "label": "Věk", "category": "demography",
+         "category_label": "Demografie a životní fáze", "kind": "numeric",
+         "status": "PANEL_EXISTING", "filterable": True, "sensitive": False,
+         "source": "Panel v17", "non_null": 6, "min": 18.0, "max": 89.0, "p10": 20.5,
+         "p90": 80.0, "policy_allowed": True, "policy_reason": "allowed"},
+        {"id": "pohlavi", "column": "pohlavi", "label": "Pohlaví", "category": "demography",
+         "category_label": "Demografie a životní fáze", "kind": "category",
+         "status": "PANEL_EXISTING", "filterable": True, "sensitive": False,
+         "source": "Panel v17", "non_null": 6,
+         "values": [{"value": "žena", "count": 4}, {"value": "muž", "count": 2}],
+         "policy_allowed": False, "policy_reason": "unknown_field"},
+        {"id": "PHQ9_2022", "column": "PHQ9_2022", "label": "PHQ9",
+         "category": "research_only", "category_label": "Research-only / citlivé",
+         "kind": "numeric", "status": "PANEL_EXISTING_RESEARCH_ONLY", "filterable": False,
+         "sensitive": True, "source": "Research-only panel signal", "non_null": 6,
+         "min": 0.0, "max": 27.0, "p10": 1.0, "p90": 20.0, "policy_allowed": False,
+         "policy_reason": "unknown_field"},
+    ],
+    "filterable_count": 2,
+    "factor_count": 3,
+    "logic": "OR uvnitř jedné dimenze, AND mezi dimenzemi",
+}  # fmt: skip
+
+
+def _keep_catalogue(app: FastAPI, version_id: str, catalogue: dict[str, Any]) -> None:
+    content = json.dumps(catalogue, ensure_ascii=False, sort_keys=True)
+    with create_session_factory(app.state.engine)() as session:
+        PopulationRegistryRepository(session).insert_audience_catalogue(
+            version_id,
+            catalogue_version=AUDIENCE_CATALOGUE_VERSION,
+            sha256=_sha(content),
+            content=content,
+            recorded_at=AT,
+            recorded_by="test",
+        )
+        session.commit()
+
+
+def _keep_dictionary(app: FastAPI, version_id: str) -> None:
+    with create_session_factory(app.state.engine)() as session:
+        repo = PopulationRegistryRepository(session)
+        session.execute(
+            update(PopulationDatasetVersionRow)
+            .where(PopulationDatasetVersionRow.version_id == version_id)
+            .values(dictionary_sha256=_sha_bytes(FICTIONAL_DICTIONARY))
+        )
+        repo.insert_dictionary(
+            version_id,
+            sha256=_sha_bytes(FICTIONAL_DICTIONARY),
+            content=FICTIONAL_DICTIONARY,
+            recorded_at=AT,
+            recorded_by="test",
+        )
+        session.commit()
+
+
+def test_the_audience_catalogue_is_lives_kept_one_without_what_is_not_drawn(
+    app: FastAPI, registry: dict[str, str], viewer: Any, api_prefix: str
+) -> None:
+    _keep_dictionary(app, registry["live"])
+    _keep_catalogue(app, registry["live"], FICTIONAL_CATALOGUE)
+    # A catalogue kept for a version LIVE has left is not the one served.
+    _keep_catalogue(app, registry["old"], {**FICTIONAL_CATALOGUE, "factors": []})
+    response = viewer.get(f"{api_prefix}/population/audience-catalogue")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert (body["version_id"], body["version_label"]) == (registry["live"], "v_5")
+    assert [f["id"] for f in body["factors"]] == ["vek", "pohlavi"]  # research-only not sent
+    assert [c["id"] for c in body["categories"]] == ["demography", "research_only"]
+    assert body["factor_count"] == 3
+    pohlavi = body["factors"][1]
+    assert pohlavi["values"] == [{"value": "žena", "count": 4}, {"value": "muž", "count": 2}]
+    assert (pohlavi["policy_allowed"], pohlavi["policy_reason"]) == (False, "unknown_field")
+    subpanels = {s["key"]: s for s in body["subpanels"]}
+    assert len(subpanels) == 18
+    young = subpanels["young_18_29"]
+    assert young["filters"] == {"vek": [18, 29]} and young["usable"] is True
+    assert young["measured_by_18_6_6"]["rows"] == 2785
+    assert subpanels["students"]["filters"] == {"is_student": 1}
+    assert subpanels["students"]["usable"] is False
+
+
+def test_no_live_population_or_no_kept_catalogue_says_which(
+    app: FastAPI, lead: Any, api_prefix: str, registry_or_none: dict[str, str] | None
+) -> None:
+    url = f"{api_prefix}/population/audience-catalogue"
+    if registry_or_none is None:
+        response = lead.get(url)
+        assert response.status_code == 404
+        assert response.json()["code"] == "population_not_established"
+    else:
+        response = lead.get(url)
+        assert response.status_code == 404
+        assert response.json()["code"] == "audience_catalogue_missing"
+        assert "record-catalogue" in response.json()["message"]
+
+
+@pytest.fixture(params=["empty", "established"])
+def registry_or_none(request: Any) -> dict[str, str] | None:
+    return None if request.param == "empty" else request.getfixturevalue("registry")
+
+
+def test_a_kept_catalogue_that_does_not_hash_is_a_conflict(
+    app: FastAPI, registry: dict[str, str], viewer: Any, client: Any, api_prefix: str
+) -> None:
+    _keep_catalogue(app, registry["live"], FICTIONAL_CATALOGUE)
+    with create_session_factory(app.state.engine)() as session:
+        session.execute(update(PopulationVersionAudienceCatalogueRow).values(content="{}"))
+        session.commit()
+    response = viewer.get(f"{api_prefix}/population/audience-catalogue")
+    assert response.status_code == 409
+    assert response.json()["code"] == "audience_catalogue_mismatch"
+    assert client.get(f"{api_prefix}/population/audience-catalogue").status_code == 401
+
+
+# ------------------------------------------------ the audience preview (panel-grounded 6c)
+
+
+@pytest.fixture
+def counted(app: FastAPI, fictional_live: Any) -> Any:
+    """A fictional LIVE in the API's database, and the API's previewer over it."""
+    app.state.audience_previewer = fictional_live.previewer()
+    return fictional_live
+
+
+def test_the_preview_counts_the_audience_and_asks_the_sampler(
+    counted: Any, viewer: Any, api_prefix: str
+) -> None:
+    url = f"{api_prefix}/population/audience-preview"
+    response = viewer.post(url, json={"filters": {"vek": {"min": 30, "max": 59}}, "n": 200})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["population_rows"] == counted.rows
+    assert 0 < body["selected_rows"] < counted.rows and body["selected_donors"] > 0
+    assert body["filters_applied"] == {"vek": {"min": 30.0, "max": 59.0}}
+    assert body["audience"]["ok"] is True and body["sample"]["ok"] is True
+    assert body["version_label"] == "v1_4"
+    # What the response holds is counts and verdicts: no row, no respondent value.
+    assert set(body) == {
+        "version_id", "version_label", "population_rows", "selected_rows", "selected_donors",
+        "filters_applied", "audience", "n", "sample", "seed",
+    }  # fmt: skip
+
+    small = viewer.post(url, json={"filters": {}, "n": 8}).json()
+    assert small["sample"]["reason"] == "sampling_unrepresentative"  # OI-99, said first
+    refused = viewer.post(url, json={"filters": {"neexistuje": 1}}).json()
+    assert refused["audience"]["reason"] == "sampling_filter_invalid"
+    assert viewer.post(url, json={"n": 0}).status_code == 422
+    # A boolean is not a sample size, whatever lax coercion would make of it (AGENTS.md).
+    for flag in (True, False):
+        assert viewer.post(url, json={"n": flag}).status_code == 422
+
+
+def test_the_preview_loads_live_once_per_version(
+    counted: Any, viewer: Any, api_prefix: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from aia_core.application import audience_preview as module
+
+    loads = 0
+    real = module.PopulationRuntime.load
+
+    def counting(self: Any, binding: Any) -> Any:
+        nonlocal loads
+        loads += 1
+        return real(self, binding)
+
+    monkeypatch.setattr(module.PopulationRuntime, "load", counting)
+    url = f"{api_prefix}/population/audience-preview"
+    for _ in range(3):
+        assert viewer.post(url, json={"filters": {}}).status_code == 200
+    assert loads == 1
+
+
+def test_without_an_asset_root_there_is_no_preview(
+    app: FastAPI, viewer: Any, api_prefix: str
+) -> None:
+    url = f"{api_prefix}/population/audience-preview"
+    app.state.audience_previewer = None
+    unavailable = viewer.post(url, json={"filters": {}})
+    assert unavailable.status_code == 503
+    assert unavailable.json()["code"] == "audience_preview_unavailable"
+
+
+def test_a_preview_over_no_live_population_is_404_and_needs_a_member(
+    app: FastAPI, viewer: Any, client: Any, api_prefix: str
+) -> None:
+    from aia_core.application.audience_preview import AudiencePreviewer
+    from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
+    from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+    app.state.audience_previewer = AudiencePreviewer(
+        contract=CZ_SYNTHETIC_V17,
+        source=InMemoryPopulationSource({}),
+        enricher=AudienceDimensionsEnricher(),
+        population_id="CZ_LIVE",
+    )
+    url = f"{api_prefix}/population/audience-preview"
+    missing = viewer.post(url, json={"filters": {}})
+    assert missing.status_code == 404 and missing.json()["code"] == "population_not_established"
+    assert client.post(url, json={"filters": {}}).status_code == 401
+
+
+def test_a_population_that_will_not_load_is_unavailable_not_an_error(
+    counted: Any, viewer: Any, api_prefix: str
+) -> None:
+    counted.source.put("panels/v1_4.csv.gz", b"not the version")
+    response = viewer.post(f"{api_prefix}/population/audience-preview", json={"filters": {}})
+    assert response.status_code == 503
+    assert response.json()["code"] == "population_unavailable"

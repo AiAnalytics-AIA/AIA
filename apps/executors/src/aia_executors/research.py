@@ -32,7 +32,9 @@ from aia_core.domain.fieldwork import (
     FieldworkSource,
     InvalidDataset,
     OriginKind,
+    PersonaSource,
     origin_kind,
+    persona_source_of,
     validate_dataset,
 )
 from aia_core.domain.methodology.pins import (
@@ -260,13 +262,22 @@ class PreflightExecutor(_Step):
                 FailureClass.SCHEMA_VIOLATION,
                 error={"code": "sociomap_method_invalid", "message": str(exc)},
             )
+        # A run pinned to its population draws under the design's filters (6d); a run stored
+        # before the pin reached this step reads as the fictional roster.
+        try:
+            panel = persona_source_of(step.payload) is PersonaSource.PANEL
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "persona_source_unknown", "message": str(exc)},
+            )
         with context.transaction() as (session, workflow):
             spec_id = upstream_artifact(workflow, step, "compile")
             if spec_id is None:
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-            readiness = assess_readiness(spec, pair_n_min=pair_n_min)
+            readiness = assess_readiness(spec, pair_n_min=pair_n_min, filters_applied=panel)
             artifact, created = self._put(
                 repo,
                 step,
@@ -277,6 +288,8 @@ class PreflightExecutor(_Step):
                         "spec": spec.fingerprint(),
                         "rules": readiness.rules,
                         "pair_n_min": pair_n_min,
+                        # Only when it changes the checks: a roster run's key is unchanged.
+                        **({"filters_applied": True} if panel else {}),
                     }
                 ),
                 depends_on=[spec_id],

@@ -585,6 +585,21 @@ def test_a_run_whose_ceiling_reaches_the_limit_asks_first_and_creates_nothing(
     assert runs(user="researcher").runs() == []  # asking is not starting
 
 
+def test_a_panel_start_with_no_population_is_refused_as_that_before_any_cost_is_asked(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    """A run that can never start is not put to the person as a cost to confirm."""
+    from aia_core.application.research import PanelPopulationMissing
+    from aia_core.domain.fieldwork import PersonaSource
+
+    _limit(scoped, 100.0)
+    with pytest.raises(PanelPopulationMissing):
+        _start(runs, design, persona_source=PersonaSource.PANEL)
+    with pytest.raises(PanelPopulationMissing):  # nor after a yes to the cost
+        _start(runs, design, persona_source=PersonaSource.PANEL, confirm_cost_usd=CEILING)
+    assert runs(user="researcher").runs() == [] and _spend_rows(session) == []
+
+
 def test_a_confirmation_that_covers_the_ceiling_starts_the_run_and_is_recorded(
     session: Any, scoped: Any, runs: Any, design: Any
 ) -> None:

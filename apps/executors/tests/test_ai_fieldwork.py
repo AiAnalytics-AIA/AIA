@@ -1163,6 +1163,32 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
 
 
+def test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """6d under the real worker: the readiness the run stores reads its pin, and the sample is
+    drawn under the filters it says apply."""
+    design = {
+        **GROUNDED_DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    run_id = _start_grounded(world, grounded, design)
+    worker = run_with(ScriptedBedrock(), env=_grounded_env(design), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    steps = _steps(_run(world, run_id))
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        readiness = research.read_json(steps["preflight"]["output"]["artifact_id"])
+        dataset = research.read_json(steps["run"]["output"]["artifact_id"])
+    audience = next(c for c in readiness["readiness"]["checks"] if c["id"] == "audience")
+    assert (audience["status"], audience["message"]) == (
+        "PASS",
+        "Filtry se uplatní při výběru respondentů z populace.",
+    )
+    sample = dataset["provenance"]["persona_source"]["sample"]
+    assert sample["filters"] == {"vek": {"min": 30.0, "max": 59.0}}
+
+
 def test_a_design_the_population_cannot_sample_fails_before_any_call(
     world: Any, run_with: Callable[..., Worker], grounded: Any
 ) -> None:

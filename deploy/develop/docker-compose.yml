@@ -157,6 +157,12 @@ services:
       AIA_DEEP_RESEARCH_CONNECTORS: ${AIA_DEEP_RESEARCH_CONNECTORS:-}
       AIA_DEEP_RESEARCH_AGENT_DIRECTED: ${AIA_DEEP_RESEARCH_AGENT_DIRECTED:-false}
       AIA_DEEP_RESEARCH_LEAD: ${AIA_DEEP_RESEARCH_LEAD:-false}
+      # The audience step's preview (panel-grounded-respondents 6c): the API loads LIVE from the
+      # same read-only directory the worker reads, once per version, and answers with counts.
+      # AIA_API_POPULATION_ASSET_ROOT= (empty) in .env turns the preview off; the step says so.
+      AIA_POPULATION_ASSET_ROOT: ${AIA_API_POPULATION_ASSET_ROOT-/srv/population/v17}
+    volumes:
+      - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]
     depends_on:
       postgres:

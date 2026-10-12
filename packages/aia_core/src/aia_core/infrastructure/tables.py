@@ -1606,6 +1606,29 @@ class PopulationVersionDictionaryRow(Base):
     )
 
 
+class PopulationVersionAudienceCatalogueRow(Base):
+    """The audience factor catalogue computed from one dataset version. **Insert-once.**
+
+    Computed once from the version's ANALYSIS view (``population_ops record-catalogue``,
+    ``domain.population.audience_catalogue``) and kept as canonical JSON with its hash, so
+    the API serves it without loading a respondent row. A new catalogue version is a new
+    row beside the old, never an update.
+    """
+
+    __tablename__ = "population_version_audience_catalogues"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    catalogue_version: Mapped[str] = mapped_column(String(128), primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
+    )
+
+
 class PopulationCompanionSetRow(Base):
     """The validated companion set of one dataset version. **Insert-once.**
 
