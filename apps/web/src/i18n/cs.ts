@@ -698,6 +698,15 @@ export const cs = {
               measure: { prumer: "průměr", top2box: "top box" },
               share: "podíl „{option}“",
             },
+            response: {
+              intro:
+                "Úprava a proces v platnosti odpovědí na tytéž pevné smyšlené otázky za tentýž smyšlený soubor {respondents} respondentů stejnými funkcemi jako běh. Model se nevolá: jeho místo zastupuje pevné rozdělení pravděpodobností u každé otázky. Ukazují se průměrné podíly možností a jak daleko se jeden respondent v průměru vzdálí od rozdělení modelu.",
+              summary: "největší změna podílu {moved} p. b. · posun respondenta {before} → {after} p. b.",
+              option: "Možnost",
+              model: "Model",
+              shift: "Průměrný posun respondenta od modelu",
+              described: "Profily se stylem slovy: {before} → {after} z {respondents}",
+            },
           },
           parse: {
             number: "Zadejte číslo (desetinná čárka i tečka).",

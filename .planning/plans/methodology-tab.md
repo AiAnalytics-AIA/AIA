@@ -35,8 +35,9 @@ chunks:
   - "[x] W1b. Weighting tells the truth: a run's dataset refuses every invalid weight (infinity passed), the inert median/refuse switch dropped, the sampler's floor, raking and audit shown as the code's constants, Kish's n in four places"
   - "[ ] W1c. Weighting a run's choice and editable, once the panel source reaches fieldwork (panel-grounded-respondents 5): the weighting pinned per run, the sampler's values and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
-  - "[ ] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; a process that is not the unit's is a deviation from 18.6.6"
-  - "[ ] R1c. Response process editable, with the draft check on fictional respondents"
+  - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
+  - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
+  - "[ ] R1d. Results name the run's response process and say when it is not 18.6.6's (on Z1a's Metodika běhu, once #338 is merged)"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
@@ -1034,6 +1035,42 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     are now put back in the unit's order on read; each style is computed on its own, so the
     order moves no value
     (`test_methodology_response.py::test_a_pin_read_back_with_its_keys_reordered_is_the_same_process`).
+
+- **R1b. Landed.** A run pins its response process like its support rules.
+  - `ResearchRuns.start` pins the organization's `response` version in force, else
+    `aia-response-1`, into the run's metadata (`response`, `response_methodology` when stored)
+    and the fieldwork step's input; a stored version or a caller's process other than the
+    unit's is part of the run's key, and a retry keeps the original's
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_response_process_its_run_pinned`).
+  - AI fieldwork reads the pin (`methodology.pins.read_response_pin`; a pin that does not read
+    fails `response_pin_invalid` before any call, never the code's values instead) and
+    assigns styles, words them and adjusts the model's probabilities under it. The dataset's
+    provenance carries `response_process`: its name, the SHA256 of its specification and
+    whether it is the unit's
+    (`test_ai_fieldwork.py::test_ai_respondents_answer_under_the_response_process_their_run_pinned`:
+    a threshold of 10 keeps every style out of the requests the unit's 0.7 puts them in).
+  - A panel run (panel-grounded-respondents 5a/5b) is styled under the same pin:
+    `panel_source.panel_plans` passes it to `panel_personas`; who is sampled does not depend
+    on it (`test_panel_source.py::test_panel_personas_are_styled_under_the_runs_response_process`).
+    The panel's profile has its own wording and no describe threshold.
+  - Results do not say yet when a run's process is not the unit's: nothing can be stored
+    until R1c, which adds that sentence with the editor.
+
+- **R1c. Landed.** `response` is editable: a version is any `ResponseProcessSpec` the domain
+  validates (`versions.validate_version`, no formula slot), stored and put in force as for
+  support; a run started afterwards pins it under its own name
+  (`test_methodology_run_pins.py::test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units`).
+  - **Draft check** (`methodology/response_check.py`, `POST /methodology/response/compare`):
+    four fixed fictional questions (a 1-5 scale with "nevím" and declared agreement, a choice
+    with a declared desirable answer, a plain 1-7 scale, a choice satisficing toward the first
+    option), each with a fixed probability vector standing in for the model, answered by a
+    fixed roster of 80 under the process in force and the draft. Shown: each option's mean
+    share, the largest move in points, and each respondent's mean shift from the model's
+    vector -- styles are centred, so the mean alone hides what a style does (extremity 0.22 to
+    1.0 moves the 1-7 scale's mean by 0.64 pp, each respondent by 3.49 to 9.78 pp); and how
+    many profiles put a style into words. No model is called, nothing is drawn.
+  - **R1d split out:** Results naming the process and the deviation sentence belong on the
+    "Metodika běhu" line Z1a adds; they follow once #338 is merged, not stacked on it.
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 

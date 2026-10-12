@@ -14,6 +14,7 @@ import pytest
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.methodology import MODULES
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
 from fastapi.testclient import TestClient
@@ -430,3 +431,60 @@ def test_the_aggregation_draft_check_names_every_estimate_it_moves(as_user: Any)
         assert moved == {("spokojenost", "top2box"), ("doporuceni", "top2box")}
         assert panel["status_changes"] == []  # a top box decides no status
         assert set(panel["effective_n"]) == {"spokojenost", "doporuceni", "volba", "kanaly"}
+
+
+# ------------------------------------------------------------------- response process (R1c)
+
+RESPONSE = f"{METHODOLOGY}/response"
+
+
+def _response_edit(**values: Any) -> dict[str, Any]:
+    """``aia-response-1`` with values changed (``satisficing__cap=0.2``)."""
+    spec = AIA_RESPONSE_V1.model_dump(mode="json")
+    for path, value in values.items():
+        node = spec
+        *parents, leaf = path.split("__")
+        for p in parents:
+            node = node[p]
+        node[leaf] = value
+    return {"base_preset": "aia-response-1", "spec": spec, "formulas": {}}
+
+
+def test_the_response_process_is_edited_and_put_in_force(owner: TestClient) -> None:
+    presets = owner.get(f"{RESPONSE}/versions").json()["presets"]
+    assert presets == {"aia-response-1": AIA_RESPONSE_V1.model_dump(mode="json")}
+    edit = _response_edit(extremity=0.5, style_links__sdilnost__education=0.4)
+    assert owner.post(f"{RESPONSE}/check", json=edit).json()["valid"] is True
+    stored = owner.post(f"{RESPONSE}/versions", json=edit)
+    assert stored.status_code == 201 and stored.json()["name"] == "aia-response-1+e1"
+    put = owner.put(f"{RESPONSE}/activation", json={"version_number": 1, "reason": "test"})
+    assert put.status_code == 200 and put.json()["origin"] == "stored"
+
+
+def test_a_response_process_that_cannot_be_read_is_refused_with_its_problem(
+    owner: TestClient,
+) -> None:
+    body = owner.post(f"{RESPONSE}/check", json=_response_edit(satisficing__cap=1.5)).json()
+    assert body["valid"] is False and "spec.satisficing.cap" in body["problems"]
+    refused = owner.post(f"{RESPONSE}/versions", json=_response_edit(style_noise_floor=0.0))
+    assert refused.status_code == 422
+
+
+def test_the_response_draft_check_answers_fixed_questions_under_both_processes(
+    as_user: Any,
+) -> None:
+    member: TestClient = as_user("researcher")
+    same = member.post(f"{RESPONSE}/compare", json=_response_edit()).json()
+    assert (same["valid"], same["in_force"], same["panels"]) == (True, "aia-response-1", [])
+    check = same["response"]
+    assert check["respondents"] == 80 and len(check["questions"]) == 4
+    assert all(q["in_force"] == q["draft"] and q["moved_pp"] == 0 for q in check["questions"])
+    assert check["described_in_force"] == check["described_draft"]
+
+    sharper = member.post(
+        f"{RESPONSE}/compare", json=_response_edit(extremity=1.0, describe_threshold=1.5)
+    ).json()["response"]
+    assert sharper["draft"] == "aia-response-1+e1"
+    scale = {q["question"]: q for q in sharper["questions"]}["skala7"]
+    assert scale["shift_draft"] > scale["shift_in_force"]  # each respondent moves further
+    assert sharper["described_draft"] < sharper["described_in_force"]

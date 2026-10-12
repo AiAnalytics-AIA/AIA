@@ -27,7 +27,9 @@ from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
+from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.residency import DataClass
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -265,14 +267,16 @@ def run_with(
     return make
 
 
-def _start(world: Any) -> str:
+def _start(world: Any, response: ResponseProcessSpec | None = None) -> str:
     with world.sessions() as session:
         scope = world.lead_scope(session)
         revision, _ = StudyDesignRepository(session, scope).submit(
             content=DESIGN, source_stage="run"
         )
         started = ResearchRuns(session, scope).start(
-            design_revision_id=revision.revision_id, fieldwork_source=FieldworkSource.AI_RUNTIME
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.AI_RUNTIME,
+            response=response,
         )
         session.commit()
         return started.run_id
@@ -362,6 +366,13 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
     )
     assert provenance["data_class"] == "CLASS_C_INTERNAL"
     assert provenance["lineage"] == ["aia_synthetic_fixture"]
+    # Answered under the response process the run pinned: with nothing stored, the unit's.
+    assert run["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
+    assert provenance["response_process"] == {
+        "name": "aia-response-1",
+        "sha256": fingerprint(AIA_RESPONSE_V1.model_dump(mode="json")),
+        "unit": True,
+    }
     assert provenance["route_id"] == "bedrock-eu-primary" and provenance["model"] == PROFILE
     assert len(provenance["calls"]) == N * BLOCKS
     assert {c["provider_request_id"] for c in provenance["calls"]} == {
@@ -399,6 +410,43 @@ def test_ai_respondents_answer_and_the_run_continues_through_aggregate_and_socio
         assert steps[node]["status"] is StepRunStatus.SUCCEEDED
         assert steps[node]["output"]["data_origin"] == "SYNTHETIC_AI_FICTIONAL"
     assert steps["sociomap"]["output"]["methodology_status"] == "INTERNAL_ONLY"
+
+
+def test_ai_respondents_answer_under_the_response_process_their_run_pinned(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Plan methodology-tab R1b: a process that is not the unit's is pinned, sent and named.
+    A threshold of 10 keeps every respondent's styles out of words; the unit's 0.7 does not."""
+    edited = AIA_RESPONSE_V1.model_copy(
+        update={"methodology_version": "aia-response-1+e1", "describe_threshold": 10.0}
+    )
+    unit_bedrock, edited_bedrock = ScriptedBedrock(), ScriptedBedrock()
+    unit_run = _start(world)
+    assert _drain(run_with(unit_bedrock, env=_fictional(world))) == ["completed"] * 5
+    edited_run = _start(world, edited)
+    assert edited_run != unit_run  # another process is another run of the same revision
+    assert _drain(run_with(edited_bedrock, env=_fictional(world))) == ["completed"] * 5
+
+    def styled(bedrock: ScriptedBedrock) -> int:
+        bodies = [
+            json.dumps(json.loads(r.raw_body), ensure_ascii=False)
+            for r in bedrock.requests
+            if r.raw_body
+        ]
+        # The profile's own line, not the system prompt's mention of it.
+        return sum("Jak odpovídá v dotaznících: " in b for b in bodies)
+
+    assert styled(edited_bedrock) == 0
+    assert styled(unit_bedrock) > 0
+
+    run = _run(world, edited_run)
+    assert run["metadata"]["response"] == edited.model_dump(mode="json")
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        output = _steps(run)["run"]["output"]
+        provenance = research.read_json(output["artifact_id"])["provenance"]
+    assert provenance["response_process"]["name"] == "aia-response-1+e1"
+    assert provenance["response_process"]["unit"] is False
 
 
 # --------------------------------------------------------------------------- #
@@ -451,7 +499,7 @@ def test_a_roster_run_given_population_built_personas_fails_before_any_call(
     the roster whose roster is not fictional refuses before anything is reserved or sent."""
     real = ai_fieldwork.fictional_roster
 
-    def panel_roster(n: int, *, seed: int) -> Any:
+    def panel_roster(n: int, *, seed: int, response: Any = None) -> Any:
         return tuple(
             p.model_copy(
                 update={"lineage": frozenset({"czech_population_panel"}), "fictional": False}

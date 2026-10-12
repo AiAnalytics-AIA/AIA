@@ -100,3 +100,31 @@ describe("the aggregation draft check (plan G3b)", () => {
     expect(document.querySelector("[data-compare-support]")).toBeNull();
   });
 });
+
+describe("the response-process draft check", () => {
+  it("shows each option's share under the model, in force and drafted, and each respondent's shift", () => {
+    render(
+      <MethodologyComparison
+        result={{
+          valid: true, problems: {}, in_force: "aia-response-1", panels: [],
+          response: {
+            draft: "aia-response-1+e1", respondents: 80, described_in_force: 77, described_draft: 40,
+            questions: [{
+              question: "skala7", label_cs: "Škála 1-7 bez „nevím“, nic deklarovaného",
+              labels: ["1", "2", "3"], model: [25, 50, 25], in_force: [25.5, 49, 25.5], draft: [30, 40, 30],
+              moved_pp: 9, shift_in_force: 3.49, shift_draft: 9.78,
+            }],
+          },
+        }}
+      />,
+    );
+    const box = document.querySelector("[data-compare-response]") as HTMLElement;
+    expect(within(box).getByText(/Model se nevolá/)).toBeTruthy();
+    expect(within(box).getByText("Profily se stylem slovy: 77 → 40 z 80")).toBeTruthy();
+    expect(within(box).getByText(/největší změna podílu 9 p\. b\. · posun respondenta 3,49 → 9,78 p\. b\./)).toBeTruthy();
+    const table = within(box).getByRole("table", { name: "Škála 1-7 bez „nevím“, nic deklarovaného" });
+    const two = within(table).getByRole("rowheader", { name: "2" }).closest("tr") as HTMLElement;
+    expect(two.textContent).toBe("250 %49 %40 %");
+    expect(within(two).getByText("40 %").className).toContain("font-semibold");
+  });
+});

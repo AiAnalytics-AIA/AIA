@@ -18,6 +18,7 @@ from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_sociomap import default_methods
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.models_v3 import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
@@ -359,6 +360,62 @@ def test_a_retry_keeps_the_support_rules_its_run_pinned(world: Any) -> None:
         session.commit()
     run = _run(world, retried.run_id)
     assert run["metadata"]["support"] == strict.model_dump(mode="json")
+
+
+# ------------------------------------------------ R1b: the response process a run pins --
+
+
+def test_with_nothing_stored_a_run_pins_the_units_response_process(world: Any) -> None:
+    run = _run(world, _start(world))
+    assert run["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
+    assert "response_methodology" not in run["metadata"]
+
+
+def test_a_retry_keeps_the_response_process_its_run_pinned(world: Any) -> None:
+    edited = AIA_RESPONSE_V1.model_copy(
+        update={"methodology_version": "aia-response-1+e1", "extremity": 0.5}
+    )
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        runs = ResearchRuns(session, scope)
+        run_id = runs.start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            response=edited,
+        ).run_id
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    run = _run(world, retried.run_id)
+    assert run["metadata"]["response"] == edited.model_dump(mode="json")
+    assert _run(world, run_id)["metadata"]["response"] == edited.model_dump(mode="json")
+
+
+def test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units(
+    world: Any,
+) -> None:
+    """Stored and put in force as the Metodika tab does (R1c); a run started afterwards pins
+    it under its own name and is a new run of the revision; one started before keeps the unit's."""
+    before = _start(world)
+    spec = AIA_RESPONSE_V1.model_dump(mode="json")
+    spec["extremity"] = 0.5
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "response", base_preset="aia-response-1", spec=spec, formulas={}, note="test"
+        )
+        repo.activate("response", version.version_number, reason="test")
+        session.commit()
+    after = _start(world)
+    assert after != before
+    pinned = _run(world, after)["metadata"]
+    assert pinned["response"]["extremity"] == 0.5
+    assert pinned["response"]["methodology_version"] == "aia-response-1+e1"
+    assert pinned["response_methodology"]["name"] == "aia-response-1+e1"
+    assert _run(world, before)["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
 
 
 # ------------------------------------------------ G3a: the aggregation a run pins --

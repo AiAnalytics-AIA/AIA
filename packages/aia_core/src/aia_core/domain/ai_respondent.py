@@ -54,6 +54,7 @@ from .respondent_behavior import (
     AIA_RESPONSE_V1,
     EDUCATION_ORDER,
     STYLES,
+    ResponseProcessSpec,
     ResponseQuestion,
     adjust_probabilities,
     assign_styles,
@@ -181,15 +182,16 @@ class Persona(BaseModel):
     lineage: frozenset[str]
     fictional: bool
 
-    def profile(self) -> str:
-        """The profile text shown to the model: its facts and response style."""
+    def profile(self, threshold: float = AIA_RESPONSE_V1.describe_threshold) -> str:
+        """The profile text shown to the model: its facts and response style (a style in
+        words from ``threshold``, the run's response process's)."""
         f = self.facts
         lines = [
             "FIKTIVNÍ RESPONDENT: smyšlená persona pro test, ne skutečný člověk.",
             f"Pohlaví: {f.get('pohlavi', 'neuvedeno')}; věk: {f.get('vek', 'neuvedeno')}; "
             f"vzdělání: {f.get('vzdelani', 'neuvedeno')}; kraj: {f.get('kraj', 'neuvedeno')}.",
         ]
-        described = describe_style(self.style)
+        described = describe_style(self.style, threshold)
         if described:
             lines.append(f"Jak odpovídá v dotaznících: {described}.")
         return "\n".join(lines)
@@ -257,8 +259,10 @@ _REGIONS: Final = (
 )
 
 
-def fictional_roster(n: int, *, seed: int) -> tuple[Persona, ...]:
-    """``n`` invented respondents, the same for the same ``(n, seed)`` on any host.
+def fictional_roster(
+    n: int, *, seed: int, response: ResponseProcessSpec = AIA_RESPONSE_V1
+) -> tuple[Persona, ...]:
+    """``n`` invented respondents, the same for the same ``(n, seed, response)`` on any host.
 
     Attributes are drawn uniformly from ``random.Random(seed)``: they are not a
     sample of any population, and a map drawn from their answers is not a finding.
@@ -280,7 +284,7 @@ def fictional_roster(n: int, *, seed: int) -> tuple[Persona, ...]:
             }
         )
     donors = max(3, n // 3)
-    styles = assign_styles(rows)
+    styles = assign_styles(rows, response)
     return tuple(
         Persona(
             persona_id=row["respondent_id"],
@@ -409,9 +413,9 @@ class RespondentPlan:
     #: (a panel persona, ``panel_persona.PanelPersonas.plan``); empty: ``persona.profile()``.
     profiles: tuple[str, ...] = ()
 
-    def profile(self, block: Block) -> str:
+    def profile(self, block: Block, threshold: float = AIA_RESPONSE_V1.describe_threshold) -> str:
         """The profile a model is shown with ``block``."""
-        return self.profiles[block.index] if self.profiles else self.persona.profile()
+        return self.profiles[block.index] if self.profiles else self.persona.profile(threshold)
 
 
 def plan_respondent(spec: ResearchSpecification, persona: Persona) -> RespondentPlan:
@@ -594,15 +598,17 @@ def build_request(
     data_class: DataClass,
     lineage: DataLineage,
     max_output_tokens: int,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> ModelRequest:
-    """One respondent's request for one block. Scope is never in it; class and lineage are."""
+    """One respondent's request for one block. Scope is never in it; class and lineage are.
+    A style is put into the profile's words from ``response``'s threshold."""
     sections = [
         f"OTÁZKA {pos}/{len(block.items)} (ID {item.item_id})\n{item.text}\n{_instruction(item)}"
         for pos, item in enumerate(block.items, 1)
     ]
     content = (
         "PROFIL RESPONDENTA:\n"
-        + plan.profile(block)
+        + plan.profile(block, response.describe_threshold)
         + "\n\nPŘEDCHOZÍ ODPOVĚDI V TOMTO ROZHOVORU:\n"
         + _history(answers_so_far, items_by_id)
         + "\n\n"
@@ -636,6 +642,7 @@ def interpret_block(
     persona: Persona,
     *,
     seed: int,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> tuple[dict[str, Answer], dict[str, dict[str, Any]]]:
     """The model's validated output -> final answers, drawn by code. And what was done.
 
@@ -653,7 +660,9 @@ def interpret_block(
         if item.kind in ("choice", "scale"):
             raw = list(part.probabilities)
             try:
-                probs, behavior = adjust_probabilities(raw, item.response_question(), persona.style)
+                probs, behavior = adjust_probabilities(
+                    raw, item.response_question(), persona.style, response
+                )
             except ValueError as exc:
                 raise RespondentOutputInvalid(f"{item.item_id}: {exc}") from exc
             index = draw_index(probs, item_seed(seed, persona.persona_id, item.item_id))

@@ -55,8 +55,10 @@ from aia_core.domain.ai_respondent import (
     plan_respondent,
 )
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
+from aia_core.domain.methodology.pins import read_response_pin
 from aia_core.domain.panel_persona import PersonaRefused
 from aia_core.domain.panel_source import PanelPlans, panel_plans, respondent_system
+from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 from aia_core.domain.population.errors import PopulationError
@@ -64,7 +66,7 @@ from aia_core.domain.population.runtime import RuntimePopulation
 from aia_core.domain.population.sampling import SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
-from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, BEHAVIOR_VERSION
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -195,6 +197,13 @@ class AIFieldwork:
         if spec.n is None or spec.n < 1:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
         seed = fieldwork_seed(spec)
+        try:
+            response = read_response_pin(step.payload.get("response"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "response_pin_invalid", "message": str(exc)},
+            )
         population: RuntimePopulation | None = None
         built: PanelPlans | None = None
         if persona_source is PersonaSource.PANEL:
@@ -202,7 +211,7 @@ class AIFieldwork:
             try:
                 with context.transaction() as (session, workflow):
                     population = self._population(session, workflow, step.run_id)
-                built = panel_plans(population, spec, seed=seed)
+                built = panel_plans(population, spec, seed=seed, response=response)
             except (SamplingRefused, PersonaRefused) as refused:
                 # The design asks for a sample or a persona this population cannot give: no
                 # smaller sample, no narrower persona, and nothing sent.
@@ -229,7 +238,7 @@ class AIFieldwork:
                 )
             personas = tuple(plan.persona for plan in built.plans)
         else:
-            personas = fictional_roster(spec.n, seed=seed)
+            personas = fictional_roster(spec.n, seed=seed, response=response)
         if built is None and not all(p.fictional for p in personas):
             # Population-built personas come only through the run's pinned panel source; a
             # roster that is not fictional is a defect. Fail here, before a call is paid for.
@@ -296,6 +305,7 @@ class AIFieldwork:
                 data_class=data_class,
                 lineage=lineage,
                 max_output_tokens=cfg.max_output_tokens,
+                response=response,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -324,7 +334,9 @@ class AIFieldwork:
                 result = caller.invoke(request_for(index, block.index, answers))
                 assert result.output is not None  # a structured agent's result has one
                 try:
-                    drawn, _ = interpret_block(block, result.output, plan.persona, seed=seed)
+                    drawn, _ = interpret_block(
+                        block, result.output, plan.persona, seed=seed, response=response
+                    )
                 except RespondentOutputInvalid as exc:
                     return Failed(
                         FailureClass.SCHEMA_VIOLATION,
@@ -363,6 +375,11 @@ class AIFieldwork:
             "contract_version": CONTRACT_VERSION,
             "generator": GENERATOR,
             "behavior_version": BEHAVIOR_VERSION,
+            "response_process": {
+                "name": response.methodology_version,
+                "sha256": fingerprint(response.model_dump(mode="json")),
+                "unit": response == AIA_RESPONSE_V1,
+            },
             "fact_layer_version": FACT_LAYER_VERSION,
             "persona_source": (
                 built.provenance(population)

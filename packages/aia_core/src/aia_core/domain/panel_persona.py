@@ -59,7 +59,7 @@ from .population.policy import FieldUse
 from .population.runtime import RuntimePopulation
 from .population.sampling import DONOR_FIELD, PanelSample
 from .research_design import ResearchSpecification
-from .respondent_behavior import assign_styles
+from .respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec, assign_styles
 from .respondent_facts import _DIRECT_PATTERNS
 
 __all__ = [
@@ -190,7 +190,12 @@ def _gate_joint(population: RuntimePopulation, columns: Sequence[str]) -> None:
             )
 
 
-def panel_personas(population: RuntimePopulation, sample: PanelSample) -> PanelPersonas:
+def panel_personas(
+    population: RuntimePopulation,
+    sample: PanelSample,
+    *,
+    response: ResponseProcessSpec = AIA_RESPONSE_V1,
+) -> PanelPersonas:
     """The personas of ``sample``, drawn from ``population`` -- or a refusal by name."""
     fields = set(population.fields)
     unported = compatibility_columns(population.fields)
@@ -253,7 +258,7 @@ def panel_personas(population: RuntimePopulation, sample: PanelSample) -> PanelP
         }
         for i in range(population.row_count)
     ]
-    styles = assign_styles(style_rows)
+    styles = assign_styles(style_rows, response)
 
     donors = population.column(DONOR_FIELD)
     personas: list[Persona] = []

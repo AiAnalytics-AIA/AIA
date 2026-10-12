@@ -715,7 +715,7 @@
   },
   "response": {
    "aia-response-1": {
-    "editable": false,
+    "editable": true,
     "groups": [
      {
       "id": "M",
@@ -776,7 +776,7 @@
     ],
     "id": "response",
     "in_force": "aia-response-1",
-    "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Běh si proces odpovědi zapamatuje od R1b, upravit ho půjde od R1c.",
+    "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Každý běh si proces odpovědi zapamatuje a opakování ho drží. Úpravu lze před uvedením v platnost porovnat na pevných fiktivních otázkách a respondentech.",
     "preset": "aia-response-1",
     "presets": [
      "aia-response-1"
@@ -825,7 +825,7 @@
       "id": "request",
       "implements": "aia_core.domain.ai_respondent:build_request",
       "note_cs": "Model dostane profil jednoho respondenta a vrátí pro každou uzavřenou otázku rozdělení pravděpodobností, nikdy odpověď. Disperzní teplota 18.6.6 (dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1.",
-      "source_sha256": "024e1fb18276662447f6332ad0df3eeae7b38564dce03b991882f52beae3e6c6",
+      "source_sha256": "df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
       "symbols": [
        {
         "latex": "K",
@@ -1485,7 +1485,7 @@
       "id": "roster",
       "implements": "aia_core.domain.ai_respondent:fictional_roster",
       "note_cs": "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu.",
-      "source_sha256": "6b9afbd58fb01abcb0c405d231e6434b5a033055298f6283391acbdec27d17df",
+      "source_sha256": "70f80c16faef7718b30696b87c735b47c6442607ce9eb38ac2da7f1868230bca",
       "symbols": [
        {
         "latex": "D",
@@ -8895,7 +8895,7 @@
       "id": "respondent",
       "implements": "aia_core.domain.panel_persona:panel_personas",
       "note_cs": "Respondent postavený z panelu nese váhu vzorku po rakingu. Zdroj panelu ještě není zapojen do sběru (plán panel-grounded-respondents, část 5); AI respondenti dnes váží 1 a smyšlení respondenti pracovní plochy svou váhu.",
-      "source_sha256": "137e38c08743b61d500cfc1f00ecaf20de1581e6a941c1bdcb119a6b750c5211",
+      "source_sha256": "9f68f6e30b141b74b6b67df8969447dc2559c31654b11c2286ee1ac6dd82674a",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_panel_persona.py::test_every_sampled_row_becomes_a_panel_persona"
@@ -9499,7 +9499,7 @@
    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
   },
   {
-   "editable": false,
+   "editable": true,
    "groups": [
     {
      "id": "M",
@@ -9560,7 +9560,7 @@
    ],
    "id": "response",
    "in_force": "aia-response-1",
-   "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Běh si proces odpovědi zapamatuje od R1b, upravit ho půjde od R1c.",
+   "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Každý běh si proces odpovědi zapamatuje a opakování ho drží. Úpravu lze před uvedením v platnost porovnat na pevných fiktivních otázkách a respondentech.",
    "presets": [
     "aia-response-1"
    ],
@@ -9585,7 +9585,58 @@
     "top_box": 2
    }
   },
-  "response": {},
+  "response": {
+   "aia-response-1": {
+    "acquiescence": 0.16,
+    "describe_threshold": 0.7,
+    "dont_know": 0.24,
+    "extremity": 0.22,
+    "methodology_version": "aia-response-1",
+    "reweight_limit": 8.0,
+    "satisficing": {
+     "base": 0.1,
+     "cap": 0.35,
+     "slope": 0.06
+    },
+    "social_desirability": {
+     "base": 0.18,
+     "slope": 0.1
+    },
+    "style_links": {
+     "ochota_priznat_nevim": {
+      "age": -0.1,
+      "education": -0.25,
+      "male": -0.15
+     },
+     "satisficing": {
+      "age": 0.1,
+      "education": -0.25,
+      "male": 0.0
+     },
+     "sdilnost": {
+      "age": -0.1,
+      "education": 0.3,
+      "male": 0.0
+     },
+     "social_desirability_sensitivity": {
+      "age": 0.05,
+      "education": -0.05,
+      "male": -0.05
+     },
+     "souhlasny_sklon": {
+      "age": 0.2,
+      "education": -0.3,
+      "male": 0.0
+     },
+     "vyhranenost": {
+      "age": 0.15,
+      "education": -0.1,
+      "male": 0.05
+     }
+    },
+    "style_noise_floor": 0.05
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "connectedness": {
