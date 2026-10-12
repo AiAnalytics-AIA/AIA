@@ -721,9 +721,11 @@ runtime is configured and the gateway's gates pass; otherwise it **parks**
 its datasets say so (`SYNTHETIC_AI_FICTIONAL`); the fixture's invented respondents
 exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The model
 returns one respondent's probabilities; code answers facts and draws the answer.
-Panel-derived data reaches no model provider until OI-61 records a licence
-determination -- a gate of its own beside residency. The Sociomap is computed but
-`INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
+Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
+owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
+and refuses it on any other route. No persona source reads the panel yet
+([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
+The Sociomap is computed but `INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
 (ADR 0019 gate 2).
 

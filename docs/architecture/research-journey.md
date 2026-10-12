@@ -497,8 +497,8 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
    allowlist and approved knowledge, while `context_snapshot` includes attachment text without
    classifying it separately. The Class C route is approved only for its stated class and the
    Class A route remains unapproved. Job 6 must close this gap before enabling design jobs for
-   studies carrying uploads or pasted material. Panel-derived data is separately refused by the
-   licence gate (OI-61).
+   studies carrying uploads or pasted material. Panel-derived data passes the licence gate on
+   `bedrock-eu-primary` alone (OI-61, closed 2026-10-12) and is refused on any other route.
 6. A number reaches a result or a report only as an `AdmittedClaim`. `NON_EVIDENCE_ORIGINS` never
    become client-facing claims, and every evidence row carries the origin of its data (OI-78). The
    Sociomap stays `INTERNAL_ONLY` while D6 (Sociomap methodology) is open.
@@ -538,7 +538,7 @@ independence.
 | Path | Blocked by | How the scenario shows it |
 |---|---|---|
 | Client or unknown material, including pasted or attached text, sent to a model | OI-79's per-material classification; D6 for any resulting Class A/B route | client B's design jobs park with zero calls; a locally allowlisted test client carrying client/unknown text must also park before OI-79 closes |
-| Panel-derived respondents | OI-61 (licence); the withheld archive (population import) | only the fictional roster runs; there is no `v17_4_0` binding |
+| Panel-derived respondents | `plans/panel-grounded-respondents.md` chunks 1-7 (the licence, OI-61, is closed for `bedrock-eu-primary`) | only the fictional roster runs |
 | Web search | DR-2 (a search route); D8 (a key, for a keyed service) | Deep Research parks unless enabled; enabled, only the Class C Czech Wikipedia route is live and every other web track is blocked |
 | A client-facing Sociomap | D6 (methodology) | the report omits it and says so |
 | A report delivered to a client | AC-11's legal gate (`governance.legal` `NOT_STARTED`); synthetic and modeled origins are not observed evidence | the fixture review records *internal, synthetic*; no client delivery exists |

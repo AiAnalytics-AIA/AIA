@@ -2051,7 +2051,7 @@ denials) was unusable; nobody noticed because no API test exercised the scope ro
 
 **Status.** Fixed, merged in PR #51 (`develop` @ `4ad5f66`).
 
-## OI-61 · Decision owed (legal) · May panel-derived microdata be sent to a model provider?
+## OI-61 · Decision, closed · May panel-derived microdata be sent to a model provider?
 
 **Claim.** Whether PIAAC, ISSP and the Czech population panel built from them — or anything computed
 from their rows, such as a synthetic respondent's grounded profile — may be transmitted to any model
@@ -2139,6 +2139,19 @@ PCG64 port justified, and it would need its own named exception to §2.
 
 **Status.** Decided for research aggregation, and implemented: `packages/aia_core/src/aia_core/domain/research_aggregate.py`, `test_research_aggregate.py` (EXACT fields, bounds within the unit's seed spread, AIA's bounds pinned), parity-matrix deviation D5.
 
+**Resolution (2026-10-12).** The data owner determined that the PIAAC, ISSP and Czech panel
+licences permit transmission to a model provider, approved for AIA's EU Bedrock route alone.
+Recorded as policy data: `packages/aia_core/src/aia_core/domain/licence_determinations.py`
+(`PANEL_APPROVED_ROUTE = "bedrock-eu-primary"`) @ `a7616ef`, PR #289; each determination names
+the decider, the date and the basis. Any other route refuses panel lineage as
+`licence_not_approved_for_route`
+(`test_licence_gate.py::test_each_panel_derived_dataset_reaches_the_eu_bedrock_route_and_no_other`).
+Residency is unchanged. **Not recorded:** legal's confirmation, which this item asked for beside
+the data owner's; the basis is the owner's determination alone. Grounding respondents in the panel
+is [`plans/panel-grounded-respondents.md`](plans/panel-grounded-respondents.md); until its chunk 5
+lands no persona source reads the panel (OI-97).
+
+**Status.** Closed by PR #289 (`a7616ef`).
 ---
 
 ## OI-63 · Direction recorded, engineering open · A fictional-client flag is not production data authority
@@ -2206,7 +2219,8 @@ is on the fieldwork dataset's provenance (`provenance.lineage`), not on the ledg
 (`packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py` `_row` @ `dec2fd1`).
 
 **Consequence.** Auditing which datasets reached a provider needs the artifact as well as
-the ledger. Nothing panel-derived can be sent today (OI-61), so nothing is missing yet.
+the ledger. Panel lineage may now reach `bedrock-eu-primary` (OI-61, closed), but no persona
+source reads the panel until `plans/panel-grounded-respondents.md` chunk 5, which needs this first.
 
 **Smallest fix.** `AIUsageEvent.data_lineage` + a column + migration, written by the
 gateway from the request. **Status.** Open; plan follow-up 6.
@@ -3261,3 +3275,26 @@ anything in the account, and the session that holds them can too.
 under `/aia/develop/`, in `infra/develop`, named in the runbook's step 1.
 
 **Test.** A Terraform plan test that the role's policy names only those actions and resources.
+
+---
+
+## OI-97 · Finding, closed · Opening the licence gate let a non-fictional persona cost money before failing
+
+**Claim.** With the panel approved for the EU route and no guard, a non-fictional persona passed
+preflight, every respondent's blocks were sent and paid for, and only then did `assemble_dataset`
+refuse the dataset, ending the attempt `UNKNOWN`.
+
+**Anchor.** The late refusal: `packages/aia_core/src/aia_core/domain/ai_respondent.py:682 @ 5d545eb`.
+The guard: `apps/executors/src/aia_executors/ai_fieldwork.py` `AIFieldwork.produce` @ `a7616ef`.
+
+**Reproduction.** Remove the guard and run `pytest apps/executors/tests/test_ai_fieldwork.py -k panel`:
+it fails with `FailureClass.UNKNOWN` after calls reached the adapter.
+
+**Consequence.** None in production: `fictional_roster` is the only persona source. A future source
+built without the guard would have paid for a whole run's fieldwork and kept nothing.
+
+**Fix.** Landed in PR #289: the fieldwork step fails `persona_source_unsupported` before anything is
+reserved or sent. `plans/panel-grounded-respondents.md` chunk 5 replaces it with the panel source.
+
+**Status.** Closed by PR #289 (`a7616ef`). The test that catches it:
+`test_ai_fieldwork.py::test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exists`.
