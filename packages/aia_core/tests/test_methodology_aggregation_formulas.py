@@ -73,6 +73,9 @@ def test_every_fixture_aggregates_identically_through_its_built_in_expressions(
     spec, dataset = _case(case_id)
     code = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
     expressions = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1, slots=BUILT_IN)
+    # Every number is identical. The aggregate still says its formulas were replaced (G2c):
+    # an edit is an edit, even one that repeats the built-in.
+    assert expressions.pop("deviation")["replaced_formulas"] == sorted(AGGREGATE_SLOTS)
     assert expressions == code
 
 

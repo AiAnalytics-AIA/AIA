@@ -27,7 +27,7 @@ chunks:
   - "[x] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[x] G2a. Aggregation documented and declared: estimators, Kish, bootstrap reps/seeds/quantiles, top-2-box in AggregationSpec (aia-aggregate-1, the unit's literals bit for bit); D1, D5, D7 named on their steps"
   - "[x] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
-  - "[ ] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
+  - "[x] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
@@ -729,6 +729,29 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - **D7, tested.** `test_the_keyword_lists_decide_what_is_refused`: "Kolik byste zaplatili…"
       is refused, while "Jakou částku … považujete za přiměřenou?" passes as AMBER. The refusal
       is only as good as the lists.
+  - **G2c. Landed.**
+    - **When an aggregate departs.** `research_aggregate.aggregation_deviation(method, slots)`
+      is `None` for 18.6.6's port. Otherwise it names every value of `aia-aggregate-1` the
+      method changed (path, the unit's value, the one used) and every replaced formula.
+      - A version that only renames changes no number and claims nothing.
+      - A replaced formula counts even when its expression equals the built-in: an edit is
+        an edit.
+    - **The artifact.** `aggregate_dataset(…, method=, slots=)` adds a `deviation` block only
+      when there is one. The port's artifact is byte for byte what it was: the parity
+      self-fixture, which compares whole artifacts, passes unchanged.
+    - **Results.** Above the numbers, "Odchylka od 18.6.6", the version, each changed value
+      ("top_box: 2 v 18.6.6, zde 3") and each replaced formula (`ExecutionSteps.tsx`,
+      `Deviation`).
+      - The top box is named by the width the aggregate used ("Horní body (3)"), no longer
+        always "Horní dva body".
+      - A deviation the page cannot read is still shown as a deviation, with nothing named;
+        it never passes as the port (`research-execution.ts`, `aggregateDeviation`).
+    - **Reachable from G3.** No run passes a method or slots yet, so no stored aggregate can
+      deviate until a run pins the aggregation version in force. Analysis and the report read
+      the aggregate's numbers; carrying the label into them belongs with that pin.
+    - Tests: `test_aggregate_deviation.py`; `research-execution.test.ts`
+      (`aggregateDeviation`, `topBoxWidth`, the top-box label); `ExecutionSteps.test.tsx`
+      (the label above the numbers, and none on the port).
   - **G2b. Landed.**
     - **The obstacle.** A built-in expression must give the code's exact bits, and the
       formula language's `sum` is `math.fsum`. The aggregate summed with plain `sum`, so an

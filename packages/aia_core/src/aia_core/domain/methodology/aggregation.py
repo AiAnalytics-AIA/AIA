@@ -18,8 +18,9 @@ formula slots (G2b, :mod:`.aggregation_formulas`), each with the expression the 
 computes bit for bit.
 
 Every aggregate is computed under it. A run does not pin it yet, and it is not editable; both
-come in G3, and an aggregate computed under any other version is a deviation from 18.6.6 and
-will say so (G2c).
+come in G3. An aggregate computed under any changed value or replaced formula is no longer the
+unit's port and says so (G2c): its ``deviation`` names each change, and Results shows it above
+the numbers. A version that only renames computes the unit's numbers and claims nothing.
 
 The findings this module carries are named on their steps:
 
@@ -109,7 +110,10 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
         parameters=(ParameterRef("methodology_version", "Verze agregace"),),
         evidence=(_AGG,),
-        tests=(_DECLARED,),
+        tests=(
+            _DECLARED,
+            f"{_T}/test_aggregate_deviation.py::test_a_changed_value_is_named_and_the_numbers_follow_it",
+        ),
     ),
     # ------------------------------------------------------------------- weights
     MethodStep(
@@ -349,6 +353,8 @@ AGGREGATION: Final = MethodModule(
         "s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, "
         "OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily "
         "intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy "
-        "přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to."
+        "přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není "
+        "přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, "
+        "co se změnilo."
     ),
 )

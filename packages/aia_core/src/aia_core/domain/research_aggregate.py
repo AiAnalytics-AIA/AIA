@@ -54,6 +54,7 @@ __all__ = [
     "AGGREGATE_VERSION",
     "AIA_AGGREGATE_V1",
     "BOOTSTRAP_GENERATOR",
+    "DEVIATION_NOTE",
     "KISH",
     "MEAN",
     "SHARE",
@@ -63,6 +64,7 @@ __all__ = [
     "BootstrapSpec",
     "aggregate_dataset",
     "aggregate_question",
+    "aggregation_deviation",
     "bootstrap_weighted_distribution",
     "bootstrap_weighted_mean",
     "classify_question",
@@ -148,6 +150,12 @@ class AggregationSpec(_Declared):
             raise ValueError("the top box holds at least one scale point")
         return v
 
+
+#: What an aggregate that is no longer the unit's port says about itself (plan G2c).
+DEVIATION_NOTE: Final = (
+    "Agregace se odchyluje od přenosu 18.6.6: počítá podle upravené metodiky, ne podle "
+    "hodnot a vzorců jednotky. Čísla proto nejsou srovnatelná s 18.6.6 bez této výhrady."
+)
 
 #: 18.6.6's own values (``dotaznik.py`` ``agreguj_otazku``), inline there, declared here.
 AIA_AGGREGATE_V1: Final = AggregationSpec(
@@ -588,6 +596,42 @@ def bootstrap_weighted_distribution(
 # --------------------------------------------------------------------------- #
 
 
+def _leaves(value: Any, prefix: str = "") -> dict[str, Any]:
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for k, v in value.items():
+            out.update(_leaves(v, f"{prefix}.{k}" if prefix else str(k)))
+        return out
+    return {prefix: value}
+
+
+def aggregation_deviation(method: AggregationSpec, slots: Slots) -> dict[str, Any] | None:
+    """How an aggregate computed under ``method`` and ``slots`` departs from 18.6.6's port, or
+    ``None`` when it does not (plan ``methodology-tab`` G2c).
+
+    It departs when any value of :data:`AIA_AGGREGATE_V1` differs or any estimator is replaced.
+    A version's name alone is not a departure: a version that changes nothing computes the
+    unit's numbers. The departure names every changed value, with the unit's and the one used,
+    and every replaced formula."""
+    unit = _leaves(AIA_AGGREGATE_V1.model_dump(mode="json"))
+    used = _leaves(method.model_dump(mode="json"))
+    changed = [
+        {"path": k, "unit": unit[k], "used": used.get(k)}
+        for k in sorted(unit)
+        if k != "methodology_version" and used.get(k) != unit[k]
+    ]
+    replaced = sorted(slots)
+    if not changed and not replaced:
+        return None
+    return {
+        "from": AIA_AGGREGATE_V1.methodology_version,
+        "methodology_version": method.methodology_version,
+        "changed": changed,
+        "replaced_formulas": replaced,
+        "note_cs": DEVIATION_NOTE,
+    }
+
+
 def _numeric(value: Any) -> float:
     if isinstance(value, bool) or not isinstance(value, int | float):
         return math.nan
@@ -756,14 +800,17 @@ def aggregate_dataset(
     *,
     support: SupportSpec,
     validation_status: str = "UNVALIDATED",
+    method: AggregationSpec = AIA_AGGREGATE_V1,
     slots: Slots = NO_SLOTS,
 ) -> dict[str, Any]:
     """Every question and every battery object of ``spec``, aggregated over ``dataset``.
 
     ``support`` is the run's pinned support specification; its ``results`` rule decides
     every cell's ``support_status`` (plan ``methodology-tab`` G1c). Every question is
-    aggregated under :data:`AIA_AGGREGATE_V1`, the unit's own values (G2a). ``slots`` are the
-    estimators a methodology version replaced (G2b); a run does not pin any yet (G3).
+    aggregated under ``method`` (G2a; :data:`AIA_AGGREGATE_V1`, the unit's own values, unless
+    given) and ``slots``, the estimators a methodology version replaced (G2b); a run does not
+    pin either yet (G3). An aggregate that departs from the unit's port says so in a
+    ``deviation`` block (G2c); one that does not is byte for byte what it always was.
 
     A battery object is aggregated as the scale question the unit compiles it to
     (``research_project.py`` ``_prefixed_battery_questions``).
@@ -782,7 +829,7 @@ def aggregate_dataset(
             donors,
             validation_status=validation_status,
             support_rule=support.results,
-            method=AIA_AGGREGATE_V1,
+            method=method,
             slots=slots,
         )
         for q in spec.questions
@@ -807,12 +854,12 @@ def aggregate_dataset(
                     donors,
                     validation_status=validation_status,
                     support_rule=support.results,
-                    method=AIA_AGGREGATE_V1,
+                    method=method,
                     slots=slots,
                 ),
             }
         batteries[b.id] = {"title": b.title, "family": b.family, "objects": objects}
-    return {
+    out: dict[str, Any] = {
         "aggregate_version": AGGREGATE_VERSION,
         "bootstrap_generator": BOOTSTRAP_GENERATOR,
         "validation_status": validation_status,
@@ -821,3 +868,7 @@ def aggregate_dataset(
         "questions": questions,
         "batteries": batteries,
     }
+    departure = aggregation_deviation(method, slots)
+    if departure is not None:
+        out["deviation"] = departure
+    return out

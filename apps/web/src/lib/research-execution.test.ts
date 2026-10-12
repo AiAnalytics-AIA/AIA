@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
+import { aggregateDeviation, isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -95,3 +95,29 @@ describe("populationNote (population-operations P3)", () => {
   });
 });
 
+
+describe("aggregateDeviation (methodology-tab G2c)", () => {
+  it("is null for 18.6.6's port and reads what a deviation names", () => {
+    expect(aggregateDeviation({ questions: {} })).toBeNull();
+    expect(aggregateDeviation(null)).toBeNull();
+    const d = aggregateDeviation({
+      deviation: { methodology_version: "aia-aggregate-1+e1", changed: [{ path: "top_box", unit: 2, used: 1 }], replaced_formulas: ["agg.share"] },
+    });
+    expect(d).toEqual({ version: "aia-aggregate-1+e1", changed: [{ path: "top_box", unit: 2, used: 1 }], formulas: ["agg.share"] });
+    expect(topBoxWidth(d)).toBe(1);
+    expect(topBoxWidth(null)).toBe(2);
+  });
+
+  it("never passes an unreadable deviation as the port", () => {
+    expect(aggregateDeviation({ deviation: "garbled" })).toEqual({ version: null, changed: [], formulas: [] });
+    expect(aggregateDeviation({ deviation: { changed: [{ nope: 1 }, "x"], replaced_formulas: [3] } })).toEqual({ version: null, changed: [], formulas: [] });
+    expect(topBoxWidth({ version: null, changed: [{ path: "top_box", unit: 2, used: "three" }], formulas: [] })).toBe(2);
+  });
+
+  it("names the top box by its width", () => {
+    const base = { support_status: "REPORTABLE" as const, n_platnych: 100, n_unique_layer_donors: 60, effective_n: 50 };
+    const scale = { typ: "skala", ...base, prumer: 3.1, top2box_pct: 40 };
+    expect(resultTable("t", scale).rows[1].label).toBe("Horní dva body");
+    expect(resultTable("t", scale, 3).rows[1].label).toBe("Horní body (3)");
+  });
+});

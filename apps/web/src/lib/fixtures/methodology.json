@@ -55,7 +55,7 @@
     ],
     "id": "aggregation",
     "in_force": "aia-aggregate-1",
-    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to.",
+    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
     "preset": "aia-aggregate-1",
     "presets": [
      "aia-aggregate-1"
@@ -77,7 +77,8 @@
       "source_sha256": "b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit",
+       "packages/aia_core/tests/test_aggregate_deviation.py::test_a_changed_value_is_named_and_the_numbers_follow_it"
       ],
       "title_cs": "Pojmenování agregace",
       "values": [
@@ -7836,7 +7837,7 @@
    ],
    "id": "aggregation",
    "in_force": "aia-aggregate-1",
-   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to.",
+   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
    "presets": [
     "aia-aggregate-1"
    ],
