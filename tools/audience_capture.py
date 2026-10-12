@@ -5,8 +5,8 @@ Two steps, in two environments, because the port lives in a stdlib-only domain a
 the unit needs pandas:
 
     python tools/audience_capture.py inputs
-        (repo environment) write the fictional panel and the filter cases to
-        packages/aia_core/tests/fixtures/population_audience/
+        (repo environment) write the fictional rows and the filter cases to
+        packages/aia_core/tests/fixtures/audience_filter/
 
     <a venv with pandas>=2.1,<3 and numpy>=1.26,<3>/bin/python tools/audience_capture.py capture
         (the unit's environment) load the panel exactly as ``pipeline.Panel.from_csv``
@@ -36,7 +36,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "legacy" / "npc-panel-18.6.6" / "app"
-OUT = ROOT / "packages" / "aia_core" / "tests" / "fixtures" / "population_audience"
+OUT = ROOT / "packages" / "aia_core" / "tests" / "fixtures" / "audience_filter"
 UNIT_SOURCES = ("audience.py", "audience_dimensions.py")
 
 KRAJE = ("Hlavní město Praha", "Středočeský kraj", "Jihomoravský kraj", "Zlínský kraj")
@@ -147,11 +147,11 @@ def _sha(data: bytes) -> str:
 
 def write_inputs() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "panel.csv").write_bytes(panel_csv())
+    (OUT / "rows.csv").write_bytes(panel_csv())
     (OUT / "cases.json").write_text(
         json.dumps(CASES, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"wrote {OUT / 'panel.csv'} and {OUT / 'cases.json'}")
+    print(f"wrote {OUT / 'rows.csv'} and {OUT / 'cases.json'}")
 
 
 def _typed(value: Any) -> dict[str, Any]:
@@ -168,7 +168,7 @@ def capture() -> None:
     import audience_dimensions
     from audience_dimensions import enrich_panel, factor_map
 
-    panel_bytes = (OUT / "panel.csv").read_bytes()
+    panel_bytes = (OUT / "rows.csv").read_bytes()
     cases_bytes = (OUT / "cases.json").read_bytes()
     df = pd.read_csv(
         io.BytesIO(panel_bytes), low_memory=False, dtype={"occupation_isco08": "string"}

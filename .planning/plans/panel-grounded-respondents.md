@@ -230,7 +230,7 @@ runtime_filters`), and `select_audience(population, filters)`, which refuses
 (`sampling_filter_invalid`, `sampling_field_refused`, `sampling_empty`) where the unit
 dropped. Parity is EXACT on 25 cases and all 21 factors, captured from the unit's own
 `sanitize_filters`, `_mask` and `factor_map` (`tools/audience_capture.py`;
-`tests/fixtures/population_audience/`, re-captured byte-identical), in
+`tests/fixtures/audience_filter/` (no "population" or "panel" in a fixture path: `tools/exposure_check.sh` rule 2c), re-captured byte-identical), in
 `tests/test_population_audience.py`.
 
 What the fixture showed, each pinned by a case:

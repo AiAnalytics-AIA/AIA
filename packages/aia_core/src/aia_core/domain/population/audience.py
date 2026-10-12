@@ -4,7 +4,7 @@ A port of 18.6.6's ``audience.sanitize_filters`` and ``audience._mask``
 (``legacy/npc-panel-18.6.6/app/audience.py:217`` and ``:34``), kept as **one** function
 pair so a preview and the fieldwork sample cannot disagree -- the bug 18.6.6 records at
 ``pipeline.py:255-257``. Parity is EXACT against the unit's own functions on a fictional
-panel (``tools/audience_capture.py``; ``tests/fixtures/population_audience/``).
+panel (``tools/audience_capture.py``; ``tests/fixtures/audience_filter/``).
 
 The filter's language is the unit's, unchanged: AND across dimensions, OR within one
 dimension; a numeric dimension takes ``{"min", "max"}``, a two-item pair, or a single

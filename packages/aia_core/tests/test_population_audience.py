@@ -1,6 +1,6 @@
 """The audience filter against 18.6.6's own functions (panel-grounded-respondents 2c).
 
-``tests/fixtures/population_audience/expected.json`` is what the unit's unmodified
+``tests/fixtures/audience_filter/expected.json`` is what the unit's unmodified
 ``audience.sanitize_filters`` and ``audience._mask`` returned on a fictional panel,
 loaded exactly as the unit loads its panel (``tools/audience_capture.py``). Every
 comparison here is EXACT. The last tests run :func:`select_audience` over a population
@@ -33,7 +33,7 @@ from aia_core.domain.population.audience import (
 )
 from aia_core.domain.population.subpanels import BUILTIN_SUBPANELS
 
-FIXTURES = Path(__file__).parent / "fixtures" / "population_audience"
+FIXTURES = Path(__file__).parent / "fixtures" / "audience_filter"
 UNIT = Path(__file__).resolve().parents[3] / "legacy" / "npc-panel-18.6.6" / "app"
 EXPECTED: dict[str, Any] = json.loads((FIXTURES / "expected.json").read_text("utf-8"))
 CASES: list[dict[str, Any]] = json.loads((FIXTURES / "cases.json").read_text("utf-8"))
@@ -45,7 +45,7 @@ def _sha(path: Path) -> str:
 
 def _columns() -> dict[str, Sequence[str | None]]:
     """The fictional panel as AIA's parser holds it, plus the unit's derived columns."""
-    reader = csv.reader(io.StringIO((FIXTURES / "panel.csv").read_text("utf-8")))
+    reader = csv.reader(io.StringIO((FIXTURES / "rows.csv").read_text("utf-8")))
     header, *rows = list(reader)
     columns: dict[str, Sequence[str | None]] = {
         name: tuple(None if row[i] == "" else row[i] for row in rows)
@@ -64,7 +64,7 @@ COLUMNS = _columns()
 
 
 def test_the_fixture_is_pinned_to_its_inputs_and_the_unit_sources() -> None:
-    assert _sha(FIXTURES / "panel.csv") == EXPECTED["panel_sha256"]
+    assert _sha(FIXTURES / "rows.csv") == EXPECTED["panel_sha256"]
     assert _sha(FIXTURES / "cases.json") == EXPECTED["cases_sha256"]
     # A re-extracted unit with different sources needs a fresh capture.
     for name, sha in EXPECTED["unit_sources"].items():
