@@ -22,7 +22,8 @@ AI-probability summaries (``_probs_*``, ``_entropy_*``), and coded open answers.
 The values the unit wrote inline -- the bootstrap's replicates, seeds and percentile
 quantiles, and the top-2-box width -- are declared (plan ``methodology-tab`` G2a) in
 :class:`AggregationSpec`, whose preset :data:`AIA_AGGREGATE_V1` is the unit's literals, bit
-for bit. Every aggregate is computed under it; a run does not yet pin it (G3).
+for bit. A run pins the aggregation version in force when it starts (G3a); with nothing
+stored, that is this preset.
 
 Pure: no I/O, no clock.
 """
@@ -808,8 +809,8 @@ def aggregate_dataset(
     ``support`` is the run's pinned support specification; its ``results`` rule decides
     every cell's ``support_status`` (plan ``methodology-tab`` G1c). Every question is
     aggregated under ``method`` (G2a; :data:`AIA_AGGREGATE_V1`, the unit's own values, unless
-    given) and ``slots``, the estimators a methodology version replaced (G2b); a run does not
-    pin either yet (G3). An aggregate that departs from the unit's port says so in a
+    given) and ``slots``, the estimators a methodology version replaced (G2b), as the run
+    pinned them (G3a). An aggregate that departs from the unit's port says so in a
     ``deviation`` block (G2c); one that does not is byte for byte what it always was.
 
     A battery object is aggregated as the scale question the unit compiles it to

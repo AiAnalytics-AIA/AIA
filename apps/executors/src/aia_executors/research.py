@@ -32,7 +32,11 @@ from aia_core.domain.fieldwork import (
     InvalidDataset,
     validate_dataset,
 )
-from aia_core.domain.methodology.pins import read_support_pin
+from aia_core.domain.methodology.pins import (
+    UNIT_AGGREGATION_PIN,
+    read_aggregation_pin,
+    read_support_pin,
+)
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
@@ -441,7 +445,17 @@ class AggregateExecutor(_Step):
                 FailureClass.SCHEMA_VIOLATION,
                 error={"code": "support_pin_invalid", "message": str(exc)},
             )
-        result = aggregate_dataset(spec, dataset, support=support)
+        # The run's pinned aggregation (G3a): its specification and replaced formulas. A run
+        # started before it was pinned reads as 18.6.6's port, the way it was computed.
+        stored = step.payload.get("aggregation")
+        try:
+            method, slots = read_aggregation_pin(stored)
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "aggregation_pin_invalid", "message": str(exc)},
+            )
+        result = aggregate_dataset(spec, dataset, support=support, method=method, slots=slots)
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -461,6 +475,12 @@ class AggregateExecutor(_Step):
                             {}
                             if support == AIA_SUPPORT_V1
                             else {"support": support.model_dump(mode="json")}
+                        ),
+                        # Likewise only an aggregation other than 18.6.6's port.
+                        **(
+                            {}
+                            if stored is None or stored == UNIT_AGGREGATION_PIN
+                            else {"aggregation": stored}
                         ),
                     }
                 ),

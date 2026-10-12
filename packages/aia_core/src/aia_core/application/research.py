@@ -13,7 +13,7 @@ provides.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,7 +25,14 @@ from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
 from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource
-from ..domain.methodology.pins import read_support_pin, sociomap_methods_for, support_spec_for
+from ..domain.methodology.pins import (
+    UNIT_AGGREGATION_PIN,
+    aggregation_pin_for,
+    read_aggregation_pin,
+    read_support_pin,
+    sociomap_methods_for,
+    support_spec_for,
+)
 from ..domain.pipeline import fingerprint
 from ..domain.population import (
     CZ_LIVE,
@@ -261,8 +268,15 @@ class ResearchRuns:
         confirm_cost_usd: float | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
+        aggregation: Mapping[str, Any] | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run also pins its aggregation (``aggregation``: the specification and the formulas
+        it replaces; the organization's aggregation version in force when not given, plan
+        ``methodology-tab`` G3a): the aggregate computes under it, and says when that is no
+        longer 18.6.6's port. Like the support rules, a stored version or a pin the caller
+        chooses over the unit's is part of the run's identity.
 
         The run also pins its support rules (``support``; the organization's support version
         in force when not given, plan ``methodology-tab`` G1c): the aggregate decides every
@@ -300,6 +314,7 @@ class ResearchRuns:
         # cannot compute is refused before any run, and the checks read its pair n_min.
         methods, methodology = self._methods(sociomap_methods)
         support_spec, support_version = self._support(support)
+        aggregation_pin, aggregation_version = self._aggregation(aggregation)
         _spec, readiness = prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
@@ -328,6 +343,10 @@ class ResearchRuns:
             key += f":support:{support_version['payload_sha256'][:16]}"
         elif support is not None and support_spec != AIA_SUPPORT_V1:
             key += f":support:{fingerprint(support_spec.model_dump(mode='json'))[:16]}"
+        if aggregation_version is not None:
+            key += f":aggregation:{aggregation_version['payload_sha256'][:16]}"
+        elif aggregation is not None and aggregation_pin != UNIT_AGGREGATION_PIN:
+            key += f":aggregation:{fingerprint(aggregation_pin)[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
         support_pin = support_spec.model_dump(mode="json")
@@ -366,6 +385,8 @@ class ResearchRuns:
                 **({"methodology": methodology} if methodology else {}),
                 "support": support_pin,
                 **({"support_methodology": support_version} if support_version else {}),
+                "aggregation": aggregation_pin,
+                **({"aggregation_methodology": aggregation_version} if aggregation_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"population": _population_note(population)} if population else {}),
             },
@@ -373,7 +394,7 @@ class ResearchRuns:
                 "compile": {"design_revision_id": revision.revision_id},
                 "preflight": {"methods": pinned},
                 "run": {"fieldwork_source": fieldwork_source.value},
-                "aggregate": {"support": support_pin},
+                "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
                 "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
             },
@@ -420,6 +441,7 @@ class ResearchRuns:
             confirm_cost_usd=confirm_cost_usd,
             sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
             support=read_support_pin(run["metadata"].get("support")),
+            aggregation=_aggregation_of(run["metadata"]),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:
@@ -488,6 +510,28 @@ class ResearchRuns:
             return support_spec_for(None), None
         return support_spec_for(in_force.version.payload), {
             "module": "support",
+            "version": in_force.version.version_number,
+            "name": in_force.version.name,
+            "payload_sha256": in_force.version.payload_sha256,
+        }
+
+    def _aggregation(
+        self, aggregation: Mapping[str, Any] | None
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+        """The aggregation a start pins, and the stored version it comes from (``None``: the
+        code's preset, 18.6.6's port, or the caller's own pin). A pin is checked by reading
+        it as the aggregate will, so one that would fail there is refused before any run."""
+        if aggregation is not None:
+            read_aggregation_pin(aggregation)
+            return {
+                "spec": dict(aggregation["spec"]),
+                "formulas": dict(aggregation["formulas"]),
+            }, None
+        in_force = methodology_in_force_for_study(self.session, self.scope, "aggregation")
+        if in_force.version is None:
+            return aggregation_pin_for(None), None
+        return aggregation_pin_for(in_force.version.payload), {
+            "module": "aggregation",
             "version": in_force.version.version_number,
             "name": in_force.version.name,
             "payload_sha256": in_force.version.payload_sha256,
@@ -793,3 +837,12 @@ class ResearchAgentJobs:
             artifact_id=str(run["steps"][0]["output"]["artifact_id"]),
         )
         return revision, created
+
+
+def _aggregation_of(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    """The aggregation a run pinned, as a retry pins it again. A run started before
+    aggregation was pinned was computed as 18.6.6's port, so its retry is too."""
+    stored = metadata.get("aggregation")
+    if stored is None:
+        return {"spec": dict(UNIT_AGGREGATION_PIN["spec"]), "formulas": {}}
+    return {"spec": dict(stored["spec"]), "formulas": dict(stored.get("formulas") or {})}
