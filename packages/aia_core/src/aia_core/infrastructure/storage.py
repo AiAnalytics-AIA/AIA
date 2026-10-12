@@ -43,6 +43,7 @@ __all__ = [
     "StorageKey",
     "StoredObject",
     "build_storage_key",
+    "s3_client",
     "sha256_bytes",
 ]
 
@@ -412,12 +413,8 @@ class S3ArtifactStore(_BaseStore):
         if self._client is None:
             with self._lock:
                 if self._client is None:
-                    import boto3
-
-                    self._client = boto3.client(
-                        "s3",
-                        endpoint_url=self._endpoint_url,
-                        region_name=self._region_name,
+                    self._client = s3_client(
+                        endpoint_url=self._endpoint_url, region_name=self._region_name
                     )
         return self._client
 
@@ -502,6 +499,17 @@ class S3ArtifactStore(_BaseStore):
             ExpiresIn=expires,
         )
         return url
+
+
+def s3_client(*, region_name: str | None, endpoint_url: str | None = None) -> Any:
+    """A boto3 S3 client: the one place the AWS SDK is imported (``tools/layer_check.sh``).
+
+    Lazily, so nothing that never touches S3 loads an AWS SDK. Credentials come from boto3's
+    default chain (the instance role in a deployment); none is passed or read here.
+    """
+    import boto3
+
+    return boto3.client("s3", endpoint_url=endpoint_url, region_name=region_name)
 
 
 def _is_missing(exc: BaseException) -> bool:

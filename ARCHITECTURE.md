@@ -271,8 +271,13 @@ can grant approval or supply deployment prices.
   The model returns only one respondent's probabilities, selections or short text
   under a strict per-block contract; facts the persona has are answered by code
   (`respondent_facts`), the response process and a seeded draw decide the answer
-  (`respondent_behavior`). Personas are the fictional roster only: its datasets
-  carry `data_origin = SYNTHETIC_AI_FICTIONAL`, and the fixture's
+  (`respondent_behavior`). Who the personas are is the run's pin, set at start and kept by a
+  retry (`PersonaSource`): the fictional roster, whose datasets carry
+  `data_origin = SYNTHETIC_AI_FICTIONAL`, or -- behind `AIA_AI_POPULATION_PERSONAS_ENABLED` --
+  respondents drawn from the population the run recorded (`panel_source.panel_plans`), Class A,
+  `MODELLED_AI_PANEL`, the dataset naming its respondent system; a worker without that path
+  parks such a run, and a sample or persona the population cannot give is refused by name
+  before any call. The fixture's
   `SYNTHETIC_FIXTURE` (in `aia_executors.workbench`, refused unless `AIA_ENV` is
   `local`/`test`). The client-facing origin gate is an allowlist,
   `CLIENT_ADMISSIBLE_ORIGINS` (ADR 0024 §2): a synthetic origin is refused as

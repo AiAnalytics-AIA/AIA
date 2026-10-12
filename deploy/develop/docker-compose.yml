@@ -251,6 +251,10 @@ services:
       # bin/sync-population.sh fills from population/v17.files.
       AIA_POPULATION_OPERATORS: ${AIA_POPULATION_OPERATORS:-}
       AIA_POPULATION_ASSET_ROOT: /srv/population/v17
+      # Materialized children (population-operations P4d1): the bucket and region from SSM
+      # aia_population_store_*, both or neither (neither: no store, nothing written or read).
+      AIA_POPULATION_STORE_BUCKET: ${AIA_POPULATION_STORE_BUCKET:-}
+      AIA_POPULATION_STORE_REGION: ${AIA_POPULATION_STORE_REGION:-}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     depends_on:

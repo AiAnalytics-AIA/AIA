@@ -67,6 +67,7 @@ from .errors import (
 )
 from .materialized import (
     EXTENSION_CONTRACT,
+    MATERIALIZE_PROJECT_OWNER,
     MATERIALIZED_BLOCK,
     MaterializedField,
     MaterializedKind,
@@ -130,6 +131,7 @@ __all__ = [
     "KNOWN_GRADES",
     "KNOWN_JOINT_STATUSES",
     "MATERIALIZED_BLOCK",
+    "MATERIALIZE_PROJECT_OWNER",
     "OWNER_ID_HASH_CHARS",
     "POLICY_COLUMNS",
     "RECOMMENDED_USE_POLICY",
