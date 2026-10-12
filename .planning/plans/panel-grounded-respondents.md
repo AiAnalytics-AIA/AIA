@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. Record the OI-61 determination: PIAAC, ISSP and the Czech panel APPROVED for bedrock-eu-primary"
   - "[x] 1. ADR: panel-grounded AI respondents are modelled evidence, never measured"
   - "[x] 2a. Sampler contract (plan before code): inputs, quota fields, the audience filter, refusals, what a sample records"
-  - "[ ] 2b. Verify the quota and donor fields against the imported v17 dictionary on develop"
+  - "[x] 2b. Verify the quota and donor fields against the imported v17 dictionary on develop"
   - "[ ] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
   - "[ ] 2d. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
   - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
@@ -188,6 +188,37 @@ Check on develop: `GET /api/v1/population/versions/{v17_4_0}/characteristics` li
 field with its per-use policy. If one is missing, it is either declared as a `DerivedField`
 in the population contract (not computed in the sampler) or dropped from `QUOTA_FIELDS`;
 that is decided here before 2d is written.
+
+*Verified 2026-10-12* by the owner, from develop's Společenská inteligence → Česká
+populace screen (the characteristics route above): the version's dictionary,
+`FIELD_DICTIONARY_v17_1.csv`, shared by v17_0_BASE, v17_1_2 and v17_4_0
+(`deploy/develop/population/v17.files`), 408 fields (400 dictionary + 8 derived at runtime).
+
+| Field | Block | Evidence class | Grade | Persona use |
+|---|---|---|---|---|
+| `pohlavi`, `kraj`, `vek` | population_anchor | POPULATION_ANCHOR | A | yes |
+| `vek_skupina` | derived | DERIVED_TRANSPARENT | A | yes; "allowed only in the audited v15.2.1 semantics" |
+| `vzdelani`, `zamestnani_status` | core | CANONICAL_CORE | B | yes |
+| `core_donor_id` | provenance | PROVENANCE_OR_CORE | T | no (an identifier, never shown to a model) |
+
+All five quota fields and the donor column are dictionary columns of the panel, so none
+becomes a `DerivedField` and `QUOTA_FIELDS` stands. Not read from the screen: the per-use
+icons for `AUDIENCE_FILTERING` (they did not survive the copy); 2d asks
+`decide(field, AUDIENCE_FILTERING)` at run time and refuses on a no, so nothing is assumed.
+
+**The base weight.** The binding's default role is `default_current` =
+`vaha_strukturalni_2025` (`domain/population/czech.py:212-226 @ ea5210e`; on the screen
+"Strukturální 2025 (výchozí)"). 18.6.6's `_analysis_weight` is the same column
+(`CORE_JOINT_STATUS.json:49`, `current_default_weight`; set from the contract's `default_current` role at `pipeline.py:180-182`), so
+`analysis_weight` is the weight the unit's live sampler used; the `vaha_kalibrovana`
+fallback in `representative_sampling.py:13-14` is never reached there.
+
+**Support to expect.** The screen repeats 18.6.6's own counts per subpanel (on v17_1_2,
+`vaha_strukturalni_2025`). Two sit below `min_layer_donors` 25 in effective donors
+(Senioři 80+: 48 donors, 20.7 effective; Lékaři: 9, 6.3); a sample drawn
+there is legal, and Aggregate suppresses what its donors cannot support. The sampler
+records the audience's donor count so the run can say so before fieldwork is paid for
+(chunk 5's preflight).
 
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
