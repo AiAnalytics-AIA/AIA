@@ -671,6 +671,9 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
                             stops its old container and keeps its volume (bin/lib.sh).
+                            bin/image_retention.py: protected old release-image cleanup and disk
+                            headroom before downloads; a host lock serializes deploys; successful
+                            rollback history is recorded only after smoke. Runbook: Disk retention.
                             bin/sync-population.sh (by hand) puts the population's 19 files, listed
                             and pinned in population/v17.files, read-only under AIA_POPULATION_DIR;
                             bin/population.sh runs population_ops in a one-off worker container.
@@ -933,6 +936,7 @@ ungated fixture.
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
 | Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
+| **Deployment disk / image dry-run** | On the host, `python3 bin/image_retention.py preflight --registry <deployment-registry> --state-file /opt/aia/develop/.deploy-state/successful-releases.json --protect <current-sha> --protect <incoming-sha>`: no deletion unless `--apply`; the full deploy applies retention under its host lock before pulling. See [`Disk retention`](deploy/develop/README.md#disk-retention) for safeguards, initialization and refusal recovery. |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
