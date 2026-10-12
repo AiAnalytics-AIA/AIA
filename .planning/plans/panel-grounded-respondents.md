@@ -13,8 +13,8 @@ chunks:
   - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
-  - "[ ] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
-  - "[ ] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
+  - "[x] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
+  - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
   - "[ ] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[ ] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
   - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
@@ -573,6 +573,26 @@ everywhere else:
    route, and it opens none until a validation is recorded.
 
 Out of scope here: producing the origin (chunk 5's executor), the Sociomap's `INTERNAL_ONLY` (D6).
+
+### 4b. Landed: the origin and the allowlist
+
+`domain/fieldwork.py`: `DataOrigin.MODELLED_AI_PANEL`, not in `NON_EVIDENCE_ORIGINS`;
+`CLIENT_ADMISSIBLE_ORIGINS = {MODELLED_AI_PANEL}`. Both client-facing gates are the allowlist
+(`domain/evidence/admission.py`, `domain/analysis/native.py` preflight): a synthetic origin keeps
+`SYNTHETIC_DATA_ORIGIN`, a missing or undecided one is `ORIGIN_NOT_ADMISSIBLE` (new,
+`evidence/gate.py`). `domain/ai_respondent.py`: `dataset_origin(personas)`, which
+`assemble_dataset` now calls: all fictional -> `SYNTHETIC_AI_FICTIONAL`, all panel-built (not
+fictional, lineage `PANEL_DERIVED_DATASETS`) -> `MODELLED_AI_PANEL`, anything else refused. Nothing
+became client-facing: `FIELD_INTERNAL_ONLY` and the instrument policy (`-1` refuses the new
+origin) still hold.
+
+Tests: `test_every_origin_is_decided_once` (the partition replaces the exhaustive denylist test),
+`test_only_an_admissible_origin_passes_the_client_facing_gate`,
+`test_a_row_with_no_origin_no_longer_slips_the_origin_gate`,
+`test_the_dataset_origin_is_derived_from_the_personas_never_chosen`,
+`test_a_panel_dataset_says_it_is_modelled_and_not_synthetic`. The shared `evidence_row` fixture
+defaults to the admissible origin: 81 tests built client-facing rows with no origin, a state the
+one production builder (`native.py:334`, which stamps the dataset's origin) never makes.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling

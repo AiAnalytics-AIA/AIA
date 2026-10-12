@@ -228,10 +228,43 @@ def test_a_number_from_ai_respondents_on_fictional_personas_is_never_a_claim(
     admit: Any, evidence_row: Any
 ) -> None:
     """A model answering as invented people is simulation, not fieldwork: refused the same."""
-    from aia_core.domain.fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+    from aia_core.domain.fieldwork import DataOrigin
 
-    assert set(DataOrigin) == NON_EVIDENCE_ORIGINS, "a new origin must decide if it is evidence"
     table = EvidenceTable.build([evidence_row(data_origin=DataOrigin.SYNTHETIC_AI_FICTIONAL)])
     refused = admit([nc()], table)
     assert [v.code for v in refused.decision.violations] == [ViolationCode.SYNTHETIC_DATA_ORIGIN]
     assert admit([nc()], table, ClaimSurface.INTERNAL).decision.allowed
+
+
+def test_every_origin_is_decided_once() -> None:
+    """A new origin must decide whether it is evidence: either never (simulated) or
+    client-admissible (ADR 0024), never both and never neither."""
+    from aia_core.domain.fieldwork import (
+        CLIENT_ADMISSIBLE_ORIGINS,
+        NON_EVIDENCE_ORIGINS,
+        DataOrigin,
+    )
+
+    assert NON_EVIDENCE_ORIGINS.isdisjoint(CLIENT_ADMISSIBLE_ORIGINS)
+    assert set(DataOrigin) == NON_EVIDENCE_ORIGINS | CLIENT_ADMISSIBLE_ORIGINS
+    assert {DataOrigin.MODELLED_AI_PANEL} == CLIENT_ADMISSIBLE_ORIGINS
+
+
+@pytest.mark.parametrize("origin", [None, "SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"])
+def test_only_an_admissible_origin_passes_the_client_facing_gate(
+    admit: Any, evidence_row: Any, origin: str | None
+) -> None:
+    from aia_core.domain.fieldwork import DataOrigin
+
+    table = EvidenceTable.build(
+        [evidence_row(data_origin=None if origin is None else DataOrigin(origin))]
+    )
+    codes = {v.code for v in admit([nc()], table).decision.violations}
+    expected = (
+        ViolationCode.ORIGIN_NOT_ADMISSIBLE
+        if origin is None
+        else ViolationCode.SYNTHETIC_DATA_ORIGIN
+    )
+    assert codes == {expected}
+    admitted = admit([nc()], EvidenceTable.build([evidence_row()]))
+    assert admitted.decision.allowed  # MODELLED_AI_PANEL, the fixture's default

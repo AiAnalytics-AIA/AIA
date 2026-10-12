@@ -66,7 +66,7 @@ from ..evidence import (
     instrument_policy_book,
     load_joint_status,
 )
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from ..research_aggregate import AGGREGATE_VERSION
 from ..research_design import ResearchSpecification, SpecQuestion
@@ -536,6 +536,15 @@ def native_preflight(
                     "preflight",
                     f"the respondents are simulated ({evidence.origin.value}); nothing from "
                     "them is a client-facing finding",
+                )
+            )
+        elif evidence.origin not in CLIENT_ADMISSIBLE_ORIGINS:
+            found.append(
+                Violation(
+                    ViolationCode.ORIGIN_NOT_ADMISSIBLE,
+                    "preflight",
+                    f"no client-facing finding may come from origin {evidence.origin.value} "
+                    "(ADR 0024 §2)",
                 )
             )
         found.append(

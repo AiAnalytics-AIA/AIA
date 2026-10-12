@@ -47,7 +47,7 @@ from .fieldwork import (
     FieldworkSource,
 )
 from .licence import DataLineage
-from .licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from .licence_determinations import PANEL_DERIVED_DATASETS, SYNTHETIC_FIXTURE_DATASET
 from .research_design import ResearchSpecification, SpecQuestion
 from .residency import DataClass
 from .respondent_behavior import (
@@ -87,6 +87,7 @@ __all__ = [
     "block_contract",
     "build_request",
     "classify_material",
+    "dataset_origin",
     "fictional_roster",
     "interpret_block",
     "plan_items",
@@ -675,6 +676,25 @@ def interpret_block(
     return answers, meta
 
 
+def dataset_origin(personas: Sequence[Persona]) -> DataOrigin:
+    """The origin the personas make, derived, never chosen by a caller (ADR 0024 §1).
+
+    Every persona fictional: ``SYNTHETIC_AI_FICTIONAL``. Every persona built from the
+    population panel (not fictional, its lineage the panel's datasets):
+    ``MODELLED_AI_PANEL``. Anything else, a mixed roster included, is refused, not labelled.
+    """
+    if not personas:
+        raise ValueError("a dataset needs at least one respondent")
+    if all(p.fictional for p in personas):
+        return DataOrigin.SYNTHETIC_AI_FICTIONAL
+    if all(not p.fictional and p.lineage == PANEL_DERIVED_DATASETS for p in personas):
+        return DataOrigin.MODELLED_AI_PANEL
+    raise ValueError(
+        "the personas are neither all fictional nor all built from the population panel; "
+        "a mixed roster has no origin"
+    )
+
+
 def assemble_dataset(
     spec: ResearchSpecification,
     respondents: Sequence[tuple[Persona, Mapping[str, Answer]]],
@@ -682,11 +702,7 @@ def assemble_dataset(
     seed: int,
 ) -> FieldworkDataset:
     """The fieldwork dataset: ids, weights and donors from the personas, answers drawn."""
-    origin = DataOrigin.SYNTHETIC_AI_FICTIONAL if all(p.fictional for p, _ in respondents) else None
-    if origin is None:
-        # No persona source other than the fictional roster exists; one that did
-        # would need its own origin decided, not a default.
-        raise ValueError("only fictional personas are supported by this generator")
+    origin = dataset_origin([persona for persona, _ in respondents])
     return FieldworkDataset(
         dataset_version=DATASET_VERSION,
         source=FieldworkSource.AI_RUNTIME,

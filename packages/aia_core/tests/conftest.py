@@ -826,6 +826,7 @@ def evidence_row() -> Any:
         assess_support,
         parse_metric,
     )
+    from aia_core.domain.fieldwork import DataOrigin
 
     def build(ref: str = "E1", **overrides: Any) -> Any:
         metric = overrides.pop("metric", "top2box_pct")
@@ -842,6 +843,9 @@ def evidence_row() -> Any:
             "question_id": "q1",
             "interval": Interval(38.1, 46.9, 0.95),
             "disclosures": frozenset({Disclosure.SCOPE}),
+            # The one client-admissible origin (ADR 0024 §2): a row's other rules are tested
+            # on an origin the gate lets through; the origin gate is tested on its own.
+            "data_origin": DataOrigin.MODELLED_AI_PANEL,
         }
         args.update(overrides)
         return EvidenceRow(**args)
