@@ -499,6 +499,9 @@ def test_the_preview_counts_the_audience_and_asks_the_sampler(
     refused = viewer.post(url, json={"filters": {"neexistuje": 1}}).json()
     assert refused["audience"]["reason"] == "sampling_filter_invalid"
     assert viewer.post(url, json={"n": 0}).status_code == 422
+    # A boolean is not a sample size, whatever lax coercion would make of it (AGENTS.md).
+    for flag in (True, False):
+        assert viewer.post(url, json={"n": flag}).status_code == 422
 
 
 def test_the_preview_loads_live_once_per_version(

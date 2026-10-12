@@ -53,7 +53,7 @@ from aia_core.domain.population.subpanels import (
 from aia_core.domain.population.versions import version_status
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..dependencies import AudiencePreviewerDep, OrganizationDep, SessionDep
 from ..schemas.projects import ErrorResponse
@@ -526,6 +526,14 @@ class AudiencePreviewRequest(_Model):
     filters: dict[str, Any] = Field(default_factory=dict)
     #: The study's planned n; omitted, only the audience is counted.
     n: int | None = Field(default=None, ge=1, le=100_000)
+
+    @field_validator("n", mode="before")
+    @classmethod
+    def _not_a_boolean(cls, value: Any) -> Any:
+        # Lax mode would read true as 1 before any after-validator sees it (AGENTS.md).
+        if isinstance(value, bool):
+            raise ValueError("n is a number of respondents, not a boolean")
+        return value
 
 
 class PreviewVerdict(_Model):

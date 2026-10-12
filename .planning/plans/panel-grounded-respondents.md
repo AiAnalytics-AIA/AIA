@@ -1033,7 +1033,11 @@ insert-once, keyed by version and catalogue version), re-hashed on read
 (`kept_audience_catalogue`). A version no population has been on cannot be loaded, so it has no
 catalogue until it is promoted (`VersionNotRuntimeEligible`). `population_ops record-catalogue
 [--version]` (no one; default: every population's current version), run by the develop deploy
-after `record-dictionary`, a refusal said and not failing the deploy. `GET
+after `record-dictionary`, a refusal said and not failing the deploy. `establish` and `promote`
+also keep the new version's catalogue once their own change has committed (Codex on #345: a
+promotion between deploys left LIVE without one); a version that will not load is said in the
+command's answer and does not undo the change (`test_a_promotion_keeps_the_new_versions_catalogue_at_once`,
+`test_a_catalogue_that_cannot_be_kept_does_not_undo_the_promotion`). `GET
 /api/v1/population/audience-catalogue` (any member): CZ_LIVE's current version, its kept
 catalogue for the screen, and the 18 subpanels with their filters (`subpanel_filters`),
 18.6.6's counts and this version's `check_subpanel`; 404 `population_not_established` / 404
@@ -1061,7 +1065,8 @@ re-verified) once per process and version under a lock, and lets the old one go 
 moves. API: `AIA_POPULATION_ASSET_ROOT` (`Settings.population_asset_root`, empty by default:
 no previewer); `POST /api/v1/population/audience-preview` `{filters, n}` (any member): 503
 `audience_preview_unavailable` without a root, 404 `population_not_established`, 503
-`population_unavailable` when LIVE will not load. Develop: the API service mounts the
+`population_unavailable` when LIVE will not load; a boolean `n` is a 422, not 1 (a
+`mode="before"` validator, AGENTS.md; Codex on #345). Develop: the API service mounts the
 population directory read-only and points the key at it
 (`AIA_API_POPULATION_ASSET_ROOT=` empty turns it off). The compose guard that only the worker
 sees the population is narrowed, not dropped, by the owner's choice:
