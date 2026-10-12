@@ -570,6 +570,20 @@ reports eighteen `import-untyped` errors; run together with
 therefore pass all three trees to a single `mypy` invocation. Splitting that
 command "for speed" silently changes what is checked.
 
+**An incremental run can report false errors after an edit to a file using
+`pydantic.create_model`.** With a warm `.mypy_cache`, appending a comment to
+`domain/ai_respondent.py` made the full four-tree invocation report three
+`create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
+same invocation passed (reproduced twice, PR #315 and chunk 4b). CI starts from an
+empty cache, so it never sees them.
+
+```bash
+# WRONG: trust a warm-cache failure on create_model and "fix" working code
+make typecheck            # 3 errors in ai_respondent.py after an unrelated edit
+# RIGHT: confirm on a clean cache before acting on it
+rm -rf .mypy_cache && make typecheck
+```
+
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
 **with a comment saying why** — as `boto3` has. An unexplained override is
