@@ -234,6 +234,13 @@ class PopulationRuntime:
             imported_by=imported_by,
         )
         self._registry.insert_version(version, validation=report.as_record())
+        self._registry.insert_dictionary(
+            version.version_id,
+            sha256=version.dictionary_sha256,
+            content=dictionary_bytes,
+            recorded_at=version.imported_at,
+            recorded_by=imported_by,
+        )
         if companions is not None:
             self._registry.insert_companion_set(
                 version.version_id,
@@ -244,6 +251,34 @@ class PopulationRuntime:
                 attached_at=version.imported_at,
             )
         return version
+
+    def record_dictionary(self, version_id: str, *, recorded_by: str) -> bool:
+        """Keep the dictionary of a version imported before dictionaries were kept.
+
+        Reads the version's own ``dictionary_location`` and stores the bytes only when
+        they hash to the ``dictionary_sha256`` the version was imported with: nothing is
+        judged, so nobody's permission is asked. ``False`` when the version already has
+        its dictionary, ``True`` when this stored it. Never reads the panel.
+        """
+        version = self._registry.get_version(version_id)
+        if version is None or version.dataset_id != self._contract.dataset_id:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if self._registry.dictionary(version_id) is not None:
+            return False
+        content = self._source.read(version.dictionary_location)
+        if content_sha256(content) != version.dictionary_sha256:
+            raise VersionIntegrityError(
+                f"the dictionary at {version.dictionary_location!r} is not the one "
+                f"{version.label} was imported with"
+            )
+        self._registry.insert_dictionary(
+            version_id,
+            sha256=version.dictionary_sha256,
+            content=content,
+            recorded_at=self._clock(),
+            recorded_by=recorded_by,
+        )
+        return True
 
     def attach_companions(
         self, *, version_id: str, companion_locations: Mapping[str, str], attached_by: str
