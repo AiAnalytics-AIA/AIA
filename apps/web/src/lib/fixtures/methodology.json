@@ -2,7 +2,7 @@
  "details": {
   "aggregation": {
    "aia-aggregate-1": {
-    "editable": false,
+    "editable": true,
     "groups": [
      {
       "id": "M",
@@ -55,7 +55,7 @@
     ],
     "id": "aggregation",
     "in_force": "aia-aggregate-1",
-    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti. Metodik může upravit hodnoty i vzorce; kontrola návrhu je nejdřív ukáže na fiktivních panelech. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
     "preset": "aia-aggregate-1",
     "presets": [
      "aia-aggregate-1"
@@ -7876,7 +7876,7 @@
    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
   },
   {
-   "editable": false,
+   "editable": true,
    "groups": [
     {
      "id": "M",
@@ -7929,7 +7929,7 @@
    ],
    "id": "aggregation",
    "in_force": "aia-aggregate-1",
-   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti. Metodik může upravit hodnoty i vzorce; kontrola návrhu je nejdřív ukáže na fiktivních panelech. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
    "presets": [
     "aia-aggregate-1"
    ],
@@ -7938,7 +7938,22 @@
   }
  ],
  "presets": {
-  "aggregation": {},
+  "aggregation": {
+   "aia-aggregate-1": {
+    "bootstrap": {
+     "quantiles": [
+      0.025,
+      0.975
+     ],
+     "reps": 400,
+     "reps_multi": 350,
+     "seed": 20260816,
+     "seed_top_box": 20260818
+    },
+    "methodology_version": "aia-aggregate-1",
+    "top_box": 2
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "connectedness": {

@@ -5,7 +5,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { MethodCompare, MethodSupportCell } from "@/lib/api";
+import type { MethodAggregationPanel, MethodCompare, MethodSupportCell } from "@/lib/api";
 import { MethodologyComparison } from "./MethodologyComparison";
 
 afterEach(cleanup);
@@ -60,5 +60,43 @@ describe("the support draft check", () => {
     );
     expect(screen.getByText("Úprava žádnou buňku nově neukáže.")).toBeTruthy();
     expect(screen.getByText("Úprava žádnou buňku nově nepotlačí.")).toBeTruthy();
+  });
+});
+
+describe("the aggregation draft check (plan G3b)", () => {
+  const panel = (id: string, label: string, moved: boolean) => ({
+    panel: id, label_cs: label, respondents: 240,
+    rows: [
+      { question: "spokojenost", measure: "prumer", moved: false, in_force: [3.9, 3.7, 4.1], draft: [3.9, 3.7, 4.1] },
+      { question: "spokojenost", measure: "top2box", moved, in_force: [45.4, 38.3, 53.2], draft: moved ? [3.6, 1.0, 7.0] : [45.4, 38.3, 53.2] },
+      { question: "volba", measure: "share:Alfa", moved: false, in_force: [50.1, 44.0, 56.0], draft: [50.1, 44.0, 56.0] },
+    ] as MethodAggregationPanel["rows"],
+    status_changes: moved ? [{ question: "spokojenost", in_force: "SUPPRESS", draft: "REPORTABLE" }] : [],
+    effective_n: { spokojenost: [30.8, moved ? 40 : 30.8] as [number, number] },
+  });
+
+  it("names each estimate the draft moves, with its interval, and the statuses it changes", () => {
+    render(
+      <MethodologyComparison
+        result={{
+          valid: true, problems: {}, in_force: "aia-aggregate-1", panels: [],
+          aggregation: { draft: "aia-aggregate-1+e1", panels: [panel("vazeny", "Silně vážený panel (fiktivní)", true), panel("velky", "Velký panel (fiktivní)", false)] },
+        }}
+      />,
+    );
+    const moved = document.querySelector('[data-compare-aggregation-panel="vazeny"]') as HTMLElement;
+    expect((moved.querySelector("details") as HTMLDetailsElement).open).toBe(true); // the first panel is open
+    expect(within(moved).getByText(/1 z 3 odhadů se mění/)).toBeTruthy();
+    const line = within(moved).getByText(/top box/).closest("li") as HTMLElement;
+    expect(line.textContent).toContain("45,4 (38,3–53,2)");
+    expect(within(line).getByText("3,6 (1–7)").tagName).toBe("STRONG");
+    expect(within(moved).getByText("reportovatelné").tagName).toBe("STRONG");
+    expect(within(moved).getByText(/30,8 → 40/)).toBeTruthy();
+
+    const still = document.querySelector('[data-compare-aggregation-panel="velky"]') as HTMLElement;
+    expect((still.querySelector("details") as HTMLDetailsElement).open).toBe(false);
+    expect(within(still).getByText("Žádný odhad se nemění.")).toBeTruthy();
+    expect(within(still).getByText("Žádné otázce se stav podpory nemění.")).toBeTruthy();
+    expect(document.querySelector("[data-compare-support]")).toBeNull();
   });
 });

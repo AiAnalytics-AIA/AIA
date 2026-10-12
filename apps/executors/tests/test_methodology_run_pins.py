@@ -437,3 +437,41 @@ def test_an_aggregation_pin_that_cannot_be_computed_is_refused_before_any_run(
     unknown["formulas"] = {"f6.distance": "1"}
     with pytest.raises(ValueError, match=r"no formula f6\.distance"):
         _start_aggregation(world, unknown)
+
+
+# ------------------------------------------- G3b: an aggregation version put in force --
+
+
+def test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    """Stored and put in force as the Metodika tab does; a run started afterwards pins it,
+    computes under it and labels its aggregate; a run started before keeps the unit's."""
+    before = _start(world)
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    spec["top_box"] = 1
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "aggregation",
+            base_preset="aia-aggregate-1",
+            spec=spec,
+            formulas={"agg.kish": "count(w)"},
+            note="test",
+        )
+        repo.activate("aggregation", version.version_number, reason="test")
+        session.commit()
+    after = _start(world)
+    assert after != before  # a stored version is new identity
+    run = _run(world, after)
+    assert run["metadata"]["aggregation"]["spec"]["methodology_version"] == "aia-aggregate-1+e1"
+    assert run["metadata"]["aggregation"]["formulas"] == {"agg.kish": "count(w)"}
+    assert run["metadata"]["aggregation_methodology"]["name"] == "aia-aggregate-1+e1"
+    _drain(worker)
+    edited, unit = _aggregate(world, store, after), _aggregate(world, store, before)
+    assert edited["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 1}]
+    assert edited["deviation"]["replaced_formulas"] == ["agg.kish"]
+    assert "deviation" not in unit
+    with world.sessions() as session:
+        MethodologyRepository(session, world.admin_context(session)).activate("aggregation", None)
+        session.commit()

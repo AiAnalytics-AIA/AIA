@@ -18,7 +18,8 @@ formula slots (G2b, :mod:`.aggregation_formulas`), each with the expression the 
 computes bit for bit.
 
 A run pins the aggregation version in force when it starts, and a retry keeps it (G3a); with
-nothing stored that is ``aia-aggregate-1``. It is not editable yet (G3b). An aggregate
+nothing stored that is ``aia-aggregate-1``. It is editable (G3b): any declared value and any
+estimator slot, checked first on fixed fictional panels (:mod:`.aggregation_check`). An aggregate
 computed under any changed value or replaced formula is no longer the unit's port and says so
 (G2c): its ``deviation`` names each change, and Results shows it above the numbers. A version
 that only renames computes the unit's numbers and claims nothing.
@@ -349,12 +350,14 @@ AGGREGATION: Final = MethodModule(
     in_force="aia-aggregate-1",
     groups=_GROUPS,
     formulas=AGGREGATION_FORMULAS,
+    editable=True,
     note_cs=(
         "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné "
         "s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, "
         "OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily "
         "intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si "
-        "při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. "
+        "při spuštění zapamatuje verzi agregace v platnosti. Metodik může upravit hodnoty "
+        "i vzorce; kontrola návrhu je nejdřív ukáže na fiktivních panelech. "
         "Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 "
         "a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo."
     ),

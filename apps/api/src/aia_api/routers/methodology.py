@@ -41,8 +41,12 @@ from aia_core.domain.methodology import (
     describe,
     module,
 )
+from aia_core.domain.methodology.aggregation_check import (
+    AggregationComparison,
+    compare_aggregation_with_in_force,
+)
 from aia_core.domain.methodology.expressions import compile_formula, latex
-from aia_core.domain.methodology.pins import uncomputed_formulas
+from aia_core.domain.methodology.pins import support_spec_for, uncomputed_formulas
 from aia_core.domain.methodology.sociomap_check import PanelComparison, compare_with_in_force
 from aia_core.domain.methodology.support_check import (
     SupportComparison,
@@ -327,15 +331,51 @@ class SupportCompareOut(_Strict):
     newly_suppressed: list[list[str]]
 
 
+class EstimateOut(_Strict):
+    """One estimate: ``[value, low, high]`` in force and in the draft; ``null`` where none."""
+
+    question: str
+    measure: str
+    in_force: list[float | None]
+    draft: list[float | None]
+    moved: bool
+
+
+class QuestionStatusOut(_Strict):
+    """A question whose support status the draft moves."""
+
+    question: str
+    in_force: str
+    draft: str
+
+
+class AggregationPanelOut(_Strict):
+    panel: str
+    label_cs: str
+    respondents: int
+    rows: list[EstimateOut]
+    status_changes: list[QuestionStatusOut]
+    effective_n: dict[str, list[float]]
+
+
+class AggregationCompareOut(_Strict):
+    """The aggregation draft check (plan G3b): every estimate of every fictional panel, the
+    statuses that changed and each question's effective n, in force beside the draft."""
+
+    draft: str
+    panels: list[AggregationPanelOut]
+
+
 class CompareOut(_Strict):
     """``problems`` refuse the draft (nothing is computed); otherwise every panel of an
-    object map, or every cell of a support rule."""
+    object map, every cell of a support rule, or every estimate of the aggregation."""
 
     valid: bool
     problems: dict[str, str]
     in_force: str
     panels: list[PanelOut]
     support: SupportCompareOut | None = None
+    aggregation: AggregationCompareOut | None = None
 
 
 class ActivationIn(_Strict):
@@ -509,7 +549,36 @@ def _support_comparison(c: SupportComparison) -> SupportCompareOut:
 
 
 #: The modules a draft check is built for.
-_COMPARED: Final = frozenset({"sociomap", "support"})
+_COMPARED: Final = frozenset({"sociomap", "support", "aggregation"})
+
+
+def _aggregation_comparison(c: AggregationComparison) -> AggregationCompareOut:
+    return AggregationCompareOut(
+        draft=c.draft,
+        panels=[
+            AggregationPanelOut(
+                panel=p.panel,
+                label_cs=p.label_cs,
+                respondents=p.respondents,
+                rows=[
+                    EstimateOut(
+                        question=r.question,
+                        measure=r.measure,
+                        in_force=list(r.in_force),
+                        draft=list(r.draft),
+                        moved=r.moved,
+                    )
+                    for r in p.rows
+                ],
+                status_changes=[
+                    QuestionStatusOut(question=q, in_force=x, draft=y)
+                    for q, x, y in p.status_changes
+                ],
+                effective_n={q: [x, y] for q, x, y in p.effective_n},
+            )
+            for p in c.panels
+        ],
+    )
 
 
 def _fields(summary: Any) -> dict[str, Any]:
@@ -674,6 +743,26 @@ def compare(
     except MethodologyRefused as exc:
         raise _refused(exc) from exc
     stored = None if in_force.version is None else in_force.version.payload
+    if module_id == "aggregation":
+        # Statuses are decided by the support rules in force, as a run started now would.
+        try:
+            support_in_force = MethodologyReader(session, org).in_force("support")
+        except MethodologyRefused as exc:
+            raise _refused(exc) from exc
+        support = support_spec_for(
+            None if support_in_force.version is None else support_in_force.version.payload
+        )
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            aggregation=_aggregation_comparison(
+                compare_aggregation_with_in_force(
+                    stored, version_payload(validated), support=support
+                )
+            ),
+        )
     if module_id == "support":
         return CompareOut(
             valid=True,

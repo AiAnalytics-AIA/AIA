@@ -136,6 +136,34 @@ describe("the support rules' versions (plan G1d)", () => {
   });
 });
 
+describe("the aggregation's versions (plan G3b)", () => {
+  it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
+    const { sent } = fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
+    const section = await versionsSection();
+    fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    fireEvent.change(await field(form, "top_box"), { target: { value: "3" } });
+    const quantiles = await field(form, "bootstrap.quantiles");
+    expect(quantiles.value).toBe("[0.025,0.975]");
+    fireEvent.change(quantiles, { target: { value: "[0.05, 0.95]" } });
+    const slot = await found('[data-edit-slot="agg.top_box"] textarea', form);
+    expect((slot as HTMLTextAreaElement).value).toBe("x >= top - (b - 1)"); // the built-in, as computed
+    fireEvent.change(slot, { target: { value: "x >= top - b + 1" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+
+    await waitFor(() => expect(sent.some((s) => s.method === "POST" && s.url.endsWith("/aggregation/versions"))).toBe(true));
+    const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/aggregation/versions"));
+    const spec = stored?.body?.spec as { top_box: number; bootstrap: { quantiles: number[]; reps: number } };
+    expect(stored?.body?.base_preset).toBe("aia-aggregate-1");
+    expect(spec.top_box).toBe(3);
+    expect(spec.bootstrap.quantiles).toEqual([0.05, 0.95]);
+    expect(spec.bootstrap.reps).toBe(400); // what was not edited is sent as it was
+    expect(stored?.body?.formulas).toEqual({ "agg.top_box": "x >= top - b + 1" }); // only the replaced slot
+  });
+});
+
 describe("the methodology's versions", () => {
   it("say the code's preset is in force when nothing is stored", async () => {
     fakeApi();

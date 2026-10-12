@@ -685,6 +685,17 @@ export const cs = {
               surface: { results: "Výsledky", analysis: "analýza" },
               status: { SUPPRESS: "potlačeno", INDICATIVE: "indikativní", REPORTABLE: "reportovatelné" },
             },
+            aggregation: {
+              intro:
+                "Úprava a agregace v platnosti spočítají tytéž pevné smyšlené panely stejnou funkcí jako běh; data klienta se nečtou. Každý odhad je uveden s 95% intervalem; stav podpory rozhodují pravidla podpory v platnosti.",
+              summary: "{moved} z {rows} odhadů se mění · {respondents} respondentů",
+              moved: "Odhady, které se mění (v platnosti → úprava)",
+              noneMoved: "Žádný odhad se nemění.",
+              statuses: "Otázky, jimž se mění stav podpory",
+              noStatusChange: "Žádné otázce se stav podpory nemění.",
+              measure: { prumer: "průměr", top2box: "top box" },
+              share: "podíl „{option}“",
+            },
           },
           parse: {
             number: "Zadejte číslo (desetinná čárka i tečka).",
