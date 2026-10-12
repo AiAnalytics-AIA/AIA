@@ -30,6 +30,8 @@ from aia_core.domain.fieldwork import (
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
+    OriginKind,
+    origin_kind,
     validate_dataset,
 )
 from aia_core.domain.methodology.pins import (
@@ -109,6 +111,13 @@ class AIDatasetProducer(Protocol):
     ) -> ProducedDataset | Failed: ...
 
 
+#: What the fieldwork step says when its dataset is stored: never "fieldwork done" for answers no
+#: person gave (ADR 0024 §7), and an origin of unknown kind is said, never read as real.
+_DATA_READY: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: "fiktivní data připravena",
+    OriginKind.MODELLED: "modelovaná data připravena",
+    OriginKind.UNKNOWN: "data neznámého původu uložena",
+}
 _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
     "AI respondenti zatím nejsou nasazeni. Běh čeká u sběru dat; nic nebylo vymyšleno "
     "ani nahrazeno a další kroky se nespustí, dokud sběr neproběhne."
@@ -393,7 +402,7 @@ class FieldworkExecutor(_Step):
                 metadata={"data_origin": origin, "fieldwork_source": source.value},
             )
         context.progress(
-            "fiktivní data připravena" if dataset.is_synthetic else "sběr dat dokončen",
+            _DATA_READY[origin_kind(dataset.origin)],
             artifact_id=artifact.artifact_id,
             respondents=len(dataset.respondents),
         )

@@ -23,6 +23,7 @@ from .research_design import ResearchSpecification
 __all__ = [
     "CLIENT_ADMISSIBLE_ORIGINS",
     "DATASET_VERSION",
+    "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
     "Answer",
     "DataOrigin",
@@ -30,6 +31,8 @@ __all__ = [
     "FieldworkRespondent",
     "FieldworkSource",
     "InvalidDataset",
+    "OriginKind",
+    "origin_kind",
     "validate_dataset",
 ]
 
@@ -78,6 +81,42 @@ NON_EVIDENCE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset(
 #: The only origins a client-facing claim may come from (ADR 0024 §2). An allowlist: ``None``
 #: and any origin not named here are refused client-facing.
 CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+#: What every modelled number carries beside it (ADR 0024 §7). Never "respondents said",
+#: "measured" or "the survey found".
+MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
+
+
+class OriginKind(StrEnum):
+    """How a label reads an origin: the one three-way reading every surface uses."""
+
+    #: Fictional respondents (:data:`NON_EVIDENCE_ORIGINS`): never evidence.
+    SIMULATED = "SIMULATED"
+    #: AI respondents built from the run's population (ADR 0024): modelled, never measured.
+    MODELLED = "MODELLED"
+    #: No origin, or one this code does not know: labelled unknown, never read as real.
+    UNKNOWN = "UNKNOWN"
+
+
+_MODELLED_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+
+def origin_kind(origin: DataOrigin | str | None) -> OriginKind:
+    """The kind of ``origin``; ``None`` and an unrecognised value are :attr:`OriginKind.UNKNOWN`.
+
+    No member reads as measured: AIA has no measured origin, so there is no fourth kind.
+    """
+    if origin is None:
+        return OriginKind.UNKNOWN
+    try:
+        member = DataOrigin(origin)
+    except ValueError:
+        return OriginKind.UNKNOWN
+    if member in NON_EVIDENCE_ORIGINS:
+        return OriginKind.SIMULATED
+    if member in _MODELLED_ORIGINS:
+        return OriginKind.MODELLED
+    return OriginKind.UNKNOWN
 
 
 #: One answer: a category (``vyber``), categories (``multi``), a scale point or

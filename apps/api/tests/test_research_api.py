@@ -368,6 +368,9 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert listed.json()["artifact_id"] == report_id
     assert listed.json()["review_state"] == "DRAFT_UNAPPROVED"
     assert listed.json()["synthetic"] is True
+    # Written before reports recorded data_origin: synthetic alone reads as simulated.
+    assert listed.json()["data_origin_kind"] == "SIMULATED"
+    assert listed.json()["modelled"] is False
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
@@ -728,6 +731,7 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     run = researcher.get(f"{_runs(world)}/{run_id}").json()
     steps = {s["node_key"]: s for s in run["steps"]}
     assert steps["run"]["data_origin"] == "SYNTHETIC_FIXTURE"
+    assert steps["run"]["data_origin_kind"] == "SIMULATED"
     spec_id, dataset_id = steps["compile"]["artifact_id"], steps["run"]["artifact_id"]
 
     spec = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{spec_id}")
@@ -907,3 +911,22 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
     assert read["population"] == note
+
+
+def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real() -> None:
+    from aia_core.domain.fieldwork import OriginKind
+
+    from aia_api.routers.research import _artifact_origin_kind, _origin_flags
+
+    assert _artifact_origin_kind({"data_origin": "MODELLED_AI_PANEL"}) is OriginKind.MODELLED
+    assert _artifact_origin_kind({"synthetic": True}) is OriginKind.SIMULATED
+    assert _artifact_origin_kind({"synthetic": False}) is OriginKind.UNKNOWN
+    assert _artifact_origin_kind({"data_origin": "PANEL"}) is OriginKind.UNKNOWN
+    assert _origin_flags({OriginKind.MODELLED}) == {
+        "modelled": True,
+        "data_origin_kind": "MODELLED",
+    }
+    assert _origin_flags({OriginKind.MODELLED, OriginKind.SIMULATED})["data_origin_kind"] == (
+        "UNKNOWN"
+    )
+    assert _origin_flags(set()) == {"modelled": False, "data_origin_kind": None}

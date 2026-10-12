@@ -19,7 +19,7 @@ from typing import Final
 
 from pydantic import BaseModel, ConfigDict
 
-from .fieldwork import NON_EVIDENCE_ORIGINS, FieldworkSource
+from .fieldwork import FieldworkSource, OriginKind, origin_kind
 
 __all__ = [
     "REUSE_SOURCE_STAGE",
@@ -31,9 +31,6 @@ __all__ = [
 
 #: The ``source_stage`` of a Design Revision made by reusing a past design.
 REUSE_SOURCE_STAGE: Final = "memory"
-
-#: Every origin AIA stamps today is fictional and never evidence (``NON_EVIDENCE_ORIGINS``).
-_FICTIONAL_ORIGINS: Final = frozenset(o.value for o in NON_EVIDENCE_ORIGINS)
 
 
 class SourceRun(BaseModel):
@@ -64,11 +61,15 @@ class SourceLabels(BaseModel):
     draft: bool
     #: The source revision was never run: nothing it found exists.
     never_run: bool
-    #: Some run produced data with no origin stamped: not known to be anything.
+    #: Some run produced data with no origin stamped, or one of no known kind: not known to be
+    #: anything.
     unlabelled_data: bool
     #: The runs and report artifacts the labels were derived from, in the order given.
     run_ids: tuple[str, ...]
     report_artifact_ids: tuple[str, ...]
+    #: Some run answered AI respondents built from its population (ADR 0024): modelled, never
+    #: measured. Absent from labels recorded before the modelled origin existed.
+    modelled: bool = False
 
 
 def derive_source_labels(runs: Iterable[SourceRun]) -> SourceLabels:
@@ -76,11 +77,12 @@ def derive_source_labels(runs: Iterable[SourceRun]) -> SourceLabels:
     seen = list(runs)
     synthetic = any(
         r.fieldwork_source == FieldworkSource.SYNTHETIC_FIXTURE.value
-        or any(o in _FICTIONAL_ORIGINS for o in r.data_origins)
+        or any(origin_kind(o) is OriginKind.SIMULATED for o in r.data_origins)
         for r in seen
     )
-    unlabelled = any(r.produced_data and not r.data_origins for r in seen) or any(
-        o not in _FICTIONAL_ORIGINS for r in seen for o in r.data_origins
+    kinds = {origin_kind(o) for r in seen for o in r.data_origins}
+    unlabelled = (
+        any(r.produced_data and not r.data_origins for r in seen) or OriginKind.UNKNOWN in kinds
     )
     return SourceLabels(
         synthetic=synthetic,
@@ -89,6 +91,7 @@ def derive_source_labels(runs: Iterable[SourceRun]) -> SourceLabels:
         unlabelled_data=unlabelled,
         run_ids=tuple(r.run_id for r in seen),
         report_artifact_ids=tuple(r.report_artifact_id for r in seen if r.report_artifact_id),
+        modelled=OriginKind.MODELLED in kinds,
     )
 
 

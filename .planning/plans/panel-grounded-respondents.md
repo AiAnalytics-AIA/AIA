@@ -15,7 +15,7 @@ chunks:
   - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
   - "[x] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
   - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
-  - "[ ] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
+  - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[ ] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
   - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
@@ -593,6 +593,48 @@ Tests: `test_every_origin_is_decided_once` (the partition replaces the exhaustiv
 `test_a_panel_dataset_says_it_is_modelled_and_not_synthetic`. The shared `evidence_row` fixture
 defaults to the admissible origin: 81 tests built client-facing rows with no origin, a state the
 one production builder (`native.py:334`, which stamps the dataset's origin) never makes.
+
+### 4c. Landed: one reading of an origin, every Python surface
+
+`domain/fieldwork.py`: `OriginKind` (SIMULATED / MODELLED / UNKNOWN), `origin_kind(origin)` (`None`
+and an unrecognised string are UNKNOWN; there is no measured kind) and `MODELLED_DISCLOSURE`
+("modelováno: AI respondenti z populace", ADR 0024 §7). Every label below reads `origin_kind`; no
+surface tests set membership:
+
+* analysis harness: a modelled frame beside the simulated one (`harness_frame` refuses an UNKNOWN
+  kind; `harness_sha256` covers both frames, so it moves once); `harness_labels` and
+  `ModuleLabels` gain `modelled_respondents` (default `False`: artifacts written before read);
+  `classify_analysis_material` keeps a modelled run Class A.
+* internal report (`application/report.py`): the introduction always carries a "Rámec
+  interpretace" callout and Limity a limitation, one text per kind; `RESEARCH_SUBTITLE` is the one
+  subtitle table (executor report, contextual report): "Modelovaný výzkum", "Výzkum neznámého
+  původu", never plain "Výzkum". The executor's report metadata records `data_origin`.
+* Sociomapping (`research_sociomapping.py`, `application/sociomapping_report.py`, its executor):
+  the stored result is unchanged (`synthetic_data` now read through `origin_kind`); the report's
+  note and `SOCIOMAPPING_SUBTITLE` read the stored `data_origin`, an unknown one said; a
+  `synthetic_data` flag that disagrees with the origin's kind is refused.
+* design reuse: `SourceLabels.modelled` (default `False`: stored labels read); only an origin of
+  unknown kind, or none, is unlabelled.
+* fieldwork progress (`aia_executors/research.py` `_DATA_READY`): "modelovaná data připravena";
+  no kind says "sběr dat dokončen".
+* API (`routers/research.py`): a step's `data_origin_kind`; analysis and both report reads add
+  `modelled` and `data_origin_kind` (mixed kinds read UNKNOWN; a report artifact written before
+  `data_origin` was recorded reads SIMULATED from `synthetic`, else UNKNOWN);
+  `DesignSourceLabels.modelled`.
+
+Tests: `test_every_origin_has_one_kind_and_nothing_reads_as_measured`,
+`test_a_modelled_origin_is_framed_as_modelled_never_fictional_or_measured`,
+`test_modelled_respondents_are_client_material_never_class_c`,
+`test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits`,
+`test_every_origin_is_said_and_an_unknown_one_is_never_read_as_real`,
+`test_a_synthetic_flag_beside_an_origin_of_another_kind_is_refused`,
+`test_a_modelled_run_is_labelled_modelled_never_unlabelled_or_synthetic`,
+`test_labels_recorded_before_the_modelled_origin_still_read`,
+`test_the_fieldwork_step_never_says_fieldwork_is_done_for_answers_no_person_gave`,
+`test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real`.
+
+Not here: the "beside the number" mark in the DOCX ledger is 4e's, with the policy that makes a
+modelled number admissible; the web client is 4d.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling

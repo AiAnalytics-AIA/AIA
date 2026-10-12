@@ -250,6 +250,26 @@ def test_every_origin_is_decided_once() -> None:
     assert {DataOrigin.MODELLED_AI_PANEL} == CLIENT_ADMISSIBLE_ORIGINS
 
 
+def test_every_origin_has_one_kind_and_nothing_reads_as_measured() -> None:
+    """``origin_kind``, the one reading every label uses (plan chunk 4c): simulated, modelled or
+    unknown. There is no measured kind, and no member falls through to unknown."""
+    from aia_core.domain.fieldwork import (
+        NON_EVIDENCE_ORIGINS,
+        DataOrigin,
+        OriginKind,
+        origin_kind,
+    )
+
+    for origin in DataOrigin:
+        expected = OriginKind.SIMULATED if origin in NON_EVIDENCE_ORIGINS else OriginKind.MODELLED
+        assert origin_kind(origin) is expected
+        assert origin_kind(origin.value) is expected
+    assert origin_kind(None) is OriginKind.UNKNOWN
+    assert origin_kind("PANEL") is OriginKind.UNKNOWN
+    assert origin_kind("") is OriginKind.UNKNOWN
+    assert set(OriginKind) == {OriginKind.SIMULATED, OriginKind.MODELLED, OriginKind.UNKNOWN}
+
+
 @pytest.mark.parametrize("origin", [None, "SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"])
 def test_only_an_admissible_origin_passes_the_client_facing_gate(
     admit: Any, evidence_row: Any, origin: str | None

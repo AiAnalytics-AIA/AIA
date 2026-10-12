@@ -14,6 +14,7 @@ from typing import Any
 from aia_core.application.analysis_results import RunAnalysis
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
+from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     AuditBlock,
@@ -55,6 +56,40 @@ _TITLES = {
     AnalysisModuleId.HYPOTHESES: "Hypotézy",
     AnalysisModuleId.IMPLICATIONS: "Implikace pro rozhodnutí",
     AnalysisModuleId.LIMITATIONS: "Limity",
+}
+
+#: A research report's subtitle, by the origin's kind: never plain "Výzkum" for answers no person
+#: gave.
+RESEARCH_SUBTITLE: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: "Syntetický výzkum",
+    OriginKind.MODELLED: "Modelovaný výzkum",
+    OriginKind.UNKNOWN: "Výzkum neznámého původu",
+}
+
+#: How the report frames its numbers, by the origin's kind (ADR 0024 §7); every kind says one.
+_FRAME_TEXT: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: (
+        "Odpovědi v této studii vytvořili syntetičtí respondenti. "
+        "Výsledky popisují chování simulace, nikoli měření skutečných "
+        "osob. Slouží k ověření postupu a návrhu dalšího výzkumu; "
+        "závěry o reálném publiku vyžadují samostatné ověření."
+    ),
+    OriginKind.MODELLED: (
+        f"Všechna čísla v této zprávě jsou {MODELLED_DISCLOSURE}. Odpovědi vytvořil model "
+        "za respondenty sestavené z osob vybraných z populace běhu; nejde o měření ani "
+        "o výpovědi skutečných respondentů. Nejistota se počítá z počtu podkladových osob."
+    ),
+    OriginKind.UNKNOWN: (
+        "Původ dat této studie není znám. Výsledky nelze číst jako měření skutečných osob "
+        "ani jako modelovaný odhad, dokud původ není doložen."
+    ),
+}
+_LIMITATION_TEXT: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: "Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob.",
+    OriginKind.MODELLED: (
+        f"Respondenti jsou {MODELLED_DISCLOSURE}. Tento návrh není měřením skutečných osob."
+    ),
+    OriginKind.UNKNOWN: "Původ dat není znám. Tento návrh není měřením skutečných osob.",
 }
 
 
@@ -108,6 +143,7 @@ def compose_internal_report(
     sources = first.record.sources.content()
     table_fingerprint = reference.table.fingerprint()
     labels = first.record.labels
+    kind = origin_kind(labels.data_origin)
     if meta.method_status != first.result.method_status:
         raise ReportCompositionRefused("report method status differs from analysis")
 
@@ -150,19 +186,9 @@ def compose_internal_report(
                 )
             )
         )
-    if labels.simulated_respondents:
-        introduction.append(
-            Callout(
-                CalloutKind.LIMITATION,
-                text(
-                    "Odpovědi v této studii vytvořili syntetičtí respondenti. "
-                    "Výsledky popisují chování simulace, nikoli měření skutečných "
-                    "osob. Slouží k ověření postupu a návrhu dalšího výzkumu; "
-                    "závěry o reálném publiku vyžadují samostatné ověření."
-                ),
-                title="Rámec interpretace",
-            )
-        )
+    introduction.append(
+        Callout(CalloutKind.LIMITATION, text(_FRAME_TEXT[kind]), title="Rámec interpretace")
+    )
     deviation = run.aggregation_deviation
     if deviation is not None:
         introduction.append(
@@ -291,13 +317,8 @@ def compose_internal_report(
                     refs=tuple(by_claim[cid].row.evidence_ref for cid in finding.claim_ids),
                 )
             )
-        if spec.module_id is AnalysisModuleId.LIMITATIONS and labels.simulated_respondents:
-            blocks.append(
-                Callout(
-                    CalloutKind.LIMITATION,
-                    text("Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob."),
-                )
-            )
+        if spec.module_id is AnalysisModuleId.LIMITATIONS:
+            blocks.append(Callout(CalloutKind.LIMITATION, text(_LIMITATION_TEXT[kind])))
         if spec.module_id is AnalysisModuleId.LIMITATIONS and deviation is not None:
             blocks.append(
                 Callout(

@@ -184,6 +184,9 @@ class ModuleLabels(_Closed):
     data_origin: DataOrigin
     simulated_respondents: bool
     internal_only: bool
+    #: ADR 0024: AI respondents built from the population. Absent from artifacts written before
+    #: the modelled origin existed, which were all simulated.
+    modelled_respondents: bool = False
 
 
 class ProducedBy(_Closed):
