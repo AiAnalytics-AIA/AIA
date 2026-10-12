@@ -660,6 +660,9 @@ export const research = {
     request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  /** One Design Revision with its content (project memory M2c reads a past study's). */
+  revision: (studyId: string, revisionId: string) =>
+    request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
   /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
