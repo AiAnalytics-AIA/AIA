@@ -42,7 +42,7 @@ describe("project memory search", () => {
 });
 
 const step = (node_key: string, kind: string, extra: Partial<ResearchStep> = {}): ResearchStep => ({
-  node_key, kind, stage_type: "BRIEF", status: "SUCCEEDED", waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+  step_id: `STEP-${node_key}`, node_key, kind, stage_type: "BRIEF", status: "SUCCEEDED", waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
   started_at: null, finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra,
 });
 const fullRun = (fieldwork_source: string, steps: ResearchStep[]): ResearchRun => ({
