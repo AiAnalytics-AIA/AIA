@@ -5,8 +5,9 @@ chunks:
   - "[x] 1. ADR: panel-grounded AI respondents are modelled evidence, never measured"
   - "[x] 2a. Sampler contract (plan before code): inputs, quota fields, the audience filter, refusals, what a sample records"
   - "[x] 2b. Verify the quota and donor fields against the imported v17 dictionary on develop"
-  - "[ ] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
-  - "[ ] 2d. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
+  - "[x] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
+  - "[ ] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
+  - "[ ] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
   - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
@@ -124,7 +125,7 @@ Every filtered field must pass `decide(field, FieldUse.AUDIENCE_FILTERING)`. A f
 unit would drop is **refused** here (`sampling_filter_invalid`, every reason listed), as
 `sample_representative` itself refuses (`pipeline.py:259-260`).
 
-**The sample (2d).** `draw_panel_sample(population, filters, n, seed) -> PanelSample`:
+**The sample (2e).** `draw_panel_sample(population, filters, n, seed) -> PanelSample`:
 
 1. Rows after the filter; base weight = `analysis_weight`, non-finite or non-positive -> 0.
    If every weight is 0 the unit falls back to 1.0 (`representative_sampling.py:18`); AIA
@@ -187,7 +188,7 @@ ships in the EU bucket (`deploy/develop/population/v17.files`), not in this repo
 Check on develop: `GET /api/v1/population/versions/{v17_4_0}/characteristics` lists every
 field with its per-use policy. If one is missing, it is either declared as a `DerivedField`
 in the population contract (not computed in the sampler) or dropped from `QUOTA_FIELDS`;
-that is decided here before 2d is written.
+that is decided here before 2e is written.
 
 *Verified 2026-10-12* by the owner, from develop's Společenská inteligence → Česká
 populace screen (the characteristics route above): the version's dictionary,
@@ -203,7 +204,7 @@ populace screen (the characteristics route above): the version's dictionary,
 
 All five quota fields and the donor column are dictionary columns of the panel, so none
 becomes a `DerivedField` and `QUOTA_FIELDS` stands. Not read from the screen: the per-use
-icons for `AUDIENCE_FILTERING` (they did not survive the copy); 2d asks
+icons for `AUDIENCE_FILTERING` (they did not survive the copy); 2e asks
 `decide(field, AUDIENCE_FILTERING)` at run time and refuses on a no, so nothing is assumed.
 
 **The base weight.** The binding's default role is `default_current` =
@@ -220,7 +221,49 @@ there is legal, and Aggregate suppresses what its donors cannot support. The sam
 records the audience's donor count so the run can say so before fieldwork is paid for
 (chunk 5's preflight).
 
-**3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
+### 2c. Landed: the audience filter
+
+`domain/population/audience.py`: `sanitize_filters` + `audience_mask` (the unit's pair, over
+plain text columns), `factor` and `column_type` (the unit's kind rule on the column as
+`read_csv` types it, `pipeline.py:192`), `subpanel_filters` (`population_subpanels.
+runtime_filters`), and `select_audience(population, filters)`, which refuses
+(`sampling_filter_invalid`, `sampling_field_refused`, `sampling_empty`) where the unit
+dropped. Parity is EXACT on 25 cases and all 21 factors, captured from the unit's own
+`sanitize_filters`, `_mask` and `factor_map` (`tools/audience_capture.py`;
+`tests/fixtures/population_audience/`, re-captured byte-identical), in
+`tests/test_population_audience.py`.
+
+What the fixture showed, each pinned by a case:
+
+- **A flag on a column with a gap is matched as a float.** pandas reads an integer column
+  with an empty cell as float, so the unit's lookup keys it `"1.0"`; `{"is_parent": 1}`
+  and `{"is_parent": true}` match nothing and are dropped, only `"1.0"` matches (C12-C14).
+  A built-in subpanel is that same filter (`population_subpanels.runtime_filters`), so if
+  a v17 flag column has an empty cell, 18.6.6 itself refused that subpanel; AIA refuses it
+  identically (`test_a_flag_subpanel_on_a_column_with_a_gap_is_refused_as_in_the_unit`).
+  Whether any v17 flag has a gap is unknown here (no panel rows in this repository); 2e's
+  preflight on develop will say.
+- **A two-item list is an interval only on a numeric dimension** (C10, C23), from the
+  column's kind, never the value's shape.
+- **The derived dimensions are refused by AIA's field policy** while unclassified
+  (`policy.py:387`, `unclassified_derived_field`), though the unit filtered on them (C21).
+  That stays until the data owner classifies them.
+
+### 2d. The enricher (added 2026-10-12)
+
+The sampler loads the run's binding, which is the ANALYSIS view, and that view refuses to
+load without an `Enricher` for the seven `*_derived` fields
+(`application/population.py:668-675 @ ea5210e`). None is composed anywhere, because OI-7
+records their logic as recoverable only from the withheld archive. It is not: the vendored
+`legacy/npc-panel-18.6.6/app/audience_dimensions.py` **is** that file, SHA256
+`6ae1d1f8…c754bf`, the exact hash OI-7 and
+`docs/migration/population-enrichment-archive-dependency.md:21` wait for (Findings). 2d
+ports `attach_derived` (`audience_dimensions.py:137-182`) as an `Enricher`, EXACT against
+fixtures from the unit's own function, and composes it where the worker builds
+`PopulationRuntime`. `attach_evidence_overlays` adds nothing: the vendored unit has no
+overlay metadata (`app/data/` holds none), so the port records that and adds no overlay.
+
+ Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
 `RuntimePopulation.decide(field, FieldUse.PERSONA_CONSTRUCTION)` and, combined,
 `decide_joint`. The fact layer reads the row's columns: a question the panel answers
@@ -251,6 +294,18 @@ population marginals are known (ISSP items in the panel), asked of panel-grounde
 respondents, compared. No client-facing claim until the holdout result is recorded.
 
 ## Findings
+
+- **OI-7 is not archive-blocked: the source it waits for is vendored.** OI-7 says the seven
+  enrichment derivations exist only in the withheld archive, so the ANALYSIS view, which every
+  research run's binding names, cannot load. The archive source it pins,
+  `audience_dimensions.py` SHA256 `6ae1d1f8d9ae8a5a9e007e0aee1b842b2c087ca16e888cc2cbf0e55ab7c754bf`
+  (`docs/migration/population-enrichment-archive-dependency.md:21`), is byte-identical to
+  `legacy/npc-panel-18.6.6/app/audience_dimensions.py @ ea5210e` (vendored by ADR 0011).
+  Reproduction: `sha256sum legacy/npc-panel-18.6.6/app/audience_dimensions.py`. Consequence:
+  a blocker carried as "data/archive acquisition, not engineering" has been an engineering
+  task since the extraction; no research step could read the population meanwhile. Smallest
+  fix: chunk 2d. The test that would have caught it: a check that every archive dependency
+  pinned by hash in `docs/migration/` is absent from `legacy/` before it is called blocked.
 
 - **Opening the licence gate alone would have made a non-fictional persona cost money
   before failing.** With chunk 0's records and no guard, a non-fictional persona on

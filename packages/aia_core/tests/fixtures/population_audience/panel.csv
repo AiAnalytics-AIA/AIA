@@ -1,0 +1,61 @@
+panel_row_id,core_donor_id,vek,vek_skupina,pohlavi,kraj,vzdelani,zamestnani_status,is_student,is_employed,is_parent,has_partner,prijem_decile,price_sensitivity_1_10,internet_user_2025,occupation_isco08,PHQ9_2022,vaha_strukturalni_2025
+FIC-ROW-0001,FIC-DONOR-001,70,60+,muž,Hlavní město Praha,základní,inactive,0,0,,True,4,4.54,1,5223,17,286.396
+FIC-ROW-0002,FIC-DONOR-011,87,60+,žena,Hlavní město Praha,střední bez maturity,employed,0,0,0,False,10,1.56,1,0110,2,412.719
+FIC-ROW-0003,FIC-DONOR-018,76,60+,žena,Hlavní město Praha,střední s maturitou,inactive,0,1,1,True,7,3.89,1,2512,14,666.127
+FIC-ROW-0004,FIC-DONOR-010,27,18-29,muž,Zlínský kraj,střední s maturitou,inactive,0,1,1,True,2,4.26,1,5223,15,248.028
+FIC-ROW-0005,FIC-DONOR-006,70,60+,žena,Zlínský kraj,střední bez maturity,inactive,0,1,1,True,1,3.89,1,0110,4,311.863
+FIC-ROW-0006,FIC-DONOR-009,76,60+,muž,Středočeský kraj,střední bez maturity,unemployed,0,1,0,True,2,8.19,1,0110,6,703.337
+FIC-ROW-0007,FIC-DONOR-006,70,60+,žena,Hlavní město Praha,střední bez maturity,inactive,0,1,1,True,10,7.42,0,2512,8,393.775
+FIC-ROW-0008,FIC-DONOR-005,75,60+,žena,Hlavní město Praha,základní,employed,0,0,0,False,9,7.94,0,2512,18,698.403
+FIC-ROW-0009,FIC-DONOR-015,76,60+,žena,Zlínský kraj,základní,unemployed,0,0,0,False,3,8.64,0,0110,23,894.893
+FIC-ROW-0010,FIC-DONOR-013,82,60+,muž,Zlínský kraj,střední bez maturity,employed,0,1,0,True,2,6.23,0,2512,11,596.594
+FIC-ROW-0011,FIC-DONOR-017,22,18-29,žena,Středočeský kraj,základní,unemployed,1,1,0,False,1,9.78,1,0110,24,368.786
+FIC-ROW-0012,FIC-DONOR-018,34,30-44,muž,Středočeský kraj,základní,inactive,0,1,1,True,4,1.72,1,5223,24,345.309
+FIC-ROW-0013,FIC-DONOR-012,61,60+,muž,Jihomoravský kraj,střední s maturitou,employed,0,0,1,True,2,5.05,1,0110,11,530.362
+FIC-ROW-0014,FIC-DONOR-019,70,60+,žena,Jihomoravský kraj,základní,inactive,0,0,,False,8,4.63,1,5223,24,206.705
+FIC-ROW-0015,FIC-DONOR-019,57,45-59,žena,Jihomoravský kraj,VOŠ/VŠ,unemployed,0,1,1,False,10,6.05,0,2512,18,356.750
+FIC-ROW-0016,FIC-DONOR-018,84,60+,muž,Zlínský kraj,střední bez maturity,employed,0,0,1,True,7,9.60,0,5223,1,577.641
+FIC-ROW-0017,FIC-DONOR-011,60,60+,muž,Jihomoravský kraj,základní,inactive,0,1,0,True,1,9.61,0,5223,15,635.178
+FIC-ROW-0018,FIC-DONOR-020,45,45-59,muž,Jihomoravský kraj,VOŠ/VŠ,inactive,0,1,0,True,3,4.18,1,5223,14,802.455
+FIC-ROW-0019,FIC-DONOR-003,67,60+,muž,Středočeský kraj,střední s maturitou,inactive,0,0,1,True,3,4.93,0,5223,5,893.974
+FIC-ROW-0020,FIC-DONOR-018,82,60+,muž,Jihomoravský kraj,střední bez maturity,employed,0,1,1,True,1,7.00,0,2512,16,770.935
+FIC-ROW-0021,FIC-DONOR-004,38,30-44,muž,Středočeský kraj,střední s maturitou,employed,0,1,1,True,4,5.11,1,0110,22,166.087
+FIC-ROW-0022,FIC-DONOR-013,43,30-44,žena,Hlavní město Praha,VOŠ/VŠ,employed,0,0,1,True,5,6.34,1,0110,23,746.601
+FIC-ROW-0023,FIC-DONOR-012,28,18-29,muž,Hlavní město Praha,střední s maturitou,inactive,1,0,1,False,2,1.55,0,0110,27,685.658
+FIC-ROW-0024,FIC-DONOR-008,25,18-29,muž,Středočeský kraj,VOŠ/VŠ,inactive,0,1,1,False,10,9.43,0,5223,15,535.775
+FIC-ROW-0025,FIC-DONOR-019,42,30-44,žena,Středočeský kraj,základní,employed,0,1,0,True,1,8.64,1,5223,8,529.576
+FIC-ROW-0026,FIC-DONOR-005,89,60+,muž,Zlínský kraj,střední s maturitou,unemployed,0,1,0,True,7,9.89,1,5223,17,268.958
+FIC-ROW-0027,FIC-DONOR-011,67,60+,muž,Zlínský kraj,základní,employed,0,0,,False,6,5.38,1,0110,24,507.391
+FIC-ROW-0028,FIC-DONOR-014,28,18-29,žena,Zlínský kraj,VOŠ/VŠ,unemployed,1,0,1,True,8,7.72,1,5223,4,207.748
+FIC-ROW-0029,FIC-DONOR-004,34,30-44,muž,Jihomoravský kraj,střední bez maturity,inactive,0,0,1,False,1,1.39,1,5223,25,866.229
+FIC-ROW-0030,FIC-DONOR-018,51,45-59,muž,Jihomoravský kraj,střední bez maturity,inactive,0,1,0,False,6,7.28,1,2512,15,544.561
+FIC-ROW-0031,FIC-DONOR-007,32,30-44,žena,Zlínský kraj,střední bez maturity,unemployed,0,0,1,False,8,7.30,0,2512,12,480.964
+FIC-ROW-0032,FIC-DONOR-010,41,30-44,muž,Zlínský kraj,střední bez maturity,unemployed,0,0,1,True,10,3.24,1,2512,2,152.604
+FIC-ROW-0033,FIC-DONOR-012,35,30-44,žena,Zlínský kraj,střední bez maturity,unemployed,0,1,0,True,1,5.19,1,5223,23,547.471
+FIC-ROW-0034,FIC-DONOR-014,31,30-44,žena,Hlavní město Praha,střední bez maturity,unemployed,0,1,0,True,7,7.83,1,2512,5,884.122
+FIC-ROW-0035,FIC-DONOR-015,27,18-29,muž,Jihomoravský kraj,střední s maturitou,employed,0,0,1,True,6,1.93,1,2512,22,119.108
+FIC-ROW-0036,FIC-DONOR-006,37,30-44,muž,Zlínský kraj,střední bez maturity,inactive,0,1,0,True,10,1.87,1,0110,6,617.512
+FIC-ROW-0037,FIC-DONOR-008,21,18-29,žena,Jihomoravský kraj,VOŠ/VŠ,employed,1,1,1,False,10,8.71,0,2512,21,743.366
+FIC-ROW-0038,FIC-DONOR-010,79,60+,žena,Hlavní město Praha,střední bez maturity,employed,0,1,0,False,6,5.11,1,2512,15,139.114
+FIC-ROW-0039,FIC-DONOR-004,48,45-59,žena,Hlavní město Praha,střední bez maturity,employed,0,1,0,False,5,8.76,1,5223,21,382.523
+FIC-ROW-0040,FIC-DONOR-001,23,18-29,muž,Středočeský kraj,VOŠ/VŠ,employed,1,1,,True,6,6.18,1,5223,27,207.850
+FIC-ROW-0041,FIC-DONOR-018,87,60+,muž,Středočeský kraj,VOŠ/VŠ,unemployed,0,1,0,True,9,9.56,1,2512,18,525.256
+FIC-ROW-0042,FIC-DONOR-002,60,60+,žena,Jihomoravský kraj,střední s maturitou,unemployed,0,1,0,True,8,9.20,1,5223,5,259.101
+FIC-ROW-0043,FIC-DONOR-003,77,60+,muž,Středočeský kraj,střední s maturitou,unemployed,0,0,0,True,1,7.61,0,0110,20,380.760
+FIC-ROW-0044,FIC-DONOR-004,36,30-44,muž,Hlavní město Praha,základní,inactive,0,1,0,False,10,5.74,1,2512,14,450.093
+FIC-ROW-0045,FIC-DONOR-020,46,45-59,žena,Hlavní město Praha,základní,unemployed,0,1,0,True,10,7.34,1,2512,12,355.331
+FIC-ROW-0046,FIC-DONOR-014,73,60+,muž,Hlavní město Praha,střední s maturitou,unemployed,0,1,1,True,5,2.36,1,2512,25,143.008
+FIC-ROW-0047,FIC-DONOR-007,54,45-59,muž,Hlavní město Praha,základní,inactive,0,0,0,True,9,3.66,1,2512,6,202.406
+FIC-ROW-0048,FIC-DONOR-005,57,45-59,žena,Hlavní město Praha,VOŠ/VŠ,employed,0,1,1,False,5,4.12,0,2512,20,209.993
+FIC-ROW-0049,FIC-DONOR-019,65,60+,žena,Středočeský kraj,VOŠ/VŠ,employed,0,1,1,True,8,6.21,1,5223,16,392.239
+FIC-ROW-0050,FIC-DONOR-016,54,45-59,muž,Hlavní město Praha,střední s maturitou,employed,0,0,1,True,1,6.67,1,2512,9,325.162
+FIC-ROW-0051,FIC-DONOR-004,73,60+,žena,Zlínský kraj,střední s maturitou,inactive,0,0,1,False,4,8.31,0,0110,10,308.424
+FIC-ROW-0052,FIC-DONOR-016,38,30-44,muž,Zlínský kraj,střední s maturitou,employed,0,0,0,True,2,6.33,1,2512,11,693.714
+FIC-ROW-0053,FIC-DONOR-017,70,60+,muž,Středočeský kraj,základní,unemployed,0,0,,False,4,8.71,1,5223,4,825.732
+FIC-ROW-0054,FIC-DONOR-011,20,18-29,žena,Hlavní město Praha,střední bez maturity,employed,1,1,0,False,8,9.84,1,5223,0,199.168
+FIC-ROW-0055,FIC-DONOR-009,58,45-59,muž,Středočeský kraj,střední bez maturity,inactive,0,1,0,True,9,8.01,0,5223,21,749.394
+FIC-ROW-0056,FIC-DONOR-002,85,60+,žena,Hlavní město Praha,VOŠ/VŠ,employed,0,0,0,True,2,9.81,0,2512,6,818.812
+FIC-ROW-0057,FIC-DONOR-015,60,60+,žena,Hlavní město Praha,střední bez maturity,inactive,0,0,0,False,4,8.98,1,0110,10,478.378
+FIC-ROW-0058,FIC-DONOR-005,51,45-59,žena,Středočeský kraj,střední s maturitou,unemployed,0,1,1,True,7,7.88,1,0110,1,413.121
+FIC-ROW-0059,FIC-DONOR-017,87,60+,muž,Hlavní město Praha,střední bez maturity,employed,0,0,1,True,9,4.90,1,5223,22,481.023
+FIC-ROW-0060,FIC-DONOR-020,74,60+,muž,Hlavní město Praha,VOŠ/VŠ,unemployed,0,1,0,True,7,4.88,0,2512,10,367.735
