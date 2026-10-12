@@ -9,8 +9,8 @@ chunks:
   - "[x] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
   - "[x] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
   - "[x] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
-  - "[ ] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, enqueued once per owner and definition"
-  - "[ ] P4d3. The materialize step: the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
+  - "[x] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, frozen to one run key per owner, base and definition"
+  - "[ ] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
   - "[ ] P4e. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
@@ -675,4 +675,47 @@ real bucket `aia-develop-population-<account>` through `S3PopulationStore` itsel
 
 The proof object was deleted afterwards. The worker receives the two settings on the first
 deploy after #334 merges; nothing reads or writes the store until P4d3.
+
+**P4d2, 2026-10-12** (`feature/population-materialize-request`, stacked on P4d1).
+
+*Decision (owner, 2026-10-12): a materialize run lives under a study.* Every workflow run
+belongs to a study and its project (`workflow_runs.study_id`, `project_id`; `infrastructure/
+tables.py:877-881 @ e6c176f1`), and the worker's scope, lease and budget hang off it. A
+researcher asks from a study of the client the dimension is for. The run lives under that
+study and is charged to its budget; the child is still the client's (M5), usable by all of its
+studies. Client-level runs were the alternative, and were not taken.
+
+*Enqueue moved to P4d3.* `domain/workflow_templates.py` adds no step without an executor,
+because a step no worker can claim would leave its run "running" forever. So the template,
+the executor and the enqueue land together in P4d3; P4d2 is the checks and the frozen
+request.
+
+What landed:
+- `domain/population/definition.py`: `DimensionDefinition`, the K5 contract as a type.
+  - Fields: the id (a field name), version, construct, label, kind, target, the
+    `EvidenceAnchor` (knowledge item, revision, span), the predictors, `MissingnessRule`
+    (`PREDICTOR_MEAN`, 18.6.6's z = 0) and the valid range, which must be the kind's.
+  - Its identity is the SHA256 of its canonical JSON; `from_payload` refuses any other
+    contract. `evidence_spec()` is what P4b's derivation takes.
+  - A strength of 0, which 18.6.6 read as 1, is refused in a typed definition.
+- `application/materialize.py`: `prepare_materialization(session, StudyContext, definition)`
+  refuses, by name, before anything is enqueued:
+  - `ScopeDenied`: the scope may not run work, or the study is closed;
+  - `population_not_established` and `base_not_shared`;
+  - `dictionary_not_kept`;
+  - `name_taken`: the dimension's name is already a field of the base;
+  - `predictor_unknown` and `predictor_not_permitted`: the base's policy does not allow
+    `PERSONA_CONSTRUCTION`.
+  
+  The checks build the policy the loader builds, from the kept dictionary
+  (`population_characteristics.shared_version_policy`, now shared with the characteristics
+  page); no respondent row is read.
+- `MaterializationRequest`:
+  - The owner is the scope's organization and client, never an argument. The base is LIVE
+    as it stood, and the definition is held by its hash.
+  - `idempotency_key` is the owner, the base and the definition, so the same request from
+    any of the client's studies finds one run.
+  - `step_input()` is everything the step needs and nothing it could re-choose.
+- Tests: `test_population_materialize_request.py` (14). Dropping the predictor's policy check
+  fails one; dropping the client from the run key fails one (both checked by mutation).
 
