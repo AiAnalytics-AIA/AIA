@@ -22,7 +22,7 @@ chunks:
   - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[x] G1a. Support documented: both rule sets side by side, read-only (the unit's donor rule as Results shows it; AIA's evidence gate as analysis applies it), D1-D4 named on their steps"
-  - "[ ] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
+  - "[x] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
   - "[ ] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
   - "[ ] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
@@ -652,6 +652,25 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - AIA's gate everywhere: Results suppresses more cells.
     - The unit's rule everywhere: analysis admits more.
     - The two as today, until a version is put in force.
+  - **G1b. Landed.** `evidence/support.py`:
+    - `SupportThresholds` is now a frozen model whose `None` means a line the rule does not
+      check. It refuses a boolean, a negative or non-finite line, and an indicative line below
+      its suppression line.
+    - `SupportSpec` holds two rules, `results` and `analysis`. `AIA_SUPPORT_V1`
+      (`aia-support-1`) is today: `UNIT_DONOR_THRESHOLDS` (donors 25/50, nothing else) for
+      Results, and `REFERENCE_THRESHOLDS` for analysis.
+    - One decision function serves both `assess_support` and the new `support_status`.
+      `research_aggregate.donor_support` reads its status from the `results` rule, and its
+      recorded thresholds from the same rule.
+    - Bit-identical: the unit's exact-parity aggregate tests pass unchanged, and
+      `test_the_results_rule_is_the_units_donor_lines_whatever_n` checks 81 donor counts at two
+      (n, effective n) pairs each.
+    - The module `support` now has the preset `aia-support-1` in force, a `method` step, and
+      every line as a specification parameter. It is still not editable (G1d).
+  - **Finding (for G1d).** The aggregate's `UNCERTAINTY_NOTE`
+    (`research_aggregate.py:60`, on the G1b branch) is the unit's text, verbatim: "<25 se nereportuje;
+    25–49 je INDIKATIVNÍ". Once the Results rule is editable, the note must be written from the
+    rule in force, or it will state lines the rule no longer uses.
   - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
     specification yet, so every value is a code constant read where it is used.
     - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the
