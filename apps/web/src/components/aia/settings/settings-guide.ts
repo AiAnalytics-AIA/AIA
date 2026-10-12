@@ -79,3 +79,45 @@ export const DR_GROUP_HELP: Record<string, string> = {
   sources: "Pravidla kvality a důvěryhodnosti zdrojů, podle kterých rešerše posuzuje důkazy.",
   extraction: "Omezení a rozsah sběru strukturovaných údajů z veřejných stránek.",
 };
+
+const DR_HELP: Record<string, string> = {
+  "sign_off.design_and_boundaries": "Souhlas s vymezeným návrhem rešerše a hranicemi jejího použití.",
+  "sign_off.adr_0017_amendment": "Souhlas s doplněnými pravidly externího vyhledávání a získávání zdrojů.",
+  "provider.search.plan": "Název tarifu účtu pro vyhledávání. Nejde o API klíč ani připojení účtu.",
+  "provider.search.terms_url": "Odkaz na podmínky poskytovatele, ze kterých vychází schválení použití.",
+  "provider.search.terms_date": "Datum ověření podmínek. Pomáhá dohledat, jaká pravidla byla schválená.",
+  "provider.search.price_per_1000": "Cena za tisíc vyhledávacích požadavků, použitá při rezervaci a kontrole nákladů.",
+  "provider.search.failed_requests_billed": "Zda poskytovatel účtuje také neúspěšný požadavek. Ovlivňuje započtení jeho nákladů.",
+  "provider.search.storage_and_ai_use_granted": "Potvrzení, že daný tarif dovoluje uchovávat výsledky a zpracovat je pomocí AI.",
+  "provider.search.query_log_retention": "Informace o uchovávání záznamů dotazů u poskytovatele.",
+  "budgets.presets": "Schválení předvoleb, které spojují rozsah práce a limity rešerše.",
+  "models.lead.model_id": "Model použitý pro vedení a plánování rešerše. Identifikátor musí splnit pravidla povolené evropské trasy.",
+  "models.light.model_id": "Lehčí model pro dílčí rešeršní práci. Jeho výběr může ovlivnit kvalitu a náklady.",
+  "models.light.input_price": "Cena za milion vstupních tokenů lehkého modelu pro plánování nákladů.",
+  "models.light.output_price": "Cena za milion výstupních tokenů lehkého modelu pro plánování nákladů.",
+  "quotas.model_requests_per_minute": "Ověřený počet požadavků, které poskytovatel dovolí za minutu.",
+  "quotas.model_input_per_minute": "Ověřený počet vstupních tokenů za minutu; ovlivňuje souběh práce.",
+  "retention.snapshots": "Počet dní, po které se uchovávají zachycené zdrojové stránky jako důkaz.",
+  "retention.datasets": "Počet dní, po které se uchovávají získané datové sady.",
+  "sources.tiers": "Schválení pravidel, která rozdělují zdroje podle jejich důkazní síly.",
+  "sources.reputation_register": "Schválení registru reputace zdrojů používaného při posuzování důvěryhodnosti.",
+  "sources.confidence_weights": "Schválení vah pro posuzování síly důkazů. Nejsou to váhy respondentů studie.",
+  "extraction.denylist": "Schválení seznamu zdrojů, ze kterých se údaje nesmějí získávat.",
+  "extraction.personal_data_patterns": "Schválení pravidel pro rozpoznání a odmítnutí osobních údajů při sběru.",
+  "extraction.record_presets": "Schválení předvoleb, podle kterých se ze stránek získávají strukturované záznamy.",
+};
+export function researchPolicyHelp(key: string, group: string): string {
+  if (DR_HELP[key]) return DR_HELP[key];
+  if (key.startsWith("budgets.run_limit.")) return "Nejvyšší placená cena jednoho běhu v tomto režimu. Společný rozpočet studie může práci zastavit dříve.";
+  if (key.endsWith("window_tokens")) return "Největší povolený vstup do jednoho volání tohoto agenta, měřený v tokenech.";
+  if (key.endsWith("answer_tokens")) return "Největší povolená odpověď tohoto agenta v tokenech; omezuje délku a náklady výstupu.";
+  if (key.includes("connector_calls")) return "Maximální počet volání datových konektorů během jednoho běhu v tomto režimu.";
+  if (key.endsWith("triage_reads")) return "Kolik nalezených stránek může běh předběžně přečíst při výběru relevantních zdrojů.";
+  if (key.endsWith("crawl_pages")) return "Kolik veřejných stránek může běh procházet při podrobné rešerši.";
+  if (key.endsWith("index_queries")) return "Kolik dotazů do indexu zdrojů může provést jeden běh.";
+  if (key.endsWith("archive_fetches")) return "Kolik archivovaných stránek může získat jeden běh.";
+  if (key.endsWith("pages_per_host")) return "Nejvyšší počet stránek z jedné domény; omezuje soustředění sběru na jediný zdroj.";
+  if (key.endsWith("hosts")) return "Nejvyšší počet domén, ze kterých smí běh sbírat strukturované údaje.";
+  if (key.endsWith("pages")) return "Nejvyšší celkový počet stránek pro sběr strukturovaných údajů během jednoho běhu.";
+  return DR_GROUP_HELP[group] ?? "Organizační pravidlo rešerše. Jeho změna se použije až po schválení nové verze.";
+}

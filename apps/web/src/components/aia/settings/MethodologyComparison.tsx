@@ -40,22 +40,21 @@ function moved(pairs: Record<string, [number | null, number | null]>): [string, 
 
 export function MethodologyComparison({ result }: { result: MethodCompare }) {
   return (
-    <section aria-label={t(`${C}.title`)} data-methodology-compare className="flex flex-col gap-3">
+    <section aria-label={t(`${C}.title`)} data-methodology-compare className="flex min-w-0 flex-col gap-3">
       <h5 className="text-sm font-semibold">{tv(`${C}.heading`, { name: result.in_force })}</h5>
       <p className="max-w-3xl text-xs text-ink-muted">{t(`${C}.intro`)}</p>
-      {result.panels.map((p) => <Panel key={p.panel} panel={p} />)}
+      {result.panels.map((p, i) => <Panel key={p.panel} panel={p} initiallyOpen={i === 0} />)}
     </section>
   );
 }
 
-function Panel({ panel: p }: { panel: MethodPanel }) {
+function Panel({ panel: p, initiallyOpen }: { panel: MethodPanel; initiallyOpen: boolean }) {
   const heights = moved(p.heights);
   const k100 = moved(p.k100);
   const shifted = Object.entries(p.shifts).filter(([, d]) => d > SAME).sort((a, b) => b[1] - a[1]);
   return (
-    <article data-compare-panel={p.panel} aria-label={p.label_cs} className="flex flex-col gap-2 rounded-sm border border-border p-3 text-sm">
-      <h6 className="font-semibold">{p.label_cs}</h6>
-      <table className="w-full text-xs">
+    <article data-compare-panel={p.panel} aria-label={p.label_cs} className="min-w-0 rounded-sm border border-border p-3 text-sm"><details open={initiallyOpen}><summary className="cursor-pointer"><h6 className="inline font-semibold">{p.label_cs}</h6></summary><div className="mt-3 flex min-w-0 flex-col gap-2">
+      <div className="min-w-0 overflow-x-auto"><table className="w-full min-w-[23rem] text-xs">
         <thead>
           <tr className="text-left text-ink-muted">
             <th scope="col" className="py-1 pr-3 font-normal" />
@@ -68,7 +67,7 @@ function Panel({ panel: p }: { panel: MethodPanel }) {
           <Row label={t(`${C}.statuses`)} a={counts(p.in_force)} b={counts(p.draft)} />
           <Row label={t(`${C}.effectiveN`)} a={show(p.in_force.effective_n)} b={show(p.draft.effective_n)} />
         </tbody>
-      </table>
+      </table></div>
       <Part title={t(`${C}.statusChanges`)} empty={t(`${C}.noStatusChange`)} has={p.status_changes.length > 0}>
         <ul className="flex flex-col gap-0.5 text-xs">
           {p.status_changes.map((c) => (
@@ -99,7 +98,7 @@ function Panel({ panel: p }: { panel: MethodPanel }) {
         <p className="text-xs">{tv(`${C}.terrainChange`, { value: show(p.terrain_max_change) })}</p>
       </Part>
       {p.notes.map((n) => <p key={n} className="text-xs text-ink-muted">{n}</p>)}
-    </article>
+    </div></details></article>
   );
 }
 

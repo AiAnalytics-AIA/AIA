@@ -574,3 +574,38 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     expect(screen.getByText("7,29")).toBeTruthy();
     expect(screen.queryByText("12.714524700000009")).toBeNull();
   });
+
+describe("usable settings controls", () => {
+  it("offers existing member edits through the audited membership API and defaults a new member to researcher", async () => {
+    api({ "POST /api/v1/members": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "ADMIN", display_name: "Updated", is_active: true }) });
+    render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    expect((screen.getByRole("combobox", { name: "Role" }) as HTMLSelectElement).value).toBe("MEMBER");
+    const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
+    fireEvent.click(within(member).getByText("Upravit jméno a roli"));
+    fireEvent.change(within(member).getByLabelText("Jméno"), { target: { value: "Updated" } });
+    fireEvent.change(within(member).getByRole("combobox", { name: "Role: owner@example.test" }), { target: { value: "ADMIN" } });
+    fireEvent.click(within(member).getByRole("button", { name: "Uložit" }));
+    await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(1));
+    expect(called("POST", "/api/v1/members")[0].body).toEqual({ email: "owner@example.test", display_name: "Updated", role: "ADMIN" });
+  });
+
+  it("filters studies without unmounting their budget drafts and searches the readable audit", async () => {
+    api(); render(<ControlPanel />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
+    const study = document.querySelector('[data-study="STU-1"]') as HTMLElement;
+    fireEvent.click(study.querySelector("summary")!);
+    const budget = within(study).getByLabelText("Strop rozpočtu") as HTMLInputElement;
+    fireEvent.change(budget, { target: { value: "600" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Cizí" } });
+    expect(study.hidden).toBe(true);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Vnímání" } });
+    expect(budget.value).toBe("600");
+    expect(study.hidden).toBe(false);
+    fireEvent.click(screen.getByRole("tab", { name: "Audit" }));
+    expect(screen.getByText("Záznam přístupu ke klientovi")).toBeTruthy();
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat v historii" }), { target: { value: "no-such-event" } });
+    expect(screen.getByText("Žádný záznam neodpovídá hledání.")).toBeTruthy();
+    expect(called("PUT", "/api/v1/studies/STU-1/budget")).toEqual([]);
+  });
+});

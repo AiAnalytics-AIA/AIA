@@ -103,7 +103,7 @@ function Body({ summary, data, people, reload, onEditing }: { summary: MethodMod
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {data.may_administer && inForce.version_number !== v.version_number ? (
-                      <Button small onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
+                      <Button small disabled={start !== null} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
                     ) : null}
                     {data.may_administer ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
                   </div>
@@ -115,7 +115,7 @@ function Body({ summary, data, people, reload, onEditing }: { summary: MethodMod
       </div>
 
       {data.may_administer && inForce.origin === "stored" ? (
-        <div><Button small onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
+        <div><Button small disabled={start !== null} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
       ) : null}
       {activating ? (
         <Activate
@@ -318,7 +318,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
       </div>
       {presets.length > 1 ? (
         <Field label={t(`${V}.base`)} className="max-w-xs">
-          <Select disabled={busy} value={start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
+          <Select aria-label={t(`${V}.base`)} disabled={busy} value={start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
             {start.from === start.base ? null : <option value="">{start.from}</option>}
             {presets.map((p) => <option key={p} value={p}>{p}</option>)}
           </Select>
@@ -330,7 +330,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
         </ul>
       ) : null}
       <div className="rounded-sm border border-border bg-surface-sunken p-3">
-        <Field label={t(`${V}.chooseSection`)}><Select disabled={busy} value={selectedStep} onChange={(e) => setSelectedStep(e.target.value)}>{steps.map(({ step }) => <option key={step.id} value={step.id}>{step.title_cs}</option>)}</Select></Field>
+        <Field label={t(`${V}.chooseSection`)}><Select aria-label={t(`${V}.chooseSection`)} disabled={busy} value={selectedStep} onChange={(e) => setSelectedStep(e.target.value)}>{steps.map(({ step }) => <option key={step.id} value={step.id}>{step.title_cs}</option>)}</Select></Field>
         <p className="mt-2 text-xs text-ink-muted">{tv(`${V}.changeCount`, { count: changedCount })}</p>
       </div>
       {steps.map(({ step, fields }) => (

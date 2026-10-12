@@ -47,7 +47,7 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   return <div className="flex min-w-0 flex-col gap-4">
     <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
     <nav aria-label={t(`${M}.modules`)} className="flex flex-wrap gap-2">
-      {visible.map((m) => <Button key={m.id} aria-pressed={m.id === active} variant={m.id === active ? "primary" : "quiet"} onClick={() => {
+      {visible.map((m) => <Button key={m.id} className="max-w-full !whitespace-normal text-left" aria-pressed={m.id === active} variant={m.id === active ? "primary" : "quiet"} onClick={() => {
         if (m.id === active) return;
         if (editing) setPending(m.id); else setActive(m.id);
       }}>{m.title_cs}</Button>)}
@@ -149,20 +149,20 @@ function StepCard({ step }: { step: MethodStepOut }) {
           {step.evidence.map((e) => (
             <li key={`${e.kind}:${e.ref}`} className="flex flex-wrap items-baseline gap-2">
               <Tag>{t(`${M}.evidenceKind.${e.kind}`)}</Tag>
-              <span className="font-mono text-xs">{e.ref}</span>
+              <span className="min-w-0 break-all font-mono text-xs">{e.ref}</span>
               {e.note_cs ? <span className="text-ink-muted">{e.note_cs}</span> : null}
             </li>
           ))}
         </ul>
       ) : null}
       <details className="text-xs text-ink-muted">
-        <summary className="cursor-pointer">{t(`${M}.implements`)}: <span className="font-mono">{step.implements}</span></summary>
+        <summary className="cursor-pointer">{t(`${M}.implements`)}: <span className="break-all font-mono">{step.implements}</span></summary>
         <p className="mt-1">{t(`${M}.pin`)}: <span className="font-mono">{step.source_sha256.slice(0, 16)}…</span></p>
         {step.tests.length ? (
           <>
             <p className="mt-2">{t(`${M}.tests`)}:</p>
             <ul className="mt-1 flex flex-col gap-0.5 font-mono">
-              {step.tests.map((test) => <li key={test}>{test}</li>)}
+              {step.tests.map((test) => <li key={test} className="break-all">{test}</li>)}
             </ul>
           </>
         ) : null}
@@ -180,7 +180,7 @@ function EditableFormula({ formula }: { formula: MethodFormula }) {
       <div className="text-ink"><Formula latex={formula.latex} /></div>
       <p className="text-sm">
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
-        <code className="font-mono text-xs">{formula.expression}</code>
+        <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
       {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
       <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[minmax(0,3rem)_minmax(0,4rem)_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">

@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DrSetting, DrSettingApproval, DrSettingDetail, DrSettingValue, DrSettingVersion } from "@/lib/api";
 import { resetConfigCache } from "@/lib/auth";
+import { researchPolicyHelp } from "./settings-guide";
 import { DeepResearchSettingsPanel, showValue } from "./DeepResearchSettingsPanel";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), usePathname: () => "/app/settings" }));
@@ -233,3 +234,31 @@ describe("Deep Research settings", () => {
     expect(await screen.findByText("API nevrátilo nastavení Deep Research.")).toBeTruthy();
   });
 });
+
+  it("explains and searches policy purpose, preserving and guarding an unfinished proposal", async () => {
+    fakeApi(); render(<DeepResearchSettingsPanel people={people} />);
+    const detail = await openDetail(CRAWL);
+    const form = detail.querySelector("[data-dr-propose]") as HTMLElement;
+    fireEvent.change(within(form).getByLabelText("Hodnota"), { target: { value: "777" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }), { target: { value: "uchovávají" } });
+    expect((within(form).getByLabelText("Hodnota") as HTMLInputElement).value).toBe("777");
+    expect(screen.getByText(/Počet dní, po které se uchovávají zachycené/)).toBeTruthy();
+    fireEvent.click(within(await row(CRAWL)).getByRole("button", { name: "Zavřít" }));
+    expect(screen.getByRole("alertdialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
+    expect((within(form).getByLabelText("Hodnota") as HTMLInputElement).value).toBe("777");
+    fireEvent.click(within(form).getByRole("button", { name: "Vrátit neuložené změny" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }), { target: { value: "no-such-rule" } });
+    expect(screen.getByText("Žádné pravidlo neodpovídá hledání.")).toBeTruthy();
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+
+  it("explains exact, agent-limit, budget, connector and extraction policy families without inventing controls", () => {
+    expect(researchPolicyHelp("provider.search.storage_and_ai_use_granted", "provider")).toContain("uchovávat výsledky");
+    expect(researchPolicyHelp("limits.lead.window_tokens", "limits")).toContain("vstup");
+    expect(researchPolicyHelp("limits.verifier.answer_tokens", "limits")).toContain("odpověď");
+    expect(researchPolicyHelp("budgets.run_limit.standard", "budgets")).toContain("rozpočet studie");
+    expect(researchPolicyHelp("budgets.allowance.deep.connector_calls", "budgets")).toContain("konektorů");
+    expect(researchPolicyHelp("extraction.caps.deep.pages_per_host", "extraction")).toContain("jedné domény");
+    expect(researchPolicyHelp("future.rule", "future")).toContain("až po schválení");
+  });

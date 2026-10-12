@@ -741,6 +741,9 @@ export const cs = {
         },
       },
       panel: {
+        referenceSearch: "Hledat technickou hodnotu", referenceSearchPlaceholder: "Název, účel nebo technický identifikátor…",
+        studySearch: "Hledat studii nebo klienta", studySearchPlaceholder: "Název studie nebo klienta…", auditSearch: "Hledat v historii", auditSearchPlaceholder: "Událost, osoba, studie nebo důvod…", noSearchResults: "Žádný záznam neodpovídá hledání.",
+        relatedSettings: "Související hodnoty a technická pravidla", activityTechnical: "Technické údaje této schopnosti", runtimeConfiguration: "Model a konfigurace nasazení (pouze ke čtení)",
         technical: "Technický zdroj",
         legendTitle: "Jak jsou nastavení spravována",
         title: "Ovládání systému",
@@ -793,7 +796,7 @@ export const cs = {
           },
           approvals: {
             title: "Schvalování",
-            intro: "Nezávislá revize je výchozí. Samoschválení může povolit jen správce, na úrovni organizace, klienta nebo studie.",
+            intro: "Pravidla určují, kdy autor může schválit vlastní návrh. Nastavuje je správce pro organizaci, klienta nebo konkrétní studii.",
           },
           ai: {
             title: "AI v AIA",
@@ -832,7 +835,7 @@ export const cs = {
           methodology: {
             title: "Metodika",
             intro:
-              "Matematika a statistika AIA tak, jak běží: každý krok výpočtu, jeho vzorec, hodnoty, které čte, a odkud každá pochází (ADR 0023). Hodnoty se čtou přímo z kódu a z metodiky v platnosti, nic se sem neopisuje. Upravit metodiku a uvést úpravu v platnost může vlastník nebo správce organizace; platí pro běhy spuštěné potom.",
+              "Prohlédněte si kroky výpočtu map a statistik, jejich parametry a vysvětlení. Upravit postup může vlastník nebo správce. Aktivovaná verze se použije u nově spuštěných běhů.",
           },
           roles: { title: "Role a oprávnění", intro: "Výzkumník (člen organizace) má všechna oprávnění ke klientům a studiím a zakládá klienty. Správce k tomu spravuje členy, stav klientů a nastavení systému. API kontroluje oprávnění, nikdy role." },
           audit: { title: "Audit přístupu", intro: "Posledních 50 udělení, odebrání, odmítnutí a změn nastavení." },
@@ -905,6 +908,8 @@ export const cs = {
         },
         clientStatus: { ACTIVE: "Aktivní", DORMANT: "Neaktivní", ARCHIVED: "Archivovaný" },
         members: {
+          edit: "Upravit jméno a roli", noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
+          editHelp: "Změna role mění oprávnění tohoto člena v celé organizaci. Přístup k jednotlivým studiím se zde nenastavuje.",
           title: "Členové organizace",
           name: "Jméno",
           role: "Role",
