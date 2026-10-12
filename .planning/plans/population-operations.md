@@ -6,7 +6,7 @@ chunks:
   - "[x] P3. A run records its population binding at creation, and population-consuming steps say so"
   - "[x] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
   - "[x] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
-  - "[ ] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
+  - "[x] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
   - "[ ] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
   - "[ ] P4d. A researcher materializes an eligible dimension: a worker step that registers the child, never promotes"
   - "[ ] P4e. A study selects its organization's child; the run records that binding; another organization's run is refused"
@@ -478,4 +478,37 @@ extension by hash, the fields the base's followed by the added ones). Internal a
 analysis follows from the existing rules for any classified field; M3's list did not name it.
 Tests: `test_population_materialized.py` (16); the guard in `plan_promotion` and the parent
 check each fail a test when removed (checked by mutation).
+
+**P4b, 2026-10-12** (`feature/population-materialize-derivation`). `tools/materialize_capture.py`
+writes 160 fictional rows and 14 cases (`inputs`), and runs the unit's own, unmodified
+`audience_dimensions.materialize_evidence_dimension` on each (`capture`, pandas 2.3.3 and
+NumPy 2.5.4 in a scratch venv). A second capture was byte-identical. The cases cover:
+- binary to a prevalence, including one given as a percentage;
+- scale to a mean, including one the clip pulls off target;
+- a negative direction, `strength` / `weight`, and a `strength` of 0 read as 1;
+- a flat predictor skipped; a text column unusable; missing values and zero weights;
+- six refusals.
+
+`domain/population/derivation.py` is the stdlib port, `derive_dimension`, with method
+`npc-18.6.6-evidence-overlay` v1:
+- the score is the mean of `direction * strength * z` plus `0.35 * (hash noise - 0.5)`;
+- binary values are a weighted cut in descending score;
+- scale values are `1 + 9 * percentile rank`, shifted, clipped and rounded to two decimals.
+
+Every value, and every achieved anchor, is **bit-identical** to the unit's. That needs NumPy's
+pairwise summation and pandas' two-pass variance (with a plain left-to-right sum, 7 of the 8
+value cases fail; checked by mutation), and NumPy's `rint` rounding.
+
+**One named deviation:** where no usable predictor varies, the unit writes values from the
+hash noise alone (fixture M06). `derive_dimension` refuses that (`no_varying_predictor`);
+`derive_dimension_as_unit` keeps the unit's behaviour, for the parity tests only.
+
+**Noted for P4d:** a scale target can be left unmet by the clip (M04: target 2.0, achieved
+2.68). The unit accepts that silently. P4d must show `achieved` beside `target`, and must
+not present the target as met.
+
+Tests: `test_population_derivation.py` (17).
+
+The parity matrix's `data_library.ingestion` and `audience.definition` stay `NOT_STARTED`. The
+fixture gate joins them when materialization lands as a capability (Doc follow-up).
 
