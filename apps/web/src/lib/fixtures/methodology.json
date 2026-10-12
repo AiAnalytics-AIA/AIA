@@ -262,7 +262,7 @@
       "id": "top_box",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
       "note_cs": "Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
-      "source_sha256": "912302d916cdc2ec4f025df651b76a0b8c6d94ac403dc3d1138feddd40774083",
+      "source_sha256": "0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
       "symbols": [
        {
         "latex": "b",
@@ -312,7 +312,7 @@
       "id": "multi",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
       "note_cs": "Součet podílů přesahuje 100 %. Každá možnost má vlastní bootstrap: semínko základního bootstrapu plus pořadí možnosti.",
-      "source_sha256": "912302d916cdc2ec4f025df651b76a0b8c6d94ac403dc3d1138feddd40774083",
+      "source_sha256": "0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
