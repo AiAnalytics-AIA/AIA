@@ -34,7 +34,9 @@ chunks:
   - "[x] W1a. Weighting documented and declared: schemes, default role, expected totals and tolerances, the aggregate's weight cleaning (aia-weighting-1, the import contract's declaration exactly); D1 reproduced on its steps"
   - "[x] W1b. Weighting tells the truth: a run's dataset refuses every invalid weight (infinity passed), the inert median/refuse switch dropped, the sampler's floor, raking and audit shown as the code's constants, Kish's n in four places"
   - "[ ] W1c. Weighting a run's choice and editable, once the panel source reaches fieldwork (panel-grounded-respondents 5): the weighting pinned per run, the sampler's values and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
-  - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
+  - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
+  - "[ ] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; a process that is not the unit's is a deviation from 18.6.6"
+  - "[ ] R1c. Response process editable, with the draft check on fictional respondents"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
@@ -992,6 +994,46 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
   check lists every row a lowered threshold would newly report.
+
+- **R1a. Landed.** `domain/methodology/response.py` is module `response`, read-only,
+  registered after `weighting`.
+  - **Declared and read.** `ResponseProcessSpec` (`respondent_behavior.py`): social
+    desirability's base and slope, acquiescence, extremity, "don't know", satisficing's base,
+    slope and cap, the reweighting limit, the six style links in the unit's order, the noise
+    floor and the describe threshold. `aia-response-1` holds the unit's values, and
+    `adjust_probabilities`, `assign_styles` and `describe_style` now read them: the inline
+    literals (`respondent_behavior.py:67-74, 132, 174-207, 315 @ 8e70d7d2`,
+    `ai_respondent.py:226 @ 8e70d7d2`) are gone, so the declaration cannot drift from
+    what computes. The EXACT captures are unchanged and pass
+    (`test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit`,
+    `::test_styles_match_the_unit`); the default is the preset bit for bit, and changing any
+    one value changes what is computed
+    (`test_methodology_response.py::test_the_preset_is_the_units_values_and_the_code_reads_it`).
+  - **Not declared: the dispersion temperature.** 18.6.6's `dispersion_calibration` is not
+    ported; the temperature is 1, the identity. A value that nothing reads is not offered;
+    the step says so. The model is asked at temperature 0 (`ai_respondent.py:614 @ 8e70d7d2`).
+  - **Steps, in six groups:** the method; the model's probabilities and their normalisation;
+    the mechanisms (the soft reweighting, then social desirability, acquiescence, extremity,
+    "don't know", satisficing); the draw by code; the styles (the links, the stable noise,
+    the threshold that puts a style into words); the fictional roster.
+  - **Finding D6, reproduced.** A fictional roster draws its donors with replacement from a
+    pool of `max(3, n // 3)` ids (`ai_respondent.py:278 @ 8e70d7d2`), so it has fewer
+    distinct donors than the pool. Under `aia-support-1`'s 25 donors every run below 75
+    fictional respondents suppresses every donor-layer value; at 75 only about a quarter of
+    rosters reach 25 donors, from 90 every one tried does
+    (`test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+    The fictional roster carries every AI run that does not take its respondents from the panel.
+  - **Corrected in review (#342):** the pool is not the donor count; only a respondent's hash
+    noise is their own, the style depends on the roster
+    (`::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster`); a
+    missing sex where the column exists counts as not male, as in 18.6.6
+    (`::test_a_missing_sex_counts_as_not_male_as_in_the_unit`). The notes said otherwise.
+  - **Found by CI on #344:** a pin read back from PostgreSQL's JSONB has its keys reordered,
+    and the specification refused six style links that were not in the unit's order, so
+    every retry failed there (SQLite keeps the order; the local suites passed). The links
+    are now put back in the unit's order on read; each style is computed on its own, so the
+    order moves no value
+    (`test_methodology_response.py::test_a_pin_read_back_with_its_keys_reordered_is_the_same_process`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
