@@ -9,7 +9,8 @@ Declared in ``ResponseProcessSpec`` (``respondent_behavior.py``), whose preset
 ``aia-response-1`` is the unit's values, and read by the code that computes: what the tab
 shows is what runs, and the EXACT captures of the unit's own functions hold it there
 (``fixtures/response_process``). A run pins it when it starts and a retry keeps it (R1b);
-it is editable from R1c.
+it is editable, and a draft is checked beside the process in force on fixed fictional
+questions and respondents (``response_check.py``, R1c).
 
 Not ported, and said so on its step: 18.6.6's dispersion temperature
 (``dispersion_calibration``), which AIA has no calibration for; the temperature is 1, the
@@ -399,11 +400,12 @@ RESPONSE: Final = MethodModule(
     presets=(Preset("aia-response-1", AIA_RESPONSE_V1, _validate),),
     in_force="aia-response-1",
     groups=_GROUPS,
+    editable=True,
     note_cs=(
         "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle "
         "jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze "
         "aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. "
-        "Každý běh si proces odpovědi zapamatuje a opakování ho drží; upravit ho půjde "
-        "od R1c."
+        "Každý běh si proces odpovědi zapamatuje a opakování ho drží. Úpravu lze před "
+        "uvedením v platnost porovnat na pevných fiktivních otázkách a respondentech."
     ),
 )

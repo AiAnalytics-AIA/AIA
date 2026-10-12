@@ -394,6 +394,30 @@ def test_a_retry_keeps_the_response_process_its_run_pinned(world: Any) -> None:
     assert _run(world, run_id)["metadata"]["response"] == edited.model_dump(mode="json")
 
 
+def test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units(
+    world: Any,
+) -> None:
+    """Stored and put in force as the Metodika tab does (R1c); a run started afterwards pins
+    it under its own name and is a new run of the revision; one started before keeps the unit's."""
+    before = _start(world)
+    spec = AIA_RESPONSE_V1.model_dump(mode="json")
+    spec["extremity"] = 0.5
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "response", base_preset="aia-response-1", spec=spec, formulas={}, note="test"
+        )
+        repo.activate("response", version.version_number, reason="test")
+        session.commit()
+    after = _start(world)
+    assert after != before
+    pinned = _run(world, after)["metadata"]
+    assert pinned["response"]["extremity"] == 0.5
+    assert pinned["response"]["methodology_version"] == "aia-response-1+e1"
+    assert pinned["response_methodology"]["name"] == "aia-response-1+e1"
+    assert _run(world, before)["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
+
+
 # ------------------------------------------------ G3a: the aggregation a run pins --
 
 
