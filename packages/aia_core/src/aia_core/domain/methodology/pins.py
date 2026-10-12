@@ -24,6 +24,7 @@ from typing import Any, Final
 from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..research_aggregate import AGGREGATE_SLOTS, AIA_AGGREGATE_V1, AggregationSpec
 from ..research_sociomap import SociomapMethod, default_methods
+from ..respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
 from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
 from .aggregation_formulas import AGGREGATION_FORMULAS
@@ -35,7 +36,9 @@ __all__ = [
     "FormulaNotComputed",
     "aggregation_pin_for",
     "read_aggregation_pin",
+    "read_response_pin",
     "read_support_pin",
+    "response_spec_for",
     "sociomap_methods_for",
     "support_spec_for",
     "uncomputed_formulas",
@@ -133,3 +136,21 @@ def read_aggregation_pin(value: Any) -> tuple[AggregationSpec, Slots]:
         raise ValueError(f"the aggregate reads no formula {', '.join(unknown)}")
     slots = {sid: compile_formula(_AGGREGATION_SLOTS[sid], text) for sid, text in formulas.items()}
     return spec, slots
+
+
+def response_spec_for(payload: Mapping[str, Any] | None) -> ResponseProcessSpec:
+    """The response process a run started under ``payload`` pins (plan ``methodology-tab``
+    R1b). ``None`` -- nothing stored -- is the code's preset, ``aia-response-1``: 18.6.6's
+    coefficients."""
+    if payload is None:
+        return AIA_RESPONSE_V1
+    return ResponseProcessSpec.model_validate(payload["spec"])
+
+
+def read_response_pin(value: Any) -> ResponseProcessSpec:
+    """A run's pinned response process from its stored form. A run started before the process
+    was pinned (``None``) was answered under ``aia-response-1``, so that is what it reads. A pin
+    that does not validate raises ``ValueError``; nothing falls back to the code's values."""
+    if value is None:
+        return AIA_RESPONSE_V1
+    return ResponseProcessSpec.model_validate(value)

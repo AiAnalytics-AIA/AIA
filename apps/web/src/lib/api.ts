@@ -1193,12 +1193,24 @@ export type MethodAggregationPanel = {
   effective_n: Record<string, [number, number]>;
 };
 export type MethodAggregationCompare = { draft: string; panels: MethodAggregationPanel[] };
+/** One fictional question of the response-process draft check (plan R1c): each option's share
+ *  in percent under the model's vector, the process in force and the draft. */
+export type MethodResponseQuestion = {
+  question: string; label_cs: string; labels: string[];
+  model: number[]; in_force: number[]; draft: number[];
+  moved_pp: number; shift_in_force: number; shift_draft: number;
+};
+export type MethodResponseCompare = {
+  draft: string; respondents: number; questions: MethodResponseQuestion[];
+  described_in_force: number; described_draft: number;
+};
 /** Panels for an object map; `support` for the support rules, `aggregation` for the
  *  aggregation (then `panels` is empty). */
 export type MethodCompare = {
   valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[];
   support?: MethodSupportCompare | null;
   aggregation?: MethodAggregationCompare | null;
+  response?: MethodResponseCompare | null;
 };
 
 const METHODOLOGY = "/api/v1/methodology";

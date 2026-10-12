@@ -336,7 +336,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Váha respondenta běhu",
         formula_latex=r"w^{\mathrm{resp}}_i = w_i\ \text{(po rakingu)}",
         implements=f"{_D}.panel_persona:panel_personas",
-        source_sha256="137e38c08743b61d500cfc1f00ecaf20de1581e6a941c1bdcb119a6b750c5211",
+        source_sha256="9f68f6e30b141b74b6b67df8969447dc2559c31654b11c2286ee1ac6dd82674a",
         evidence=(_SAMPLER,),
         tests=(f"{_PP}::test_every_sampled_row_becomes_a_panel_persona",),
         note_cs=(

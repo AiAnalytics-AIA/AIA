@@ -71,6 +71,21 @@ def test_a_panel_run_is_sampled_built_and_planned_in_that_order(population: Any)
     assert panel_plans(population, spec, seed=12).sample != built.sample
 
 
+def test_panel_personas_are_styled_under_the_runs_response_process(population: Any) -> None:
+    """Plan methodology-tab R1b: the same sample, styled under the process the run pinned."""
+    from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
+
+    spec = _spec(60)
+    unit = panel_plans(population, spec, seed=11)
+    edited = AIA_RESPONSE_V1.model_copy(
+        update={"methodology_version": "aia-response-1+e1", "style_noise_floor": 1.0}
+    )
+    other = panel_plans(population, spec, seed=11, response=edited)
+    assert other.sample == unit.sample  # who is drawn does not depend on the process
+    assert [p.style for p in other.personas.personas] != [p.style for p in unit.personas.personas]
+    assert panel_plans(population, spec, seed=11, response=AIA_RESPONSE_V1) == unit
+
+
 def test_the_designs_audience_filters_are_what_the_sample_draws_under(population: Any) -> None:
     """5a decision 4: applied, as 18.6.6 did; recorded in the sample's provenance."""
     spec = _spec(100, audience={"vek": {"min": 60, "max": 89}})

@@ -109,11 +109,11 @@ def test_every_value_is_shown_from_the_specification() -> None:
     assert values["describe_threshold"] == 0.7
 
 
-def test_it_is_declared_in_force_and_not_editable_yet() -> None:
+def test_it_is_declared_in_force_and_editable() -> None:
     assert [p.name for p in RESPONSE.presets] == ["aia-response-1"]
     assert RESPONSE.in_force == "aia-response-1"
-    assert RESPONSE.editable is False  # R1c
-    assert RESPONSE.formulas == ()
+    assert RESPONSE.editable is True  # R1c
+    assert RESPONSE.formulas == ()  # values only: no formula slot is offered
 
 
 @pytest.mark.parametrize(
@@ -184,6 +184,100 @@ def test_a_missing_sex_counts_as_not_male_as_in_the_unit() -> None:
     assert unknown == as_woman
     no_column = assign_styles([{k: v for k, v in r.items() if k != "pohlavi"} for r in rows])
     assert no_column != unknown
+
+
+# ------------------------------------------------------------------------------- R1b
+
+
+def test_with_nothing_stored_a_run_pins_the_units_process_and_an_old_run_reads_it() -> None:
+    from aia_core.domain.methodology.pins import read_response_pin, response_spec_for
+
+    assert response_spec_for(None) is AIA_RESPONSE_V1
+    assert read_response_pin(None) is AIA_RESPONSE_V1  # a run started before the pin
+    pinned = AIA_RESPONSE_V1.model_dump(mode="json")
+    assert read_response_pin(pinned) == AIA_RESPONSE_V1
+    assert response_spec_for({"spec": pinned}) == AIA_RESPONSE_V1
+    with pytest.raises(ValueError):
+        read_response_pin({**pinned, "acquiescence": "much"})  # never the code's value instead
+
+
+def test_the_roster_profile_and_answers_follow_the_process_they_are_given() -> None:
+    from aia_core.domain.ai_respondent import fictional_roster
+
+    edited = _with(style_noise_floor=1.0, describe_threshold=10.0)
+    unit, other = fictional_roster(12, seed=3), fictional_roster(12, seed=3, response=edited)
+    assert [p.style for p in unit] != [p.style for p in other]
+    assert all("Jak odpovídá" not in p.profile(edited.describe_threshold) for p in other)
+    assert any("Jak odpovídá" in p.profile() for p in unit)
+
+
+# ------------------------------------------------------------------------------- R1c
+
+
+def test_a_stored_version_names_itself_and_keeps_every_value_it_was_given() -> None:
+    from aia_core.domain.methodology.versions import named, validate_version
+
+    edit = AIA_RESPONSE_V1.model_dump(mode="json")
+    edit["extremity"] = 0.5
+    version = validate_version(
+        RESPONSE,
+        base_preset="aia-response-1",
+        spec=edit,
+        formulas={},
+        version_name=named("aia-response-1", 1),
+    )
+    assert version.spec.methodology_version == "aia-response-1+e1"
+    assert isinstance(version.spec, ResponseProcessSpec) and version.spec.extremity == 0.5
+
+
+def test_the_draft_check_moves_nothing_when_nothing_is_edited() -> None:
+    from aia_core.domain.methodology.response_check import (
+        RESPONSE_CHECK_QUESTIONS,
+        compare_response,
+    )
+
+    same = compare_response(AIA_RESPONSE_V1, AIA_RESPONSE_V1)
+    assert len(same.questions) == len(RESPONSE_CHECK_QUESTIONS) == 4
+    for q in same.questions:
+        assert q.in_force == q.draft and q.moved_pp == 0.0
+        assert q.shift_in_force == q.shift_draft
+        assert sum(q.in_force) == pytest.approx(100, abs=0.05)
+    assert same.described_in_force == same.described_draft
+    assert compare_response(AIA_RESPONSE_V1, AIA_RESPONSE_V1) == same  # fixed, every time
+
+
+def test_the_draft_check_shows_what_each_edit_does() -> None:
+    from aia_core.domain.methodology.response_check import (
+        QuestionComparison,
+        ResponseComparison,
+        compare_response,
+    )
+
+    def check(**change: object) -> tuple[dict[str, QuestionComparison], ResponseComparison]:
+        c = compare_response(AIA_RESPONSE_V1, _with(**change))
+        return {q.question: q for q in c.questions}, c
+
+    sharper, _ = check(extremity=1.0)
+    assert sharper["skala7"].shift_draft > sharper["skala7"].shift_in_force
+    # Satisficing toward the first option, capped higher and starting higher: A gains.
+    lazier, _ = check(satisficing={"base": 0.3, "slope": 0.06, "cap": 0.5})
+    assert lazier["prvni"].draft[0] > lazier["prvni"].in_force[0]
+    # A stronger pull toward the desirable answer raises its share.
+    proper, _ = check(social_desirability={"base": 1.0, "slope": 0.10})
+    assert proper["zadoucnost"].draft[0] > proper["zadoucnost"].in_force[0]
+    _, quieter = check(describe_threshold=5.0)
+    assert quieter.described_draft == 0 < quieter.described_in_force
+
+
+def test_the_draft_check_reads_the_stored_version_in_force() -> None:
+    from aia_core.domain.methodology.response_check import compare_response_with_in_force
+
+    stored = {"spec": _with(extremity=1.0).model_dump(mode="json")}
+    draft = {"spec": AIA_RESPONSE_V1.model_dump(mode="json")}
+    scale = {q.question: q for q in compare_response_with_in_force(stored, draft).questions}
+    assert scale["skala7"].shift_in_force > scale["skala7"].shift_draft
+    unit = {q.question: q for q in compare_response_with_in_force(None, draft).questions}
+    assert unit["skala7"].moved_pp == 0.0
 
 
 def test_a_pin_read_back_with_its_keys_reordered_is_the_same_process() -> None:

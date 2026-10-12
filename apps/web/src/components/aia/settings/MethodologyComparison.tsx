@@ -7,11 +7,13 @@
 // force, heights, K100 and the terrain. What did not move says so, so silence is never read
 // as "not checked". For the support rules (plan G1d) the API decides fixed fictional cells
 // instead, and this lists every cell the edit newly shows or newly suppresses, then all of them.
+// For the response process (plan R1c) it answers fixed fictional questions for a fixed roster:
+// each option's mean share, and how far one respondent moves from the model's vector.
 
 import type { ReactNode } from "react";
 
 import { t, tv } from "@/i18n/t";
-import type { MethodAggregationPanel, MethodCompare, MethodEstimate, MethodMapSummary, MethodPanel, MethodSupportCompare } from "@/lib/api";
+import type { MethodAggregationPanel, MethodCompare, MethodEstimate, MethodMapSummary, MethodPanel, MethodResponseCompare, MethodResponseQuestion, MethodSupportCompare } from "@/lib/api";
 
 const C = "aia.settings.methodology.versions.compare";
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 4 });
@@ -48,6 +50,8 @@ export function MethodologyComparison({ result }: { result: MethodCompare }) {
           <p className="max-w-3xl text-xs text-ink-muted">{t(`${A}.intro`)}</p>
           {result.aggregation.panels.map((p, i) => <AggregationPanel key={p.panel} panel={p} initiallyOpen={i === 0} />)}
         </div>
+      ) : result.response ? (
+        <ResponseCheck response={result.response} />
       ) : result.support ? (
         <SupportCheck support={result.support} />
       ) : (
@@ -247,6 +251,58 @@ function AggregationPanel({ panel: p, initiallyOpen }: { panel: MethodAggregatio
             </ul>
           </Part>
         </div>
+      </details>
+    </article>
+  );
+}
+
+const R = `${C}.response`;
+const pp = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 2 });
+
+function ResponseCheck({ response }: { response: MethodResponseCompare }) {
+  return (
+    <div data-compare-response className="flex min-w-0 flex-col gap-3">
+      <p className="max-w-3xl text-xs text-ink-muted">{tv(`${R}.intro`, { respondents: response.respondents })}</p>
+      <p className="text-xs" data-response-described>{tv(`${R}.described`, { before: response.described_in_force, after: response.described_draft, respondents: response.respondents })}</p>
+      {response.questions.map((q, i) => <ResponseQuestion key={q.question} q={q} initiallyOpen={i === 0} />)}
+    </div>
+  );
+}
+
+function ResponseQuestion({ q, initiallyOpen }: { q: MethodResponseQuestion; initiallyOpen: boolean }) {
+  return (
+    <article data-compare-response-question={q.question} aria-label={q.label_cs} className="min-w-0 rounded-sm border border-border p-3 text-sm">
+      <details open={initiallyOpen}>
+        <summary className="cursor-pointer">
+          <h6 className="inline font-semibold">{q.label_cs}</h6>{" "}
+          <span className="text-xs text-ink-muted">{tv(`${R}.summary`, { moved: pp.format(q.moved_pp), before: pp.format(q.shift_in_force), after: pp.format(q.shift_draft) })}</span>
+        </summary>
+        <div className="mt-3 min-w-0 overflow-x-auto"><table className="w-full min-w-[23rem] text-xs" aria-label={q.label_cs}>
+          <thead>
+            <tr className="text-left text-ink-muted">
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${R}.option`)}</th>
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${R}.model`)}</th>
+              <th scope="col" className="py-1 pr-3 font-normal">{t(`${C}.inForce`)}</th>
+              <th scope="col" className="py-1 font-normal">{t(`${C}.draft`)}</th>
+            </tr>
+          </thead>
+          <tbody className="tabular-nums">
+            {q.labels.map((label, k) => (
+              <tr key={label} className="border-t border-border">
+                <th scope="row" className="py-1 pr-3 text-left font-normal">{label}</th>
+                <td className="py-1 pr-3">{pp.format(q.model[k])} %</td>
+                <td className="py-1 pr-3">{pp.format(q.in_force[k])} %</td>
+                <td className={`py-1 ${Math.abs(q.in_force[k] - q.draft[k]) > SAME ? "font-semibold" : ""}`}>{pp.format(q.draft[k])} %</td>
+              </tr>
+            ))}
+            <tr className="border-t border-border">
+              <th scope="row" className="py-1 pr-3 text-left font-normal">{t(`${R}.shift`)}</th>
+              <td className="py-1 pr-3" />
+              <td className="py-1 pr-3">{pp.format(q.shift_in_force)} p. b.</td>
+              <td className="py-1">{pp.format(q.shift_draft)} p. b.</td>
+            </tr>
+          </tbody>
+        </table></div>
       </details>
     </article>
   );
