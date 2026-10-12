@@ -842,3 +842,20 @@ nothing is drawn or sent. A hypothesis until a test runs it.
   the population store is configured, as the materialize executor already does.
 - Test that would catch it: a panel run over a child under the real worker loop, reading
   the child's added field.
+
+**The P4e2 finding, closed (2026-10-12, `fix/panel-loader-store`, stacked on P4e2).** It was
+reproduced before the fix:
+`apps/executors/tests/test_ai_fieldwork.py::test_without_the_store_a_panel_run_over_a_child_parks_and_sends_nothing`
+(the fieldwork step waits `RUNTIME_UNAVAILABLE`, no request, no ledger row).
+- `ai_runtime.panel_population_source(root, store)`: the shared directory, routed with the
+  population store when one is configured (`RoutingPopulationSource`).
+- `build_ai_fieldwork(population_store=)` uses it. `registry.population_store(env)` builds the
+  store once, and `build_registry` hands that one store to both the materialize step and the
+  panel loader.
+- `test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store`: a panel run over
+  a child completes under the real worker. Its respondents name the child's binding, and
+  the run says fieldwork read it.
+- The production loader keeps the v17 contract. These tests reach the same routing through
+  the grounded fictional population's loader, and
+  `test_the_composed_panel_source_reads_the_store_only_when_it_is_configured` covers the
+  production composition.

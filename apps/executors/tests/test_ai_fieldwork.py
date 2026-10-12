@@ -15,6 +15,7 @@ the ledger, the artifact store and the scope ``ScopeResolver`` issues.
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import threading
 import time
@@ -1078,7 +1079,12 @@ def _grounded_env(design: dict[str, Any] = GROUNDED_DESIGN) -> dict[str, str]:
     )
 
 
-def _start_grounded(world: Any, grounded: Any, design: dict[str, Any] = GROUNDED_DESIGN) -> str:
+def _start_grounded(
+    world: Any,
+    grounded: Any,
+    design: dict[str, Any] = GROUNDED_DESIGN,
+    population_version_id: str | None = None,
+) -> str:
     from aia_core.domain.fieldwork import PersonaSource
     from grounded_world import LIVE
 
@@ -1093,6 +1099,7 @@ def _start_grounded(world: Any, grounded: Any, design: dict[str, Any] = GROUNDED
             design_revision_id=revision.revision_id,
             fieldwork_source=FieldworkSource.AI_RUNTIME,
             persona_source=PersonaSource.PANEL,
+            population_version_id=population_version_id,
         )
         session.commit()
         return started.run_id
@@ -1227,3 +1234,134 @@ def test_the_population_switch_needs_the_directory_it_reads() -> None:
         AIRuntimeSettings.from_env(env)
     off = AIRuntimeSettings.from_env(_env())
     assert off is not None and off.population_personas_enabled is False
+
+
+# --------------------------------------------------------------------------- #
+# a panel run over the client's materialized child (population-operations P4e2)
+# --------------------------------------------------------------------------- #
+
+
+class _ClientError(Exception):
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.response = {"Error": {"Code": code}}
+
+
+class _FakeS3:
+    """S3's conditional put and get, in memory."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def put_object(self, **kw: Any) -> None:
+        if kw.get("IfNoneMatch") == "*" and kw["Key"] in self.objects:
+            raise _ClientError("PreconditionFailed")
+        self.objects[kw["Key"]] = kw["Body"]
+
+    def get_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N803 - boto3's
+        if Key not in self.objects:
+            raise _ClientError("NoSuchKey")
+        return {"Body": io.BytesIO(self.objects[Key])}
+
+
+@pytest.fixture
+def grounded_child(world: Any, grounded: Any) -> dict[str, Any]:
+    """A child of the grounded LIVE version, materialized for the world's client into a store."""
+    from aia_core.application.population import live_binding
+    from aia_core.domain.population import MaterializedKind, VersionOwner
+    from aia_core.domain.population.definition import (
+        DimensionDefinition,
+        EvidenceAnchor,
+        MissingnessRule,
+        PredictorSpec,
+    )
+    from aia_core.infrastructure.population_store import (
+        RoutingPopulationSource,
+        S3PopulationStore,
+    )
+    from grounded_world import LIVE
+
+    store = S3PopulationStore("pop-bucket", region_name="eu-central-1", client=_FakeS3())
+    routed = RoutingPopulationSource(grounded.source, store)
+    with world.sessions() as session:
+        base = live_binding(session, contract=grounded.contract, population_id=LIVE)
+        assert base is not None
+        child = grounded.runtime(session, routed).materialize_child(
+            base_version_id=base.version_id,
+            definition=DimensionDefinition(
+                dimension_id="pije_kavu_rano",
+                version=1,
+                construct="morning coffee",
+                label="Pije kávu ráno",
+                kind=MaterializedKind.BINARY,
+                target=0.4,
+                evidence=EvidenceAnchor("KNW-fictional", 1, "40 % ráno"),
+                predictors=(PredictorSpec("vek"),),
+                missingness=MissingnessRule.PREDICTOR_MEAN,
+                range=(0.0, 1.0),
+            ),
+            owner=VersionOwner(organization_id=world.organization_id, client_id=world.client_id),
+            store=store,
+            actor_id="USR-researcher",
+        )
+        session.commit()
+    return {"version_id": child.version.version_id, "store": store, "routed": routed}
+
+
+def test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    grounded: Any,
+    grounded_child: dict[str, Any],
+) -> None:
+    """The worker's panel loader reads the child from where it was written, through the one
+    loader (verified against its base), and the run's respondents are drawn from it."""
+    bedrock = ScriptedBedrock()
+    run_id = _start_grounded(world, grounded, population_version_id=grounded_child["version_id"])
+    worker = run_with(
+        bedrock, env=_grounded_env(), population=grounded.loader(grounded_child["routed"])
+    )
+    assert _drain(worker) == ["completed"] * 5
+    run = _run(world, run_id)
+    assert run["status"] is WorkflowRunStatus.COMPLETED
+    output = _steps(run)["run"]["output"]
+    assert output["data_origin"] == DataOrigin.MODELLED_AI_PANEL.value
+    with world.sessions() as session:
+        payload = research_artifacts(session, world.lead_scope(session), store).read_json(
+            output["artifact_id"]
+        )
+    binding = payload["provenance"]["persona_source"]["binding"]
+    assert binding["version_id"] == grounded_child["version_id"]
+    recorded = run["metadata"]["population"]
+    assert recorded["version_id"] == grounded_child["version_id"]
+    assert recorded["population_id"] is None and recorded["read_by_fieldwork"] is True
+
+
+def test_without_the_store_a_panel_run_over_a_child_parks_and_sends_nothing(
+    world: Any, run_with: Callable[..., Worker], grounded: Any, grounded_child: dict[str, Any]
+) -> None:
+    """The finding this closes: a loader over the shared directory alone cannot read a child."""
+    bedrock = ScriptedBedrock()
+    run_id = _start_grounded(world, grounded, population_version_id=grounded_child["version_id"])
+    _drain(run_with(bedrock, env=_grounded_env(), population=grounded.loader()))
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.WAITING_PROVIDER
+    assert fw["attempts"][-1]["failure_class"] is FailureClass.RUNTIME_UNAVAILABLE
+    assert bedrock.requests == [] and _ledger(world, run_id) == []
+
+
+def test_the_composed_panel_source_reads_the_store_only_when_it_is_configured(
+    tmp_path: Any,
+) -> None:
+    from aia_core.infrastructure.population_source import FilesystemPopulationSource
+    from aia_core.infrastructure.population_store import S3PopulationStore
+    from aia_executors.ai_runtime import panel_population_source
+
+    (tmp_path / "panel.csv.gz").write_bytes(b"shared")
+    assert isinstance(panel_population_source(str(tmp_path), None), FilesystemPopulationSource)
+    children = S3PopulationStore("pop-bucket", region_name="eu-central-1", client=_FakeS3())
+    location = children.put_once("materialized/x/" + "a" * 64 + ".csv.gz", b"child")
+    routed = panel_population_source(str(tmp_path), children)
+    assert routed.read("panel.csv.gz") == b"shared"
+    assert routed.read(location) == b"child"
