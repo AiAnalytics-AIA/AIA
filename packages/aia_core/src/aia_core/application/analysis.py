@@ -21,12 +21,11 @@ happens next (``aia_core.domain.workflow``). Only a *draft* is judged here.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final, Protocol
 
-from ..domain.analysis import ANALYSIS_MODULES as _MODULES
 from ..domain.analysis import (
     AnalysisModuleId,
     AnalysisModuleResult,
@@ -34,7 +33,6 @@ from ..domain.analysis import (
     module_input_fingerprint,
     module_payload,
     module_spec,
-    modules_to_run,
     prompt_template_sha256,
     repair_prompt,
     result_from_check,
@@ -60,7 +58,6 @@ __all__ = [
     "ModuleOutcomeKind",
     "input_fingerprint",
     "run_analysis_module",
-    "run_pending_modules",
 ]
 
 # analysis_agent.py:90 -- `_repairs < 2`.
@@ -220,20 +217,3 @@ def run_analysis_module(
             repair=repair_prompt(check.decision.violations),
             previous=raw,
         )
-
-
-def run_pending_modules(
-    inputs: AnalysisInputs,
-    generator: AnalysisGenerator,
-    completed: Mapping[AnalysisModuleId, str],
-) -> Sequence[ModuleOutcome]:
-    """Run, in order, every module not already completed on these exact inputs.
-
-    Modules are independent: one blocked module does not stop the next, and
-    each outcome is returned for the workflow to record.
-    """
-    current = {spec.module_id: input_fingerprint(spec.module_id, inputs) for spec in _MODULES}
-    return [
-        run_analysis_module(module_id, inputs, generator)
-        for module_id in modules_to_run(current, completed)
-    ]
