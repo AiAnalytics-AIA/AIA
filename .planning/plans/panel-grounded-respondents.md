@@ -27,7 +27,12 @@ chunks:
   - "[x] 5c. A run pins its persona source at start (AIA_AI_POPULATION_PERSONAS_ENABLED, off by default); a retry keeps it"
   - "[x] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
   - "[x] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
-  - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
+  - "[x] 6a. Screens contract (plan before code): catalogue at import, the API's preview, readiness, the screen"
+  - "[ ] 6b. The audience catalogue: computed once per version (EXACT), kept insert-once, served by the API"
+  - "[ ] 6c. The feasibility preview: the API counts LIVE under the filters and asks the sampler; measured"
+  - "[ ] 6d. Readiness says whether the filters will be applied, by what a run started now would pin"
+  - "[ ] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
+  - "[ ] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
 ---
 # Panel-grounded AI respondents
@@ -922,6 +927,100 @@ request at $3 / MTok input -- far inside the per-request reservation
 (`AIA_AI_FIELDWORK_RESERVATION_USD`, which caps a request at the model's window and output
 limit), so the run's cost ceiling does not move. The real number is the first develop run's
 ledger (`ai_usage_events.input_tokens` per call), which records what Bedrock counted.
+
+### 6. Screens (contract, 6a)
+
+Anchors @ `abd3ce88`. The audience step (`apps/web/src/components/rehome/research/AudienceStep.tsx`)
+says "V AIA zatím není" for four things the unit computed from its panel and audience store:
+the factor catalogue and its filters (`FilterEditor`, :206-233), the feasibility preview, the
+special subpanels (:146) and customer audience upload (:113). Their pure ports are kept and
+parity-tested in `apps/web/src/research/audience.ts` (`filterableFactors`, `setAudienceCategory`,
+`setAudienceRange`, `applyPopulationSubpanel`, `previewVerdict`), waiting for a population to
+compute from. Since 5c a panel-pinned run draws its sample under the design's recorded filters
+(`domain/panel_source.py:86`), so filters now change who is asked -- but only in a run pinned to
+its population. Readiness still says they are never used (`domain/research_design.py:655-661`).
+
+**Decisions (owner, 2026-10-12, in session).**
+
+1. **The factor catalogue is computed once per version, at import, and kept beside it.** The
+   unit computed it on every request from the loaded panel (`audience_dimensions.catalog`,
+   `audience_dimensions.py:239`, served at `/api/audience/dimensions`, `ui_server.py:1755`). AIA
+   computes it once, from the version's ANALYSIS view, keeps it insert-once with its SHA-256, and
+   serves it without reading a row -- as `record-dictionary` keeps a version's dictionary. The
+   API never loads the population for the catalogue.
+2. **The feasibility preview is counted by the API.** The API loads LIVE itself (its own
+   `AIA_POPULATION_ASSET_ROOT`, read-only mount; unset: the preview says it is unavailable) and
+   answers with counts only, never a row.
+3. **Matched-block persona signals stay, labelled** ("statisticky přiřazený celý donor blok"),
+   as 3d built them. Nothing in chunk 6 changes them.
+4. **OI-99 stays open.** The owner has not decided a minimum n; a design the sampler refuses as
+   unrepresentative is refused at run time, never drawn smaller, and the preview says so before
+   a run is started (it asks the sampler itself, decision 7). On the sampler's 3,000 fictional
+   rows refusals stop at about n = 200 (`test_panel_source.py`); that is a measurement on a
+   fixture, not a threshold.
+
+**The contract.**
+
+5. **The catalogue, EXACT.** `domain/population/audience_catalogue.py`:
+   `audience_catalogue(population)` ports `catalog(df, include_research_only=True)` -- the
+   curated columns per category, then `DERIVED_COLUMNS`, then `RESEARCH_ONLY` as non-filterable
+   and sensitive; per factor `id`, `label` (`_label`/`LABELS`), `category`, `category_label`
+   (`CATEGORY_META`), `kind`, `status`, `filterable`, `sensitive`, `source`, `non_null`; numeric:
+   `min`/`max`/`p10`/`p90` (pandas' linear quantile) and the `_1_10` scale hint; otherwise the 60
+   most frequent values with their row counts, in `value_counts` order. Then `categories` (with
+   `count`, `filterable_count`), `filterable_count`, `factor_count`, `logic`. The kind is
+   :func:`~.audience.factor`'s, so the catalogue and the filter cannot disagree. Left out: the
+   Data Library's materialized overlays (`custom`; AIA has none yet -- P4) and the unit's
+   `version`, `base_columns`, `runtime_columns` (AIA states its own `catalogue_version` and the
+   version id). Parity: the unit's own `catalog` on the audience-filter fixture's fictional rows
+   (`tools/audience_capture.py capture`, extended), compared EXACT. AIA adds one thing per
+   factor: the field policy's answer for `AUDIENCE_FILTERING` (`policy_allowed`,
+   `policy_reason`); a factor the policy refuses stays listed and is not offered as a filter
+   (`select_audience` would refuse it anyway).
+6. **Kept and served.** Table `population_version_audience_catalogues` (version id, catalogue
+   version, SHA-256 of the canonical JSON, the JSON, recorded at/by), insert-once like the
+   dictionaries. `PopulationRuntime.record_audience_catalogue(version_id, recorded_by=)` loads
+   the version and stores its catalogue (false when already kept). `population_ops
+   record-catalogue [--version]`, acting as no one, run by the develop deploy after
+   `record-dictionary`. API `GET /api/v1/population/audience-catalogue` (any member): LIVE's
+   version id and label, its kept catalogue with the research-only factors reduced to their
+   count (the screen shows only that count, `filterCategories`), and the 18 built-in subpanels
+   with their filters (`subpanel_filters`), 18.6.6's support counts (`BUILTIN_SUBPANELS_v17.json`,
+   stated as the unit's) and this version's `check_subpanel` answer. 404
+   `population_not_established` without a LIVE population; 404 `audience_catalogue_missing`
+   when LIVE's version has none kept.
+7. **The preview.** API `POST /api/v1/population/audience-preview` `{filters, n}` (any member):
+   LIVE loaded once per process and version (the ANALYSIS view, `AudienceDimensionsEnricher`),
+   then `select_audience` (rows matched, unique donors, the filters kept) and, when `n` is
+   given, `draw_panel_sample` with a fixed seed -- the same function the run calls, so "this
+   would sample" and the run cannot disagree -- answering `ok` or the refusal's reason and
+   message. Counts only. 503 `audience_preview_unavailable` when the API has no asset root; 404
+   `population_not_established`. 6c measures the load's memory and time and the preview's
+   latency on the fictional population, and states what v17 implies.
+8. **Readiness says what the run will do.** `readiness(spec, filters_applied=)`: the API passes
+   whether a run started now would be pinned to the population
+   (`AIA_AI_POPULATION_PERSONAS_ENABLED`, the design's source `ai_runtime`). Pinned: filters
+   PASS, "Filtry se uplatní při výběru respondentů z populace." Not pinned: today's WARN. An own
+   audience or special dataset (`source_mode` other than `population`) stays WARN either way:
+   AIA still has no audience store.
+9. **The screen.** On the ČR 18+ branch the "filters" strategy is live: the factor editor from
+   the catalogue, the chips, and the preview's count and verdict. On the special branch the
+   built-in population subpanels are selectable (`applyPopulationSubpanel`), with this
+   version's policy answer beside each; special panels (`special_panels`) and own audiences
+   stay "V AIA zatím není". Without a catalogue (404) or a preview (503) the editor says why,
+   where it is met, and keeps the filters a study already stores. **OI-50 changes with it:** a
+   live editor that changes who is sampled cannot store an empty bound as 0, so
+   `setAudienceRange` stores an empty bound as `null` (no bound); the classic behaviour stays
+   characterised in its parity test as the classic's, not AIA's. OI-51 does not arise: a
+   special preset is not live.
+10. **Modelled, every time.** A panel run's results already say "modelováno" on every surface
+    (4c, 4d); 6e adds a screen test over a run whose dataset is `MODELLED_AI_PANEL`.
+    `docs/migration/interface-screens.json` (a code-checked ledger, it changes with the code)
+    records the audience screen's new state.
+
+Out of scope: own audience upload and special panels (no audience store in AIA), the AI's
+proposal of filters (the native job proposes a description only, `research_agents.py`),
+materialized dimensions in the catalogue (P4), any client-facing claim (chunk 7).
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
