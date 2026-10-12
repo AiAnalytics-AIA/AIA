@@ -6427,9 +6427,17 @@
    }
   },
   "support": {
-   "null": {
+   "aia-support-1": {
     "editable": false,
     "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Pravidla"
+     },
      {
       "id": "U",
       "note_cs": "",
@@ -6453,11 +6461,43 @@
      }
     ],
     "id": "support",
-    "in_force": null,
-    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Které jedno pravidlo bude platit, rozhodne metodik zde, až budou prahy deklarované (G1b) a jedna verze v platnosti (G1c).",
-    "preset": null,
-    "presets": [],
+    "in_force": "aia-support-1",
+    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); které jedno bude platit, rozhodne metodik (G1c).",
+    "preset": "aia-support-1",
+    "presets": [
+     "aia-support-1"
+    ],
     "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Dvě sady pravidel; jednu vybere metodik (G1c).",
+        "ref": ".planning/plans/methodology-tab.md, finding D2"
+       }
+      ],
+      "formula_latex": "\\text{pravidla} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.evidence.support:SupportSpec",
+      "note_cs": "",
+      "source_sha256": "2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_evidence_support.py::test_today_is_declared_both_rule_sets"
+      ],
+      "title_cs": "Pojmenování pravidel",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze pravidel",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-support-1"
+       }
+      ]
+     },
      {
       "evidence": [
        {
@@ -6513,7 +6553,7 @@
       "id": "unit_donors",
       "implements": "aia_core.domain.research_aggregate:donor_support",
       "note_cs": "Efektivní n se zaokrouhlí na jedno desetinné místo. Podíl největšího dárce se spočítá a uloží, ale žádné pravidlo ho nečte (nález D4).",
-      "source_sha256": "1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
+      "source_sha256": "f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
       "symbols": [
        {
         "latex": "n_D",
@@ -6550,8 +6590,8 @@
       "formulas": [],
       "id": "unit_status",
       "implements": "aia_core.domain.research_aggregate:donor_support",
-      "note_cs": "Rozhoduje jen počet dárců: surové n ani efektivní n stav nemění.",
-      "source_sha256": "1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
+      "note_cs": "Rozhoduje jen počet dárců: čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota).",
+      "source_sha256": "f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
@@ -6560,17 +6600,41 @@
       "values": [
        {
         "absent": false,
+        "label_cs": "Nejmenší surové n buňky",
+        "origin": "specification",
+        "reference": "results.min_cell",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod efektivním n",
+        "origin": "specification",
+        "reference": "results.n_guard",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod efektivním n",
+        "origin": "specification",
+        "reference": "results.indicative",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
         "label_cs": "Potlačit pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.research_aggregate:_SUPPRESS_BELOW",
+        "origin": "specification",
+        "reference": "results.min_layer_donors",
         "unit": "dárců",
         "value": 25
        },
        {
         "absent": false,
-        "label_cs": "Reportovatelné od",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.research_aggregate:_REPORTABLE_FROM",
+        "label_cs": "Indikativní pod",
+        "origin": "specification",
+        "reference": "results.indicative_layer_donors",
         "unit": "dárců",
         "value": 50
        }
@@ -6605,7 +6669,7 @@
       "id": "gate_assess",
       "implements": "aia_core.domain.evidence.support:assess_support",
       "note_cs": "Bez důkazů je stav vždy POTLAČIT; vyšší stav vydá jen tato funkce.",
-      "source_sha256": "efc2dedce537d3a68222f2439210ab09b5a7c187451a19d551e28a80073459ee",
+      "source_sha256": "51fe30afce2c3de516b6405efcae8dac7420840b103250a6470284d7021c1c2d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_evidence_support.py::test_reference_thresholds",
@@ -6618,40 +6682,40 @@
        {
         "absent": false,
         "label_cs": "Nejmenší surové n buňky",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.min_cell",
+        "origin": "specification",
+        "reference": "analysis.min_cell",
         "unit": "",
         "value": 50
        },
        {
         "absent": false,
         "label_cs": "Potlačit pod efektivním n",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.n_guard",
+        "origin": "specification",
+        "reference": "analysis.n_guard",
         "unit": "",
         "value": 25.0
        },
        {
         "absent": false,
         "label_cs": "Indikativní pod efektivním n",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.indicative",
+        "origin": "specification",
+        "reference": "analysis.indicative",
         "unit": "",
         "value": 50.0
        },
        {
         "absent": false,
         "label_cs": "Potlačit pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.min_layer_donors",
+        "origin": "specification",
+        "reference": "analysis.min_layer_donors",
         "unit": "dárců",
         "value": 25
        },
        {
         "absent": false,
         "label_cs": "Indikativní pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.indicative_layer_donors",
+        "origin": "specification",
+        "reference": "analysis.indicative_layer_donors",
         "unit": "dárců",
         "value": 50
        }
@@ -6679,7 +6743,7 @@
       "values": []
      }
     ],
-    "steps": 7,
+    "steps": 8,
     "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
    }
   }
@@ -6965,6 +7029,14 @@
    "editable": false,
    "groups": [
     {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Pravidla"
+    },
+    {
      "id": "U",
      "note_cs": "",
      "step_ids": [
@@ -6987,10 +7059,12 @@
     }
    ],
    "id": "support",
-   "in_force": null,
-   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Které jedno pravidlo bude platit, rozhodne metodik zde, až budou prahy deklarované (G1b) a jedna verze v platnosti (G1c).",
-   "presets": [],
-   "steps": 7,
+   "in_force": "aia-support-1",
+   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); které jedno bude platit, rozhodne metodik (G1c).",
+   "presets": [
+    "aia-support-1"
+   ],
+   "steps": 8,
    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
   }
  ],

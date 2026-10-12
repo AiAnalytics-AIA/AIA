@@ -30,6 +30,7 @@ import re
 from collections.abc import Sequence
 from typing import Any, Final
 
+from .evidence.support import AIA_SUPPORT_V1, SupportEvidence, support_status
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecQuestion
 
@@ -61,8 +62,9 @@ UNCERTAINTY_NOTE: Final = (
     "n_unique_layer_donors <25 se nereportuje; 25\u201349 je INDIKATIVNÍ. "
     "Interval není důkaz externí prediktivní validity."
 )
-_SUPPRESS_BELOW: Final = 25
-_REPORTABLE_FROM: Final = 50
+#: The rule every cell's ``support_status`` is decided by: the support specification's
+#: ``results`` rule, 18.6.6's donor lines 25 / 50 today (plan ``methodology-tab`` G1b).
+_RESULTS_RULE: Final = AIA_SUPPORT_V1.results
 
 
 # --------------------------------------------------------------------------- #
@@ -241,6 +243,11 @@ def weighted_variance(values: Sequence[float], weights: Sequence[float]) -> floa
     return sum(w * (x - mu) ** 2 for x, w in pairs) / total
 
 
+def _line(value: float | None) -> float | None:
+    """A rule's line as the aggregate records it; ``None`` where the rule does not check it."""
+    return None if value is None else float(value)
+
+
 def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, Any]:
     """``donor_support`` for the core layer: the only layer a fieldwork dataset carries."""
     n = len(donors)
@@ -253,13 +260,15 @@ def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, 
     maxshare = max(counts.values()) / n if n and counts else 0.0
     combined = kish * (nlayer / max(n, 1))
     combined = min(combined, kish, float(nlayer), float(ncore))
-    status = (
-        "SUPPRESS"
-        if nlayer < _SUPPRESS_BELOW
-        else "INDICATIVE"
-        if nlayer < _REPORTABLE_FROM
-        else "REPORTABLE"
-    )
+    status = support_status(
+        SupportEvidence(
+            n=n,
+            effective_n=round(combined, 1),
+            requires_donor_support=True,
+            n_unique_layer_donors=nlayer,
+        ),
+        _RESULTS_RULE,
+    ).value
     return {
         "n": n,
         "effective_n_kish": round(kish, 1),
@@ -437,8 +446,8 @@ def aggregate_question(
         "n_unique_layer_donors": support["n_unique_layer_donors"],
         "max_donor_share": support["max_donor_share"],
         "support_status": support["support_status"],
-        "n_guard_threshold": float(_SUPPRESS_BELOW),
-        "indicative_threshold": float(_REPORTABLE_FROM),
+        "n_guard_threshold": _line(_RESULTS_RULE.min_layer_donors),
+        "indicative_threshold": _line(_RESULTS_RULE.indicative_layer_donors),
         "uncertainty_note": UNCERTAINTY_NOTE,
         "evidence": evidence_rating(q.text, q.typ, validation_status=validation_status),
     }

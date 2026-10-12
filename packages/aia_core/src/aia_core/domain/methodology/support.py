@@ -10,10 +10,11 @@ side by side, because they disagree (finding D2):
   re-assesses that cell for analysis on its raw n, its effective n and its donors, and the
   stricter of the two wins (``analysis.native._support``).
 
-So a cell can read INDIKATIVNÍ in Results while analysis suppresses it. Which single rule
-holds is the methodologist's decision, made in this tab once support is declared (G1b) and
-put in force (G1c); until then this module only documents. It has no specification: every
-value is a code constant, read where it is used.
+So a cell can read INDIKATIVNÍ in Results while analysis suppresses it. Both rule sets are
+declared (G1b) in one specification, ``SupportSpec``: ``results`` and ``analysis``, each a
+``SupportThresholds`` whose ``None`` means a line the rule does not check. The preset
+``aia-support-1`` is today, bit for bit. Which single rule holds is the methodologist's
+decision (G1c); the module is not yet editable (G1d).
 
 Pure: stdlib and Pydantic only.
 """
@@ -22,12 +23,16 @@ from __future__ import annotations
 
 from typing import Final
 
+from pydantic import BaseModel
+
+from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
 from .catalogue import (
-    ConstantRef,
     Evidence,
     EvidenceKind,
     MethodModule,
     MethodStep,
+    ParameterRef,
+    Preset,
     StepGroup,
     Symbol,
 )
@@ -54,7 +59,23 @@ _D2: Final = Evidence(
     "Dvě sady pravidel; jednu vybere metodik (G1c).",
 )
 
+
+def _validate(spec: BaseModel) -> None:
+    if not isinstance(spec, SupportSpec):
+        raise TypeError(f"not a support specification: {type(spec).__name__}")
+
+
 _STEPS: Final[tuple[MethodStep, ...]] = (
+    MethodStep(
+        id="method",
+        title_cs="Pojmenování pravidel",
+        formula_latex=r"\text{pravidla} = \text{methodology\_version}",
+        implements=f"{_E}:SupportSpec",
+        source_sha256="2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
+        parameters=(ParameterRef("methodology_version", "Verze pravidel"),),
+        evidence=(_D2,),
+        tests=(f"{_T}/test_evidence_support.py::test_today_is_declared_both_rule_sets",),
+    ),
     # ------------------------------------------------------- the unit's rule (Results)
     MethodStep(
         id="unit_weights",
@@ -91,7 +112,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"s_{\max} = \max_d \tfrac{n_d}{n}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
+        source_sha256="f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
         symbols=(
             Symbol("n_D", "počet různých dárců (vrstva core)"),
             Symbol(r"s_{\max}", "podíl největšího dárce"),
@@ -114,16 +135,22 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{INDIKATIVNÍ};\quad \text{jinak REPORTOVATELNÉ}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
-        constants=(
-            ConstantRef(f"{_A}:_SUPPRESS_BELOW", "Potlačit pod", "dárců"),
-            ConstantRef(f"{_A}:_REPORTABLE_FROM", "Reportovatelné od", "dárců"),
+        source_sha256="f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
+        parameters=(
+            ParameterRef("results.min_cell", "Nejmenší surové n buňky"),
+            ParameterRef("results.n_guard", "Potlačit pod efektivním n"),
+            ParameterRef("results.indicative", "Indikativní pod efektivním n"),
+            ParameterRef("results.min_layer_donors", "Potlačit pod", "dárců"),
+            ParameterRef("results.indicative_layer_donors", "Indikativní pod", "dárců"),
         ),
         evidence=(_UNIT, _D2),
         tests=(
             f"{_T}/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
         ),
-        note_cs="Rozhoduje jen počet dárců: surové n ani efektivní n stav nemění.",
+        note_cs=(
+            "Rozhoduje jen počet dárců: čáry pro surové a efektivní n pravidlo nekontroluje "
+            "(prázdná hodnota)."
+        ),
     ),
     # --------------------------------------------------- AIA's evidence gate (analysis)
     MethodStep(
@@ -151,15 +178,13 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{INDIKATIVNÍ};\ \text{neznámé} \Rightarrow \text{POTLAČIT}"
         ),
         implements=f"{_E}:assess_support",
-        source_sha256="efc2dedce537d3a68222f2439210ab09b5a7c187451a19d551e28a80073459ee",
-        constants=(
-            ConstantRef(f"{_E}:REFERENCE_THRESHOLDS.min_cell", "Nejmenší surové n buňky"),
-            ConstantRef(f"{_E}:REFERENCE_THRESHOLDS.n_guard", "Potlačit pod efektivním n"),
-            ConstantRef(f"{_E}:REFERENCE_THRESHOLDS.indicative", "Indikativní pod efektivním n"),
-            ConstantRef(f"{_E}:REFERENCE_THRESHOLDS.min_layer_donors", "Potlačit pod", "dárců"),
-            ConstantRef(
-                f"{_E}:REFERENCE_THRESHOLDS.indicative_layer_donors", "Indikativní pod", "dárců"
-            ),
+        source_sha256="51fe30afce2c3de516b6405efcae8dac7420840b103250a6470284d7021c1c2d",
+        parameters=(
+            ParameterRef("analysis.min_cell", "Nejmenší surové n buňky"),
+            ParameterRef("analysis.n_guard", "Potlačit pod efektivním n"),
+            ParameterRef("analysis.indicative", "Indikativní pod efektivním n"),
+            ParameterRef("analysis.min_layer_donors", "Potlačit pod", "dárců"),
+            ParameterRef("analysis.indicative_layer_donors", "Indikativní pod", "dárců"),
         ),
         evidence=(_M16,),
         tests=(
@@ -192,6 +217,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
 )
 
 _GROUPS: Final = (
+    StepGroup("M", "Pravidla", ("method",)),
     StepGroup(
         "U",
         "Pravidlo jednotky 18.6.6 (Výsledky)",
@@ -204,12 +230,14 @@ SUPPORT: Final = MethodModule(
     id="support",
     title_cs="Podpora a potlačení: kdy se číslo smí ukázat",
     steps=_STEPS,
+    presets=(Preset("aia-support-1", AIA_SUPPORT_V1, _validate),),
+    in_force="aia-support-1",
     groups=_GROUPS,
     note_cs=(
         "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet "
         "dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, "
         "dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a "
-        "v analýze potlačená. Které jedno pravidlo bude platit, rozhodne metodik zde, až "
-        "budou prahy deklarované (G1b) a jedna verze v platnosti (G1c)."
+        "v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); "
+        "které jedno bude platit, rozhodne metodik (G1c)."
     ),
 )
