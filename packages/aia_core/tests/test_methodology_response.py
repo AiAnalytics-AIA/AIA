@@ -186,6 +186,31 @@ def test_a_missing_sex_counts_as_not_male_as_in_the_unit() -> None:
     assert no_column != unknown
 
 
+# ------------------------------------------------------------------------------- R1b
+
+
+def test_with_nothing_stored_a_run_pins_the_units_process_and_an_old_run_reads_it() -> None:
+    from aia_core.domain.methodology.pins import read_response_pin, response_spec_for
+
+    assert response_spec_for(None) is AIA_RESPONSE_V1
+    assert read_response_pin(None) is AIA_RESPONSE_V1  # a run started before the pin
+    pinned = AIA_RESPONSE_V1.model_dump(mode="json")
+    assert read_response_pin(pinned) == AIA_RESPONSE_V1
+    assert response_spec_for({"spec": pinned}) == AIA_RESPONSE_V1
+    with pytest.raises(ValueError):
+        read_response_pin({**pinned, "acquiescence": "much"})  # never the code's value instead
+
+
+def test_the_roster_profile_and_answers_follow_the_process_they_are_given() -> None:
+    from aia_core.domain.ai_respondent import fictional_roster
+
+    edited = _with(style_noise_floor=1.0, describe_threshold=10.0)
+    unit, other = fictional_roster(12, seed=3), fictional_roster(12, seed=3, response=edited)
+    assert [p.style for p in unit] != [p.style for p in other]
+    assert all("Jak odpovídá" not in p.profile(edited.describe_threshold) for p in other)
+    assert any("Jak odpovídá" in p.profile() for p in unit)
+
+
 def test_a_pin_read_back_with_its_keys_reordered_is_the_same_process() -> None:
     """PostgreSQL's JSONB does not keep key order (found by CI on #344): a pin read back must
     validate and be the process that was pinned, its styles in the unit's order again."""
