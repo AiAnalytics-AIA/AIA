@@ -113,9 +113,9 @@ Two rules keep this honest rather than decorative:
 | Compute | AWS. `develop`: one EC2 host under Docker Compose ([ADR 0009](adr/0009-single-host-develop-environment.md)). Production: **not yet decided** | ECS Fargate and App Runner both remain open for production; the develop decision is explicitly not that decision |
 | Local development | Docker Compose (Postgres, MinIO) | Development exercises the same engines as production |
 
-The root `src/server.js` Fastify stub predates this work and is retained only
-because it holds the sole existing login path. See
-[../migration/status.md](../migration/status.md) for its removal condition.
+The root `src/server.js` Fastify stub that predated this work was removed on
+2026-10-12 (#307) with its views and root npm package; sign-in is Cognito through
+`apps/web`.
 
 `apps/web` is real work and is to be rewired to the live API, not replaced.
 

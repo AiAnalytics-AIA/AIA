@@ -53,6 +53,7 @@ from ..domain.population import (
     JointState,
     JointStatus,
     LineageError,
+    OwnedVersionNotShared,
     ParsedDictionary,
     ParsedPanel,
     Population,
@@ -116,6 +117,18 @@ class Enricher(Protocol):
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _refuse_owned(version: DatasetVersion) -> None:
+    """Refuse an owned child before anything else is checked (P4c, M5).
+
+    The registry's planning reads shared versions only, so without this an owned child
+    would be refused as unknown, or for its companions, rather than for what it is.
+    """
+    if not version.shared:
+        raise OwnedVersionNotShared(
+            f"{version.version_id} belongs to one organization; STATIC and LIVE are shared"
+        )
 
 
 class PopulationRuntime:
@@ -396,6 +409,7 @@ class PopulationRuntime:
         version = self._registry.get_version(version_id)
         if version is None:
             raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        _refuse_owned(version)
         self._require_usable(version_id)
         population, record = plan_establish(
             population_id=population_id,
@@ -431,7 +445,9 @@ class PopulationRuntime:
         population = self._registry.population(population_id, for_update=True)
         if population is None:
             raise PopulationNotEstablished(f"population {population_id} has not been established")
-        if self._registry.get_version(target_version_id) is not None:
+        target = self._registry.get_version(target_version_id)
+        if target is not None:
+            _refuse_owned(target)
             self._require_usable(target_version_id)
         promoted, record = plan_promotion(
             population=population,

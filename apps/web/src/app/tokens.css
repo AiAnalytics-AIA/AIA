@@ -14,6 +14,8 @@
   --ink-faint: #5c6167;
   --surface-inverse: #151a20;
   --ink-inverse: #f9f6f2;
+  --brand-stage: #111015;
+  --brand-apex: #6ac5e8;
   --signal: #3557e0;
   --signal-wash: #e8edfd;
   --signal-hover: #2843b8;
@@ -146,6 +148,8 @@
   --ink-faint: #9e9b96;
   --surface-inverse: #ece9e4;
   --ink-inverse: #0f1215;
+  --brand-stage: #111015;
+  --brand-apex: #6ac5e8;
   --signal: #8aa2ff;
   --signal-wash: #1a2242;
   --signal-hover: #a9bbff;
@@ -280,6 +284,8 @@
     --ink-faint: #9e9b96;
     --surface-inverse: #ece9e4;
     --ink-inverse: #0f1215;
+    --brand-stage: #111015;
+    --brand-apex: #6ac5e8;
     --signal: #8aa2ff;
     --signal-wash: #1a2242;
     --signal-hover: #a9bbff;

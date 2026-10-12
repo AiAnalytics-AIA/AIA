@@ -126,7 +126,11 @@ apps/
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
                             --status-running when code does; aria-hidden beside the status it decorates.
-                            64 px in a running step's panel and the job dialog, 32 px by default
+                            64 px in a running step's panel and the job dialog, 32 px by default.
+                            Liftoff: the lift-off film (public/skin/brand/aia-liftoff.{webm,mp4}) in
+                            the front door's mark slot after a sign-in the person started
+                            (lib/liftoff.ts arms and takes it); muted, decoration, its end the way in;
+                            on `brand-stage`, the film's ground, used on the front door only
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -153,7 +157,10 @@ apps/
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
-                            fictional data is labelled every time, the park is explained
+                            fictional data is labelled every time, the park is explained;
+                            originKind / resultOriginKind: the API's three-way reading of an
+                            origin (fictional, modelled, unknown -- never fieldwork), the one
+                            every screen's label uses
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
@@ -218,7 +225,15 @@ apps/
                             (a refusal parks), one request per respondent block, answers drawn by code
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
-                            twice), AnalysisConfig.from_settings; registered by no composition yet
+                            twice), AnalysisConfig.from_settings; in the default registry: without
+                            AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured); the
+                            model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
+                            and a valid provider configuration), else it parks too (registry.py)
+    report.py               research_report: the internal draft from the eight analysis modules and
+                            the run's object maps (report_maps, object_map_figure); never approved here
+    sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; always registered.
+                            AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED decides only whether a newly started
+                            run includes its step; turning it off does not stop a run that already has it
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
@@ -317,9 +332,20 @@ packages/aia_core/src/aia_core/
       steps.py              what each step stores; reusable (by content) vs this run's own;
                             tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
-                            contract, fictional roster, facts by code, interpretation, the dataset
+                            contract, fictional roster, facts by code, interpretation, the dataset;
+                            dataset_origin: the origin derived from the personas (a mixed roster refused)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
+    persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
+                            ran (calibrated -> core, adaptive), first-person prose cut at 185 words (EXACT)
+    persona_topics.py       A question's topics: odvod_temata and a block's union (EXACT)
+    persona_signals.py      The persona signal catalog's topic-matched signals: grounded_profile_text
+                            (EXACT; a NaN-priority signal ranks last)
+    panel_persona.py        A run's sample as personas: every column through
+                            decide(PERSONA_CONSTRUCTION), the joint gate per dictionary block (core
+                            jointly, each matched donor block within itself), styles over the whole
+                            population, a profile per request block; refusals by name (called by
+                            nothing yet: chunk 5 of panel-grounded-respondents)
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
@@ -334,7 +360,12 @@ packages/aia_core/src/aia_core/
                             below n_min 30); a declaration not made is out of the fingerprint
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
-    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
+    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
+                            synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
+                            CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
+                            origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
+                            uses), MODELLED_DISCLOSURE and RESPONDENT_SYSTEM_METADATA (the dataset's
+                            record of its respondent system)
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
@@ -356,6 +387,8 @@ packages/aia_core/src/aia_core/
       policy.py             Field policy as code: what each field may be used for
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
+      runtime.py            RuntimePopulation, issued only by the loader; companion(asset_id): a
+                            companion's bytes as the loader verified them at load
       subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
                             BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
       audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
@@ -368,6 +401,12 @@ packages/aia_core/src/aia_core/
                             quotas over sex x age group x region (+ education from n 700), weighted
                             draw without replacement, raking and the audit; refusals by name;
                             PanelSample.provenance() is what a run records (called by nothing yet)
+      materialized.py       A materialized dimension (P4): the hash-pinned contract extension, the M3
+                            field policy (modelled; never measured, never weighting),
+                            check_child_version; a child is owned by one organization and never a
+                            shared population's version (OwnedVersionNotShared)
+      derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
+                            refuses a dimension no predictor varies for (no_varying_predictor)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -431,13 +470,17 @@ packages/aia_core/src/aia_core/
                             cell no hill reaches is null; nothing outside the engine computes one)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
-                            support); read_artifact reads either contract, refuses any other
+                            support); read_artifact reads either contract, refuses any other;
+                            read_object_maps: the one reader of a battery's stored maps (contract 3,
+                            each map's method equal to its key), for the report and its figures
       view.py               drag overrides, view terrain, scenarios (never write) F9;
                             align_to_reference (a view), stress_quality (the audit's label)
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
       model.py              The document: metadata, sections, every block — numbers only as refs
-      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades
+      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades;
+                            modelled_panel: the refs that print "modelováno: AI respondenti z
+                            populace" beside them (ADR 0024 §7)
       validation.py         Every rule a report must keep before it renders; fails closed
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
@@ -451,7 +494,11 @@ packages/aia_core/src/aia_core/
       claims.py             Permissible-claim policy: measured vs modelled, disclosures
       support.py            Kish effective n, SUPPRESS by default, intervals required
       metrics.py            The allowed analysis metrics, one unit each
-      validation.py         Validation bound to system fingerprint; tier gate
+      validation.py         Validation bound to system fingerprint; tier gate;
+                            respondent_system_fingerprint (ADR 0024 §4) and lifts_internal_only (a
+                            current holdout on it, nothing else)
+      instrument.py         A Study's own items as evidence fields: -1 (simulated) and -2
+                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until lifted
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
@@ -657,6 +704,12 @@ tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the
                             enrich_panel on them (`capture`, with pandas)
 tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
                             draw_representative with the MILP made to fail, and _rake (`capture`)
+tools/materialize_capture.py  Materialization fixtures: fictional rows and cases (`inputs`), the
+                            unit's own materialize_evidence_dimension (`capture`, pandas + NumPy)
+tools/persona_capture.py    Persona fixtures: fictional rows, questions, a fictional signal catalog
+                            (`inputs`); the unit's own generate_persona_text, odvod_temata,
+                            grounded_profile_text, _render and _compact_anchor (`capture`, with pandas
+                            and SciPy)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
@@ -685,7 +738,6 @@ tools/ui_workbench/         AIA on this machine, for UI work: the real API on SQ
                             Run -> Results; workspace_journey.mjs: a study's content, file, import,
                             audience, dimensions; both fail on a request to a path the unit served
 .planning/                  Progress, plans, open items
-src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
                             by AIA-reference/tools/extract_legacy.py. Frozen: regenerated,
                             never edited. The baseline and parity oracle (ADR 0011).
@@ -889,7 +941,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
-| Enrichment and sample fixtures from the unit | `python tools/enrichment_capture.py inputs` / `python tools/sampling_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy); a re-capture must be byte-identical |
+| Enrichment, sample, persona and materialization fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` / `materialize_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |

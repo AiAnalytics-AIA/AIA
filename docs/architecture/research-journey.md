@@ -97,6 +97,21 @@ AIA's graph today is two templates (`domain/workflow_templates.py:51-69, 94-105`
 **IMPLEMENTED**: AIA behaviour exists. **REPLACEMENT**: a deliberate AIA shape instead of the
 reference's. **GAP**: nothing yet; the owner is named.
 
+> **Superseded rows, 2026-10-12 (`develop @ c1c8ec1e`).** This table is the `ceee2dc`
+> inventory and is kept as written. Since then, per the owning plans:
+> - **Analysis**: the eight modules have an executor in the default registry
+>   (`apps/executors/src/aia_executors/registry.py:28, 80`); without `AIA_AI_ANALYSIS_ENABLED`
+>   a module parks (`analysis_unconfigured`). The runner's `run_pending_modules`, cited as
+>   `application/analysis.py:225` below, was removed in #310 (it had no production caller).
+> - **Report**: a `research_report` step (`domain/workflow_templates.py:51`) is registered
+>   (`registry.py:31, 86`) and the run's internal draft is listed and downloaded through the
+>   Study (`apps/api/src/aia_api/routers/research.py:1040, 1072`).
+> - **Brief, Questionnaire**: the working copy, attachments and questionnaire import are AIA's
+>   (ADR 0018; `apps/api/src/aia_api/routers/workspace.py:1199, 1280`), not the unit's.
+>
+> Rows not named here have not been re-checked. The plans' front-matter
+> (`python tools/progress.py`) is the tracker.
+
 | Stage | Reference node | AIA at `ceee2dc` | Class | Owner |
 |---|---|---|---|---|
 | Brief | `compile` | `research_compile` turns a Design Revision into a `ResearchSpecification` (`research.py:180-215`). Brief analysis is the native `analyze_brief` job (#63). The working copy, the attachments (`POST /api/project/attachment`) and the stage bootstrap are still the unit's (OI-58) | compile IMPLEMENTED; store GAP | compile: J6. Store, attachments: PO |
@@ -516,7 +531,17 @@ migration from J3, J4 or J6 re-points to whichever head `develop` has when it la
 ## 7. Acceptance, line by line
 
 This is the state at `ceee2dc`, unchanged at `dd27f68`; line 1 notes what #74 would change. The
-Executable column names what exists; the later columns name what is missing. Lines 1 and 7 decide **independence**. Lines 3–6 decide **completion**.
+Executable column names what exists; the later columns name what is missing.
+
+> **Superseded cells, 2026-10-12 (`develop @ c1c8ec1e`).** Kept as written above; since then:
+> line 1's draft and attachments are native (ADR 0018), so "still the unit's (OI-58)" is history;
+> line 5's "Nothing composes, stores or delivers a report" is history (a `research_report` step
+> stores the internal draft and `…/research/runs/{run_id}/report/download` serves it through the
+> Study, `apps/api/src/aia_api/routers/research.py:1072`); line 7's "the deploy pulls and starts
+> `legacy-panel`" is history (`deploy/develop/docker-compose.yml:10-12`: 18.6.6 is not part of
+> the stack, and `deploy/develop/bin/smoke.sh:115` fails a product stack that runs it). None of
+> these moves a line's Recorded or Live verdict; the four-area acceptance is
+> `mvp-workflow-assurance.md` A4. Lines 1 and 7 decide **independence**. Lines 3–6 decide **completion**.
 
 | # | Must show | Owner | Executable | Recorded | Enablement | Live |
 |---|---|---|---|---|---|---|

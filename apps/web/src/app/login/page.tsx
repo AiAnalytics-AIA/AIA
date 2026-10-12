@@ -7,13 +7,18 @@
 // Google Workspace sign-in and comes back here after it. It never starts the
 // sign-in by itself: Cognito's sign-out lands on `/`, which leads here, and an
 // automatic sign-in would undo the sign-out the user just asked for.
+//
+// After a sign-in the person started here (lib/liftoff.ts), the session opening
+// starts the handoff: the dot field forms the mark, the launch film takes over,
+// and its end is the way in (FrontDoor).
 
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { FrontDoor } from "@/components/aia/FrontDoor";
 import { Button } from "@/components/rehome/ui";
 import { login } from "@/lib/auth";
+import { armLiftoff, takeLiftoff } from "@/lib/liftoff";
 import { localPath, openSession, signOut } from "@/lib/session";
 import { t } from "@/i18n/t";
 
@@ -25,10 +30,22 @@ const LOOP_WINDOW_MS = 10_000;
 
 type View =
   | { kind: "working" }
+  | { kind: "liftoff" }
   | { kind: "signed-out" }
+  | { kind: "authenticating" }
   | { kind: "denied"; message: string }
   | { kind: "loop" }
   | { kind: "error"; message: string };
+
+// Into AIA. The loop guard's clock starts here, as the browser leaves.
+function enter(path: string) {
+  try {
+    sessionStorage.setItem(OPENED_KEY, String(Date.now()));
+  } catch {
+    // Without storage there is no loop guard; the redirect still works.
+  }
+  window.location.replace(path);
+}
 
 function Login() {
   const params = useSearchParams();
@@ -36,6 +53,11 @@ function Login() {
   const next = params.get("next") ? localPath(params.get("next")) : "/app/clients";
   const [view, setView] = useState<View>({ kind: "working" });
   const [attempt, setAttempt] = useState(0);
+  // Armed by the sign-in button, taken once per page (a ref survives React's
+  // development double-run of effects); the film loads while the session opens.
+  // Armed, the form stays on screen as it was left, so the handoff fades it out.
+  const armed = useRef<boolean | null>(null);
+  const [liftoff, setLiftoff] = useState(false);
 
   const retry = useCallback(() => {
     try {
@@ -49,9 +71,9 @@ function Login() {
 
   useEffect(() => {
     let cancelled = false;
-    const go = (path: string) => {
-      if (!cancelled) window.location.replace(path);
-    };
+    if (armed.current === null) armed.current = takeLiftoff();
+    const lifting = armed.current;
+    setLiftoff(lifting);
 
     async function run() {
       let openedAt = 0;
@@ -72,12 +94,8 @@ function Login() {
         const member = outcome.code === "not_a_member" || outcome.code === "not_provisioned";
         return setView({ kind: "denied", message: member ? t("session.notMember") : outcome.message });
       }
-      try {
-        sessionStorage.setItem(OPENED_KEY, String(Date.now()));
-      } catch {
-        // Without storage there is no loop guard; the redirect still works.
-      }
-      go(next);
+      if (lifting) return setView({ kind: "liftoff" });
+      enter(next);
     }
 
     run().catch((e: unknown) => {
@@ -88,24 +106,38 @@ function Login() {
     };
   }, [next, attempt]);
 
+  const finishLiftoff = useCallback(() => enter(next), [next]);
+  const signIn = useCallback(() => {
+    armLiftoff();
+    setView({ kind: "authenticating" });
+    // Back here after Google, with the same destination.
+    login(`/login?next=${encodeURIComponent(next)}`).catch((e: unknown) => setView({ kind: "error", message: String(e) }));
+  }, [next]);
+  // Only while the session is opening or open: a refusal or a fault leaves the field idle.
+  const handingOff = liftoff && (view.kind === "working" || view.kind === "liftoff");
+  const form = view.kind === "signed-out" || view.kind === "authenticating" || handingOff;
+
   return (
-    <FrontDoor title={t("home.signInTitle")}>
-      {view.kind === "working" && (
-        <p className="text-ink-muted" role="status">
+    <FrontDoor title={t("home.signInTitle")} handoff={handingOff ? { leaving: view.kind === "liftoff", onDone: finishLiftoff } : undefined}>
+      {!form && view.kind === "working" && (
+        <p className="m-0 text-ink-muted" role="status">
           {t("session.opening")}
         </p>
       )}
-      {view.kind === "signed-out" && (
+      {form && (
         <>
-          <p className="leading-relaxed text-ink-muted">{t("home.liveIntro")}</p>
+          <p className="m-0 text-ink-muted">{t("home.liveIntro")}</p>
           <Button
             variant="primary"
-            className="w-full justify-center"
-            // Back here after Google, with the same destination.
-            onClick={() => void login(`/login?next=${encodeURIComponent(next)}`)}
+            className="mt-3.5 h-[42px] w-full justify-center"
+            disabled={view.kind !== "signed-out"}
+            onClick={signIn}
           >
-            {t("home.signInGoogle")}
+            {view.kind === "signed-out" ? t("home.signInGoogle") : t("session.verifying")}
           </Button>
+          <p className="m-0 min-h-[22px] text-[13px] text-ink-faint" role="status">
+            {view.kind === "authenticating" ? t("session.awaitingGoogle") : view.kind === "signed-out" ? "" : t("session.opening")}
+          </p>
         </>
       )}
       {view.kind === "denied" && (

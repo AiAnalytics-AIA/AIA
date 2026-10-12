@@ -62,6 +62,7 @@ ROWS = [ALL_ROWS[i] for i in AGED]
 
 def _population(
     session: Session,
+    kit: Any,
     *,
     header: Sequence[str] = tuple(HEADER),
     rows: Sequence[Mapping[str, str]] = ROWS,
@@ -71,8 +72,8 @@ def _population(
     population_id: str = "PERSONA_LIVE",
 ) -> Any:
     """``rows`` as a population version with the persona companions, loaded as a run would."""
-    from conftest import gzip_csv, joint_certificate_json, policy_dictionary_csv
-    from test_population_runtime import OPERATOR
+    gzip_csv, joint_certificate_json = kit.gzip_csv, kit.joint_certificate_json
+    policy_dictionary_csv = kit.policy_dictionary_csv
 
     from aia_core.application.population import PopulationRuntime
     from aia_core.domain.population import (
@@ -183,7 +184,7 @@ def _population(
         population_id="PERSONA_STATIC",
         kind=PopulationKind.STATIC,
         version_id=anchor.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the anchor",
     )
     version = load("v1_4")
@@ -191,7 +192,7 @@ def _population(
         population_id=population_id,
         kind=PopulationKind.LIVE,
         version_id=version.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the persona test population",
     )
     return {
@@ -244,8 +245,8 @@ def _sample(population: Any, rows: Sequence[int]) -> PanelSample:
 
 
 @pytest.fixture
-def population(session: Session) -> Any:
-    return _population(session)["live"]
+def population(session: Session, population_kit: Any) -> Any:
+    return _population(session, population_kit)["live"]
 
 
 def test_every_sampled_row_becomes_a_panel_persona(population: Any) -> None:
@@ -327,9 +328,11 @@ def test_each_block_is_shown_the_profile_of_its_own_topics(population: Any) -> N
     assert "FIKTIVNÍ" not in request.messages[0].content
 
 
-def test_a_field_the_policy_refuses_is_left_out_and_recorded(session: Session) -> None:
+def test_a_field_the_policy_refuses_is_left_out_and_recorded(
+    session: Session, population_kit: Any
+) -> None:
     refused = {"kraj": ("core", "POPULATION_ANCHOR", "A", "PERSONA_OR_ANALYSIS_WITH_SCOPE", "no")}
-    population = _population(session, policy=refused)["live"]
+    population = _population(session, population_kit, policy=refused)["live"]
     built = panel_personas(population, _sample(population, [1]))
     assert ("kraj", "not_persona_eligible") in built.refused_fields
     persona = built.personas[0]
@@ -337,16 +340,20 @@ def test_a_field_the_policy_refuses_is_left_out_and_recorded(session: Session) -
     assert "Žiju v kraji" not in built.profile(persona.persona_id, [])
 
 
-def test_a_population_whose_joint_use_is_refused_gets_no_personas(session: Session) -> None:
-    static = _population(session)["static"]  # the certificate certifies v1_4 only
+def test_a_population_whose_joint_use_is_refused_gets_no_personas(
+    session: Session, population_kit: Any
+) -> None:
+    static = _population(session, population_kit)["static"]  # the certificate certifies v1_4 only
     with pytest.raises(PersonaRefused) as refused:
         panel_personas(static, _sample(static, [0]))
     assert refused.value.reason == "persona_joint_refused"
 
 
-def test_matched_block_fields_are_gated_within_their_block_not_across(session: Session) -> None:
+def test_matched_block_fields_are_gated_within_their_block_not_across(
+    session: Session, population_kit: Any
+) -> None:
     """Core and the issp block each pass; across them the persona shows a labelled match."""
-    population = _population(session)["live"]
+    population = _population(session, population_kit)["live"]
     assert not population.decide_joint(["SIG_trust_gov", "pohlavi"], client_facing=False).allowed
     built = panel_personas(population, _sample(population, [2]))
     assert built.personas  # built, with the issp signals carrying their provenance
@@ -363,7 +370,7 @@ def test_matched_block_fields_are_gated_within_their_block_not_across(session: S
     ],
 )
 def test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused(
-    session: Session, change: str, reason: str
+    session: Session, population_kit: Any, change: str, reason: str
 ) -> None:
     from aia_core.domain.population import PopulationError
 
@@ -380,7 +387,7 @@ def test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused(
         rows[6]["vek"] = "16"
     if change == "no_age":
         rows[6]["vek"] = ""
-    population = _population(session, header=header, rows=rows, omit=omit)["live"]
+    population = _population(session, population_kit, header=header, rows=rows, omit=omit)["live"]
     with pytest.raises(PopulationError) as refused:
         panel_personas(population, _sample(population, [0]))
     assert refused.value.reason == reason

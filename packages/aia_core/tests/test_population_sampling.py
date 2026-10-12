@@ -402,10 +402,10 @@ class _NoEnrichment:
         return {}
 
 
-def _population(session: Session, *, header: Sequence[str] = HEADER) -> Any:
+def _population(session: Session, kit: Any, *, header: Sequence[str] = HEADER) -> Any:
     """``rows.csv`` as a population version, loaded as the ANALYSIS view a run binds."""
-    from conftest import gzip_csv, joint_certificate_json, policy_dictionary_csv
-    from test_population_runtime import OPERATOR
+    gzip_csv, joint_certificate_json = kit.gzip_csv, kit.joint_certificate_json
+    policy_dictionary_csv = kit.policy_dictionary_csv
 
     from aia_core.application.population import PopulationRuntime
     from aia_core.domain.population import (
@@ -496,7 +496,7 @@ def _population(session: Session, *, header: Sequence[str] = HEADER) -> Any:
         population_id="SAMPLING_STATIC",
         kind=PopulationKind.STATIC,
         version_id=anchor.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the reproducibility anchor",
     )
     version = load("v1_4")
@@ -504,7 +504,7 @@ def _population(session: Session, *, header: Sequence[str] = HEADER) -> Any:
         population_id="SAMPLING_LIVE",
         kind=PopulationKind.LIVE,
         version_id=version.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the sampler's test population",
     )
     binding = rt.resolve(
@@ -513,10 +513,12 @@ def _population(session: Session, *, header: Sequence[str] = HEADER) -> Any:
     return rt.load(binding)
 
 
-def test_a_run_sample_records_its_rows_donors_weights_and_provenance(session: Session) -> None:
+def test_a_run_sample_records_its_rows_donors_weights_and_provenance(
+    session: Session, population_kit: Any
+) -> None:
     from aia_core.domain.population.sampling import draw_panel_sample
 
-    population = _population(session)
+    population = _population(session, population_kit)
     sample = draw_panel_sample(population, {"vek": {"min": 60, "max": 89}}, 150, 20)
     audience = _audience({"vek": {"min": 60, "max": 89}})
     assert len(sample.respondents) == 150
@@ -566,32 +568,38 @@ def test_a_run_sample_records_its_rows_donors_weights_and_provenance(session: Se
     ],
 )
 def test_a_sample_that_cannot_be_drawn_as_asked_is_refused_by_name(
-    session: Session, filters: dict[str, Any], n: int, reason: str
+    session: Session, population_kit: Any, filters: dict[str, Any], n: int, reason: str
 ) -> None:
     from aia_core.domain.population import PopulationError
     from aia_core.domain.population.sampling import draw_panel_sample
 
-    population = _population(session)
+    population = _population(session, population_kit)
     with pytest.raises(PopulationError) as refused:
         draw_panel_sample(population, filters, n, 13)
     assert refused.value.reason == reason
 
 
-def test_a_population_without_a_quota_field_is_refused_not_skipped(session: Session) -> None:
+def test_a_population_without_a_quota_field_is_refused_not_skipped(
+    session: Session, population_kit: Any
+) -> None:
     from aia_core.domain.population.sampling import draw_panel_sample
 
-    population = _population(session, header=tuple(h for h in HEADER if h != "zamestnani_status"))
+    population = _population(
+        session, population_kit, header=tuple(h for h in HEADER if h != "zamestnani_status")
+    )
     with pytest.raises(SamplingRefused) as refused:
         draw_panel_sample(population, {}, 50, 1)
     assert refused.value.reason == "sampling_field_unknown"
     assert "zamestnani_status" in str(refused.value)
 
 
-def test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn(session: Session) -> None:
+def test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn(
+    session: Session, population_kit: Any
+) -> None:
     """``pipeline.py:278`` clips the weight at 1e-12: a zero-weight row is drawn last, not never."""
     from aia_core.domain.population.sampling import draw_panel_sample
 
-    population = _population(session)
+    population = _population(session, population_kit)
     zero = next(i for i, w in enumerate(COLUMNS[WEIGHT]) if float(w or 0) == 0.0)
     region = COLUMNS["kraj"][zero]
     audience = _audience({"kraj": region})

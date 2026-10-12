@@ -1245,6 +1245,38 @@ def certificate_json() -> Any:
     return joint_certificate_json
 
 
+@dataclass(frozen=True, slots=True)
+class PopulationKit:
+    """What a test needs to build and establish a population of its own: the panel,
+    dictionary and certificate writers above, and an issued population-operator context.
+
+    A fixture, never ``from conftest import ...``: when the four test trees run in one
+    session (CI's SQLite step), ``conftest`` names whichever tree's conftest loaded last.
+    """
+
+    gzip_csv: Any
+    policy_dictionary_csv: Any
+    joint_certificate_json: Any
+    operator: Any
+
+
+@pytest.fixture
+def population_kit() -> PopulationKit:
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+
+    config = PopulationOperatorConfig.from_names(
+        {"owner": ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+    )
+    operator = PopulationAuthority(config).operator_context(
+        AuthenticatedPrincipal(user_id="owner", organization_id="platform")
+    )
+    return PopulationKit(gzip_csv, policy_dictionary_csv, joint_certificate_json, operator)
+
+
 # --- Simulation core ----------------------------------------------------------
 #
 # The deterministic simulation tests run from a frozen, hand-authored world model

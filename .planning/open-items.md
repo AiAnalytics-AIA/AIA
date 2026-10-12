@@ -3372,3 +3372,103 @@ the sample.
 
 **Status.** Open; needed before `plans/panel-grounded-respondents.md` chunk 5.
 
+---
+
+## OI-100 · Finding · 18.6.6 sampled and styled only rows aged 18 or more; AIA's sampler takes every row
+
+**Claim.** `Panel(df, min_vek=18)` drops rows whose `vek` is missing or under 18 before anything
+else; `draw_panel_sample` has no such step.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/pipeline.py:147-152`;
+`packages/aia_core/src/aia_core/domain/population/sampling.py` `draw_panel_sample` @ `a1fcc60`.
+
+**Reproduction.** Hypothesis for v17: no row is affected (its core donors are PIAAC 18-65 and
+ISSP 66+, `CORE_JOINT_STATUS.json` `core_sources`); not verified, no panel rows in the repository.
+The guard's own tests: `test_panel_persona.py::test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused[minor]`,
+`[no_age]`.
+
+**Consequence.** If wrong, AIA could sample a row 18.6.6 never could, and a column's type (hence a
+filter's keys) could differ from the unit's.
+
+**Fix taken.** `panel_personas` refuses a population with any such row
+(`persona_age_out_of_scope`, `domain/panel_persona.py` @ `09c93f0`, PR #315), so a run fails closed
+before fieldwork.
+
+**Status.** Open until chunk 5's preflight reports the count on develop's `v17_4_0`.
+
+---
+
+## OI-101 · Finding, closed · 18.6.6 ranked an empty-priority persona signal by Python version
+
+**Claim.** An empty `priority` in the persona signal catalog reads NaN, and the unit sorts the
+candidate signals on `(-score, column)`, so a NaN score lands wherever the sort leaves it: the
+unit's own persona text for such a row differs between Python versions.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/persona_grounded.py:290`; AIA's rule
+`packages/aia_core/src/aia_core/domain/persona_signals.py` `grounded_text` @ `341ea3b`.
+
+**Reproduction.** PR #315's first CI run (38250340111):
+`test_persona_profile.py::test_the_grounded_signals_are_the_units[3]` failed on CI's Python with a
+fixture captured on 3.13; `test_a_signal_with_an_unknown_priority_ranks_last` pins AIA's rule.
+
+**Consequence.** None known in production: whether v17's catalog has an empty priority is not
+checked here. A persona's signal order, and so its text, would depend on the interpreter.
+
+**Fix.** AIA ranks a NaN score last (unknown is never ranked as good); every other order stays
+EXACT.
+
+**Status.** Closed by PR #315 (`341ea3b`).
+
+---
+
+## OI-102 · Hypothesis · A superseded Sociomap method can still be put in force as an edited version
+
+**Claim.** `aia-sociomap-2` remains a registered base preset, so an administrator can store and
+activate `aia-sociomap-2+e<n>`, and new runs would then pin a method that no unedited new run pins
+any more (new runs pin `aia-sociomap-1` + `-3`, `research_sociomap.py` `default_methods`).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/methodology/sociomap.py:623`,
+`apps/web/src/components/aia/settings/MethodologyVersions.tsx:319-323`,
+`apps/api/src/aia_api/routers/methodology.py:620, 665, 708`,
+`packages/aia_core/src/aia_core/domain/methodology/pins.py:60-71` @ `cd6da1e1`
+(`mvp-workflow-assurance.md` F3, #307).
+
+**Reproduction.** Not yet run: a `POST …/methodology/…/versions` with `base_preset =
+"aia-sociomap-2"`, its activation, then a run start, and read the run's pinned methods. Until it
+runs, this is a hypothesis.
+
+**Consequence.** A new run could compute a method the in-force default (-3) replaced, without
+anyone choosing -2 for new work on purpose.
+
+**Smallest fix.** If the owner confirms -2 is historical only, refuse it as a base for a new
+version while keeping it readable for stored runs and versions.
+
+**Test.** An API test that the version POST refuses a superseded base, and that a stored -2 run
+still reads and retries.
+
+**Status.** Open; reproduce or delete.
+
+---
+
+## OI-103 · Finding · A client-facing number can print "měřeno" beside "modelováno: AI respondenti z populace"
+
+**Claim.** The print grade follows the claim's basis and the composer's `field_grades`, never
+the row's origin, and since ADR 0024 §2 the only client-admissible origin is
+`MODELLED_AI_PANEL`; so a measured-basis claim on a population field graded `MEASURED` prints the
+measured mark beside the modelled disclosure.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/report/evidence.py:58-65` (`grade_of`) @
+`5f204ce1`; the disclosure, `report_docx/tables.py` caption @ `88fbacef` (PR #329).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers`:
+the caption reads "n = 480; měřeno; modelováno: AI respondenti z populace".
+
+**Consequence.** Once a client report exists, a reader sees two contradictory words on one
+number. No production composer passes `field_grades` today (OI-9), so no report prints it yet.
+
+**Smallest fix.** With OI-9: a `MODELLED_AI_PANEL` row grades `MODELLED` whatever its basis, or
+such a row cannot back a measured claim at admission.
+
+**Test.** A ledger test asserting a modelled-panel row never grades `MEASURED`.
+
+**Status.** Open; analysis-governance's call, with OI-9.

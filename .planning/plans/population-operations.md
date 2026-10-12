@@ -4,7 +4,15 @@ chunks:
   - "[x] P1. The operator's composition root: PopulationOperatorConfig typed and wired, an operator command over fictional fixtures"
   - "[x] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
   - "[x] P3. A run records its population binding at creation, and population-consuming steps say so"
-  - "[ ] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
+  - "[x] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
+  - "[x] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
+  - "[x] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
+  - "[x] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
+  - "[ ] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
+  - "[ ] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, enqueued once per owner and definition"
+  - "[ ] P4d3. The materialize step: the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
+  - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
+  - "[ ] P4e. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
   - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
@@ -63,7 +71,8 @@ always a named person's explicit act through `PopulationAuthority`.
   overlay? Where may materialization happen, given OI-61 and D8?
 - **P5. Promote.** The explicit operator action with expected-current compare-and-set, its
   refusal when the pointer moved, and a test that a dimension selected in a design leaves
-  `Population.current_version_id` unchanged.
+  `Population.current_version_id` unchanged. Shared versions only: an organization's
+  materialized child is never promoted (P4, M5).
 
 P1-P3 can land before K2/K5; P4-P5 need K5.
 
@@ -307,4 +316,319 @@ Verified: `alembic upgrade / check / downgrade / upgrade` on PostgreSQL 16, and 
 **Not seen yet:** the real `v17_4_0` dictionary on the page. Which of the 18 subpanels its
 policy lets filter (the `is_*` flags' recommended use) is first known after the deploy
 records the dictionaries. Until then the claim "usable" is the test's, on fictional rows.
+
+
+## P4, the materialization contract (draft for the owner, 2026-10-12, `develop @ c1c8ec1e`)
+
+P4 decides, before any code, how an accepted dimension becomes respondent values in a population
+revision. It writes no code. K5 (`client-knowledge-lifecycle.md`) owns the *definition* of a
+dimension and the journey to it; this contract is what K5's output must satisfy and what the
+population core does with it. Promotion stays P5's explicit act.
+
+### What 18.6.6 did (the reference, read, not run)
+
+`data_library.py:576-593` `dimension_materialization_readiness`: an approved proposal whose spec
+names a kind (`binary`/`prevalence` with `target_prevalence`, or `scale_1_10` with
+`target_mean`) and at least one existing predictor. `audience_dimensions.py:308-345`
+`materialize_evidence_dimension`: scores every panel row from the numeric predictors, then
+(binary) marks the top-scored rows until the weighted share reaches the target, or (scale)
+maps score ranks to 1-10 and shifts them to the target mean; it writes a
+`panel_row_id -> value` overlay (`<id>.csv.gz`) with its SHA256. `data_library.py:595-626`
+`materialize_dimension` then **proposes and approves its own calibration into LIVE in the same
+call** (`propose_calibration` + `decide_calibration(..., 'APPROVE')` + `register_applied_overlay`).
+That last step is not ported (this plan, "What exists").
+
+### The four decisions
+
+**M1. Shape: a child version, or an overlay?**
+- *(a) Child `DatasetVersion` (recommended).* The materialized panel is the base's bytes plus one
+  column, stored as a new content-addressed version whose `parent_version_id` is the base
+  (`domain/population/versions.py:135-180`). Every existing rule holds unchanged: a run binds one
+  `version_id` (P3), `PopulationRuntime.load_for_run` stays the only loader
+  (`application/population.py:494`), LIVE moves only by promotion, and STATIC is untouched.
+  Cost: the import contract is pinned to 400 fields by hash (`domain/population/czech.py:202-207`),
+  so a child needs a **contract extension**: the base contract plus the declared added fields,
+  itself hash-pinned and naming the dimension definition's hash. One full panel per
+  materialization (the v17 panel is 18,766 rows).
+- *(b) Versioned overlay.* 18.6.6's shape: a small `panel_row_id -> value` artifact bound to one
+  base version. Cheaper to store, but a run's binding becomes "base + an ordered set of
+  overlays", and the one loader, `decide` / `decide_joint` and the companions' joint certificate
+  all have to learn to merge it. That spreads one rule across the gates this codebase keeps
+  single.
+
+**M2. The derivation rule.** Turning evidence (a prevalence or a mean, with a source) into
+per-respondent values is a scientific rule, and this plan does not invent one.
+- *(a) Port 18.6.6's rule EXACTLY as the first declared method (recommended)*, captured as
+  fixtures from the unit's own function (as `tools/sampling_capture.py` does), with a method id
+  and version recorded in the child version's provenance. Every value it writes is **modelled**:
+  `ClaimBasis.MODELED` (`domain/evidence/claims.py:67-71`), never measured.
+- *(b) No derivation yet.* Only a dimension whose values already exist per respondent (a
+  measured column joined by `panel_row_id`) may be materialized; evidence-anchored dimensions
+  wait for an approved method.
+
+**M3. What the new field may be used for (the D8 / OI-24 question).** Two field-policy
+authorities still disagree (`domain.evidence` vs `domain.population`). P4 does not need D8 to be
+resolved if a materialized field's policy is fixed and narrow:
+- *(a) Recommended:* `PERSONA_CONSTRUCTION`, `AUDIENCE_FILTERING` and `SIMULATION`
+  (`domain/population/policy.py:120-129`); `CLIENT_MODELLED_CLAIM` only with its method
+  disclosed; **never** `CLIENT_MEASURED_CLAIM` or `WEIGHTING`. The extension declares this policy,
+  and the D8 decision, when it is made, adopts it rather than reopening it.
+- *(b)* Decide D8 first, then let that one authority classify materialized fields.
+
+**M4. Who materializes, and where.** Materialization is code over the population's rows, with
+no model call, so OI-61 (closed 2026-10-12: panel data may reach only `bedrock-eu-primary`)
+does not block it. It reads rows, so it goes through `PopulationRuntime` like every other reader.
+- *(a) Recommended:* an operator act first, `population_ops materialize` beside `import` and
+  `promote` (P1), as a person `AIA_POPULATION_OPERATORS` names and holding a new
+  `POPULATION_MATERIALIZE` permission. It registers the child version; it never promotes. A
+  research or client user's acceptance of a dimension (K5) makes it *eligible* to be
+  materialized, never materialized.
+- *(b)* A worker step any researcher can start from the knowledge area, with the operator's
+  role only at promotion.
+
+### What the contract requires of K5's output
+
+A dimension definition, hash-identified and immutable, carrying:
+- the id and version, construct and label;
+- the kind (`binary` or `scale_1_10` under M2a);
+- the target anchor, with the accepted evidence reference (source revision and span) it came from;
+- the predictors: existing fields of the base version, each one the field policy allows for
+  `PERSONA_CONSTRUCTION`;
+- the missingness rule and the valid range.
+
+A definition alone has no respondent values (K1's table, `client-knowledge-lifecycle.md:83-84`).
+
+### What it does not change
+
+- Selecting a dimension in a design still promotes nothing (`SpecSelection`, `applied: false`).
+- An existing run keeps its binding (P3).
+- STATIC is never a child's target.
+- P5's compare-and-set promotion is unchanged.
+
+### Decisions (owner, 2026-10-12)
+
+| | Decision | Consequence |
+|---|---|---|
+| M1 | **(a) child `DatasetVersion`** | one binding shape and one loader; a contract extension per child |
+| M2 | **(a) port 18.6.6's rule EXACT** | fixtures from the unit's own `materialize_evidence_dimension`; every value MODELED, the method recorded |
+| M3 | **(a) narrow, fixed uses** | `PERSONA_CONSTRUCTION`, `AUDIENCE_FILTERING`, `SIMULATION`; `CLIENT_MODELLED_CLAIM` with the method disclosed; never `CLIENT_MEASURED_CLAIM` or `WEIGHTING`; D8 adopts this rather than reopening it |
+| M4 | **(b) any researcher** | a worker step a member starts (ADR 0019: every member is a Researcher); no new operator permission; promotion is not part of it |
+| M5 | **its organization only** (asked once M4 was chosen) | see below |
+
+**M5, why it was asked.** Population versions carry no organization: the registry reads them
+as "the shared layer every study is…" (`apps/api/src/aia_api/routers/population.py:6, 96`),
+and the tables have no `organization_id` (`infrastructure/tables.py:1362-1445`). With M4 (b),
+one organization's client-derived dimension would otherwise appear in every organization's
+registry, and a promotion would move every organization's LIVE. So a child version:
+- records the organization and client it was materialized for, and the definition it came from;
+- is visible in the registry, and its characteristics are readable, only within that
+  organization;
+- may be bound only by that organization's runs, and only when a study selects it explicitly;
+- is never the target of a promotion: STATIC and LIVE stay shared, and P5's promotion applies
+  to shared versions only.
+
+### Implementation chunks (from the decisions)
+
+- **P4a. Domain.** `PopulationContractExtension`: the base contract's id, the added fields with
+  their kind and the M3 policy, and the definition's hash, all hash-pinned. A child
+  `DatasetVersion` names its extension and its owner. Pure validation: a child's parent is the
+  extension's base, its fields are the base's plus the declared ones, and it can be no
+  promotion's target.
+- **P4b. The derivation.**
+  - `tools/materialize_capture.py` captures fixtures from the unit's own
+    `audience_dimensions.materialize_evidence_dimension` over fictional rows (`inputs` in the
+    repo env, `capture` with pandas and NumPy), byte-identical on re-capture.
+  - A stdlib port in `domain/population/` reproduces them: binary prevalence by weighted cut,
+    and `scale_1_10` by rank and shift.
+  - It records the method id and version, the target and the achieved anchor. It is EXACT
+    against the fixtures, or each deviation is named.
+- **P4c. Storage.**
+  - A migration adds the owner and the extension to `population_dataset_versions`, with an
+    extension table, insert-once.
+  - `GET /population` and `…/characteristics` show a child only to its organization.
+  - `layer_check` keeps the rows in the repository.
+- **P4d. Materialize.**
+  - An application service and a worker step started through the API by a member, from an
+    eligible definition. Until K5 lands, the definition is typed input, refused unless it meets
+    "What the contract requires of K5's output".
+  - The step reads the base through `PopulationRuntime`, writes the child's bytes to the
+    population asset store and registers the child.
+  - It never promotes.
+- **P4e. Bind.**
+  - A study may select its organization's child.
+  - `ResearchRuns.start` records that binding instead of LIVE; a found run keeps what it
+    recorded, and a retry keeps the original's (P3).
+  - Another organization's study is refused (404, like any scope miss).
+
+K5 still owns the knowledge-side definition and its acceptance. P4d accepts a typed definition
+so the population side can land and be tested first, and K5 then supplies that same shape.
+
+**P4a, 2026-10-12** (`feature/population-child-versions`). `domain/population/versions.py`
+`VersionOwner` (organization and client) and `DatasetVersion.owner` / `extension_sha256`, both or
+neither, an owned version always a child; `plan_establish` and `plan_promotion` refuse an owned
+version (`OwnedVersionNotShared`, reason `owned_version`), so STATIC and LIVE stay shared.
+`domain/population/materialized.py`: `MaterializedField` (name, `binary` / `scale_1_10`, the
+definition's hash, the method and its version), `PopulationContractExtension` (the base
+contract, its ordered field names and dictionary by hash, the added fields; its identity the
+SHA256 of its canonical JSON, `from_payload` refusing any other contract), `field_names` (the
+base's in order, then the added; a shadowing name refused), `materialized_policy_entry` (M3 as
+one policy entry: `MODELLED`, persona-eligible, `PERSON_VALUE_MODELED` +
+`REQUIRES_MODELED_DISCLOSURE`, `MODELLED_AGGREGATE`; so `FieldPolicy.decide` allows persona,
+audience, simulation and internal aggregate analysis, a disclosed aggregate modelled claim, and
+refuses a measured claim and weighting), `with_materialized_fields`, and `check_child_version`
+(owned, the base shared and its parent, same dataset, contract, dictionary and rows, the
+extension by hash, the fields the base's followed by the added ones). Internal aggregate
+analysis follows from the existing rules for any classified field; M3's list did not name it.
+Tests: `test_population_materialized.py` (16); the guard in `plan_promotion` and the parent
+check each fail a test when removed (checked by mutation).
+
+**P4b, 2026-10-12** (`feature/population-materialize-derivation`). `tools/materialize_capture.py`
+writes 160 fictional rows and 14 cases (`inputs`), and runs the unit's own, unmodified
+`audience_dimensions.materialize_evidence_dimension` on each (`capture`, pandas 2.3.3 and
+NumPy 2.5.4 in a scratch venv). A second capture was byte-identical. The cases cover:
+- binary to a prevalence, including one given as a percentage;
+- scale to a mean, including one the clip pulls off target;
+- a negative direction, `strength` / `weight`, and a `strength` of 0 read as 1;
+- a flat predictor skipped; a text column unusable; missing values and zero weights;
+- six refusals.
+
+`domain/population/derivation.py` is the stdlib port, `derive_dimension`, with method
+`npc-18.6.6-evidence-overlay` v1:
+- the score is the mean of `direction * strength * z` plus `0.35 * (hash noise - 0.5)`;
+- binary values are a weighted cut in descending score;
+- scale values are `1 + 9 * percentile rank`, shifted, clipped and rounded to two decimals.
+
+Every value, and every achieved anchor, is **bit-identical** to the unit's. That needs NumPy's
+pairwise summation and pandas' two-pass variance (with a plain left-to-right sum, 7 of the 8
+value cases fail; checked by mutation), and NumPy's `rint` rounding.
+
+**One named deviation:** where no usable predictor varies, the unit writes values from the
+hash noise alone (fixture M06). `derive_dimension` refuses that (`no_varying_predictor`);
+`derive_dimension_as_unit` keeps the unit's behaviour, for the parity tests only.
+
+**Noted for P4d:** a scale target can be left unmet by the clip (M04: target 2.0, achieved
+2.68). The unit accepts that silently. P4d must show `achieved` beside `target`, and must
+not present the target as met.
+
+Tests: `test_population_derivation.py` (17).
+
+The parity matrix's `data_library.ingestion` and `audience.definition` stay `NOT_STARTED`. The
+fixture gate joins them when materialization lands as a capability (Doc follow-up).
+
+**P4c, 2026-10-12** (`feature/population-child-storage`).
+
+*Identity, found while writing the schema.* A version's id was its content alone
+(`dataset_version_id`) and `content_sha256` was unique over the whole table. The derivation is
+deterministic, so two clients materializing the same definition over the same base write the
+same bytes: the second child would have collided with the first, and the constraint error
+would have told one organization that another had made it. An owned child's id is now its
+content id qualified by an opaque owner digest (`owned_version_id`, `versions.py`, 48 bits of
+SHA256 over organization and client; neither appears in clear), and `DatasetVersion` checks it.
+Content and label stay unique among shared versions and within one owner's, by four partial
+unique indexes; the same owner's same bytes are still one version. Test:
+`test_two_clients_identical_children_are_two_versions`.
+
+*Storage.* Migration `f0b2d4e6a8c1`:
+- `population_dataset_versions` gains `owner_organization_id`, `owner_client_id` and
+  `extension_sha256`, all set or all NULL, an owned version always with a parent
+  (`population_version_owned_child`); foreign keys to organizations, clients and the
+  extension, none cascading;
+- `population_contract_extensions` keeps each extension by its hash, insert-once; the
+  repository re-hashes the payload on every read and refuses one that no longer matches;
+- every existing row is shared and keeps both uniqueness guarantees.
+Applied, `alembic check` clean, downgrade to base and up again, on PostgreSQL 16.
+
+*Visibility.* `PopulationRegistryRepository`:
+- `versions(dataset, organization_id=)`: shared versions, plus only that organization's own
+  (none without one);
+- `visible_version`: another organization's child answers `None`, as an unknown id does;
+- `version_by_sha` and `version_by_label`, the import's lookups, see shared versions alone;
+- `get_version` stays unfiltered, for the run that recorded a version and the operator.
+
+`GET /population` lists the organization's own children with `owner_client_id` and
+`extension_sha256`. `…/characteristics` answers 404 for another organization's child. For
+the organization's own child it reads the base's dictionary (from the child's row or else
+its parent's, re-hashed either way) and lists the added fields last, marked `materialized`,
+under the fixed M3 policy. `PopulationRuntime.establish` and `promote_live` refuse an owned
+child first (`OwnedVersionNotShared`), before companions or lineage are checked.
+
+`layer_check` adds six rules:
+- the version and extension tables are touched only by their repository (four rules: core,
+  API, worker, executors);
+- the API never calls `get_version`, `version_by_sha` or `version_by_label`;
+- `population_characteristics.py` never calls `get_version`.
+The first and fifth were checked by mutation.
+
+Tests:
+- `test_population_owned_versions.py` (10): round trip, two owners, labels, visibility,
+  half-owned rows refused by the database, a tampered extension, characteristics, the operator;
+- `test_population_api.py`: two new tests, our child listed and readable, another
+  organization's never.
+Mutation: listing every owned version fails two of them.
+
+**Noted for P4d / P4e:**
+- `population_ops status` reads shared versions only.
+- A child's status derives as `REGISTERED`, not runtime-eligible, because no population
+  points at it. P4e decides how a study's explicit selection makes it resolvable.
+- `owner_client_id` is not tied to `owner_organization_id` by the database: `clients` has no
+  `(organization_id, client_id)` key to reference. P4d takes both from one `ClientContext`.
+
+### P4d, the plan (owner, 2026-10-12: the child's bytes go to S3)
+
+P4d is where a researcher materializes a dimension. P4a gave the shape, P4b the rule and P4c the
+rows; nothing yet runs them. The owner chose S3 for the child's bytes. Today the population is
+a read-only copy synced to the develop host (`deploy/develop/bin/sync-population.sh`), and
+`PopulationAssetSource` only reads: its own docstring names the EU object store as "the seam
+this protocol exists for", not written because the bucket was undecided
+(`infrastructure/population_source.py:1-18 @ 06409e04`).
+
+**P4d1. The population store.**
+- Terraform, `infra/develop/`: a population bucket of its own, separate from the artifacts
+  bucket because it holds licence-bound data with its own access. It is in the develop
+  region, private (public access blocked), versioned, encrypted, TLS only, like the two
+  existing buckets (`infra/develop/main.tf:97-150 @ 06409e04`). The worker role may read and
+  put under `materialized/`; the API role gets nothing.
+- `S3PopulationStore` (infrastructure): `read(location)` for the loader, and `put_once(key,
+  bytes, sha256)`. `put_once` writes only when the key is absent (a conditional put); an
+  existing object with the same hash is the same child, and a different one is refused.
+- A composing source: an `s3://` location reads from the store, a relative one from the host's
+  synced directory, so shared versions are unchanged. `AIA_POPULATION_STORE_*` settings are
+  typed and fail closed; nothing is read or written when they are unset.
+- Tests over a recorded S3 double. **Human action:** `terraform apply`, and the worker's
+  environment on the develop host.
+
+**P4d2. The materialize service** (application).
+- Input: a typed definition (until K5 supplies the same shape) and the `ClientContext` it is
+  for. The owner is that context's organization and client; never an argument.
+- Refused before anything is enqueued:
+  - unless it meets "What the contract requires of K5's output" (kind, target with its
+    evidence reference, predictors, the missingness rule and the valid range);
+  - for each predictor, unless the base version's policy allows `PERSONA_CONSTRUCTION`
+    (`RuntimePopulation.decide`, never the dictionary);
+  - for a name that would shadow a base field.
+- The base is the LIVE version at the time of the request, recorded; it is never re-chosen on
+  a retry.
+- Enqueued once: the run key is the owner, the base and the definition's hash. The same
+  request again finds the same run.
+
+**P4d3. The materialize step** (executor, through the real worker).
+- It loads the base through `PopulationRuntime.load_for_run` (the one loader), runs
+  `derive_dimension` (P4b; `no_varying_predictor` refuses), and writes the child panel. The
+  child is the base's rows and columns in order plus the new one, gzip CSV with fixed bytes,
+  so the same inputs give the same hash.
+- `put_once` to S3, then the extension, the child version and its dictionary row in one
+  transaction, after `check_child_version`. A retry after the put finds the object and
+  registers; a retry after registration finds the version (P4c's owner-qualified id).
+- It records `target`, `achieved` and the usable predictors. It never promotes.
+- No model call and no money. Before it merges, measure the panel's size, the step's time and
+  its memory on the v17 shape.
+
+**P4d4. The route and the screen.**
+- A route under the client starts it and reads its run.
+- Společenská inteligence shows the organization's children with each one's target beside
+  what was achieved: a scale target the clip left unmet (P4b's M04: 2.0 asked, 2.68 achieved)
+  says so, never "met".
+
+**Open before P4d1:** the bucket's exact name and the worker role's policy are written in
+Terraform; who applies it is the human action above.
 

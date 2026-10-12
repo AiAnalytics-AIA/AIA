@@ -16,6 +16,8 @@ const version = (label: string, status: PopulationVersion["status"]): Population
   imported_at: "2026-10-10T09:00:00Z",
   imported_by: "USR-operator",
   provenance: "fictional",
+  owner_client_id: null,
+  extension_sha256: null,
 });
 
 const registry: PopulationRegistry = {
@@ -88,6 +90,7 @@ describe("characteristics (P7d)", () => {
     is_weight: false,
     derived: false,
     uses: [],
+    materialized: false,
   });
 
   it("filters fields by search and block", () => {
