@@ -219,8 +219,9 @@ apps/
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
-                            AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured), with it the
-                            model-backed module runs (registry.py)
+                            AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured); the
+                            model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
+                            and a valid provider configuration), else it parks too (registry.py)
     report.py               research_report: the internal draft from the eight analysis modules and
                             the run's object maps (report_maps, object_map_figure); never approved here
     sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; its step runs only
