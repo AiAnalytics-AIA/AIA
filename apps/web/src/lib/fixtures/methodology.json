@@ -121,13 +121,48 @@
        }
       ],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
-      "formulas": [],
+      "formulas": [
+       {
+        "expression": "sum(w) ** 2 / sum(w * w)",
+        "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "",
+          "kind": "non_negative",
+          "variable": null
+         },
+         {
+          "description_cs": "nejvýš počet odpovědí",
+          "kind": "at_most_variable",
+          "variable": "w"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.kish",
+        "title_cs": "Kishovo efektivní n",
+        "variables": [
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
       "id": "kish",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
       "note_cs": "Podporu buňky z něj počítá modul Podpora a potlačení.",
-      "source_sha256": "3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
        "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
       ],
       "title_cs": "Kishovo efektivní n",
@@ -147,11 +182,52 @@
        }
       ],
       "formula_latex": "p_c = 100\\,\\frac{\\sum_k w_k\\,[x_k = c]}{\\sum_k w_k}\\quad\\text{(na 1 desetinné místo)}",
-      "formulas": [],
+      "formulas": [
+       {
+        "expression": "100 * sum(w * hit) / sum(w)",
+        "latex": "\\frac{100 \\cdot \\left(\\sum w \\cdot [x_k = c]\\right)}{\\sum w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "podíl leží v [0, 100] %",
+          "kind": "within",
+          "variable": null
+         },
+         {
+          "description_cs": "",
+          "kind": "non_decreasing_in",
+          "variable": "hit"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.share",
+        "title_cs": "Vážený podíl odpovědi",
+        "variables": [
+         {
+          "latex": "[x_k = c]",
+          "meaning_cs": "1, když respondent zvolil tuto možnost, jinak 0",
+          "name": "hit",
+          "unit": "",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
       "id": "share",
       "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_distribution",
       "note_cs": "Odhad i meze se zaokrouhlí na jedno desetinné místo.",
-      "source_sha256": "76887249ce329c16fca883d708015a576151cdd6aa94c44e3e35ff15c490f92c",
+      "source_sha256": "753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
       "symbols": [
        {
         "latex": "p_c",
@@ -160,6 +236,7 @@
        }
       ],
       "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
       ],
       "title_cs": "Podíl odpovědi (výběr jedné možnosti)",
@@ -179,13 +256,50 @@
        }
       ],
       "formula_latex": "\\bar{x} = \\frac{\\sum_k w_k x_k}{\\sum_k w_k}\\quad\\text{(na 2 desetinná místa)}",
-      "formulas": [],
+      "formulas": [
+       {
+        "expression": "sum(w * x) / sum(w)",
+        "latex": "\\frac{\\sum w \\cdot x}{\\sum w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "vyšší odpovědi, vyšší průměr",
+          "kind": "non_decreasing_in",
+          "variable": "x"
+         },
+         {
+          "description_cs": "průměr stejných odpovědí je ta odpověď",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.mean",
+        "title_cs": "Vážený průměr",
+        "variables": [
+         {
+          "latex": "x",
+          "meaning_cs": "odpovědi na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
       "id": "mean",
       "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_mean",
-      "note_cs": "",
-      "source_sha256": "534b02464606c4f63bcc8dfb2a0d5ce29e88811e325cd919de75312ba39e4a1a",
+      "note_cs": "Stejný vážený průměr počítá i podíl top boxu a podíl každé možnosti u výběru více možností (průměr ukazatelů 0/1) a každou replikaci bootstrapu. Úprava vzorce průměru proto mění i je.",
+      "source_sha256": "91e8c6f4c2d0216e310f68038d5be443312ee9d324f55dc469f87e9dac00726d",
       "symbols": [],
       "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
       ],
       "title_cs": "Průměr škály",
@@ -232,13 +346,50 @@
        }
       ],
       "formula_latex": "s = \\sqrt{\\frac{\\sum_k w_k (x_k - \\bar{x})^2}{\\sum_k w_k}}\\quad\\text{(ddof 0, na 2 desetinná místa)}",
-      "formulas": [],
+      "formulas": [
+       {
+        "expression": "sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)",
+        "latex": "\\frac{\\sum w \\cdot {\\left(x - \\frac{\\sum w \\cdot x}{\\sum w}\\right)}^{2}}{\\sum w}",
+        "note_cs": "Směrodatná odchylka je odmocnina z rozptylu.",
+        "properties": [
+         {
+          "description_cs": "",
+          "kind": "non_negative",
+          "variable": null
+         },
+         {
+          "description_cs": "stejné odpovědi nemají rozptyl",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.variance",
+        "title_cs": "Vážený rozptyl (ddof 0)",
+        "variables": [
+         {
+          "latex": "x",
+          "meaning_cs": "odpovědi na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
       "id": "sd",
       "implements": "aia_core.domain.research_aggregate:weighted_variance",
       "note_cs": "Vážená populační odchylka; pod dvěma platnými odpověďmi se nepočítá.",
-      "source_sha256": "8619db992b4e63b28d35fd2d2540ea3ee7edbba0b9bcd5663c8db38a784bef1a",
+      "source_sha256": "3d8e38e6261391bd78ef35b58ef5407f44a66a26c38f900801586dc80d4838c2",
       "symbols": [],
       "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
       ],
       "title_cs": "Směrodatná odchylka škály",
@@ -258,11 +409,59 @@
        }
       ],
       "formula_latex": "T = 100\\,\\frac{\\sum_k w_k\\,[x_k \\ge \\max - (b - 1)]}{\\sum_k w_k}",
-      "formulas": [],
+      "formulas": [
+       {
+        "expression": "x >= top - (b - 1)",
+        "latex": "x_k \\ge \\max - \\left(b - 1\\right)",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "ano (1) nebo ne (0)",
+          "kind": "within",
+          "variable": null
+         },
+         {
+          "description_cs": "",
+          "kind": "non_decreasing_in",
+          "variable": "x"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.top_box",
+        "title_cs": "Patří odpověď do top boxu?",
+        "variables": [
+         {
+          "latex": "x_k",
+          "meaning_cs": "odpověď na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": false
+         },
+         {
+          "latex": "\\max",
+          "meaning_cs": "horní konec škály",
+          "name": "top",
+          "unit": "body škály",
+          "vector": false
+         },
+         {
+          "latex": "b",
+          "meaning_cs": "šířka top boxu",
+          "name": "b",
+          "unit": "bodů škály",
+          "vector": false
+         }
+        ]
+       }
+      ],
       "id": "top_box",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
       "note_cs": "Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
-      "source_sha256": "0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
+      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
       "symbols": [
        {
         "latex": "b",
@@ -271,6 +470,7 @@
        }
       ],
       "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
        "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
       ],
@@ -312,7 +512,7 @@
       "id": "multi",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
       "note_cs": "Součet podílů přesahuje 100 %. Každá možnost má vlastní bootstrap: semínko základního bootstrapu plus pořadí možnosti.",
-      "source_sha256": "0c146350c88e9ddae9f0a6fe03dac86cc859149f1ec9dc9b22f320696c89514c",
+      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
@@ -7045,7 +7245,7 @@
       "id": "unit_kish",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
       "note_cs": "",
-      "source_sha256": "3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
@@ -7066,7 +7266,7 @@
       "id": "unit_donors",
       "implements": "aia_core.domain.research_aggregate:donor_support",
       "note_cs": "Efektivní n se zaokrouhlí na jedno desetinné místo. Podíl největšího dárce se spočítá a uloží, ale žádné pravidlo ho nečte (nález D4).",
-      "source_sha256": "817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+      "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [
        {
         "latex": "n_D",
@@ -7104,7 +7304,7 @@
       "id": "unit_status",
       "implements": "aia_core.domain.research_aggregate:donor_support",
       "note_cs": "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky se píše z pravidla, které platí.",
-      "source_sha256": "817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
+      "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",

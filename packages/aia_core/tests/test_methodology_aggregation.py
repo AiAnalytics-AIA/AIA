@@ -19,6 +19,7 @@ from aia_core.domain import research_aggregate
 from aia_core.domain.methodology import MODULES, ValueOrigin, describe
 from aia_core.domain.methodology.aggregation import AGGREGATION
 from aia_core.domain.research_aggregate import (
+    AGGREGATE_SLOTS,
     AIA_AGGREGATE_V1,
     AggregationSpec,
     classify_question,
@@ -53,7 +54,8 @@ def test_it_is_declared_in_force_and_not_editable_yet() -> None:
     assert [p.name for p in AGGREGATION.presets] == ["aia-aggregate-1"]
     assert AGGREGATION.presets[0].spec is AIA_AGGREGATE_V1
     assert AGGREGATION.in_force == "aia-aggregate-1"
-    assert AGGREGATION.editable is False and AGGREGATION.formulas == ()
+    assert AGGREGATION.editable is False  # its slots are shown (G2b), edited in G3
+    assert {f.slot.id for f in AGGREGATION.formulas} == AGGREGATE_SLOTS
 
 
 def test_every_declared_value_is_shown_from_the_specification() -> None:
