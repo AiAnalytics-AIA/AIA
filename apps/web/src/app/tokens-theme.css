@@ -13,6 +13,7 @@
   --color-surface-inverse: var(--surface-inverse);
   --color-ink-inverse: var(--ink-inverse);
   --color-brand-stage: var(--brand-stage);
+  --color-brand-apex: var(--brand-apex);
   --color-signal: var(--signal);
   --color-signal-wash: var(--signal-wash);
   --color-signal-hover: var(--signal-hover);
