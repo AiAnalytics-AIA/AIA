@@ -18,7 +18,7 @@ chunks:
   - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
   - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
   - "[x] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
-  - "[ ] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
+  - "[x] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
   - "[ ] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
   - "[ ] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
   - "[ ] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
@@ -720,6 +720,29 @@ Tests: `test_a_modelled_origin_is_declared_under_its_own_policy_chosen_by_the_or
 `test_no_dictionary_can_declare_the_modelled_status`,
 `test_internal_only_is_never_extracted_from_dictionary_prose` (now both AIA-only rules),
 `test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal`.
+
+**4e2 landed.** `evidence/validation.py`: `RESPONDENT_SYSTEM_COMPONENTS` (the respondent
+prompt's SHA-256, persona builder, persona mode, sampler version, population version, model
+binding, response-process version) and `respondent_system_fingerprint` (every component
+required, none blank, no extra name, the prompt a SHA-256), beside the panel's
+`system_fingerprint`; `lifts_internal_only(state, current)`: true only for `HOLDOUT_VALIDATED`
+earned on `current` -- none, stale, smoke or no current system keep a claim internal.
+`evidence/instrument.py`: `instrument_policy`, `instrument_declaration_sha256` and
+`instrument_policy_book` take `respondent_system` and `validation`; `-2` drops `INTERNAL_ONLY`
+only when `lifts_internal_only`, every other rule kept. A modelled declaration's identity binds
+the system and whether the validation lifted it (a stale validation is the same declaration as
+none). A simulated origin is never validated: a system or a validation for it is refused, and
+`-1`'s identity does not move.
+
+Tests: `test_the_respondent_system_fingerprint_moves_with_every_component`,
+`test_the_respondent_system_refuses_a_missing_or_blank_component`,
+`test_the_respondent_system_refuses_a_name_it_does_not_bind_and_a_prompt_not_hashed`,
+`test_only_a_current_holdout_lifts_internal_only`,
+`test_a_current_holdout_takes_a_fully_disclosed_modelled_claim_to_a_client`,
+`test_no_validation_a_stale_one_or_smoke_keeps_a_modelled_claim_internal`,
+`test_the_declaration_identity_moves_with_the_system_and_the_validation`,
+`test_simulated_answers_are_never_validated_and_their_identity_never_moves`,
+`test_a_validation_needs_the_current_system_and_a_system_is_a_fingerprint`.
 
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.

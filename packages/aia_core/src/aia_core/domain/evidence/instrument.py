@@ -43,7 +43,8 @@ added because no dictionary phrase says it.
 fact, aggregate only, never one person's -- and adds what a client-facing modelled claim must
 carry: a scope disclosure (``REQUIRES_SCOPE``) and the modelled-value disclosure on every claim,
 not only a measured one (``MODELED_DISCLOSURE_ALWAYS``). It is internal only (``INTERNAL_ONLY``)
-until a validation lifts that, which nothing does yet.
+until a ``HOLDOUT_VALIDATED`` validation earned on the current respondent system lifts that
+(ADR 0024 §4, :func:`.validation.lifts_internal_only`); nothing records one yet.
 
 Two refusals already stand between these items and a client before this one: the
 data-origin gate refuses every simulated origin client-facing (``admission``), and a
@@ -57,6 +58,7 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
@@ -73,6 +75,7 @@ from .field_policy import (
     ProvenanceClass,
     claim_rules_for,
 )
+from .validation import ValidationState, lifts_internal_only
 
 __all__ = [
     "INSTRUMENT_BLOCK",
@@ -197,47 +200,117 @@ def instrument_policy_version(origin: DataOrigin | None) -> str:
     return _declared(origin)[1].version
 
 
+_SHA256: Final = re.compile(r"[0-9a-f]{64}")
+
+
+@dataclass(frozen=True, slots=True)
+class _Judged:
+    origin: DataOrigin
+    declared: _Declared
+    #: ``-2`` only: the respondent system the answers came from, and whether a current holdout
+    #: validation on it lifts ``INTERNAL_ONLY``.
+    respondent_system: str | None
+    lifted: bool
+
+    @property
+    def rules(self) -> tuple[ClaimRule, ...]:
+        aia = self.declared.aia_rules
+        if self.lifted:
+            aia = tuple(r for r in aia if r is not ClaimRule.INTERNAL_ONLY)
+        return (*claim_rules_for(self.declared.recommended_use), *aia)
+
+
+def _judge(
+    origin: DataOrigin | None,
+    respondent_system: str | None,
+    validation: ValidationState | None,
+) -> _Judged:
+    """The policy ``origin``'s answers are declared under, and what a validation does to it.
+
+    A simulated origin is never validated: passing a system or a validation for it is refused.
+    A modelled origin leaves ``INTERNAL_ONLY`` only under :func:`.validation.lifts_internal_only`.
+    """
+    declared_origin, declared = _declared(origin)
+    if respondent_system is not None and not _SHA256.fullmatch(respondent_system):
+        raise ValueError("a respondent system is named by its fingerprint (a SHA-256)")
+    if declared is _SIMULATED:
+        if respondent_system is not None or validation is not None:
+            raise InstrumentPolicyRefused(
+                "simulated answers are never validated: no respondent system or validation "
+                "applies to them"
+            )
+        return _Judged(declared_origin, declared, None, False)
+    if validation is not None and respondent_system is None:
+        raise ValueError("a validation is judged against the current respondent system; none given")
+    lifted = lifts_internal_only(validation, respondent_system)
+    return _Judged(declared_origin, declared, respondent_system, lifted)
+
+
 def instrument_policy(
-    item: InstrumentItem, *, origin: DataOrigin | None, source: str
+    item: InstrumentItem,
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
 ) -> FieldPolicy:
-    """The fixed policy of one instrument item whose answers came from ``origin``."""
-    _, declared = _declared(origin)
+    """The fixed policy of one instrument item whose answers came from ``origin``.
+
+    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4).
+    """
+    judged = _judge(origin, respondent_system, validation)
     if not source.strip():
         raise ValueError("an instrument policy names the source of its answers")
-    rules = (*claim_rules_for(declared.recommended_use), *declared.aia_rules)
     return FieldPolicy(
         field=instrument_field(item.question_id),
         block=INSTRUMENT_BLOCK,
         source=source.strip(),
-        evidence_status=declared.status,
+        evidence_status=judged.declared.status,
         provenance_class=ProvenanceClass.MODELLED,
         production_grade=None,
-        recommended_use_verbatim=declared.recommended_use,
+        recommended_use_verbatim=judged.declared.recommended_use,
         description=item.text.strip(),
         persona_eligible=False,
-        claim_rules=rules,
+        claim_rules=judged.rules,
         eligibility=_ELIGIBILITY,
         mandated_weight_scheme=None,
     )
 
 
 def instrument_declaration_sha256(
-    items: Sequence[InstrumentItem], *, origin: DataOrigin | None, source: str
+    items: Sequence[InstrumentItem],
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
 ) -> str:
-    """Identity of a declaration: the policy version, the origin, the source, the items."""
-    declared_origin, declared = _declared(origin)
-    return fingerprint(
-        {
-            "policy": declared.version,
-            "origin": declared_origin.value,
-            "source": source.strip(),
-            "items": [[i.question_id, i.text.strip()] for i in items],
-        }
-    )
+    """Identity of a declaration: the policy version, the origin, the source, the items.
+
+    A modelled declaration also binds the respondent system and whether a validation lifted
+    ``INTERNAL_ONLY``, so a module judged under one validation is never reused under another.
+    A simulated declaration's identity is ``-1``'s, unchanged.
+    """
+    judged = _judge(origin, respondent_system, validation)
+    material: dict[str, object] = {
+        "policy": judged.declared.version,
+        "origin": judged.origin.value,
+        "source": source.strip(),
+        "items": [[i.question_id, i.text.strip()] for i in items],
+    }
+    if judged.declared is _MODELLED:
+        material["respondent_system"] = judged.respondent_system
+        material["internal_only_lifted"] = judged.lifted
+    return fingerprint(material)
 
 
 def instrument_policy_book(
-    items: Sequence[InstrumentItem], *, origin: DataOrigin | None, source: str
+    items: Sequence[InstrumentItem],
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
 ) -> FieldPolicyBook:
     """The policy book of one run's instrument: every item it asked, and nothing else.
 
@@ -246,13 +319,25 @@ def instrument_policy_book(
     """
     fields: dict[str, FieldPolicy] = {}
     for item in items:
-        policy = instrument_policy(item, origin=origin, source=source)
+        policy = instrument_policy(
+            item,
+            origin=origin,
+            source=source,
+            respondent_system=respondent_system,
+            validation=validation,
+        )
         if policy.field in fields:
             raise FieldPolicyError(f"instrument item {item.question_id!r} is declared twice")
         fields[policy.field] = policy
     if not fields:
         raise InstrumentPolicyRefused("the instrument declares no item")
     return FieldPolicyBook(
-        source_sha256=instrument_declaration_sha256(items, origin=origin, source=source),
+        source_sha256=instrument_declaration_sha256(
+            items,
+            origin=origin,
+            source=source,
+            respondent_system=respondent_system,
+            validation=validation,
+        ),
         fields=fields,
     )

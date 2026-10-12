@@ -406,3 +406,107 @@ def test_no_dictionary_can_declare_the_modelled_status() -> None:
             description="",
             persona_eligible=False,
         )
+
+
+# --- what a validation does to -2 (ADR 0024 §4) --------------------------------------------
+
+SYSTEM = "c" * 64
+OTHER_SYSTEM = "d" * 64
+
+
+def validated_book(state: Any, system: str | None = SYSTEM) -> FieldPolicyBook:
+    return instrument_policy_book(
+        ITEMS, origin=MODELLED, source=SOURCE, respondent_system=system, validation=state
+    )
+
+
+def holdout(on: str = SYSTEM) -> Any:
+    from aia_core.domain.evidence import ValidationState, ValidationStatus
+
+    return ValidationState(ValidationStatus.HOLDOUT_VALIDATED, on)
+
+
+def test_a_current_holdout_takes_a_fully_disclosed_modelled_claim_to_a_client(
+    joint_status: Any,
+) -> None:
+    """The one route out of INTERNAL_ONLY; every other -2 rule still holds."""
+    book_ = validated_book(holdout())
+    policy = book_.get("instrument:q1")
+    assert ClaimRule.INTERNAL_ONLY not in policy.claim_rules
+    assert ClaimRule.MODELED_DISCLOSURE_ALWAYS in policy.claim_rules
+    assert evaluate_claim(modelled_claim(), book_, joint_status).allowed
+    assert {
+        ViolationCode.SCOPE_DISCLOSURE_MISSING,
+        ViolationCode.MODELED_DISCLOSURE_MISSING,
+    } <= evaluate_claim(modelled_claim(disclosures=frozenset()), book_, joint_status).codes
+    measured = modelled_claim(basis=ClaimBasis.MEASURED)
+    assert ViolationCode.NEVER_MEASURED_FACT in evaluate_claim(measured, book_, joint_status).codes
+    person = modelled_claim(level=ClaimLevel.INDIVIDUAL)
+    assert (
+        ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD
+        in evaluate_claim(person, book_, joint_status).codes
+    )
+    # The joint certificate is still required client-facing (ADR 0024 §6).
+    assert (
+        ViolationCode.JOINT_CERTIFICATE_DEGRADED
+        in evaluate_claim(modelled_claim(), book_, MISSING).codes
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        None,
+        "stale",
+        "smoke",
+    ],
+)
+def test_no_validation_a_stale_one_or_smoke_keeps_a_modelled_claim_internal(
+    state: str | None, joint_status: Any
+) -> None:
+    from aia_core.domain.evidence import ValidationState, ValidationStatus
+
+    given = {
+        None: None,
+        "stale": holdout(on=OTHER_SYSTEM),
+        "smoke": ValidationState(ValidationStatus.SMOKE_VALIDATED, SYSTEM),
+    }[state]
+    book_ = validated_book(given)
+    assert ClaimRule.INTERNAL_ONLY in book_.get("instrument:q1").claim_rules
+    assert (
+        ViolationCode.FIELD_INTERNAL_ONLY
+        in evaluate_claim(modelled_claim(), book_, joint_status).codes
+    )
+
+
+def test_the_declaration_identity_moves_with_the_system_and_the_validation() -> None:
+    ids = {
+        validated_book(None, system=None).source_sha256,
+        validated_book(None).source_sha256,
+        validated_book(None, system=OTHER_SYSTEM).source_sha256,
+        validated_book(holdout()).source_sha256,
+    }
+    assert len(ids) == 4
+    # A stale validation judges as no validation on the same system: the same declaration.
+    assert (
+        validated_book(holdout(on=OTHER_SYSTEM)).source_sha256 == validated_book(None).source_sha256
+    )
+
+
+def test_simulated_answers_are_never_validated_and_their_identity_never_moves() -> None:
+    before = instrument_declaration_sha256(
+        ITEMS, origin=DataOrigin.SYNTHETIC_FIXTURE, source=SOURCE
+    )
+    assert before == book(DataOrigin.SYNTHETIC_FIXTURE).source_sha256
+    for kwargs in ({"respondent_system": SYSTEM}, {"validation": holdout()}):
+        with pytest.raises(InstrumentPolicyRefused, match="never validated"):
+            instrument_policy_book(
+                ITEMS, origin=DataOrigin.SYNTHETIC_FIXTURE, source=SOURCE, **kwargs
+            )
+
+
+def test_a_validation_needs_the_current_system_and_a_system_is_a_fingerprint() -> None:
+    with pytest.raises(ValueError, match="current respondent system"):
+        validated_book(holdout(), system=None)
+    with pytest.raises(ValueError, match="SHA-256"):
+        validated_book(None, system="v1")
