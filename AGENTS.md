@@ -1972,3 +1972,19 @@ separate indicator from partial metadata. Anchors:
 `application/contextual_report.py:62 @ b3f1a881`;
 `test_citation_valid_inapplicability_inference_is_not_published` and
 `test_partial_measure_period_does_not_replace_the_source_claims_full_range`.
+
+
+## Docker release cleanup must protect tags and run before downloads
+
+The develop disk filled because `docker image prune` without `--all` removed
+only dangling images; the SHA-tagged releases remained, and cleanup ran after
+the image pull that failed. A broad `--all` prune would discard local rollback
+releases. Use the deployment's explicit retention policy instead: prove image
+ownership/age, protect every container reference and recorded successful release,
+and remove immutable IDs without force or parent pruning, before checking space
+and downloading. Unknown/shared images stay. Docker removal by a tag can only
+untag a shared image; removal by immutable ID without force refuses a newly
+shared/referenced image. Never add force to overcome that refusal. See
+`deploy/develop/bin/image_retention.py`,
+`test_develop_image_retention.py::test_actual_deploy_stops_before_download_migration_or_replacement`
+and the [Docker command reference](https://docs.docker.com/reference/cli/docker/image/rm/).

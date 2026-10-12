@@ -13,7 +13,7 @@ chunks:
   - "[x] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
   - "[x] P4e1. The loader resolves and loads an owned child: base by its contract, child by its extension, the base's companions"
-  - "[ ] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
+  - "[x] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
   - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
@@ -811,3 +811,34 @@ finding: the loader refused a child.
 P4e2 is what remains: the research start names a selected child instead of LIVE, records its
 binding, and refuses another organization's.
 
+**P4e2, 2026-10-12** (`feature/population-run-child`, stacked on P4e1). The owner chose the
+run start over a study setting.
+- `ResearchRuns.start(population_version_id=)` and `POST …/research/runs`
+  `{population_version_id}` record the child's binding (`PINNED`, `population_id` null)
+  instead of LIVE. `child_binding` (`application/population.py`) resolves only a child of the
+  study's own *client*: the child is the client's (P4d), so another client of the same
+  organization, another organization, a shared version and an unknown id all raise
+  `UnknownDatasetVersion` (404 `population_version_not_found`), checked before the spend
+  confirmation, and nothing starts. A child whose base cannot be resolved answers 409
+  `population_unavailable` with its reason.
+- The selection is identity (`:population:<sha16>` in the run's key): the same revision over
+  LIVE and over a child is two runs; asking again finds the run. A retry never re-chooses: it
+  keeps the original's recorded binding.
+- Tests: `test_research_population_child.py` (5) and
+  `test_research_api.py::test_a_selected_population_that_is_not_the_clients_child_is_404_and_nothing_starts`.
+  Dropping the client check fails the cross-client test (checked by mutation).
+- No research step reads the binding yet (fieldwork is still fictional, OI-61); the web
+  client sends no selection until P4d4's screen.
+
+
+**Finding for P4e2 (with panel-grounded-respondents 5a, merged meanwhile).** A panel run now
+reads its recorded binding in fieldwork, so a panel run over a selected child loads the child.
+The worker's panel loader reads only the shared population's directory
+(`apps/executors/src/aia_executors/ai_fieldwork.py` `population_loader`, given a
+`FilesystemPopulationSource` in `registry.py`), never the population store, so a child's
+`s3://` location does not load and the fieldwork step parks (`_POPULATION_UNAVAILABLE`):
+nothing is drawn or sent. A hypothesis until a test runs it.
+- Smallest fix: compose `RoutingPopulationSource(shared, store)` for the panel loader when
+  the population store is configured, as the materialize executor already does.
+- Test that would catch it: a panel run over a child under the real worker loop, reading
+  the child's added field.

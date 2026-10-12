@@ -121,16 +121,20 @@ apps/
                             slot, the domain's check at the field) and MethodologyComparison (an edit
                             beside what is in force on fictional panels or support cells); lib/methodology-edit.ts is
                             the editor's pure part,
-                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+                            FrontDoor (the Graphite frame of /login, /logout, /auth/callback; the
+                            identity's cyan, `brand-apex`, is the signal there)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
                             --status-running when code does; aria-hidden beside the status it decorates.
                             64 px in a running step's panel and the job dialog, 32 px by default.
-                            Liftoff: the lift-off film (public/skin/brand/aia-liftoff.{webm,mp4}) in
-                            the front door's mark slot after a sign-in the person started
-                            (lib/liftoff.ts arms and takes it); muted, decoration, its end the way in;
-                            on `brand-stage`, the film's ground, used on the front door only
+                            DotField: the front door's 144-dot field (lib/dot-field.ts, pure) on a
+                            full-viewport canvas; on a sign-in the person started (lib/liftoff.ts)
+                            25 primes fly into the mark at the launch film's frame-0 geometry
+                            (lattice, checked by tools/film_frame0.py) and `aia:mark-formed` fires;
+                            LaunchFilm then plays public/skin/brand/aia-liftoff.{webm,mp4}
+                            full-screen on `brand-stage`, takes over on its first frame, and its
+                            end is the way in
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -671,6 +675,9 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
                             stops its old container and keeps its volume (bin/lib.sh).
+                            bin/image_retention.py: protected old release-image cleanup and disk
+                            headroom before downloads; a host lock serializes deploys; successful
+                            rollback history is recorded only after smoke. Runbook: Disk retention.
                             bin/sync-population.sh (by hand) puts the population's 19 files, listed
                             and pinned in population/v17.files, read-only under AIA_POPULATION_DIR;
                             bin/population.sh runs population_ops in a one-off worker container.
@@ -699,6 +706,8 @@ docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/film_frame0.py        Checks the launch film's frame 0 is the mark the handoff forms (stdlib
+                            over ffmpeg; fails above 0.5 px)
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
@@ -933,6 +942,7 @@ ungated fixture.
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
 | Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
+| **Deployment disk / image dry-run** | On the host, `python3 bin/image_retention.py preflight --registry <deployment-registry> --state-file /opt/aia/develop/.deploy-state/successful-releases.json --protect <current-sha> --protect <incoming-sha>`: no deletion unless `--apply`; the full deploy applies retention under its host lock before pulling. See [`Disk retention`](deploy/develop/README.md#disk-retention) for safeguards, initialization and refusal recovery. |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |

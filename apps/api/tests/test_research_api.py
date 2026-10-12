@@ -520,6 +520,20 @@ def test_starting_needs_a_revision_of_this_study_not_a_grant(
     assert start(other_client_lead, world, revision_id).status_code in (200, 201)
 
 
+def test_a_selected_population_that_is_not_the_clients_child_is_404_and_nothing_starts(
+    researcher: TestClient, world: Any
+) -> None:
+    """P4e2: a run may name its client's child; any other id reads as not there."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    refused = researcher.post(
+        _runs(world),
+        json={"design_revision_id": revision_id, "population_version_id": "no-such-version"},
+    )
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "population_version_not_found"
+    assert researcher.get(_runs(world)).json()["items"] == []
+
+
 def test_a_run_never_crosses_studies(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:

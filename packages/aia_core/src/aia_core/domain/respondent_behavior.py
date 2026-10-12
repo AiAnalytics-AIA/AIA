@@ -26,7 +26,12 @@ AIA has no calibration, so the temperature is 1.0, the identity -- and NumPy's
 A draw therefore differs from the unit's for the same probabilities and seed; the
 *distribution* it draws from is the unit's.
 
-Pure: stdlib only.
+Every coefficient is declared in :class:`ResponseProcessSpec`, whose preset
+``aia-response-1`` holds the unit's values, and the functions here read it: the
+declaration the Metodika tab shows is what computes (plan ``methodology-tab`` R1a), and
+the EXACT captures hold it to the unit.
+
+Pure: stdlib and Pydantic only.
 """
 
 from __future__ import annotations
@@ -39,10 +44,14 @@ from dataclasses import dataclass
 from statistics import NormalDist
 from typing import Any, Final
 
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
 __all__ = [
+    "AIA_RESPONSE_V1",
     "BEHAVIOR_VERSION",
     "STYLES",
     "BehaviorMeta",
+    "ResponseProcessSpec",
     "ResponseQuestion",
     "adjust_probabilities",
     "assign_styles",
@@ -62,16 +71,124 @@ STYLES: Final = (
     "social_desirability_sensitivity",
 )
 
-#: ``styly.VAZBY``: style -> (education, age, male) coefficients. Informed priors, not
-#: measurements (the unit's own docstring says so); most variance is individual.
-_LINKS: Final[dict[str, tuple[float, float, float]]] = {
-    "souhlasny_sklon": (-0.30, 0.20, 0.00),
-    "vyhranenost": (-0.10, 0.15, 0.05),
-    "ochota_priznat_nevim": (-0.25, -0.10, -0.15),
-    "sdilnost": (0.30, -0.10, 0.00),
-    "satisficing": (-0.25, 0.10, 0.00),
-    "social_desirability_sensitivity": (-0.05, 0.05, -0.05),
-}
+
+class _Declared(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @field_validator("*", mode="after")
+    @classmethod
+    def _finite(cls, v: Any) -> Any:
+        if isinstance(v, float) and not math.isfinite(v):
+            raise ValueError("a coefficient is a finite number")
+        return v
+
+
+class Line(_Declared):
+    """``base + slope * z``: a coefficient that grows with a respondent's style score."""
+
+    base: float
+    slope: float
+
+
+class Satisficing(_Declared):
+    """``lambda = min(cap, clamp(base + slope * z, 0, 1) * strength)``."""
+
+    base: float
+    slope: float
+    cap: float
+
+    @field_validator("cap")
+    @classmethod
+    def _a_share(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("the satisficing cap is a share between 0 and 1")
+        return v
+
+
+class StyleLink(_Declared):
+    """One style's prior on (education, age, male), each a z-score (``styly.VAZBY``)."""
+
+    education: float
+    age: float
+    male: float
+
+
+class ResponseProcessSpec(_Declared):
+    """How a model's probabilities become an answer, and how styles are assigned (plan
+    ``methodology-tab`` R1a). Every number ``adjust_probabilities``, ``assign_styles`` and
+    ``ai_respondent.describe_style`` use, declared."""
+
+    methodology_version: str
+    #: beta for a declared social-desirability direction: base + slope * the style's z.
+    social_desirability: Line
+    #: beta per unit of ``souhlasny_sklon`` toward a declared agreement direction.
+    acquiescence: float
+    #: beta per unit of ``vyhranenost`` toward a scale's ends.
+    extremity: float
+    #: beta per unit of ``ochota_priznat_nevim`` toward "don't know".
+    dont_know: float
+    satisficing: Satisficing
+    #: The exponent of one reweighting is clamped to +-this.
+    reweight_limit: float
+    #: ``styly.VAZBY``, in the unit's style order.
+    style_links: dict[str, StyleLink]
+    #: The noise weight is sqrt(max(1 - var(signal), this)): a style is never all prior.
+    style_noise_floor: float
+    #: A style is put into words (the persona's profile) from |z| >= this.
+    describe_threshold: float
+
+    @field_validator("reweight_limit", "describe_threshold")
+    @classmethod
+    def _positive(cls, v: float) -> float:
+        if not v > 0:
+            raise ValueError("must be greater than zero")
+        return v
+
+    @field_validator("style_noise_floor")
+    @classmethod
+    def _noise_share(cls, v: float) -> float:
+        if not 0.0 < v <= 1.0:
+            raise ValueError("the noise floor is a share above 0 and at most 1")
+        return v
+
+    @field_validator("style_links", mode="before")
+    @classmethod
+    def _in_the_units_order(cls, v: Any) -> Any:
+        # A stored pin comes back from PostgreSQL's JSONB with its keys reordered; the six
+        # styles are put back in the unit's order. Each is computed on its own, so the order
+        # moves no value; it is what the page and a stored version show.
+        if isinstance(v, Mapping) and set(v) == set(STYLES):
+            return {name: v[name] for name in STYLES}
+        return v
+
+    @model_validator(mode="after")
+    def _every_style_once(self) -> ResponseProcessSpec:
+        if tuple(self.style_links) != STYLES:
+            raise ValueError(f"style links name the six styles, each once: {', '.join(STYLES)}")
+        return self
+
+
+#: 18.6.6's own values (``behavior.py``, ``styly.py``), inline there, declared here. Informed
+#: priors, not measurements (the unit's own docstring says so); most variance is individual.
+AIA_RESPONSE_V1: Final = ResponseProcessSpec(
+    methodology_version="aia-response-1",
+    social_desirability=Line(base=0.18, slope=0.10),
+    acquiescence=0.16,
+    extremity=0.22,
+    dont_know=0.24,
+    satisficing=Satisficing(base=0.10, slope=0.06, cap=0.35),
+    reweight_limit=8.0,
+    style_links={
+        "souhlasny_sklon": StyleLink(education=-0.30, age=0.20, male=0.00),
+        "vyhranenost": StyleLink(education=-0.10, age=0.15, male=0.05),
+        "ochota_priznat_nevim": StyleLink(education=-0.25, age=-0.10, male=-0.15),
+        "sdilnost": StyleLink(education=0.30, age=-0.10, male=0.00),
+        "satisficing": StyleLink(education=-0.25, age=0.10, male=0.00),
+        "social_desirability_sensitivity": StyleLink(education=-0.05, age=0.05, male=-0.05),
+    },
+    style_noise_floor=0.05,
+    describe_threshold=0.7,
+)
 
 #: ``styly.VZDELANI_PORADI``.
 EDUCATION_ORDER: Final[dict[str, int]] = {
@@ -126,10 +243,12 @@ def normalise(values: Sequence[float]) -> list[float]:
     return [v / total for v in clipped]
 
 
-def _soft_reweight(p: list[float], score: Sequence[float], beta: float) -> list[float]:
+def _soft_reweight(
+    p: list[float], score: Sequence[float], beta: float, limit: float
+) -> list[float]:
     if abs(beta) < 1e-12:
         return p
-    q = [pi * math.exp(min(8.0, max(-8.0, beta * si))) for pi, si in zip(p, score, strict=True)]
+    q = [pi * math.exp(min(limit, max(-limit, beta * si))) for pi, si in zip(p, score, strict=True)]
     total = sum(q)
     if total <= 0:
         return p
@@ -152,8 +271,10 @@ def adjust_probabilities(
     probabilities: Sequence[float],
     question: ResponseQuestion,
     style: Mapping[str, float] | None,
+    spec: ResponseProcessSpec = AIA_RESPONSE_V1,
 ) -> tuple[list[float], BehaviorMeta]:
-    """``behavior.adjust_probabilities``, line for line. Returns ``(p, meta)``."""
+    """``behavior.adjust_probabilities``, line for line, its coefficients ``spec``'s.
+    Returns ``(p, meta)``."""
     p = normalise(probabilities)
     base = list(p)
     cfg = dict(question.process or {})
@@ -171,14 +292,16 @@ def adjust_probabilities(
     # 1) Explicit social desirability. Direction must be declared, never guessed.
     scores = _as_scores(cfg.get("social_desirability_scores"), labels, len(p))
     if scores is not None:
-        beta = strength * (0.18 + 0.10 * get("social_desirability_sensitivity"))
-        p = _soft_reweight(p, scores, beta)
+        sd = spec.social_desirability
+        beta = strength * (sd.base + sd.slope * get("social_desirability_sensitivity"))
+        p = _soft_reweight(p, scores, beta, spec.reweight_limit)
         applied.append("social_desirability")
 
     # 2) Acquiescence, only when the question declares which direction is agreement.
     agreement = _as_scores(cfg.get("agreement_scores"), labels, len(p))
     if agreement is not None:
-        p = _soft_reweight(p, agreement, strength * 0.16 * get("souhlasny_sklon"))
+        beta = strength * spec.acquiescence * get("souhlasny_sklon")
+        p = _soft_reweight(p, agreement, beta, spec.reweight_limit)
         applied.append("acquiescence")
 
     # 3) Extremity / midpoint style on ordered scales.
@@ -191,20 +314,23 @@ def adjust_probabilities(
             score = [abs(v) for v in x]
             if len(p) > nscale:
                 score.append(0.0)  # DK is neither middle nor extreme
-            p = _soft_reweight(p, score, strength * 0.22 * get("vyhranenost"))
+            beta = strength * spec.extremity * get("vyhranenost")
+            p = _soft_reweight(p, score, beta, spec.reweight_limit)
             applied.append("extremity")
 
     # 4) Willingness to admit DK. DK is always the last option by engine contract.
     if question.allow_dont_know and cfg.get("dont_know", True) and len(p) >= 2:
         score = [0.0] * len(p)
         score[-1] = 1.0
-        p = _soft_reweight(p, score, strength * 0.24 * get("ochota_priznat_nevim"))
+        beta = strength * spec.dont_know * get("ochota_priznat_nevim")
+        p = _soft_reweight(p, score, beta, spec.reweight_limit)
         applied.append("dont_know")
 
     # 5) Satisficing: blend toward an explicit heuristic.
     strategy = str(cfg.get("satisficing_strategy", "uniform")).lower()
-    sat = max(0.0, min(1.0, 0.10 + 0.06 * get("satisficing"))) * strength
-    sat = max(0.0, min(0.35, sat))
+    rule = spec.satisficing
+    sat = max(0.0, min(1.0, rule.base + rule.slope * get("satisficing"))) * strength
+    sat = max(0.0, min(rule.cap, sat))
     if strategy != "none" and sat > 0:
         h = [1.0 / len(p)] * len(p)
         if strategy == "midpoint" and question.typ == "skala" and question.scale is not None:
@@ -272,12 +398,19 @@ def _stable_noise(ids: Sequence[str], salt: str) -> list[float]:
     return out
 
 
-def assign_styles(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, float]]:
-    """Six style z-scores per row, as ``styly.prirad_styly`` assigns them.
+def assign_styles(
+    rows: Sequence[Mapping[str, Any]], spec: ResponseProcessSpec = AIA_RESPONSE_V1
+) -> list[dict[str, float]]:
+    """Six style z-scores per row, as ``styly.prirad_styly`` assigns them, its priors and
+    noise floor ``spec``'s.
 
     Each row carries ``respondent_id`` and, when known, ``vek`` (number),
-    ``pohlavi`` and ``vzdelani`` (the unit's labels). A missing attribute contributes
-    nothing, exactly as a missing column does in the unit.
+    ``pohlavi`` and ``vzdelani`` (the unit's labels). A column no row has contributes
+    nothing; a missing education or age contributes nothing; a missing sex where the column
+    exists counts as not male (-1), as the unit's ``astype(str)`` makes it. Only the hash
+    noise is the respondent's own: the z-scores, the signal's variance and the final
+    standardisation are over ``rows``, so the same respondent in another roster has another
+    style.
     """
     if not rows:
         return []
@@ -307,12 +440,13 @@ def assign_styles(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, float]]:
     ids = [str(r["respondent_id"]) for r in rows]
 
     out: list[dict[str, float]] = [{} for _ in rows]
-    for style, (a, b, c) in _LINKS.items():
+    for style, link in spec.style_links.items():
+        a, b, c = link.education, link.age, link.male
         signal = [a * e + b * g + c * m for e, g, m in zip(edu, age, male, strict=True)]
         noise = _stable_noise(ids, style)
         m_sig = _mean(signal)
         var = sum((v - m_sig) ** 2 for v in signal) / n
-        noise_weight = math.sqrt(max(1 - var, 0.05))
+        noise_weight = math.sqrt(max(1 - var, spec.style_noise_floor))
         x = [s + noise_weight * e for s, e in zip(signal, noise, strict=True)]
         mx, sx = _mean(x), _pstd(x)
         for i, v in enumerate(x):
