@@ -224,8 +224,9 @@ apps/
                             and a valid provider configuration), else it parks too (registry.py)
     report.py               research_report: the internal draft from the eight analysis modules and
                             the run's object maps (report_maps, object_map_figure); never approved here
-    sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; its step runs only
-                            under AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED
+    sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; always registered.
+                            AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED decides only whether a newly started
+                            run includes its step; turning it off does not stop a run that already has it
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
