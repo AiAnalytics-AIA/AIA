@@ -35,6 +35,7 @@ from uuid import uuid4
 
 from .errors import (
     LineageError,
+    OwnedVersionNotShared,
     PopulationNotEstablished,
     PromotionConflict,
     PromotionRefused,
@@ -49,6 +50,7 @@ __all__ = [
     "Population",
     "PopulationKind",
     "PromotionRecord",
+    "VersionOwner",
     "VersionStatus",
     "ancestry",
     "content_sha256",
@@ -132,6 +134,23 @@ class VersionStatus(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class VersionOwner:
+    """The organization, and its client, a materialized child version belongs to.
+
+    A version with no owner is shared: imported by an operator, readable by every
+    organization, the only kind STATIC and LIVE may point at. An owned version is a
+    child materialized from one client's dimension (population-operations P4, M5).
+    """
+
+    organization_id: str
+    client_id: str
+
+    def __post_init__(self) -> None:
+        if not self.organization_id or not self.client_id:
+            raise ValueError("an owned version names its organization and its client")
+
+
+@dataclass(frozen=True, slots=True)
 class DatasetVersion:
     """One immutable, content-addressed snapshot of a dataset.
 
@@ -156,6 +175,15 @@ class DatasetVersion:
     provenance: str
     imported_at: datetime
     imported_by: str
+    #: Set only on a materialized child: who it belongs to and the hash of the
+    #: contract extension that declares its added fields. Both or neither.
+    owner: VersionOwner | None = None
+    extension_sha256: str | None = None
+
+    @property
+    def shared(self) -> bool:
+        """True for a version every organization reads; False for an owned child."""
+        return self.owner is None
 
     def __post_init__(self) -> None:
         for name in ("content_sha256", "dictionary_sha256", "field_names_sha256"):
@@ -179,6 +207,12 @@ class DatasetVersion:
             raise ValueError("a version cannot be its own parent")
         if self.imported_at.tzinfo is None:
             raise ValueError("imported_at must be timezone-aware")
+        if (self.owner is None) != (self.extension_sha256 is None):
+            raise ValueError("an owned version names its extension, and only an owned one does")
+        if self.extension_sha256 is not None and not is_sha256(self.extension_sha256):
+            raise ValueError("extension_sha256 must be a lowercase sha256 digest")
+        if self.owner is not None and self.parent_version_id is None:
+            raise ValueError("an owned version is a child: it names the version it extends")
 
 
 @dataclass(frozen=True, slots=True)
@@ -324,6 +358,11 @@ def plan_establish(
         raise PromotionRefused(f"population {population_id} is already established")
     if version.version_id not in versions:
         raise UnknownDatasetVersion(f"unknown dataset version {version.version_id}")
+    if not version.shared:
+        raise OwnedVersionNotShared(
+            f"{version.version_id} belongs to one organization; a shared population "
+            "cannot be established on it"
+        )
     ancestry(version.version_id, versions)  # a broken lineage is refused here too
 
     same_kind = [p for p in populations if p.dataset_id == version.dataset_id and p.kind is kind]
@@ -418,6 +457,11 @@ def plan_promotion(
     if target.dataset_id != population.dataset_id:
         raise PromotionRefused(
             f"{target_version_id} belongs to {target.dataset_id}, not {population.dataset_id}"
+        )
+    if not target.shared:
+        raise OwnedVersionNotShared(
+            f"{target_version_id} belongs to one organization; LIVE is shared and is never "
+            "promoted to it"
         )
     static = _static_for(population.dataset_id, populations)
     if static is None:
