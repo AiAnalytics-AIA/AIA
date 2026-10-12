@@ -78,7 +78,8 @@ apps/
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
                             readiness with the run's cost ceiling and the study's spend limit, and native
-                            agent-jobs beneath each Study; GET …/design/source: where a reused design
+                            agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
+                            since=; a step names the step_id its events carry); GET …/design/source: where a reused design
                             came from), deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
                             interpretation, over a result of the Study's own run), scope
@@ -124,7 +125,8 @@ apps/
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
-                            --status-running when code does; aria-hidden beside the status it decorates
+                            --status-running when code does; aria-hidden beside the status it decorates.
+                            64 px in a running step's panel and the job dialog, 32 px by default
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -166,6 +168,13 @@ apps/
     src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
                             that hold a model caller): agent jobs, run steps, Deep Research steps; a
                             queued, waiting or finished step shows none
+    src/lib/step-activity.ts  A run's events folded into words per step: only what an event says
+                            (counts as reported, never a percentage; tokens a provider did not report
+                            are unknown, never zero). components/rehome/research/useStepActivity.ts
+                            reads the feed after its cursor every 1.5 s while a step runs, once more
+                            when it stops; StepActivityPanel.tsx opens under a RUNNING step (64 px orb,
+                            latest report, counts, elapsed, a polite live log) on Progress, the job
+                            dialog, Deep Research and Interpretation Research
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
@@ -213,7 +222,11 @@ apps/
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
-                            the one gateway over ADR 0010's route; the only builder of the adapter
+                            the one gateway over ADR 0010's route; the only builder of the adapter.
+                            AIA_AI_STEP_EVENTS (off by default): a research agent's and an analysis
+                            module's model requests write ai_request_sent / ai_request_answered to
+                            the run's feed (StepModelCaller(announce=): counts, cost, latency, never
+                            text; two writes per request, ~1.3 ms measured)
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     deep_research/          The six Deep Research steps (in the default registry; a run parks
