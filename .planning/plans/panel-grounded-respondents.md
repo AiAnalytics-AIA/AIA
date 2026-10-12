@@ -6,7 +6,7 @@ chunks:
   - "[x] 2a. Sampler contract (plan before code): inputs, quota fields, the audience filter, refusals, what a sample records"
   - "[x] 2b. Verify the quota and donor fields against the imported v17 dictionary on develop"
   - "[x] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
-  - "[ ] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
+  - "[x] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
   - "[ ] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
   - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
@@ -262,6 +262,23 @@ ports `attach_derived` (`audience_dimensions.py:137-182`) as an `Enricher`, EXAC
 fixtures from the unit's own function, and composes it where the worker builds
 `PopulationRuntime`. `attach_evidence_overlays` adds nothing: the vendored unit has no
 overlay metadata (`app/data/` holds none), so the port records that and adds no overlay.
+
+*Landed:* `domain/population/enrichment.py`: `derive_audience_dimensions` and
+`AudienceDimensionsEnricher` (the `Enricher` protocol, `enricher_id`
+`aia-audience-dimensions-1`), producing exactly the Czech contract's seven
+`enrichment_fields` (`test_the_enricher_produces_exactly_what_the_czech_contract_declares`).
+EXACT, cell by cell, against the unit's own `enrich_panel` on 122 fictional rows, once with
+every input and once with the leisure inputs and the financial score absent
+(`tools/enrichment_capture.py`; `tests/fixtures/enrichment/`; re-captured byte-identical),
+in `tests/test_population_enrichment.py`; mutating the 5.5 tier boundary or the tie rule fails
+it. A missing flag column refuses with `EnrichmentInputMissing` where the unit raised an
+`AttributeError`. Nothing composes the enricher yet: no research step loads the ANALYSIS view
+until chunk 5, which builds `PopulationRuntime(..., enricher=AudienceDimensionsEnricher())`.
+
+*Noted:* on a row with no media or leisure score the unit's `idxmax` relies on behaviour
+pandas 2 deprecates (an all-NA row returns NA, then the fallback label; pandas 3 raises
+`ValueError`). The unit pins `pandas>=2.1,<3`, the fixture is captured on pandas 2.3.3, and
+the port keeps the pandas 2 result. A unit re-extracted onto pandas 3 would need a re-capture.
 
  Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
