@@ -280,7 +280,15 @@ porting the audience filter, PR #298). The test that would have caught it: a che
 archive dependency pinned by hash under `docs/migration/` is absent from `legacy/` before it is
 called blocked.
 
-**Status.** Open, unblocked; fixed by chunk 2d. The eight runtime fields still need a data-owner
+**Derivation landed (2026-10-12).** `domain/population/enrichment.py`
+(`AudienceDimensionsEnricher`, `attach_derived` ported) @ `53205e8`, PR #305: EXACT cell by cell
+against the unit's own `enrich_panel` on 122 fictional rows
+(`tests/test_population_enrichment.py`; `tools/enrichment_capture.py`). A missing flag column
+refuses with `EnrichmentInputMissing` where the unit raised an `AttributeError`.
+
+**Status.** Open: derivation landed, not composed. It closes when a step builds
+`PopulationRuntime(..., enricher=AudienceDimensionsEnricher())`
+(`plans/panel-grounded-respondents.md` chunk 5). The eight runtime fields still need a data-owner
 classification (`docs/migration/population-derived-fields-decision.md`): until then the field policy
 refuses them for every use, audience filtering included (`policy.py:387`,
 `test_population_audience.py::test_an_unclassified_derived_dimension_is_refused_by_the_field_policy`).
@@ -3310,3 +3318,57 @@ reserved or sent. `plans/panel-grounded-respondents.md` chunk 5 replaces it with
 
 **Status.** Closed by PR #289 (`a7616ef`). The test that catches it:
 `test_ai_fieldwork.py::test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exists`.
+
+---
+
+## OI-98 · Finding, closed · 18.6.6's fallback quotas can give a full cell a seat, and the sample then fails
+
+**Claim.** When capped cells pass their seats on, `_quota_vector_fallback` adds its tie-break noise to
+every cell, full ones included, so a full cell can win a seat it has no row for, and the draw raises
+"Buňka … nemá dost respondentů".
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/representative_sampling.py:124` (the noise), `:153` (the
+refusal). AIA's rule: `packages/aia_core/src/aia_core/domain/population/sampling.py` `quotas` @ `a1fcc60`.
+
+**Reproduction.** `pytest packages/aia_core/tests/test_population_sampling.py -k overfilled`: fixtures
+D15 (663 of a 663-row audience) and D16 (640 of 663), both refused by the unit's own function.
+
+**Consequence.** In 18.6.6, only where the MILP was unavailable: a sample near its audience's size
+failed though it could be drawn.
+
+**Fix.** A full cell takes no seat (PR #308); wherever the unit produced a sample the quotas are
+identical.
+
+**Status.** Closed by PR #308 (`a1fcc60`). The test that catches it:
+`test_population_sampling.py::test_where_the_unit_overfilled_a_cell_aia_keeps_every_quota_within_its_rows`.
+
+---
+
+## OI-99 · Decision, open · Small samples are refused as unrepresentative on the stdlib quota path
+
+**Claim.** AIA's sampler (18.6.6's fallback, chosen 2026-10-12 because the domain is stdlib only)
+balances only the joint cells of `pohlavi x vek_skupina x kraj`; a sample holding none of an
+education or employment category cannot be raked to its target, and the weighted deviation passes
+`max(0.25, 100/n)`, so the sample is refused (`sampling_unrepresentative`, the unit's own rule).
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/representative_sampling.py:142-144,165-166`;
+`packages/aia_core/src/aia_core/domain/population/sampling.py` `judge` @ `a1fcc60`. The unit's
+`attempts=40` is never read (`representative_sampling.py:131-173`), though `pipeline.py:288-292`
+says it draws repeatedly and keeps the best.
+
+**Reproduction.** `representative_draw` + `judge` over the fixture's whole audience
+(`tests/fixtures/representative_draw/`, 3,000 fictional rows, 60 joint cells), seeds 0-39:
+n = 5-40 refused 40/40; 50 12/40; 60 9/40; 75 1/40; 100 2/40; 150 1/40; 200, 300, 500 0/40. The
+unit's own fallback refuses n = 8, 20 and 30 in the fixture (D08, D03, D12).
+
+**Consequence.** Once chunk 5 draws panel personas, a small study is refused before fieldwork, and
+stays refused (the seed is fixed per run, `fieldwork_seed(spec)`) until its n or audience changes.
+v17 has 14 regions, which raises the floor.
+
+**Options (owner).** (a) accept it and state the minimum n where the study is set; (b) a stdlib
+integer calibration of all five margins, parity then by property only; (c) the attempts the
+unit's comment describes: redraw under derived seeds and keep the first that passes, recorded in
+the sample.
+
+**Status.** Open; needed before `plans/panel-grounded-respondents.md` chunk 5.
+
