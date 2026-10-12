@@ -8,7 +8,7 @@ chunks:
   - "[x] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
   - "[x] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
   - "[x] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
-  - "[ ] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
+  - "[x] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
   - "[ ] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, enqueued once per owner and definition"
   - "[ ] P4d3. The materialize step: the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
@@ -586,8 +586,9 @@ this protocol exists for", not written because the bucket was undecided
 - Terraform, `infra/develop/`: a population bucket of its own, separate from the artifacts
   bucket because it holds licence-bound data with its own access. It is in the develop
   region, private (public access blocked), versioned, encrypted, TLS only, like the two
-  existing buckets (`infra/develop/main.tf:97-150 @ 06409e04`). The worker role may read and
-  put under `materialized/`; the API role gets nothing.
+  existing buckets (`infra/develop/main.tf:97-150 @ 06409e04`). The host's one instance role
+  (the API and the worker share it on develop) may get and put under `materialized/`, never
+  delete; only the worker container is given the store's settings.
 - `S3PopulationStore` (infrastructure): `read(location)` for the loader, and `put_once(key,
   bytes, sha256)`. `put_once` writes only when the key is absent (a conditional put); an
   existing object with the same hash is the same child, and a different one is refused.
@@ -631,4 +632,34 @@ this protocol exists for", not written because the bucket was undecided
 
 **Open before P4d1:** the bucket's exact name and the worker role's policy are written in
 Terraform; who applies it is the human action above.
+
+**P4d1, 2026-10-12** (`feature/population-store`, stacked on P4c).
+- `infrastructure/population_store.py`:
+  - `S3PopulationStore.put_once` is a conditional put (`IfNoneMatch="*"`, SSE-S3, the
+    SHA256 in the object's metadata). The same bytes already at the key answer as written (a
+    retried step); other bytes are `PopulationStoreConflict` and the object is never
+    replaced. `read` takes only a location under this bucket's `materialized/`.
+  - `RoutingPopulationSource`: `s3://` from the store, anything else from the shared
+    source, so shared versions read as before. A child's location with no store configured
+    is `PopulationAssetMissing`, never a substitute.
+  - `PopulationStoreSettings.from_env`: `AIA_POPULATION_STORE_BUCKET` and `…_REGION`, both or
+    neither.
+  - Tests: `test_population_store.py` (6), over a stand-in client with S3's conditional-put
+    and missing-key errors.
+- Terraform, `infra/develop/main.tf`:
+  - the bucket `aia-develop-population-<account>`, without `force_destroy`, with the shared
+    public-access, versioning, SSE and TLS-only rules;
+  - two `MaterializedPopulation` statements on the instance role;
+  - SSM `aia_population_store_bucket` and `aia_population_store_region` as a resource of
+    their own. As keys of the `config` map, planning them planned the Google identity
+    provider too, because that map carries the Cognito ids.
+- Compose passes both keys to the worker only.
+- Nothing composes the store yet; P4d3 gives it to the materialize step's loader.
+
+**How the plan was made, and what it does not cover.** The real `terraform.tfvars` is not in
+the repository, and copying the Google client secret out of the state was refused. So the
+plan is targeted at the eight new resources and the instance policy, with placeholders for
+the variables none of them reads. `terraform plan -target=…`: 8 to add, 1 to change (the
+instance policy), 0 to destroy; Cognito untouched. An untargeted plan needs the owner's
+tfvars.
 
