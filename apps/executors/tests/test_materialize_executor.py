@@ -291,3 +291,19 @@ def test_without_a_population_store_the_run_parks_and_nothing_is_written(
             if not v.shared
         ]
     assert owned == []
+
+
+def test_the_composition_builds_one_store_from_both_keys_or_none() -> None:
+    from aia_core.infrastructure.population_store import PopulationStoreError
+    from aia_executors.registry import population_store
+
+    assert population_store({}) is None
+    env = {
+        "AIA_POPULATION_STORE_BUCKET": "pop-bucket",
+        "AIA_POPULATION_STORE_REGION": "eu-central-1",
+    }
+    built = population_store(env)
+    assert isinstance(built, S3PopulationStore)
+    assert built.location("k.csv.gz") == "s3://pop-bucket/materialized/k.csv.gz"
+    with pytest.raises(PopulationStoreError):
+        population_store({"AIA_POPULATION_STORE_BUCKET": "pop-bucket"})

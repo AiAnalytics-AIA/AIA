@@ -65,7 +65,11 @@ from aia_core.infrastructure.model_adapters import (
     PinnedModels,
 )
 from aia_core.infrastructure.model_adapters.transport import HttpTransport
-from aia_core.infrastructure.population_source import FilesystemPopulationSource
+from aia_core.infrastructure.population_source import (
+    FilesystemPopulationSource,
+    PopulationAssetSource,
+)
+from aia_core.infrastructure.population_store import RoutingPopulationSource, S3PopulationStore
 from pydantic import TypeAdapter, ValidationError
 
 from .ai_fieldwork import AIFieldwork, AIFieldworkConfig, PopulationLoader, population_loader
@@ -76,6 +80,7 @@ __all__ = [
     "LightModelSettings",
     "build_ai_fieldwork",
     "build_gateway",
+    "panel_population_source",
 ]
 
 _TRUE: Final = {"1", "true", "yes", "on"}
@@ -507,6 +512,17 @@ def build_gateway(
     )
 
 
+def panel_population_source(root: str, store: S3PopulationStore | None) -> PopulationAssetSource:
+    """Where the panel loader reads a run's population: the shared directory, and the store.
+
+    A shared version lives under ``root``; a materialized child (``s3://`` in the population
+    store, population-operations P4d) is read from the store when one is configured. Without
+    it a child's location is unreadable and the run parks, never served from elsewhere.
+    """
+    shared = FilesystemPopulationSource(root)
+    return shared if store is None else RoutingPopulationSource(shared, store)
+
+
 def build_ai_fieldwork(
     settings: AIRuntimeSettings,
     *,
@@ -514,19 +530,24 @@ def build_ai_fieldwork(
     transport: HttpTransport | None = None,
     signer: BedrockSigner | None = None,
     population: PopulationLoader | None = None,
+    population_store: S3PopulationStore | None = None,
 ) -> AIFieldwork:
     """The ``ai_runtime`` fieldwork producer for a configured composition.
 
     With ``AIA_AI_POPULATION_PERSONAS_ENABLED`` it can serve a run that pinned respondents from
     its population, read from ``AIA_POPULATION_ASSET_ROOT`` under the v17 contract;
     ``population`` replaces that loader (a test's fictional population), never adds a path the
-    switch did not.
+    switch did not. With ``population_store`` (``AIA_POPULATION_STORE_*``) the loader also
+    reads a materialized child the run selected from where the child was written; without it
+    such a run parks at fieldwork, as before.
     """
     if not settings.population_personas_enabled:
         population = None
     elif population is None:
         assert settings.population_asset_root is not None  # from_env refuses otherwise
-        population = population_loader(FilesystemPopulationSource(settings.population_asset_root))
+        population = population_loader(
+            panel_population_source(settings.population_asset_root, population_store)
+        )
     return AIFieldwork(
         population=population,
         gateway=build_gateway(settings, transport=transport, signer=signer),
