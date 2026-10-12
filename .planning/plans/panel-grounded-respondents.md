@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. Record the OI-61 determination: PIAAC, ISSP and the Czech panel APPROVED for bedrock-eu-primary"
-  - "[ ] 1. ADR: panel-grounded AI respondents are modelled evidence, never measured"
+  - "[x] 1. ADR: panel-grounded AI respondents are modelled evidence, never measured"
   - "[ ] 2. Sample: PPS without replacement from the run's recorded population, audience filters, parity with 18.6.6"
   - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
@@ -69,6 +69,13 @@ analysis may claim from them (aggregate and segment, MODELED, disclosed); what i
 not (MEASURED, individual-level facts the model produced); how support and Kish n
 read for a sample drawn from a synthetic population; the interaction with D6 (Sociomap
 `INTERNAL_ONLY`); report wording.
+*Landed:* [ADR 0024](../../docs/architecture/adr/0024-panel-grounded-respondents-are-modelled-evidence.md),
+**Proposed**; accepting it is the owner's. It fixes what chunks 2-7 build: the origin
+`MODELLED_AI_PANEL` stamped from facts; the client-facing origin gate as an allowlist
+(`CLIENT_ADMISSIBLE_ORIGINS`), because today's denylist at `evidence/admission.py:244 @ ea5210e`
+passes `None` and any new origin; `aia-instrument-evidence-2` (MODELED only, aggregate or
+segment, disclosed); client-facing only under a current validation bound to the respondent
+system's fingerprint (`evidence/validation.py:87,115`); support counted in unique donors.
 
 **2. Sample.** Port `sample_representative` to the domain: PPS without replacement on
 the weight role the binding names, refusal (not duplication) when n exceeds support,
