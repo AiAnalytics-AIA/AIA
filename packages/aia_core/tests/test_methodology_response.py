@@ -119,7 +119,7 @@ def test_it_is_declared_in_force_and_editable() -> None:
 @pytest.mark.parametrize(
     ("change", "says"),
     [
-        ({"style_links": {}}, "six styles in order"),
+        ({"style_links": {}}, "six styles, each once"),
         ({"satisficing": {"base": 0.1, "slope": 0.06, "cap": 1.5}}, "between 0 and 1"),
         ({"style_noise_floor": 0.0}, "above 0"),
         ({"reweight_limit": 0.0}, "greater than zero"),
@@ -278,3 +278,17 @@ def test_the_draft_check_reads_the_stored_version_in_force() -> None:
     assert scale["skala7"].shift_in_force > scale["skala7"].shift_draft
     unit = {q.question: q for q in compare_response_with_in_force(None, draft).questions}
     assert unit["skala7"].moved_pp == 0.0
+
+
+def test_a_pin_read_back_with_its_keys_reordered_is_the_same_process() -> None:
+    """PostgreSQL's JSONB does not keep key order (found by CI on #344): a pin read back must
+    validate and be the process that was pinned, its styles in the unit's order again."""
+    import json
+
+    pinned = AIA_RESPONSE_V1.model_dump(mode="json")
+    shuffled = json.loads(json.dumps(pinned, sort_keys=True))
+    shuffled["style_links"] = dict(reversed(list(shuffled["style_links"].items())))
+    read = ResponseProcessSpec.model_validate(shuffled)
+    assert read == AIA_RESPONSE_V1
+    assert tuple(read.style_links) == STYLES
+    assert assign_styles(_ROWS, read) == assign_styles(_ROWS)

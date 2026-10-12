@@ -118,7 +118,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Pojmenování procesu odpovědi",
         formula_latex=r"\text{proces} = \text{methodology\_version}",
         implements=f"{_B}:ResponseProcessSpec",
-        source_sha256="fa9721580547dfe726c8203ee519be5ea58f2b8c676356355b7f8ff3fed3a373",
+        source_sha256="e83ea2fd01e11e005ebff5b499228fc0f2bf48e8cb6b8e77e82b20869e052354",
         parameters=(ParameterRef("methodology_version", "Verze procesu odpovědi"),),
         evidence=(_BEHAVIOR,),
         tests=(_DECLARED,),
