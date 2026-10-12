@@ -427,3 +427,36 @@ def test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal()
         for p in policies
     )
     assert evidence.system_fingerprint != simulated.system_fingerprint
+
+
+def test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its_validation() -> (
+    None
+):
+    """ADR 0024 §4: the system enters the evidence's identity; only a holdout on it lifts
+    INTERNAL_ONLY, and the analysis passes none (nothing stores one yet)."""
+    from aia_core.domain.evidence import ClaimRule, ValidationState, ValidationStatus
+
+    spec, _, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    payload = {**aggregate, "data_origin": modelled.value}
+
+    def evidence(system: str | None, state: ValidationState | None = None) -> Any:
+        return native_evidence(
+            spec,
+            payload,
+            dataset_sha256=DATASET_SHA,
+            origin=modelled,
+            support=REFERENCE_THRESHOLDS,
+            respondent_system=system,
+            validation=state,
+        )
+
+    def internal(e: Any) -> bool:
+        return all(e.book.get(f).has(ClaimRule.INTERNAL_ONLY) for f in e.book.fields)
+
+    none, one, other = evidence(None), evidence("a" * 64), evidence("b" * 64)
+    assert len({none.system_fingerprint, one.system_fingerprint, other.system_fingerprint}) == 3
+    assert internal(none) and internal(one)
+    lifted = evidence("a" * 64, ValidationState(ValidationStatus.HOLDOUT_VALIDATED, "a" * 64))
+    assert not internal(lifted)
+    assert lifted.system_fingerprint != one.system_fingerprint

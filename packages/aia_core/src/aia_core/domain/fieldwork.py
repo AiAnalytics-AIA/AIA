@@ -25,6 +25,7 @@ __all__ = [
     "DATASET_VERSION",
     "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
+    "RESPONDENT_SYSTEM_METADATA",
     "Answer",
     "DataOrigin",
     "FieldworkDataset",
@@ -85,6 +86,12 @@ CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.
 #: What every modelled number carries beside it (ADR 0024 §7). Never "respondents said",
 #: "measured" or "the survey found".
 MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
+
+
+#: The fieldwork dataset artifact's metadata key holding the components of the respondent system
+#: its answers came from (``evidence.validation.RESPONDENT_SYSTEM_COMPONENTS``), written by the
+#: source that produced a modelled dataset. A modelled run's evidence is judged on it.
+RESPONDENT_SYSTEM_METADATA: Final = "respondent_system"
 
 
 class OriginKind(StrEnum):

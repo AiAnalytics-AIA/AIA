@@ -19,7 +19,7 @@ chunks:
   - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
   - "[x] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
   - "[x] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
-  - "[ ] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
+  - "[x] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
   - "[ ] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
   - "[ ] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
@@ -743,6 +743,20 @@ Tests: `test_the_respondent_system_fingerprint_moves_with_every_component`,
 `test_the_declaration_identity_moves_with_the_system_and_the_validation`,
 `test_simulated_answers_are_never_validated_and_their_identity_never_moves`,
 `test_a_validation_needs_the_current_system_and_a_system_is_a_fingerprint`.
+
+**4e3 landed.** `domain/fieldwork.py`: `RESPONDENT_SYSTEM_METADATA` (`"respondent_system"`), the
+fieldwork dataset artifact's metadata key for the respondent system's components; chunk 5's
+executor writes it. `application/analysis_results.py`: `NativeSources.respondent_system`, read by
+`_respondent_system` for a modelled origin only (a simulated dataset names none, whatever it
+recorded), fingerprinted by `respondent_system_fingerprint`; a record that does not fingerprint
+is refused (`SourcesRefused("respondent_system")`), never read as no system.
+`domain/analysis/native.py`: `native_evidence(respondent_system=, validation=)` passes both to
+the book, so they enter the evidence's system fingerprint. `prepare_module` passes the dataset's
+system and `validation=None`: nothing stores a validation yet, so a modelled run's analysis is
+judged internal, bound to the system it came from.
+
+Tests: `test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its_validation`,
+`test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused`.
 
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.

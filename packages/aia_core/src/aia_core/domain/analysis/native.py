@@ -59,6 +59,7 @@ from ..evidence import (
     SupportAssessment,
     SupportEvidence,
     SupportThresholds,
+    ValidationState,
     Violation,
     ViolationCode,
     assess_support,
@@ -445,6 +446,8 @@ def native_evidence(
     dataset_sha256: str,
     origin: DataOrigin | None,
     support: SupportThresholds,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
 
@@ -461,6 +464,10 @@ def native_evidence(
     artifacts do not describe one computation this mapping knows, and
     :class:`~aia_core.domain.evidence.InstrumentPolicyRefused` when the answers' origin
     has no instrument policy.
+
+    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4):
+    the respondent system the dataset recorded, and the validation that holds for it. Both
+    enter the book's identity, and so the system fingerprint.
     """
     if aggregate.get("data_origin") != (origin.value if origin else None):
         raise NativeEvidenceRefused(
@@ -473,6 +480,8 @@ def native_evidence(
         native_items(spec),
         origin=origin,
         source=f"fieldwork dataset {dataset_sha256} ({origin.value if origin else '?'})",
+        respondent_system=respondent_system,
+        validation=validation,
     )
     assert origin is not None  # the book refuses an unknown origin
     rows = _Rows(kept=[], removed={}, origin=origin)

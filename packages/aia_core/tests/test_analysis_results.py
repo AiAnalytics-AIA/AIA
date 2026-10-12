@@ -1153,3 +1153,30 @@ def test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_rep
     audit = next(b for b in sections["app-audit"].blocks if isinstance(b, AuditBlock))
     assert ("Metodika agregace", "aia-aggregate-1+e1") in audit.entries
     assert not lint_docx(DocxRenderer().render(doc))
+
+
+def test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused() -> None:
+    """The dataset's recorded respondent system (ADR 0024 §4) is read for a modelled origin only,
+    fingerprinted, and refused when it does not fingerprint -- never read as no system."""
+    from aia_core.application.analysis_results import SourcesRefused, _respondent_system
+    from aia_core.domain.evidence import respondent_system_fingerprint
+    from aia_core.domain.fieldwork import RESPONDENT_SYSTEM_METADATA
+
+    system = {
+        "respondent_prompt_sha256": "a" * 64,
+        "persona_builder": "aia-panel-persona-source-1",
+        "persona_mode": "calibrated",
+        "sampler_version": "aia-panel-sample-1",
+        "population_version": "v17_4_0",
+        "model_binding": "bedrock/bedrock-eu-primary",
+        "response_process_version": "aia-response-process-1",
+    }
+    meta = {RESPONDENT_SYSTEM_METADATA: system}
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    assert _respondent_system(modelled, meta) == respondent_system_fingerprint(system)
+    assert _respondent_system(modelled, {}) is None
+    # A simulated dataset is never validated: whatever it recorded, it names no system.
+    assert _respondent_system(DataOrigin.SYNTHETIC_AI_FICTIONAL, meta) is None
+    for bad in ({**system, "persona_mode": ""}, {**system, "seed": "7"}, ["x"], {"a": 1}):
+        with pytest.raises(SourcesRefused, match="respondent"):
+            _respondent_system(modelled, {RESPONDENT_SYSTEM_METADATA: bad})
