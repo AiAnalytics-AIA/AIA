@@ -60,6 +60,7 @@ __all__ = [
     "audience_mask",
     "column_type",
     "factor",
+    "numeric_column",
     "sanitize_filters",
     "select_audience",
     "subpanel_filters",
@@ -286,6 +287,12 @@ def _numeric(value: Typed) -> float | None:
     except ValueError:
         return None
     return None if math.isnan(number) else number
+
+
+def numeric_column(name: str, cells: Sequence[Cell]) -> tuple[float | None, ...]:
+    """``pd.to_numeric(column, errors="coerce")`` of a column as the unit reads it; NaN is None."""
+    column = column_type(name, cells)
+    return tuple(_numeric(_typed(cell, column)) for cell in cells)
 
 
 def _key(value: Typed) -> str:
