@@ -51,11 +51,8 @@ class _NoEnrichment:
         return {}
 
 
-def _population(session: Session, *, omit: tuple[str, ...] = ()) -> Any:
+def _population(session: Session, kit: Any, *, omit: tuple[str, ...] = ()) -> Any:
     """The fixture rows as a LIVE population with the persona companions, as a run loads it."""
-    from conftest import gzip_csv, joint_certificate_json, policy_dictionary_csv
-    from test_population_runtime import OPERATOR
-
     from aia_core.application.population import PopulationRuntime
     from aia_core.domain.population import (
         CompanionKind,
@@ -75,8 +72,8 @@ def _population(session: Session, *, omit: tuple[str, ...] = ()) -> Any:
         label: [{**r, "panel_row_id": f"{r['panel_row_id']}-{label}"} for r in ROWS]
         for label in ("v1_BASE", "v1_1", "v1_4")
     }
-    panels = {label: gzip_csv(HEADER, rows) for label, rows in versions.items()}
-    dictionary = policy_dictionary_csv(
+    panels = {label: kit.gzip_csv(HEADER, rows) for label, rows in versions.items()}
+    dictionary = kit.policy_dictionary_csv(
         HEADER,
         {
             "panel_row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
@@ -84,7 +81,7 @@ def _population(session: Session, *, omit: tuple[str, ...] = ()) -> Any:
             WEIGHT: ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
         },
     )
-    certificate = joint_certificate_json(content_sha256(panels["v1_4"]))
+    certificate = kit.joint_certificate_json(content_sha256(panels["v1_4"]))
     assets = {
         asset: data
         for asset, data in (
@@ -152,7 +149,7 @@ def _population(session: Session, *, omit: tuple[str, ...] = ()) -> Any:
         population_id="PANEL_SOURCE_STATIC",
         kind=PopulationKind.STATIC,
         version_id=anchor.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the anchor",
     )
     version = load("v1_4")
@@ -160,7 +157,7 @@ def _population(session: Session, *, omit: tuple[str, ...] = ()) -> Any:
         population_id="PANEL_SOURCE_LIVE",
         kind=PopulationKind.LIVE,
         version_id=version.version_id,
-        operator=OPERATOR,
+        operator=kit.operator,
         reason="the panel source's test population",
     )
     return rt.load(
@@ -195,8 +192,8 @@ def _spec(n: int = 200, audience: dict[str, Any] | None = None) -> ResearchSpeci
 
 
 @pytest.fixture
-def population(session: Session) -> Any:
-    return _population(session)
+def population(session: Session, population_kit: Any) -> Any:
+    return _population(session, population_kit)
 
 
 def test_a_panel_run_is_sampled_built_and_planned_in_that_order(population: Any) -> None:
@@ -259,8 +256,8 @@ def test_a_sampling_refusal_surfaces_by_name_before_any_persona_is_built(
         panel_plans(population, _spec(10).model_copy(update={"n": None}), seed=1)
 
 
-def test_a_persona_refusal_surfaces_by_name(session: Session) -> None:
-    population = _population(session, omit=("PERSONA_SIGNAL_CATALOG_v17.csv",))
+def test_a_persona_refusal_surfaces_by_name(session: Session, population_kit: Any) -> None:
+    population = _population(session, population_kit, omit=("PERSONA_SIGNAL_CATALOG_v17.csv",))
     with pytest.raises(PersonaRefused) as missing:
         panel_plans(population, _spec(200), seed=1)
     assert missing.value.reason == "persona_catalog_missing"
