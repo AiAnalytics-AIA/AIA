@@ -83,7 +83,12 @@ def test_panel_personas_are_styled_under_the_runs_response_process(population: A
     other = panel_plans(population, spec, seed=11, response=edited)
     assert other.sample == unit.sample  # who is drawn does not depend on the process
     assert [p.style for p in other.personas.personas] != [p.style for p in unit.personas.personas]
-    assert panel_plans(population, spec, seed=11, response=AIA_RESPONSE_V1) == unit
+    # Naming the default process is the default. Compared as the sibling test compares (the
+    # catalog's NaN priorities never compare equal, so the whole object cannot be): the
+    # sample, every plan, and every persona's style, which is what the process decides.
+    same = panel_plans(population, spec, seed=11, response=AIA_RESPONSE_V1)
+    assert same.sample == unit.sample and same.plans == unit.plans
+    assert [p.style for p in same.personas.personas] == [p.style for p in unit.personas.personas]
 
 
 def test_the_designs_audience_filters_are_what_the_sample_draws_under(population: Any) -> None:
