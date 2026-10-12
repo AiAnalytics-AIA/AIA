@@ -7,12 +7,15 @@ This is its one operator surface, beside ``seed`` and ``legacy_workspace``:
 * ``status``     the dataset's versions, its populations and their promotion history
 * ``record-dictionary``  keep the dictionary of each version imported before dictionaries
                  were kept, its bytes checked against the version's hash
+* ``record-catalogue``  compute and keep the audience factor catalogue of each established
+                 population's current version (or ``--version``'s), from its ANALYSIS view
 * ``import``     validate a bundle under the contract and register it as a new version
 * ``attach``     record a version's companion set
 * ``establish``  create the STATIC or LIVE population over a version
 * ``promote``    move a LIVE population to another version, naming the one it expects
 
-Every command but ``status`` and ``record-dictionary`` acts as a named person
+Every command but ``status``, ``record-dictionary`` and ``record-catalogue`` acts as a named
+person
 (``--as``): an active AIA user whom ``AIA_POPULATION_OPERATORS`` names. That key -- a
 JSON object of verified user id to permissions,
 ``{"<user id>": ["POPULATION_ESTABLISH", "POPULATION_PROMOTE"]}`` -- is the trusted
@@ -35,7 +38,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Final, TextIO
 
-from aia_core.application.population import PopulationRuntime
+from aia_core.application.population import Enricher, PopulationRuntime
 from aia_core.application.population_authority import (
     PopulationAuthority,
     PopulationOperatorConfig,
@@ -51,6 +54,7 @@ from aia_core.domain.population.authority import (
     PopulationPermission,
 )
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
+from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
 from aia_core.infrastructure.population_source import (
     FilesystemPopulationSource,
@@ -64,6 +68,7 @@ from ._db import engine_from_env
 
 __all__ = [
     "ASSET_ROOT_KEY",
+    "CATALOGUE_RECORDED_BY",
     "OPERATORS_KEY",
     "RECORDED_BY_COMMAND",
     "OperatorConfigError",
@@ -240,6 +245,30 @@ def _record_dictionaries(
     return {"recorded": recorded, "already_kept": kept}
 
 
+#: Who a catalogue recorded by ``record-catalogue`` was recorded by: no person, because
+#: nothing is decided -- it is computed from a version already imported and verified.
+CATALOGUE_RECORDED_BY: Final = "population_ops:record-catalogue"
+
+
+def _record_catalogues(
+    session: Session,
+    runtime: PopulationRuntime,
+    contract: PopulationImportContract,
+    version_id: str | None,
+) -> dict[str, Any]:
+    if version_id is not None:
+        targets = [version_id]
+    else:
+        populations = PopulationRegistryRepository(session).populations(contract.dataset_id)
+        targets = sorted({p.current_version_id for p in populations})
+    recorded: list[str] = []
+    kept: list[str] = []
+    for target in targets:
+        stored = runtime.record_audience_catalogue(target, recorded_by=CATALOGUE_RECORDED_BY)
+        (recorded if stored else kept).append(target)
+    return {"recorded": recorded, "already_kept": kept}
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m aia_executors.population_ops",
@@ -253,6 +282,13 @@ def _parser() -> argparse.ArgumentParser:
         help="keep each version's dictionary, checked against its hash; acts as no one",
     )
     record.add_argument("--version", help="one version; omitted, every version without one")
+    catalogue = commands.add_parser(
+        "record-catalogue",
+        help="keep the audience factor catalogue of each population's version; acts as no one",
+    )
+    catalogue.add_argument(
+        "--version", help="one version; omitted, the current version of every population"
+    )
 
     def acting(name: str, help_text: str) -> argparse.ArgumentParser:
         sub = commands.add_parser(name, help=help_text)
@@ -306,12 +342,15 @@ def run(
     config: PopulationOperatorConfig,
     source: PopulationAssetSource,
     contract: PopulationImportContract = CZ_SYNTHETIC_V17,
+    enricher: Enricher | None = None,
     out: TextIO = sys.stdout,
     err: TextIO = sys.stderr,
 ) -> int:
     """Run one command. 0 done, 2 refused (nothing written), 3 the population refused it.
 
-    Each command is one transaction: refused, it commits nothing.
+    Each command is one transaction: refused, it commits nothing. ``enricher`` computes
+    the ANALYSIS view ``record-catalogue`` reads (omitted: the production
+    :class:`AudienceDimensionsEnricher`).
     """
     args = _parser().parse_args(list(argv))
     authority = PopulationAuthority(config)
@@ -322,6 +361,15 @@ def run(
             elif args.command == "record-dictionary":
                 runtime = PopulationRuntime(session, contract=contract, source=source)
                 result = _record_dictionaries(session, runtime, contract, args.version)
+                session.commit()
+            elif args.command == "record-catalogue":
+                runtime = PopulationRuntime(
+                    session,
+                    contract=contract,
+                    source=source,
+                    enricher=enricher if enricher is not None else AudienceDimensionsEnricher(),
+                )
+                result = _record_catalogues(session, runtime, contract, args.version)
                 session.commit()
             else:
                 operator = _operator(session, authority, args.actor)

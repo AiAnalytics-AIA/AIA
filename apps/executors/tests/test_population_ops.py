@@ -27,11 +27,16 @@ from aia_core.domain.population import (
     content_sha256,
     field_names_fingerprint,
 )
+from aia_core.domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
-from aia_core.infrastructure.tables import PopulationVersionDictionaryRow
+from aia_core.infrastructure.tables import (
+    PopulationVersionAudienceCatalogueRow,
+    PopulationVersionDictionaryRow,
+)
 from aia_executors.population_ops import (
     ASSET_ROOT_KEY,
+    CATALOGUE_RECORDED_BY,
     OPERATORS_KEY,
     RECORDED_BY_COMMAND,
     OperatorConfigError,
@@ -130,6 +135,15 @@ def bundle(tmp_path: Path) -> tuple[PopulationImportContract, FilesystemPopulati
     return contract, FilesystemPopulationSource(tmp_path)
 
 
+class _NoEnrichment:
+    """The fictional contract declares no enrichment field."""
+
+    enricher_id = "test-no-enrichment/v1"
+
+    def derive(self, panel: Any) -> dict[str, tuple[str | None, ...]]:
+        return {}
+
+
 class Ops:
     """Runs the command as the tests' operator configuration names."""
 
@@ -146,6 +160,7 @@ class Ops:
             config=self.config,
             source=self.source,
             contract=self.contract,
+            enricher=_NoEnrichment(),
             out=out,
             err=err,
         )
@@ -424,6 +439,45 @@ def test_record_dictionary_refuses_bytes_that_are_not_the_versions(
     assert code == 3 and "VersionIntegrityError" in err
     with world.sessions() as session:
         assert session.get(PopulationVersionDictionaryRow, ids["f1_1"]) is None
+
+
+def test_record_catalogue_acts_as_no_one_and_keeps_each_populations_version_once(
+    world: Any, bundle: Any
+) -> None:
+    ops = Ops(world, bundle, {})  # nobody is an operator: the command needs no one
+    assert ops("record-catalogue")[1] == {"recorded": [], "already_kept": []}  # no population
+
+    operator = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = operator.import_all(OWNER)
+    operator.establish(OWNER, ids)
+    code, result, err = ops("record-catalogue")
+    assert code == 0, err
+    assert result == {"recorded": sorted([ids["f1_1"], ids["f1_4"]]), "already_kept": []}
+    code, result, err = ops("record-catalogue")
+    assert result == {"recorded": [], "already_kept": sorted([ids["f1_1"], ids["f1_4"]])}
+    # A candidate no population has been on cannot be loaded, so it has no catalogue yet:
+    # the deploy after its promotion records it.
+    code, _, err = ops("record-catalogue", "--version", ids["f1_5"])
+    assert code == 3 and "VersionNotRuntimeEligible" in err
+
+    with world.sessions() as session:
+        row = session.get(
+            PopulationVersionAudienceCatalogueRow, (ids["f1_4"], AUDIENCE_CATALOGUE_VERSION)
+        )
+        assert row is not None and row.recorded_by == CATALOGUE_RECORDED_BY
+        catalogue = json.loads(row.content)
+    # The fictional bundle has one curated column; its blank age is not counted.
+    assert [f["id"] for f in catalogue["factors"]] == ["vek"]
+    vek = catalogue["factors"][0]
+    assert (vek["kind"], vek["non_null"], vek["min"], vek["max"]) == ("numeric", 5, 18.0, 100.0)
+    assert vek["policy_allowed"] is True
+
+
+def test_record_catalogue_of_an_unknown_version_writes_nothing(world: Any, bundle: Any) -> None:
+    code, _, err = Ops(world, bundle, {})("record-catalogue", "--version", "nope")
+    assert code == 3 and "UnknownDatasetVersion" in err
+    with world.sessions() as session:
+        assert session.query(PopulationVersionAudienceCatalogueRow).count() == 0
 
 
 # ------------------------------------------------------------------ the key

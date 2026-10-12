@@ -33,11 +33,12 @@ operator's verified user id. Not here yet, deliberately: a process-wide cache.
 
 from __future__ import annotations
 
+import json
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from sqlalchemy.orm import Session
 
@@ -86,12 +87,13 @@ from ..domain.population import (
     validate_import,
     version_status,
 )
+from ..domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION, catalogue_of
 from ..infrastructure.population_parser import parse_dictionary, parse_panel
 from ..infrastructure.population_repository import PopulationRegistryRepository
 from ..infrastructure.population_source import PopulationAssetMissing, PopulationAssetSource
 from ..infrastructure.workflow_repository import WorkflowRepository
 
-__all__ = ["Enricher", "PopulationRuntime", "live_binding"]
+__all__ = ["Enricher", "PopulationRuntime", "kept_audience_catalogue", "live_binding"]
 
 Cell = str | None
 
@@ -292,6 +294,40 @@ class PopulationRuntime:
             recorded_by=recorded_by,
         )
         return True
+
+    def record_audience_catalogue(self, version_id: str, *, recorded_by: str) -> bool:
+        """Compute and keep a version's audience factor catalogue (panel-grounded 6b).
+
+        Loads the version's ANALYSIS view exactly as a run would (every hash re-verified, the
+        enricher's derived dimensions attached), computes
+        :func:`~..domain.population.audience_catalogue.catalogue_of` and keeps it as canonical
+        JSON with its SHA-256. ``False`` when this catalogue version is already kept for it,
+        ``True`` when this stored it. Nothing is judged, so nobody's permission is asked; the
+        catalogue holds counts and ranges, never a row.
+        """
+        if self._registry.get_version(version_id) is None:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if self._registry.audience_catalogue(version_id, AUDIENCE_CATALOGUE_VERSION) is not None:
+            return False
+        population = self.load(
+            self.resolve(PopulationSelector.pinned(version_id), view=PopulationView.ANALYSIS)
+        )
+        content = json.dumps(
+            catalogue_of(population), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        self._registry.insert_audience_catalogue(
+            version_id,
+            catalogue_version=AUDIENCE_CATALOGUE_VERSION,
+            sha256=content_sha256(content.encode("utf-8")),
+            content=content,
+            recorded_at=self._clock(),
+            recorded_by=recorded_by,
+        )
+        return True
+
+    def audience_catalogue(self, version_id: str) -> dict[str, Any] | None:
+        """A version's kept audience catalogue, re-hashed on read, or ``None`` when none is."""
+        return kept_audience_catalogue(self._registry, version_id)
 
     def attach_companions(
         self, *, version_id: str, companion_locations: Mapping[str, str], attached_by: str
@@ -760,3 +796,21 @@ def live_binding(
     return runtime.resolve(
         PopulationSelector.population(population_id), view=PopulationView.ANALYSIS
     )
+
+
+def kept_audience_catalogue(
+    registry: PopulationRegistryRepository, version_id: str
+) -> dict[str, Any] | None:
+    """The audience catalogue kept for ``version_id``, re-hashed on read; ``None`` if none is.
+
+    Reads the kept JSON, never the panel; a catalogue that does not hash to what was
+    recorded with it raises :class:`VersionIntegrityError`.
+    """
+    kept = registry.audience_catalogue(version_id, AUDIENCE_CATALOGUE_VERSION)
+    if kept is None:
+        return None
+    sha256, content = kept
+    if content_sha256(content.encode("utf-8")) != sha256:
+        raise VersionIntegrityError(f"the audience catalogue of {version_id} does not hash")
+    catalogue: dict[str, Any] = json.loads(content)
+    return catalogue
