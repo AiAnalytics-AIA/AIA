@@ -6,8 +6,8 @@ chunks:
   - "[x] 2a. Sampler contract (plan before code): inputs, quota fields, the audience filter, refusals, what a sample records"
   - "[x] 2b. Verify the quota and donor fields against the imported v17 dictionary on develop"
   - "[x] 2c. Audience filter: sanitize_filters + _mask as one function, the factor map's kinds, subpanels through it; parity fixtures"
-  - "[ ] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
-  - "[ ] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
+  - "[x] 2d. Enricher: attach_derived as the population's Enricher (OI-7 is unblocked: its source is vendored), EXACT fixtures"
+  - "[x] 2e. Quotas, draw, raking and audit (draw_representative's stdlib path); parity fixtures"
   - "[ ] 3. Persona: facts and the structured profile from the sampled row, every field through decide(PERSONA_CONSTRUCTION)"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
@@ -263,7 +263,64 @@ fixtures from the unit's own function, and composes it where the worker builds
 `PopulationRuntime`. `attach_evidence_overlays` adds nothing: the vendored unit has no
 overlay metadata (`app/data/` holds none), so the port records that and adds no overlay.
 
- Port `generate_persona_text` (persona modes, top-k traits,
+*Landed:* `domain/population/enrichment.py`: `derive_audience_dimensions` and
+`AudienceDimensionsEnricher` (the `Enricher` protocol, `enricher_id`
+`aia-audience-dimensions-1`), producing exactly the Czech contract's seven
+`enrichment_fields` (`test_the_enricher_produces_exactly_what_the_czech_contract_declares`).
+EXACT, cell by cell, against the unit's own `enrich_panel` on 122 fictional rows, once with
+every input and once with the leisure inputs and the financial score absent
+(`tools/enrichment_capture.py`; `tests/fixtures/enrichment/`; re-captured byte-identical),
+in `tests/test_population_enrichment.py`; mutating the 5.5 tier boundary or the tie rule fails
+it. A missing flag column refuses with `EnrichmentInputMissing` where the unit raised an
+`AttributeError`. Nothing composes the enricher yet: no research step loads the ANALYSIS view
+until chunk 5, which builds `PopulationRuntime(..., enricher=AudienceDimensionsEnricher())`.
+
+*Noted:* on a row with no media or leisure score the unit's `idxmax` relies on behaviour
+pandas 2 deprecates (an all-NA row returns NA, then the fallback label; pandas 3 raises
+`ValueError`). The unit pins `pandas>=2.1,<3`, the fixture is captured on pandas 2.3.3, and
+the port keeps the pandas 2 result. A unit re-extracted onto pandas 3 would need a re-capture.
+
+### 2e. Landed: the sample
+
+`domain/population/sampling.py`: `draw_panel_sample(population, filters, n, seed) ->
+PanelSample` over `select_audience` (2c), and its parts, each the unit's function on category
+keys and weights: `category_keys` (`astype("string").fillna("<missing>")` of the column as
+`read_csv` types it), `usable_fields`, `targets` (`_targets`), `joint_fields` and `quotas`
+(`_quota_vector_fallback`), `representative_draw` (`draw_representative`), `rake` (`_rake`, with
+`quantile`, NumPy's linear interpolation), `audit_composition` (`_audit`), `tolerances` and
+`judge` (`:164-171`). A `PanelSample` holds each respondent (population row, `core_donor_id`,
+base and raked weight, order), the `SampleAudit`, the filters as applied, the seed, the
+binding's `version_id` and `content_sha256`, `SAMPLER_VERSION` and the filter's version;
+`provenance()` is the JSON a run records. Nothing calls it yet: chunk 5 does.
+
+Parity, in `tests/test_population_sampling.py` against `tests/fixtures/representative_draw/`
+(`tools/sampling_capture.py`: the unit's own `draw_representative` with the MILP made to fail,
+on 3,000 fictional rows; 17 draw cases and 5 direct `_rake` cases; re-captured byte-identical):
+the audience, targets, quota fields and quotas EXACT (every case's winning and losing remainders
+lie further apart than the unit's 1e-9 noise; the fixture records the gap); raking the unit's
+picks matches its weights to 1e-12 relative (NumPy sums pairwise, AIA with `math.fsum`); the raw
+and weighted audits and the verdict (PASS, PASS_WEIGHTED, refused) EXACT; the draw by property
+(distinct rows, each cell exactly its quota, mean weight 1, the same seed the same sample, the
+order shuffled out of the cells'). Through the canonical loader: a run's sample and its record,
+and each refusal by name. Mutating the raking cap, the 700 threshold, the weight floor, the
+missing-value rule, the full-cell rule, either tolerance, the no-weight refusal or the shuffle
+fails the suite; two mutations are equivalent and survive (the cap's switch at 20 rows: at 20
+rows neither cap can bind; `current > 0` beside a non-empty member set: weights are floored).
+
+Corrections to the § 2a contract, from reading the unit's caller:
+
+- **Base weight.** Not "non-positive -> 0": `sample_representative` clips the weight at
+  `1e-12` before the sampler sees it (`pipeline.py:278`), so a zero-weight row is drawn only
+  when its cell needs it. Ported as that (`test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn`).
+  An audience whose weights are all zero is still refused (`sampling_no_weight`).
+- **`sampling_n_invalid`** is added for `n < 1`; `sampling_n_exceeds_support` keeps its
+  meaning.
+- **Donors.** The audit records `audience_donors` and `sample_donors` (distinct
+  `core_donor_id`), `None` when the population has no donor column (§ 2b: the run says what its
+  donors can support before fieldwork is paid for).
+- **A full cell takes no seat** (Findings): the one place AIA draws where the unit refused.
+
+**3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
 `RuntimePopulation.decide(field, FieldUse.PERSONA_CONSTRUCTION)` and, combined,
 `decide_joint`. The fact layer reads the row's columns: a question the panel answers
@@ -318,6 +375,38 @@ respondents, compared. No client-facing claim until the holdout result is record
   pre-call guard in `ai_fieldwork.py` (chunk 0). Chunk 5 replaces it with the panel
   source.
 
+- **The unit's fallback quotas can give a full cell a seat, and the sample then fails.**
+  Once the remainders are spent and capped cells pass their seats on, `_quota_vector_fallback`
+  adds its tie-break noise to every cell, full ones included
+  (`legacy/npc-panel-18.6.6/app/representative_sampling.py:124`), so a full cell can win a seat
+  it has no row for and the draw raises "Buňka … nemá dost respondentů" (`:153`).
+  Reproduction: `pytest packages/aia_core/tests/test_population_sampling.py -k overfilled`
+  (fixture D15: 663 of a 663-row audience; D16: 640 of 663; both refused by the unit).
+  Consequence: in 18.6.6, only where the MILP was unavailable, a sample near its audience's
+  size failed though it could be drawn. AIA keeps full cells out of the seat
+  (`domain/population/sampling.py`, `quotas`); wherever the unit produced a sample the quotas
+  are identical. The test that catches it: `test_where_the_unit_overfilled_a_cell_aia_keeps_every_quota_within_its_rows`.
+
+- **On the fallback path a small sample is refused as unrepresentative; owner decision
+  needed before chunk 5.** The largest-remainder quotas balance only the joint cells of
+  `pohlavi x vek_skupina x kraj`; `vzdelani` and `zamestnani_status` are left to raking, and
+  when a sample holds none of a category raking cannot reach its target, so the weighted
+  deviation passes `max(0.25, 100/n)` and the sample is refused (`sampling_unrepresentative`,
+  the unit's own rule, `representative_sampling.py:165-166`). Measured on the fixture's 3,000
+  fictional rows (60 joint cells), AIA's draw over seeds 0-39: n = 5 to 40 refused 40/40;
+  n = 50 12/40; 60 9/40; 75 1/40; 100 2/40; 150 1/40; 200, 300, 500 0/40. The unit's own
+  fallback refuses n = 8, 20 and 30 in the fixture (D08, D03, D12). The seed is fixed per run
+  (`fieldwork_seed(spec)`), so a refused study stays refused until its n or audience changes.
+  v17 has more joint cells (14 regions), which raises the floor. The unit's live path, the
+  MILP, solves every margin jointly and was not built to this limit; its `attempts=40`
+  parameter is never read (`representative_sampling.py:131-173`), though the 17.7 comment at
+  `pipeline.py:288-292` says it draws repeatedly and keeps the best. Reproduction: the loop in
+  this section's measurement, `representative_draw` + `judge` over `_audience({})`. Options
+  for the owner: (a) accept it and say the minimum n where the study is set; (b) a stdlib
+  integer calibration of all five margins (controlled rounding), parity then by property
+  only; (c) the attempts the comment describes: redraw under derived seeds and keep the
+  first that passes, recorded in the sample. Not decided here.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § research run: "Panel-derived data reaches no model provider until OI-61
@@ -325,3 +414,11 @@ respondents, compared. No client-facing claim until the holdout result is record
   (OI-61 determined 2026-10-12, owner); fictional and panel persona sources.
 - `.planning/open-items.md` OI-61: resolved, citing chunk 0's commit.
 - `ARCHITECTURE.md` / evidence: the new origin and its MODELED-only admission.
+- `CLAUDE.md` § 2 map, under `domain/population/`: `sampling.py`, "the run's sample: the
+  audience (audience.py), 18.6.6's largest-remainder quotas over sex x age group x region
+  (+ education from n 700), weighted draw without replacement, raking and the audit; refusals
+  by name; PanelSample.provenance() is what a run records"; under `tools/`:
+  `sampling_capture.py`, "Sample fixtures from the unit's own draw_representative, the MILP
+  made to fail (`inputs`, `capture` in the unit's venv)".
+- `.planning/open-items.md`: the two 2e findings above (the overfilled cell, fixed here; the
+  small-n refusal, open for the owner).

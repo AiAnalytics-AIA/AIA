@@ -55,7 +55,7 @@
     ],
     "id": "aggregation",
     "in_force": "aia-aggregate-1",
-    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
     "preset": "aia-aggregate-1",
     "presets": [
      "aia-aggregate-1"
@@ -7929,7 +7929,7 @@
    ],
    "id": "aggregation",
    "in_force": "aia-aggregate-1",
-   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti; úpravy přijdou v G3b. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
    "presets": [
     "aia-aggregate-1"
    ],
