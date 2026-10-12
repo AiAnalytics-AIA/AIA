@@ -16,8 +16,10 @@ adaptive flag because no calibration profile ships (plan § 3a). Two steps, two 
         ``persona_grounded._catalog`` makes it without the file. Writes ``expected.json``: each
         case's text, and the unit's ``_first_person_persona`` on line lists that reach its prefix
         rewrites and its word cap; and ``dispozice.odvod_temata`` on fictional questions, their
-        union over a block (``dotaznik.py:937-948``) and the unit's keyword table itself; all
-        pinned to the inputs and the unit sources by SHA256.
+        union over a block (``dotaznik.py:937-948``) and the unit's keyword table itself; and,
+        with a fictional signal catalog (``catalog.csv``) and the unit's own value labels, its
+        ``grounded_profile_text`` and the whole persona on fictional rows carrying the signals
+        (``signals.csv``); all pinned to the inputs and the unit sources by SHA256.
 
 No network and no real panel data: every row is fictional.
 """
@@ -45,6 +47,9 @@ UNIT_SOURCES = (
     "persona_grounded.py",
     "dispozice.py",
     "audience_profile.py",
+    "product_policy.py",
+    "PRODUCT_POLICY.json",
+    "PERSONA_VALUE_LABELS_v17.json",
 )
 
 HEADER = (
@@ -276,6 +281,431 @@ QUESTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
 BLOCKS: tuple[tuple[int, ...], ...] = ((0, 1, 2), (12, 13, 14, 15), (52, 53), (5, 45, 4, 5))
 
 
+#: A fictional signal catalog (chunk 3d) in the unit's columns: every ``kind``, every evidence
+#: role, a block holding more than three signals, a repeated concept, a modelled prior (never
+#: shown), empty cells, a column no row carries, and four real column names that the unit's own
+#: value labels describe (by values, values with a direction, anchors, generic anchors).
+CATALOG_HEADER = (
+    "column",
+    "label",
+    "topics",
+    "source",
+    "wave",
+    "evidence_role",
+    "block",
+    "kind",
+    "priority",
+    "min_abs_z",
+    "concept",
+)
+CATALOG: tuple[tuple[str, ...], ...] = (
+    (
+        "SIG_bfi_extr",
+        "extraverze",
+        "vztahy|media",
+        "PIAAC",
+        "2023",
+        "MEASURED_DERIVED",
+        "core",
+        "bfi_z",
+        "1.4",
+        "0.5",
+        "bfi",
+    ),
+    (
+        "SIG_bfi_cons",
+        "svědomitost",
+        "prace|finance",
+        "PIAAC",
+        "2023",
+        "MEASURED_DERIVED",
+        "core",
+        "bfi_z",
+        "1.3",
+        "",
+        "bfi_c",
+    ),
+    (
+        "SIG_trust_gov",
+        "důvěra vládě",
+        "politika|instituce|duvera",
+        "ISSP",
+        "2021",
+        "MATCHED_DONOR_BLOCK",
+        "issp",
+        "scale10",
+        "3.0",
+        "",
+        "trust",
+    ),
+    (
+        "SIG_trust_courts",
+        "důvěra soudům",
+        "instituce|duvera",
+        "ISSP",
+        "2021",
+        "MATCHED_DONOR_BLOCK",
+        "issp",
+        "scale10",
+        "2.9",
+        "",
+        "trust",
+    ),
+    (
+        "SIG_trust_police",
+        "důvěra policii",
+        "instituce|bezpecnost",
+        "ISSP",
+        "2021",
+        "MATCHED_DONOR_BLOCK",
+        "issp",
+        "scale5",
+        "2.8",
+        "",
+        "",
+    ),
+    (
+        "SIG_vote",
+        "účast ve volbách",
+        "politika",
+        "ISSP",
+        "2021",
+        "MATCHED_WHOLE_BLOCK_CANONICAL",
+        "issp",
+        "yesno",
+        "2.7",
+        "",
+        "",
+    ),
+    (
+        "SIG_news",
+        "sledování zpráv",
+        "media|politika",
+        "ISSP",
+        "2021",
+        "MATCHED_DONOR_BLOCK",
+        "issp",
+        "frequency5",
+        "2.6",
+        "",
+        "",
+    ),
+    (
+        "SIG_health",
+        "zdraví",
+        "zdravi",
+        "EHIS",
+        "2019",
+        "MATCHED_DONOR_BLOCK",
+        "ehis",
+        "health5",
+        "1.1",
+        "",
+        "",
+    ),
+    (
+        "SIG_phq",
+        "PHQ",
+        "mentalni_zdravi|zdravi",
+        "EHIS",
+        "2019",
+        "MATCHED_DONOR_BLOCK",
+        "ehis",
+        "phq9",
+        "1.2",
+        "",
+        "",
+    ),
+    (
+        "SIG_gad",
+        "GAD",
+        "mentalni_zdravi",
+        "EHIS",
+        "2019",
+        "MATCHED_DONOR_BLOCK",
+        "ehis",
+        "gad7",
+        "1.2",
+        "",
+        "",
+    ),
+    (
+        "SIG_sport_min",
+        "sport",
+        "sport|zdravi",
+        "EHIS",
+        "2019",
+        "CALIBRATED_BEHAVIOR_MODEL",
+        "",
+        "minutes_day",
+        "0.8",
+        "",
+        "",
+    ),
+    (
+        "SIG_read_hours",
+        "čtení",
+        "volny_cas",
+        "JRC",
+        "2022",
+        "MODELED_VALUE_PROXY",
+        "jrc",
+        "hours_week",
+        "0.7",
+        "",
+        "",
+    ),
+    (
+        "SIG_risk01",
+        "ochota riskovat",
+        "finance|rozhodovani",
+        "JRC",
+        "2022",
+        "CALIBRATED_MODELED_COMPOSITE",
+        "jrc",
+        "scale01",
+        "",
+        "",
+        "",
+    ),
+    (
+        "SIG_debt",
+        "dluhy",
+        "finance",
+        "JRC",
+        "2022",
+        "CALIBRATED_MODELED_BINARY",
+        "jrc",
+        "scale4",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "SIG_stress6",
+        "stres",
+        "mentalni_zdravi|prace",
+        "JRC",
+        "2022",
+        "SOMETHING_ELSE",
+        "jrc",
+        "scale6",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "SIG_bank",
+        "banka",
+        "bankovnictvi|finance",
+        "JRC",
+        "2022",
+        "MEASURED_JOINT",
+        "core",
+        "categorical",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "SIG_lonely",
+        "osamělost",
+        "vztahy|mentalni_zdravi",
+        "JRC",
+        "2022",
+        "MATCHED_DONOR_BLOCK",
+        "jrc",
+        "text",
+        "1.1",
+        "",
+        "",
+    ),
+    (
+        "SIG_prior",
+        "modelový sklon",
+        "nakup|znacka|finance",
+        "MODEL",
+        "2024",
+        "MODELED_BEHAVIOR_PRIOR",
+        "model",
+        "scale10",
+        "9",
+        "",
+        "",
+    ),
+    (
+        "SIG_brand",
+        "věrnost značce",
+        "znacka|nakup|loajalita",
+        "JRC",
+        "2022",
+        "CALIBRATED_BEHAVIOR_MODEL",
+        "brand",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    ("SIG_raw", "syrové", "nakup", "X", "", "MEASURED_DERIVED", "brand", "", "1.0", "", ""),
+    (
+        "SIG_absent",
+        "chybí",
+        "nakup|finance",
+        "X",
+        "",
+        "MEASURED_DERIVED",
+        "brand",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "SIG_no_topics",
+        "bez témat",
+        "",
+        "X",
+        "",
+        "MEASURED_DERIVED",
+        "brand",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "PIAAC_I2_Q02",
+        "politický zájem",
+        "politika|instituce",
+        "PIAAC",
+        "2023",
+        "MEASURED_DERIVED",
+        "core",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "PIAAC_I2_Q03",
+        "vliv",
+        "politika|duvera",
+        "PIAAC",
+        "2023",
+        "MEASURED_DERIVED",
+        "core",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "PIAAC_I2_Q01a",
+        "vliv na vládu",
+        "politika|verejne",
+        "PIAAC",
+        "2023",
+        "MEASURED_DERIVED",
+        "core",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+    (
+        "smartphone_use_intensity_1_10",
+        "smartphone",
+        "online|technologie|media",
+        "MODEL",
+        "2024",
+        "CALIBRATED_BEHAVIOR_MODEL",
+        "digital",
+        "scale10",
+        "1.0",
+        "",
+        "",
+    ),
+)
+SIGNAL_COLUMNS = tuple(c[0] for c in CATALOG if c[0] != "SIG_absent")
+SIGNAL_TOPICS = (
+    ["politika"],
+    ["instituce", "duvera", "bezpecnost"],
+    ["zdravi", "mentalni_zdravi"],
+    ["finance", "nakup"],
+    ["vztahy", "media", "volny_cas", "sport", "znacka", "bankovnictvi"],
+    ["prace", "rozhodovani"],
+    ["online", "technologie"],
+    ["kampan", "zdravi", "bydleni", "auto", "vztahy"],
+    ["cena"],
+    # Five ISSP signals, a budget of six: the three-per-block cap decides.
+    ["politika", "instituce", "duvera", "bezpecnost", "media"],
+    # "online" is generic, "media" specific: the multiplier orders these.
+    ["online", "media", "vztahy"],
+)
+#: Inputs fed to the unit's ``_compact_anchor`` directly: (label, low, high, direction).
+ANCHORS: tuple[tuple[str, str, str, str], ...] = (
+    ("vliv na vládu", "0 = vůbec nesouhlasí", "10 = zcela souhlasí", "vyšší hodnota = více"),
+    ("souhlas", "0 = rozhodně ne souhlas", "10 = rozhodně ne souhlas", ""),
+    ("důvěra", "0 = žádná důvěra", "10 = plná důvěra", "obrácená škála: nižší je lepší"),
+    ("x", "", "10 = hodně", "opačný směr škály"),
+    (
+        "hodnocení zdraví",
+        "1 = výborné zdraví",
+        "5 = špatné zdraví",
+        "jedna dva tři čtyři pět šest sedm",
+    ),
+    ("stres", "0=nikdy", "10=neustále v práci i doma a o víkendech a svátcích", "méně je lépe"),
+)
+
+
+def _signal_value(rng: random.Random, column: str) -> str:
+    kind = next(c[7] for c in CATALOG if c[0] == column)
+    if rng.random() < 0.12:
+        return ""
+    if column == "PIAAC_I2_Q02":
+        return str(rng.randint(1, 4))
+    if column == "PIAAC_I2_Q03":
+        return str(rng.randint(1, 5))
+    if kind == "bfi_z":
+        return f"{rng.gauss(0, 1):.3f}"
+    if kind == "categorical":
+        return rng.choice(("Komerční banka", "ČSOB", "unknown", "Fio"))
+    if kind == "text":
+        return rng.choice(
+            ("Most of the time", "More than once a week", "Never", "refused", "občas")
+        )
+    if kind == "yesno":
+        return rng.choice(("0", "1"))
+    if kind in {"scale5", "frequency5", "health5"}:
+        return str(rng.randint(1, 5))
+    if kind == "scale4":
+        return str(rng.randint(1, 4))
+    if kind == "scale6":
+        return str(rng.randint(1, 6))
+    if kind == "minutes_day":
+        return str(rng.choice((0, 15, 45, 120, 240)))
+    if kind == "hours_week":
+        return f"{rng.uniform(0, 20):.1f}"
+    if kind == "scale01":
+        return f"{rng.random():.3f}"
+    if kind == "phq9":
+        return str(rng.randint(0, 27))
+    if kind == "gad7":
+        return str(rng.randint(0, 21))
+    if kind == "":
+        return "7"
+    return str(rng.randint(0, 10)) if rng.random() < 0.8 else f"{rng.uniform(0, 10):.1f}"
+
+
+def _signal_rows(base: list[list[str]], seed: int = 20261013) -> list[list[str]]:
+    rng = random.Random(seed)
+    out = []
+    for row in base[:40]:
+        quality = rng.choice(("vysoká", "střední", ""))
+        out.append([*row, quality, *(_signal_value(rng, c) for c in SIGNAL_COLUMNS)])
+    return out
+
+
 def _cases(rows: int) -> list[dict[str, Any]]:
     cases = [
         {"id": f"P{i + 1:03d}", "row": i, "topics": list(TOPICS[i % len(TOPICS)])}
@@ -298,10 +728,22 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _csv(header: tuple[str, ...], rows: list[list[str]] | tuple[tuple[str, ...], ...]) -> bytes:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buffer.getvalue().encode("utf-8")
+
+
 def write_inputs() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     data = rows_csv()
     (OUT / "rows.csv").write_bytes(data)
+    (OUT / "catalog.csv").write_bytes(_csv(CATALOG_HEADER, CATALOG))
+    (OUT / "signals.csv").write_bytes(
+        _csv((*HEADER, "_donor_issp_quality", *SIGNAL_COLUMNS), _signal_rows(_rows()))
+    )
     (OUT / "cases.json").write_text(
         json.dumps(
             {
@@ -309,6 +751,11 @@ def write_inputs() -> None:
                 "prose": _prose(),
                 "questions": [{"text": t, "options": list(o)} for t, o in QUESTIONS],
                 "blocks": [list(b) for b in BLOCKS],
+                "signal_cases": [
+                    {"row": i % 40, "topics": list(SIGNAL_TOPICS[i % len(SIGNAL_TOPICS)])}
+                    for i in range(60)
+                ],
+                "anchors": [list(a) for a in ANCHORS],
             },
             ensure_ascii=False,
             indent=1,
@@ -351,6 +798,39 @@ def capture() -> None:
                 if topic not in union:
                     union.append(topic)
         blocks.append(union)
+    from persona_grounded import grounded_profile_text
+
+    persona_grounded.CATALOG = OUT / "catalog.csv"  # the fictional catalog, the unit's labels
+    persona_grounded._catalog.cache_clear()
+    signal_bytes = (OUT / "signals.csv").read_bytes()
+    sdf = pd.read_csv(
+        io.BytesIO(signal_bytes), low_memory=False, dtype={"occupation_isco08": "string"}
+    )
+    catalog = persona_grounded._catalog()
+    parsed = [{**m, "topics": sorted(m["topics"])} for m in catalog]
+    renders = []
+    for i in range(len(sdf)):
+        row = sdf.iloc[i]
+        out_row = []
+        for m in catalog:
+            rr = persona_grounded._render(m, row)
+            out_row.append(None if rr is None else [rr[0], rr[1]])
+        renders.append(out_row)
+    anchors = [persona_grounded._compact_anchor(*a) for a in cases["anchors"]]
+    signals = []
+    for case in cases["signal_cases"]:
+        row = sdf.iloc[case["row"]]
+        signals.append(
+            {
+                "grounded": grounded_profile_text(row, case["topics"]),
+                "persona": generate_persona_text(
+                    row, temata=case["topics"], persona_mode="calibrated"
+                ),
+            }
+        )
+    persona_grounded.CATALOG = OUT / "no-catalog-in-3b.csv"
+    persona_grounded._catalog.cache_clear()
+
     for case in cases["profiles"]:
         row = df.iloc[case["row"]]
         text = generate_persona_text(row, temata=case["topics"], persona_mode="calibrated")
@@ -365,6 +845,12 @@ def capture() -> None:
         "question_topics": topics,
         "block_topics": blocks,
         "topic_keys": TEMATA_KLICE,
+        "signals": signals,
+        "catalog_parsed": parsed,
+        "renders": renders,
+        "anchors": anchors,
+        "catalog_sha256": _sha((OUT / "catalog.csv").read_bytes()),
+        "signal_rows_sha256": _sha(signal_bytes),
     }
     (OUT / "expected.json").write_text(
         json.dumps(expected, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8"

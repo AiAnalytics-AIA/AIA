@@ -1133,5 +1133,519 @@
    4,
    5
   ]
+ ],
+ "signal_cases": [
+  {
+   "row": 0,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 1,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 2,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 3,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 4,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 5,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 6,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 7,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 8,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 9,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 10,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 11,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 12,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 13,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 14,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 15,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 16,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 17,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 18,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 19,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 20,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 21,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 22,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 23,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 24,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 25,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 26,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 27,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 28,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 29,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 30,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 31,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 32,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 33,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 34,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 35,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 36,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 37,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 38,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 39,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 0,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 1,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 2,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 3,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 4,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 5,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 6,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 7,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 8,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 9,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 10,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 11,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 12,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 13,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 14,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 15,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 16,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 17,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 18,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 19,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  }
+ ],
+ "anchors": [
+  [
+   "vliv na vládu",
+   "0 = vůbec nesouhlasí",
+   "10 = zcela souhlasí",
+   "vyšší hodnota = více"
+  ],
+  [
+   "souhlas",
+   "0 = rozhodně ne souhlas",
+   "10 = rozhodně ne souhlas",
+   ""
+  ],
+  [
+   "důvěra",
+   "0 = žádná důvěra",
+   "10 = plná důvěra",
+   "obrácená škála: nižší je lepší"
+  ],
+  [
+   "x",
+   "",
+   "10 = hodně",
+   "opačný směr škály"
+  ],
+  [
+   "hodnocení zdraví",
+   "1 = výborné zdraví",
+   "5 = špatné zdraví",
+   "jedna dva tři čtyři pět šest sedm"
+  ],
+  [
+   "stres",
+   "0=nikdy",
+   "10=neustále v práci i doma a o víkendech a svátcích",
+   "méně je lépe"
+  ]
  ]
 }

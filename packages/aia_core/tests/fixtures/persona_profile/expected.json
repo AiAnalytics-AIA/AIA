@@ -1,4 +1,12 @@
 {
+ "anchors": [
+  "0=vůbec nesouhlasí, 10=zcela souhlasí",
+  "0=rozhodně ne, 10=—",
+  "0=žádná, 10=plná; obrácená škála: nižší je lepší",
+  "0=—, 10=hodně; opačný směr škály",
+  "0=výborné, 10=špatné",
+  "0=nikdy, 10=neustále v práci i doma a o víkendech a svátcích"
+ ],
  "block_topics": [
   [
    "potraviny",
@@ -426,7 +434,421 @@
    "text": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Domácnost: děti v domácnosti"
   }
  ],
- "cases_sha256": "a83ffadfd9b0674f8e8e19d2d346b82b47fe79d8ed37c93bc94f8ff813202d08",
+ "cases_sha256": "3c975de186091790bf228ad082e0a84569a0889fc38ad478cbdf9acce56b966c",
+ "catalog_parsed": [
+  {
+   "block": "core",
+   "column": "SIG_bfi_extr",
+   "concept": "bfi",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "bfi_z",
+   "label": "extraverze",
+   "min_abs_z": 0.5,
+   "priority": 1.4,
+   "source": "PIAAC",
+   "topics": [
+    "media",
+    "vztahy"
+   ],
+   "wave": "2023.0"
+  },
+  {
+   "block": "core",
+   "column": "SIG_bfi_cons",
+   "concept": "bfi_c",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "bfi_z",
+   "label": "svědomitost",
+   "min_abs_z": NaN,
+   "priority": 1.3,
+   "source": "PIAAC",
+   "topics": [
+    "finance",
+    "prace"
+   ],
+   "wave": "2023.0"
+  },
+  {
+   "block": "issp",
+   "column": "SIG_trust_gov",
+   "concept": "trust",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "scale10",
+   "label": "důvěra vládě",
+   "min_abs_z": NaN,
+   "priority": 3.0,
+   "source": "ISSP",
+   "topics": [
+    "duvera",
+    "instituce",
+    "politika"
+   ],
+   "wave": "2021.0"
+  },
+  {
+   "block": "issp",
+   "column": "SIG_trust_courts",
+   "concept": "trust",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "scale10",
+   "label": "důvěra soudům",
+   "min_abs_z": NaN,
+   "priority": 2.9,
+   "source": "ISSP",
+   "topics": [
+    "duvera",
+    "instituce"
+   ],
+   "wave": "2021.0"
+  },
+  {
+   "block": "issp",
+   "column": "SIG_trust_police",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "scale5",
+   "label": "důvěra policii",
+   "min_abs_z": NaN,
+   "priority": 2.8,
+   "source": "ISSP",
+   "topics": [
+    "bezpecnost",
+    "instituce"
+   ],
+   "wave": "2021.0"
+  },
+  {
+   "block": "issp",
+   "column": "SIG_vote",
+   "concept": "",
+   "evidence_role": "MATCHED_WHOLE_BLOCK_CANONICAL",
+   "kind": "yesno",
+   "label": "účast ve volbách",
+   "min_abs_z": NaN,
+   "priority": 2.7,
+   "source": "ISSP",
+   "topics": [
+    "politika"
+   ],
+   "wave": "2021.0"
+  },
+  {
+   "block": "issp",
+   "column": "SIG_news",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "frequency5",
+   "label": "sledování zpráv",
+   "min_abs_z": NaN,
+   "priority": 2.6,
+   "source": "ISSP",
+   "topics": [
+    "media",
+    "politika"
+   ],
+   "wave": "2021.0"
+  },
+  {
+   "block": "ehis",
+   "column": "SIG_health",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "health5",
+   "label": "zdraví",
+   "min_abs_z": NaN,
+   "priority": 1.1,
+   "source": "EHIS",
+   "topics": [
+    "zdravi"
+   ],
+   "wave": "2019.0"
+  },
+  {
+   "block": "ehis",
+   "column": "SIG_phq",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "phq9",
+   "label": "PHQ",
+   "min_abs_z": NaN,
+   "priority": 1.2,
+   "source": "EHIS",
+   "topics": [
+    "mentalni_zdravi",
+    "zdravi"
+   ],
+   "wave": "2019.0"
+  },
+  {
+   "block": "ehis",
+   "column": "SIG_gad",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "gad7",
+   "label": "GAD",
+   "min_abs_z": NaN,
+   "priority": 1.2,
+   "source": "EHIS",
+   "topics": [
+    "mentalni_zdravi"
+   ],
+   "wave": "2019.0"
+  },
+  {
+   "block": "nan",
+   "column": "SIG_sport_min",
+   "concept": "",
+   "evidence_role": "CALIBRATED_BEHAVIOR_MODEL",
+   "kind": "minutes_day",
+   "label": "sport",
+   "min_abs_z": NaN,
+   "priority": 0.8,
+   "source": "EHIS",
+   "topics": [
+    "sport",
+    "zdravi"
+   ],
+   "wave": "2019.0"
+  },
+  {
+   "block": "jrc",
+   "column": "SIG_read_hours",
+   "concept": "",
+   "evidence_role": "MODELED_VALUE_PROXY",
+   "kind": "hours_week",
+   "label": "čtení",
+   "min_abs_z": NaN,
+   "priority": 0.7,
+   "source": "JRC",
+   "topics": [
+    "volny_cas"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "jrc",
+   "column": "SIG_risk01",
+   "concept": "",
+   "evidence_role": "CALIBRATED_MODELED_COMPOSITE",
+   "kind": "scale01",
+   "label": "ochota riskovat",
+   "min_abs_z": NaN,
+   "priority": NaN,
+   "source": "JRC",
+   "topics": [
+    "finance",
+    "rozhodovani"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "jrc",
+   "column": "SIG_debt",
+   "concept": "",
+   "evidence_role": "CALIBRATED_MODELED_BINARY",
+   "kind": "scale4",
+   "label": "dluhy",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "JRC",
+   "topics": [
+    "finance"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "jrc",
+   "column": "SIG_stress6",
+   "concept": "",
+   "evidence_role": "SOMETHING_ELSE",
+   "kind": "scale6",
+   "label": "stres",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "JRC",
+   "topics": [
+    "mentalni_zdravi",
+    "prace"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "core",
+   "column": "SIG_bank",
+   "concept": "",
+   "evidence_role": "MEASURED_JOINT",
+   "kind": "categorical",
+   "label": "banka",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "JRC",
+   "topics": [
+    "bankovnictvi",
+    "finance"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "jrc",
+   "column": "SIG_lonely",
+   "concept": "",
+   "evidence_role": "MATCHED_DONOR_BLOCK",
+   "kind": "text",
+   "label": "osamělost",
+   "min_abs_z": NaN,
+   "priority": 1.1,
+   "source": "JRC",
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "model",
+   "column": "SIG_prior",
+   "concept": "",
+   "evidence_role": "MODELED_BEHAVIOR_PRIOR",
+   "kind": "scale10",
+   "label": "modelový sklon",
+   "min_abs_z": NaN,
+   "priority": 9.0,
+   "source": "MODEL",
+   "topics": [
+    "finance",
+    "nakup",
+    "znacka"
+   ],
+   "wave": "2024.0"
+  },
+  {
+   "block": "brand",
+   "column": "SIG_brand",
+   "concept": "",
+   "evidence_role": "CALIBRATED_BEHAVIOR_MODEL",
+   "kind": "scale10",
+   "label": "věrnost značce",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "JRC",
+   "topics": [
+    "loajalita",
+    "nakup",
+    "znacka"
+   ],
+   "wave": "2022.0"
+  },
+  {
+   "block": "brand",
+   "column": "SIG_raw",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "nan",
+   "label": "syrové",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "X",
+   "topics": [
+    "nakup"
+   ],
+   "wave": "nan"
+  },
+  {
+   "block": "brand",
+   "column": "SIG_absent",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "scale10",
+   "label": "chybí",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "X",
+   "topics": [
+    "finance",
+    "nakup"
+   ],
+   "wave": "nan"
+  },
+  {
+   "block": "brand",
+   "column": "SIG_no_topics",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "scale10",
+   "label": "bez témat",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "X",
+   "topics": [],
+   "wave": "nan"
+  },
+  {
+   "block": "core",
+   "column": "PIAAC_I2_Q02",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "scale10",
+   "label": "politický zájem",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "PIAAC",
+   "topics": [
+    "instituce",
+    "politika"
+   ],
+   "wave": "2023.0"
+  },
+  {
+   "block": "core",
+   "column": "PIAAC_I2_Q03",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "scale10",
+   "label": "vliv",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "PIAAC",
+   "topics": [
+    "duvera",
+    "politika"
+   ],
+   "wave": "2023.0"
+  },
+  {
+   "block": "core",
+   "column": "PIAAC_I2_Q01a",
+   "concept": "",
+   "evidence_role": "MEASURED_DERIVED",
+   "kind": "scale10",
+   "label": "vliv na vládu",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "PIAAC",
+   "topics": [
+    "politika",
+    "verejne"
+   ],
+   "wave": "2023.0"
+  },
+  {
+   "block": "digital",
+   "column": "smartphone_use_intensity_1_10",
+   "concept": "",
+   "evidence_role": "CALIBRATED_BEHAVIOR_MODEL",
+   "kind": "scale10",
+   "label": "smartphone",
+   "min_abs_z": NaN,
+   "priority": 1.0,
+   "source": "MODEL",
+   "topics": [
+    "media",
+    "online",
+    "technologie"
+   ],
+   "wave": "2024.0"
+  }
+ ],
+ "catalog_sha256": "c5f6d26095d3a0ad9493b03c55b36c1a7c936c0ee168b6d0ad52b9add55fbc81",
  "prose": [
   {
    "id": "F01_prefixes",
@@ -657,7 +1079,3763 @@
   ],
   []
  ],
+ "renders": [
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    4.8313999999999995
+   ],
+   [
+    "spíše nižší svědomitost než populační průměr",
+    3.0484999999999998
+   ],
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 3/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   null,
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: výborné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 19/27 (nikoli diagnóza)",
+    2.34
+   ],
+   [
+    "GAD-7 symptom score: 14/21 (nikoli diagnóza)",
+    2.1333333333333333
+   ],
+   [
+    "sport: ~15 min/den",
+    0.8333333333333335
+   ],
+   null,
+   [
+    "ochota riskovat: 0.22 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 7/10",
+    12.6
+   ],
+   [
+    "věrnost značce: 4/10",
+    1.2
+   ],
+   null,
+   null,
+   [
+    "bez témat: 3/10",
+    1.4
+   ],
+   null,
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 1/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   [
+    "smartphone: 2/10",
+    1.3
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.6494
+   ],
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   null,
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: méně než měsíčně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: uspokojivé",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 25/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 12/21 (nikoli diagnóza)",
+    1.9999999999999998
+   ],
+   [
+    "sport: ~15 min/den",
+    0.8333333333333335
+   ],
+   [
+    "čtení: ~1.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.54 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 2/6",
+    1.6
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 5.9/10",
+    1.1800000000000002
+   ],
+   null,
+   null,
+   [
+    "bez témat: 7/10",
+    1.4
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 3/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.2
+   ],
+   [
+    "smartphone: 8.3/10",
+    1.33
+   ]
+  ],
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    4.950399999999999
+   ],
+   null,
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 7/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 2/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: méně než měsíčně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: výborné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 17/27 (nikoli diagnóza)",
+    2.22
+   ],
+   null,
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~8.9 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.36 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   null,
+   [
+    "věrnost značce: 1/10",
+    1.8
+   ],
+   null,
+   null,
+   [
+    "bez témat: 7.9/10",
+    1.58
+   ],
+   [
+    "politický zájem: alespoň jednou měsíčně, ale méně než týdně",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   null,
+   [
+    "smartphone: 7.3/10",
+    1.23
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    2.5367999999999995
+   ],
+   null,
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 1/10",
+    5.22
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 21/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 16/21 (nikoli diagnóza)",
+    2.2666666666666666
+   ],
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~0.6 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.42 (0–1)",
+    NaN
+   ],
+   null,
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 9.9/10",
+    17.82
+   ],
+   [
+    "věrnost značce: 8/10",
+    1.6
+   ],
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 7/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.2
+   ],
+   [
+    "smartphone: 10/10",
+    1.5
+   ]
+  ],
+  [
+   [
+    "výrazně vyšší extraverze než populační průměr",
+    3.7897999999999996
+   ],
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.6403
+   ],
+   [
+    "důvěra vládě: 2/10",
+    4.800000000000001
+   ],
+   [
+    "důvěra soudům: 8/10",
+    4.64
+   ],
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 1/27 (nikoli diagnóza)",
+    1.26
+   ],
+   [
+    "GAD-7 symptom score: 9/21 (nikoli diagnóza)",
+    1.7999999999999998
+   ],
+   [
+    "sport: ~240 min/den",
+    1.2000000000000002
+   ],
+   [
+    "čtení: ~3.9 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.70 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 3/6",
+    1.2
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 7/10",
+    12.6
+   ],
+   [
+    "věrnost značce: 3.2/10",
+    1.3599999999999999
+   ],
+   null,
+   null,
+   [
+    "bez témat: 8.8/10",
+    1.7600000000000002
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.5
+   ],
+   [
+    "smartphone: 0/10",
+    1.5
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 4/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 9/10",
+    5.22
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 12/27 (nikoli diagnóza)",
+    1.92
+   ],
+   [
+    "GAD-7 symptom score: 7/21 (nikoli diagnóza)",
+    1.6666666666666665
+   ],
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~0.5 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.51 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "modelový sklon: 5/10",
+    9.0
+   ],
+   [
+    "věrnost značce: 1.8/10",
+    1.6400000000000001
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou měsíčně, ale méně než týdně",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 3/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.2
+   ],
+   [
+    "smartphone: 3.7/10",
+    1.13
+   ]
+  ],
+  [
+   null,
+   [
+    "výrazně vyšší svědomitost než populační průměr",
+    3.4073
+   ],
+   [
+    "důvěra vládě: 1/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 9/10",
+    5.22
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 25/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 8/21 (nikoli diagnóza)",
+    1.7333333333333332
+   ],
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~3.6 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.47 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 6/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 8/10",
+    1.6
+   ],
+   null,
+   null,
+   [
+    "bez témat: 2/10",
+    1.6
+   ],
+   null,
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   [
+    "smartphone: 8/10",
+    1.3
+   ]
+  ],
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    3.969
+   ],
+   [
+    "výrazně nižší svědomitost než populační průměr",
+    3.471
+   ],
+   [
+    "důvěra vládě: 10/10",
+    6.0
+   ],
+   [
+    "důvěra soudům: 7/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 17/27 (nikoli diagnóza)",
+    2.22
+   ],
+   [
+    "GAD-7 symptom score: 19/21 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~4.7 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.90 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 3/6",
+    1.2
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   null,
+   null,
+   null,
+   null,
+   [
+    "bez témat: 0/10",
+    2.0
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 1.9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.31
+   ],
+   [
+    "smartphone: 7/10",
+    1.2
+   ]
+  ],
+  [
+   [
+    "výrazně vyšší extraverze než populační průměr",
+    3.8653999999999997
+   ],
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.4232
+   ],
+   [
+    "důvěra vládě: 0/10",
+    6.0
+   ],
+   [
+    "důvěra soudům: 3.2/10",
+    3.9439999999999995
+   ],
+   [
+    "důvěra policii: 2/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 23/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 1/21 (nikoli diagnóza)",
+    1.2666666666666666
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~15.1 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.35 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 7/10",
+    1.4
+   ],
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 5/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.0
+   ],
+   [
+    "smartphone: 7/10",
+    1.2
+   ]
+  ],
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    4.018
+   ],
+   [
+    "výrazně vyšší svědomitost než populační průměr",
+    3.7128
+   ],
+   [
+    "důvěra vládě: 3.5/10",
+    3.9000000000000004
+   ],
+   [
+    "důvěra soudům: 5/10",
+    2.9
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 4/27 (nikoli diagnóza)",
+    1.44
+   ],
+   null,
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~11.4 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.23 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 2/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "modelový sklon: 1.6/10",
+    15.12
+   ],
+   [
+    "věrnost značce: 5/10",
+    1.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 9.4/10",
+    1.8800000000000001
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.5
+   ],
+   null
+  ],
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    4.708199999999999
+   ],
+   null,
+   [
+    "důvěra vládě: 2/10",
+    4.800000000000001
+   ],
+   [
+    "důvěra soudům: 5/10",
+    2.9
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   null,
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 13/27 (nikoli diagnóza)",
+    1.9799999999999998
+   ],
+   [
+    "GAD-7 symptom score: 10/21 (nikoli diagnóza)",
+    1.8666666666666667
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~3.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.95 (0–1)",
+    NaN
+   ],
+   null,
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 4.3/10",
+    10.260000000000002
+   ],
+   [
+    "věrnost značce: 0/10",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 8.8/10",
+    1.7600000000000002
+   ],
+   null,
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 4/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.1
+   ],
+   [
+    "smartphone: 2/10",
+    1.3
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    2.5031999999999996
+   ],
+   null,
+   [
+    "důvěra vládě: 8/10",
+    4.800000000000001
+   ],
+   null,
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   null,
+   [
+    "PHQ-9 symptom score: 21/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 2/21 (nikoli diagnóza)",
+    1.3333333333333333
+   ],
+   [
+    "sport: ~15 min/den",
+    0.8333333333333335
+   ],
+   [
+    "čtení: ~11.7 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.81 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "modelový sklon: 10/10",
+    18.0
+   ],
+   [
+    "věrnost značce: 6/10",
+    1.2
+   ],
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 2.9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.21
+   ],
+   [
+    "smartphone: 2/10",
+    1.3
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    2.4556
+   ],
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.4726
+   ],
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 1.4/10",
+    4.9879999999999995
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 0/27 (nikoli diagnóza)",
+    1.2
+   ],
+   [
+    "GAD-7 symptom score: 13/21 (nikoli diagnóza)",
+    2.066666666666667
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~8.9 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.54 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 5/6",
+    1.6
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 9/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 4/10",
+    1.2
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   null
+  ],
+  [
+   [
+    "spíše nižší extraverze než populační průměr",
+    2.4332
+   ],
+   null,
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 4/10",
+    3.48
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   null,
+   null,
+   [
+    "GAD-7 symptom score: 9/21 (nikoli diagnóza)",
+    1.7999999999999998
+   ],
+   [
+    "sport: ~15 min/den",
+    0.8333333333333335
+   ],
+   [
+    "čtení: ~11.5 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.37 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 2/4",
+    1.3333333333333333
+   ],
+   null,
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 7/10",
+    1.4
+   ],
+   null,
+   null,
+   null,
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   [
+    "smartphone: 1/10",
+    1.4
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.1203000000000003
+   ],
+   [
+    "důvěra vládě: 6.7/10",
+    4.0200000000000005
+   ],
+   null,
+   null,
+   null,
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: výborné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 16/27 (nikoli diagnóza)",
+    2.16
+   ],
+   [
+    "GAD-7 symptom score: 6/21 (nikoli diagnóza)",
+    1.5999999999999999
+   ],
+   [
+    "sport: ~15 min/den",
+    0.8333333333333335
+   ],
+   [
+    "čtení: ~2.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.33 (0–1)",
+    NaN
+   ],
+   null,
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 4/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 1/10",
+    1.8
+   ],
+   null,
+   null,
+   null,
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 2/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   null
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    3.0688
+   ],
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.8678
+   ],
+   [
+    "důvěra vládě: 1/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 8/10",
+    4.64
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   null,
+   [
+    "PHQ-9 symptom score: 15/27 (nikoli diagnóza)",
+    2.1
+   ],
+   [
+    "GAD-7 symptom score: 0/21 (nikoli diagnóza)",
+    1.2
+   ],
+   null,
+   null,
+   null,
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   null,
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   [
+    "modelový sklon: 6/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 10/10",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 2.8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.22
+   ],
+   [
+    "smartphone: 5/10",
+    1.0
+   ]
+  ],
+  [
+   null,
+   [
+    "výrazně vyšší svědomitost než populační průměr",
+    4.4213
+   ],
+   [
+    "důvěra vládě: 6/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 4/10",
+    3.48
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: méně než měsíčně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: uspokojivé",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 2/27 (nikoli diagnóza)",
+    1.32
+   ],
+   [
+    "GAD-7 symptom score: 17/21 (nikoli diagnóza)",
+    2.333333333333333
+   ],
+   null,
+   [
+    "čtení: ~6.2 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.96 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 2/6",
+    1.6
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   [
+    "modelový sklon: 0/10",
+    18.0
+   ],
+   [
+    "věrnost značce: 2/10",
+    1.6
+   ],
+   null,
+   null,
+   [
+    "bez témat: 8/10",
+    1.6
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 10/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.5
+   ],
+   [
+    "smartphone: 2/10",
+    1.3
+   ]
+  ],
+  [
+   null,
+   [
+    "výrazně vyšší svědomitost než populační průměr",
+    3.3045999999999998
+   ],
+   [
+    "důvěra vládě: 6/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 3.7/10",
+    3.654
+   ],
+   [
+    "důvěra policii: 3/5",
+    2.8
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: uspokojivé",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 12/27 (nikoli diagnóza)",
+    1.92
+   ],
+   [
+    "GAD-7 symptom score: 0/21 (nikoli diagnóza)",
+    1.2
+   ],
+   [
+    "sport: ~240 min/den",
+    1.2000000000000002
+   ],
+   [
+    "čtení: ~3.2 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.56 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 9.8/10",
+    1.9600000000000002
+   ],
+   null,
+   null,
+   [
+    "bez témat: 4/10",
+    1.2
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 2/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   null
+  ],
+  [
+   null,
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.7976
+   ],
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 7/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   null,
+   [
+    "PHQ-9 symptom score: 2/27 (nikoli diagnóza)",
+    1.32
+   ],
+   [
+    "GAD-7 symptom score: 14/21 (nikoli diagnóza)",
+    2.1333333333333333
+   ],
+   null,
+   [
+    "čtení: ~16.7 h/týden",
+    0.7
+   ],
+   null,
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 3/6",
+    1.2
+   ],
+   null,
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   null,
+   [
+    "věrnost značce: 5/10",
+    1.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   null,
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 10/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.5
+   ],
+   [
+    "smartphone: 1.1/10",
+    1.3900000000000001
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.7859
+   ],
+   [
+    "důvěra vládě: 0/10",
+    6.0
+   ],
+   [
+    "důvěra soudům: 3/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 21/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 19/21 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~1.6 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.28 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 7/10",
+    12.6
+   ],
+   [
+    "věrnost značce: 5/10",
+    1.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 5/10",
+    1.0
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 1/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   [
+    "smartphone: 1/10",
+    1.4
+   ]
+  ],
+  [
+   [
+    "výrazně vyšší extraverze než populační průměr",
+    3.3404
+   ],
+   null,
+   [
+    "důvěra vládě: 8/10",
+    4.800000000000001
+   ],
+   [
+    "důvěra soudům: 5.3/10",
+    3.074
+   ],
+   [
+    "důvěra policii: 2/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 10/27 (nikoli diagnóza)",
+    1.7999999999999998
+   ],
+   [
+    "GAD-7 symptom score: 16/21 (nikoli diagnóza)",
+    2.2666666666666666
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~6.3 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.55 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   [
+    "modelový sklon: 7/10",
+    12.6
+   ],
+   null,
+   null,
+   null,
+   [
+    "bez témat: 2/10",
+    1.6
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   [
+    "smartphone: 2/10",
+    1.3
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.3569
+   ],
+   [
+    "důvěra vládě: 6/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 9/10",
+    5.22
+   ],
+   null,
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 14/27 (nikoli diagnóza)",
+    2.04
+   ],
+   [
+    "GAD-7 symptom score: 8/21 (nikoli diagnóza)",
+    1.7333333333333332
+   ],
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~9.2 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.77 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 5/6",
+    1.6
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   [
+    "modelový sklon: 6.3/10",
+    11.34
+   ],
+   [
+    "věrnost značce: 8.5/10",
+    1.7
+   ],
+   null,
+   null,
+   [
+    "bez témat: 8/10",
+    1.6
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 2/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   [
+    "smartphone: 8/10",
+    1.3
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 1/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 5.6/10",
+    3.2479999999999998
+   ],
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   [
+    "zdraví: výborné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 17/27 (nikoli diagnóza)",
+    2.22
+   ],
+   [
+    "GAD-7 symptom score: 16/21 (nikoli diagnóza)",
+    2.2666666666666666
+   ],
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~11.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.88 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 6.7/10",
+    12.06
+   ],
+   [
+    "věrnost značce: 9/10",
+    1.8
+   ],
+   null,
+   null,
+   [
+    "bez témat: 5/10",
+    1.0
+   ],
+   null,
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.4
+   ],
+   [
+    "smartphone: 3/10",
+    1.2
+   ]
+  ],
+  [
+   null,
+   null,
+   null,
+   [
+    "důvěra soudům: 0/10",
+    5.8
+   ],
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   null,
+   null,
+   [
+    "PHQ-9 symptom score: 25/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 15/21 (nikoli diagnóza)",
+    2.2
+   ],
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~0.4 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.54 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 5/6",
+    1.6
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 7/10",
+    1.4
+   ],
+   null,
+   null,
+   [
+    "bez témat: 9.5/10",
+    1.9
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 6.9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.19
+   ],
+   [
+    "smartphone: 1/10",
+    1.4
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    3.0169999999999995
+   ],
+   null,
+   [
+    "důvěra vládě: 8/10",
+    4.800000000000001
+   ],
+   [
+    "důvěra soudům: 0/10",
+    5.8
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 6/27 (nikoli diagnóza)",
+    1.56
+   ],
+   [
+    "GAD-7 symptom score: 9/21 (nikoli diagnóza)",
+    1.7999999999999998
+   ],
+   null,
+   [
+    "čtení: ~2.5 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.78 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   null,
+   null,
+   null,
+   [
+    "bez témat: 9/10",
+    1.8
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 7/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.2
+   ],
+   [
+    "smartphone: 8/10",
+    1.3
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 1/10",
+    5.4
+   ],
+   null,
+   [
+    "důvěra policii: 2/5",
+    4.199999999999999
+   ],
+   null,
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 14/27 (nikoli diagnóza)",
+    2.04
+   ],
+   [
+    "GAD-7 symptom score: 6/21 (nikoli diagnóza)",
+    1.5999999999999999
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~2.4 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.51 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 4/6",
+    1.2
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 0/10",
+    18.0
+   ],
+   [
+    "věrnost značce: 3.1/10",
+    1.38
+   ],
+   null,
+   null,
+   [
+    "bez témat: 2/10",
+    1.6
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 4/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.1
+   ],
+   [
+    "smartphone: 4/10",
+    1.1
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 5/10",
+    2.9
+   ],
+   null,
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 23/27 (nikoli diagnóza)",
+    2.4
+   ],
+   null,
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~10.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.23 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 5/6",
+    1.6
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 3/10",
+    12.6
+   ],
+   [
+    "věrnost značce: 5/10",
+    1.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 2/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   [
+    "smartphone: 7/10",
+    1.2
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    3.08
+   ],
+   null,
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 8/10",
+    4.64
+   ],
+   [
+    "důvěra policii: 3/5",
+    2.8
+   ],
+   null,
+   null,
+   [
+    "zdraví: uspokojivé",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 8/27 (nikoli diagnóza)",
+    1.68
+   ],
+   [
+    "GAD-7 symptom score: 5/21 (nikoli diagnóza)",
+    1.5333333333333332
+   ],
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~2 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.51 (0–1)",
+    NaN
+   ],
+   null,
+   [
+    "stres: 3/6",
+    1.2
+   ],
+   null,
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 9/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 10/10",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   null,
+   [
+    "vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 4/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.1
+   ],
+   [
+    "smartphone: 0/10",
+    1.5
+   ]
+  ],
+  [
+   [
+    "výrazně vyšší extraverze než populační průměr",
+    4.0207999999999995
+   ],
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.7131
+   ],
+   [
+    "důvěra vládě: 8.4/10",
+    5.040000000000001
+   ],
+   [
+    "důvěra soudům: 8.7/10",
+    5.045999999999999
+   ],
+   null,
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň týdně, ne denně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 15/27 (nikoli diagnóza)",
+    2.1
+   ],
+   [
+    "GAD-7 symptom score: 20/21 (nikoli diagnóza)",
+    2.4
+   ],
+   null,
+   [
+    "čtení: ~12.1 h/týden",
+    0.7
+   ],
+   null,
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 4/6",
+    1.2
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 3/10",
+    12.6
+   ],
+   null,
+   null,
+   null,
+   [
+    "bez témat: 7/10",
+    1.4
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 6/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.1
+   ],
+   [
+    "smartphone: 7.9/10",
+    1.29
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.2022
+   ],
+   [
+    "důvěra vládě: 6/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 1.4/10",
+    4.9879999999999995
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 11/27 (nikoli diagnóza)",
+    1.8599999999999999
+   ],
+   [
+    "GAD-7 symptom score: 6/21 (nikoli diagnóza)",
+    1.5999999999999999
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~17.6 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.30 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 4/4",
+    2.0
+   ],
+   [
+    "stres: 2/6",
+    1.6
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 0/10",
+    18.0
+   ],
+   [
+    "věrnost značce: 10/10",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "bez témat: 9/10",
+    1.8
+   ],
+   null,
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 2/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   [
+    "smartphone: 2.3/10",
+    1.27
+   ]
+  ],
+  [
+   [
+    "spíše nižší extraverze než populační průměr",
+    3.0393999999999997
+   ],
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.2646
+   ],
+   [
+    "důvěra vládě: 4/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 10/10",
+    5.8
+   ],
+   [
+    "důvěra policii: 2/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 22/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 20/21 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~19.4 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.41 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 4/6",
+    1.2
+   ],
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 8/10",
+    14.4
+   ],
+   [
+    "věrnost značce: 5.5/10",
+    1.1
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 6/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.1
+   ],
+   [
+    "smartphone: 5/10",
+    1.0
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    3.262
+   ],
+   [
+    "výrazně vyšší svědomitost než populační průměr",
+    3.2590999999999997
+   ],
+   [
+    "důvěra vládě: 9/10",
+    5.4
+   ],
+   [
+    "důvěra soudům: 6/10",
+    3.48
+   ],
+   [
+    "důvěra policii: 3/5",
+    2.8
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: velmi dobré",
+    1.6500000000000001
+   ],
+   [
+    "PHQ-9 symptom score: 5/27 (nikoli diagnóza)",
+    1.5
+   ],
+   [
+    "GAD-7 symptom score: 20/21 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "sport: ~240 min/den",
+    1.2000000000000002
+   ],
+   [
+    "čtení: ~19.8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.97 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   null,
+   null,
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   null,
+   null,
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   null,
+   [
+    "smartphone: 4/10",
+    1.1
+   ]
+  ],
+  [
+   [
+    "výrazně nižší extraverze než populační průměr",
+    3.5517999999999996
+   ],
+   null,
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 7/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 1/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 27/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 0/21 (nikoli diagnóza)",
+    1.2
+   ],
+   [
+    "sport: ~120 min/den",
+    1.0666666666666667
+   ],
+   [
+    "čtení: ~0.9 h/týden",
+    0.7
+   ],
+   null,
+   [
+    "dluhy: 2/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 2/6",
+    1.6
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 6/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 4/10",
+    1.2
+   ],
+   null,
+   null,
+   [
+    "bez témat: 8/10",
+    1.6
+   ],
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 3/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.2
+   ],
+   null
+  ],
+  [
+   null,
+   [
+    "výrazně nižší svědomitost než populační průměr",
+    3.7765000000000004
+   ],
+   [
+    "důvěra vládě: 1/10",
+    5.4
+   ],
+   null,
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   null,
+   [
+    "PHQ-9 symptom score: 5/27 (nikoli diagnóza)",
+    1.5
+   ],
+   [
+    "GAD-7 symptom score: 6/21 (nikoli diagnóza)",
+    1.5999999999999999
+   ],
+   [
+    "sport: ~240 min/den",
+    1.2000000000000002
+   ],
+   [
+    "čtení: ~11.5 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.23 (0–1)",
+    NaN
+   ],
+   null,
+   [
+    "stres: 5/6",
+    1.6
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   [
+    "osamělost: občas",
+    1.265
+   ],
+   [
+    "modelový sklon: 4/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 1.9/10",
+    1.62
+   ],
+   null,
+   null,
+   [
+    "bez témat: 1/10",
+    1.8
+   ],
+   null,
+   [
+    "vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 5.4/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.04
+   ],
+   [
+    "smartphone: 6/10",
+    1.1
+   ]
+  ],
+  [
+   [
+    "spíše vyšší extraverze než populační průměr",
+    2.7887999999999997
+   ],
+   [
+    "spíše nižší svědomitost než populační průměr",
+    2.2776
+   ],
+   [
+    "důvěra vládě: 4/10",
+    3.5999999999999996
+   ],
+   null,
+   null,
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   [
+    "sledování zpráv: alespoň měsíčně, ne týdně",
+    2.6
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 19/27 (nikoli diagnóza)",
+    2.34
+   ],
+   [
+    "GAD-7 symptom score: 4/21 (nikoli diagnóza)",
+    1.4666666666666668
+   ],
+   [
+    "sport: ~240 min/den",
+    1.2000000000000002
+   ],
+   [
+    "čtení: ~1.2 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.69 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 1/4",
+    2.0
+   ],
+   [
+    "stres: 3/6",
+    1.2
+   ],
+   [
+    "banka: ČSOB",
+    1.0
+   ],
+   null,
+   [
+    "modelový sklon: 3/10",
+    12.6
+   ],
+   [
+    "věrnost značce: 5.3/10",
+    1.06
+   ],
+   null,
+   null,
+   [
+    "bez témat: 2/10",
+    1.6
+   ],
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   [
+    "vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 5/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.0
+   ],
+   [
+    "smartphone: 7/10",
+    1.2
+   ]
+  ],
+  [
+   null,
+   [
+    "spíše vyšší svědomitost než populační průměr",
+    2.431
+   ],
+   [
+    "důvěra vládě: 7/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 3/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   [
+    "účast ve volbách: ano",
+    3.24
+   ],
+   null,
+   [
+    "zdraví: výborné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 20/27 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "GAD-7 symptom score: 5/21 (nikoli diagnóza)",
+    1.5333333333333332
+   ],
+   null,
+   [
+    "čtení: ~7.3 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.12 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   null,
+   [
+    "banka: Komerční banka",
+    1.0
+   ],
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 6/10",
+    10.799999999999999
+   ],
+   [
+    "věrnost značce: 1/10",
+    1.8
+   ],
+   null,
+   null,
+   null,
+   [
+    "politický zájem: alespoň jednou týdně, ale ne denně",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.3
+   ],
+   null
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 3/10",
+    4.199999999999999
+   ],
+   [
+    "důvěra soudům: 4/10",
+    3.48
+   ],
+   [
+    "důvěra policii: 4/5",
+    4.199999999999999
+   ],
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: méně než měsíčně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: špatné",
+    2.2
+   ],
+   [
+    "PHQ-9 symptom score: 23/27 (nikoli diagnóza)",
+    2.4
+   ],
+   null,
+   [
+    "sport: ~45 min/den",
+    0.9
+   ],
+   [
+    "čtení: ~8 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.30 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 6/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: nikdy",
+    1.265
+   ],
+   [
+    "modelový sklon: 3/10",
+    12.6
+   ],
+   null,
+   null,
+   null,
+   [
+    "bez témat: 0/10",
+    2.0
+   ],
+   [
+    "politický zájem: alespoň jednou měsíčně, ale méně než týdně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 1.3/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.37
+   ],
+   [
+    "smartphone: 3.5/10",
+    1.15
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 5/10",
+    3.0
+   ],
+   [
+    "důvěra soudům: 5/10",
+    2.9
+   ],
+   [
+    "důvěra policii: 3/5",
+    2.8
+   ],
+   null,
+   [
+    "sledování zpráv: méně než měsíčně",
+    3.9000000000000004
+   ],
+   [
+    "zdraví: uspokojivé",
+    1.6500000000000001
+   ],
+   null,
+   [
+    "GAD-7 symptom score: 19/21 (nikoli diagnóza)",
+    2.4
+   ],
+   null,
+   null,
+   [
+    "ochota riskovat: 0.42 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 4/6",
+    1.2
+   ],
+   [
+    "banka: Fio",
+    1.0
+   ],
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   null,
+   null,
+   null,
+   null,
+   [
+    "bez témat: 4/10",
+    1.2
+   ],
+   [
+    "politický zájem: alespoň jednou měsíčně, ale méně než týdně",
+    1.05
+   ],
+   [
+    "vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   [
+    "vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.5
+   ],
+   [
+    "smartphone: 5/10",
+    1.0
+   ]
+  ],
+  [
+   null,
+   null,
+   [
+    "důvěra vládě: 4/10",
+    3.5999999999999996
+   ],
+   [
+    "důvěra soudům: 3/10",
+    4.06
+   ],
+   [
+    "důvěra policii: 5/5",
+    5.6
+   ],
+   null,
+   [
+    "sledování zpráv: nikdy",
+    5.2
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 0/27 (nikoli diagnóza)",
+    1.2
+   ],
+   [
+    "GAD-7 symptom score: 19/21 (nikoli diagnóza)",
+    2.4
+   ],
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~18.3 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.89 (0–1)",
+    NaN
+   ],
+   null,
+   null,
+   null,
+   [
+    "osamělost: většinu času",
+    1.265
+   ],
+   [
+    "modelový sklon: 1/10",
+    16.2
+   ],
+   [
+    "věrnost značce: 1/10",
+    1.8
+   ],
+   null,
+   null,
+   null,
+   [
+    "politický zájem: méně než jednou měsíčně",
+    1.05
+   ],
+   [
+    "vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví",
+    1.15
+   ],
+   null,
+   [
+    "smartphone: 5.9/10",
+    1.09
+   ]
+  ],
+  [
+   [
+    "výrazně vyšší extraverze než populační průměr",
+    4.183199999999999
+   ],
+   null,
+   [
+    "důvěra vládě: 0/10",
+    6.0
+   ],
+   [
+    "důvěra soudům: 5/10",
+    2.9
+   ],
+   null,
+   [
+    "účast ve volbách: ne",
+    3.24
+   ],
+   [
+    "sledování zpráv: denně",
+    5.2
+   ],
+   [
+    "zdraví: dobré",
+    1.1
+   ],
+   [
+    "PHQ-9 symptom score: 1/27 (nikoli diagnóza)",
+    1.26
+   ],
+   null,
+   [
+    "sport: ~0 min/den",
+    0.8
+   ],
+   [
+    "čtení: ~2.7 h/týden",
+    0.7
+   ],
+   [
+    "ochota riskovat: 0.89 (0–1)",
+    NaN
+   ],
+   [
+    "dluhy: 3/4",
+    1.3333333333333333
+   ],
+   [
+    "stres: 1/6",
+    2.0
+   ],
+   null,
+   [
+    "osamělost: více než jednou týdně",
+    1.265
+   ],
+   null,
+   [
+    "věrnost značce: 1/10",
+    1.8
+   ],
+   null,
+   null,
+   [
+    "bez témat: 6/10",
+    1.2
+   ],
+   [
+    "politický zájem: nikdy",
+    1.05
+   ],
+   null,
+   [
+    "vliv na vládu: 1.8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako)",
+    1.32
+   ],
+   [
+    "smartphone: 3/10",
+    1.2
+   ]
+  ]
+ ],
  "rows_sha256": "58ad03034a1105088d4a88fed32892e1cbe1fd923d3923d62533cf6dce7402e5",
+ "signal_rows_sha256": "e17700b6e14e7fe8189c4c07c76742f2cced4477680e0844d4d9393d43aef3a9",
+ "signals": [
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 1/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]; vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 70 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 90. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: manažeři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 1/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]; vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra vládě: 3/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 59 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 4. místo ze 14 Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra vládě: 3/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: PHQ-9 symptom score: 17/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; stres: 6/6 [something else]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]",
+   "persona": "Jsem muž, ve věku neuvedeno. Mám střední bez maturity vzdělání. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 4. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 17/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; stres: 6/6 [something else]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]",
+   "persona": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: bydlí v rodinném domě, děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 0/10 [kalibrovaný behaviorální model]; věrnost značce: 3.2/10 [kalibrovaný behaviorální model]; sport: ~240 min/den [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]",
+   "persona": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 54. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 0/10 [kalibrovaný behaviorální model]; věrnost značce: 3.2/10 [kalibrovaný behaviorální model]; sport: ~240 min/den [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: svobodný(á), děti v domácnosti, žije sám"
+  },
+  {
+   "grounded": "Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 1/6 [something else]",
+   "persona": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 1/6 [something else]"
+  },
+  {
+   "grounded": "Relevantní datové signály: smartphone: 8/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 78 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 66. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 10. místo ze 14 Relevantní datové signály: smartphone: 8/10 [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 17/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: dobré [statisticky přiřazený celý donor blok; EHIS 2019.0]; sport: ~45 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 67 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: pracuje Aktuální profesní skupina: úředníci Velikost domácnosti: 2 osoba/y Zdraví v core datech: špatné Kvalita života v kraji: 1. místo ze 14 Relevantní datové signály: výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 17/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: dobré [statisticky přiřazený celý donor blok; EHIS 2019.0]; sport: ~45 min/den [kalibrovaný behaviorální model] Domácnost: druh_druzka, bez auta, děti v domácnosti"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 47 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 71. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: úředníci Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra vládě: 3.5/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]; vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 46 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra vládě: 3.5/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]; vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 2/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 71 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 23. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 2/10 [kalibrovaný behaviorální model] Domácnost: rozvedený(á), děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 8/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv na vládu: 2.9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 79 let. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: důvěra vládě: 8/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv na vládu: 2.9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra soudům: 1.4/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 51 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra soudům: 1.4/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: uspokojivé; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: nikdy [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~15 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 89 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 20–30 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 26. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: nikdy [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~15 min/den [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit]; věrnost značce: 1/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 48 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 57. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit]; věrnost značce: 1/10 [kalibrovaný behaviorální model] Domácnost: bydlí v rodinném domě, děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 10/10 [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem žena, ve věku 61 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 35. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: obsluha strojů a zařízení Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 10/10 [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice."
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.96 (0–1) [kalibrovaný modelový kompozit]; stres: 2/6 [something else]",
+   "persona": "Jsem žena, ve věku 41 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 59. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.96 (0–1) [kalibrovaný modelový kompozit]; stres: 2/6 [something else]"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 23 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 44. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: PHQ-9 symptom score: 2/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 72 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 9/10 Pracovní status: nezaměstnaný/á Velikost domácnosti: 5 osoba/y Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: velmi dobré Kvalita života v kraji: 8. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 2/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: ženatý/vdaná, bydlí v rodinném domě, bez auta, děti v domácnosti"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 76 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 8/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; důvěra policii: 2/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 2/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 54 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 4. místo ze 14 Relevantní datové signály: důvěra vládě: 8/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; důvěra policii: 2/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 2/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 8/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 81 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 10. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 8/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 65 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 51. percentil v harmonizované příjmové pozici Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 12. místo ze 14 Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 9/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra soudům: 0/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra policii: 4/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 38 let. Mám základní vzdělání. Osobní příjem: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 43. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: důvěra soudům: 0/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra policii: 4/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: stres: 6/6 [something else]; GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; PHQ-9 symptom score: 6/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 50 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: dobré Kvalita života v kraji: 9. místo ze 14 Relevantní datové signály: stres: 6/6 [something else]; GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; PHQ-9 symptom score: 6/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]",
+   "persona": "Jsem žena, ve věku 73 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: bydlí v bytě v osobním vlastnictví"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; smartphone: 7/10 [kalibrovaný behaviorální model]; sport: ~120 min/den [kalibrovaný behaviorální model]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; věrnost značce: 5/10 [kalibrovaný behaviorální model]; čtení: ~10.8 h/týden [modelový hodnotový proxy]",
+   "persona": "Jsem muž, ve věku 92 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 9. místo ze 14 Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; smartphone: 7/10 [kalibrovaný behaviorální model]; sport: ~120 min/den [kalibrovaný behaviorální model]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; věrnost značce: 5/10 [kalibrovaný behaviorální model]; čtení: ~10.8 h/týden [modelový hodnotový proxy] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: děti v domácnosti, žije sám"
+  },
+  {
+   "grounded": "Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 3/6 [something else]",
+   "persona": "Jsem žena, ve věku 34 let. Mám voš/vš vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 12. místo ze 14 Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 3/6 [something else]"
+  },
+  {
+   "grounded": "Relevantní datové signály: smartphone: 7.9/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem žena, ve věku 60 let. Mám střední bez maturity vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 1 osoba/y Kvalita života v kraji: 1. místo ze 14 Relevantní datové signály: smartphone: 7.9/10 [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: PHQ-9 symptom score: 11/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; zdraví: velmi dobré [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 78 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 69. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 11/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; zdraví: velmi dobré [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model] Domácnost: ovdovělý(á), bydlí v nájemním bytě, auto v domácnosti, děti v domácnosti"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 81 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 10/10 Pracovní status: pracuje Současně: student/ka Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 9. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; důvěra policii: 3/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 4/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 62 let. Mám voš/vš vzdělání. Žiju v kraji Hlavní město Praha. Osobní příjem: 20–30 tisíc Kč čistého měsíčně Příjmová pozice (compatibility proxy): 5/10 Pracovní status: jiná ekonomická neaktivita Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; důvěra policii: 3/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; vliv: dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 4/10 [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 70 let. Mám základní vzdělání. Osobní příjem: 30–45 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 10. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; účast ve volbách: ne [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 68 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 45–60 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 45. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 8. místo ze 14 Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: nikdy [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; účast ve volbách: ne [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 4/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 35 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: pracuje Aktuální profesní skupina: řemeslníci a opraváři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: důvěra vládě: 4/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: velmi dobré; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou týdně, ale ne denně [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: PHQ-9 symptom score: 20/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 5/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]",
+   "persona": "Jsem žena, ve věku 87 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 20/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 5/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit]; dluhy: 3/4 [kalibrovaná modelová položka]",
+   "persona": "Jsem žena, ve věku 53 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 73. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit]; dluhy: 3/4 [kalibrovaná modelová položka] Domácnost: bydlí v nájemním bytě"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: méně než měsíčně [statisticky přiřazený celý donor blok; ISSP 2021.0]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 74 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 98. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 8. místo ze 14 Relevantní datové signály: sledování zpráv: méně než měsíčně [statisticky přiřazený celý donor blok; ISSP 2021.0]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0] Domácnost: ovdovělý(á), žije sám"
+  },
+  {
+   "grounded": "Relevantní datové signály: ochota riskovat: 0.89 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem žena, ve věku 36 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 72. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: ochota riskovat: 0.89 (0–1) [kalibrovaný modelový kompozit]"
+  },
+  {
+   "grounded": "Relevantní datové signály: smartphone: 3/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 74 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: smartphone: 3/10 [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 19/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~15 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 70 let. Mám základní vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 90. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: manažeři Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 19/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~15 min/den [kalibrovaný behaviorální model] Domácnost: druh_druzka, bez auta, žije sám"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 59 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 6/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 4 osoba/y Kvalita života v kraji: 4. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra policii: 2/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: méně než měsíčně [statisticky přiřazený celý donor blok; ISSP 2021.0]; smartphone: 7.3/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku neuvedeno. Mám střední bez maturity vzdělání. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 4. místo ze 14 Relevantní datové signály: důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra policii: 2/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: méně než měsíčně [statisticky přiřazený celý donor blok; ISSP 2021.0]; smartphone: 7.3/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 10/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 10/10 [kalibrovaný behaviorální model] Domácnost: děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 2/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 54. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: důvěra vládě: 2/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; vliv na vládu: 0/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra soudům: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou měsíčně, ale méně než týdně [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0]; důvěra soudům: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: alespoň jednou měsíčně, ale méně než týdně [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: PHQ-9 symptom score: 25/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 8/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: špatné [statisticky přiřazený celý donor blok; EHIS 2019.0]",
+   "persona": "Jsem muž, ve věku 78 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 66. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: dobré Kvalita života v kraji: 10. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 25/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 8/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: špatné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 67 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: pracuje Aktuální profesní skupina: úředníci Velikost domácnosti: 2 osoba/y Kvalita života v kraji: 1. místo ze 14 Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 7/10 [kalibrovaný behaviorální model]; smartphone: 7/10 [kalibrovaný behaviorální model]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem žena, ve věku 47 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 71. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: úředníci Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 7/10 [kalibrovaný behaviorální model]; smartphone: 7/10 [kalibrovaný behaviorální model]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: rozvedený(á)"
+  },
+  {
+   "grounded": "Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]; stres: 6/6 [something else]",
+   "persona": "Jsem žena, ve věku 46 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]; stres: 6/6 [something else]"
+  },
+  {
+   "grounded": "Relevantní datové signály: smartphone: 2/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 71 let. Mám voš/vš vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 23. percentil v harmonizované příjmové pozici Pracovní status: neuvedeno Poslední/uváděná profesní skupina: pracovníci ve službách a prodeji Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: smartphone: 2/10 [kalibrovaný behaviorální model]"
+  },
+  {
+   "grounded": "Relevantní datové signály: spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 21/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; sport: ~15 min/den [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 79 let. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 3 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; PHQ-9 symptom score: 21/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; sport: ~15 min/den [kalibrovaný behaviorální model] Domácnost: ovdovělý(á), auto v domácnosti, děti v domácnosti"
+  },
+  {
+   "grounded": "",
+   "persona": "Jsem žena, ve věku 51 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Příjmová pozice (compatibility proxy): 7/10 Pracovní status: neuvedeno Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; spíše nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 1/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem muž, ve věku 89 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 20–30 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 26. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: důvěra policii: 1/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra vládě: 9/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; spíše nižší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; smartphone: 1/10 [kalibrovaný behaviorální model]; vliv: špatné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem muž, ve věku 48 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 57. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0] Domácnost: děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 2.8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 61 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 35. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: obsluha strojů a zařízení Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: důvěra vládě: 1/10 [statisticky přiřazený celý donor blok; ISSP 2021.0]; sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; účast ve volbách: ano [statisticky přiřazený celý donor blok; ISSP 2021.0]; vliv na vládu: 2.8/10 (0=vůbec nesouhlasí, že lidé jako on/ona nemají, 10=zcela souhlasí, že lidé jako) [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: důvěra policii: 5/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra vládě: 6/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]",
+   "persona": "Jsem žena, ve věku 41 let. Mám střední bez maturity vzdělání. Žiju v kraji Karlovarský kraj. Relativní příjmová pozice: přibližně 59. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: manažeři Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: důvěra policii: 5/5 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; důvěra vládě: 6/10 [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; vliv: výborné; vyšší hodnota = horší sebehodnocení zdraví [měřeno v core donorovi; PIAAC 2023.0]; politický zájem: nikdy [měřeno v core donorovi; PIAAC 2023.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: stres: 1/6 [something else]; PHQ-9 symptom score: 12/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; GAD-7 symptom score: 0/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]",
+   "persona": "Jsem žena, ve věku 23 let. Mám střední s maturitou vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 44. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: výborné Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: stres: 1/6 [something else]; PHQ-9 symptom score: 12/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; GAD-7 symptom score: 0/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]"
+  },
+  {
+   "grounded": "Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; dluhy: 4/4 [kalibrovaná modelová položka]; věrnost značce: 5/10 [kalibrovaný behaviorální model]",
+   "persona": "Jsem muž, ve věku 72 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 9/10 Pracovní status: nezaměstnaný/á Velikost domácnosti: 5 osoba/y Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 8. místo ze 14 Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; dluhy: 4/4 [kalibrovaná modelová položka]; věrnost značce: 5/10 [kalibrovaný behaviorální model] Domácnost: bydlí v rodinném domě, děti v domácnosti"
+  },
+  {
+   "grounded": "Relevantní datové signály: sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; smartphone: 1/10 [kalibrovaný behaviorální model]; sport: ~120 min/den [kalibrovaný behaviorální model]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; věrnost značce: 5/10 [kalibrovaný behaviorální model]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]",
+   "persona": "Jsem žena, ve věku 76 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: pracuje Současně: student/ka Aktuální profesní skupina: pomocní a nekvalifikovaní pracovníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; smartphone: 1/10 [kalibrovaný behaviorální model]; sport: ~120 min/den [kalibrovaný behaviorální model]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; věrnost značce: 5/10 [kalibrovaný behaviorální model]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: děti v domácnosti, žije sám"
+  }
+ ],
  "topic_keys": {
   "B2B": [
    "dodavatel",
@@ -1135,11 +5313,14 @@
   ]
  },
  "unit_sources": {
+  "PERSONA_VALUE_LABELS_v17.json": "9bc4866fbad7d2dede416a8053377c242de1e6c9589bda3e96fa777e8ffc29f5",
+  "PRODUCT_POLICY.json": "8b7cca1365469a7d8219f9bd89b46768ebe12a15095cce323ccc297e18e89ddf",
   "audience_profile.py": "65a89d5cef442433d7a86809c80714a3507f87a8a010455f833b5fe8b2c6e2b0",
   "dispozice.py": "7b8c277e7712a1e6fc3ac461e44b77897b742bc5407c1a9effc1b2b9c2366613",
   "persona_calibration.py": "09afc6af704cc49ae8a4867d52d42835335759b66518d381014e88d71404deec",
   "persona_depth.py": "734e45701f78fc1c7109be6f40da53b5847e4b834d0ffe8174e29031879d2285",
   "persona_grounded.py": "2cc44db6b2c427238822f59d78bc6253e5e5886aa923d4f5a5d67504c7f57b81",
-  "pipeline.py": "774592a22ae9661d12756c7ece281ee8933e0341b8fbae34c11067afc055458f"
+  "pipeline.py": "774592a22ae9661d12756c7ece281ee8933e0341b8fbae34c11067afc055458f",
+  "product_policy.py": "38b00a9d25824be75622352dea6ee7b56573e7ca0f11b2a68d098408fc78acea"
  }
 }

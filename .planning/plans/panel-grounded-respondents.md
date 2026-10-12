@@ -11,7 +11,7 @@ chunks:
   - "[x] 3a. Persona contract (plan before code): the mode 18.6.6 ran, its inputs, topics, the policy gate, parity"
   - "[x] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
   - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
-  - "[ ] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
+  - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[ ] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
@@ -434,6 +434,35 @@ questions (every topic reached; `auto`/`automaticky`, `byt`/`být`, a phrase key
 alone, more than five topics) and 4 blocks; the table compared with the unit's own dictionary
 (`tools/persona_capture.py`; re-captured byte-identical). Mutating the phrase rule, the short-stem
 rule, the `byt` and `auto`/`obec` rules, the tie order or the cap fails it.
+
+### 3d. Landed: grounded signals
+
+`domain/persona_signals.py`: `parse_catalog` (`persona_grounded._catalog` as `read_csv` reads the
+catalog: an empty `block`, `kind`, `wave` or `topics` cell reads `"nan"`, an empty `priority` or
+`min_abs_z` NaN; a `wave` column with a gap reads as float, so "ISSP 2021.0"), `parse_value_labels`,
+`render` (`_render`: value labels first, then the 15 kinds, each with the unit's score),
+`grounded_text` (`grounded_profile_text`: topic match, the `MODELED_BEHAVIOR_PRIOR` gate, the
+specific-topic multiplier, the order, three per block, one per concept, the budget
+`signal_budget`, `PRODUCT_POLICY.json:34-38`), `_compact_anchor`, `compatibility_columns`. The
+`P_*` compatibility block (`persona_depth.py:521-560`) is not ported: v17 replaced it
+(`persona_grounded.py:10`), and 3e refuses a population that carries its columns rather than
+differ silently.
+
+The companions reach it only through the loader: `RuntimePopulation.companion(asset_id)` hands
+out the bytes `_verified_joint` already reads and checks against the recorded SHA256 at every load
+(`application/population.py`), `companion_missing` otherwise
+(`test_population_companions.py::test_a_loaded_population_hands_out_its_verified_companions`).
+The cache keeps them with the population (about 3 MB for v17's 15 companions).
+
+Parity, in `tests/test_persona_profile.py` against the unit's own functions with a fictional
+`catalog.csv` (26 signals: every kind and evidence role, a five-signal block, a repeated concept,
+a modelled prior, empty cells, an absent column, four real column names the unit's value labels
+describe) and the unit's own `PERSONA_VALUE_LABELS_v17.json`, on 40 fictional `signals.csv` rows:
+the parsed catalog; every signal's text and score on every row (`_render`); 6 anchors
+(`_compact_anchor`); `grounded_profile_text` and the whole persona with its signals on 60 cases
+across 11 topic sets. All EXACT; re-captured byte-identical. Mutating a score constant, the
+specific-topic multiplier or the generic set, the per-block cap, the concept rule, the prior gate,
+the order, the budget, a threshold, the anchor rules or the `"nan"` reading fails it.
 
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks

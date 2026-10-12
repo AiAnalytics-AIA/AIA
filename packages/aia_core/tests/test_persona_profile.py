@@ -13,6 +13,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,14 @@ from aia_core.domain.persona_profile import (
     income_band,
     persona_text,
     profile_lines,
+)
+from aia_core.domain.persona_signals import (
+    compatibility_columns,
+    grounded_text,
+    parse_catalog,
+    parse_value_labels,
+    render,
+    signal_budget,
 )
 from aia_core.domain.persona_topics import TOPIC_KEYS, block_topics, question_topics
 from aia_core.domain.population.audience import Typed, _typed, column_type
@@ -176,3 +185,144 @@ def test_the_fixture_reaches_every_topic_and_the_ambiguous_words() -> None:
     assert by_text["Automaticky obnovujete předplatné?"] == ["predplatne"]  # auto != automaticky
     assert "bydleni" not in by_text["Může se to být stát kdykoli?"]  # byt != být
     assert by_text["Jaké je počasí?"] == []
+
+
+# --------------------------------------------------------------------------- #
+# Grounded signals (3d)
+# --------------------------------------------------------------------------- #
+
+CATALOG = parse_catalog((FIXTURES / "catalog.csv").read_bytes())
+LABELS = parse_value_labels((UNIT / "PERSONA_VALUE_LABELS_v17.json").read_bytes())
+SIGNAL_CASES: list[dict[str, Any]] = _INPUTS["signal_cases"]
+
+
+def _typed_rows(name: str) -> list[dict[str, Typed]]:
+    reader = csv.reader(io.StringIO((FIXTURES / name).read_text("utf-8")))
+    header, *raw = list(reader)
+    columns = {h: [None if r[i] == "" else r[i] for r in raw] for i, h in enumerate(header)}
+    kinds = {h: column_type(h, cells) for h, cells in columns.items()}
+    return [{h: _typed(columns[h][i], kinds[h]) for h in header} for i in range(len(raw))]
+
+
+SIGNAL_ROWS = _typed_rows("signals.csv")
+
+
+def test_the_signal_inputs_are_pinned() -> None:
+    assert _sha(FIXTURES / "catalog.csv") == EXPECTED["catalog_sha256"]
+    assert _sha(FIXTURES / "signals.csv") == EXPECTED["signal_rows_sha256"]
+
+
+@pytest.mark.parametrize("index", range(len(SIGNAL_CASES)))
+def test_the_grounded_signals_are_the_units(index: int) -> None:
+    case = SIGNAL_CASES[index]
+    row = SIGNAL_ROWS[case["row"]]
+    assert (
+        grounded_text(row, case["topics"], CATALOG, LABELS)
+        == (EXPECTED["signals"][index]["grounded"])
+    )
+
+
+@pytest.mark.parametrize("index", range(len(SIGNAL_CASES)))
+def test_the_whole_persona_with_its_signals_is_the_units(index: int) -> None:
+    case = SIGNAL_CASES[index]
+    row = SIGNAL_ROWS[case["row"]]
+    behaviour = grounded_text(row, case["topics"], CATALOG, LABELS)
+    assert persona_text(row, case["topics"], behaviour) == EXPECTED["signals"][index]["persona"]
+
+
+def test_the_signal_fixture_reaches_every_kind_role_and_cap() -> None:
+    texts = " ".join(s["grounded"] for s in EXPECTED["signals"])
+    for phrase in (
+        "populační průměr",  # bfi_z
+        "/5 [",  # scale5
+        "/4 [",
+        "/6 [",
+        "min/den",
+        "h/týden",
+        "(0–1)",
+        "PHQ-9",
+        "GAD-7",
+        "účast ve volbách: ",  # yesno
+        "více než jednou týdně",  # text, the duplicated key's later value
+        "(0=",  # anchors compacted
+        "; vyšší hodnota",  # values with a direction
+    ):
+        assert phrase in texts, phrase
+    for role in (
+        "měřeno v core donorovi",
+        "měřeno ve stejném core donorovi",
+        "statisticky přiřazený celý donor blok",
+        "kalibrovaný behaviorální model",
+        "modelový hodnotový proxy",
+        "kalibrovaný modelový kompozit",
+        "kalibrovaná modelová položka",
+        "something else",
+        ", match ",
+    ):
+        assert role in texts, role
+    assert "modelový sklon" not in texts  # a MODELED_BEHAVIOR_PRIOR is never shown
+    assert "chybí" not in texts and "bez témat" not in texts
+    # The ISSP block holds five signals; the unit shows at most three of them at once.
+    assert all(s["grounded"].count("ISSP") <= 3 for s in EXPECTED["signals"])
+    assert any(s["grounded"].count("ISSP") == 3 for s in EXPECTED["signals"])
+
+
+def test_the_budget_is_the_policys() -> None:
+    assert [signal_budget(["a"] * 0), signal_budget(["a"])] == [4, 4]
+    assert signal_budget(["a", "b", "c"]) == 5
+    assert signal_budget([str(i) for i in range(20)]) == 8
+
+
+def test_a_population_with_compatibility_columns_is_named() -> None:
+    assert compatibility_columns(["vek", "P_media_tv_10", "P_value_local_10", "Px"]) == (
+        "P_media_tv_10",
+        "P_value_local_10",
+    )
+
+
+def _same(a: Any, b: Any) -> bool:
+    """Equal, NaN equal to NaN (the unit's empty priority and min_abs_z read NaN)."""
+    if isinstance(a, float) and isinstance(b, float) and math.isnan(a) and math.isnan(b):
+        return True
+    return bool(a == b)
+
+
+def test_the_catalog_is_read_as_the_unit_reads_it() -> None:
+    expected = EXPECTED["catalog_parsed"]
+    assert len(CATALOG) == len(expected)
+    for signal, want in zip(CATALOG, expected, strict=True):
+        got = {
+            "column": signal.column,
+            "label": signal.label,
+            "topics": sorted(signal.topics),
+            "source": signal.source,
+            "wave": signal.wave,
+            "evidence_role": signal.evidence_role,
+            "block": signal.block,
+            "kind": signal.kind,
+            "priority": signal.priority,
+            "min_abs_z": signal.min_abs_z,
+            "concept": signal.concept,
+        }
+        assert set(got) == set(want)
+        for key in got:
+            assert _same(got[key], want[key]), (signal.column, key, got[key], want[key])
+
+
+@pytest.mark.parametrize("index", range(len(SIGNAL_ROWS)))
+def test_every_signal_renders_with_the_units_text_and_score(index: int) -> None:
+    row = SIGNAL_ROWS[index]
+    for signal, want in zip(CATALOG, EXPECTED["renders"][index], strict=True):
+        got = render(signal, row, LABELS)
+        if want is None:
+            assert got is None, signal.column
+        else:
+            assert got is not None and got[0] == want[0], signal.column
+            assert _same(got[1], want[1]), (signal.column, got[1], want[1])
+
+
+@pytest.mark.parametrize("index", range(len(_INPUTS["anchors"])))
+def test_anchor_prose_is_compacted_as_the_unit_does(index: int) -> None:
+    from aia_core.domain.persona_signals import _compact_anchor
+
+    assert _compact_anchor(*_INPUTS["anchors"][index]) == EXPECTED["anchors"][index]
