@@ -104,7 +104,7 @@
       "formulas": [],
       "id": "weights",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
-      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1); volbou se to stane ve W1.",
+      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1). Volba je deklarovaná v modulu Vážení (aggregate_cleaning).",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
@@ -7554,6 +7554,420 @@
     "steps": 8,
     "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
    }
+  },
+  "weighting": {
+   "aia-weighting-1": {
+    "editable": false,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Vážení"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "scheme",
+       "parse",
+       "column"
+      ],
+      "title_cs": "Schéma vah"
+     },
+     {
+      "id": "T",
+      "note_cs": "",
+      "step_ids": [
+       "total"
+      ],
+      "title_cs": "Součty populace"
+     },
+     {
+      "id": "C",
+      "note_cs": "",
+      "step_ids": [
+       "cleaning"
+      ],
+      "title_cs": "Neplatná váha"
+     },
+     {
+      "id": "K",
+      "note_cs": "",
+      "step_ids": [
+       "kish_aggregate",
+       "kish_gate",
+       "kish_sociomap"
+      ],
+      "title_cs": "Kishovo efektivní n na třech místech"
+     }
+    ],
+    "id": "weighting",
+    "in_force": "aia-weighting-1",
+    "note_cs": "AIA váhy nepočítá: každé schéma je sloupec panelu, který určí importní smlouva. Kalibrace, raking ani GREG v AIA nejsou. Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí. Čištění neplatné váhy v agregaci je volba; dnes medián jako v 18.6.6. Běh si vážení zapamatuje od W1b, upravit ho půjde od W1c.",
+    "preset": "aia-weighting-1",
+    "presets": [
+     "aia-weighting-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       }
+      ],
+      "formula_latex": "\\text{vážení} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.population.weights:WeightingSpec",
+      "note_cs": "",
+      "source_sha256": "388bcbb83712a16ad64102a6128e751eec50beee59cbd2d8ea52d31c40e972d5",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Pojmenování vážení",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze vážení",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-weighting-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "w_i = \\text{panel}\\left[i,\\ \\text{sloupec}(r)\\right],\\quad r = \\text{role běhu, jinak výchozí role}",
+      "formulas": [],
+      "id": "scheme",
+      "implements": "aia_core.domain.population.weights:resolve_weight_scheme",
+      "note_cs": "Nedeklarovaná role se odmítne; náhradní sloupec ani váhy 1 neexistují. Výchozí role je sama deklarací smlouvy a vazba populace ji zapisuje, není to záloha.",
+      "source_sha256": "c387afd2b0977a0c8d33348890c301cbce620dcbdc0a2fd520880bf4758aecb2",
+      "symbols": [
+       {
+        "latex": "r",
+        "meaning_cs": "role vah, kterou si vazba populace zapamatuje",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_default_role_resolves_to_its_declared_column",
+       "packages/aia_core/tests/test_population_contract.py::test_an_unknown_role_is_an_error_not_the_census_weight",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Schéma: role určí sloupec",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Importní smlouva",
+        "origin": "specification",
+        "reference": "contract_id",
+        "unit": "",
+        "value": "cz_synthetic_population/v17"
+       },
+       {
+        "absent": false,
+        "label_cs": "Výchozí role",
+        "origin": "specification",
+        "reference": "default_role",
+        "unit": "",
+        "value": "default_current"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.column",
+        "unit": "",
+        "value": "vaha_strukturalni_2025"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.column",
+        "unit": "",
+        "value": "vaha_populace_2025_aprox"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.column",
+        "unit": "",
+        "value": "vaha_kalibrovana"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.column",
+        "unit": "",
+        "value": "vaha_strana_2021_benchmark"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "w = \\text{desetinné číslo},\\quad w \\in [0, \\infty)",
+      "formulas": [],
+      "id": "parse",
+      "implements": "aia_core.domain.population.weights:parse_weight",
+      "note_cs": "Jen prosté desetinné číslo: „nan“, „inf“, podtržítka ani mezery nejsou váha.",
+      "source_sha256": "28a3cbf048b457a9cecc10a1a1d73d7c1dbd175c604dd12f957f87a92118c644",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_parse_weight_refuses_anything_else"
+      ],
+      "title_cs": "Čtení jedné váhy",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "\\exists i:\\ w_i \\text{ chybí nebo je neplatná} \\;\\lor\\; \\textstyle\\sum_i w_i \\le 0\\;\\Rightarrow\\; \\text{odmítnuto}",
+      "formulas": [],
+      "id": "column",
+      "implements": "aia_core.domain.population.weights:analysis_weights",
+      "note_cs": "Odmítne se celý sloupec a chyba spočítá každou vadu. Reference prázdnou nebo zápornou váhu nulovala (fillna(0).clip(0)) a respondenta tím tiše vyřadila.",
+      "source_sha256": "bd255e3b9db802617439d546d79f7ae92c257534d889534a1b8f85c94e25ed6a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_analysis_weights_refuse_an_unusable_column",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight"
+      ],
+      "title_cs": "Sloupec vah pro analýzu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       }
+      ],
+      "formula_latex": "\\left|\\textstyle\\sum_i w_i - T\\right| \\le \\tau",
+      "formulas": [],
+      "id": "total",
+      "implements": "aia_core.domain.population.validation:validate_import",
+      "note_cs": "Kontroluje se jen tam, kde reference součet deklarovala; u ostatních schémat se žádný nevymýšlí.",
+      "source_sha256": "d56289c2f42d88c58362e3d70f06b13f04397fb1451aa691cbe673781a971ae0",
+      "symbols": [
+       {
+        "latex": "T",
+        "meaning_cs": "očekávaný součet (velikost populace)",
+        "unit": "osob"
+       },
+       {
+        "latex": "\\tau",
+        "meaning_cs": "tolerance",
+        "unit": "osob"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_a_weight_total_outside_tolerance_fails",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Kontrola součtu vah při importu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.expected_total",
+        "unit": "osob",
+        "value": 8956290.3618
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.tolerance",
+        "unit": "osob",
+        "value": 2.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.expected_total",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.tolerance",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.expected_total",
+        "unit": "osob",
+        "value": 8533116.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.tolerance",
+        "unit": "osob",
+        "value": 0.001
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.expected_total",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.tolerance",
+        "unit": "osob",
+        "value": null
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Brána důkazů váhy nečistí: do analýzy mají přijít už jako deklarované schéma.",
+        "ref": "evidence/support.py (methodology-ledger M06, M16)"
+       }
+      ],
+      "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
+      "formulas": [],
+      "id": "cleaning",
+      "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "note_cs": "Tři pravidla pro tutéž váhu (nález D1): agregace ji nahradí mediánem platných (median, přenos 18.6.6), brána důkazů i načítání populace ji odmítnou. Volba je deklarovaná; běh ji začne číst ve W1b a refuse pak agregaci s neplatnou vahou odmítne.",
+      "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight"
+      ],
+      "title_cs": "Čištění vah v agregaci",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Čištění neplatné váhy",
+        "origin": "specification",
+        "reference": "aggregate_cleaning",
+        "unit": "",
+        "value": "median"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k > 0",
+      "formulas": [],
+      "id": "kish_aggregate",
+      "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "note_cs": "Čte váhy už vyčištěné; nekladnou nebo neplatnou váhu vynechá. Vzorec lze upravit v modulu Agregace (agg.kish).",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n v agregaci",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Brána důkazů váhy nečistí: do analýzy mají přijít už jako deklarované schéma.",
+        "ref": "evidence/support.py (methodology-ledger M06, M16)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "kish_gate",
+      "implements": "aia_core.domain.evidence.support:kish_effective_n",
+      "note_cs": "Zápornou nebo neplatnou váhu odmítne; nulová nic nepřidá.",
+      "source_sha256": "dd0bd83ed33fce776c48ee8111788ff6418084214626c468c7f8dda0e5d5f08c",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n v bráně důkazů",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Kishovo n páru v Fisherově intervalu: přiblížení schválené jako rozhodnutí AIA.",
+        "ref": "plan sociomap-signed-relations, rozhodnutí Q6"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "kish_sociomap",
+      "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "note_cs": "Odmítne i nulovou váhu. Na kladných konečných vahách dávají všechna tři místa totéž číslo, na jakýchkoli jiných se liší (nález D1).",
+      "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n páru v Sociomapě",
+      "values": []
+     }
+    ],
+    "steps": 9,
+    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
+   }
   }
  },
  "modules": [
@@ -7935,6 +8349,63 @@
    ],
    "steps": 13,
    "title_cs": "Agregace: z odpovědí odhad s intervalem"
+  },
+  {
+   "editable": false,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Vážení"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "scheme",
+      "parse",
+      "column"
+     ],
+     "title_cs": "Schéma vah"
+    },
+    {
+     "id": "T",
+     "note_cs": "",
+     "step_ids": [
+      "total"
+     ],
+     "title_cs": "Součty populace"
+    },
+    {
+     "id": "C",
+     "note_cs": "",
+     "step_ids": [
+      "cleaning"
+     ],
+     "title_cs": "Neplatná váha"
+    },
+    {
+     "id": "K",
+     "note_cs": "",
+     "step_ids": [
+      "kish_aggregate",
+      "kish_gate",
+      "kish_sociomap"
+     ],
+     "title_cs": "Kishovo efektivní n na třech místech"
+    }
+   ],
+   "id": "weighting",
+   "in_force": "aia-weighting-1",
+   "note_cs": "AIA váhy nepočítá: každé schéma je sloupec panelu, který určí importní smlouva. Kalibrace, raking ani GREG v AIA nejsou. Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí. Čištění neplatné váhy v agregaci je volba; dnes medián jako v 18.6.6. Běh si vážení zapamatuje od W1b, upravit ho půjde od W1c.",
+   "presets": [
+    "aia-weighting-1"
+   ],
+   "steps": 9,
+   "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
   }
  ],
  "presets": {
@@ -8098,6 +8569,7 @@
      "n_guard": null
     }
    }
-  }
+  },
+  "weighting": {}
  }
 }

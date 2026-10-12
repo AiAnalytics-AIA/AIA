@@ -38,7 +38,8 @@ def _values() -> dict[str, object]:
 
 
 def test_it_is_registered_after_support() -> None:
-    assert [m.id for m in MODULES][-2:] == ["support", "aggregation"]
+    ids = [m.id for m in MODULES]
+    assert ids[ids.index("support") + 1] == "aggregation"
 
 
 def test_the_preset_is_the_units_literals_bit_for_bit() -> None:

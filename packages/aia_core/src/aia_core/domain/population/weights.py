@@ -25,15 +25,22 @@ import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import StrEnum
+
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from .contract import PopulationImportContract
 from .errors import WeightResolutionError
 
 __all__ = [
+    "SchemeSpec",
+    "WeightCleaning",
     "WeightResolution",
+    "WeightingSpec",
     "analysis_weights",
     "parse_weight",
     "resolve_weight_scheme",
+    "weighting_spec",
 ]
 
 # A plain decimal, optionally signed, optionally with an exponent. Deliberately
@@ -116,3 +123,101 @@ def analysis_weights(
             reason="unusable_weight",
         )
     return tuple(values)
+
+
+# --------------------------------------------------------------------------- declared
+#
+# Plan ``methodology-tab.md`` W1a, ADR 0023 decision 2: what weighting rests on, declared in
+# one specification the Metodika tab shows. Its preset is built from the import contract, so
+# the schemes, the default role and the totals are the contract's own, never a copy that can
+# drift from it.
+
+
+class WeightCleaning(StrEnum):
+    """What the aggregate does with a weight that is not a positive finite number."""
+
+    #: 18.6.6's ``clean_weights``: it becomes the median of the valid weights (none valid:
+    #: every weight 1). The unit's port, and what every aggregate does today.
+    MEDIAN = "median"
+    #: The aggregate is refused, as the population loader and the evidence gate refuse.
+    REFUSE = "refuse"
+
+
+class _Declared(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+
+class SchemeSpec(_Declared):
+    """One scheme's column, and the population total an import must meet, where declared."""
+
+    column: str
+    expected_total: float | None
+    tolerance: float | None
+
+    @model_validator(mode="after")
+    def _total_and_tolerance_together(self) -> SchemeSpec:
+        if not self.column:
+            raise ValueError("a scheme names its column")
+        if (self.expected_total is None) != (self.tolerance is None):
+            raise ValueError("an expected total and its tolerance go together")
+        if self.expected_total is not None and not (
+            math.isfinite(self.expected_total) and self.expected_total > 0
+        ):
+            raise ValueError("an expected total is a positive finite number")
+        if self.tolerance is not None and not (
+            math.isfinite(self.tolerance) and self.tolerance >= 0
+        ):
+            raise ValueError("a tolerance is a finite number, not negative")
+        return self
+
+
+class WeightingSpec(_Declared):
+    """How AIA weights (plan ``methodology-tab.md`` W1a).
+
+    ``schemes`` are keyed by role, in the contract's order; ``default_role`` is the scheme a
+    binding records when none is chosen; ``aggregate_cleaning`` is what the aggregate does
+    with an invalid weight. There is no calibration, raking or GREG step to declare: the
+    weights are the panel's own columns.
+    """
+
+    methodology_version: str
+    contract_id: str
+    default_role: str
+    schemes: dict[str, SchemeSpec]
+    aggregate_cleaning: WeightCleaning
+
+    @model_validator(mode="after")
+    def _the_default_is_declared(self) -> WeightingSpec:
+        if not self.schemes:
+            raise ValueError("a weighting declares at least one scheme")
+        if self.default_role not in self.schemes:
+            raise ValueError(
+                f"the default role {self.default_role!r} is not a declared scheme; "
+                f"declared: {sorted(self.schemes)}"
+            )
+        columns = [s.column for s in self.schemes.values()]
+        if len(set(columns)) != len(columns):
+            raise ValueError("two schemes name the same column")
+        return self
+
+
+def weighting_spec(
+    contract: PopulationImportContract,
+    *,
+    methodology_version: str,
+    aggregate_cleaning: WeightCleaning,
+) -> WeightingSpec:
+    """The weighting ``contract`` declares, as a specification: its schemes in its order,
+    its default role, its totals and tolerances, exactly."""
+    return WeightingSpec(
+        methodology_version=methodology_version,
+        contract_id=contract.contract_id,
+        default_role=contract.default_weight_role,
+        schemes={
+            s.role: SchemeSpec(
+                column=s.column, expected_total=s.expected_total, tolerance=s.tolerance
+            )
+            for s in contract.weight_schemes
+        },
+        aggregate_cleaning=aggregate_cleaning,
+    )
