@@ -7,6 +7,7 @@ present.
 
 from __future__ import annotations
 
+from .aggregation import AGGREGATION
 from .catalogue import MethodModule
 from .sociomap import SOCIOMAP
 from .sociomap_reference import SOCIOMAP_REFERENCE
@@ -15,7 +16,13 @@ from .support import SUPPORT
 
 __all__ = ["MODULES", "module"]
 
-MODULES: tuple[MethodModule, ...] = (SOCIOMAP, SOCIOMAP_REFERENCE, SOCIOMAPPING, SUPPORT)
+MODULES: tuple[MethodModule, ...] = (
+    SOCIOMAP,
+    SOCIOMAP_REFERENCE,
+    SOCIOMAPPING,
+    SUPPORT,
+    AGGREGATION,
+)
 
 
 def module(module_id: str) -> MethodModule:

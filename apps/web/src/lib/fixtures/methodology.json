@@ -1,5 +1,517 @@
 {
  "details": {
+  "aggregation": {
+   "aia-aggregate-1": {
+    "editable": false,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Agregace"
+     },
+     {
+      "id": "V",
+      "note_cs": "",
+      "step_ids": [
+       "weights",
+       "kish"
+      ],
+      "title_cs": "Váhy"
+     },
+     {
+      "id": "O",
+      "note_cs": "",
+      "step_ids": [
+       "share",
+       "mean",
+       "median",
+       "sd",
+       "top_box",
+       "multi"
+      ],
+      "title_cs": "Odhady"
+     },
+     {
+      "id": "B",
+      "note_cs": "",
+      "step_ids": [
+       "resample",
+       "interval"
+      ],
+      "title_cs": "Interval: bootstrap dárců"
+     },
+     {
+      "id": "F",
+      "note_cs": "",
+      "step_ids": [
+       "classify",
+       "fidelity"
+      ],
+      "title_cs": "Věrohodnost otázky"
+     }
+    ],
+    "id": "aggregation",
+    "in_force": "aia-aggregate-1",
+    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to.",
+    "preset": "aia-aggregate-1",
+    "presets": [
+     "aia-aggregate-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       }
+      ],
+      "formula_latex": "\\text{agregace} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.research_aggregate:AggregationSpec",
+      "note_cs": "",
+      "source_sha256": "b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Pojmenování agregace",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze agregace",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-aggregate-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
+      "formulas": [],
+      "id": "weights",
+      "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1); volbou se to stane ve W1.",
+      "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Čištění vah",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "kish",
+      "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "note_cs": "Podporu buňky z něj počítá modul Podpora a potlačení.",
+      "source_sha256": "3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
+      ],
+      "title_cs": "Kishovo efektivní n",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "p_c = 100\\,\\frac{\\sum_k w_k\\,[x_k = c]}{\\sum_k w_k}\\quad\\text{(na 1 desetinné místo)}",
+      "formulas": [],
+      "id": "share",
+      "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_distribution",
+      "note_cs": "Odhad i meze se zaokrouhlí na jedno desetinné místo.",
+      "source_sha256": "76887249ce329c16fca883d708015a576151cdd6aa94c44e3e35ff15c490f92c",
+      "symbols": [
+       {
+        "latex": "p_c",
+        "meaning_cs": "podíl možnosti c",
+        "unit": "%"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Podíl odpovědi (výběr jedné možnosti)",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "\\bar{x} = \\frac{\\sum_k w_k x_k}{\\sum_k w_k}\\quad\\text{(na 2 desetinná místa)}",
+      "formulas": [],
+      "id": "mean",
+      "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_mean",
+      "note_cs": "",
+      "source_sha256": "534b02464606c4f63bcc8dfb2a0d5ce29e88811e325cd919de75312ba39e4a1a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Průměr škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "F_j = \\frac{\\sum_{i \\le j} w_{(i)}}{\\sum_i w_i},\\quad \\tilde{x} = \\operatorname{interp}\\!\\left(0{,}5;\\ F;\\ x_{(\\cdot)}\\right)",
+      "formulas": [],
+      "id": "median",
+      "implements": "aia_core.domain.research_aggregate:weighted_quantile",
+      "note_cs": "Lineární interpolace jako np.interp; mimo rozsah se drží krajní hodnoty.",
+      "source_sha256": "2c10357e72def048928949d3a726a20cd4c3a46fefaab70b853dc35e34ace9a3",
+      "symbols": [
+       {
+        "latex": "F_j",
+        "meaning_cs": "kumulativní podíl vah seřazených odpovědí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_the_weighted_median_interpolates_like_numpy"
+      ],
+      "title_cs": "Medián škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "s = \\sqrt{\\frac{\\sum_k w_k (x_k - \\bar{x})^2}{\\sum_k w_k}}\\quad\\text{(ddof 0, na 2 desetinná místa)}",
+      "formulas": [],
+      "id": "sd",
+      "implements": "aia_core.domain.research_aggregate:weighted_variance",
+      "note_cs": "Vážená populační odchylka; pod dvěma platnými odpověďmi se nepočítá.",
+      "source_sha256": "8619db992b4e63b28d35fd2d2540ea3ee7edbba0b9bcd5663c8db38a784bef1a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Směrodatná odchylka škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "T = 100\\,\\frac{\\sum_k w_k\\,[x_k \\ge \\max - (b - 1)]}{\\sum_k w_k}",
+      "formulas": [],
+      "id": "top_box",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "note_cs": "Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
+      "source_sha256": "912302d916cdc2ec4f025df651b76a0b8c6d94ac403dc3d1138feddd40774083",
+      "symbols": [
+       {
+        "latex": "b",
+        "meaning_cs": "šířka top boxu",
+        "unit": "bodů škály"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Top box škály",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Šířka top boxu",
+        "origin": "specification",
+        "reference": "top_box",
+        "unit": "bodů škály",
+        "value": 2
+       },
+       {
+        "absent": false,
+        "label_cs": "Semínko bootstrapu top boxu",
+        "origin": "specification",
+        "reference": "bootstrap.seed_top_box",
+        "unit": "",
+        "value": 20260818
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "p_i = 100\\,\\frac{\\sum_k w_k\\,[i \\in x_k]}{\\sum_k w_k},\\quad \\text{semínko}_i = \\text{semínko} + i",
+      "formulas": [],
+      "id": "multi",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "note_cs": "Součet podílů přesahuje 100 %. Každá možnost má vlastní bootstrap: semínko základního bootstrapu plus pořadí možnosti.",
+      "source_sha256": "912302d916cdc2ec4f025df651b76a0b8c6d94ac403dc3d1138feddd40774083",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Podíl možnosti (výběr více možností)",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Replikace bootstrapu na možnost",
+        "origin": "specification",
+        "reference": "bootstrap.reps_multi",
+        "unit": "",
+        "value": 350
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Generátor AIA (random.Random, index klastru floor(u·m)) místo PCG64 NumPy: stejné vstupy a semínko dávají stejné meze na každém stroji.",
+        "ref": ".planning/open-items.md OI-62"
+       }
+      ],
+      "formula_latex": "m^{(r)}_d = \\#\\{\\,j \\le M : \\lfloor u^{(r)}_j M \\rfloor = d\\,\\},\\quad w^{(r)}_k = m^{(r)}_{d_k} w_k,\\quad r = 1 \\dots R",
+      "formulas": [],
+      "id": "resample",
+      "implements": "aia_core.domain.research_aggregate:_multipliers",
+      "note_cs": "Převzorkují se klastry dárců, ne řádky. Při jediném dárci se interval nepočítá a meze se rovnají odhadu (replikací 0).",
+      "source_sha256": "33dc067b0b09ab9cacfabf79e80f1c1d56badaec811bc1fafeac15b6f719fa2f",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet různých dárců (klastrů) v buňce",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "počet replikací",
+        "unit": ""
+       },
+       {
+        "latex": "u^{(r)}_j",
+        "meaning_cs": "rovnoměrné číslo z generátoru se semínkem",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_every_bound_lies_within_the_units_own_seed_spread",
+       "packages/aia_core/tests/test_research_aggregate.py::test_aias_own_bounds_are_pinned"
+      ],
+      "title_cs": "Převzorkování dárců",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Replikace bootstrapu",
+        "origin": "specification",
+        "reference": "bootstrap.reps",
+        "unit": "",
+        "value": 400
+       },
+       {
+        "absent": false,
+        "label_cs": "Semínko bootstrapu",
+        "origin": "specification",
+        "reference": "bootstrap.seed",
+        "unit": "",
+        "value": 20260816
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "[\\,Q_{q_1}(\\hat\\theta^{(1..R)}),\\ Q_{q_2}(\\hat\\theta^{(1..R)})\\,]\\quad\\text{(lineární kvantil, jako np.quantile)}",
+      "formulas": [],
+      "id": "interval",
+      "implements": "aia_core.domain.research_aggregate:_quantile",
+      "note_cs": "Percentilový interval s pevnými vahami respondentů: převzorkuje se jen výběr dárců, váhy se znovu nekalibrují. Jednotka tuto metodu nikde nedeklarovala (nález D5); 0,025 a 0,975 dávají 95% interval.",
+      "source_sha256": "947a26dd2691f27ea728bf3079aa32d0c768b5a255b1c1cd7d39eba1447746a2",
+      "symbols": [
+       {
+        "latex": "\\hat\\theta^{(r)}",
+        "meaning_cs": "odhad v replikaci r",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_every_bound_lies_within_the_units_own_seed_spread",
+       "packages/aia_core/tests/test_research_aggregate.py::test_aias_own_bounds_are_pinned",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Interval z kvantilů replikací",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Kvantily intervalu",
+        "origin": "specification",
+        "reference": "bootstrap.quantiles",
+        "unit": "",
+        "value": [
+         0.025,
+         0.975
+        ]
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "",
+        "ref": "fidelity.py classify_question, evidence_rating"
+       }
+      ],
+      "formula_latex": "\\text{absolutní hodnota} \\succ \\text{otevřená} \\succ \\text{relativní srovnání} \\succ \\text{škála} \\succ \\text{rozdělení}",
+      "formulas": [],
+      "id": "classify",
+      "implements": "aia_core.domain.research_aggregate:classify_question",
+      "note_cs": "O typu rozhodnou prosté české seznamy klíčových slov v textu otázky (nález D7): otázku na absolutní cenu nebo velikost trhu, napsanou jinými slovy, nepoznají.",
+      "source_sha256": "27a2c1fce0ce919467230fa1dfa8c71a1157a0bf905e62c07f5de42e50cb149f",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_keyword_lists_decide_what_is_refused"
+      ],
+      "title_cs": "Typ otázky podle textu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Vzory absolutní hodnoty (regex)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_aggregate:_ABSOLUTE_PATTERNS",
+        "unit": "",
+        "value": [
+         "kolik\\s+(?:kč|korun|byste\\s+zaplat|zaplatil)",
+         "maxim[aá]ln[ií]\\s+cena",
+         "ochot[an]\\w*\\s+zaplat",
+         "velikost\\s+trhu",
+         "kolik\\s+lid[ií]",
+         "kolik\\s+z[aá]kazn[ií]k",
+         "tržb",
+         "obrat",
+         "v\\s*kč"
+        ]
+       },
+       {
+        "absent": false,
+        "label_cs": "Vzory relativního srovnání (regex)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_aggregate:_RELATIVE_PATTERNS",
+        "unit": "",
+        "value": [
+         "kter[áý]\\s+variant",
+         "porovnej",
+         "prefer",
+         "pořad",
+         "znění",
+         "koncept\\s+[ab]"
+        ]
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "",
+        "ref": "fidelity.py classify_question, evidence_rating"
+       }
+      ],
+      "formula_latex": "\\text{absolutní} \\Rightarrow \\text{RED, REFUSE};\\ \\text{validováno} \\Rightarrow \\text{GREEN};\\ \\text{jinak AMBER}",
+      "formulas": [],
+      "id": "fidelity",
+      "implements": "aia_core.domain.research_aggregate:evidence_rating",
+      "note_cs": "Relativní srovnání se doporučuje (RECOMMEND), ostatní se jen ukáže (JUST_SHOW). AIA nemá validovaný holdout, takže bez validace je hodnocení vždy AMBER.",
+      "source_sha256": "4a0f0d8a177bc045c96b874a168430e2039c910841b6e891532c9e072127dfdf",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_keyword_lists_decide_what_is_refused"
+      ],
+      "title_cs": "Hodnocení věrohodnosti",
+      "values": []
+     }
+    ],
+    "steps": 13,
+    "title_cs": "Agregace: z odpovědí odhad s intervalem"
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "editable": true,
@@ -7069,9 +7581,71 @@
    ],
    "steps": 8,
    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
+  },
+  {
+   "editable": false,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Agregace"
+    },
+    {
+     "id": "V",
+     "note_cs": "",
+     "step_ids": [
+      "weights",
+      "kish"
+     ],
+     "title_cs": "Váhy"
+    },
+    {
+     "id": "O",
+     "note_cs": "",
+     "step_ids": [
+      "share",
+      "mean",
+      "median",
+      "sd",
+      "top_box",
+      "multi"
+     ],
+     "title_cs": "Odhady"
+    },
+    {
+     "id": "B",
+     "note_cs": "",
+     "step_ids": [
+      "resample",
+      "interval"
+     ],
+     "title_cs": "Interval: bootstrap dárců"
+    },
+    {
+     "id": "F",
+     "note_cs": "",
+     "step_ids": [
+      "classify",
+      "fidelity"
+     ],
+     "title_cs": "Věrohodnost otázky"
+    }
+   ],
+   "id": "aggregation",
+   "in_force": "aia-aggregate-1",
+   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Úpravy přijdou v G3; agregace podle jiné verze už nebude přenosem 18.6.6 a řekne to.",
+   "presets": [
+    "aia-aggregate-1"
+   ],
+   "steps": 13,
+   "title_cs": "Agregace: z odpovědí odhad s intervalem"
   }
  ],
  "presets": {
+  "aggregation": {},
   "sociomap": {
    "aia-sociomap-2": {
     "connectedness": {
