@@ -671,6 +671,11 @@ class ResearchAgentJobs:
             if r["workflow_type"] == RESEARCH_AGENT
         ]
 
+    def events(self, run_id: str, *, since: int = 0, limit: int = 500) -> list[dict[str, Any]]:
+        """The job's append-only events after ``since``: what its step reported while it ran."""
+        self.get(run_id)
+        return WorkflowRepository(self.session, self.scope).events(run_id, since=since, limit=limit)
+
     def cancel(self, run_id: str) -> WorkflowRunStatus:
         self.scope.require(Permission.CANCEL_WORKFLOW)
         self.get(run_id)
