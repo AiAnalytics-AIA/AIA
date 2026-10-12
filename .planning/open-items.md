@@ -1668,7 +1668,7 @@ handler's first guard can pass on some screen.
 
 **Status.** Open in the classic interface; **decision for the data owner** (PR B).
 
-## OI-50 · Finding · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
+## OI-50 · Finding, closed · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
 
 **Claim.** `setAudienceRange1793` reads both inputs with `Number(...)`, and
 `Number('')` is `0`, so a range with one bound left empty is stored with the
@@ -1697,12 +1697,14 @@ methodology decision.
 **Test that would have caught it.** The characterization test above, asserting
 `null` instead of `0`.
 
-**Status.** Open; ported as the classic behaves; **decision for the data owner**
+**Status.** Closed (below). Ported as the classic behaves, a **decision for the data owner**
 before PR B merges. **Update 2026-10-12 (#345, panel-grounded-respondents 6e):** AIA's
 live range editor leaves an empty bound out, so the population's own bound stands
 (`apps/web/src/research/audience.ts` `setRange`; `audience.live.test.ts` › *leaves an
 empty bound out, where the classic stored 0*). The classic `setAudienceRange` stays,
-characterised, as the parity port only. Closed for AIA once #345 merges.
+characterised, as the parity port only; no product code calls it
+(`AudienceStep.tsx:369 @ b0ec403e` commits through `setRange`). **Closed** 2026-10-12 by
+#345 (merged as `b0ec403e`).
 
 ## OI-51 · Finding · Picking a special-audience preset keeps the previous subpanel and its filters
 

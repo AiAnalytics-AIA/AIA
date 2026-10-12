@@ -954,7 +954,7 @@ ungated fixture.
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
-| Operate the population | `python -m aia_executors.population_ops <status\|import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`) |
+| Operate the population | `python -m aia_executors.population_ops <import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`); `status`, `record-dictionary` and `record-catalogue [--version]` act as no one and take no `--as` (no `AIA_POPULATION_OPERATORS`) |
 | **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
