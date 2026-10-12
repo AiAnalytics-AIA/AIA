@@ -269,8 +269,15 @@ class ResearchRuns:
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
+        kept: Mapping[str, Any] | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        ``kept`` is a retry's: the stored-version records (``methodology``,
+        ``support_methodology``, ``aggregation_methodology``) of the run it retries. A retry
+        passes that run's pins explicitly, so they are not resolved from what is in force
+        here; without these records the new run would say its stored versions were the code's
+        (plan ``methodology-tab`` Z1a). They are metadata only, never part of the run's key.
 
         The run also pins its aggregation (``aggregation``: the specification and the formulas
         it replaces; the organization's aggregation version in force when not given, plan
@@ -349,6 +356,11 @@ class ResearchRuns:
             key += f":aggregation:{fingerprint(aggregation_pin)[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
+        # A retry's pins came from stored versions resolved when its original started.
+        held = dict(kept or {})
+        methodology = methodology or held.get("methodology")
+        support_version = support_version or held.get("support_methodology")
+        aggregation_version = aggregation_version or held.get("aggregation_methodology")
         support_pin = support_spec.model_dump(mode="json")
         confirmation: tuple[float, float] | None = None
         limit = self.spend_limit()
@@ -442,6 +454,11 @@ class ResearchRuns:
             sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
+            kept={
+                k: run["metadata"][k]
+                for k in ("methodology", "support_methodology", "aggregation_methodology")
+                if run["metadata"].get(k)
+            },
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

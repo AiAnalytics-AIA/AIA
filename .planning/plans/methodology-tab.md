@@ -989,7 +989,12 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     from its metadata by `methodology.pins.run_methods` (the domain: layer_check keeps the
     Sociomap preset's name out of the API; no pin reads as the preset, a pin that cannot be read as `null`, never a guess,
     `test_run_methods.py`), and Results show it as "Metodika běhu"
-    (`test_research_api.py::test_a_run_names_the_methods_it_computed_under`). Every editable
+    (`test_research_api.py::test_a_run_names_the_methods_it_computed_under`). A retry kept its
+    original's pins but not where they came from: `retry` passes them explicitly, so the new
+    run had no `methodology` / `support_methodology` / `aggregation_methodology` records and
+    read as the code's (found in review on #338). A retry now keeps them, as metadata only,
+    never in its key
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`). Every editable
     module also introduced itself as "Postup výpočtu mapy"; now "Postup výpočtu".
   - **Not fixed (minor).** A line a rule does not check is edited as the text `null`; the
     Metodika tab has no link of its own (`/app/settings?tab=` is not read).
