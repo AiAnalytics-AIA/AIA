@@ -45,6 +45,7 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
+from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -179,6 +180,8 @@ class RunStart(BaseModel):
     #: What the person confirms a run can cost at most. Only read when the study has a limit
     #: the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    #: A materialized child of this study's client to run over instead of LIVE (P4e2).
+    population_version_id: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class RunRetry(BaseModel):
@@ -356,6 +359,18 @@ def _not_found(what: str) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail={"code": f"{what}_not_found", "message": "No such resource."},
+    )
+
+
+def _population_refused(exc: PopulationError) -> HTTPException:
+    """409: the selected child exists but its population cannot be resolved now."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_unavailable",
+            "message": "The selected population cannot be used for a run now.",
+            "details": {"reason": exc.reason},
+        },
     )
 
 
@@ -667,6 +682,7 @@ def start_run(
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
+            population_version_id=body.population_version_id,
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -676,6 +692,11 @@ def start_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except UnknownDatasetVersion as exc:
+        # Another client's or organization's child reads as not there, like any scope miss.
+        raise _not_found("population_version") from exc
+    except PopulationError as exc:
+        raise _population_refused(exc) from exc
     return _started(runs, started, response)
 
 

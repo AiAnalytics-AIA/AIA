@@ -40,6 +40,7 @@ from ..domain.population import (
     PopulationBinding,
     PopulationBindingMissing,
     PopulationImportContract,
+    VersionOwner,
 )
 from ..domain.prompts import PromptPin
 from ..domain.research import phase_of, retryable
@@ -75,7 +76,7 @@ from ..infrastructure.workflow_repository import (
     WorkflowRepository,
 )
 from .analysis import MAX_REPAIRS
-from .population import live_binding
+from .population import child_binding, live_binding
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -213,22 +214,41 @@ class ResearchRuns:
         except PopulationBindingMissing:
             return None
 
-    def _population_for(self, key: str, retry_of: str | None) -> PopulationBinding | None:
+    def _population_for(
+        self, key: str, retry_of: str | None, selected: PopulationBinding | None = None
+    ) -> PopulationBinding | None:
         """The population a run records (owner, 2026-10-10: record LIVE, read nothing).
 
         A start that finds its run names the binding that run recorded, so it is returned
         as before -- a run made before LIVE existed, or before LIVE moved, keeps what it
         recorded. A retry keeps the original's, as it keeps its Sociomap methods. A new run
-        records LIVE as it stands, or nothing while LIVE is not established. No step reads
-        it yet: fieldwork answers with fictional respondents (OI-61) and says so.
+        records the child its study selected (``selected``, resolved by :meth:`_selected`)
+        or LIVE as it stands, or nothing while LIVE is not
+        established. No step reads it yet: fieldwork answers with fictional respondents
+        (OI-61) and says so.
         """
         existing = self._workflows().find_run_by_idempotency_key(key)
         if existing is not None:
             return self._recorded_binding(existing)
         if retry_of is not None:
             return self._recorded_binding(retry_of)
+        if selected is not None:
+            return selected
         return live_binding(
             self.session, contract=self.population_contract, population_id=self.population_id
+        )
+
+    def _selected(self, version_id: str | None) -> PopulationBinding | None:
+        """The child a start selected, resolved for this study's client (P4e2), or ``None``."""
+        if version_id is None:
+            return None
+        return child_binding(
+            self.session,
+            contract=self.population_contract,
+            version_id=version_id,
+            owner=VersionOwner(
+                organization_id=self.scope.organization_id, client_id=self.scope.client_id
+            ),
         )
 
     # -- start ------------------------------------------------------------------
@@ -269,8 +289,15 @@ class ResearchRuns:
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
+        population_version_id: str | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run records the population it names (``population_version_id``: a materialized
+        child of the study's client, P4e2; LIVE when not given). A selected child is part of
+        the run's identity, so the same revision over LIVE and over a child is two runs; a
+        child that is not this client's raises
+        :class:`~aia_core.domain.population.UnknownDatasetVersion`, as a scope miss does.
 
         The run also pins its aggregation (``aggregation``: the specification and the formulas
         it replaces; the organization's aggregation version in force when not given, plan
@@ -321,6 +348,8 @@ class ResearchRuns:
         )
         if not readiness.ready:
             raise DesignNotReady(readiness)
+        # A retry keeps the original's population and never re-chooses it.
+        selected = self._selected(population_version_id if retry_of is None else None)
         project_id = designs.project_id()
         assert project_id is not None  # a revision exists, so its design project does
         pinned = [m.model_dump(mode="json") for m in methods]
@@ -347,6 +376,9 @@ class ResearchRuns:
             key += f":aggregation:{aggregation_version['payload_sha256'][:16]}"
         elif aggregation is not None and aggregation_pin != UNIT_AGGREGATION_PIN:
             key += f":aggregation:{fingerprint(aggregation_pin)[:16]}"
+        if population_version_id is not None and retry_of is None:
+            # A retry keeps the original's population; its key carries the original's id.
+            key += f":population:{fingerprint(population_version_id)[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
         support_pin = support_spec.model_dump(mode="json")
@@ -367,7 +399,7 @@ class ResearchRuns:
                 if confirm_cost_usd is None or confirm_cost_usd < ceiling.total_usd:
                     raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
                 confirmation = (ceiling.total_usd, limit)
-        population = self._population_for(key, retry_of)
+        population = self._population_for(key, retry_of, selected)
         started = start_workflow(
             self.session,
             self.scope,
