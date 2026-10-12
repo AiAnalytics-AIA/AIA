@@ -13,6 +13,7 @@ from typing import Any
 
 import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.research_sociomap import default_methods
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
@@ -278,3 +279,81 @@ def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
     # The tables beside the map read the same n_min as the warning did (S2b).
     (battery,) = _body(world, store, under_edit)["batteries"]
     assert battery["side_tables"]["n_min"] == battery["relation"]["n_min"] == 45
+
+
+# ------------------------------------------------ G1c: the support rules a run pins --
+
+
+def _start_with(world: Any, support: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            support=support,
+        )
+        session.commit()
+        return started.run_id
+
+
+def _aggregate(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+    run = _run(world, run_id)
+    step = next(s for s in run["steps"] if s["node_key"] == "aggregate")
+    assert step["status"] is StepRunStatus.SUCCEEDED, step
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        aggregate: dict[str, Any] = research.read_json(step["output"]["artifact_id"])["aggregate"]
+    return aggregate
+
+
+def test_with_nothing_stored_a_run_pins_both_support_rules_as_today(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    run_id = _start(world)
+    run = _run(world, run_id)
+    assert run["metadata"]["support"] == AIA_SUPPORT_V1.model_dump(mode="json")
+    assert "support_methodology" not in run["metadata"]
+    _drain(worker)
+    cell = next(iter(_aggregate(world, store, run_id)["batteries"].values()))["objects"]
+    assert {o["n_guard_threshold"] for o in cell.values()} == {25.0}
+
+
+def test_a_run_aggregates_under_the_support_rules_it_pinned(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    strict = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "results": AIA_SUPPORT_V1.results.model_copy(
+                update={"min_layer_donors": 900, "indicative_layer_donors": 950}
+            ),
+        }
+    )
+    today, edited = _start(world), _start_with(world, strict)
+    assert today != edited  # another rule set is another run of the same revision
+    _drain(worker)
+    objects = next(iter(_aggregate(world, store, edited)["batteries"].values()))["objects"]
+    assert {o["support_status"] for o in objects.values()} == {"SUPPRESS"}
+    assert {o["n_guard_threshold"] for o in objects.values()} == {900.0}
+
+
+def test_a_retry_keeps_the_support_rules_its_run_pinned(world: Any) -> None:
+    strict = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "results": AIA_SUPPORT_V1.results.model_copy(
+                update={"min_layer_donors": 900, "indicative_layer_donors": 950}
+            ),
+        }
+    )
+    run_id = _start_with(world, strict)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    run = _run(world, retried.run_id)
+    assert run["metadata"]["support"] == strict.model_dump(mode="json")

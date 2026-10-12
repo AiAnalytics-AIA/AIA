@@ -30,7 +30,7 @@ import re
 from collections.abc import Sequence
 from typing import Any, Final
 
-from .evidence.support import AIA_SUPPORT_V1, SupportEvidence, support_status
+from .evidence.support import SupportEvidence, SupportSpec, SupportThresholds, support_status
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecQuestion
 
@@ -62,9 +62,6 @@ UNCERTAINTY_NOTE: Final = (
     "n_unique_layer_donors <25 se nereportuje; 25\u201349 je INDIKATIVNÍ. "
     "Interval není důkaz externí prediktivní validity."
 )
-#: The rule every cell's ``support_status`` is decided by: the support specification's
-#: ``results`` rule, 18.6.6's donor lines 25 / 50 today (plan ``methodology-tab`` G1b).
-_RESULTS_RULE: Final = AIA_SUPPORT_V1.results
 
 
 # --------------------------------------------------------------------------- #
@@ -248,8 +245,14 @@ def _line(value: float | None) -> float | None:
     return None if value is None else float(value)
 
 
-def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, Any]:
-    """``donor_support`` for the core layer: the only layer a fieldwork dataset carries."""
+def donor_support(
+    donors: Sequence[str], weights: Sequence[float], *, rule: SupportThresholds
+) -> dict[str, Any]:
+    """``donor_support`` for the core layer: the only layer a fieldwork dataset carries.
+
+    ``rule`` decides ``support_status``: the run's pinned support specification's
+    ``results`` rule (plan ``methodology-tab`` G1c), 18.6.6's donor lines 25 / 50 unless a
+    version is in force."""
     n = len(donors)
     kish = kish_effective_n(clean_weights(weights))
     counts: dict[str, int] = {}
@@ -267,7 +270,7 @@ def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, 
             requires_donor_support=True,
             n_unique_layer_donors=nlayer,
         ),
-        _RESULTS_RULE,
+        rule,
     ).value
     return {
         "n": n,
@@ -426,13 +429,15 @@ def aggregate_question(
     donors: Sequence[str],
     *,
     validation_status: str,
+    support_rule: SupportThresholds,
 ) -> dict[str, Any]:
-    """One question's weighted, interval-first aggregate, as the unit reports it."""
+    """One question's weighted, interval-first aggregate, as the unit reports it, its status
+    decided by ``support_rule``."""
     rows = [(a, w, d) for a, w, d in zip(answers, weights, donors, strict=True) if a is not None]
     ok_answers = [r[0] for r in rows]
     w = clean_weights([r[1] for r in rows])
     ok_donors = [r[2] for r in rows]
-    support = donor_support(ok_donors, [r[1] for r in rows])
+    support = donor_support(ok_donors, [r[1] for r in rows], rule=support_rule)
     out: dict[str, Any] = {
         "typ": q.typ,
         "n_eligible": len(answers),
@@ -446,8 +451,8 @@ def aggregate_question(
         "n_unique_layer_donors": support["n_unique_layer_donors"],
         "max_donor_share": support["max_donor_share"],
         "support_status": support["support_status"],
-        "n_guard_threshold": _line(_RESULTS_RULE.min_layer_donors),
-        "indicative_threshold": _line(_RESULTS_RULE.indicative_layer_donors),
+        "n_guard_threshold": _line(support_rule.min_layer_donors),
+        "indicative_threshold": _line(support_rule.indicative_layer_donors),
         "uncertainty_note": UNCERTAINTY_NOTE,
         "evidence": evidence_rating(q.text, q.typ, validation_status=validation_status),
     }
@@ -532,9 +537,13 @@ def aggregate_dataset(
     spec: ResearchSpecification,
     dataset: FieldworkDataset,
     *,
+    support: SupportSpec,
     validation_status: str = "UNVALIDATED",
 ) -> dict[str, Any]:
     """Every question and every battery object of ``spec``, aggregated over ``dataset``.
+
+    ``support`` is the run's pinned support specification; its ``results`` rule decides
+    every cell's ``support_status`` (plan ``methodology-tab`` G1c).
 
     A battery object is aggregated as the scale question the unit compiles it to
     (``research_project.py`` ``_prefixed_battery_questions``).
@@ -547,7 +556,12 @@ def aggregate_dataset(
 
     questions = {
         q.id: aggregate_question(
-            q, column(q.id), weights, donors, validation_status=validation_status
+            q,
+            column(q.id),
+            weights,
+            donors,
+            validation_status=validation_status,
+            support_rule=support.results,
         )
         for q in spec.questions
     }
@@ -570,6 +584,7 @@ def aggregate_dataset(
                     weights,
                     donors,
                     validation_status=validation_status,
+                    support_rule=support.results,
                 ),
             }
         batteries[b.id] = {"title": b.title, "family": b.family, "objects": objects}

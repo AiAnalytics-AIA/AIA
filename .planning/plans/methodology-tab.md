@@ -23,7 +23,7 @@ chunks:
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[x] G1a. Support documented: both rule sets side by side, read-only (the unit's donor rule as Results shows it; AIA's evidence gate as analysis applies it), D1-D4 named on their steps"
   - "[x] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
-  - "[ ] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
+  - "[x] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
   - "[ ] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
@@ -647,11 +647,10 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   difference. Such cases are named, not hidden.
 - **G1, split four ways.** G1a documents; G1b declares both rule sets, bit-identical; G1c makes
   one rule govern both Results and analysis; G1d makes it editable with the draft check.
-  - **G1c needs one decision first: which rule is in force before the methodologist activates
-    a version.** Each option changes what people see:
-    - AIA's gate everywhere: Results suppresses more cells.
-    - The unit's rule everywhere: analysis admits more.
-    - The two as today, until a version is put in force.
+  - **Decided (owner, 2026-10-12): both rules as today until a version is in force.** Before
+    any version, Results keeps 18.6.6's donor rule and analysis keeps AIA's gate: that is
+    `aia-support-1`. A version the methodologist puts in force replaces both, and can make them
+    one rule by giving `results` and `analysis` the same lines.
   - **G1b. Landed.** `evidence/support.py`:
     - `SupportThresholds` is now a frozen model whose `None` means a line the rule does not
       check. It refuses a boolean, a negative or non-finite line, and an indicative line below
@@ -667,6 +666,26 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       (n, effective n) pairs each.
     - The module `support` now has the preset `aia-support-1` in force, a `method` step, and
       every line as a specification parameter. It is still not editable (G1d).
+  - **G1c. Landed.**
+    - **Pin.** `ResearchRuns.start` pins the organization's support version in force
+      (`methodology_in_force_for_study(…, "support")`). With nothing stored that is
+      `aia-support-1` (`pins.support_spec_for`). The pin goes in the run's metadata and the
+      aggregate step's input, with `support_methodology` naming a stored version.
+    - **Retry and identity.** A retry keeps the original's pin, and a run stored before the pin
+      reads as `aia-support-1` (`pins.read_support_pin`). A stored version, or a set the caller
+      chooses over the code's, is part of the run's identity, like the Sociomap's methods.
+    - **Aggregate.** `aggregate_dataset(…, support=)` decides every cell by the pinned
+      `results` rule. `donor_support` and `aggregate_question` take the rule as a required
+      keyword, so no run path has a default.
+    - **Analysis.** `native_sources` reads the pin into `NativeSources.support`, and
+      `native_evidence(…, support=)` gates by its `analysis` rule. A pin that does not read is
+      refused by name (`support_pin`).
+    - **Fingerprints.** Only a rule other than today's enters a fingerprint (the aggregate
+      artifact's input and the native evidence's system fingerprint), so a run under today's
+      rules keeps the keys and validations it always had.
+    - Tests: `test_support_pin.py`; `test_methodology_run_pins.py`, the support tests through
+      the real worker (a strict pin suppresses every object; a retry keeps its pin);
+      `test_analysis_results.py`, `test_a_runs_pinned_support_rules_reach_its_analysis`.
   - **Finding (for G1d).** The aggregate's `UNCERTAINTY_NOTE`
     (`research_aggregate.py:60`, on the G1b branch) is the unit's text, verbatim: "<25 se nereportuje;
     25–49 je INDIKATIVNÍ". Once the Results rule is editable, the note must be written from the
