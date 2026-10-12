@@ -361,6 +361,13 @@ packages/aia_core/src/aia_core/
       audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
                             from the column as pandas types it; subpanel_filters; select_audience over
                             a run's population, refusing where the unit dropped a filter
+      enrichment.py         The ANALYSIS view's seven runtime dimensions: 18.6.6's attach_derived
+                            (EXACT); AudienceDimensionsEnricher, the view's Enricher (composed by
+                            chunk 5 of panel-grounded-respondents, not yet)
+      sampling.py           A run's sample: the audience (audience.py), 18.6.6's largest-remainder
+                            quotas over sex x age group x region (+ education from n 700), weighted
+                            draw without replacement, raking and the audit; refusals by name;
+                            PanelSample.provenance() is what a run records (called by nothing yet)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -646,6 +653,10 @@ tools/aggregate_capture.py  Research fixtures from the unit's own functions: `ca
                             the unit's venv), `self` (AIA's pinned bounds)
 tools/audience_capture.py  Audience-filter fixtures: fictional rows and cases (`inputs`), the unit's
                             own sanitize_filters / _mask / factor_map on them (`capture`, with pandas)
+tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the unit's own
+                            enrich_panel on them (`capture`, with pandas)
+tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
+                            draw_representative with the MILP made to fail, and _rake (`capture`)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
@@ -878,6 +889,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
+| Enrichment and sample fixtures from the unit | `python tools/enrichment_capture.py inputs` / `python tools/sampling_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |

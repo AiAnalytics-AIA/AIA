@@ -21,9 +21,10 @@ from aia_core.application.population import PopulationRuntime
 from aia_core.domain.population import (
     CZ_LIVE, CZ_SYNTHETIC_V17, FieldUse, PopulationSelector, PopulationView,
 )
+from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
 
 runtime = PopulationRuntime(session, contract=CZ_SYNTHETIC_V17, source=asset_source,
-                            enricher=enricher)          # enricher: see OI-7
+                            enricher=AudienceDimensionsEnricher())
 
 # 1. When the run is created -- once.
 binding = runtime.resolve(PopulationSelector.population(CZ_LIVE),
@@ -134,11 +135,26 @@ unknown (`null`), never usable. A mismatch is a 409, `population_dictionary_mism
 section sits under the registry on **Společenská inteligence**. A subpanel is not yet
 applied to a study's audience (OI-91).
 
+## A run's sample
+
+`domain/population/sampling.py` draws a run's respondents from the population its binding
+loaded: `draw_panel_sample(population, filters, n, seed)` narrows by the audience filter
+(`audience.py`, 18.6.6's `sanitize_filters` + `_mask`), then ports 18.6.6's
+`draw_representative` on its stdlib path: largest-remainder quotas over sex x age group x region
+(education joins from n 700), a weighted draw without replacement within each cell, raking to the
+five quota fields' weighted shares, and the unit's audit and tolerances. Every quota field must
+pass `decide(field, AUDIENCE_FILTERING)` and `decide_joint(..., client_facing=False)`; an
+all-zero weight, a missing quota field or an unrepresentative sample is refused by name, never
+drawn smaller. `PanelSample.provenance()` is what a run records: the sampler and filter
+versions, filters, seed, the binding's `version_id` and `content_sha256`, and the audit with the
+audience's and the sample's distinct donors. Nothing calls it yet; small samples are refused on
+this path (OI-99).
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
 |---|---|---|
-| The seven enrichment derivations | the ANALYSIS view | OI-7, [archive dependency](../migration/population-enrichment-archive-dependency.md) |
+| A step that composes `AudienceDimensionsEnricher` (the derivation landed, `domain/population/enrichment.py`, EXACT vs 18.6.6) | the ANALYSIS view in any run | OI-7; `plans/panel-grounded-respondents.md` chunk 5 |
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
 | An S3 asset source read directly by the loader (today: the host's synced copy) | a deployment without a host disk | `.planning/overview.md` Next |
 | Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
