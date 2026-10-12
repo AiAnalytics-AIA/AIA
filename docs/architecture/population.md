@@ -150,6 +150,14 @@ versions, filters, seed, the binding's `version_id` and `content_sha256`, and th
 audience's and the sample's distinct donors. Nothing calls it yet; small samples are refused on
 this path (OI-99).
 
+A run's personas come from that sample through `domain/panel_persona.py` (18.6.6's adaptive
+persona, EXACT): every column it reads asks `decide(field, PERSONA_CONSTRUCTION)`, and
+`decide_joint` is asked for the core fields together and for each matched donor block within
+itself, since the certificate refuses cross-block same-person joints. Its two companions, the
+persona signal catalog and the value labels, are read only through
+`RuntimePopulation.companion(asset_id)`: the bytes the loader verified against their recorded
+SHA256 at load, never the asset source.
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |

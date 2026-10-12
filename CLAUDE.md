@@ -320,6 +320,16 @@ packages/aia_core/src/aia_core/
                             contract, fictional roster, facts by code, interpretation, the dataset
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
+    persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
+                            ran (calibrated -> core, adaptive), first-person prose cut at 185 words (EXACT)
+    persona_topics.py       A question's topics: odvod_temata and a block's union (EXACT)
+    persona_signals.py      The persona signal catalog's topic-matched signals: grounded_profile_text
+                            (EXACT; a NaN-priority signal ranks last)
+    panel_persona.py        A run's sample as personas: every column through
+                            decide(PERSONA_CONSTRUCTION), the joint gate per dictionary block (core
+                            jointly, each matched donor block within itself), styles over the whole
+                            population, a profile per request block; refusals by name (called by
+                            nothing yet: chunk 5 of panel-grounded-respondents)
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
@@ -356,6 +366,8 @@ packages/aia_core/src/aia_core/
       policy.py             Field policy as code: what each field may be used for
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
+      runtime.py            RuntimePopulation, issued only by the loader; companion(asset_id): a
+                            companion's bytes as the loader verified them at load
       subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
                             BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
       audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
@@ -657,6 +669,10 @@ tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the
                             enrich_panel on them (`capture`, with pandas)
 tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
                             draw_representative with the MILP made to fail, and _rake (`capture`)
+tools/persona_capture.py    Persona fixtures: fictional rows, questions, a fictional signal catalog
+                            (`inputs`); the unit's own generate_persona_text, odvod_temata,
+                            grounded_profile_text, _render and _compact_anchor (`capture`, with pandas
+                            and SciPy)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
@@ -889,7 +905,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
-| Enrichment and sample fixtures from the unit | `python tools/enrichment_capture.py inputs` / `python tools/sampling_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy); a re-capture must be byte-identical |
+| Enrichment, sample and persona fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |

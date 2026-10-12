@@ -3372,3 +3372,50 @@ the sample.
 
 **Status.** Open; needed before `plans/panel-grounded-respondents.md` chunk 5.
 
+---
+
+## OI-100 · Finding · 18.6.6 sampled and styled only rows aged 18 or more; AIA's sampler takes every row
+
+**Claim.** `Panel(df, min_vek=18)` drops rows whose `vek` is missing or under 18 before anything
+else; `draw_panel_sample` has no such step.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/pipeline.py:147-152`;
+`packages/aia_core/src/aia_core/domain/population/sampling.py` `draw_panel_sample` @ `a1fcc60`.
+
+**Reproduction.** Hypothesis for v17: no row is affected (its core donors are PIAAC 18-65 and
+ISSP 66+, `CORE_JOINT_STATUS.json` `core_sources`); not verified, no panel rows in the repository.
+The guard's own tests: `test_panel_persona.py::test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused[minor]`,
+`[no_age]`.
+
+**Consequence.** If wrong, AIA could sample a row 18.6.6 never could, and a column's type (hence a
+filter's keys) could differ from the unit's.
+
+**Fix taken.** `panel_personas` refuses a population with any such row
+(`persona_age_out_of_scope`, `domain/panel_persona.py` @ `09c93f0`, PR #315), so a run fails closed
+before fieldwork.
+
+**Status.** Open until chunk 5's preflight reports the count on develop's `v17_4_0`.
+
+---
+
+## OI-101 · Finding, closed · 18.6.6 ranked an empty-priority persona signal by Python version
+
+**Claim.** An empty `priority` in the persona signal catalog reads NaN, and the unit sorts the
+candidate signals on `(-score, column)`, so a NaN score lands wherever the sort leaves it: the
+unit's own persona text for such a row differs between Python versions.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/persona_grounded.py:290`; AIA's rule
+`packages/aia_core/src/aia_core/domain/persona_signals.py` `grounded_text` @ `341ea3b`.
+
+**Reproduction.** PR #315's first CI run (38250340111):
+`test_persona_profile.py::test_the_grounded_signals_are_the_units[3]` failed on CI's Python with a
+fixture captured on 3.13; `test_a_signal_with_an_unknown_priority_ranks_last` pins AIA's rule.
+
+**Consequence.** None known in production: whether v17's catalog has an empty priority is not
+checked here. A persona's signal order, and so its text, would depend on the interpreter.
+
+**Fix.** AIA ranks a NaN score last (unknown is never ranked as good); every other order stays
+EXACT.
+
+**Status.** Closed by PR #315 (`341ea3b`).
+

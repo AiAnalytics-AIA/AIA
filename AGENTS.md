@@ -570,6 +570,19 @@ reports eighteen `import-untyped` errors; run together with
 therefore pass all three trees to a single `mypy` invocation. Splitting that
 command "for speed" silently changes what is checked.
 
+**A partial run poisons the shared cache.** After `mypy packages/aia_core/src
+apps/executors/src`, the full four-tree invocation reported three false
+`create_model` errors in `domain/ai_respondent.py` (lines it had passed a minute
+earlier, unchanged); `rm -rf .mypy_cache` and the same full invocation passed
+(PR #315).
+
+```bash
+# WRONG — a subset first, then the full run on the same cache
+mypy packages/aia_core/src apps/executors/src && make typecheck
+# RIGHT — only ever the Makefile's invocation; after a partial run, clear the cache
+rm -rf .mypy_cache && make typecheck
+```
+
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
 **with a comment saying why** — as `boto3` has. An unexplained override is
