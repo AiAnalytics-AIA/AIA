@@ -250,3 +250,10 @@ def test_a_line_that_does_not_read_stops_the_sync(host: dict[str, Path], line: s
     result = _sync(host)
     assert result.returncode != 0
     assert not (host["root"] / "population" / "v17").exists()
+
+
+def test_the_deploy_keeps_each_versions_dictionary_without_failing_on_a_refusal() -> None:
+    deploy = (DEVELOP / "bin" / "deploy.sh").read_text(encoding="utf-8")
+    step = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-dictionary')
+    assert deploy.index('log "replacing services"') < step < deploy.index('log "smoke tests"')
+    assert 'if ! "$DEPLOY_DIR/bin/population.sh" record-dictionary; then' in deploy

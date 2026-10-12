@@ -5,16 +5,19 @@ tested with nothing outside it calling it (plan ``population-operations.md`` P1)
 This is its one operator surface, beside ``seed`` and ``legacy_workspace``:
 
 * ``status``     the dataset's versions, its populations and their promotion history
+* ``record-dictionary``  keep the dictionary of each version imported before dictionaries
+                 were kept, its bytes checked against the version's hash
 * ``import``     validate a bundle under the contract and register it as a new version
 * ``attach``     record a version's companion set
 * ``establish``  create the STATIC or LIVE population over a version
 * ``promote``    move a LIVE population to another version, naming the one it expects
 
-Every command but ``status`` acts as a named person (``--as``): an active AIA user
-whom ``AIA_POPULATION_OPERATORS`` names. That key -- a JSON object of verified user
-id to permissions, ``{"<user id>": ["POPULATION_ESTABLISH", "POPULATION_PROMOTE"]}``
--- is the trusted deployment configuration ``PopulationAuthority`` issues from, read
-here and nowhere else. Unset or empty, nobody may operate the population, which is
+Every command but ``status`` and ``record-dictionary`` acts as a named person
+(``--as``): an active AIA user whom ``AIA_POPULATION_OPERATORS`` names. That key -- a
+JSON object of verified user id to permissions,
+``{"<user id>": ["POPULATION_ESTABLISH", "POPULATION_PROMOTE"]}`` -- is the trusted
+deployment configuration ``PopulationAuthority`` issues from, read here and nowhere
+else. Unset or empty, nobody may operate the population, which is
 the right state for a deployment that has not deliberately named someone.
 
 Reads ``DATABASE_URL`` and ``AIA_POPULATION_ASSET_ROOT`` (the directory every
@@ -62,6 +65,7 @@ from ._db import engine_from_env
 __all__ = [
     "ASSET_ROOT_KEY",
     "OPERATORS_KEY",
+    "RECORDED_BY_COMMAND",
     "OperatorConfigError",
     "OperatorRefused",
     "main",
@@ -71,6 +75,10 @@ __all__ = [
 
 OPERATORS_KEY: Final = "AIA_POPULATION_OPERATORS"
 ASSET_ROOT_KEY: Final = "AIA_POPULATION_ASSET_ROOT"
+
+#: Who a dictionary recorded by ``record-dictionary`` was recorded by: no person, because
+#: nothing is decided -- the bytes are kept only when they hash to the version's own pin.
+RECORDED_BY_COMMAND: Final = "population_ops:record-dictionary"
 
 #: The organization an operator's principal names. Population operation is platform
 #: administration: the authority reads only the verified user id, and no tenant's
@@ -213,6 +221,25 @@ def _status(session: Session, contract: PopulationImportContract) -> dict[str, A
     }
 
 
+def _record_dictionaries(
+    session: Session,
+    runtime: PopulationRuntime,
+    contract: PopulationImportContract,
+    version_id: str | None,
+) -> dict[str, Any]:
+    if version_id is not None:
+        targets = [version_id]
+    else:
+        versions = PopulationRegistryRepository(session).versions(contract.dataset_id)
+        targets = sorted(versions)
+    recorded: list[str] = []
+    kept: list[str] = []
+    for target in targets:
+        stored = runtime.record_dictionary(target, recorded_by=RECORDED_BY_COMMAND)
+        (recorded if stored else kept).append(target)
+    return {"recorded": recorded, "already_kept": kept}
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m aia_executors.population_ops",
@@ -221,6 +248,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="versions, populations and history; acts as no one")
+    record = commands.add_parser(
+        "record-dictionary",
+        help="keep each version's dictionary, checked against its hash; acts as no one",
+    )
+    record.add_argument("--version", help="one version; omitted, every version without one")
 
     def acting(name: str, help_text: str) -> argparse.ArgumentParser:
         sub = commands.add_parser(name, help=help_text)
@@ -287,6 +319,10 @@ def run(
         try:
             if args.command == "status":
                 result: dict[str, Any] = _status(session, contract)
+            elif args.command == "record-dictionary":
+                runtime = PopulationRuntime(session, contract=contract, source=source)
+                result = _record_dictionaries(session, runtime, contract, args.version)
+                session.commit()
             else:
                 operator = _operator(session, authority, args.actor)
                 runtime = PopulationRuntime(session, contract=contract, source=source)
