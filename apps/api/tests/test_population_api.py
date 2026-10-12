@@ -227,3 +227,105 @@ def test_an_unknown_version_is_404_and_nobody_unauthenticated_reads_one(
     assert _characteristics(outsider, api_prefix, "nope@sha256:00").status_code == 404
     assert _characteristics(outsider, api_prefix, characterised["kept"]).status_code == 200
     assert _characteristics(client, api_prefix, characterised["kept"]).status_code == 401
+
+
+# --------------------------------------------------------------------------- owned children
+
+
+@pytest.fixture
+def children(app: FastAPI, world: Any) -> dict[str, str]:
+    """A shared base with two owned children: ours (primary client) and another org's."""
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.population import (
+        MaterializedField,
+        MaterializedKind,
+        PopulationContractExtension,
+        VersionOwner,
+        owned_version_id,
+    )
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    base = replace(_version("v_BASE", None, 0), dictionary_sha256=_sha_bytes(FICTIONAL_DICTIONARY))
+    extension = PopulationContractExtension(
+        base_contract_id=base.contract_id,
+        base_field_names_sha256=base.field_names_sha256,
+        base_dictionary_sha256=base.dictionary_sha256,
+        fields=(
+            MaterializedField(
+                "pije_kavu_rano", MaterializedKind.BINARY, _sha("definition"), "method", "1"
+            ),
+        ),
+    )
+    with create_session_factory(app.state.engine)() as session:
+        scope = ScopeRepository(session)
+        org, owner = scope.create_organization(
+            slug="elsewhere", name="Elsewhere", owner_email="owner@elsewhere.test", owner_name="O"
+        )
+        admin = ScopeResolver(session).organization_context(
+            AuthenticatedPrincipal(user_id=owner.user_id, organization_id=org.organization_id)
+        )
+        their_client = scope.create_client(admin, slug="theirs", name="Their client")
+        repo = PopulationRegistryRepository(session)
+        repo.insert_version(base, validation={})
+        repo.insert_dictionary(
+            base.version_id,
+            sha256=base.dictionary_sha256,
+            content=FICTIONAL_DICTIONARY,
+            recorded_at=AT,
+            recorded_by="test",
+        )
+        repo.insert_extension(extension, recorded_at=AT, recorded_by="test")
+        ids = {"base": base.version_id}
+        for name, owner_of in (
+            ("ours", VersionOwner(world.organization_id, world.client_id("primary"))),
+            ("theirs", VersionOwner(org.organization_id, their_client.client_id)),
+        ):
+            sha = _sha(f"child {name}")
+            child = replace(
+                base,
+                version_id=owned_version_id(DATASET, sha, owner_of),
+                label="v_BASE+pije_kavu_rano",
+                content_sha256=sha,
+                column_count=base.column_count + 1,
+                parent_version_id=base.version_id,
+                imported_at=AT + timedelta(minutes=1),
+                owner=owner_of,
+                extension_sha256=extension.sha256,
+            )
+            repo.insert_version(child, validation={})
+            ids[name] = child.version_id
+        session.commit()
+    ids["extension"] = extension.sha256
+    return ids
+
+
+def test_the_registry_lists_our_child_and_never_another_organizations(
+    children: dict[str, str], world: Any, viewer: Any, api_prefix: str
+) -> None:
+    body = viewer.get(f"{api_prefix}/population").json()
+    by_id = {v["version_id"]: v for v in body["versions"]}
+    assert set(by_id) == {children["base"], children["ours"]}
+    ours = by_id[children["ours"]]
+    assert ours["owner_client_id"] == world.client_id("primary")
+    assert ours["extension_sha256"] == children["extension"]
+    assert ours["parent_version_id"] == children["base"]
+    assert by_id[children["base"]]["owner_client_id"] is None
+    assert by_id[children["base"]]["extension_sha256"] is None
+
+
+def test_a_childs_characteristics_are_its_organizations_and_404_to_any_other(
+    children: dict[str, str], viewer: Any, outsider: Any, api_prefix: str
+) -> None:
+    response = _characteristics(viewer, api_prefix, children["ours"])
+    assert response.status_code == 200
+    body = response.json()
+    assert body["dictionary_kept"] is True  # its base's dictionary, re-hashed
+    added = {f["field"]: f for f in body["fields"]}["pije_kavu_rano"]
+    assert added["materialized"] is True and added["block"] == "materialized"
+    uses = {u["use"]: u["allowed"] for u in added["uses"]}
+    assert uses["PERSONA_CONSTRUCTION"] and not uses["CLIENT_MEASURED_CLAIM"]
+    assert not uses["WEIGHTING"]
+    # Every member of our organization reads it (ADR 0019); another organization never does.
+    assert _characteristics(outsider, api_prefix, children["ours"]).status_code == 200
+    theirs = _characteristics(viewer, api_prefix, children["theirs"])
+    assert theirs.status_code == 404 and theirs.json()["code"] == "not_found"

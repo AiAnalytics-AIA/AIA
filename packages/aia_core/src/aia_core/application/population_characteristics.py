@@ -17,6 +17,12 @@ here reads the asset source or the panel.
 
 A version whose dictionary is not kept yet answers ``dictionary_kept=False``, with no
 fields, and every subpanel check left unknown. It never answers "usable".
+
+An owned child (population-operations P4c) is read only by its own organization; to any
+other it is an unknown version. Its dictionary is its base's (``check_child_version``
+requires the same hash), read from the child's own row or else its parent's, and re-hashed
+either way. Its added fields follow the base's, each with the fixed policy of a
+materialized field (``with_materialized_fields``), from its stored extension.
 """
 
 from __future__ import annotations
@@ -32,6 +38,7 @@ from ..domain.population import (
     VersionIntegrityError,
     content_sha256,
 )
+from ..domain.population.materialized import with_materialized_fields
 from ..domain.population.policy import FieldUse, build_field_policy
 from ..domain.population.subpanels import BUILTIN_SUBPANELS, BuiltinSubpanel, check_subpanel
 from ..infrastructure.population_parser import parse_dictionary
@@ -75,6 +82,8 @@ class FieldCharacteristics:
     #: True for a runtime field (enrichment, analysis weight) with no dictionary row.
     derived: bool
     uses: tuple[UseAnswer, ...]
+    #: True for a field an owned child adds: modelled values, its policy fixed (P4, M3).
+    materialized: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,6 +120,9 @@ class VersionCharacteristics:
     blocks: tuple[tuple[str, int], ...]
     fields: tuple[FieldCharacteristics, ...]
     subpanels: tuple[SubpanelCharacteristics, ...]
+    #: Set on an owned child: the client it belongs to and its extension's hash.
+    owner_client_id: str | None = None
+    extension_sha256: str | None = None
 
 
 def _weights(contract: PopulationImportContract) -> tuple[WeightCharacteristics, ...]:
@@ -127,15 +139,22 @@ def _weights(contract: PopulationImportContract) -> tuple[WeightCharacteristics,
 
 
 def version_characteristics(
-    session: Session, *, contract: PopulationImportContract, version_id: str
+    session: Session,
+    *,
+    contract: PopulationImportContract,
+    version_id: str,
+    organization_id: str,
 ) -> VersionCharacteristics:
-    """The characteristics of ``version_id``, from the dictionary it keeps."""
+    """The characteristics of ``version_id`` as ``organization_id`` may read them."""
     registry = PopulationRegistryRepository(session)
-    version = registry.get_version(version_id)
+    version = registry.visible_version(version_id, organization_id=organization_id)
     if version is None or version.dataset_id != contract.dataset_id:
         raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+    owner_client_id = version.owner.client_id if version.owner is not None else None
     weights = _weights(contract)
     kept = registry.dictionary(version_id)
+    if kept is None and not version.shared and version.parent_version_id is not None:
+        kept = registry.dictionary(version.parent_version_id)
     if kept is None:
         return VersionCharacteristics(
             version_id=version.version_id,
@@ -146,6 +165,8 @@ def version_characteristics(
             blocks=(),
             fields=(),
             subpanels=tuple(SubpanelCharacteristics(s, None, None) for s in BUILTIN_SUBPANELS),
+            owner_client_id=owner_client_id,
+            extension_sha256=version.extension_sha256,
         )
     _, content = kept
     if content_sha256(content) != version.dictionary_sha256:
@@ -159,6 +180,13 @@ def version_characteristics(
         weight_columns=contract.weight_columns,
         derived_fields=contract.derived_policy_fields,
     )
+    added: set[str] = set()
+    if version.extension_sha256 is not None:
+        extension = registry.extension(version.extension_sha256)
+        if extension is None:
+            raise VersionIntegrityError(f"{version.label} names an extension that is not stored")
+        policy = with_materialized_fields(policy, extension)
+        added = {f.name for f in extension.fields}
     descriptions = {
         str(row.get(contract.dictionary_field_column) or ""): (row.get("description") or "").strip()
         for row in dictionary.rows
@@ -193,6 +221,7 @@ def version_characteristics(
                 is_weight=entry.is_weight,
                 derived=name in derived,
                 uses=tuple(uses),
+                materialized=name in added,
             )
         )
     counts = Counter(f.block for f in fields)
@@ -210,4 +239,6 @@ def version_characteristics(
         blocks=blocks,
         fields=tuple(fields),
         subpanels=tuple(subpanels),
+        owner_client_id=owner_client_id,
+        extension_sha256=version.extension_sha256,
     )

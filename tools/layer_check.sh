@@ -574,6 +574,33 @@ forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
   "$API"
 
+# A population version may belong to one organization (a materialized child,
+# population-operations P4c, M5). Which versions a person sees is decided in one
+# place: PopulationRegistryRepository returns the shared versions plus only the
+# asking organization's own. A table used anywhere else is a query that could
+# forget the owner and show one organization's child to every other; and the API
+# reads a version only as an organization sees it (visible_version, versions with
+# its organization), never by the unfiltered id lookups the loader and operator use.
+forbid "population version and extension tables are touched only by their repository" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$CORE" \
+  tables.py population_repository.py __init__.py
+forbid "the API never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$API"
+forbid "the worker never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$WORKER"
+forbid "executors never touch the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$EXECUTORS"
+forbid "the API reads a population version only as an organization sees it" \
+  '\.(get_version|version_by_sha|version_by_label)\(' \
+  "$API"
+forbid "a person's characteristics read is scoped to their organization" \
+  '^[^#]*\bregistry\.get_version\(' \
+  "$CORE/application/population_characteristics.py"
+
 # Establishing and promoting a population is platform administration. The
 # operator grant is issued only by PopulationAuthority from trusted configuration
 # (application/population_authority.py); authority.py defines it. Neither a study

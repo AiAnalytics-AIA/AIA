@@ -7,8 +7,11 @@ chunks:
   - "[x] P4. Contract (plan before code): how a materialized dimension becomes a new revision"
   - "[x] P4a. Domain: a hash-pinned contract extension and an organization-owned child version"
   - "[x] P4b. 18.6.6's evidence derivation ported EXACT, from fixtures captured from the unit"
-  - "[ ] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
-  - "[ ] P4d. A researcher materializes an eligible dimension: a worker step that registers the child, never promotes"
+  - "[x] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
+  - "[ ] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
+  - "[ ] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, enqueued once per owner and definition"
+  - "[ ] P4d3. The materialize step: the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
+  - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
   - "[ ] P4e. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
@@ -511,4 +514,121 @@ Tests: `test_population_derivation.py` (17).
 
 The parity matrix's `data_library.ingestion` and `audience.definition` stay `NOT_STARTED`. The
 fixture gate joins them when materialization lands as a capability (Doc follow-up).
+
+**P4c, 2026-10-12** (`feature/population-child-storage`).
+
+*Identity, found while writing the schema.* A version's id was its content alone
+(`dataset_version_id`) and `content_sha256` was unique over the whole table. The derivation is
+deterministic, so two clients materializing the same definition over the same base write the
+same bytes: the second child would have collided with the first, and the constraint error
+would have told one organization that another had made it. An owned child's id is now its
+content id qualified by an opaque owner digest (`owned_version_id`, `versions.py`, 48 bits of
+SHA256 over organization and client; neither appears in clear), and `DatasetVersion` checks it.
+Content and label stay unique among shared versions and within one owner's, by four partial
+unique indexes; the same owner's same bytes are still one version. Test:
+`test_two_clients_identical_children_are_two_versions`.
+
+*Storage.* Migration `f0b2d4e6a8c1`:
+- `population_dataset_versions` gains `owner_organization_id`, `owner_client_id` and
+  `extension_sha256`, all set or all NULL, an owned version always with a parent
+  (`population_version_owned_child`); foreign keys to organizations, clients and the
+  extension, none cascading;
+- `population_contract_extensions` keeps each extension by its hash, insert-once; the
+  repository re-hashes the payload on every read and refuses one that no longer matches;
+- every existing row is shared and keeps both uniqueness guarantees.
+Applied, `alembic check` clean, downgrade to base and up again, on PostgreSQL 16.
+
+*Visibility.* `PopulationRegistryRepository`:
+- `versions(dataset, organization_id=)`: shared versions, plus only that organization's own
+  (none without one);
+- `visible_version`: another organization's child answers `None`, as an unknown id does;
+- `version_by_sha` and `version_by_label`, the import's lookups, see shared versions alone;
+- `get_version` stays unfiltered, for the run that recorded a version and the operator.
+
+`GET /population` lists the organization's own children with `owner_client_id` and
+`extension_sha256`. `…/characteristics` answers 404 for another organization's child. For
+the organization's own child it reads the base's dictionary (from the child's row or else
+its parent's, re-hashed either way) and lists the added fields last, marked `materialized`,
+under the fixed M3 policy. `PopulationRuntime.establish` and `promote_live` refuse an owned
+child first (`OwnedVersionNotShared`), before companions or lineage are checked.
+
+`layer_check` adds six rules:
+- the version and extension tables are touched only by their repository (four rules: core,
+  API, worker, executors);
+- the API never calls `get_version`, `version_by_sha` or `version_by_label`;
+- `population_characteristics.py` never calls `get_version`.
+The first and fifth were checked by mutation.
+
+Tests:
+- `test_population_owned_versions.py` (10): round trip, two owners, labels, visibility,
+  half-owned rows refused by the database, a tampered extension, characteristics, the operator;
+- `test_population_api.py`: two new tests, our child listed and readable, another
+  organization's never.
+Mutation: listing every owned version fails two of them.
+
+**Noted for P4d / P4e:**
+- `population_ops status` reads shared versions only.
+- A child's status derives as `REGISTERED`, not runtime-eligible, because no population
+  points at it. P4e decides how a study's explicit selection makes it resolvable.
+- `owner_client_id` is not tied to `owner_organization_id` by the database: `clients` has no
+  `(organization_id, client_id)` key to reference. P4d takes both from one `ClientContext`.
+
+### P4d, the plan (owner, 2026-10-12: the child's bytes go to S3)
+
+P4d is where a researcher materializes a dimension. P4a gave the shape, P4b the rule and P4c the
+rows; nothing yet runs them. The owner chose S3 for the child's bytes. Today the population is
+a read-only copy synced to the develop host (`deploy/develop/bin/sync-population.sh`), and
+`PopulationAssetSource` only reads: its own docstring names the EU object store as "the seam
+this protocol exists for", not written because the bucket was undecided
+(`infrastructure/population_source.py:1-18 @ 06409e04`).
+
+**P4d1. The population store.**
+- Terraform, `infra/develop/`: a population bucket of its own, separate from the artifacts
+  bucket because it holds licence-bound data with its own access. It is in the develop
+  region, private (public access blocked), versioned, encrypted, TLS only, like the two
+  existing buckets (`infra/develop/main.tf:97-150 @ 06409e04`). The worker role may read and
+  put under `materialized/`; the API role gets nothing.
+- `S3PopulationStore` (infrastructure): `read(location)` for the loader, and `put_once(key,
+  bytes, sha256)`. `put_once` writes only when the key is absent (a conditional put); an
+  existing object with the same hash is the same child, and a different one is refused.
+- A composing source: an `s3://` location reads from the store, a relative one from the host's
+  synced directory, so shared versions are unchanged. `AIA_POPULATION_STORE_*` settings are
+  typed and fail closed; nothing is read or written when they are unset.
+- Tests over a recorded S3 double. **Human action:** `terraform apply`, and the worker's
+  environment on the develop host.
+
+**P4d2. The materialize service** (application).
+- Input: a typed definition (until K5 supplies the same shape) and the `ClientContext` it is
+  for. The owner is that context's organization and client; never an argument.
+- Refused before anything is enqueued:
+  - unless it meets "What the contract requires of K5's output" (kind, target with its
+    evidence reference, predictors, the missingness rule and the valid range);
+  - for each predictor, unless the base version's policy allows `PERSONA_CONSTRUCTION`
+    (`RuntimePopulation.decide`, never the dictionary);
+  - for a name that would shadow a base field.
+- The base is the LIVE version at the time of the request, recorded; it is never re-chosen on
+  a retry.
+- Enqueued once: the run key is the owner, the base and the definition's hash. The same
+  request again finds the same run.
+
+**P4d3. The materialize step** (executor, through the real worker).
+- It loads the base through `PopulationRuntime.load_for_run` (the one loader), runs
+  `derive_dimension` (P4b; `no_varying_predictor` refuses), and writes the child panel. The
+  child is the base's rows and columns in order plus the new one, gzip CSV with fixed bytes,
+  so the same inputs give the same hash.
+- `put_once` to S3, then the extension, the child version and its dictionary row in one
+  transaction, after `check_child_version`. A retry after the put finds the object and
+  registers; a retry after registration finds the version (P4c's owner-qualified id).
+- It records `target`, `achieved` and the usable predictors. It never promotes.
+- No model call and no money. Before it merges, measure the panel's size, the step's time and
+  its memory on the v17 shape.
+
+**P4d4. The route and the screen.**
+- A route under the client starts it and reads its run.
+- Společenská inteligence shows the organization's children with each one's target beside
+  what was achieved: a scale target the clip left unmet (P4b's M04: 2.0 asked, 2.68 achieved)
+  says so, never "met".
+
+**Open before P4d1:** the bucket's exact name and the worker role's policy are written in
+Terraform; who applies it is the human action above.
 

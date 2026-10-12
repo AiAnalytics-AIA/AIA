@@ -31,6 +31,7 @@ from aia_core.domain.population import (
     dataset_version_id,
     field_names_fingerprint,
     materialized_policy_entry,
+    owned_version_id,
     plan_establish,
     plan_promotion,
     with_materialized_fields,
@@ -54,7 +55,11 @@ def version(
 ) -> DatasetVersion:
     sha = content_sha256(label.encode())
     return DatasetVersion(
-        version_id=dataset_version_id(DATASET, sha),
+        version_id=(
+            dataset_version_id(DATASET, sha)
+            if owner is None
+            else owned_version_id(DATASET, sha, owner)
+        ),
         dataset_id=DATASET,
         label=label,
         content_sha256=sha,
@@ -227,6 +232,19 @@ def test_a_child_that_differs_from_its_base_extended_is_refused(
         check_child_version(
             base=world["live"], child=child, extension=world["ext"], base_field_names=BASE_NAMES
         )
+
+
+def test_an_owned_versions_id_is_its_content_qualified_by_its_owner(world: dict) -> None:
+    child = world["child"]
+    assert child.version_id.startswith(dataset_version_id(DATASET, child.content_sha256) + "~")
+    assert OWNER.organization_id not in child.version_id and OWNER.client_id not in child.version_id
+    # The same bytes held by another client are another version, never a collision.
+    other = VersionOwner(organization_id="ORG-a", client_id="CLI-b")
+    assert owned_version_id(DATASET, child.content_sha256, other) != child.version_id
+    with pytest.raises(ValueError, match="qualified by its owner"):
+        replace(child, owner=other)
+    with pytest.raises(ValueError, match="qualified by its owner"):
+        replace(child, version_id=dataset_version_id(DATASET, child.content_sha256))
 
 
 def test_a_child_is_never_built_on_another_child(world: dict) -> None:

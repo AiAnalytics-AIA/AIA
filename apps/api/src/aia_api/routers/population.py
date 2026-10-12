@@ -6,6 +6,10 @@ populations, and every promotion with who made it and why. Any member of the
 organization may read it: it is metadata about the shared layer every study is
 computed over, and it carries no panel row, no field value and no client's data.
 
+An owned child -- a dimension materialized for one of the organization's clients
+(population-operations P4c) -- is listed, and its characteristics read, only within
+that organization; to anyone else it does not exist (404, like any scope miss).
+
 ``GET /population/versions/{version_id}/characteristics`` -- what one version is made of
 (P7c): the contract's weights, the field blocks, every field with its dictionary facts and
 what its policy permits for each use, and the 18 built-in subpanels checked against it.
@@ -65,6 +69,10 @@ class PopulationVersionEntry(_Model):
     imported_at: datetime
     imported_by: str
     provenance: str
+    #: ``null`` on a shared version; on an owned child, the client it was made for.
+    owner_client_id: str | None
+    #: ``null`` on a shared version; on an owned child, the hash of what it adds.
+    extension_sha256: str | None
 
 
 class PopulationEntry(_Model):
@@ -95,13 +103,17 @@ class PopulationRegistry(_Model):
 @router.get("", response_model=PopulationRegistry, summary="The population registry")
 def population_registry(member: OrganizationDep, session: SessionDep) -> PopulationRegistry:
     """Versions, populations and promotion history of the dataset studies run over."""
-    del member  # membership is the access (ADR 0019); the registry is no client's
+    # Membership is the access (ADR 0019): every shared version, and this
+    # organization's own children only.
     contract = CZ_SYNTHETIC_V17
     dataset = contract.dataset_id
     registry = PopulationRegistryRepository(session)
     populations = registry.populations(dataset)
     promotions = registry.promotions(dataset)
-    versions = sorted(registry.versions(dataset).values(), key=lambda v: v.imported_at)
+    versions = sorted(
+        registry.versions(dataset, organization_id=member.organization_id).values(),
+        key=lambda v: v.imported_at,
+    )
     entries = []
     for v in versions:
         status = version_status(v.version_id, populations, promotions)
@@ -119,6 +131,8 @@ def population_registry(member: OrganizationDep, session: SessionDep) -> Populat
                 imported_at=v.imported_at,
                 imported_by=v.imported_by,
                 provenance=v.provenance,
+                owner_client_id=v.owner.client_id if v.owner is not None else None,
+                extension_sha256=v.extension_sha256,
             )
         )
     return PopulationRegistry(
@@ -169,6 +183,8 @@ class FieldEntry(_Model):
     is_weight: bool
     derived: bool
     uses: list[UseAnswerEntry]
+    #: A field an owned child adds: modelled values, its uses fixed.
+    materialized: bool
 
 
 class WeightEntry(_Model):
@@ -228,6 +244,8 @@ class VersionCharacteristicsResponse(_Model):
     subpanels_measured_on: str
     subpanels_measured_under_weight: str
     subpanel_note: str
+    owner_client_id: str | None
+    extension_sha256: str | None
 
 
 @router.get(
@@ -240,9 +258,13 @@ def population_characteristics(
     version_id: str, member: OrganizationDep, session: SessionDep
 ) -> VersionCharacteristicsResponse:
     """Weights, blocks, every field's evidence and permitted uses, and the subpanels."""
-    del member  # membership is the access (ADR 0019); the population is no client's
     try:
-        found = version_characteristics(session, contract=CZ_SYNTHETIC_V17, version_id=version_id)
+        found = version_characteristics(
+            session,
+            contract=CZ_SYNTHETIC_V17,
+            version_id=version_id,
+            organization_id=member.organization_id,
+        )
     except UnknownDatasetVersion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -253,7 +275,7 @@ def population_characteristics(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "code": "population_dictionary_mismatch",
-                "message": "The dictionary kept for this version does not match its pin.",
+                "message": "What is kept for this version does not match its pins.",
             },
         ) from None
     return VersionCharacteristicsResponse(
@@ -285,6 +307,7 @@ def population_characteristics(
                 persona_eligible=f.persona_eligible,
                 is_weight=f.is_weight,
                 derived=f.derived,
+                materialized=f.materialized,
                 uses=[
                     UseAnswerEntry(
                         use=u.use.value,
@@ -326,4 +349,6 @@ def population_characteristics(
         subpanels_measured_on=MEASURED_ON,
         subpanels_measured_under_weight=MEASURED_UNDER_WEIGHT,
         subpanel_note=SUBPANEL_NOTE,
+        owner_client_id=found.owner_client_id,
+        extension_sha256=found.extension_sha256,
     )
