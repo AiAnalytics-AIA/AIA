@@ -298,6 +298,8 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert internal.json()["internal_only"] is True
     assert len(internal.json()["pending"]) == 8
     assert internal.json()["modules"] == {}
+    # No module has read an aggregate yet, so none is said to depart from 18.6.6 (G3c).
+    assert internal.json()["aggregation_deviation"] is None
     # ADR 0019: the "viewer" label holds the Researcher role and reads it too.
     assert viewer.get(url).status_code == 200
     # So do a member with no grant and another client's lead (ADR 0019); what bounds it is the

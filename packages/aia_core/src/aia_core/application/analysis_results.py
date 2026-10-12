@@ -581,6 +581,9 @@ class RunAnalysis:
     modules: Mapping[AnalysisModuleId, ReconstructedModule]
     #: Modules with no stored outcome, and the status of their step.
     pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+    #: How the aggregate every module read departs from 18.6.6's port (plan
+    #: ``methodology-tab`` G3c); ``None`` when it is the port, or nothing was read yet.
+    aggregation_deviation: Mapping[str, Any] | None = None
 
     @property
     def complete(self) -> bool:
@@ -768,11 +771,16 @@ def reconstruct_run(
         else:
             outcomes[module] = artifact_id
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
+    deviation: Mapping[str, Any] | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
+        raw = sources.aggregate.get("deviation")
+        deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
             if module in outcomes:
                 modules[module] = _reconstruct(
                     session, scope, store, sources, module, outcomes[module]
                 )
-    return RunAnalysis(run_id=run_id, modules=modules, pending=pending)
+    return RunAnalysis(
+        run_id=run_id, modules=modules, pending=pending, aggregation_deviation=deviation
+    )

@@ -419,6 +419,25 @@ def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
         )
 
 
+def _aggregation_identity(deviation: Any) -> dict[str, Any]:
+    """The aggregation's part of the system fingerprint: nothing for 18.6.6's port, the
+    method's name and every change otherwise. A deviation that cannot be read is refused,
+    never taken for the port."""
+    if deviation is None:
+        return {}
+    if not isinstance(deviation, Mapping) or not isinstance(
+        deviation.get("methodology_version"), str
+    ):
+        raise NativeEvidenceRefused("the aggregate's deviation from 18.6.6 cannot be read")
+    return {
+        "aggregation": {
+            "methodology_version": deviation["methodology_version"],
+            "changed": deviation.get("changed") or [],
+            "replaced_formulas": deviation.get("replaced_formulas") or [],
+        }
+    }
+
+
 def native_evidence(
     spec: ResearchSpecification,
     aggregate: Mapping[str, Any],
@@ -432,6 +451,10 @@ def native_evidence(
     ``support`` is the run's pinned ``analysis`` rule (plan ``methodology-tab`` G1c). Only a
     rule other than AIA's reference thresholds enters the system fingerprint, so a run under
     today's rule keeps the fingerprint its validations are bound to.
+
+    Likewise an aggregate that is no longer 18.6.6's port (its ``deviation``, plan
+    ``methodology-tab`` G3c) enters the fingerprint with what it changed, so a validation
+    recorded for the unit's method never vouches for numbers another method computed.
 
     ``origin`` is the fieldwork dataset's, as the dataset artifact records it; the
     aggregate must say the same. Raises :class:`NativeEvidenceRefused` when the two
@@ -480,6 +503,7 @@ def native_evidence(
                     if support == REFERENCE_THRESHOLDS
                     else {"support": support.model_dump(mode="json")}
                 ),
+                **_aggregation_identity(aggregate.get("deviation")),
             }
         ),
         rows_considered=len(table.rows) + len(table.suppressed),

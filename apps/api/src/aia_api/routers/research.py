@@ -936,6 +936,12 @@ def run_analysis(
         "complete": analysis.complete,
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
+        # The aggregate every module read is no longer 18.6.6's port (methodology-tab G3c).
+        "aggregation_deviation": (
+            dict(analysis.aggregation_deviation)
+            if analysis.aggregation_deviation is not None
+            else None
+        ),
         "pending": {module.value: state for module, state in analysis.pending.items()},
         "modules": {
             module.value: {
