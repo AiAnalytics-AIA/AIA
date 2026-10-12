@@ -548,6 +548,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert report.artifact_type == REPORT_ARTIFACT_TYPE
     assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
     assert report.metadata["synthetic"] is True
+    assert report.metadata["data_origin"] == "SYNTHETIC_FIXTURE"
     assert report.is_approved is False
     assert len(dependencies) == 9
     assert {d.artifact_type for d in dependencies} == {

@@ -21,7 +21,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .research_design import ResearchSpecification
 
 __all__ = [
+    "CLIENT_ADMISSIBLE_ORIGINS",
     "DATASET_VERSION",
+    "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
     "Answer",
     "DataOrigin",
@@ -29,6 +31,8 @@ __all__ = [
     "FieldworkRespondent",
     "FieldworkSource",
     "InvalidDataset",
+    "OriginKind",
+    "origin_kind",
     "validate_dataset",
 ]
 
@@ -50,8 +54,11 @@ class FieldworkSource(StrEnum):
 class DataOrigin(StrEnum):
     """Where the respondent data behind an artifact came from, stamped on it.
 
-    Every member so far is synthetic, and none is evidence: the evidence gate refuses
-    a client-facing claim from any origin in :data:`NON_EVIDENCE_ORIGINS`.
+    Two members are synthetic and never evidence (:data:`NON_EVIDENCE_ORIGINS`); one is
+    modelled evidence (ADR 0024). A client-facing claim is admitted only from an origin in
+    :data:`CLIENT_ADMISSIBLE_ORIGINS`, an allowlist, so a member added later is refused until
+    it is decided. Every member is in exactly one of the two sets
+    (``test_every_origin_is_decided_once``).
     """
 
     #: Invented respondents from ``random.Random(seed)``: no panel, no person, no model.
@@ -60,12 +67,56 @@ class DataOrigin(StrEnum):
     #: fictional roster). Model-simulated answers of people who do not exist: never
     #: observed fieldwork, never a finding.
     SYNTHETIC_AI_FICTIONAL = "SYNTHETIC_AI_FICTIONAL"
+    #: A model answering as respondents built from rows sampled from the run's own recorded
+    #: population (ADR 0024): modelled evidence, never measured and never fictional. Every
+    #: respondent's donor is its row's ``core_donor_id``.
+    MODELLED_AI_PANEL = "MODELLED_AI_PANEL"
 
 
-#: Origins from which no client-facing claim may be made. Today: all of them.
+#: Synthetic origins: never evidence, labelled "simulated respondents" everywhere.
 NON_EVIDENCE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset(
     {DataOrigin.SYNTHETIC_FIXTURE, DataOrigin.SYNTHETIC_AI_FICTIONAL}
 )
+
+#: The only origins a client-facing claim may come from (ADR 0024 §2). An allowlist: ``None``
+#: and any origin not named here are refused client-facing.
+CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+#: What every modelled number carries beside it (ADR 0024 §7). Never "respondents said",
+#: "measured" or "the survey found".
+MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
+
+
+class OriginKind(StrEnum):
+    """How a label reads an origin: the one three-way reading every surface uses."""
+
+    #: Fictional respondents (:data:`NON_EVIDENCE_ORIGINS`): never evidence.
+    SIMULATED = "SIMULATED"
+    #: AI respondents built from the run's population (ADR 0024): modelled, never measured.
+    MODELLED = "MODELLED"
+    #: No origin, or one this code does not know: labelled unknown, never read as real.
+    UNKNOWN = "UNKNOWN"
+
+
+_MODELLED_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+
+def origin_kind(origin: DataOrigin | str | None) -> OriginKind:
+    """The kind of ``origin``; ``None`` and an unrecognised value are :attr:`OriginKind.UNKNOWN`.
+
+    No member reads as measured: AIA has no measured origin, so there is no fourth kind.
+    """
+    if origin is None:
+        return OriginKind.UNKNOWN
+    try:
+        member = DataOrigin(origin)
+    except ValueError:
+        return OriginKind.UNKNOWN
+    if member in NON_EVIDENCE_ORIGINS:
+        return OriginKind.SIMULATED
+    if member in _MODELLED_ORIGINS:
+        return OriginKind.MODELLED
+    return OriginKind.UNKNOWN
 
 
 #: One answer: a category (``vyber``), categories (``multi``), a scale point or

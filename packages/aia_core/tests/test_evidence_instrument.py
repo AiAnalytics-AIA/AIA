@@ -206,15 +206,32 @@ def test_client_facing_is_refused_by_three_independent_gates(evidence_row: Any) 
     } <= admission.decision.codes
 
 
-def test_internal_only_holds_on_its_own_with_a_certificate_and_no_origin(
+def test_internal_only_holds_on_its_own_with_a_certificate_and_an_admissible_origin(
     evidence_row: Any, joint_status: Any
 ) -> None:
-    """The row that slipped the other two gates is still refused client-facing."""
-    table = EvidenceTable.build([row(evidence_row, data_origin=None)])
+    """The row that slips the other two gates (a certificate, the one admissible origin) is
+    still refused client-facing by the policy alone."""
+    from aia_core.domain.fieldwork import DataOrigin
+
+    table = EvidenceTable.build([row(evidence_row, data_origin=DataOrigin.MODELLED_AI_PANEL)])
     admission = admit_numeric_claims(
         [claim()], table, book=book(), joint_status=joint_status, surface=ClaimSurface.CLIENT_FACING
     )
     assert admission.decision.codes == {ViolationCode.FIELD_INTERNAL_ONLY}
+
+
+def test_a_row_with_no_origin_no_longer_slips_the_origin_gate(
+    evidence_row: Any, joint_status: Any
+) -> None:
+    """ADR 0024 §2: the gate is an allowlist, so a missing origin is refused too."""
+    table = EvidenceTable.build([row(evidence_row, data_origin=None)])
+    admission = admit_numeric_claims(
+        [claim()], table, book=book(), joint_status=joint_status, surface=ClaimSurface.CLIENT_FACING
+    )
+    assert admission.decision.codes == {
+        ViolationCode.ORIGIN_NOT_ADMISSIBLE,
+        ViolationCode.FIELD_INTERNAL_ONLY,
+    }
 
 
 def test_an_instrument_item_never_backs_a_measured_claim_even_internally() -> None:

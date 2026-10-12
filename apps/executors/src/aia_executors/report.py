@@ -5,12 +5,14 @@ from __future__ import annotations
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
+    RESEARCH_SUBTITLE,
     ReportCompositionRefused,
     compose_internal_report,
 )
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
+from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import ReportInvalid
@@ -51,9 +53,7 @@ class ReportExecutor:
                 meta = ReportMeta(
                     kind=ReportKind.INTERNAL,
                     title="Interní analytická zpráva",
-                    subtitle="Syntetický výzkum"
-                    if first.record.labels.simulated_respondents
-                    else "Výzkum",
+                    subtitle=RESEARCH_SUBTITLE[origin_kind(first.record.labels.data_origin)],
                     client_name=client.name,
                     study_name=study.name,
                     study_id=context.scope.study_id,
@@ -133,6 +133,7 @@ class ReportExecutor:
                     "report_kind": ReportKind.INTERNAL.value,
                     "review_state": "DRAFT_UNAPPROVED",
                     "synthetic": bool(first.record.labels.simulated_respondents),
+                    "data_origin": first.record.labels.data_origin.value,
                     "map_source_sha256": map_source.sha256,
                     "report_contract": REPORT_CONTRACT_VERSION,
                 },

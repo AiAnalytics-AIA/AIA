@@ -274,3 +274,39 @@ def test_each_block_has_its_own_contract() -> None:
     plan = plan_respondent(_spec(), fictional_roster(1, seed=3)[0])
     a, b = (output_schema(block_contract(block)) for block in plan.blocks[:2])
     assert a != b
+
+
+def test_the_dataset_origin_is_derived_from_the_personas_never_chosen() -> None:
+    """ADR 0024 §1: fictional -> SYNTHETIC_AI_FICTIONAL, panel -> MODELLED_AI_PANEL, a mixed
+    roster or any other persona -> refused, not labelled."""
+    from aia_core.domain.ai_respondent import dataset_origin
+    from aia_core.domain.licence_determinations import PANEL_DERIVED_DATASETS
+
+    fictional = list(fictional_roster(4, seed=3))
+    panel = [
+        p.model_copy(update={"fictional": False, "lineage": PANEL_DERIVED_DATASETS})
+        for p in fictional
+    ]
+    assert dataset_origin(fictional) is DataOrigin.SYNTHETIC_AI_FICTIONAL
+    assert dataset_origin(panel) is DataOrigin.MODELLED_AI_PANEL
+    with pytest.raises(ValueError, match="mixed roster"):
+        dataset_origin([*fictional[:2], *panel[2:]])
+    stray = panel[0].model_copy(update={"lineage": frozenset({"piaac"})})
+    with pytest.raises(ValueError, match="mixed roster"):
+        dataset_origin([stray])
+    with pytest.raises(ValueError, match="at least one"):
+        dataset_origin([])
+
+
+def test_a_panel_dataset_says_it_is_modelled_and_not_synthetic() -> None:
+    from aia_core.domain.licence_determinations import PANEL_DERIVED_DATASETS
+
+    spec = _spec()
+    personas = [
+        p.model_copy(update={"fictional": False, "lineage": PANEL_DERIVED_DATASETS})
+        for p in fictional_roster(3, seed=5)
+    ]
+    dataset = assemble_dataset(spec, [(p, {}) for p in personas], seed=1)
+    assert dataset.origin is DataOrigin.MODELLED_AI_PANEL
+    assert not dataset.is_synthetic
+    assert [r.donor_id for r in dataset.respondents] == [p.donor_id for p in personas]

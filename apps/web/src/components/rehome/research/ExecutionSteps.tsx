@@ -32,8 +32,13 @@ import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
+  hasUnknownOrigin,
+  isModelled,
   isSynthetic,
   parkedForRuntime,
+  resultOriginKind,
+  stepOriginKind,
+  type OriginKind,
   waitingDetail,
   phaseLabel,
   phaseTone,
@@ -93,11 +98,42 @@ function Card({ id, title, children, tone, region }: { id?: string; title?: stri
   );
 }
 
+/** What a report and an analysis say about their data, by origin kind (ADR 0024 §7). */
+const REPORT_ORIGIN: Record<OriginKind, string> = {
+  SIMULATED: "research.exec.results.reportSynthetic",
+  MODELLED: "research.exec.results.reportModelled",
+  UNKNOWN: "research.exec.results.reportUnknownOrigin",
+};
+const ANALYSIS_ORIGIN: Record<OriginKind, string> = {
+  SIMULATED: "research.exec.results.analysisSynthetic",
+  MODELLED: "research.exec.results.analysisModelled",
+  UNKNOWN: "research.exec.results.analysisUnknownOrigin",
+};
+
 function SyntheticBanner() {
   return (
     <p role="note" data-origin="synthetic" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm font-semibold text-status-fault">
       {t("research.exec.syntheticNotice")}
     </p>
+  );
+}
+
+/** Every origin kind a run's data is, each said once: fictional, modelled, or unknown -- never fieldwork. */
+function OriginBanners({ run }: { run: ResearchRun }) {
+  return (
+    <>
+      {isSynthetic(run) ? <SyntheticBanner /> : null}
+      {isModelled(run) ? (
+        <p role="note" data-origin="modelled" className="rounded-sm border border-ink/30 bg-status-world-wash p-3 text-sm font-semibold text-ink">
+          {t("research.exec.modelledNotice")}
+        </p>
+      ) : null}
+      {hasUnknownOrigin(run) ? (
+        <p role="note" data-origin="unknown" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm font-semibold text-status-fault">
+          {t("research.exec.unknownOriginNotice")}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -489,6 +525,8 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
               <span>{tv("research.exec.revision", { revision: r.design_revision })}</span>
               <span className="text-ink-muted">{tv("research.exec.startedAt", { when: when(r.created_at) })}</span>
               {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
+              {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
+              {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
               <a className="underline" href={`${stepHref(r.phase === "COMPLETED" ? "results" : "progress")}?run=${encodeURIComponent(r.run_id)}`}>
                 {r.phase === "COMPLETED" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
@@ -636,7 +674,7 @@ export function ProgressStep() {
   const failed = run.steps.find((s) => s.status === "FAILED");
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      {isSynthetic(run) ? <SyntheticBanner /> : null}
+      <OriginBanners run={run} />
       <PopulationNote run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
@@ -665,7 +703,11 @@ export function ProgressStep() {
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
-                {s.data_origin ? <Chip tone="fault">{s.data_origin}</Chip> : null}
+                {stepOriginKind(s) ? (
+                  <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
+                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
+                  </span>
+                ) : null}
               </div>
               <span className="text-xs text-ink-muted">
                 {s.started_at ? tv("research.exec.startedAt", { when: when(s.started_at) }) : null}
@@ -852,7 +894,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
   return <ResultsWorkspace run={run} progressHref={progressHref}
-    notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
+    notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
@@ -930,7 +972,9 @@ function InternalReport({ run }: { run: ResearchRun }) {
           <p className="text-sm">{status.review_state === "APPROVED_INTERNAL"
             ? t("research.exec.results.reportApprovedInternal")
             : t("research.exec.results.reportDraft")}</p>
-          {status.synthetic ? <p className="mt-2 text-sm text-status-fault">{t("research.exec.results.reportSynthetic")}</p> : null}
+          <p data-origin-kind={resultOriginKind(status)} className={resultOriginKind(status) === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
+            {t(REPORT_ORIGIN[resultOriginKind(status)])}
+          </p>
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
@@ -973,8 +1017,8 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && loaded.value.synthetic
-          ? t("research.exec.results.analysisSynthetic")
+        {loaded.state === "ready"
+          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}

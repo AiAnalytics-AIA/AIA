@@ -9,7 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any
@@ -45,6 +45,7 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
+from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -146,6 +147,8 @@ class DesignSourceLabels(BaseModel):
     unlabelled_data: bool
     run_ids: list[str]
     report_artifact_ids: list[str]
+    #: Some run answered AI respondents built from its population (ADR 0024).
+    modelled: bool = False
 
 
 class DesignSourceResponse(BaseModel):
@@ -210,6 +213,9 @@ class ResearchStepResponse(BaseModel):
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
+    #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
+    #: when the step stamped no origin.
+    data_origin_kind: OriginKind | None = None
 
 
 class ResearchRunPopulation(BaseModel):
@@ -373,6 +379,24 @@ def _refused(exc: ScopeDenied) -> HTTPException:
     )
 
 
+def _artifact_origin_kind(metadata: Mapping[str, Any]) -> OriginKind:
+    """A report artifact's origin kind; one written before it recorded ``data_origin`` was
+    labelled only ``synthetic``, so anything else it says is unknown."""
+    if metadata.get("data_origin"):
+        return origin_kind(str(metadata["data_origin"]))
+    return OriginKind.SIMULATED if metadata.get("synthetic") else OriginKind.UNKNOWN
+
+
+def _origin_flags(kinds: set[OriginKind]) -> dict[str, Any]:
+    """``modelled`` and the one ``data_origin_kind`` of what was read (``None``: nothing; mixed
+    kinds read as ``UNKNOWN``)."""
+    kind = next(iter(kinds)) if len(kinds) == 1 else (OriginKind.UNKNOWN if kinds else None)
+    return {
+        "modelled": OriginKind.MODELLED in kinds,
+        "data_origin_kind": kind.value if kind is not None else None,
+    }
+
+
 def design_source_response(source: DesignSource) -> DesignSourceResponse:
     """The citation as the API returns it."""
     labels = source.labels
@@ -390,6 +414,7 @@ def design_source_response(source: DesignSource) -> DesignSourceResponse:
             unlabelled_data=labels.unlabelled_data,
             run_ids=list(labels.run_ids),
             report_artifact_ids=list(labels.report_artifact_ids),
+            modelled=labels.modelled,
         ),
         created_by=source.created_by,
         created_at=source.created_at,
@@ -526,6 +551,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         error_message=str(error.get("message")) if error.get("message") else None,
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
+        data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
     )
 
 
@@ -936,6 +962,9 @@ def run_analysis(
         "complete": analysis.complete,
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
+        **_origin_flags(
+            {origin_kind(o.record.labels.data_origin) for o in analysis.modules.values()}
+        ),
         # The aggregate every module read is no longer 18.6.6's port (methodology-tab G3c).
         "aggregation_deviation": (
             dict(analysis.aggregation_deviation)
@@ -1065,6 +1094,7 @@ def run_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 
@@ -1195,6 +1225,7 @@ def run_sociomapping_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 

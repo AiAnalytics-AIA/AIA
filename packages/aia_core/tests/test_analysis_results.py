@@ -754,6 +754,51 @@ def test_reconstructed_analysis_composes_an_internal_branded_draft(
         )
 
 
+def _callout_texts(blocks: Any) -> list[str]:
+    return [
+        "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, Callout)
+    ]
+
+
+def test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits(
+    world: World,
+) -> None:
+    """ADR 0024 §7: the report says "modelováno: AI respondenti z populace", never synthetic,
+    and never leaves a modelled run unframed as plain research."""
+    from aia_core.application.report import RESEARCH_SUBTITLE
+    from aia_core.domain.fieldwork import OriginKind
+
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed, count=8)
+    run = reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    modules = {}
+    for module_id, module in run.modules.items():
+        labels = module.record.labels.model_copy(
+            update={
+                "data_origin": DataOrigin.MODELLED_AI_PANEL,
+                "simulated_respondents": False,
+                "modelled_respondents": True,
+            }
+        )
+        record = module.record.model_copy(update={"labels": labels})
+        modules[module_id] = dataclasses.replace(module, record=record)
+    doc = compose_internal_report(
+        dataclasses.replace(run, modules=modules), report_meta(first.method_status)
+    )
+    intro = " ".join(_callout_texts(doc.sections[0].blocks))
+    assert "modelováno: AI respondenti z populace" in intro
+    assert "syntetičtí" not in intro
+    limits = " ".join(_callout_texts(next(s for s in doc.sections if s.title == "Limity").blocks))
+    assert "modelováno: AI respondenti z populace" in limits and "syntetičtí" not in limits
+    assert RESEARCH_SUBTITLE[OriginKind.MODELLED] == "Modelovaný výzkum"
+    assert set(RESEARCH_SUBTITLE) == set(OriginKind)
+
+
 def report_meta(method_status: str) -> ReportMeta:
     return ReportMeta(
         kind=ReportKind.INTERNAL,

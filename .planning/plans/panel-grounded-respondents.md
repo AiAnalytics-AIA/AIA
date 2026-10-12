@@ -13,7 +13,11 @@ chunks:
   - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
-  - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
+  - "[x] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
+  - "[x] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
+  - "[x] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
+  - "[x] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
+  - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -511,6 +515,154 @@ structured format). Every field shown or used asks
 `decide_joint`. The fact layer reads the row's columns: a question the panel answers
 becomes DIRECT (answered by code) instead of UNSUPPORTED. Styles from
 `assign_styles` over the real rows. Real weights and donor ids. Parity fixtures.
+
+### 4a. The origin contract (2026-10-12)
+
+ADR 0024 decides what `MODELLED_AI_PANEL` is; this is where it lands. Anchors @ `c1c8ec1`, under
+`packages/aia_core/src/aia_core/` unless a path says otherwise.
+
+**What a new origin gets today.** `DataOrigin` has two members (`domain/fieldwork.py:50-62`), both
+in `NON_EVIDENCE_ORIGINS` (`:66-68`), and every reader asks "is it in that set?". So a new member
+is refused only where a reader demands membership, and is read as **real, measured data**
+everywhere else:
+
+| Site | Today | A new origin |
+|---|---|---|
+| `domain/evidence/instrument.py:73-80` `_require_simulated` | `-1` for both | refused (fail-closed) |
+| `domain/analysis/native.py:465-476` `native_evidence` | via the instrument book | refused |
+| `domain/ai_respondent.py:685-689` `assemble_dataset` | fictional only | refused |
+| `apps/executors/.../ai_fieldwork.py:122-132` guard | fictional only | refused |
+| `domain/evidence/admission.py:244` client-facing gate | denylist | **passes** (and so does `None`) |
+| `domain/analysis/native.py:531-539` preflight | denylist | **passes** (`FIELD_INTERNAL_ONLY` still blocks, `:540-546`) |
+| `domain/analysis/harness.py:136-143` labels, `_FRAME` `:82-88` | "simulated" | **read as real**; the frame calls every respondent fictional |
+| `application/report.py:153,294`, `contextual_report.py:334`, `apps/executors/.../report.py:135` | synthetic callouts | **no callout, no disclosure**: "Výzkum" |
+| `domain/research_sociomapping.py:358-359`, `application/sociomapping_report.py:325,347` | "Fiktivní data" | **no callout** |
+| `domain/design_reuse.py:36,77-84` | synthetic | "unlabelled" (safe, wrong) |
+| `apps/executors/.../research.py:396` progress | "fiktivní data připravena" | **"sběr dat dokončen"** (fieldwork done) |
+| `apps/api/.../routers/research.py:212,938,1067,1197,143` | `synthetic` flags | **synthetic: false**, no modelled flag |
+| `apps/web/src/lib/research-execution.ts:85-94`, `ExecutionSteps.tsx:491,639,668,855,976`, `memory.ts:55`, `ObjectMapView.tsx:60`, `SociomappingView.tsx:50,308` | "Fiktivní data" | **no label**; the raw string shown as a fault chip |
+| `tests/test_evidence_admission.py:233` | `set(DataOrigin) == NON_EVIDENCE_ORIGINS` | fails: the one exhaustive test |
+
+**Decisions.**
+
+1. **4b, the origin and the gate.** `DataOrigin.MODELLED_AI_PANEL`; not in `NON_EVIDENCE_ORIGINS`.
+   `CLIENT_ADMISSIBLE_ORIGINS = {MODELLED_AI_PANEL}` (ADR 0024 §2), and both client-facing gates
+   (`admission.py:244`, `native.py:531`) become the allowlist: any other origin, `None` and any
+   member added later, is refused client-facing. A non-evidence origin keeps its code
+   (`SYNTHETIC_DATA_ORIGIN`); anything else outside the list is `ORIGIN_NOT_ADMISSIBLE`.
+   Nothing becomes client-facing in 4b: `FIELD_INTERNAL_ONLY`, the joint certificate and (4e) the
+   validation still block. `assemble_dataset` derives the origin from the personas: every persona
+   fictional -> `SYNTHETIC_AI_FICTIONAL`; every persona panel-built (not fictional, lineage
+   `PANEL_DERIVED_DATASETS`) -> `MODELLED_AI_PANEL`; anything else refused (mixed rosters are
+   refused, not labelled). The exhaustive test becomes a partition test: every member is either
+   non-evidence or admissible, never both, never neither.
+2. **4c, one reading, every Python surface.** `domain/fieldwork.py` gains `origin_kind(origin) ->
+   SIMULATED | MODELLED | UNKNOWN` (`None` and an unrecognised string are `UNKNOWN`), the one
+   function every label reads; no surface tests set membership itself. `ModuleLabels` gains
+   `modelled_respondents`; the harness frame, the report (beside the number, with
+   "modelováno: AI respondenti z populace", ADR 0024 §7), the sociomapping view and report,
+   design reuse, the progress text ("modelovaná data připravena") and the API's flags read it.
+   An `UNKNOWN` origin is labelled unknown, never real.
+3. **4d, the web client.** The same three-way vocabulary in `research-execution.ts`, used by every
+   surface listed; the modelled chip and banner say "modelováno: AI respondenti z populace";
+   `ObjectMapView`'s prefix test goes; an unknown origin is shown as unknown, never as fieldwork.
+4. **4e, the evidence policy and validation** (ADR 0024 §3-§5): `aia-instrument-evidence-2` for
+   `MODELLED_AI_PANEL` (aggregate only, MODELED with `MODELED_VALUE` and `SCOPE`), the validation
+   fingerprint and `effective_validation_status` as the client-facing gate, support counted in
+   donors. Split again when it starts; it is the only sub-chunk that can open a client-facing
+   route, and it opens none until a validation is recorded.
+
+Out of scope here: producing the origin (chunk 5's executor), the Sociomap's `INTERNAL_ONLY` (D6).
+
+### 4b. Landed: the origin and the allowlist
+
+`domain/fieldwork.py`: `DataOrigin.MODELLED_AI_PANEL`, not in `NON_EVIDENCE_ORIGINS`;
+`CLIENT_ADMISSIBLE_ORIGINS = {MODELLED_AI_PANEL}`. Both client-facing gates are the allowlist
+(`domain/evidence/admission.py`, `domain/analysis/native.py` preflight): a synthetic origin keeps
+`SYNTHETIC_DATA_ORIGIN`, a missing or undecided one is `ORIGIN_NOT_ADMISSIBLE` (new,
+`evidence/gate.py`). `domain/ai_respondent.py`: `dataset_origin(personas)`, which
+`assemble_dataset` now calls: all fictional -> `SYNTHETIC_AI_FICTIONAL`, all panel-built (not
+fictional, lineage `PANEL_DERIVED_DATASETS`) -> `MODELLED_AI_PANEL`, anything else refused. Nothing
+became client-facing: `FIELD_INTERNAL_ONLY` and the instrument policy (`-1` refuses the new
+origin) still hold.
+
+Tests: `test_every_origin_is_decided_once` (the partition replaces the exhaustive denylist test),
+`test_only_an_admissible_origin_passes_the_client_facing_gate`,
+`test_a_row_with_no_origin_no_longer_slips_the_origin_gate`,
+`test_the_dataset_origin_is_derived_from_the_personas_never_chosen`,
+`test_a_panel_dataset_says_it_is_modelled_and_not_synthetic`. The shared `evidence_row` fixture
+defaults to the admissible origin: 81 tests built client-facing rows with no origin, a state the
+one production builder (`native.py:334`, which stamps the dataset's origin) never makes.
+
+### 4c. Landed: one reading of an origin, every Python surface
+
+`domain/fieldwork.py`: `OriginKind` (SIMULATED / MODELLED / UNKNOWN), `origin_kind(origin)` (`None`
+and an unrecognised string are UNKNOWN; there is no measured kind) and `MODELLED_DISCLOSURE`
+("modelováno: AI respondenti z populace", ADR 0024 §7). Every label below reads `origin_kind`; no
+surface tests set membership:
+
+* analysis harness: a modelled frame beside the simulated one (`harness_frame` refuses an UNKNOWN
+  kind; `harness_sha256` covers both frames, so it moves once); `harness_labels` and
+  `ModuleLabels` gain `modelled_respondents` (default `False`: artifacts written before read);
+  `classify_analysis_material` keeps a modelled run Class A.
+* internal report (`application/report.py`): the introduction always carries a "Rámec
+  interpretace" callout and Limity a limitation, one text per kind; `RESEARCH_SUBTITLE` is the one
+  subtitle table (executor report, contextual report): "Modelovaný výzkum", "Výzkum neznámého
+  původu", never plain "Výzkum". The executor's report metadata records `data_origin`.
+* Sociomapping (`research_sociomapping.py`, `application/sociomapping_report.py`, its executor):
+  the stored result is unchanged (`synthetic_data` now read through `origin_kind`); the report's
+  note and `SOCIOMAPPING_SUBTITLE` read the stored `data_origin`, an unknown one said; a
+  `synthetic_data` flag that disagrees with the origin's kind is refused.
+* design reuse: `SourceLabels.modelled` (default `False`: stored labels read); only an origin of
+  unknown kind, or none, is unlabelled.
+* fieldwork progress (`aia_executors/research.py` `_DATA_READY`): "modelovaná data připravena";
+  no kind says "sběr dat dokončen".
+* API (`routers/research.py`): a step's `data_origin_kind`; analysis and both report reads add
+  `modelled` and `data_origin_kind` (mixed kinds read UNKNOWN; a report artifact written before
+  `data_origin` was recorded reads SIMULATED from `synthetic`, else UNKNOWN);
+  `DesignSourceLabels.modelled`.
+
+Tests: `test_every_origin_has_one_kind_and_nothing_reads_as_measured`,
+`test_a_modelled_origin_is_framed_as_modelled_never_fictional_or_measured`,
+`test_modelled_respondents_are_client_material_never_class_c`,
+`test_a_modelled_run_is_framed_as_modelled_in_the_introduction_and_the_limits`,
+`test_every_origin_is_said_and_an_unknown_one_is_never_read_as_real`,
+`test_a_synthetic_flag_beside_an_origin_of_another_kind_is_refused`,
+`test_a_modelled_run_is_labelled_modelled_never_unlabelled_or_synthetic`,
+`test_labels_recorded_before_the_modelled_origin_still_read`,
+`test_the_fieldwork_step_never_says_fieldwork_is_done_for_answers_no_person_gave`,
+`test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real`.
+
+Not here: the "beside the number" mark in the DOCX ledger is 4e's, with the policy that makes a
+modelled number admissible; the web client is 4d.
+
+### 4d. Landed: the web client's labels
+
+`apps/web/src/lib/research-execution.ts`: `OriginKind`, `originKind` (the same three-way reading as
+`domain/fieldwork.py`; `null`, empty and unknown strings are UNKNOWN), `MODELLED_ORIGINS`,
+`MODELLED_DISCLOSURE`; `stepOriginKind` (the API's `data_origin_kind` when it is one of the three,
+else the page's own reading; `null` when the step stamped no origin), `runOriginKinds`,
+`isModelled`, `hasUnknownOrigin` beside `isSynthetic`, and `resultOriginKind` for an analysis or a
+report (an older API's `synthetic` flag reads SIMULATED, its absence UNKNOWN). Every surface reads
+them:
+
+* `ExecutionSteps.tsx`: `OriginBanners` (fictional, modelled, unknown; each said when it applies) on
+  Progress and Results; the run list's chips; a step's chip says its kind ("Modelovaná data"), the
+  raw origin moved to its title (it was a fault chip); the report and analysis notes, one text per
+  kind.
+* `ObjectMapView.tsx`: the `startsWith("SYNTHETIC")` test is gone; one origin chip per kind
+  (`object-map-origin`, `data-origin-kind`), and a map with no recorded origin says unknown.
+* `SociomappingView.tsx`: one sentence per kind, unknown said.
+* `memory.ts`: `RunDataLabel` gains `modelled` (an unknown origin outranks it); `sourceLabelWords`
+  says `modelled`.
+* `api.ts`: optional `data_origin_kind` / `modelled` on steps, analysis, reports and design-source
+  labels (absent from an older API).
+
+Tests: `research-execution.test.ts` (three new), `memory.test.ts`
+(`labels a modelled run modelled, and an origin it has no word for unknown, never good`),
+`ObjectMapView.test.tsx` (`says modelled data is modelled, never fictional and never measured`),
+`ExecutionSteps.test.tsx` (`says a modelled run is modelled on its banner and its steps…`,
+`says an origin it has no word for is unknown, never real`).
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling

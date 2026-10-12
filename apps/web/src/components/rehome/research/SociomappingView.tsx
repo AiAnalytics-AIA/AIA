@@ -32,6 +32,14 @@ import {
   relationsOf,
 } from "@/lib/sociomapping-view";
 import { Button } from "../ui";
+import { type OriginKind, originKind } from "@/lib/research-execution";
+
+/** What the map says about its data, one sentence per origin kind; an unknown origin is said. */
+const SOCIOMAPPING_ORIGIN: Record<OriginKind, string> = {
+  SIMULATED: "research.exec.sociomapping.synthetic",
+  MODELLED: "research.exec.sociomapping.modelled",
+  UNKNOWN: "research.exec.sociomapping.unknown",
+};
 
 const SEQ = (band: number) => `var(--viz-seq-${band + 1})`;
 const STEP = Math.PI / 12;
@@ -47,9 +55,9 @@ export function SociomappingView({ artifact, run, studyId, canEdit }: { artifact
   return (
     <div className="flex flex-col gap-4">
       <p role="note" className="text-sm font-semibold">{t("research.exec.sociomapping.experimental")}</p>
-      {result.synthetic_data ? (
-        <p className="text-sm text-status-fault">{tv("research.exec.sociomapping.synthetic", { origin: result.data_origin ?? "—" })}</p>
-      ) : null}
+      <p data-origin-kind={originKind(result.data_origin)} className={originKind(result.data_origin) === "MODELLED" ? "text-sm" : "text-sm text-status-fault"}>
+        {tv(SOCIOMAPPING_ORIGIN[originKind(result.data_origin)], { origin: result.data_origin ?? "—" })}
+      </p>
       {result.batteries.length === 0 ? <p className="text-sm text-ink-muted">{result.note}</p> : null}
       {result.batteries.length > 1 ? (
         <label className="flex items-center gap-2 text-sm">
