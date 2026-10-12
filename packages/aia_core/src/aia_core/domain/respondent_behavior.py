@@ -395,8 +395,12 @@ def assign_styles(
     noise floor ``spec``'s.
 
     Each row carries ``respondent_id`` and, when known, ``vek`` (number),
-    ``pohlavi`` and ``vzdelani`` (the unit's labels). A missing attribute contributes
-    nothing, exactly as a missing column does in the unit.
+    ``pohlavi`` and ``vzdelani`` (the unit's labels). A column no row has contributes
+    nothing; a missing education or age contributes nothing; a missing sex where the column
+    exists counts as not male (-1), as the unit's ``astype(str)`` makes it. Only the hash
+    noise is the respondent's own: the z-scores, the signal's variance and the final
+    standardisation are over ``rows``, so the same respondent in another roster has another
+    style.
     """
     if not rows:
         return []

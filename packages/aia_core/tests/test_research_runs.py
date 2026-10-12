@@ -405,9 +405,10 @@ def test_fieldwork_without_a_runtime_parks_the_run_and_nothing_downstream_runs(
     assert runs().get(run_id)["phase"] is ResearchPhase.RUNNING
     assert [r["phase"] for r in runs().runs()] == [ResearchPhase.RUNNING]
     fieldwork = engine.claim_next(worker_id="w", kinds={"research_fieldwork"})
-    # The step carries the response process the run pinned (plan methodology-tab R1b).
+    # The step carries the personas' source and the response process the run pinned.
     assert fieldwork is not None and fieldwork.payload == {
         "fieldwork_source": "ai_runtime",
+        "persona_source": "fictional_roster",
         "response": AIA_RESPONSE_V1.model_dump(mode="json"),
     }
     engine.fail_attempt(

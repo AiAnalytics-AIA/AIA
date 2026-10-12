@@ -104,7 +104,7 @@
       "formulas": [],
       "id": "weights",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
-      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1). Volba je deklarovaná v modulu Vážení (aggregate_cleaning).",
+      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1). Na běhu nenastane: datová sada běhu neplatnou váhu odmítne dřív (modul Vážení).",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
@@ -1220,8 +1220,8 @@
       "formulas": [],
       "id": "styles",
       "implements": "aia_core.domain.respondent_behavior:assign_styles",
-      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící údaj nepřispívá ničím.",
-      "source_sha256": "90ce38208464d13bdf304e391233c4d13e1714dfbe318b19586844ddad15dfc8",
+      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící vzdělání nebo věk nepřispívá ničím; chybějící pohlaví se počítá jako ne-muž (-1), stejně jako v 18.6.6 (styly.py).",
+      "source_sha256": "0ee31228933919923cbead02ee072b3fa59b0456cd930ef4565e092be9280ed7",
       "symbols": [
        {
         "latex": "z_{\\mathrm{vzd}},\\ z_{\\text{věk}}",
@@ -1420,7 +1420,7 @@
       "formulas": [],
       "id": "noise",
       "implements": "aia_core.domain.respondent_behavior:_stable_noise",
-      "note_cs": "Šum závisí jen na respondentovi: stejný respondent má vždy stejný styl.",
+      "note_cs": "Šum závisí jen na respondentovi. Styl jako celek ne: z-skóre vzdělání a věku, rozptyl signálu i závěrečná standardizace se počítají přes celý soubor, takže tentýž respondent má v jiném souboru jiný styl.",
       "source_sha256": "4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
       "symbols": [
        {
@@ -1430,7 +1430,8 @@
        }
       ],
       "tests": [
-       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster"
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster",
+       "packages/aia_core/tests/test_methodology_response.py::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster"
       ],
       "title_cs": "Stabilní šum",
       "values": []
@@ -1475,7 +1476,7 @@
       "evidence": [
        {
         "kind": "aia_decision",
-        "note_cs": "Fiktivní soubor má max(3, ⌊n/3⌋) dárců; s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců.",
+        "note_cs": "Fiktivní soubor losuje dárce s opakováním z fondu max(3, ⌊n/3⌋) identifikátorů, takže skutečných dárců je méně. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou.",
         "ref": "plan methodology-tab, nález D6"
        }
       ],
@@ -1483,12 +1484,12 @@
       "formulas": [],
       "id": "roster",
       "implements": "aia_core.domain.ai_respondent:fictional_roster",
-      "note_cs": "Nález D6: s pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců. Fiktivní soubor nese AI běh, dokud zdroj panelu nedojde do sběru.",
+      "note_cs": "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu.",
       "source_sha256": "70f80c16faef7718b30696b87c735b47c6442607ce9eb38ac2da7f1868230bca",
       "symbols": [
        {
         "latex": "D",
-        "meaning_cs": "počet fiktivních dárců",
+        "meaning_cs": "fond identifikátorů dárců; dárci se z něj losují s opakováním",
         "unit": ""
        },
        {
@@ -1499,7 +1500,7 @@
       ],
       "tests": [
        "packages/aia_core/tests/test_ai_respondent.py::test_the_roster_is_fictional_deterministic_and_carries_its_lineage",
-       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_run_below_75_respondents_has_too_few_donors"
+       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support"
       ],
       "title_cs": "Fiktivní soubor: dárci a váhy",
       "values": []
@@ -8382,9 +8383,23 @@
       "title_cs": "Součty populace"
      },
      {
+      "id": "V",
+      "note_cs": "",
+      "step_ids": [
+       "sample_base",
+       "sample_targets",
+       "rake",
+       "sample_without_quotas",
+       "sample_audit",
+       "respondent"
+      ],
+      "title_cs": "Váha respondenta běhu: vzorek z panelu"
+     },
+     {
       "id": "C",
       "note_cs": "",
       "step_ids": [
+       "dataset",
        "cleaning"
       ],
       "title_cs": "Neplatná váha"
@@ -8395,14 +8410,15 @@
       "step_ids": [
        "kish_aggregate",
        "kish_gate",
-       "kish_sociomap"
+       "kish_sociomap",
+       "kish_sample"
       ],
-      "title_cs": "Kishovo efektivní n na třech místech"
+      "title_cs": "Kishovo efektivní n na čtyřech místech"
      }
     ],
     "id": "weighting",
     "in_force": "aia-weighting-1",
-    "note_cs": "AIA váhy nepočítá: každé schéma je sloupec panelu, který určí importní smlouva. Kalibrace, raking ani GREG v AIA nejsou. Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí. Čištění neplatné váhy v agregaci je volba; dnes medián jako v 18.6.6. Běh si vážení zapamatuje od W1b, upravit ho půjde od W1c.",
+    "note_cs": "Schéma vah je sloupec panelu, který určí importní smlouva. Respondent běhu nese váhu vzorku: základní váhu s dolní mezí, raking na vážené podíly publika (IPF s ořezem, průměr 1) a audit reprezentativnosti, vše převzaté z 18.6.6. GREG ani jiná kalibrace v AIA nejsou. Datová sada běhu odmítne váhu, která není kladné konečné číslo. Hodnoty výběru jsou konstanty kódu; volbou běhu se stanou, až zdroj panelu dojde do sběru (W1c). Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí.",
     "preset": "aia-weighting-1",
     "presets": [
      "aia-weighting-1"
@@ -8421,7 +8437,7 @@
       "id": "method",
       "implements": "aia_core.domain.population.weights:WeightingSpec",
       "note_cs": "",
-      "source_sha256": "388bcbb83712a16ad64102a6128e751eec50beee59cbd2d8ea52d31c40e972d5",
+      "source_sha256": "05e603e0a56e37161e45c9befff606f96861437657564e8d8918293b23bee608",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
@@ -8666,6 +8682,252 @@
       "evidence": [
        {
         "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w^{0}_i = \\max\\!\\left(w_i,\\ 10^{-12}\\right),\\quad \\textstyle\\sum_{i \\in A} w_i = 0 \\;\\Rightarrow\\; \\text{odmítnuto}",
+      "formulas": [],
+      "id": "sample_base",
+      "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "note_cs": "Řádek s nulovou vahou se vylosuje jen tehdy, když ho jeho buňka potřebuje. Publikum, jehož váhy jsou všechny nulové, se odmítne (18.6.6 mu dalo váhy 1).",
+      "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+      "symbols": [
+       {
+        "latex": "A",
+        "meaning_cs": "publikum běhu: řádky panelu po filtru",
+        "unit": ""
+       },
+       {
+        "latex": "w_i",
+        "meaning_cs": "váha řádku ze sloupce schématu (analytická váha populace)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn",
+       "packages/aia_core/tests/test_population_sampling.py::test_a_sample_that_cannot_be_drawn_as_asked_is_refused_by_name"
+      ],
+      "title_cs": "Základní váha ve výběru",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Dolní mez základní váhy",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_WEIGHT_FLOOR",
+        "unit": "",
+        "value": 1e-12
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "t_{f,c} = \\frac{\\sum_{i \\in A,\\ x_{if} = c} w^{0}_i}{\\sum_{i \\in A} w^{0}_i}",
+      "formulas": [],
+      "id": "sample_targets",
+      "implements": "aia_core.domain.population.sampling:targets",
+      "note_cs": "Pole se použije, jen když má v publiku víc než jednu hodnotu.",
+      "source_sha256": "c7466c00f095703c196356b9da56a538091e0dcf2026502ca7b4900331e82dd0",
+      "symbols": [
+       {
+        "latex": "f",
+        "meaning_cs": "kvótní pole (pohlaví, věková skupina, kraj, vzdělání, zaměstnání)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "kategorie pole",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_targets_and_quota_fields_are_the_units"
+      ],
+      "title_cs": "Cíle: vážené podíly publika",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w_i \\leftarrow w_i \\cdot \\frac{t_{f,c}}{\\sum_{j \\in c} w_j \\,/\\, \\sum_j w_j}\\ \\ (i \\in c),\\quad w_i \\leftarrow \\frac{\\min\\!\\left(\\max(w_i, \\varepsilon),\\ \\max(\\kappa\\, q_{0{,}99}(w), \\varepsilon)\\right)}{\\bar{w}}",
+      "formulas": [],
+      "id": "rake",
+      "implements": "aia_core.domain.population.sampling:rake",
+      "note_cs": "Iterativní proporcionální přizpůsobení (IPF) po polích, v každé iteraci ořez a normalizace na průměr 1; skončí, když se žádná váha nezmění o víc než mez konvergence. Toto je jediná kalibrace v AIA; GREG ani jiné odhady vah tu nejsou.",
+      "source_sha256": "271df8674134cc5ee6ac06a574ff273516249d24ed9fc0d3fad565100987077f",
+      "symbols": [
+       {
+        "latex": "\\varepsilon",
+        "meaning_cs": "dolní mez váhy při rakingu",
+        "unit": ""
+       },
+       {
+        "latex": "\\kappa",
+        "meaning_cs": "násobek 99. percentilu, horní mez váhy",
+        "unit": ""
+       },
+       {
+        "latex": "q_{0{,}99}(w)",
+        "meaning_cs": "99. percentil vah (do 20 respondentů maximum)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar{w}",
+        "meaning_cs": "průměr vah: výsledné váhy mají průměr 1",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_raking_the_units_picks_gives_the_units_weights",
+       "packages/aia_core/tests/test_population_sampling.py::test_raking_where_the_cap_binds_is_the_units"
+      ],
+      "title_cs": "Raking vzorku na cíle",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejvýš iterací",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_ITERATIONS",
+        "unit": "",
+        "value": 60
+       },
+       {
+        "absent": false,
+        "label_cs": "Dolní mez váhy (ε)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_FLOOR",
+        "unit": "",
+        "value": 1e-06
+       },
+       {
+        "absent": false,
+        "label_cs": "Násobek percentilu (κ)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_CAP",
+        "unit": "",
+        "value": 8.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Konvergence: největší změna váhy",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_CONVERGED",
+        "unit": "",
+        "value": 1e-08
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w_i = \\frac{w^{0}_i}{\\overline{w^{0}}}",
+      "formulas": [],
+      "id": "sample_without_quotas",
+      "implements": "aia_core.domain.population.sampling:representative_draw",
+      "note_cs": "Když publikum nemá žádné použitelné kvótní pole, vylosuje se n řádků podle váhy a raking se nedělá.",
+      "source_sha256": "45fcb9c64c6a55b24f3c77cff25abb34b7956ec7501e4630c1c0206098bcfb02",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_with_no_usable_quota_field_the_weight_is_the_base_over_its_mean"
+      ],
+      "title_cs": "Bez kvótního pole: základní váha přes průměr",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "\\max_{f,c} \\left| p^{\\mathrm{váž}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}25,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.},\\quad \\max_{f,c} \\left| p^{\\mathrm{surový}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}50,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.}",
+      "formulas": [],
+      "id": "sample_audit",
+      "implements": "aia_core.domain.population.sampling:judge",
+      "note_cs": "Překročení vážené tolerance vzorek odmítne (sampling_unrepresentative); překročení surové jen varuje (PASS_WEIGHTED).",
+      "source_sha256": "862a0c9dd814c8eb4fc7a34c326476272adad3a4de84aa326797c3228a6bed6b",
+      "symbols": [
+       {
+        "latex": "p_{f,c}",
+        "meaning_cs": "podíl kategorie ve vzorku, vážený nebo surový",
+        "unit": "p. b."
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "velikost vzorku",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units",
+       "packages/aia_core/tests/test_population_sampling.py::test_the_tolerances_are_the_units_boundaries"
+      ],
+      "title_cs": "Audit reprezentativnosti",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w^{\\mathrm{resp}}_i = w_i\\ \\text{(po rakingu)}",
+      "formulas": [],
+      "id": "respondent",
+      "implements": "aia_core.domain.panel_persona:panel_personas",
+      "note_cs": "Respondent postavený z panelu nese váhu vzorku po rakingu. Zdroj panelu ještě není zapojen do sběru (plán panel-grounded-respondents, část 5); AI respondenti dnes váží 1 a smyšlení respondenti pracovní plochy svou váhu.",
+      "source_sha256": "9f68f6e30b141b74b6b67df8969447dc2559c31654b11c2286ee1ac6dd82674a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_panel_persona.py::test_every_sampled_row_becomes_a_panel_persona"
+      ],
+      "title_cs": "Váha respondenta běhu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Datová sada běhu odmítne váhu, která není kladné konečné číslo; agregace tak dostane jen platné váhy a pravidlo mediánu na běhu nikdy nenastane.",
+        "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
+       }
+      ],
+      "formula_latex": "w_i \\notin (0, \\infty) \\;\\Rightarrow\\; \\text{datová sada odmítnuta}",
+      "formulas": [],
+      "id": "dataset",
+      "implements": "aia_core.domain.fieldwork:FieldworkRespondent",
+      "note_cs": "Nula, záporná hodnota, NaN i nekonečno: sběr se odmítne a do agregace nic nedojde. Nekonečno dříve prošlo a agregace ho nahradila mediánem.",
+      "source_sha256": "91578619d19f36fee70b32c46f0622d8816df6adba36a4299bbc1389623b8166",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite"
+      ],
+      "title_cs": "Váha v datové sadě běhu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
         "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
         "ref": "uncertainty.py (clean_weights, kish_effective_n)"
        },
@@ -8673,29 +8935,26 @@
         "kind": "aia_decision",
         "note_cs": "Brána důkazů váhy nečistí: do analýzy mají přijít už jako deklarované schéma.",
         "ref": "evidence/support.py (methodology-ledger M06, M16)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Datová sada běhu odmítne váhu, která není kladné konečné číslo; agregace tak dostane jen platné váhy a pravidlo mediánu na běhu nikdy nenastane.",
+        "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
        }
       ],
       "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
       "formulas": [],
       "id": "cleaning",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
-      "note_cs": "Tři pravidla pro tutéž váhu (nález D1): agregace ji nahradí mediánem platných (median, přenos 18.6.6), brána důkazů i načítání populace ji odmítnou. Volba je deklarovaná; běh ji začne číst ve W1b a refuse pak agregaci s neplatnou vahou odmítne.",
+      "note_cs": "Přenos 18.6.6 ponechaný kvůli paritě. Na běhu nenastane: datová sada neplatnou váhu odmítne dřív (krok Váha v datové sadě běhu). Brána důkazů i načítání populace takovou váhu také odmítají (nález D1); volba mezi mediánem a odmítnutím proto není potřeba a z deklarace vážení zmizela (W1b).",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight"
+       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite"
       ],
-      "title_cs": "Čištění vah v agregaci",
-      "values": [
-       {
-        "absent": false,
-        "label_cs": "Čištění neplatné váhy",
-        "origin": "specification",
-        "reference": "aggregate_cleaning",
-        "unit": "",
-        "value": "median"
-       }
-      ]
+      "title_cs": "Čištění vah v agregaci (přenos 18.6.6)",
+      "values": []
      },
      {
       "evidence": [
@@ -8751,7 +9010,7 @@
       "formulas": [],
       "id": "kish_sociomap",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
-      "note_cs": "Odmítne i nulovou váhu. Na kladných konečných vahách dávají všechna tři místa totéž číslo, na jakýchkoli jiných se liší (nález D1).",
+      "note_cs": "Odmítne i nulovou váhu. Na kladných konečných vahách dávají všechna místa totéž číslo, na jakýchkoli jiných se liší (nález D1).",
       "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
       "symbols": [],
       "tests": [
@@ -8759,9 +9018,30 @@
       ],
       "title_cs": "Kishovo n páru v Sociomapě",
       "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_i w_i\\right)^2}{\\sum_i w_i^2}",
+      "formulas": [],
+      "id": "kish_sample",
+      "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "note_cs": "Čtvrté místo, kde se Kishovo n počítá: z vah po rakingu, zapsané do auditu vzorku (effective_n). Váhy jsou tu kladné z konstrukce (dolní mez rakingu).",
+      "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units"
+      ],
+      "title_cs": "Kishovo n vzorku",
+      "values": []
      }
     ],
-    "steps": 9,
+    "steps": 17,
     "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
    }
   }
@@ -9176,9 +9456,23 @@
      "title_cs": "Součty populace"
     },
     {
+     "id": "V",
+     "note_cs": "",
+     "step_ids": [
+      "sample_base",
+      "sample_targets",
+      "rake",
+      "sample_without_quotas",
+      "sample_audit",
+      "respondent"
+     ],
+     "title_cs": "Váha respondenta běhu: vzorek z panelu"
+    },
+    {
      "id": "C",
      "note_cs": "",
      "step_ids": [
+      "dataset",
       "cleaning"
      ],
      "title_cs": "Neplatná váha"
@@ -9189,18 +9483,19 @@
      "step_ids": [
       "kish_aggregate",
       "kish_gate",
-      "kish_sociomap"
+      "kish_sociomap",
+      "kish_sample"
      ],
-     "title_cs": "Kishovo efektivní n na třech místech"
+     "title_cs": "Kishovo efektivní n na čtyřech místech"
     }
    ],
    "id": "weighting",
    "in_force": "aia-weighting-1",
-   "note_cs": "AIA váhy nepočítá: každé schéma je sloupec panelu, který určí importní smlouva. Kalibrace, raking ani GREG v AIA nejsou. Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí. Čištění neplatné váhy v agregaci je volba; dnes medián jako v 18.6.6. Běh si vážení zapamatuje od W1b, upravit ho půjde od W1c.",
+   "note_cs": "Schéma vah je sloupec panelu, který určí importní smlouva. Respondent běhu nese váhu vzorku: základní váhu s dolní mezí, raking na vážené podíly publika (IPF s ořezem, průměr 1) a audit reprezentativnosti, vše převzaté z 18.6.6. GREG ani jiná kalibrace v AIA nejsou. Datová sada běhu odmítne váhu, která není kladné konečné číslo. Hodnoty výběru jsou konstanty kódu; volbou běhu se stanou, až zdroj panelu dojde do sběru (W1c). Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí.",
    "presets": [
     "aia-weighting-1"
    ],
-   "steps": 9,
+   "steps": 17,
    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
   },
   {

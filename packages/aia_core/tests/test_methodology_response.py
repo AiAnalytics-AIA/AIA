@@ -142,16 +142,48 @@ def test_a_style_is_put_into_words_from_the_threshold() -> None:
     assert describe_style({"vyhranenost": 0.5}, threshold=0.5) != ""
 
 
-def test_d6_a_fictional_run_below_75_respondents_has_too_few_donors() -> None:
-    """D6, reproduced: a fictional roster has max(3, n // 3) donors, so under aia-support-1
-    (25 donors for a donor-layer value) every run below 75 respondents is suppressed there."""
+def test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support() -> None:
+    """D6, reproduced: a fictional roster draws its donors with replacement from a pool of
+    max(3, n // 3) ids, so it has fewer distinct donors than the pool. Under aia-support-1 (25
+    donors for a donor-layer value) every run below 75 respondents is suppressed there, and
+    at 75 most still are; the pool is not the count (review on #342)."""
     floor = AIA_SUPPORT_V1.results.min_layer_donors
     assert floor == 25
     for n in (10, 30, 60, 74):
-        donors = {p.donor_id for p in fictional_roster(n, seed=7)}
-        assert len(donors) <= max(3, n // 3) < floor, n
+        for seed in range(20):
+            donors = {p.donor_id for p in fictional_roster(n, seed=seed)}
+            assert len(donors) <= max(3, n // 3) < floor, (n, seed)
+    at_75 = [len({p.donor_id for p in fictional_roster(75, seed=s)}) for s in range(100)]
+    assert max(at_75) <= 25 and sum(d < floor for d in at_75) > 50  # pool 25, count less
+    assert all(len({p.donor_id for p in fictional_roster(90, seed=s)}) >= floor for s in range(50))
     assert {p.weight for p in fictional_roster(30, seed=7)} == {1.0}
-    assert max(3, 75 // 3) == floor  # from 75 the roster can reach the floor
+
+
+def test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster() -> None:
+    """The hash noise is the respondent's alone; the style is not (review on #342): z-scores,
+    the signal's variance and the final standardisation are over the whole roster."""
+    from aia_core.domain.respondent_behavior import _stable_noise
+
+    assert _stable_noise(["R1"], "vyhranenost") == _stable_noise(["R1", "R2"], "vyhranenost")[:1]
+    alone = assign_styles(_ROWS)
+    extra = {"respondent_id": "X", "vek": 89, "vzdelani": "základní", "pohlavi": "žena"}
+    assert assign_styles([*_ROWS, extra])[0] != alone[0]
+
+
+def test_a_missing_sex_counts_as_not_male_as_in_the_unit() -> None:
+    """A missing sex where the column exists is -1, as the unit's astype(str) makes it
+    (styly.py:70): B unknown is styled exactly as B a woman. Documented, not changed: the
+    port is EXACT. A column no row has contributes nothing."""
+    rows: list[dict[str, object]] = [
+        {"respondent_id": "A", "pohlavi": "muž", "vek": 30},
+        {"respondent_id": "B", "pohlavi": None, "vek": 50},
+        {"respondent_id": "C", "pohlavi": "žena", "vek": 70},
+    ]
+    unknown = assign_styles(rows)
+    as_woman = assign_styles([rows[0], {**rows[1], "pohlavi": "žena"}, rows[2]])
+    assert unknown == as_woman
+    no_column = assign_styles([{k: v for k, v in r.items() if k != "pohlavi"} for r in rows])
+    assert no_column != unknown
 
 
 # ------------------------------------------------------------------------------- R1b

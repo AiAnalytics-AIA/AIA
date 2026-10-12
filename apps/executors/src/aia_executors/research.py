@@ -27,6 +27,7 @@ from typing import Any, Final, Protocol
 from aia_core.application.research import research_artifacts
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
+    RESPONDENT_SYSTEM_METADATA,
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
@@ -360,12 +361,14 @@ class FieldworkExecutor(_Step):
             spec = _read_spec(repo, spec_id)
 
         provenance: dict[str, Any] | None = None
+        system: dict[str, str] | None = None
         if source is FieldworkSource.AI_RUNTIME:
             assert self._ai is not None
             produced = self._ai.produce(spec, step, context)
             if isinstance(produced, Failed):
                 return produced
             dataset, provenance = produced.dataset, produced.provenance
+            system = produced.respondent_system
         else:
             assert producer is not None
             dataset = producer(spec)
@@ -399,7 +402,12 @@ class FieldworkExecutor(_Step):
                 artifact_type=FIELDWORK_DATASET,
                 input_fingerprint=fingerprint(fingerprint_inputs),
                 depends_on=[spec_id],
-                metadata={"data_origin": origin, "fieldwork_source": source.value},
+                metadata={
+                    "data_origin": origin,
+                    "fieldwork_source": source.value,
+                    # What a modelled analysis is judged on (ADR 0024 §4, plan 4e3).
+                    **({RESPONDENT_SYSTEM_METADATA: system} if system is not None else {}),
+                },
             )
         context.progress(
             _DATA_READY[origin_kind(dataset.origin)],
