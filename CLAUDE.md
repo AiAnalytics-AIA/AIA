@@ -392,6 +392,12 @@ packages/aia_core/src/aia_core/
                             quotas over sex x age group x region (+ education from n 700), weighted
                             draw without replacement, raking and the audit; refusals by name;
                             PanelSample.provenance() is what a run records (called by nothing yet)
+      materialized.py       A materialized dimension (P4): the hash-pinned contract extension, the M3
+                            field policy (modelled; never measured, never weighting),
+                            check_child_version; a child is owned by one organization and never a
+                            shared population's version (OwnedVersionNotShared)
+      derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
+                            refuses a dimension no predictor varies for (no_varying_predictor)
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -683,6 +689,8 @@ tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the
                             enrich_panel on them (`capture`, with pandas)
 tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
                             draw_representative with the MILP made to fail, and _rake (`capture`)
+tools/materialize_capture.py  Materialization fixtures: fictional rows and cases (`inputs`), the
+                            unit's own materialize_evidence_dimension (`capture`, pandas + NumPy)
 tools/persona_capture.py    Persona fixtures: fictional rows, questions, a fictional signal catalog
                             (`inputs`); the unit's own generate_persona_text, odvod_temata,
                             grounded_profile_text, _render and _compact_anchor (`capture`, with pandas
@@ -918,7 +926,7 @@ ungated fixture.
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
-| Enrichment, sample and persona fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
+| Enrichment, sample, persona and materialization fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` / `materialize_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
