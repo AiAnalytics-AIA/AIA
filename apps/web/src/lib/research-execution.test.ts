@@ -75,6 +75,10 @@ describe("research execution", () => {
     expect(resultOriginKind({ synthetic: true })).toBe("SIMULATED");
     expect(resultOriginKind({ synthetic: false })).toBe("UNKNOWN");
     expect(resultOriginKind({})).toBe("UNKNOWN");
+    // The API states no kind while nothing with an origin exists (analysis pending): neutral.
+    expect(resultOriginKind({ synthetic: false, data_origin_kind: null })).toBeNull();
+    expect(resultOriginKind({ synthetic: true, data_origin_kind: null })).toBe("SIMULATED");
+    expect(resultOriginKind({ data_origin_kind: "MEASURED" })).toBe("UNKNOWN");
   });
 });
 

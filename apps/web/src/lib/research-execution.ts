@@ -139,13 +139,17 @@ export const isModelled = (run: ResearchRun | ResearchRunSummary): boolean => ru
 export const hasUnknownOrigin = (run: ResearchRun | ResearchRunSummary): boolean => runOriginKinds(run).has("UNKNOWN");
 
 /**
- * The kind of an analysis or a report the API returned: its stated `data_origin_kind`, else (an API
- * from before it) SIMULATED when it said `synthetic`, else UNKNOWN -- never read as real.
+ * The kind of an analysis or a report the API returned: its stated `data_origin_kind`; `null` when
+ * the API states none because nothing with an origin exists yet (an analysis whose modules have not
+ * stored an outcome). An API from before the field: SIMULATED when it said `synthetic`, else
+ * UNKNOWN -- never read as real.
  */
-export const resultOriginKind = (result: { synthetic?: boolean; data_origin_kind?: string | null }): OriginKind =>
-  result.data_origin_kind && KINDS.has(result.data_origin_kind)
-    ? (result.data_origin_kind as OriginKind)
-    : result.synthetic ? "SIMULATED" : "UNKNOWN";
+export function resultOriginKind(result: { synthetic?: boolean; data_origin_kind?: string | null }): OriginKind | null {
+  const stated = result.data_origin_kind;
+  if (stated && KINDS.has(stated)) return stated as OriginKind;
+  if (stated === null && !result.synthetic) return null;
+  return result.synthetic ? "SIMULATED" : "UNKNOWN";
+}
 
 /**
  * What a run says about its population: the version it recorded, and -- while fieldwork
