@@ -270,6 +270,11 @@ def test_a_run_starts_once_per_design_revision_and_is_read_by_its_study(
     assert [r["run_id"] for r in listed] == [run["run_id"]]
     events = viewer.get(f"{_runs(world)}/{run['run_id']}/events").json()
     assert events[0]["event_type"] == "RUN_CREATED"
+    # Each step names the id its events carry, so a reader can tell which step said what.
+    step_ids = {s["step_id"] for s in run["steps"]}
+    assert len(step_ids) == len(run["steps"])
+    named = {e["step_id"] for e in events if e["step_id"]}
+    assert named <= step_ids
 
 
 def test_analysis_results_are_study_scoped_and_internal(

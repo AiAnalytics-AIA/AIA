@@ -14,9 +14,16 @@ import { CANCEL_ARM_MS, type JobUpdate } from "@/research/jobs";
 import { Button } from "../ui";
 import { Icon, Sparkle } from "../icons";
 import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { researchAgents } from "@/lib/api";
+import { activityOf } from "@/lib/step-activity";
+import { ActivityLog } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 
-export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: string) => void }) {
+export function JobPanel({ job, onCancel, studyId }: { job: JobUpdate; onCancel: (jobId: string) => void; studyId?: string }) {
   const [armed, setArmed] = useState(false);
+  // What the job's step reported, read live while the model works on it (lib/step-activity.ts).
+  const feed = useStepActivity(studyId && job.jobId ? job.jobId : null, (since) => researchAgents.events(studyId!, job.jobId!, since), !!job.orb);
+  const activity = activityOf(feed, job.stepId);
   useEffect(() => {
     const id = setTimeout(() => setArmed(true), Math.max(0, job.startedAt + CANCEL_ARM_MS - Date.now()));
     return () => clearTimeout(id);
@@ -38,7 +45,7 @@ export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: 
     <div role="dialog" aria-modal="true" aria-labelledby="job-title" className="fixed inset-0 z-40 flex items-center justify-center bg-surface-inverse/40 p-4">
       <div className="w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]">
         <div className="flex items-start gap-3">
-          {job.orb ? <ActivityOrb orb={job.orb} size={32} /> : <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />}
+          {job.orb ? <ActivityOrb orb={job.orb} size={64} /> : <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />}
           <div className="min-w-0 flex-1">
             <span className="inline-flex items-center gap-1 rounded-pill bg-ai-wash px-2 py-px text-[11px] font-semibold leading-[18px] text-ai-ink">
               <Sparkle size={11} />
@@ -47,6 +54,7 @@ export function JobPanel({ job, onCancel }: { job: JobUpdate; onCancel: (jobId: 
             <h2 id="job-title" className="mt-1 text-base font-semibold">{job.title}</h2>
             <p aria-live="polite" className="mt-1 text-sm text-ink">{job.phase}</p>
             {job.paused ? <p className="mt-2 rounded-sm border border-status-world/35 bg-status-world-wash px-2 py-1 text-xs text-status-world">{job.paused}</p> : null}
+            {activity && activity.lines.length ? <ActivityLog activity={activity} label={job.title} /> : null}
           </div>
         </div>
         {rows.length ? (

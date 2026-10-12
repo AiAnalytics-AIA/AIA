@@ -64,10 +64,20 @@ from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.fan_out_coordination import ModelSlotsBusy
 from aia_worker.executor import PaidCall, StepContext, StepFailed, StopExecution
 
-__all__ = ["MODEL_CONCURRENCY_WAIT", "ModelConcurrency", "StepCallJournal", "StepModelCaller"]
+__all__ = [
+    "AI_REQUEST_ANSWERED",
+    "AI_REQUEST_SENT",
+    "MODEL_CONCURRENCY_WAIT",
+    "ModelConcurrency",
+    "StepCallJournal",
+    "StepModelCaller",
+]
 
 #: Why a request failed before anything was reserved: no model slot came free.
 MODEL_CONCURRENCY_WAIT = "model_concurrency_wait"
+#: The run feed's codes for one model request (``announce``); the web words them.
+AI_REQUEST_SENT = "ai_request_sent"
+AI_REQUEST_ANSWERED = "ai_request_answered"
 
 
 class ModelConcurrency(Protocol):
@@ -124,6 +134,7 @@ class StepModelCaller:
         provider: Provider,
         reservation_usd: float,
         limiter: ModelConcurrency | None = None,
+        announce: bool = False,
     ) -> None:
         if reservation_usd <= 0:
             raise ValueError("a metered request needs a positive reservation")
@@ -133,6 +144,8 @@ class StepModelCaller:
         self._provider = provider
         self._reservation_usd = reservation_usd
         self._limiter = limiter
+        #: Write each request's "sent" and "answered" to the run's feed (AIA_AI_STEP_EVENTS).
+        self._announce = announce
 
     def _stop_requested(self) -> bool:
         try:
@@ -198,6 +211,9 @@ class StepModelCaller:
             ) from busy
 
     def _invoke(self, request: ModelRequest, amount_usd: float) -> ModelResult:
+        if self._announce:
+            # Before the reservation: a lost lease stops here, with nothing held or sent.
+            self._context.progress(AI_REQUEST_SENT, agent=request.agent.agent_id)
         call = self._context.reserve(
             amount_usd=amount_usd,
             provider=self._provider,
@@ -230,6 +246,17 @@ class StepModelCaller:
             actual_cost_usd=journal.committed_usd(),
             provider_request_id=result.provider_request_id,
         )
+        if self._announce:
+            # What the provider reported, after settling: counts it did not report stay
+            # null (ModelUsage), never zero. No prompt or answer text.
+            self._context.progress(
+                AI_REQUEST_ANSWERED,
+                agent=request.agent.agent_id,
+                input_tokens=result.usage.input_tokens,
+                output_tokens=result.usage.output_tokens,
+                cost_usd=round(journal.committed_usd(), 6),
+                latency_ms=result.latency_ms,
+            )
         return result
 
 
