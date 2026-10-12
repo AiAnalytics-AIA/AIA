@@ -106,11 +106,14 @@ def test_every_register_rule_cited_is_in_the_register() -> None:
 
 
 def test_every_step_that_computes_cites_a_register_rule() -> None:
-    """Plan methodology-tab S1d: no step of a registered module computes without a rule of
-    the register behind it. ``method`` names the method and computes nothing."""
+    """Plan methodology-tab S1d: no step of a Sociomap module computes without a rule of the
+    register behind it -- the register is the Sociomapping engine's, so a module of another
+    area (support, aggregation) answers to its own evidence. ``method`` names the method and
+    computes nothing."""
     bare = [
         f"{m.id}/{s.id}"
         for m in MODULES
+        if m.id.startswith("sociomap")
         for s in m.steps
         if s.id != "method" and not any(e.kind is EvidenceKind.REGISTER_RULE for e in s.evidence)
     ]
