@@ -22,7 +22,11 @@ chunks:
   - "[x] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
   - "[x] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
   - "[x] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
-  - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
+  - "[x] 5a. Persona source contract (plan before code): pinned at start, the panel path, refusals, provenance, cost"
+  - "[x] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
+  - "[x] 5c. A run pins its persona source at start (AIA_AI_POPULATION_PERSONAS_ENABLED, off by default); a retry keeps it"
+  - "[x] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
+  - "[x] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
 ---
@@ -784,13 +788,148 @@ number in the shared `report_ledger` rests on the one admissible origin.
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.
 
+### 5. The persona source (contract, 5a)
+
+Anchors @ `8d89a682`. Today `AIFieldwork.produce` builds `fictional_roster(spec.n, seed)`
+(`apps/executors/src/aia_executors/ai_fieldwork.py`) and refuses any non-fictional persona before a
+call (`persona_source_unsupported`). Everything a panel source needs exists and is called by
+nothing: `draw_panel_sample` (2e), `panel_personas` and `PanelPersonas.plan` (3e),
+`dataset_origin` (4b), `respondent_system_fingerprint` and `RESPONDENT_SYSTEM_METADATA` (4e).
+
+**Decisions.**
+
+1. **The source is pinned to the run at start, never read at execution.** `ResearchRuns.start`
+   records `persona_source` in the run's metadata (`fictional_roster` | `panel`) beside the
+   methods it pins (`application/research.py:315-384`): `panel` only when the API's
+   `AIA_AI_POPULATION_PERSONAS_ENABLED` is on and the source is `ai_runtime`; otherwise
+   `fictional_roster`. A panel run is its own identity (its idempotency key carries
+   `:personas:panel`, so a start never returns the revision's fictional run), and a panel start
+   with no population established is refused (`PanelPopulationMissing`, API 409
+   `population_not_established`) -- never started fictional instead (amended in 5c: the first
+   draft fell back to the roster). A retry keeps the original's; a run
+   recorded before 5c has no key and reads as `fictional_roster`. Reading the switch at
+   execution would let a retry of a fictional run come back modelled, under the same run.
+2. **The worker composes the panel path only behind the same switch**, off by default and in
+   test; on, it requires `AIA_POPULATION_ASSET_ROOT` (fail closed at start, like every
+   `AIA_AI_*` key). A `panel` run on a worker without it **parks**
+   (`RUNTIME_UNAVAILABLE`, `panel_personas_unavailable`), never falls back to the roster.
+3. **The panel path, in order, each refusal by name and before any call is paid for:**
+   `PopulationRuntime.load_for_run` (the run's recorded binding, the ANALYSIS view through
+   `AudienceDimensionsEnricher`) -> `draw_panel_sample(population, spec.selection's audience
+   filters, spec.n, fieldwork_seed(spec))` -> `panel_personas(population, sample)` ->
+   `PanelPersonas.plan(spec, persona)` per respondent. A population that does not load parks
+   (`population_unavailable`); a `SamplingRefused` or `PersonaRefused` fails the step with its
+   own reason (`sampling_unrepresentative` included: OI-99 is the owner's, and until it is
+   decided a small study is refused, never drawn smaller). Material is classified with the
+   panel lineage; the licence gate allows it on `bedrock-eu-primary` only (OI-61).
+4. **The audience filters are applied.** The design's recorded filters (`spec.selection`) are
+   what the sample draws under, as 18.6.6 did. The compiled spec is not changed: its
+   `applied: false` is part of its fingerprint and says what the specification records; the
+   sample's provenance says they were applied, and to how many rows.
+5. **What a modelled dataset records.** The origin is derived (`MODELLED_AI_PANEL`, 4b). The
+   artifact's provenance names the source, the binding (version, content SHA-256, weight role),
+   the sample (`PanelSample.provenance()`), the persona source (`PanelPersonas.provenance()`:
+   persona source and profile versions, mode, refused fields) and the seed. Its metadata carries
+   `RESPONDENT_SYSTEM_METADATA`: prompt SHA-256, persona builder (`PANEL_PERSONA_VERSION` /
+   `PROFILE_VERSION`), persona mode, `SAMPLER_VERSION`, the binding's population version, the
+   model binding the preflight resolved (provider / model / route), and the response process
+   (`BEHAVIOR_VERSION` / `FACT_LAYER_VERSION`) -- so analysis is judged on it (4e3).
+6. **Cost.** A panel profile is longer than the roster's four facts. 5e measures the request
+   characters per respondent and block on the fictional test population against the roster,
+   states the token estimate and the reservation it implies, and says that the real number is
+   the first develop run's ledger; nothing is called to measure it.
+7. **Stale reasons.** The comments that give OI-61 as why fieldwork is fictional change with 5c-5d
+   (`domain/ai_respondent.py:19-24`, `application/research.py:176,216`,
+   `apps/api/src/aia_api/routers/research.py:187`, `apps/web/src/lib/research-execution.ts`): the
+   reason is now the pinned source.
+
+Out of scope: the screens (chunk 6) and any client-facing route (chunk 7's validation).
+
+**5b landed.** `domain/panel_source.py`: `panel_plans(population, spec, seed)` draws the sample
+under the design's recorded audience filters, builds the personas for exactly those rows and a
+plan per respondent, in that order; each refusal is its own step's (`SamplingRefused`,
+`PersonaRefused`), before anything else is built. `PanelPlans.provenance(population)` is what the
+dataset records (source, binding, sample, personas, `fictional: false`).
+`respondent_system(population, model_binding=)` gives ADR 0024 §4's components, the model binding
+being what the gateway resolves. `PANEL_SOURCE = "panel"`, the value a run pins (5c).
+
+Tests (`test_panel_source.py`, over the sampler's 3,000 fictional rows with the persona
+companions): `test_a_panel_run_is_sampled_built_and_planned_in_that_order`,
+`test_the_designs_audience_filters_are_what_the_sample_draws_under`,
+`test_a_sampling_refusal_surfaces_by_name_before_any_persona_is_built` (n over support, and n = 8
+refused as unrepresentative: OI-99), `test_a_persona_refusal_surfaces_by_name`,
+`test_the_respondent_system_names_every_component_and_fingerprints`.
+
+**5c landed.** `domain/fieldwork.py`: `PersonaSource` (`fictional_roster` | `panel`) and
+`persona_source_of(metadata)` (no key: the roster; an unknown value refused).
+`application/research.py`: `ResearchRuns.start(persona_source=)` pins it in the run's metadata and
+the `run` step's input; a panel run's key carries `:personas:panel`; a panel start needs
+`ai_runtime` and an established population (`PanelPopulationMissing`); the population note's
+`read_by_fieldwork` is true exactly for a panel run. `retry` passes the original's pin. API:
+`AIA_AI_POPULATION_PERSONAS_ENABLED` (`Settings.ai_population_personas_enabled`, off by default) decides a
+new run's pin; `persona_source` on every run response; 409 `population_not_established`. The switch is named for the population, not "panel":
+`test_session_api.py::test_the_session_and_its_gate_need_nothing_of_18_6_6` refuses any API
+setting naming "panel", so the 18.6.6 panel gate cannot return (ADR 0018). The step
+templates keep `consumes_population: false`: whether fieldwork reads the population is the run's
+pin, enforced at start, not the template's.
+
+Tests: `test_a_run_pins_its_persona_source_and_a_run_before_the_pin_reads_as_the_roster`,
+`test_a_panel_run_is_its_own_run_reads_its_population_and_needs_one`,
+`test_a_retry_keeps_the_persona_source_its_original_pinned` (both sources),
+`test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population`,
+`test_a_run_stored_before_the_pin_reads_as_the_fictional_roster`.
+
+**5d landed.** `apps/executors/src/aia_executors/ai_fieldwork.py`: `AIFieldwork` reads the run's
+pin from its step input. A panel pin on a worker without a population loader parks
+(`panel_personas_unavailable`); with one, the population the run recorded is loaded in the step's
+transaction (`population_loader`: `PopulationRuntime(CZ_SYNTHETIC_V17, the asset source,
+AudienceDimensionsEnricher).load_for_run`; a load failure parks, `population_unavailable`), then
+`panel_plans` -- a `SamplingRefused` or `PersonaRefused` fails the step by its own reason before any
+call. The rest is the roster's path: Class A (panel personas are never internal), the gateway's
+gates, one request per respondent per block. The provenance's `persona_source` is
+`PanelPlans.provenance`; `ProducedDataset.respondent_system` (from the preflight's resolved model
+binding) goes into the dataset artifact's metadata as `RESPONDENT_SYSTEM_METADATA`
+(`aia_executors/research.py`). `ai_runtime.py`: `AIA_AI_POPULATION_PERSONAS_ENABLED` (off by
+default) needs `AIA_POPULATION_ASSET_ROOT` (refused at start without it); `build_ai_fieldwork(population=)`
+replaces the loader for a test's fictional population and never adds a path the switch did not.
+The OI-61 reasons are rewritten (`ai_respondent.py`, `ai_fieldwork.py`, `research-execution.ts`).
+
+Tests (`apps/executors/tests/test_ai_fieldwork.py`, over the sampler's 3,000 fictional rows
+imported and established LIVE in the worker's database, `grounded_world.py`):
+`test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it` (the real worker,
+200 respondents: `MODELLED_AI_PANEL`, row and donor ids, panel provenance, Class A on the ledger,
+the respondent system in the metadata, aggregate and sociomap over it),
+`test_a_design_the_population_cannot_sample_fails_before_any_call`,
+`test_a_population_that_cannot_build_personas_fails_before_any_call`,
+`test_the_population_switch_needs_the_directory_it_reads`,
+`test_a_run_pinned_to_its_population_waits_on_a_worker_without_that_path`.
+
+**5e, cost (measured, nothing called).** Request characters, built by `build_request` exactly as
+the executor builds them, never sent. Measured @ `2163d0e8` with two throwaway tests that were not
+committed:
+
+| What | Requests | Mean chars | Max chars | Profile chars (mean / max) |
+|---|---|---|---|---|
+| Fictional roster, 2-question design, n 200 | 200 | 3,018 | 3,174 | none |
+| Population, same design, the sampler's rows (few profile columns, no signals) | 200 | 2,849 | 2,908 | 147 / 206 |
+| Population, the 3e fixture's 39 rows (every profile column, catalog signals) | 39 | 3,561 | 3,687 | 832 / 958 |
+| The same 39 personas without a profile (`plan_respondent`) | | 3,052 | | none |
+
+So a full profile adds about 509 characters to a request (+17 %), bounded by the 185-word cap and
+the signal budget (3-9 signals): the longest seen is 958. At an assumed ~3 characters per token
+for Czech (an assumption, not measured), that is ~170 input tokens more per request, ~$0.0005 per
+request at $3 / MTok input -- far inside the per-request reservation
+(`AIA_AI_FIELDWORK_RESERVATION_USD`, which caps a request at the model's window and output
+limit), so the run's cost ceiling does not move. The real number is the first develop run's
+ledger (`ai_usage_events.input_tokens` per call), which records what Bedrock counted.
+
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
 (`research_sociomapping.py:359`) and report read it as modelled, never synthetic
 fiction and never measured.
 
 **5. Executor.** `ai_fieldwork` takes a persona source per run: fictional roster or
-panel. Behind `AIA_AI_PANEL_PERSONAS_ENABLED`, off by default and in test. The
+panel. Behind `AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default and in test. The
 profile is longer than four facts: measure input tokens and cost per respondent and
 state them in the commit body. The run's provenance names the source, binding,
 roster or sample version and the persona mode.

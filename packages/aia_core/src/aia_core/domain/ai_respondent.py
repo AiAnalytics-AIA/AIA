@@ -16,12 +16,12 @@ division of labour is 18.6.6's (``dotaznik.py:106-356``), and it is the whole de
 This module builds requests and reads answers. It never calls anything: the
 fieldwork executor sends each request through ``GovernedModelGateway``.
 
-**Personas are fictional here.** :func:`fictional_roster` invents respondents from
-``random.Random(seed)``; their lineage is AIA's fictional fixture dataset, the one
-determination that approves transmission (``licence_determinations``). A persona
-from the population panel would derive from PIAAC, ISSP and the Czech panel, which
-OI-61 leaves UNDETERMINED: the licence gate refuses it before any adapter, and this
-PR builds no such persona.
+**Personas come from one of two sources, the one a run pinned.** :func:`fictional_roster`
+invents respondents from ``random.Random(seed)``; their lineage is AIA's fictional fixture
+dataset. A persona built from the run's population (``panel_persona`` via ``panel_source``)
+derives from PIAAC, ISSP and the Czech panel, approved for ``bedrock-eu-primary`` only (OI-61,
+``licence_determinations``); :func:`dataset_origin` reads which a dataset is, and a mixed roster
+is refused.
 
 Pure: stdlib and Pydantic.
 """

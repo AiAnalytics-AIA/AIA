@@ -407,9 +407,27 @@ versions of the panel (18,766 rows × 400 fields each), the 400-field dictionary
 companions, every one pinned by SHA256 in the Czech import contract
 (`packages/aia_core/src/aia_core/domain/population/czech.py`). Once it is imported, with
 STATIC on `v17_1_2` and LIVE on `v17_4_0`, every new research run records the LIVE version
-it would be computed over, while fieldwork keeps answering with fictional respondents and
-says so (owner's decision of 2026-10-10, `.planning/plans/population-operations.md` P3,
-P6). No model sees the panel: OI-61 still bars panel-derived material from every provider.
+it would be computed over (owner's decision of 2026-10-10, `.planning/plans/population-operations.md`
+P3, P6). Fieldwork answers from it only for a run that pinned the panel persona source at start,
+which needs `AIA_AI_POPULATION_PERSONAS_ENABLED=true` (off by default; see below). Panel-derived
+material may reach `bedrock-eu-primary` and no other route (OI-61, the data owner's determination
+of 2026-10-12).
+
+### Respondents drawn from the population
+
+`AIA_AI_POPULATION_PERSONAS_ENABLED` is read by both the API (a new `ai_runtime` run pins
+`persona_source = panel`) and the worker (it serves such a run from `AIA_POPULATION_ASSET_ROOT`,
+which Compose sets to the read-only `/srv/population/v17`). Before turning it on:
+
+1. LIVE is established (`bin/population.sh status`); without it a start is refused, 409
+   `population_not_established`, and nothing is created.
+2. The AI runtime is on and its route is approved for `CLASS_A_CLIENT_CONFIDENTIAL`: a panel
+   persona is Class A, never internal.
+3. The study's design asks for an `n` the sampler can represent; a small one is refused as
+   `sampling_unrepresentative` until OI-99 is decided.
+
+Turning it off again does not change a run that already pinned the panel: a worker without the
+path parks it (`panel_personas_unavailable`) rather than answering with fictional respondents.
 
 The panels are licence-bound (PIAAC 2023 CZ / ISSP 2022 CZ, open decision D3). They stay
 in the EU ops bucket and on this host's disk, never in Git or an image. Fifteen of the

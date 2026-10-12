@@ -33,13 +33,15 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from ..domain.population import (
+    DatasetVersion,
+    ParsedDictionary,
     PopulationImportContract,
     UnknownDatasetVersion,
     VersionIntegrityError,
     content_sha256,
 )
 from ..domain.population.materialized import with_materialized_fields
-from ..domain.population.policy import FieldUse, build_field_policy
+from ..domain.population.policy import FieldPolicy, FieldUse, build_field_policy
 from ..domain.population.subpanels import BUILTIN_SUBPANELS, BuiltinSubpanel, check_subpanel
 from ..infrastructure.population_parser import parse_dictionary
 from ..infrastructure.population_repository import PopulationRegistryRepository
@@ -50,6 +52,7 @@ __all__ = [
     "UseAnswer",
     "VersionCharacteristics",
     "WeightCharacteristics",
+    "shared_version_policy",
     "version_characteristics",
 ]
 
@@ -138,6 +141,40 @@ def _weights(contract: PopulationImportContract) -> tuple[WeightCharacteristics,
     )
 
 
+def _kept_policy(
+    contract: PopulationImportContract, version: DatasetVersion, content: bytes
+) -> tuple[ParsedDictionary, FieldPolicy]:
+    """The kept dictionary, re-hashed against its pin, and the policy the loader builds."""
+    if content_sha256(content) != version.dictionary_sha256:
+        raise VersionIntegrityError(
+            f"the dictionary kept for {version.label} does not hash to its pin"
+        )
+    dictionary = parse_dictionary(content, field_column=contract.dictionary_field_column)
+    policy = build_field_policy(
+        dictionary.rows,
+        dictionary_sha256=version.dictionary_sha256,
+        weight_columns=contract.weight_columns,
+        derived_fields=contract.derived_policy_fields,
+    )
+    return dictionary, policy
+
+
+def shared_version_policy(
+    session: Session, *, contract: PopulationImportContract, version: DatasetVersion
+) -> tuple[ParsedDictionary, FieldPolicy] | None:
+    """A shared version's dictionary and field policy, from what it keeps; ``None`` if not kept.
+
+    The same policy the loader builds (``build_field_policy`` with the contract's weight and
+    derived fields), so a check made from it answers as the run's population would. Reads no
+    respondent row. Refused (``VersionIntegrityError``) when the kept bytes do not hash to the
+    version's pin.
+    """
+    if not version.shared:
+        raise VersionIntegrityError(f"{version.version_id} is an owned version, not a shared one")
+    kept = PopulationRegistryRepository(session).dictionary(version.version_id)
+    return None if kept is None else _kept_policy(contract, version, kept[1])
+
+
 def version_characteristics(
     session: Session,
     *,
@@ -168,18 +205,7 @@ def version_characteristics(
             owner_client_id=owner_client_id,
             extension_sha256=version.extension_sha256,
         )
-    _, content = kept
-    if content_sha256(content) != version.dictionary_sha256:
-        raise VersionIntegrityError(
-            f"the dictionary kept for {version.label} does not hash to its pin"
-        )
-    dictionary = parse_dictionary(content, field_column=contract.dictionary_field_column)
-    policy = build_field_policy(
-        dictionary.rows,
-        dictionary_sha256=version.dictionary_sha256,
-        weight_columns=contract.weight_columns,
-        derived_fields=contract.derived_policy_fields,
-    )
+    dictionary, policy = _kept_policy(contract, version, kept[1])
     added: set[str] = set()
     if version.extension_sha256 is not None:
         extension = registry.extension(version.extension_sha256)
