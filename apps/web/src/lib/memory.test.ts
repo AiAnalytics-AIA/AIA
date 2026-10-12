@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, ResearchStep } from "./api";
-import { evidence, ofKind, runLabels, sendable } from "./memory";
+import { designSummary, evidence, ofKind, runLabels, sendable } from "./memory";
 
 const hit = (over: Partial<MemoryHit> = {}): MemoryHit => ({
   study_id: "STU-1",
@@ -79,5 +79,24 @@ describe("a past run's labels", () => {
   it("says a run whose fieldwork made nothing has no data and no report", () => {
     const parked = fullRun("ai_runtime", [step("compile", "research_compile", { artifact_id: "ART-1" }), step("run", "research_fieldwork", { status: "WAITING_PROVIDER" })]);
     expect(runLabels(parked)).toEqual({ data: "no_data", report: "none", internal: false });
+  });
+});
+
+describe("a past design, as the page draws it", () => {
+  it("reads the fields the search reads, a dimension by its title, an unknown one by its id, nothing empty", () => {
+    const content = {
+      title: "Ranní káva", goal: " ", decision_use: "Uvést nápoj?",
+      research_plan: { research_questions: ["Kdo pije kávu ráno?", ""], objectives: [] },
+      sections: [{ title: "Návyky" }, { type: "battery", title: "Značky", object_family: "Značky" }, "x"],
+      persona_dimensions: { approved: ["zdravi", "KNI-1", "neznama"] },
+    };
+    expect(designSummary(content, { zdravi: "Zdraví", "KNI-1": "Ranní rituály" })).toEqual([
+      { field: "title", values: ["Ranní káva"] },
+      { field: "decision_use", values: ["Uvést nápoj?"] },
+      { field: "research_questions", values: ["Kdo pije kávu ráno?"] },
+      { field: "sections", values: ["Návyky", "Značky"] },
+      { field: "dimensions", values: ["Zdraví", "Ranní rituály", "neznama"] },
+    ]);
+    expect(designSummary({}, {})).toEqual([]);
   });
 });

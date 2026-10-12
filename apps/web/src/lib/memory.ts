@@ -62,3 +62,44 @@ export function runLabels(run: ResearchRun | ResearchRunSummary, report?: Resear
   const internal = steps ? steps.some((s) => INTERNAL_KINDS.has(s.kind)) : false;
   return { data, report: reportLabel, internal };
 }
+
+/** The fields of a design the page draws, in the order the search reads them (domain/project_memory.py). */
+export const DESIGN_FIELDS = ["title", "goal", "decision_use", "research_questions", "objectives", "sections", "dimensions"] as const;
+export type DesignField = (typeof DESIGN_FIELDS)[number];
+
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+const texts = (v: unknown): string[] => (Array.isArray(v) ? v.map(text).filter((x): x is string => x !== null) : []);
+const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * What a past design says, field by field, as project memory's search reads it: a dimension by its
+ * title (`labels`: the canonical ones and the client's own), else by the id the design stored.
+ * Empty fields are left out.
+ */
+export function designSummary(content: Record<string, unknown>, labels: Readonly<Record<string, string>>): { field: DesignField; values: string[] }[] {
+  const plan = isObj(content.research_plan) ? content.research_plan : {};
+  const sections: string[] = [];
+  for (const s of Array.isArray(content.sections) ? content.sections : []) {
+    if (!isObj(s)) continue;
+    for (const key of ["title", "object_family"]) {
+      const found = text(s[key]);
+      if (found && !sections.includes(found)) sections.push(found);
+    }
+  }
+  const persona = isObj(content.persona_dimensions) ? content.persona_dimensions : {};
+  const dimensions: string[] = [];
+  for (const id of texts(persona.approved)) {
+    const title = labels[id] ?? id;
+    if (!dimensions.includes(title)) dimensions.push(title);
+  }
+  const values: Record<DesignField, string[]> = {
+    title: [text(content.title)].filter((x): x is string => x !== null),
+    goal: [text(content.goal)].filter((x): x is string => x !== null),
+    decision_use: [text(content.decision_use)].filter((x): x is string => x !== null),
+    research_questions: texts(plan.research_questions),
+    objectives: texts(plan.objectives),
+    sections,
+    dimensions,
+  };
+  return DESIGN_FIELDS.filter((f) => values[f].length).map((field) => ({ field, values: values[field] }));
+}
