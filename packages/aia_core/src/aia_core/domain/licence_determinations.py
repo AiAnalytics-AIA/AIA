@@ -6,12 +6,13 @@ determination changes, and only then** -- never to unblock a feature. A change
 that approves a dataset names who approved it, when, on what basis, and exactly
 which routes; the reviewer checks it against the decision record (OI-61).
 
-Today no panel-derived source is approved for any route. The panel is built from
-PIAAC and ISSP microdata (AIA-reference ``population-subsystem.md``); whether
-their licences allow transmission to a provider -- Bedrock included -- is
-unresolved (AIA-reference ``open-decisions.md`` D3). Anything computed from the
-panel's rows, such as a synthetic respondent's grounded profile, derives from
-those datasets and carries their lineage.
+The panel is built from PIAAC and ISSP microdata (AIA-reference
+``population-subsystem.md``); anything computed from its rows, such as a synthetic
+respondent's grounded profile, derives from those datasets and carries their lineage.
+OI-61 asked whether that may reach a model provider. On 2026-10-12 the data owner
+determined that it may, over AIA's EU Bedrock route alone (ADR 0010): each
+panel-derived dataset names that one route, and another route needs a determination
+of its own.
 """
 
 from __future__ import annotations
@@ -26,9 +27,24 @@ from .licence import (
     LicenceStatus,
 )
 
-__all__ = ["PANEL_DERIVED_DATASETS", "RECORDED", "SYNTHETIC_FIXTURE_DATASET", "recorded_policy"]
+__all__ = [
+    "PANEL_APPROVED_ROUTE",
+    "PANEL_DERIVED_DATASETS",
+    "RECORDED",
+    "SYNTHETIC_FIXTURE_DATASET",
+    "recorded_policy",
+]
 
-_UNRESOLVED: Final = "Unresolved: OI-61 (AIA-reference open-decisions.md D3). No transmission."
+#: AIA's EU Bedrock route (ADR 0010; ``AIA_AI_ROUTE_ID``): the only route the
+#: panel-derived determinations approve.
+PANEL_APPROVED_ROUTE: Final = "bedrock-eu-primary"
+
+_PANEL_BASIS: Final = (
+    "OI-61, owner determination of 2026-10-12: the dataset's licence permits sending "
+    "material derived from it to a model provider. Recorded for AIA's EU Bedrock route "
+    "alone (ADR 0010); another route needs its own determination."
+)
+_PANEL_DECIDED_BY: Final = "Nigel Blount, data owner"
 
 #: The lineage of anything computed from AIA's fictional fixture dataset (ADR 0016 D1).
 SYNTHETIC_FIXTURE_DATASET: Final = "aia_synthetic_fixture"
@@ -42,26 +58,29 @@ RECORDED: Final[tuple[LicenceDetermination, ...]] = (
     LicenceDetermination(
         dataset="piaac",
         description="OECD PIAAC microdata, a source of the population panel",
-        status=LicenceStatus.UNDETERMINED,
-        basis=_UNRESOLVED,
-        decided_by="",
-        decided_on=None,
+        status=LicenceStatus.APPROVED,
+        basis=_PANEL_BASIS,
+        decided_by=_PANEL_DECIDED_BY,
+        decided_on=date(2026, 10, 12),
+        approved_routes=frozenset({PANEL_APPROVED_ROUTE}),
     ),
     LicenceDetermination(
         dataset="issp",
         description="ISSP microdata, a source of the population panel",
-        status=LicenceStatus.UNDETERMINED,
-        basis=_UNRESOLVED,
-        decided_by="",
-        decided_on=None,
+        status=LicenceStatus.APPROVED,
+        basis=_PANEL_BASIS,
+        decided_by=_PANEL_DECIDED_BY,
+        decided_on=date(2026, 10, 12),
+        approved_routes=frozenset({PANEL_APPROVED_ROUTE}),
     ),
     LicenceDetermination(
         dataset="czech_population_panel",
         description="The Czech population panel and anything computed from its rows",
-        status=LicenceStatus.UNDETERMINED,
-        basis=_UNRESOLVED,
-        decided_by="",
-        decided_on=None,
+        status=LicenceStatus.APPROVED,
+        basis=_PANEL_BASIS,
+        decided_by=_PANEL_DECIDED_BY,
+        decided_on=date(2026, 10, 12),
+        approved_routes=frozenset({PANEL_APPROVED_ROUTE}),
     ),
     LicenceDetermination(
         dataset=SYNTHETIC_FIXTURE_DATASET,
