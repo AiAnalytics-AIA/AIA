@@ -20,6 +20,7 @@ from aia_core.domain.research_design import (
     compile_design,
     prepare,
 )
+from aia_core.domain.sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 
 DESIGN: dict[str, Any] = {
     "title": "Ranní nápoj",
@@ -113,11 +114,11 @@ def test_dimensions_keep_the_designs_order_once_each() -> None:
 
 
 def test_readiness_names_the_dimensions_it_will_not_apply() -> None:
-    _, readiness = prepare(_with(dimensions=["finance"]))
+    _, readiness = prepare(_with(dimensions=["finance"]), pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     (check,) = [c for c in readiness.checks if c.id == "dimensions"]
     assert check.status is CheckStatus.WARN and "finance" in check.message
     assert readiness.ready  # recorded and said, not a reason to refuse the run
-    _, plain = prepare(DESIGN)
+    _, plain = prepare(DESIGN, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     assert not [c for c in plain.checks if c.id == "dimensions"]
 
 
@@ -129,7 +130,7 @@ def test_readiness_tells_a_sample_too_small_for_any_pair_from_one_that_can_colle
 ) -> None:
     """Plan § 8.2, I3: 20 respondents can be collected (the policy's floor) but no pair can
     reach the audit's provisional n_min of 30, so the object map would be NOT_MAPPABLE."""
-    _, readiness = prepare({**DESIGN, "n": n})
+    _, readiness = prepare({**DESIGN, "n": n}, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     (check,) = [c for c in readiness.checks if c.id == "sociomap_support"]
     assert check.status is status
     assert readiness.ready  # said before anything is paid for; not a refusal
@@ -145,6 +146,16 @@ def test_without_a_tracked_set_there_is_no_support_to_check() -> None:
                     "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}],
                 }
             ],
-        }
+        },
+        pair_n_min=AUDIT_PROVISIONAL_N_MIN,
     )
     assert not [c for c in readiness.checks if c.id == "sociomap_support"]
+
+
+@pytest.mark.parametrize(("n", "status"), [(44, CheckStatus.WARN), (45, CheckStatus.PASS)])
+def test_readiness_reads_the_pair_n_min_it_is_given(n: int, status: CheckStatus) -> None:
+    """Plan methodology-tab S2c: the threshold is the run's methodology's, never the code's."""
+    _, readiness = prepare({**DESIGN, "n": n}, pair_n_min=45)
+    (check,) = [c for c in readiness.checks if c.id == "sociomap_support"]
+    assert check.status is status
+    assert "45" in check.message and str(AUDIT_PROVISIONAL_N_MIN) not in check.message

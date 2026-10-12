@@ -604,6 +604,35 @@ forbid "the web client never names the Sociomap preset" \
   'AIA_SOCIOMAP_V[0-9]+' \
   apps/web/src
 
+# The Sociomap's numbers are the pin's (plan methodology-tab S2a, S2b). The code's fixed
+# values -- the side tables' n_min and confidence, K100's bootstrap and quantiles, the
+# Stress bands, the three-object minimum -- are read inside the Sociomap domain only:
+# by the engine where a spec declares none, and by research_sociomap.side_tables_for for a
+# run that pinned no object map. A run path outside it that named one would compute with
+# the code's value under a pin that says otherwise. Inside research_sociomap.py the same
+# rule is test_no_run_path_reads_the_codes_constants.
+SOCIOMAP_CODE_CONSTANTS='\b(AUDIT_PROVISIONAL_N_MIN|PAIR_CONFIDENCE|CONNECTEDNESS_(RESAMPLES|SEED|QUANTILES)|STRESS_QUALITY_BANDS|LEGACY_(MIN_OBJECTS|STRESS_BANDS|CONNECTEDNESS_QUANTILES|SIDE_TABLES))\b'
+forbid "application code never reads the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$CORE/application/"
+forbid "infrastructure never reads the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$CORE/infrastructure/"
+forbid "the API never reads the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$API"
+forbid "workers never read the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$WORKER"
+forbid "executors never read the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$EXECUTORS"
+# The readiness warning says what a run's own Sociomap will need (S2c): it is given the
+# pair n_min of the methods the run pins and never reads the code's.
+forbid "readiness never reads the Sociomap's code constants" \
+  "$SOCIOMAP_CODE_CONSTANTS" \
+  "$CORE/domain/research_design.py"
+
 # --- Tests: the signal is never deleted ------------------------------------
 #
 # A failing test is a finding (ARCHITECTURE.md §7). Runtime `pytest.skip(...)`

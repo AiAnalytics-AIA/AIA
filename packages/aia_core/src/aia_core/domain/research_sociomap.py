@@ -41,6 +41,7 @@ Pure: no I/O.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Final
 
@@ -71,7 +72,12 @@ from .sociomap import (
     require_supported,
     spec_payload,
 )
-from .sociomap.metrics import connectedness_100, primary_scores, rank_with_ties
+from .sociomap.metrics import (
+    CONNECTEDNESS_QUANTILES,
+    connectedness_100,
+    primary_scores,
+    rank_with_ties,
+)
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relation_matrix
 from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
@@ -90,6 +96,7 @@ __all__ = [
     "SOCIOMAP_VERSION",
     "MethodologyStatus",
     "PairRelations",
+    "SideTables",
     "SociomapMethod",
     "SociomapMethodsInvalid",
     "SociomapNotApproved",
@@ -104,6 +111,8 @@ __all__ = [
     "require_client_facing",
     "rescaled_battery_ratings",
     "research_sociomaps",
+    "side_tables_for",
+    "side_tables_of",
 ]
 
 #: The version of this module's artifact body. ``2``: the relation block carries
@@ -122,8 +131,11 @@ __all__ = [
 #: ``maps``, the run's pinned contract-3 object maps by method id (``aia-sociomap-2``,
 #: S2). ``8``: the rating universe holds the design's declared standalone rating items
 #: (``relation_rescaled.rating_questions``) and the roles are the specification's
-#: (``roles``; S3). Not the engine preset (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-8"
+#: (``roles``; S3). ``9``: the side tables (``relation``, ``relation_rescaled``,
+#: ``object_scores``) and K100 read n_min, confidence and the bootstrap from the run's
+#: pinned object map, and say which (``side_tables``; plan ``methodology-tab`` S2b).
+#: Not the engine preset (``aia-sociomap-<n>``).
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-9"
 #: How ``relation_rescaled`` was made, recorded on every body.
 RESCALE_RULE: Final = (
     "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
@@ -132,14 +144,74 @@ RESCALE_RULE: Final = (
     "computes it; the weighting is AIA's reading where the audit is silent (register AUDIT-F2)"
 )
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
-#: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE.
+#: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE. The side tables of
+#: a run that pinned no object map; a run that pinned one reads its own (:class:`SideTables`).
 PAIR_CONFIDENCE: Final = 0.95
-#: Audit F9's B ("e.g. 500"): respondent bootstraps behind each K100 interval.
-#: Declared here by name and recorded on every body; never shrunk silently.
+#: Audit F9's B ("e.g. 500"): respondent bootstraps behind each K100 interval, for a run
+#: that pinned no object map. Recorded on every body; never shrunk silently.
 CONNECTEDNESS_RESAMPLES: Final = 500
-#: The bootstrap's seed (OI-62's generator), recorded on every body: the same
-#: dataset gives the same intervals on any host.
+#: The bootstrap's seed (OI-62's generator), for a run that pinned no object map, recorded
+#: on every body: the same dataset gives the same intervals on any host.
 CONNECTEDNESS_SEED: Final = 20261007
+
+
+@dataclass(frozen=True, slots=True)
+class SideTables:
+    """What the body's side tables and its K100 are computed with (plan ``methodology-tab``
+    S2b): the pair status's ``n_min`` and ``confidence`` and K100's bootstrap, read from the
+    run's last pinned object map (``method``), so an edited methodology put in force moves
+    them with the map. The statuses keep reading the respondent count: that is the body's
+    documented rule, whatever basis the map's own pairs read.
+
+    A run that pinned no object map (``method`` ``None``) is computed with the values the
+    code fixed before the pin carried them (:data:`LEGACY_SIDE_TABLES`).
+    """
+
+    method: str | None
+    n_min: int
+    confidence: float
+    resamples: int
+    seed: int
+    quantiles: tuple[float, float]
+
+    def to_payload(self) -> dict[str, Any]:
+        """What the body records: where every value came from, and the values."""
+        return {
+            "method": self.method,
+            "n_min": self.n_min,
+            "confidence": self.confidence,
+            "resamples": self.resamples,
+            "seed": self.seed,
+            "quantiles": list(self.quantiles),
+        }
+
+
+#: The side tables of a run that pinned no object map: the code's values before S2b.
+LEGACY_SIDE_TABLES: Final = SideTables(
+    method=None,
+    n_min=AUDIT_PROVISIONAL_N_MIN,
+    confidence=PAIR_CONFIDENCE,
+    resamples=CONNECTEDNESS_RESAMPLES,
+    seed=CONNECTEDNESS_SEED,
+    quantiles=CONNECTEDNESS_QUANTILES,
+)
+
+
+def side_tables_for(object_maps: Sequence[SociomapSpecV3]) -> SideTables:
+    """The side tables a run computes: the last pinned object map's, or the legacy ones."""
+    if not object_maps:
+        return LEGACY_SIDE_TABLES
+    spec = object_maps[-1]
+    declared = spec.connectedness.quantiles
+    return SideTables(
+        method=spec.methodology_version,
+        n_min=spec.relation.n_min,
+        confidence=spec.relation.confidence,
+        resamples=spec.connectedness.resamples,
+        seed=spec.connectedness.seed,
+        quantiles=LEGACY_SIDE_TABLES.quantiles if declared is None else declared,
+    )
+
 
 #: PROGRESS D6: the four AIA Sociomap declarations await the methodology owner.
 #: Flipping this is a methodology decision recorded in PROGRESS, never a fix.
@@ -278,6 +350,14 @@ def default_methods() -> tuple[SociomapMethod, ...]:
     is never rewritten. ``aia-sociomap-4`` (the same numbers, every one declared) is where an
     edited methodology starts from; a run pins it only through a version put in force."""
     return (*LEGACY_METHODS, SociomapMethod.of(AIA_SOCIOMAP_V3))
+
+
+def side_tables_of(methods: Sequence[SociomapMethod]) -> SideTables:
+    """:func:`side_tables_for` over a run's pinned methods, each resolved (verified and
+    computable) first: what the readiness warning and the side tables both read, so the two
+    never disagree on a pair's ``n_min`` (plan ``methodology-tab`` S2c)."""
+    specs = [m.resolve() for m in methods]
+    return side_tables_for([s for s in specs if isinstance(s, SociomapSpecV3)])
 
 
 def methods_fingerprint(methods: Sequence[SociomapMethod]) -> str:
@@ -450,16 +530,16 @@ def battery_sociomap(
     ratings: list[list[float | None]] = [
         [_rating(r.answers.get(q)) for q in qids] for r in dataset.respondents
     ]
+    pinned_maps = [m if isinstance(m, tuple) else (m, NO_SLOTS) for m in object_maps]
+    side = side_tables_for([spec_v3 for spec_v3, _ in pinned_maps])
     relation, scores = derive_relation_matrix(ratings, weights)
-    pairs = derive_pair_relations(
-        ratings, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
-    )
+    pairs = derive_pair_relations(ratings, weights, n_min=side.n_min, confidence=side.confidence)
     rescaled, not_rescaled = rescaled_battery_ratings(
         battery, dataset, rated_with, rating_questions=rating_questions
     )
     roles = battery.object_roles()
     rescaled_pairs = derive_pair_relations(
-        rescaled, weights, n_min=AUDIT_PROVISIONAL_N_MIN, confidence=PAIR_CONFIDENCE
+        rescaled, weights, n_min=side.n_min, confidence=side.confidence
     )
     # Each object's role as the specification declares it (``context_objects``; none
     # declared: every object PRIMARY, and the body says the roles were not declared). The
@@ -475,12 +555,11 @@ def battery_sociomap(
         drawn = derive_pair_relations(
             rescaled,
             [k * w for k, w in zip(multiplicities, weights, strict=True)],
-            n_min=AUDIT_PROVISIONAL_N_MIN,
-            confidence=PAIR_CONFIDENCE,
+            n_min=side.n_min,
+            confidence=side.confidence,
         )
         return drawn.r, drawn.status
 
-    pinned_maps = [m if isinstance(m, tuple) else (m, NO_SLOTS) for m in object_maps]
     maps = {
         spec_v3.methodology_version: compute_object_map(
             object_map_inputs(
@@ -496,8 +575,8 @@ def battery_sociomap(
     # the code's formulas compute.
     code_maps = {spec_v3.methodology_version for spec_v3, slots in pinned_maps if not slots}
     # K100 is computed once: an object map whose bootstrap is this body's -- the same
-    # universe, rows, weights, roles, n_min, confidence, B and seed, and the same evidence
-    # basis (the body's statuses read the respondent count; a map that reads Kish's n
+    # universe, rows, weights, roles, n_min, confidence, B, seed and quantiles, and the
+    # same evidence basis (the body's statuses read the respondent count; a map that reads Kish's n
     # decides other statuses under unequal weights) -- already holds it, so it is copied
     # rather than paid for twice (about 90 s per large set).
     same_bootstrap = next(
@@ -506,10 +585,11 @@ def battery_sociomap(
             for name, a in maps.items()
             if name in code_maps
             and a.connectedness_100.get("status") == "computed"
-            and a.spec.connectedness.resamples == CONNECTEDNESS_RESAMPLES
-            and a.spec.connectedness.seed == CONNECTEDNESS_SEED
-            and a.spec.relation.n_min == AUDIT_PROVISIONAL_N_MIN
-            and a.spec.relation.confidence == PAIR_CONFIDENCE
+            and a.spec.connectedness.resamples == side.resamples
+            and a.spec.connectedness.seed == side.seed
+            and a.connectedness_100.get("quantiles") == list(side.quantiles)
+            and a.spec.relation.n_min == side.n_min
+            and a.spec.relation.confidence == side.confidence
             and a.spec.relation.basis == PairEvidenceBasis.RESPONDENT_COUNT
             and a.roles == roles
         ),
@@ -524,8 +604,9 @@ def battery_sociomap(
             roles,
             correlate,
             respondents=len(rescaled),
-            resamples=CONNECTEDNESS_RESAMPLES,
-            seed=CONNECTEDNESS_SEED,
+            resamples=side.resamples,
+            seed=side.seed,
+            quantiles=side.quantiles,
         )
         connectedness = {
             "status": "computed",
@@ -561,6 +642,7 @@ def battery_sociomap(
         "methodology_decision": "PROGRESS D6: the four AIA Sociomap declarations, open",
         "preset": map_spec.methodology_version,
         "rating_scale": [low, high],
+        "side_tables": side.to_payload(),
         "relation": {
             "source": RELATION_SOURCE,
             "ported_from": "legacy/npc-panel-18.6.6/app/sociomap.py derive_relation_matrix",
@@ -576,7 +658,8 @@ def battery_sociomap(
             "status_rule": (
                 "audit F3: UNKNOWN below n_min common raters or without a correlation; "
                 "RELIABLE when the Fisher-z interval at confidence excludes 0; WEAK otherwise. "
-                "n_min is the audit's provisional value, pending its Q6"
+                "n_min and the confidence are side_tables': the run's last pinned object map's, "
+                "or, with none pinned, the audit's provisional n_min (pending its Q6) and 0.95"
             ),
         },
         "relation_rescaled": {

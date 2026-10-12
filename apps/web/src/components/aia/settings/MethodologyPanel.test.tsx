@@ -56,6 +56,7 @@ describe("the Metodika tab", () => {
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
     expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual([
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)",
+      "Sociomapping: experimentální H-Model (kandidát AIA)",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
@@ -113,6 +114,16 @@ describe("the Metodika tab", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     await screen.findByRole("heading", { name: "Matice vztahů objektů (stupnice 1-10)" });
     expect(calls).toContain("/api/v1/methodology/sociomap_reference?preset=aia-sociomap-1");
+  });
+
+  it("opens the experimental H-Model with its search parameters, shown and not offered for editing", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Sociomapping: experimentální H-Model (kandidát AIA)" }));
+    await screen.findByRole("heading", { name: "Rozložení (H-Model, kandidát AIA)" });
+    expect(calls).toContain("/api/v1/methodology/sociomapping?preset=aia_hmodel_candidate_v1");
+    expect(screen.getAllByText(/EXPERIMENTAL_AIA/).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

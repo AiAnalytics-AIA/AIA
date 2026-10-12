@@ -11,11 +11,11 @@ chunks:
   - "[x] A6. Web: the Metodika tab shell -- module list, step cards, MathML (Temml), parameter tables; read-only"
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
-  - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
+  - "[x] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
   - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
-  - "[ ] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
-  - "[ ] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
+  - "[x] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
+  - "[x] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
   - "[x] S3. Sociomap slots: built-in expressions for every F-formula, bit-identical on every fixture"
   - "[x] S4a. Sociomap editable: the editor in the tab -- every spec field and formula slot, the domain's check at the field, store, activate with a reason, back to the code, history"
   - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
@@ -371,6 +371,27 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     edited.
   - Shown as code: the 5-rater threshold and 5.5 inside `derive_relation_matrix` are bare literals
     of a ported function. They stay code, because the reference map is not edited.
+- **S1c. Landed.**
+  - `domain/methodology/sociomapping.py` is module `sociomapping`, the experimental H-Model
+    (`aia_hmodel_candidate_v1`). Its one preset is `CandidateParameters()`, the parameters
+    every result records. It is shown and not edited (`editable` False, no slots): the
+    candidate is an experiment whose search is an open question (AIA-H8), not a methodology a
+    run adopts.
+  - 16 steps in four groups: inputs (complete respondents only, unweighted; the set's scale),
+    relations (signed correlations; the declared matrix), the layout (accuracy as the
+    objective, placeability, starts, the smooth, ordinal, exact and repair phases, the frame,
+    the search as a whole) and heights and coherences.
+  - All ten parameters are shown once, with the values a result records
+    (`test_every_parameter_a_result_records_is_shown_once_with_its_value`).
+  - Each step pins its function and cites its register rule: AIA-D1, AIA-D2, RTS-N1, RTS-O1,
+    RTS-O2, RTS-W3, SOMECS-H3, SOMECS-H6, SOMECS-H7, QED-H2, AIA-H8, AIA-H9. The module says
+    `EXPERIMENTAL_AIA` and that it is not SOMECS's method.
+  - Shown as code: the frame `_FRAME` (0.05-0.95), the method and status constants, the
+    complete-cases rule and `_FEW_OBJECTS`.
+  - The plan said the candidate's defaults would be "declared in S2". They need no
+    declaration: `CandidateParameters` already is their declaration and is recorded on every
+    result. Making them editable would need the candidate to become a methodology a run pins,
+    which nothing has asked for.
 - **S3. Landed.**
   - `domain/methodology/sociomap_formulas.py` declares 14 slots, each with the expression the
     engine computes: F1 scale, F2 person min-max, F3 Kish n, the lower and upper Fisher bounds,
@@ -559,6 +580,32 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     names the quantiles it used, and reads as before at the defaults. The catalogue's F6, F7 and
     F9 steps name the new parameters; the code constants stay beside them as "before
     aia-sociomap-4". Results reads an object map under -4 too (`OBJECT_MAP_METHODS`).
+  - **Landed (S2b).** The reference set's side tables (`relation`, `relation_rescaled`,
+    `object_scores`) and its K100 read `n_min`, the confidence and the bootstrap (B, seed,
+    quantiles) from the run's last pinned object map (`research_sociomap.side_tables_for`).
+    The body records which, under `side_tables`, and `SOCIOMAP_VERSION` is
+    `aia-research-sociomap-9`, so a body stored under 8 is not reused as if it had them. A run
+    that pinned no object map keeps the code's values (`LEGACY_SIDE_TABLES`). The statuses
+    keep reading the respondent count, the body's documented rule. Under the default pin
+    (-3) every table is what it was (`test_the_default_pin_computes_the_tables_it_always_did`).
+    K100 is copied from a map only when its quantiles also match. Enforcement:
+    - `tools/layer_check.sh` forbids the code constants in application, infrastructure, the
+      API, the worker and the executors.
+    - Inside `research_sociomap.py`, `test_no_run_path_reads_the_codes_constants` checks the
+      names that `battery_sociomap` and `research_sociomaps` compile to.
+  - **Landed (S2c).** The readiness warning ("n is below the respondents each pair needs")
+    reads the pair `n_min` of the methods the run pins, through the same
+    `research_sociomap.side_tables_of` as the side tables, so the two never disagree.
+    `assess_readiness` and `prepare` take `pair_n_min` and have no default.
+    - `ResearchRuns.readiness` reads the methodology in force, and `start` reads the methods it
+      is about to pin. Both resolve the methods through one `_methods`, and an uncomputable pin
+      is refused before the checks.
+    - The worker's preflight step reads the run's own pin from its step input
+      (`step_inputs["preflight"]["methods"]`). A run started before S2c has none there and
+      reads as `aia-sociomap-1`, whose `n_min` is the same 30.
+    - Tests: `test_readiness_warns_with_the_n_min_of_the_methodology_in_force`,
+      `test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later`.
+    - A layer rule keeps the code constants out of `research_design.py`.
   - **Finding (fixed in S2a).** The tab offered a field that a preset leaves out of its stored
     form as editable with the value `null` (`relation.effect_floor` under `aia-sociomap-2`). The
     editor works on the stored form, so saving from -2 would have thrown on that field.

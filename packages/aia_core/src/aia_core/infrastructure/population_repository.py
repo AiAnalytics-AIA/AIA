@@ -46,6 +46,7 @@ from .tables import (
     PopulationDatasetVersionRow,
     PopulationPromotionRow,
     PopulationRow,
+    PopulationVersionDictionaryRow,
     as_utc,
 )
 
@@ -163,6 +164,33 @@ class PopulationRegistryRepository:
                 validation_json=validation,
                 imported_at=version.imported_at,
                 imported_by=version.imported_by,
+            )
+        )
+        self._session.flush()
+
+    def dictionary(self, version_id: str) -> tuple[str, bytes] | None:
+        """The stored dictionary of a version, ``(sha256, bytes)``, or ``None``."""
+        row = self._session.get(PopulationVersionDictionaryRow, version_id)
+        return None if row is None else (row.sha256, row.content)
+
+    def insert_dictionary(
+        self,
+        version_id: str,
+        *,
+        sha256: str,
+        content: bytes,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        """Keep a version's dictionary bytes. Insert-once; there is no update."""
+        self._session.add(
+            PopulationVersionDictionaryRow(
+                version_id=version_id,
+                sha256=sha256,
+                byte_size=len(content),
+                content=content,
+                recorded_at=recorded_at,
+                recorded_by=recorded_by,
             )
         )
         self._session.flush()

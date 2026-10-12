@@ -29,6 +29,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    LargeBinary,
     MetaData,
     String,
     Text,
@@ -1464,6 +1465,30 @@ class RunPopulationBindingRow(Base):
             name="run_population_joint_state_known",
         ),
         Index("ix_run_population_version", "version_id"),
+    )
+
+
+class PopulationVersionDictionaryRow(Base):
+    """The field dictionary a dataset version was imported with. **Insert-once.**
+
+    The version row keeps the dictionary's hash and location; this keeps its bytes, so
+    a version's characteristics (each field's block, evidence and permitted uses) can be
+    read without the asset source and without a respondent row. Stored only after the
+    bytes have hashed to the version's ``dictionary_sha256``, and re-hashed on every read.
+    """
+
+    __tablename__ = "population_version_dictionaries"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
+        CheckConstraint("byte_size > 0", name="population_dictionary_bytes_positive"),
     )
 
 

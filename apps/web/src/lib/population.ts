@@ -1,7 +1,7 @@
 // How the population registry reads on Společenská inteligence (population-operations P2).
 // Read-only: nothing here, and nothing on the page, can import, establish or promote.
 
-import type { PopulationRegistry, PopulationVersion } from "./api";
+import type { PopulationField, PopulationRegistry, PopulationSubpanel, PopulationVersion } from "./api";
 
 export type RegistrySummary = {
   /** The version the LIVE population points at now, or null: no LIVE yet. */
@@ -38,3 +38,62 @@ export function labelOf(registry: PopulationRegistry, versionId: string | null):
   if (!versionId) return "—";
   return registry.versions.find((v) => v.version_id === versionId)?.label ?? versionId;
 }
+
+// ------------------------------------------------------------ characteristics (P7d)
+
+/** The version whose characteristics the page opens on: LIVE, else the reference, else the newest. */
+export function defaultVersionId(registry: PopulationRegistry): string | null {
+  const s = summarize(registry);
+  const newest = [...registry.versions].sort((a, b) => b.imported_at.localeCompare(a.imported_at))[0];
+  return s.live?.version_id ?? s.reference?.version_id ?? newest?.version_id ?? null;
+}
+
+/** A subpanel's filter as a person reads it: `vek 18–29` or `is_student = 1`. */
+export function subpanelFilterText(f: PopulationSubpanel["filter"]): string {
+  if (f.equals !== null) return `${f.field} = ${f.equals}`;
+  return `${f.field} ${f.minimum ?? "…"}–${f.maximum ?? "…"}`;
+}
+
+export type Usability = "usable" | "unusable" | "unknown";
+
+/** Usable, not usable, or unknown -- an unknown is never shown as usable. */
+export function usability(s: Pick<PopulationSubpanel, "usable">): Usability {
+  if (s.usable === null) return "unknown";
+  return s.usable ? "usable" : "unusable";
+}
+
+/** The fields a search and a block choose; an empty search and no block choose every field. */
+export function filterFields(fields: PopulationField[], query: string, block: string | null): PopulationField[] {
+  const needle = query.trim().toLocaleLowerCase("cs");
+  return fields.filter((f) => {
+    if (block && f.block !== block) return false;
+    if (!needle) return true;
+    return [f.field, f.description, f.block, f.evidence_status, f.source].some((text) => text.toLocaleLowerCase("cs").includes(needle));
+  });
+}
+
+/** An i18n key under `reason.` and its values for a policy reason; unknown codes come back as `raw`. */
+export function reasonKey(reason: string): { key: string; values: Record<string, string> } {
+  const grade = /^grade_(.+)_not_client_facing$/.exec(reason);
+  if (grade) return { key: "grade_not_client_facing", values: { grade: grade[1] } };
+  const rule = /^rule_(.+)$/.exec(reason);
+  if (rule) return { key: "rule", values: { rule: rule[1] } };
+  return KNOWN_REASONS.has(reason) ? { key: reason, values: {} } : { key: "raw", values: { code: reason } };
+}
+
+const KNOWN_REASONS = new Set([
+  "audit_only",
+  "declared_weight_column",
+  "disclosed_modelled_claim",
+  "internal_use",
+  "measured_evidence",
+  "not_a_weight_column",
+  "not_persona_eligible",
+  "persona_eligible",
+  "phrase_permits_modelled_claims_only",
+  "phrase_permits_no_client_claim",
+  "unclassified_derived_field",
+  "unknown_field",
+  "unmapped_policy",
+]);
+

@@ -29,14 +29,17 @@ from aia_core.domain.population import (
 )
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
+from aia_core.infrastructure.tables import PopulationVersionDictionaryRow
 from aia_executors.population_ops import (
     ASSET_ROOT_KEY,
     OPERATORS_KEY,
+    RECORDED_BY_COMMAND,
     OperatorConfigError,
     main,
     operator_config,
     run,
 )
+from sqlalchemy import delete
 from sqlalchemy.orm import Session, sessionmaker
 
 FIELDS = ("row_id", "vek", "segment", "w_main")
@@ -379,6 +382,48 @@ def test_companions_are_named_one_way_or_the_other_never_both(world: Any, bundle
     assert exc.value.code == 2
     with pytest.raises(SystemExit):  # attach needs one of them
         ops("attach", "--as", OWNER, "--version", "v")
+
+
+def test_record_dictionary_acts_as_no_one_and_keeps_only_what_is_missing(
+    world: Any, bundle: Any
+) -> None:
+    ops = Ops(world, bundle, {})  # nobody is an operator: the command needs no one
+    assert ops("record-dictionary")[1] == {"recorded": [], "already_kept": []}
+
+    importer = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = importer.import_all(OWNER)
+    code, result, err = ops("record-dictionary")
+    assert code == 0, err
+    assert result == {"recorded": [], "already_kept": sorted(ids.values())}  # imports keep it
+
+    with world.sessions() as session:
+        session.execute(
+            delete(PopulationVersionDictionaryRow).where(
+                PopulationVersionDictionaryRow.version_id == ids["f1_4"]
+            )
+        )
+        session.commit()
+    code, result, err = ops("record-dictionary", "--version", ids["f1_4"])
+    assert code == 0, err
+    assert result == {"recorded": [ids["f1_4"]], "already_kept": []}
+    with world.sessions() as session:
+        row = session.get(PopulationVersionDictionaryRow, ids["f1_4"])
+        assert row is not None and row.recorded_by == RECORDED_BY_COMMAND
+
+
+def test_record_dictionary_refuses_bytes_that_are_not_the_versions(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    with world.sessions() as session:
+        session.execute(delete(PopulationVersionDictionaryRow))
+        session.commit()
+    (tmp_path / "dictionary.csv").write_bytes(b"field,block\nvek,core\n")
+    code, _, err = ops("record-dictionary", "--version", ids["f1_1"])
+    assert code == 3 and "VersionIntegrityError" in err
+    with world.sessions() as session:
+        assert session.get(PopulationVersionDictionaryRow, ids["f1_1"]) is None
 
 
 # ------------------------------------------------------------------ the key
