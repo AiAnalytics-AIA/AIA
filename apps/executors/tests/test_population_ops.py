@@ -449,7 +449,10 @@ def test_record_catalogue_acts_as_no_one_and_keeps_each_populations_version_once
 
     operator = Ops(world, bundle, {world.owner_id: list(BOTH)})
     ids = operator.import_all(OWNER)
-    operator.establish(OWNER, ids)
+    operator.establish(OWNER, ids)  # each establish keeps its version's catalogue
+    with world.sessions() as session:
+        session.execute(delete(PopulationVersionAudienceCatalogueRow))
+        session.commit()
     code, result, err = ops("record-catalogue")
     assert code == 0, err
     assert result == {"recorded": sorted([ids["f1_1"], ids["f1_4"]]), "already_kept": []}
@@ -471,6 +474,54 @@ def test_record_catalogue_acts_as_no_one_and_keeps_each_populations_version_once
     vek = catalogue["factors"][0]
     assert (vek["kind"], vek["non_null"], vek["min"], vek["max"]) == ("numeric", 5, 18.0, 100.0)
     assert vek["policy_allowed"] is True
+
+
+def test_a_promotion_keeps_the_new_versions_catalogue_at_once(world: Any, bundle: Any) -> None:
+    """The audience step reads LIVE's catalogue; a promotion between deploys must not leave
+    it without one until the next deploy (Codex on #345)."""
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    code, promoted, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", ids["f1_5"],
+        "--expected", ids["f1_4"], "--reason", "the newer version",
+    )  # fmt: skip
+    assert code == 0, err
+    assert promoted["audience_catalogue"] == {
+        "version_id": ids["f1_5"],
+        "kept": True,
+        "recorded": True,
+    }
+    with world.sessions() as session:
+        row = session.get(
+            PopulationVersionAudienceCatalogueRow, (ids["f1_5"], AUDIENCE_CATALOGUE_VERSION)
+        )
+        assert row is not None and row.recorded_by == CATALOGUE_RECORDED_BY
+
+
+def test_a_catalogue_that_cannot_be_kept_does_not_undo_the_promotion(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    # The candidate's panel on disk is no longer the one it was imported with: it will not load.
+    (tmp_path / "panels" / "f1_5.csv.gz").write_bytes(b"not the panel")
+    code, promoted, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", ids["f1_5"],
+        "--expected", ids["f1_4"], "--reason", "the newer version",
+    )  # fmt: skip
+    assert code == 0, err
+    assert promoted["current_version_id"] == ids["f1_5"] and ops.live_version() == ids["f1_5"]
+    said = promoted["audience_catalogue"]
+    assert said["version_id"] == ids["f1_5"] and said["kept"] is False and said["error"]
+    with world.sessions() as session:
+        assert (
+            session.get(
+                PopulationVersionAudienceCatalogueRow, (ids["f1_5"], AUDIENCE_CATALOGUE_VERSION)
+            )
+            is None
+        )
 
 
 def test_record_catalogue_of_an_unknown_version_writes_nothing(world: Any, bundle: Any) -> None:

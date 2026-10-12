@@ -269,6 +269,32 @@ def _record_catalogues(
     return {"recorded": recorded, "already_kept": kept}
 
 
+def _catalogue_after(
+    session: Session,
+    contract: PopulationImportContract,
+    source: PopulationAssetSource,
+    enricher: Enricher | None,
+    version_id: str,
+) -> dict[str, Any]:
+    """Keep the catalogue of the version a population now stands on, after its change has
+    committed, so the audience step does not wait for the next deploy (6b). A version that
+    will not load is said here and does not undo the change: the deploy's record-catalogue
+    tries again."""
+    runtime = PopulationRuntime(
+        session,
+        contract=contract,
+        source=source,
+        enricher=enricher if enricher is not None else AudienceDimensionsEnricher(),
+    )
+    try:
+        stored = runtime.record_audience_catalogue(version_id, recorded_by=CATALOGUE_RECORDED_BY)
+        session.commit()
+    except PopulationError as exc:
+        session.rollback()
+        return {"version_id": version_id, "kept": False, "error": f"{type(exc).__name__}: {exc}"}
+    return {"version_id": version_id, "kept": True, "recorded": stored}
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m aia_executors.population_ops",
@@ -376,6 +402,10 @@ def run(
                 runtime = PopulationRuntime(session, contract=contract, source=source)
                 result = _act(args, runtime, operator, contract)
                 session.commit()
+                if args.command in ("establish", "promote"):
+                    result["audience_catalogue"] = _catalogue_after(
+                        session, contract, source, enricher, result["current_version_id"]
+                    )
         except OperatorRefused as exc:
             session.rollback()
             print(str(exc), file=err)
