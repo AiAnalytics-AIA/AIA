@@ -7,7 +7,8 @@
   "INFERRED": "a source states the rule in part; the rest is read from its examples or screens",
   "PROPOSED": "AIA's choice where no source speaks",
   "OPEN": "needed and not yet determined; nothing implements it",
-  "CANONICAL": "stated in the canonical methodology document (the NPC Sociomapa audit); by the owner's rule of 2026-10-07 it overrides every other source and every prior decision where they disagree"
+  "CANONICAL": "stated in the canonical methodology document (the NPC Sociomapa audit); by the owner's rule of 2026-10-07 it overrides every other source and every prior decision where they disagree",
+  "PORTED": "computed as the frozen 18.6.6 unit computes it: the unit's code is the source, and AIA's port is checked against the unit's recorded outputs or its function"
  },
  "validation_kinds": {
   "SOURCE_EXAMPLE": "reproduces numbers a source prints",
@@ -74,6 +75,11 @@
    "title": "NPC Sociomapa: chybne vzorce v kodu (CZ, Aram Bahbouh, stav 6. rijna 2026)",
    "pages": 30,
    "product": "NPC_AUDIT"
+  },
+  "NPC_UNIT": {
+   "title": "NPC Panel 18.6.6, the frozen unit's code (legacy/npc-panel-18.6.6/app, ADR 0011)",
+   "pages": null,
+   "product": "LEGACY_AIA"
   }
  },
  "canonical": {
@@ -599,6 +605,168 @@
    "question": null
   },
   {
+   "id": "LEGACY-R2",
+   "title": "Respondent weights rescaled to sum to N",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/project_engine.py:35",
+     "states": "vaha = w * (len(out) / w.sum()); a weight that is not a number reads as 1."
+    }
+   ],
+   "formula": "w'_k = w_k * N / sum_l w_l",
+   "applies_to": "the reference map (aia-sociomap-1) only, and the side tables beside it",
+   "implementation": "aia_core.domain.research_sociomap:battery_sociomap",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only",
+     "what": "the stored map is the engine's on the weighted relation"
+    }
+   ],
+   "uncertainty": "AIA's datasets carry numeric weights, so the unit's 'not a number reads as 1' does not arise.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "LEGACY-R3",
+   "title": "One mutual relation per pair for position",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/sociomap.py:444 _mutual_relation_for_position",
+     "states": "Position uses the arithmetic mean of i->j and j->i on the 1-10 scale, mapped to 0-1 as (m - 1) / 9 and clipped; the diagonal is 0."
+    }
+   ],
+   "formula": "N_ij = clip(((R_ij + R_ji) / 2 - 1) / 9, 0, 1), N_ii = 0",
+   "applies_to": "the reference map (aia-sociomap-1) only",
+   "implementation": "aia_core.domain.sociomap.relations:mutual_from_1_10",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_relations.py::test_f2_mutual_relation_matches_the_reference",
+     "what": "fixture F2, recorded from the unit's function (tolerance 1e-12)"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "LEGACY-R4",
+   "title": "Object metric: mean rating, support, classic relation or its T-score",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/ui_app.html:2045 objectMetricArray66",
+     "states": "mean_rating and support_n as received; relation_classic = sum_j (M_ij + M_ji); the default T-score 50 + 10 (v - mean) / sd, 50 when sd < 1e-9."
+    }
+   ],
+   "formula": "relation_classic_i = sum_j (M_ij + M_ji); T_i = 50 + 10 (c_i - mean(c)) / sd(c)",
+   "applies_to": "the reference map (aia-sociomap-1) only",
+   "implementation": "aia_core.domain.sociomap.metrics:object_metric",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_metrics.py::test_f6_object_metrics_match_the_reference",
+     "what": "fixture F6, recorded from the unit's function"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "LEGACY-R5",
+   "title": "Respondent density terrain",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/ui_app.html:2049 terrain66 (respondent mode)",
+     "states": "A 43 x 43 grid over +-62; each respondent adds exp(-d^2 / (2 * 9.5^2)), a weight below 0.0005 skipped; the density is then normalised."
+    }
+   ],
+   "formula": "D(q) = sum_k exp(-||q - p_k||^2 / (2 sigma^2)), sigma = 9.5, terms below 0.0005 dropped",
+   "applies_to": "the reference map (aia-sociomap-1) only",
+   "implementation": "aia_core.domain.sociomap.terrain:compute_terrain",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_terrain.py::test_f7_every_sample_matches",
+     "what": "fixture F7, recorded from the unit's function"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "LEGACY-R6",
+   "title": "Terrain height normaliser",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/ui_app.html:2047 normalizer66",
+     "states": "Four modes: absolute (to declared bounds, else to the largest absolute value), sigma (0.5 + z / 5, so +-2.5 sd spans the range), percentile (rank / n) and range (min-max, 0.5 when flat); every result clamped to 0-1."
+    }
+   ],
+   "formula": "t(x) = clamp(mode-specific transform, 0, 1)",
+   "applies_to": "the reference map (aia-sociomap-1) only",
+   "implementation": "aia_core.domain.sociomap.metrics:build_normalizer",
+   "validation": [
+    {
+     "kind": "SOURCE_EXAMPLE",
+     "test": "packages/aia_core/tests/test_sociomap_metrics.py::test_f5_normaliser_matches_the_reference",
+     "what": "fixture F5, every mode, recorded from the unit's function"
+    }
+   ],
+   "uncertainty": null,
+   "resolve_by": null,
+   "question": null
+  },
+  {
+   "id": "LEGACY-R7",
+   "title": "Mean rating and support per object",
+   "product": "LEGACY_AIA",
+   "label": "PORTED",
+   "sources": [
+    {
+     "document": "NPC_UNIT",
+     "page": null,
+     "section": "app/visualization_lab.py:131",
+     "states": "means: the mean of each column's numeric values, None when it has none, rounded to 4 decimals; supports: the count of numeric values."
+    }
+   ],
+   "formula": "mean_j = mean of observed a_kj (None if none), support_j = count of observed a_kj",
+   "applies_to": "the reference map (aia-sociomap-1) only",
+   "implementation": "aia_core.domain.sociomap.metrics:object_rating_summaries",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_metrics.py::test_rating_summaries_use_observed_cells_only",
+     "what": "observed cells only; no rating is None, not 0"
+    }
+   ],
+   "uncertainty": "The unit rounds the mean to 4 decimals; AIA keeps it unrounded.",
+   "resolve_by": null,
+   "question": null
+  },
+  {
    "id": "SOMECS-C1",
    "title": "Coherences: alpha-cut grouping",
    "product": "SOMECS",
@@ -921,9 +1089,15 @@
    ],
    "formula": "display frame [0,1]^2",
    "applies_to": "layout output",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "The estimation module's coordinates exceed 1, so the frame applies to display, not necessarily to fitting. Accuracy is invariant to it.",
+   "implementation": "aia_core.domain.sociomap.hmodel_candidate:_frame",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomapping_hmodel_candidate.py::test_the_result_is_deterministic_framed_and_says_what_it_is",
+     "what": "the candidate's positions lie in its frame and the accuracy is unchanged by it"
+    }
+   ],
+   "uncertainty": "The estimation module's coordinates exceed 1, so the frame applies to display, not necessarily to fitting. Accuracy is invariant to it. AIA's experimental H-Model (aia_hmodel_candidate_v1) frames after fitting, scaled uniformly into [0.05, 0.95], a margin inside the documented [0, 1].",
    "resolve_by": null,
    "question": null
   },
@@ -1326,11 +1500,27 @@
     }
    ],
    "formula": "c is a rating object <=> type(c) = rating, as declared in the questionnaire; a~_kc = (a_kc - s_min_c) / (s_max_c - s_min_c) in [0, 1], s_min_c and s_max_c the item's declared scale ends",
-   "applies_to": "every Sociomap input: the objects are the design's declared items with their declared scale ends; nothing is detected from a column's values. Path A takes the declared set and scale (research_sociomap.py) but uses raw ratings; path B normalises by the scale (RTS-N1).",
-   "implementation": null,
-   "validation": [],
-   "uncertainty": "None stated. The audit adds that without a declaration the panel must ask the user to confirm a detected list rather than use it silently; AIA detects nothing.",
-   "resolve_by": "sociomap-formula-corrections chunk 3 (the common 0-1 scale on path A)",
+   "applies_to": "every Sociomap input: the objects are the design's declared items with their declared scale ends; nothing is detected from a column's values. The object map (contract 3) reads the declared rating universe (research_sociomap.rating_universe) and puts every item on its own declared 0-1 scale (engine_v2._scaled). The reference map (aia-sociomap-1) keeps 18.6.6's raw ratings: it is the reference, kept exact (ADR 0023 decision 4).",
+   "implementation": "aia_core.domain.sociomap.engine_v2:_scaled",
+   "validation": [
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_object_map.py::test_items_with_different_ends_compare_on_their_own_scales",
+     "what": "each item on its own declared ends: 1-5 and 1-10 items compare on 0-1"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_object_map.py::test_a_rating_off_its_declared_scale_is_refused",
+     "what": "a rating outside its declared ends is refused, never clipped"
+    },
+    {
+     "kind": "OWN_TEST",
+     "test": "packages/aia_core/tests/test_sociomap_object_map.py::test_the_object_map_reads_every_set_the_specification_rates",
+     "what": "the rating universe is the specification's declared items"
+    }
+   ],
+   "uncertainty": "None stated. The audit adds that without a declaration the panel must ask the user to confirm a detected list rather than use it silently; AIA detects nothing. The reference map deliberately does not follow F1 (it stays 18.6.6's computation for comparison).",
+   "resolve_by": null,
    "question": null
   },
   {
@@ -1649,7 +1839,7 @@
    ],
    "formula": "P* = SMACOF(delta, w; P_Torgerson), computed once in the backend; P_shown = argmin_{Q in rot/refl} ||P* Q - P_previous||_F (orthogonal Procrustes, no scaling), P_previous the map the user was just looking at (baseline, previous wave); every map shows its Stress-1 and a label: < 0.05 good, < 0.10 fair, < 0.20 weak, >= 0.20 '2D picture unreliable'",
    "applies_to": "every map shown or printed. AIA computes once and deterministically and stores stress_1 (engine.py:291); the label and the alignment layer are missing. For the object map this supersedes SOMECS-H3's accuracy as the fit shown.",
-   "implementation": "aia_core.domain.sociomap.view:align_to_reference",
+   "implementation": "aia_core.domain.sociomap.view:stress_quality",
    "validation": [
     {
      "kind": "SOURCE_STATEMENT",
@@ -1682,8 +1872,8 @@
      "what": "fewer than two common objects cannot fix a rotation: refused"
     }
    ],
-   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map. Landed in chunk 2c: view.stress_quality (the bands as StressQuality, the reader's words in STRESS_QUALITY_TEXT) and view.align_to_reference (rotation/reflection about the origin, fitted on the common objects; no translation, no scaling, as eq. 16 writes Q). The 'one layout' half is layout.fit_smacof_objects (2b). Neither is printed yet: the label reaches Results and the DOCX with the v2 map (chunk 5), not on aia-sociomap-1's unfolding stress, a different measure.",
-   "resolve_by": "sociomap-formula-corrections chunk 2c",
+   "uncertainty": "The label thresholds are Kruskal's rule of thumb as the audit states them; this answers the engine plan's M6 for the object map. The one layout is layout.fit_smacof_objects (2b); every object map stores its Stress-1 and its label, computed by view.stress_quality inside engine_v2.compute_object_map (since aia-sociomap-4 from the declared bands). Results shows it, and the internal report prints it (application/report_maps.py:89 @ 6556f27; no test pins the printed sentence). The alignment half is view.align_to_reference (rotation and reflection about the origin, fitted on the common objects; no translation, no scaling, as eq. 16 writes Q): only the Metodika draft check calls it; no run aligns a map to the previous one yet.",
+   "resolve_by": "aligning a shown map to the one before it (P_previous): not built; the label half landed in sociomap-formula-corrections chunk 2c",
    "question": null
   },
   {

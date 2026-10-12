@@ -115,7 +115,10 @@ apps/
                             beside what is in force on fictional panels); lib/methodology-edit.ts is
                             the editor's pure part,
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
-    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal
+    src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
+                            ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
+                            the API reports a step RUNNING, tinted --ai-ink when a model works on it and
+                            --status-running when code does; aria-hidden beside the status it decorates
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -146,6 +149,9 @@ apps/
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
                             components/aia/MemorySearch.tsx: one client's search, on Projektová
                             paměť (a client chosen first) and on the client's Výzkumy
+    src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
+                            that hold a model caller): agent jobs, run steps, Deep Research steps; a
+                            queued, waiting or finished step shows none
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
