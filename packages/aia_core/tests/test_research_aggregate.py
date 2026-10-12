@@ -26,6 +26,7 @@ from typing import Any
 
 import pytest
 
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, UNIT_DONOR_THRESHOLDS
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_aggregate import (
     BOOTSTRAP_GENERATOR,
@@ -60,7 +61,7 @@ def _load(case_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
 def _aggregate(case: dict[str, Any]) -> dict[str, Any]:
     spec = ResearchSpecification.model_validate(case["spec"])
     dataset = FieldworkDataset.model_validate(case["dataset"])
-    return aggregate_dataset(spec, dataset)
+    return aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
 
 
 def _at(tree: dict[str, Any], path: str) -> Any:
@@ -161,9 +162,9 @@ def test_kish_and_donor_support_follow_the_units_thresholds() -> None:
         (50, "REPORTABLE"),
     ):
         ids = [f"d{i}" for i in range(donors)]
-        support = donor_support(ids, [1.0] * donors)
+        support = donor_support(ids, [1.0] * donors, rule=UNIT_DONOR_THRESHOLDS)
         assert support["support_status"] == status and support["n_unique_layer_donors"] == donors
-    repeated = donor_support(["a", "a", "a", "b"], [1.0] * 4)
+    repeated = donor_support(["a", "a", "a", "b"], [1.0] * 4, rule=UNIT_DONOR_THRESHOLDS)
     assert repeated["max_donor_share"] == 0.75
     assert repeated["effective_n_combined"] == 2.0  # kish 4 x (2 donors / 4 rows)
 

@@ -43,6 +43,7 @@ from types import MappingProxyType
 from typing import Any, Final
 
 from ..evidence import (
+    REFERENCE_THRESHOLDS,
     AnalysisMetric,
     ClaimBasis,
     ClaimLevel,
@@ -57,6 +58,7 @@ from ..evidence import (
     MetricKind,
     SupportAssessment,
     SupportEvidence,
+    SupportThresholds,
     Violation,
     ViolationCode,
     assess_support,
@@ -79,6 +81,7 @@ __all__ = [
     "native_evidence",
     "native_items",
     "native_preflight",
+    "reassess_support",
     "research_questions_of",
 ]
 
@@ -240,8 +243,10 @@ def _number(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _support(result: Mapping[str, Any]) -> SupportAssessment:
-    """The unit's donor support, re-assessed by AIA's thresholds. Unknown suppresses."""
+def reassess_support(result: Mapping[str, Any], rule: SupportThresholds) -> SupportAssessment:
+    """The aggregate's support, re-assessed by the run's pinned ``analysis`` rule (AIA's
+    thresholds unless a version is in force); the stricter of the two wins. Unknown
+    suppresses. The Metodika tab's draft check decides through this function too."""
     unit = result.get("support_status")
     if unit not in _UNIT_SUPPORT:
         return SupportAssessment(reasons=(f"unknown support status {unit!r}",))
@@ -251,10 +256,12 @@ def _support(result: Mapping[str, Any]) -> SupportAssessment:
             effective_n=_number(result.get("effective_n")),
             requires_donor_support=True,
             n_unique_layer_donors=_integer(result.get("n_unique_layer_donors")),
-        )
+        ),
+        rule,
     )
     if unit == "SUPPRESS" and assessed.reportable:
-        # Cannot happen with the unit's own thresholds; if it ever does, the stricter wins.
+        # Not under aia-support-1; a version whose analysis rule is looser than its
+        # results rule gets here, and the stricter wins.
         return SupportAssessment(reasons=("the unit suppressed this cell",))
     return assessed
 
@@ -346,9 +353,9 @@ def _scale(q: SpecQuestion) -> str:
     return f"{q.scale[0]}-{q.scale[1]}" if q.scale else "?"
 
 
-def _item_rows(rows: _Rows, item: _Item) -> None:
+def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
     q, r = item.question, item.result
-    support = _support(r)
+    support = reassess_support(r, rule)
     refusal = _fidelity_refusal(r)
     rows.add(
         item,
@@ -418,8 +425,13 @@ def native_evidence(
     *,
     dataset_sha256: str,
     origin: DataOrigin | None,
+    support: SupportThresholds,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
+
+    ``support`` is the run's pinned ``analysis`` rule (plan ``methodology-tab`` G1c). Only a
+    rule other than AIA's reference thresholds enters the system fingerprint, so a run under
+    today's rule keeps the fingerprint its validations are bound to.
 
     ``origin`` is the fieldwork dataset's, as the dataset artifact records it; the
     aggregate must say the same. Raises :class:`NativeEvidenceRefused` when the two
@@ -442,7 +454,7 @@ def native_evidence(
     assert origin is not None  # the book refuses an unknown origin
     rows = _Rows(kept=[], removed={}, origin=origin)
     for item in _results(spec, aggregate):
-        _item_rows(rows, item)
+        _item_rows(rows, item, support)
     built = EvidenceTable.build(rows.kept)
     table = EvidenceTable(
         rows=built.rows, suppressed=MappingProxyType({**built.suppressed, **rows.removed})
@@ -463,6 +475,11 @@ def native_evidence(
                 "specification": spec.fingerprint(),
                 "instrument_policy": book.source_sha256,
                 "joint_status": joint.fingerprint(),
+                **(
+                    {}
+                    if support == REFERENCE_THRESHOLDS
+                    else {"support": support.model_dump(mode="json")}
+                ),
             }
         ),
         rows_considered=len(table.rows) + len(table.suppressed),

@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Final
 
+from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..research_sociomap import SociomapMethod, default_methods
 from ..sociomap.slots import ENGINE_SLOTS
 from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
@@ -28,7 +29,9 @@ from ..sociomap.specification import AIA_SOCIOMAP_V1, SociomapSpecV3
 __all__ = [
     "COMPUTED_SLOTS",
     "FormulaNotComputed",
+    "read_support_pin",
     "sociomap_methods_for",
+    "support_spec_for",
     "uncomputed_formulas",
 ]
 
@@ -66,3 +69,22 @@ def sociomap_methods_for(payload: Mapping[str, Any] | None) -> tuple[SociomapMet
         SociomapMethod.of(AIA_SOCIOMAP_V1),
         SociomapMethod.of(edited, payload.get("formulas") or {}),
     )
+
+
+def support_spec_for(payload: Mapping[str, Any] | None) -> SupportSpec:
+    """The support rules a run started under ``payload`` pins (plan ``methodology-tab`` G1c).
+
+    ``None`` -- nothing stored -- is the code's preset, ``aia-support-1``: both rules as they
+    were before any version (owner, 2026-10-12), the unit's donor rule for Results and AIA's
+    gate for analysis."""
+    if payload is None:
+        return AIA_SUPPORT_V1
+    return SupportSpec.model_validate(payload["spec"])
+
+
+def read_support_pin(value: Any) -> SupportSpec:
+    """A run's pinned support rules from their stored form. A run started before support was
+    pinned (``None``) was computed under ``aia-support-1``, so that is what it reads."""
+    if value is None:
+        return AIA_SUPPORT_V1
+    return SupportSpec.model_validate(value)

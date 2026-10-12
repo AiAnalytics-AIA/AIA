@@ -109,6 +109,33 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("the support rules' versions (plan G1d)", () => {
+  it("edit a line both ways, a line not checked included, and store the whole specification", async () => {
+    const { sent } = fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
+    const section = await versionsSection();
+    fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
+    const form = await editor();
+    const unchecked = await field(form, "results.n_guard");
+    expect(unchecked.value).toBe("null"); // the unit's rule does not check it, and says so
+    fireEvent.change(unchecked, { target: { value: "25" } });
+    fireEvent.change(await field(form, "results.min_layer_donors"), { target: { value: "10" } });
+    fireEvent.change(await field(form, "analysis.min_cell"), { target: { value: "null" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+
+    await waitFor(() => expect(sent.some((s) => s.method === "POST" && s.url.endsWith("/support/versions"))).toBe(true));
+    const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/support/versions"));
+    type Rule = Record<string, number | null>;
+    const spec = stored?.body?.spec as { results: Rule; analysis: Rule };
+    expect(stored?.body?.base_preset).toBe("aia-support-1");
+    expect(spec.results).toEqual({ min_cell: null, n_guard: 25, indicative: null, min_layer_donors: 10, indicative_layer_donors: 50 });
+    expect(spec.analysis.min_cell).toBeNull();
+    expect(spec.analysis.n_guard).toBe(25);
+  });
+});
+
 describe("the methodology's versions", () => {
   it("say the code's preset is in force when nothing is stored", async () => {
     fakeApi();

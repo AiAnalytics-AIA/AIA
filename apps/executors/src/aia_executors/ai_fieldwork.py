@@ -119,6 +119,17 @@ class AIFieldwork:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
         seed = fieldwork_seed(spec)
         personas = fictional_roster(spec.n, seed=seed)
+        if not all(p.fictional for p in personas):
+            # The licence gate now passes panel lineage on the EU route (OI-61), but no
+            # panel persona source exists and assemble_dataset refuses one: fail here,
+            # before a call is paid for, not after every respondent has answered.
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "message": "Respondenti z panelu zatím nejsou v AIA. Nic nebylo odesláno.",
+                    "reason": "persona_source_unsupported",
+                },
+            )
         data_class, lineage = classify_material(
             personas,
             client_declared_fictional=True,  # the roster's actual fictional provenance, below

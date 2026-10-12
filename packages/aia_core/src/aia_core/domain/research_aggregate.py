@@ -30,6 +30,13 @@ import re
 from collections.abc import Sequence
 from typing import Any, Final
 
+from .evidence.support import (
+    UNIT_DONOR_THRESHOLDS,
+    SupportEvidence,
+    SupportSpec,
+    SupportThresholds,
+    support_status,
+)
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecQuestion
 
@@ -45,6 +52,7 @@ __all__ = [
     "donor_support",
     "evidence_rating",
     "kish_effective_n",
+    "uncertainty_note",
     "weighted_distribution",
     "weighted_mean",
     "weighted_quantile",
@@ -55,14 +63,40 @@ AGGREGATE_VERSION: Final = "aia-research-aggregate-1"
 #: OI-62: the named generator, recorded on every artifact that holds an interval.
 BOOTSTRAP_GENERATOR: Final = "python-random-mt19937:floor(u*m)"
 
-# dotaznik.py agreguj_otazku: the unit's notes and thresholds, verbatim.
-UNCERTAINTY_NOTE: Final = (
+# dotaznik.py agreguj_otazku: the unit's note, verbatim, around the lines of the rule.
+_NOTE_INTERVAL: Final = (
     "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. "
-    "n_unique_layer_donors <25 se nereportuje; 25\u201349 je INDIKATIVNÍ. "
-    "Interval není důkaz externí prediktivní validity."
 )
-_SUPPRESS_BELOW: Final = 25
-_REPORTABLE_FROM: Final = 50
+_NOTE_VALIDITY: Final = "Interval není důkaz externí prediktivní validity."
+
+
+def _support_lines(rule: SupportThresholds) -> str:
+    """The lines ``rule`` checks, in the unit's words: ``<a`` is not reported, ``a-b`` is
+    INDIKATIVNÍ. A line the rule does not check is not written."""
+    parts: list[str] = []
+    if rule.min_cell is not None:
+        parts.append(f"n_platnych <{rule.min_cell} se nereportuje")
+    if rule.n_guard is not None:
+        parts.append(f"effective_n <{rule.n_guard:g} se nereportuje")
+    if rule.indicative is not None and (rule.n_guard is None or rule.indicative > rule.n_guard):
+        parts.append(f"effective_n <{rule.indicative:g} je INDIKATIVNÍ")
+    low, high = rule.min_layer_donors, rule.indicative_layer_donors
+    if low is not None:
+        parts.append(f"n_unique_layer_donors <{low} se nereportuje")
+    if high is not None and (low is None or high > low):
+        band = f"{low}\u2013{high - 1}" if low is not None else f"n_unique_layer_donors <{high}"
+        parts.append(f"{band} je INDIKATIVNÍ")
+    return "; ".join(parts) + ". " if parts else "Podpora se nekontroluje. "
+
+
+def uncertainty_note(rule: SupportThresholds) -> str:
+    """The note every cell carries, written from the rule that decides its status (plan
+    ``methodology-tab`` G1d): under 18.6.6's donor rule it is the unit's text, verbatim."""
+    return _NOTE_INTERVAL + _support_lines(rule) + _NOTE_VALIDITY
+
+
+#: The unit's note, verbatim: what :func:`uncertainty_note` writes under its donor rule.
+UNCERTAINTY_NOTE: Final = uncertainty_note(UNIT_DONOR_THRESHOLDS)
 
 
 # --------------------------------------------------------------------------- #
@@ -241,8 +275,19 @@ def weighted_variance(values: Sequence[float], weights: Sequence[float]) -> floa
     return sum(w * (x - mu) ** 2 for x, w in pairs) / total
 
 
-def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, Any]:
-    """``donor_support`` for the core layer: the only layer a fieldwork dataset carries."""
+def _line(value: float | None) -> float | None:
+    """A rule's line as the aggregate records it; ``None`` where the rule does not check it."""
+    return None if value is None else float(value)
+
+
+def donor_support(
+    donors: Sequence[str], weights: Sequence[float], *, rule: SupportThresholds
+) -> dict[str, Any]:
+    """``donor_support`` for the core layer: the only layer a fieldwork dataset carries.
+
+    ``rule`` decides ``support_status``: the run's pinned support specification's
+    ``results`` rule (plan ``methodology-tab`` G1c), 18.6.6's donor lines 25 / 50 unless a
+    version is in force."""
     n = len(donors)
     kish = kish_effective_n(clean_weights(weights))
     counts: dict[str, int] = {}
@@ -253,13 +298,15 @@ def donor_support(donors: Sequence[str], weights: Sequence[float]) -> dict[str, 
     maxshare = max(counts.values()) / n if n and counts else 0.0
     combined = kish * (nlayer / max(n, 1))
     combined = min(combined, kish, float(nlayer), float(ncore))
-    status = (
-        "SUPPRESS"
-        if nlayer < _SUPPRESS_BELOW
-        else "INDICATIVE"
-        if nlayer < _REPORTABLE_FROM
-        else "REPORTABLE"
-    )
+    status = support_status(
+        SupportEvidence(
+            n=n,
+            effective_n=round(combined, 1),
+            requires_donor_support=True,
+            n_unique_layer_donors=nlayer,
+        ),
+        rule,
+    ).value
     return {
         "n": n,
         "effective_n_kish": round(kish, 1),
@@ -417,13 +464,15 @@ def aggregate_question(
     donors: Sequence[str],
     *,
     validation_status: str,
+    support_rule: SupportThresholds,
 ) -> dict[str, Any]:
-    """One question's weighted, interval-first aggregate, as the unit reports it."""
+    """One question's weighted, interval-first aggregate, as the unit reports it, its status
+    decided by ``support_rule``."""
     rows = [(a, w, d) for a, w, d in zip(answers, weights, donors, strict=True) if a is not None]
     ok_answers = [r[0] for r in rows]
     w = clean_weights([r[1] for r in rows])
     ok_donors = [r[2] for r in rows]
-    support = donor_support(ok_donors, [r[1] for r in rows])
+    support = donor_support(ok_donors, [r[1] for r in rows], rule=support_rule)
     out: dict[str, Any] = {
         "typ": q.typ,
         "n_eligible": len(answers),
@@ -437,9 +486,9 @@ def aggregate_question(
         "n_unique_layer_donors": support["n_unique_layer_donors"],
         "max_donor_share": support["max_donor_share"],
         "support_status": support["support_status"],
-        "n_guard_threshold": float(_SUPPRESS_BELOW),
-        "indicative_threshold": float(_REPORTABLE_FROM),
-        "uncertainty_note": UNCERTAINTY_NOTE,
+        "n_guard_threshold": _line(support_rule.min_layer_donors),
+        "indicative_threshold": _line(support_rule.indicative_layer_donors),
+        "uncertainty_note": uncertainty_note(support_rule),
         "evidence": evidence_rating(q.text, q.typ, validation_status=validation_status),
     }
     if q.typ == "vyber":
@@ -523,9 +572,13 @@ def aggregate_dataset(
     spec: ResearchSpecification,
     dataset: FieldworkDataset,
     *,
+    support: SupportSpec,
     validation_status: str = "UNVALIDATED",
 ) -> dict[str, Any]:
     """Every question and every battery object of ``spec``, aggregated over ``dataset``.
+
+    ``support`` is the run's pinned support specification; its ``results`` rule decides
+    every cell's ``support_status`` (plan ``methodology-tab`` G1c).
 
     A battery object is aggregated as the scale question the unit compiles it to
     (``research_project.py`` ``_prefixed_battery_questions``).
@@ -538,7 +591,12 @@ def aggregate_dataset(
 
     questions = {
         q.id: aggregate_question(
-            q, column(q.id), weights, donors, validation_status=validation_status
+            q,
+            column(q.id),
+            weights,
+            donors,
+            validation_status=validation_status,
+            support_rule=support.results,
         )
         for q in spec.questions
     }
@@ -561,6 +619,7 @@ def aggregate_dataset(
                     weights,
                     donors,
                     validation_status=validation_status,
+                    support_rule=support.results,
                 ),
             }
         batteries[b.id] = {"title": b.title, "family": b.family, "objects": objects}
