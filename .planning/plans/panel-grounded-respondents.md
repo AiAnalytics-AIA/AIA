@@ -13,7 +13,11 @@ chunks:
   - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
   - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
-  - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
+  - "[ ] 4a. Origin contract (plan before code): every site that reads an origin, and what each does with a new one"
+  - "[ ] 4b. MODELLED_AI_PANEL and the allowlist gate: CLIENT_ADMISSIBLE_ORIGINS, assemble_dataset derives it, mixed refused"
+  - "[ ] 4c. One reading of an origin (simulated / modelled / unknown) and the labels on every Python surface"
+  - "[ ] 4d. The web client's labels: modelled said every time, an unknown origin never read as real"
+  - "[ ] 4e. aia-instrument-evidence-2 and the validation gate (ADR 0024 §3-§5): client-facing only when validated"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
   - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
@@ -511,6 +515,64 @@ structured format). Every field shown or used asks
 `decide_joint`. The fact layer reads the row's columns: a question the panel answers
 becomes DIRECT (answered by code) instead of UNSUPPORTED. Styles from
 `assign_styles` over the real rows. Real weights and donor ids. Parity fixtures.
+
+### 4a. The origin contract (2026-10-12)
+
+ADR 0024 decides what `MODELLED_AI_PANEL` is; this is where it lands. Anchors @ `c1c8ec1`, under
+`packages/aia_core/src/aia_core/` unless a path says otherwise.
+
+**What a new origin gets today.** `DataOrigin` has two members (`domain/fieldwork.py:50-62`), both
+in `NON_EVIDENCE_ORIGINS` (`:66-68`), and every reader asks "is it in that set?". So a new member
+is refused only where a reader demands membership, and is read as **real, measured data**
+everywhere else:
+
+| Site | Today | A new origin |
+|---|---|---|
+| `domain/evidence/instrument.py:73-80` `_require_simulated` | `-1` for both | refused (fail-closed) |
+| `domain/analysis/native.py:465-476` `native_evidence` | via the instrument book | refused |
+| `domain/ai_respondent.py:685-689` `assemble_dataset` | fictional only | refused |
+| `apps/executors/.../ai_fieldwork.py:122-132` guard | fictional only | refused |
+| `domain/evidence/admission.py:244` client-facing gate | denylist | **passes** (and so does `None`) |
+| `domain/analysis/native.py:531-539` preflight | denylist | **passes** (`FIELD_INTERNAL_ONLY` still blocks, `:540-546`) |
+| `domain/analysis/harness.py:136-143` labels, `_FRAME` `:82-88` | "simulated" | **read as real**; the frame calls every respondent fictional |
+| `application/report.py:153,294`, `contextual_report.py:334`, `apps/executors/.../report.py:135` | synthetic callouts | **no callout, no disclosure**: "Výzkum" |
+| `domain/research_sociomapping.py:358-359`, `application/sociomapping_report.py:325,347` | "Fiktivní data" | **no callout** |
+| `domain/design_reuse.py:36,77-84` | synthetic | "unlabelled" (safe, wrong) |
+| `apps/executors/.../research.py:396` progress | "fiktivní data připravena" | **"sběr dat dokončen"** (fieldwork done) |
+| `apps/api/.../routers/research.py:212,938,1067,1197,143` | `synthetic` flags | **synthetic: false**, no modelled flag |
+| `apps/web/src/lib/research-execution.ts:85-94`, `ExecutionSteps.tsx:491,639,668,855,976`, `memory.ts:55`, `ObjectMapView.tsx:60`, `SociomappingView.tsx:50,308` | "Fiktivní data" | **no label**; the raw string shown as a fault chip |
+| `tests/test_evidence_admission.py:233` | `set(DataOrigin) == NON_EVIDENCE_ORIGINS` | fails: the one exhaustive test |
+
+**Decisions.**
+
+1. **4b, the origin and the gate.** `DataOrigin.MODELLED_AI_PANEL`; not in `NON_EVIDENCE_ORIGINS`.
+   `CLIENT_ADMISSIBLE_ORIGINS = {MODELLED_AI_PANEL}` (ADR 0024 §2), and both client-facing gates
+   (`admission.py:244`, `native.py:531`) become the allowlist: any other origin, `None` and any
+   member added later, is refused client-facing. A non-evidence origin keeps its code
+   (`SYNTHETIC_DATA_ORIGIN`); anything else outside the list is `ORIGIN_NOT_ADMISSIBLE`.
+   Nothing becomes client-facing in 4b: `FIELD_INTERNAL_ONLY`, the joint certificate and (4e) the
+   validation still block. `assemble_dataset` derives the origin from the personas: every persona
+   fictional -> `SYNTHETIC_AI_FICTIONAL`; every persona panel-built (not fictional, lineage
+   `PANEL_DERIVED_DATASETS`) -> `MODELLED_AI_PANEL`; anything else refused (mixed rosters are
+   refused, not labelled). The exhaustive test becomes a partition test: every member is either
+   non-evidence or admissible, never both, never neither.
+2. **4c, one reading, every Python surface.** `domain/fieldwork.py` gains `origin_kind(origin) ->
+   SIMULATED | MODELLED | UNKNOWN` (`None` and an unrecognised string are `UNKNOWN`), the one
+   function every label reads; no surface tests set membership itself. `ModuleLabels` gains
+   `modelled_respondents`; the harness frame, the report (beside the number, with
+   "modelováno: AI respondenti z populace", ADR 0024 §7), the sociomapping view and report,
+   design reuse, the progress text ("modelovaná data připravena") and the API's flags read it.
+   An `UNKNOWN` origin is labelled unknown, never real.
+3. **4d, the web client.** The same three-way vocabulary in `research-execution.ts`, used by every
+   surface listed; the modelled chip and banner say "modelováno: AI respondenti z populace";
+   `ObjectMapView`'s prefix test goes; an unknown origin is shown as unknown, never as fieldwork.
+4. **4e, the evidence policy and validation** (ADR 0024 §3-§5): `aia-instrument-evidence-2` for
+   `MODELLED_AI_PANEL` (aggregate only, MODELED with `MODELED_VALUE` and `SCOPE`), the validation
+   fingerprint and `effective_validation_status` as the client-facing gate, support counted in
+   donors. Split again when it starts; it is the only sub-chunk that can open a client-facing
+   route, and it opens none until a validation is recorded.
+
+Out of scope here: producing the origin (chunk 5's executor), the Sociomap's `INTERNAL_ONLY` (D6).
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
