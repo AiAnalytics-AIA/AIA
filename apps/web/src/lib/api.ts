@@ -350,6 +350,10 @@ export type PopulationVersion = {
   imported_at: string;
   imported_by: string;
   provenance: string;
+  /** null on a shared version; on an owned child, the client it was materialized for. */
+  owner_client_id: string | null;
+  /** null on a shared version; on an owned child, the hash of the fields it adds. */
+  extension_sha256: string | null;
 };
 export type PopulationRecord = {
   population_id: string;
@@ -420,6 +424,8 @@ export type PopulationField = {
   is_weight: boolean;
   derived: boolean;
   uses: PopulationUseAnswer[];
+  /** A field an owned child adds: modelled values, its uses fixed. */
+  materialized: boolean;
 };
 export type PopulationWeight = {
   role: string;
@@ -460,6 +466,8 @@ export type PopulationCharacteristics = {
   subpanels_measured_on: string;
   subpanels_measured_under_weight: string;
   subpanel_note: string;
+  owner_client_id: string | null;
+  extension_sha256: string | null;
 };
 
 // GET /api/v1/studies/{id}/design/source, POST /api/v1/clients/{id}/memory/reuse (project memory M3).
