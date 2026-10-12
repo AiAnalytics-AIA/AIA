@@ -460,3 +460,42 @@ def test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its
     lifted = evidence("a" * 64, ValidationState(ValidationStatus.HOLDOUT_VALIDATED, "a" * 64))
     assert not internal(lifted)
     assert lifted.system_fingerprint != one.system_fingerprint
+
+
+def test_a_modelled_run_counts_its_donors_not_its_respondents() -> None:
+    """ADR 0024 §5: 1,000 modelled respondents built on 40 donors are 40-donor evidence --
+    indicative under the donor floor of 50 -- while the same answers on 1,000 donors are not
+    held back. Support is re-assessed from the donors the aggregate counted, never from n."""
+    spec, problems = compile_design({**DESIGN, "n": 1000})
+    assert spec is not None, problems
+    base = synthetic_dataset(spec, seed=20260816)
+    assert len(base.respondents) == 1000
+
+    def modelled(donors: int) -> Any:
+        respondents = tuple(
+            r.model_copy(update={"donor_id": f"DONOR-{i % donors:04d}"})
+            for i, r in enumerate(base.respondents)
+        )
+        dataset = base.model_copy(
+            update={"respondents": respondents, "origin": DataOrigin.MODELLED_AI_PANEL}
+        )
+        aggregate = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
+        return native_evidence(
+            spec,
+            aggregate,
+            dataset_sha256=DATASET_SHA,
+            origin=DataOrigin.MODELLED_AI_PANEL,
+            support=REFERENCE_THRESHOLDS,
+        )
+
+    def q1(evidence: Any) -> list[Any]:
+        rows = [r for r in evidence.table.rows.values() if r.question_id == "q1"]
+        assert rows
+        return rows
+
+    few, many = modelled(40), modelled(1000)
+    assert {r.support.status for r in q1(few)} == {SupportStatus.INDICATIVE}
+    assert all(r.data_origin is DataOrigin.MODELLED_AI_PANEL for r in q1(few))
+    assert {r.support.status for r in q1(many)} == {SupportStatus.REPORTABLE}
+    # Under the donor floor nothing is shown at all, however many respondents.
+    assert not [r for r in modelled(20).table.rows.values() if r.question_id == "q1"]

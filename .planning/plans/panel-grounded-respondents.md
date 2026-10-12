@@ -20,7 +20,7 @@ chunks:
   - "[x] 4e1. aia-instrument-evidence-2: the modelled origin's policy, internal only without a validation"
   - "[x] 4e2. The respondent system fingerprint, and a current holdout validation as the one thing that lifts INTERNAL_ONLY"
   - "[x] 4e3. Native evidence builds -2 for a modelled run, bound to its respondent system (no validation stored: internal)"
-  - "[ ] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
+  - "[x] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
   - "[ ] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
@@ -757,6 +757,12 @@ judged internal, bound to the system it came from.
 
 Tests: `test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its_validation`,
 `test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refused`.
+
+**4e4 landed (a test, no code).** Native evidence already re-assesses support from the donors the
+aggregate counted (`domain/analysis/native.py` `reassess_support`, `requires_donor_support=True`);
+`test_a_modelled_run_counts_its_donors_not_its_respondents` proves it for a modelled run: 1,000
+respondents on 40 donors are INDICATIVE (under the donor floor of 50), the same answers on 1,000
+donors REPORTABLE, and on 20 donors (under 25) no row is shown at all.
 
 Nothing in 4e records a validation: chunk 7's ablation and holdout earn the first one. Until then
 4e changes no client-facing outcome; it decides what a validation will unlock and what it will not.
