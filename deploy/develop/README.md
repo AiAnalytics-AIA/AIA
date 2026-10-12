@@ -496,6 +496,11 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    recorded and that its respondents did not come from it. Runs started before keep
    what they recorded, which is nothing.
 
+   Each deploy then runs `bin/population.sh record-dictionary`, which keeps every
+   version's verified field dictionary in the database for the characteristics section
+   on Společenská inteligence. It acts as no one and needs no sign-in. A refusal is logged
+   as a warning and does not fail the deploy.
+
 **Exit codes.** `2` means refused before anything was written: a person the
 configuration does not name, a malformed argument. `3` means the population itself
 refused, with every failure listed. A `3` on the real files is a **finding**: record it
