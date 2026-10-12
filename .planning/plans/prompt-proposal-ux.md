@@ -1,10 +1,10 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Repair prompt naming, navigation and draft replacement; redesign the prompt workspace"
   - "[x] 2. Expose saved proposals and add direct narrative and measurement editing in step 2"
   - "[x] 3. Verify persistence, failures, responsive layouts and downstream design through real local APIs"
-  - "[ ] 4. Integrate, deploy and verify the live pages"
+  - "[x] 4. Integrate, deploy and verify the live pages"
 ---
 # Prompt settings and research proposal UX
 
@@ -33,3 +33,9 @@ Review map:
 - Backend APIs, database schema, runtime policy, approval gates and frozen outputs are unchanged.
 
 Integrated develop @ 999be17d: 51 frontend files / 938 tests pass, lint and production webpack build pass. The nine-flow Playwright journey also passes against that production build at all four widths. Repeated executions select the exact newly created prompt version from its API text instead of racing a previously saved card. Session-expiry acceptance confirms sign-in's next=/app/settings#prompts. The new methodology tab remains present.
+
+## Release and live acceptance — 2026-10-12
+
+Feature #269 merged into develop at a4c298cc82eb8a3822ae427db6c53c5595aa4d06 after every required check passed. Live `/version` reports be8f59a7429831aec93a9c552102b0e9da6d4aee, which contains the feature. CI run 38183762596 passed all required checks; deployment run 38185652317 succeeded. Live browser acceptance verified 20 readable prompt names, one-result search, preserved methodology tab, exact instruction accessibility, protected unsaved version loading/cancellation/revert, and no horizontal overflow at 1440/1024/768/390 px. The existing sandbox study's saved native proposal appears, its four-field editor opens/cancels, and navigation is disabled during editing; all four widths fit. Live checks changed no prompt version or proposal and started no paid job. Screenshots were captured from the deployed pages.
+
+Docs #270 was merged into the feature branch after #269 had already merged, so its changes were not in develop. The release-close docs follow-up carries those same module/command/checkpoint changes onto current develop and marks this plan complete.
