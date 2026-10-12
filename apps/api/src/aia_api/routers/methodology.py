@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 from aia_core.domain.methodology import (
     ABSENT,
@@ -44,6 +44,10 @@ from aia_core.domain.methodology import (
 from aia_core.domain.methodology.expressions import compile_formula, latex
 from aia_core.domain.methodology.pins import uncomputed_formulas
 from aia_core.domain.methodology.sociomap_check import PanelComparison, compare_with_in_force
+from aia_core.domain.methodology.support_check import (
+    SupportComparison,
+    compare_support_with_in_force,
+)
 from aia_core.domain.methodology.versions import (
     MethodologyVersionInvalid,
     named,
@@ -298,13 +302,40 @@ class PanelOut(_Strict):
     notes: list[str]
 
 
+class SupportCellOut(_Strict):
+    """One fictional cell: its support, and each surface's status ``[in force, draft]``;
+    ``changes`` names each surface whose status moved (``reported``, ``suppressed``,
+    ``changed``)."""
+
+    cell: str
+    label_cs: str
+    n: int
+    effective_n: float
+    donors: int
+    results: list[str]
+    analysis: list[str]
+    changes: dict[str, str]
+
+
+class SupportCompareOut(_Strict):
+    """The support draft check (plan G1d): every cell, and every ``[cell, surface]`` the draft
+    newly reports or newly suppresses."""
+
+    draft: str
+    cells: list[SupportCellOut]
+    newly_reported: list[list[str]]
+    newly_suppressed: list[list[str]]
+
+
 class CompareOut(_Strict):
-    """``problems`` refuse the draft (nothing is computed); otherwise every panel."""
+    """``problems`` refuse the draft (nothing is computed); otherwise every panel of an
+    object map, or every cell of a support rule."""
 
     valid: bool
     problems: dict[str, str]
     in_force: str
     panels: list[PanelOut]
+    support: SupportCompareOut | None = None
 
 
 class ActivationIn(_Strict):
@@ -456,6 +487,31 @@ def _panel(c: PanelComparison) -> PanelOut:
     )
 
 
+def _support_comparison(c: SupportComparison) -> SupportCompareOut:
+    return SupportCompareOut(
+        draft=c.draft,
+        cells=[
+            SupportCellOut(
+                cell=x.cell,
+                label_cs=x.label_cs,
+                n=x.n,
+                effective_n=x.effective_n,
+                donors=x.donors,
+                results=list(x.results),
+                analysis=list(x.analysis),
+                changes=x.changes(),
+            )
+            for x in c.cells
+        ],
+        newly_reported=[list(m) for m in c.moved("reported")],
+        newly_suppressed=[list(m) for m in c.moved("suppressed")],
+    )
+
+
+#: The modules a draft check is built for.
+_COMPARED: Final = frozenset({"sociomap", "support"})
+
+
 def _fields(summary: Any) -> dict[str, Any]:
     return {name: getattr(summary, name) for name in MapSummaryOut.model_fields}
 
@@ -595,7 +651,7 @@ def compare(
         found = module(module_id)
     except KeyError as exc:
         raise _not_found("unknown_module", f"no method module {module_id!r}") from exc
-    if module_id != "sociomap":
+    if module_id not in _COMPARED:
         raise HTTPException(
             status_code=422,
             detail={
@@ -618,6 +674,16 @@ def compare(
     except MethodologyRefused as exc:
         raise _refused(exc) from exc
     stored = None if in_force.version is None else in_force.version.payload
+    if module_id == "support":
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            support=_support_comparison(
+                compare_support_with_in_force(stored, version_payload(validated))
+            ),
+        )
     panels = compare_with_in_force(stored, version_payload(validated))
     return CompareOut(
         valid=True,

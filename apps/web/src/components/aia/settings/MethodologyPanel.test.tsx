@@ -127,14 +127,14 @@ describe("the Metodika tab", () => {
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 
-  it("opens support and suppression with both rule sets side by side, documented and not editable", async () => {
+  it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {
     fakeApi();
     render(<MethodologyPanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
-    expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
+    await waitFor(() => expect(calls).toContain("/api/v1/methodology/support/versions")); // its versions, so its editor
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

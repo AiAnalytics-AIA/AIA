@@ -20,7 +20,7 @@ from aia_core.domain.evidence.support import (
     SupportThresholds,
 )
 from aia_core.domain.methodology.pins import read_support_pin, support_spec_for
-from aia_core.domain.research_aggregate import aggregate_dataset
+from aia_core.domain.research_aggregate import UNCERTAINTY_NOTE, aggregate_dataset
 from aia_core.domain.research_design import compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
 
@@ -75,6 +75,12 @@ def test_the_aggregate_decides_by_the_pinned_results_rule() -> None:
     edited = aggregate_dataset(spec, dataset, support=looser)
     assert _status(edited) == "REPORTABLE"
     assert edited["questions"]["q1"]["n_guard_threshold"] == 10.0
+    # The note each cell carries states the lines of the rule that decided it (G1d).
+    assert today["questions"]["q1"]["uncertainty_note"] == UNCERTAINTY_NOTE
+    assert (
+        "<10 se nereportuje; 10\u201314 je INDIKATIVNÍ"
+        in (edited["questions"]["q1"]["uncertainty_note"])
+    )
     # Nothing else of the cell moves: the rule decides the status, not the estimate.
     for key in ("prumer", "effective_n", "n_unique_layer_donors", "n_platnych"):
         assert edited["questions"]["q1"][key] == today["questions"]["q1"][key], key
