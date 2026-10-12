@@ -9,6 +9,9 @@ import LoginPage from "./page";
 
 let search = "";
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(search) }));
+// The Google round trip itself is lib/auth's; here only that the button starts it.
+const login = vi.fn<(returnTo: string) => Promise<void>>(async () => {});
+vi.mock("@/lib/auth", async (original) => ({ ...(await original<typeof import("@/lib/auth")>()), login: (to: string) => login(to) }));
 
 type Call = { method: string; url: string };
 let calls: Call[] = [];
@@ -89,5 +92,42 @@ describe("/login", () => {
     expect(calls.some((c) => c.url === "/api/v1/session")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: t("session.retry") }));
     await vi.waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients"));
+  });
+
+  it("arms the lift-off film when the person presses sign in", async () => {
+    sessionStorage.clear();
+    api(answer(204));
+    render(<LoginPage />);
+    fireEvent.click(await screen.findByRole("button", { name: t("home.signInGoogle") }));
+    expect(Number(sessionStorage.getItem("aia.liftoff.armedAt"))).toBeGreaterThan(0);
+    expect(login).toHaveBeenCalledWith("/login?next=%2Fapp%2Fclients");
+  });
+
+  it("after a sign-in the person started, plays the film where the mark is and goes in when it ends", async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
+    sessionStorage.setItem("aia.liftoff.armedAt", String(Date.now()));
+    search = "next=%2Fapp%2Fclients%2FCLI-1%2Fresearch";
+    api(answer(204));
+    const { container } = render(<LoginPage />);
+    await vi.waitFor(() => expect(container.querySelector("aside")?.dataset.liftoff).toBe("playing"));
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status").textContent).toBe(t("session.opening"));
+    expect(replace).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem("aia.session.openedAt")).toBeNull();
+    container.querySelector("video")!.dispatchEvent(new Event("ended"));
+    expect(replace).toHaveBeenCalledWith("/app/clients/CLI-1/research");
+    expect(Number(sessionStorage.getItem("aia.session.openedAt"))).toBeGreaterThan(0);
+    // Once: it is disarmed for every later visit.
+    expect(sessionStorage.getItem("aia.liftoff.armedAt")).toBeNull();
+    play.mockRestore();
+  });
+
+  it("puts the mark back when the armed sign-in is refused", async () => {
+    sessionStorage.setItem("aia.liftoff.armedAt", String(Date.now()));
+    api(answer(403, { code: "not_a_member", message: "no" }));
+    const { container } = render(<LoginPage />);
+    expect(await screen.findByText(t("session.notMember"))).toBeTruthy();
+    expect(container.querySelector("video")).toBeNull();
+    expect(replace).not.toHaveBeenCalled();
   });
 });
