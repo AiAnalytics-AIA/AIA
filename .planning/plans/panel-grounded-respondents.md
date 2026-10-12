@@ -12,7 +12,7 @@ chunks:
   - "[x] 3b. Profile core: base, socio-economic and household lines, first-person prose with the word cap; EXACT"
   - "[x] 3c. Topics: odvod_temata and a block's union of topics; EXACT"
   - "[x] 3d. Grounded signals: the persona signal catalog and value labels through the population; EXACT"
-  - "[ ] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
+  - "[x] 3e. Panel persona: a Persona per sampled row (facts, styles over the population, donor, weight, lineage); refusals"
   - "[ ] 4. Origin: MODELLED_AI_PANEL through dataset, analysis, Sociomap and report, MODELED basis with disclosure"
   - "[ ] 5. Executor: the panel source behind AIA_AI_PANEL_PERSONAS_ENABLED (off by default), cost measured"
   - "[ ] 6. Screens: audience and subpanels live where they say 'V AIA zatím není'; modelled labelling"
@@ -464,6 +464,38 @@ across 11 topic sets. All EXACT; re-captured byte-identical. Mutating a score co
 specific-topic multiplier or the generic set, the per-block cap, the concept rule, the prior gate,
 the order, the budget, a threshold, the anchor rules or the `"nan"` reading fails it.
 
+### 3e. Landed: panel personas
+
+`domain/panel_persona.py`: `panel_personas(population, sample) -> PanelPersonas`, one `Persona`
+per sampled respondent (id `panel_row_id`, donor `core_donor_id`, the sample's raked weight,
+lineage `PANEL_DERIVED_DATASETS`, `fictional=False`, the factual layer's fields as the row holds
+them, styles from `assign_styles` over every row of the population, as `Panel.__init__` styled its
+whole panel), and `PanelPersonas.plan(spec, persona)`: `plan_respondent` with each block's profile
+(`RespondentPlan.profiles`, by block index) built from that block's topics. `build_request` shows
+`plan.profile(block)`: the block's profile for a panel persona, `persona.profile()` otherwise, so
+the fictional roster's requests are unchanged. `Persona.facts` widens to `str | int | float | bool`
+to hold a typed row's values. Nothing calls it yet: chunk 5's executor does, after the sample.
+
+**The joint gate, refined from § 3a.** One `decide_joint` over every persona column would refuse
+every v17 persona: the catalog's signals come from matched donor blocks, and the certificate
+refuses cross-block same-person joints (`CORE_JOINT_STATUS.json`: `core_same_person_joint`,
+`specialist_block_internal_joint`, `cross_block_same_person_joint: false`). It is also not what
+18.6.6 claimed: each matched signal carries "statisticky přiřazený celý donor blok"
+(`persona_grounded.py:93-95`). So the core fields (every dictionary block not in the certificate's
+`matched_blocks`) are decided jointly, and each matched block's fields within that block; a
+refusal refuses every persona (`persona_joint_refused`). The certificate certifies `v17_4_0`, the
+LIVE panel a run binds (its `panel_sha256` is `deploy/develop/population/v17.files:17`); a run
+bound to an uncertified version gets no personas
+(`test_a_population_whose_joint_use_is_refused_gets_no_personas`).
+
+Tests, in `tests/test_panel_persona.py`, through the canonical loader on a population built from
+the persona fixture's rows with the fictional catalog and the unit's value labels as companions:
+a persona's profile equals what 18.6.6 showed for its row and topics (`expected.json`, EXACT), each
+block gets the profile of its own topics and the request carries it, styles are the population's
+(not the sample's), a policy-refused field is left out and recorded, the joint gate, and every
+refusal by name. Mutating the policy gate, the joint grouping, the age check, the compatibility
+check, the style scope, the weight or the block profile fails them.
+
 **3. Persona.** Port `generate_persona_text` (persona modes, top-k traits,
 structured format). Every field shown or used asks
 `RuntimePopulation.decide(field, FieldUse.PERSONA_CONSTRUCTION)` and, combined,
@@ -551,6 +583,17 @@ respondents, compared. No client-facing claim until the holdout result is record
   only; (c) the attempts the comment describes: redraw under derived seeds and keep the
   first that passes, recorded in the sample. Not decided here.
 
+- **18.6.6 sampled and styled only rows with an age of 18 or more; AIA's 2e sampler takes every
+  row.** `Panel(df, min_vek=18)` drops rows whose `vek` is missing or under 18 before anything
+  else (`legacy/npc-panel-18.6.6/app/pipeline.py:147-152`); `draw_panel_sample` has no such step
+  (`domain/population/sampling.py @ a1fcc60`). Hypothesis for v17: no row is affected (its core
+  donors are PIAAC 18-65 and ISSP 66+, `CORE_JOINT_STATUS.json` `core_sources`); not verified, no
+  panel rows here. Consequence if wrong: AIA could sample a row 18.6.6 never could, and its column
+  types (hence filter keys) could differ. Fix taken: `panel_personas` refuses a population with
+  any such row (`persona_age_out_of_scope`), so a run fails closed before fieldwork; chunk 5's
+  preflight reports the count on develop. Tests:
+  `test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused[minor]`, `[no_age]`.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § research run: "Panel-derived data reaches no model provider until OI-61
@@ -564,5 +607,20 @@ respondents, compared. No client-facing claim until the holdout result is record
   by name; PanelSample.provenance() is what a run records"; under `tools/`:
   `sampling_capture.py`, "Sample fixtures from the unit's own draw_representative, the MILP
   made to fail (`inputs`, `capture` in the unit's venv)".
+- `CLAUDE.md` § 2 map, `domain/`: `persona_profile.py` ("a panel respondent's profile:
+  18.6.6's generate_persona_text in the mode it ran, calibrated -> core adaptive, EXACT"),
+  `persona_topics.py` ("a question's topics: odvod_temata, a block's union, EXACT"),
+  `persona_signals.py` ("the catalog's topic-matched signals: grounded_profile_text, EXACT"),
+  `panel_persona.py` ("a run's sample as personas: the policy and joint gates, styles over the
+  population, a profile per block; refusals by name"); `population/runtime.py`:
+  "`companion(asset_id)`: a companion's bytes as the loader verified them"; `tools/`:
+  `persona_capture.py`.
+- `AGENTS.md` § mypy: running `mypy` over a subset of the source trees (e.g.
+  `packages/aia_core/src apps/executors/src`) then the full invocation reported three false
+  `create_model` errors in `domain/ai_respondent.py`; `rm -rf .mypy_cache` and the full
+  invocation passed. Wrong: a partial run on a shared cache. Right: always the Makefile's four
+  trees, or clear the cache after a partial run.
+- `docs/architecture/population.md`: `RuntimePopulation.companion` is the one way a consumer reads
+  a companion.
 - `.planning/open-items.md`: the two 2e findings above (the overfilled cell, fixed here; the
   small-n refusal, open for the owner).
