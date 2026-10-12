@@ -674,6 +674,9 @@ export const research = {
     request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  /** One Design Revision with its content (project memory M2c reads a past study's). */
+  revision: (studyId: string, revisionId: string) =>
+    request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
   /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
@@ -1050,7 +1053,22 @@ export type MethodPanel = {
   heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
-export type MethodCompare = { valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[] };
+/** One fixed fictional cell of the support draft check (plan G1d). Statuses are
+ *  `[in force, draft]`; `changes` names each surface whose status moved. */
+export type MethodSupportCell = {
+  cell: string; label_cs: string; n: number; effective_n: number; donors: number;
+  results: [string, string]; analysis: [string, string];
+  changes: Partial<Record<"results" | "analysis", "reported" | "suppressed" | "changed">>;
+};
+export type MethodSupportCompare = {
+  draft: string; cells: MethodSupportCell[];
+  newly_reported: [string, "results" | "analysis"][]; newly_suppressed: [string, "results" | "analysis"][];
+};
+/** Panels for an object map; `support` for the support rules (then `panels` is empty). */
+export type MethodCompare = {
+  valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[];
+  support?: MethodSupportCompare | null;
+};
 
 const METHODOLOGY = "/api/v1/methodology";
 

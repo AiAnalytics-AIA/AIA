@@ -52,6 +52,7 @@ describe("a value typed in", () => {
     expect(fromInput(30, " 40 ")).toEqual({ ok: true, value: 40 });
     expect(fromInput(30, "čtyřicet")).toEqual({ ok: false, reason: "number" });
     expect(fromInput(30, "")).toEqual({ ok: false, reason: "number" });
+    expect(fromInput(50, "null")).toEqual({ ok: true, value: null }); // a line no longer checked
     expect(fromInput("kish_effective_n", "40")).toEqual({ ok: true, value: "40" });
     expect(fromInput(true, "false")).toEqual({ ok: true, value: false });
     expect(fromInput(true, "ne")).toEqual({ ok: false, reason: "boolean" });

@@ -70,6 +70,9 @@ describe("Projektová paměť", () => {
     expect(screen.getByText(t(`${M}.source.draft`))).toBeTruthy();
     expect(screen.getByText("Kdo pije kávu ráno?")).toBeTruthy();
     expect(searches().some((u) => u.includes("CLI-b"))).toBe(false);
+    // A research opens read-only in project memory (M2c); a simulation opens as itself.
+    expect(screen.getByRole("link", { name: /Ranní káva/ }).getAttribute("href")).toBe("/app/clients/CLI-a/memory/STU-1");
+    expect(screen.getByRole("link", { name: /Cenový scénář kávy/ }).getAttribute("href")).toBe("/app/clients/CLI-a/simulations/STU-3");
   });
 });
 

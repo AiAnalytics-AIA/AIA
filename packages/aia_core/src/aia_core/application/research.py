@@ -23,8 +23,10 @@ from ..domain.ai_contracts import canonical_json
 from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
+from ..domain.evidence.support import AIA_SUPPORT_V1, SupportSpec
 from ..domain.fieldwork import FieldworkSource
-from ..domain.methodology.pins import sociomap_methods_for
+from ..domain.methodology.pins import read_support_pin, sociomap_methods_for, support_spec_for
+from ..domain.pipeline import fingerprint
 from ..domain.population import (
     CZ_LIVE,
     CZ_SYNTHETIC_V17,
@@ -258,8 +260,15 @@ class ResearchRuns:
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
+        support: SupportSpec | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        The run also pins its support rules (``support``; the organization's support version
+        in force when not given, plan ``methodology-tab`` G1c): the aggregate decides every
+        cell's status by their ``results`` rule and analysis gates by their ``analysis`` rule.
+        A stored version, or a set the caller chooses over the code's, is part of the run's
+        identity, like the Sociomap's methods.
 
         The run pins its Sociomap methods here, each with its whole spec
         (``sociomap_methods``; :func:`~aia_core.domain.research_sociomap.default_methods`
@@ -290,6 +299,7 @@ class ResearchRuns:
         # What the run will pin, resolved before the readiness checks: a pin the engine
         # cannot compute is refused before any run, and the checks read its pair n_min.
         methods, methodology = self._methods(sociomap_methods)
+        support_spec, support_version = self._support(support)
         _spec, readiness = prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
@@ -314,8 +324,13 @@ class ResearchRuns:
             # re-start after the default changes returns the run that exists -- with the
             # methods it pinned -- instead of paying for its fieldwork again.
             key += f":sociomap:{methods_fingerprint(methods)[:16]}"
+        if support_version is not None:
+            key += f":support:{support_version['payload_sha256'][:16]}"
+        elif support is not None and support_spec != AIA_SUPPORT_V1:
+            key += f":support:{fingerprint(support_spec.model_dump(mode='json'))[:16]}"
         if retry_of:
             key += f":retry:{retry_of}"
+        support_pin = support_spec.model_dump(mode="json")
         confirmation: tuple[float, float] | None = None
         limit = self.spend_limit()
         if limit is not None and self._workflows().find_run_by_idempotency_key(key) is None:
@@ -349,6 +364,8 @@ class ResearchRuns:
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
+                "support": support_pin,
+                **({"support_methodology": support_version} if support_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
                 **({"population": _population_note(population)} if population else {}),
             },
@@ -356,6 +373,7 @@ class ResearchRuns:
                 "compile": {"design_revision_id": revision.revision_id},
                 "preflight": {"methods": pinned},
                 "run": {"fieldwork_source": fieldwork_source.value},
+                "aggregate": {"support": support_pin},
                 "sociomap": {"methods": pinned},
                 **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
             },
@@ -401,6 +419,7 @@ class ResearchRuns:
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
             sociomap_methods=read_methods(run["metadata"].get("sociomap_methods")),
+            support=read_support_pin(run["metadata"].get("support")),
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:
@@ -454,6 +473,25 @@ class ResearchRuns:
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
         )
+
+    def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
+        """The support rules a start pins, and the stored version they come from (``None``:
+        the code's preset, ``aia-support-1``, or the caller's own set).
+
+        ``support`` ``None`` is the organization's support version in force; with nothing
+        stored, both rules are as they were before any version (owner, 2026-10-12).
+        """
+        if support is not None:
+            return support, None
+        in_force = methodology_in_force_for_study(self.session, self.scope, "support")
+        if in_force.version is None:
+            return support_spec_for(None), None
+        return support_spec_for(in_force.version.payload), {
+            "module": "support",
+            "version": in_force.version.version_number,
+            "name": in_force.version.name,
+            "payload_sha256": in_force.version.payload_sha256,
+        }
 
     def _methods(
         self, sociomap_methods: Sequence[SociomapMethod] | None

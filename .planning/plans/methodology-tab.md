@@ -22,9 +22,9 @@ chunks:
   - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[x] G1a. Support documented: both rule sets side by side, read-only (the unit's donor rule as Results shows it; AIA's evidence gate as analysis applies it), D1-D4 named on their steps"
-  - "[ ] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
-  - "[ ] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
-  - "[ ] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
+  - "[x] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
+  - "[x] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
+  - "[x] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
@@ -647,11 +647,82 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   difference. Such cases are named, not hidden.
 - **G1, split four ways.** G1a documents; G1b declares both rule sets, bit-identical; G1c makes
   one rule govern both Results and analysis; G1d makes it editable with the draft check.
-  - **G1c needs one decision first: which rule is in force before the methodologist activates
-    a version.** Each option changes what people see:
-    - AIA's gate everywhere: Results suppresses more cells.
-    - The unit's rule everywhere: analysis admits more.
-    - The two as today, until a version is put in force.
+  - **Decided (owner, 2026-10-12): both rules as today until a version is in force.** Before
+    any version, Results keeps 18.6.6's donor rule and analysis keeps AIA's gate: that is
+    `aia-support-1`. A version the methodologist puts in force replaces both, and can make them
+    one rule by giving `results` and `analysis` the same lines.
+  - **G1b. Landed.** `evidence/support.py`:
+    - `SupportThresholds` is now a frozen model whose `None` means a line the rule does not
+      check. It refuses a boolean, a negative or non-finite line, and an indicative line below
+      its suppression line.
+    - `SupportSpec` holds two rules, `results` and `analysis`. `AIA_SUPPORT_V1`
+      (`aia-support-1`) is today: `UNIT_DONOR_THRESHOLDS` (donors 25/50, nothing else) for
+      Results, and `REFERENCE_THRESHOLDS` for analysis.
+    - One decision function serves both `assess_support` and the new `support_status`.
+      `research_aggregate.donor_support` reads its status from the `results` rule, and its
+      recorded thresholds from the same rule.
+    - Bit-identical: the unit's exact-parity aggregate tests pass unchanged, and
+      `test_the_results_rule_is_the_units_donor_lines_whatever_n` checks 81 donor counts at two
+      (n, effective n) pairs each.
+    - The module `support` now has the preset `aia-support-1` in force, a `method` step, and
+      every line as a specification parameter. It was not yet editable (G1d).
+  - **G1c. Landed.**
+    - **Pin.** `ResearchRuns.start` pins the organization's support version in force
+      (`methodology_in_force_for_study(…, "support")`). With nothing stored that is
+      `aia-support-1` (`pins.support_spec_for`). The pin goes in the run's metadata and the
+      aggregate step's input, with `support_methodology` naming a stored version.
+    - **Retry and identity.** A retry keeps the original's pin, and a run stored before the pin
+      reads as `aia-support-1` (`pins.read_support_pin`). A stored version, or a set the caller
+      chooses over the code's, is part of the run's identity, like the Sociomap's methods.
+    - **Aggregate.** `aggregate_dataset(…, support=)` decides every cell by the pinned
+      `results` rule. `donor_support` and `aggregate_question` take the rule as a required
+      keyword, so no run path has a default.
+    - **Analysis.** `native_sources` reads the pin into `NativeSources.support`, and
+      `native_evidence(…, support=)` gates by its `analysis` rule. A pin that does not read is
+      refused by name (`support_pin`).
+    - **Fingerprints.** Only a rule other than today's enters a fingerprint (the aggregate
+      artifact's input and the native evidence's system fingerprint), so a run under today's
+      rules keeps the keys and validations it always had.
+    - Tests: `test_support_pin.py`; `test_methodology_run_pins.py`, the support tests through
+      the real worker (a strict pin suppresses every object; a retry keeps its pin);
+      `test_analysis_results.py`, `test_a_runs_pinned_support_rules_reach_its_analysis`.
+  - **G1d. Landed.**
+    - **Editable both ways.** Module `support` is `editable`. Any line of either rule may move
+      up or down, become checked or stop being checked, so a version can make the two rules one
+      (`test_the_two_rules_may_be_made_one`). The model's own checks still hold: no boolean, a
+      finite non-negative number, and an indicative line never below its suppression line.
+    - **Refused.** A rule that suppresses nothing is refused by the module
+      (`support._validate`, `SupportRuleRefused`, problem key `spec.results` or
+      `spec.analysis`). Such a rule has none of `min_cell`, `n_guard`, `min_layer_donors`, so
+      it would show every cell however thin.
+    - **The draft check.** `domain/methodology/support_check.py` decides 16 fixed fictional
+      cells: four panels (60–400 respondents, 24–120 donors, equal to strongly unequal
+      weights), each with four answer rates.
+      - Each cell is decided under the rules in force and under the draft, through the run's
+        own functions: `donor_support` for Results and `analysis.native.reassess_support`
+        (renamed from `_support`, now public) for analysis.
+      - The check lists every cell and surface the draft newly reports or newly suppresses,
+        then every cell with both statuses.
+      - Under `aia-support-1` the cells span all three statuses and include D2's disagreement
+        (`nevyvazeny.q3`: REPORTABLE in Results, INDICATIVE in analysis).
+      - `POST /methodology/support/compare` returns it as `support`, with `panels` empty.
+        The tab's comparison lists it (`MethodologyComparison.tsx`, `SupportCheck`).
+    - **The editor clears a line.** A number field now also takes `null`
+      (`methodology-edit.ts` `fromInput`), so a line can stop being checked from the tab. Before
+      this, only a line already `null` could change, in one direction. Whether `null` is allowed
+      stays the domain's to say. Proven by `MethodologyVersions.test.tsx`, "the support rules'
+      versions".
+    - **The note.** Every cell's `uncertainty_note` is now written from the rule that decided
+      it (`research_aggregate.uncertainty_note`). Under 18.6.6's rule it is the unit's text,
+      verbatim (`UNCERTAINTY_NOTE`, unchanged), so the parity tests hold.
+    - Tests: `test_methodology_support.py` (both ways, made one, the refusals),
+      `test_methodology_support_check.py`, `test_support_pin.py` (the note follows the pin),
+      `test_methodology_api.py` (store and put in force, refusal, the check), and
+      `MethodologyComparison.test.tsx`.
+  - **Finding (for G1d), resolved by G1d.** The aggregate's `UNCERTAINTY_NOTE`
+    (`research_aggregate.py:60`, on the G1b branch) is the unit's text, verbatim: "<25 se nereportuje;
+    25–49 je INDIKATIVNÍ". Once the Results rule is editable, the note must be written from the
+    rule in force, or it will state lines the rule no longer uses.
   - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
     specification yet, so every value is a code constant read where it is used.
     - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the

@@ -80,7 +80,7 @@ function MemoryHitRow({ clientId, hit }: { clientId: string; hit: MemoryHit }) {
   return (
     <li>
       <Link
-        href={appRoutes.study(clientId, hit.study_id, hit.kind)}
+        href={hit.kind === "RESEARCH" ? appRoutes.memoryStudy(clientId, hit.study_id) : appRoutes.study(clientId, hit.study_id, hit.kind)}
         className="flex flex-col gap-1 px-5 py-3 no-underline hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring"
       >
         <span className="flex flex-wrap items-center gap-3">
