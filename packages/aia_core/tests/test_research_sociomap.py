@@ -296,7 +296,7 @@ def test_the_stored_body_carries_alignment_and_connectedness_over_every_object_a
         research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)[
             "sociomap_version"
         ]
-        == "aia-research-sociomap-8"
+        == "aia-research-sociomap-9"
     )
 
 

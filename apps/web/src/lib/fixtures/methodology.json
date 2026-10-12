@@ -5138,7 +5138,7 @@
       "id": "weights",
       "implements": "aia_core.domain.research_sociomap:battery_sociomap",
       "note_cs": "Neplatná (nekonečná) váha se v matici vztahů čte jako 1.",
-      "source_sha256": "ee7159c2a0620a4596324a891e9675fecd359a3683e891e7d6d145c5abf79af8",
+      "source_sha256": "077f152acd4f9273218f43ceb5f05cfb214471556f81fd1dc9ce84a43d6a7a9a",
       "symbols": [
        {
         "latex": "N",

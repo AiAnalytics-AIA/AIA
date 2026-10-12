@@ -17,7 +17,12 @@ from typing import Any
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.research_sociomap import battery_sociomap
-from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3, SociomapSpecV3
+from aia_core.domain.sociomap import (
+    AIA_SOCIOMAP_V1,
+    AIA_SOCIOMAP_V2,
+    AIA_SOCIOMAP_V3,
+    SociomapSpecV3,
+)
 
 CASES = Path(__file__).parent / "fixtures" / "research_aggregate" / "cases"
 
@@ -58,3 +63,32 @@ def test_under_unequal_weights_the_body_keeps_its_own_k100_beside_aia_sociomap_3
     # The panel is one where the two bootstraps differ, or this proves nothing.
     copied = beside["maps"]["aia-sociomap-3"]["artifact"]["connectedness_100"]
     assert [o["k100"] for o in copied["objects"]] != [o["k100"] for o in alone["objects"]]
+
+
+def test_a_map_with_other_quantiles_does_not_lend_the_body_its_k100() -> None:
+    # Everything the body's bootstrap is, but its interval's quantiles: the map's K100 has the
+    # body's points and other intervals, so copying it would give the body the wrong interval.
+    # The body reads the last pinned map (S2b), aia-sociomap-2 here; the edit pinned before it
+    # matches it in all but the quantiles, and is the first a copy would find.
+    spec, dataset = _weighted("A01_full_questionnaire")
+    dataset = dataset.model_copy(
+        update={
+            "respondents": tuple(r.model_copy(update={"weight": 1.0}) for r in dataset.respondents)
+        }
+    )
+    narrow = AIA_SOCIOMAP_V2.model_copy(
+        update={
+            "methodology_version": "aia-sociomap-4+e1",
+            "connectedness": AIA_SOCIOMAP_V2.connectedness.model_copy(
+                update={"quantiles": (0.25, 0.75)}
+            ),
+        }
+    )
+    own = _body(spec, dataset, (AIA_SOCIOMAP_V2,))["connectedness_100"]
+    beside = _body(spec, dataset, (narrow, AIA_SOCIOMAP_V2))
+    assert beside["side_tables"]["method"] == "aia-sociomap-2"
+    assert beside["connectedness_100"] == own
+    assert own["quantiles"] == [0.025, 0.975]
+    mapped = beside["maps"]["aia-sociomap-4+e1"]["artifact"]["connectedness_100"]
+    assert mapped["quantiles"] == [0.25, 0.75]
+    assert [o["k100"] for o in mapped["objects"]] == [o["k100"] for o in own["objects"]]
