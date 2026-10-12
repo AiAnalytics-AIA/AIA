@@ -23,7 +23,7 @@ chunks:
   - "[x] 4e4. Support counted in donors, proved for a modelled run (1,000 respondents on 40 donors is 40-donor evidence)"
   - "[x] 4e5. The report's mark beside a modelled number, with the validation's date and fingerprint when one holds"
   - "[x] 5a. Persona source contract (plan before code): pinned at start, the panel path, refusals, provenance, cost"
-  - "[ ] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
+  - "[x] 5b. The panel source as a pure function: sample, personas, plans, the respondent system and the provenance"
   - "[ ] 5c. A run pins its persona source at start (AIA_AI_PANEL_PERSONAS_ENABLED, off by default); a retry keeps it"
   - "[ ] 5d. The executor: a panel-pinned run loads its recorded population, or parks; the dataset names its system"
   - "[ ] 5e. Cost measured and the end-to-end proof under the real worker on a fictional population"
@@ -840,6 +840,21 @@ nothing: `draw_panel_sample` (2e), `panel_personas` and `PanelPersonas.plan` (3e
    reason is now the pinned source.
 
 Out of scope: the screens (chunk 6) and any client-facing route (chunk 7's validation).
+
+**5b landed.** `domain/panel_source.py`: `panel_plans(population, spec, seed)` draws the sample
+under the design's recorded audience filters, builds the personas for exactly those rows and a
+plan per respondent, in that order; each refusal is its own step's (`SamplingRefused`,
+`PersonaRefused`), before anything else is built. `PanelPlans.provenance(population)` is what the
+dataset records (source, binding, sample, personas, `fictional: false`).
+`respondent_system(population, model_binding=)` gives ADR 0024 §4's components, the model binding
+being what the gateway resolves. `PANEL_SOURCE = "panel"`, the value a run pins (5c).
+
+Tests (`test_panel_source.py`, over the sampler's 3,000 fictional rows with the persona
+companions): `test_a_panel_run_is_sampled_built_and_planned_in_that_order`,
+`test_the_designs_audience_filters_are_what_the_sample_draws_under`,
+`test_a_sampling_refusal_surfaces_by_name_before_any_persona_is_built` (n over support, and n = 8
+refused as unrepresentative: OI-99), `test_a_persona_refusal_surfaces_by_name`,
+`test_the_respondent_system_names_every_component_and_fingerprints`.
 
 **4. Origin.** `DataOrigin.MODELLED_AI_PANEL`; dataset, analysis harness
 (`analysis/harness.py:141`, `analysis/native.py:491`), Sociomap labelling
