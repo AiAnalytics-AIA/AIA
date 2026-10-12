@@ -678,9 +678,10 @@ v0.1 queue and workers claim with `FOR UPDATE SKIP LOCKED`. There is no transpor
 left to build.
 6. PostgreSQL row-level security as a second isolation layer.
 7. Rate limiting.
-8. Delete `src/server.js` + `src/views/` and their root dependencies. **Unblocked**:
-   step 4 is done, and nothing in the Makefile, CI, Compose or any Dockerfile runs
-   the root `package.json` (`apps/web/Dockerfile`'s `server.js` is Next.js's own).
+8. ~~Delete `src/server.js` + `src/views/` and their root dependencies.~~ **Done**
+   (2026-10-12, #307): the stub, its views and the root `package.json` /
+   `package-lock.json` (177 locked packages) are gone; nothing ran them
+   (`mvp-workflow-assurance.md` A3b).
 9. **Sociomap as a durable job and a route** — *the job and the route exist*: the
    `sociomap` research step (`apps/executors/src/aia_executors/research.py`
    `SociomapExecutor`), served to researchers only (`routers/research.py`
