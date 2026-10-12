@@ -72,12 +72,14 @@ apps/
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018;
-                            GET /clients/{id}/memory/search: project memory, one client's studies),
+                            GET /clients/{id}/memory/search: project memory, one client's studies;
+                            POST /clients/{id}/memory/reuse: a new or empty study from a past design),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
                             readiness with the run's cost ceiling and the study's spend limit, and native
-                            agent-jobs beneath each Study), deep research (a Study's Deep Research
+                            agent-jobs beneath each Study; GET …/design/source: where a reused design
+                            came from), deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
                             interpretation, over a result of the Study's own run), scope
                             (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
@@ -98,7 +100,8 @@ apps/
                             18.6.6: no hand-off, no skin, no call to the unit (ADR 0018)
     src/app/app/            AIA behind AIA's own gate (no switch): /app/clients (home),
                             clients/<client>/{research,simulations,knowledge,data},
-                            clients/<client>/research/<study>/<stage>, intelligence, memory, settings
+                            clients/<client>/research/<study>/<stage>, clients/<client>/memory/<study>
+                            (a past research, read-only), intelligence, memory, settings
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
@@ -136,7 +139,10 @@ apps/
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
-                            questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016).
+                            questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
+                            RunResults, one run's results from the StudyFrame alone (read-only when
+                            canEdit is false). DesignSourceNote: on every stage of a reused study, its
+                            source study and revision and the labels it carries.
                             ResultsWorkspace.tsx: accessible views of one frozen research run;
                             switching data, maps, analysis and report retains the camera/review choice,
                             changes no result and starts no additional run.
@@ -150,8 +156,13 @@ apps/
                             labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
-                            components/aia/MemorySearch.tsx: one client's search, on Projektová
-                            paměť (a client chosen first) and on the client's Výzkumy
+                            runLabels (a past run's data, report, reach: unknown never good),
+                            designSummary (what a past design says, as the search reads it),
+                            sourceLabelWords. components/aia/MemorySearch.tsx: one client's search, on
+                            Projektová paměť (a client chosen first) and on the client's Výzkumy;
+                            components/aia/MemoryStudy.tsx: a past research read-only (revisions, the
+                            chosen one's design, its runs with their labels, a run's results under a
+                            frame that may not edit) and "Použít tento design"
     src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
                             that hold a model caller): agent jobs, run steps, Deep Research steps; a
                             queued, waiting or finished step shows none
@@ -300,6 +311,8 @@ packages/aia_core/src/aia_core/
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
     design.py               A Study's Design Revision: immutable content, provenance, the owner tag
+    design_reuse.py         A reused design's labels (derive_source_labels: the union over every run of
+                            the source revision, never chosen) and its citation (DesignSource)
     research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules;
                             the Sociomap's declarations (sociomap_rating on a scale question,
                             context_objects on a battery: SECONDARY), SpecSelection (the dimensions
@@ -438,6 +451,9 @@ packages/aia_core/src/aia_core/
     project_memory.py       search_client_studies: one client's studies through ScopeResolver,
                             each under its own study context; latest Design Revision, else the
                             working draft, else the name
+    design_reuse.py         reuse_design: a new or empty research study of the same client from a past
+                            Design Revision (working content, first revision, citation, one transaction);
+                            source_runs
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
@@ -514,7 +530,8 @@ packages/aia_core/src/aia_core/
                             set_study_spend_confirm (the study's spend limit, audited); any member
                             creates a client (ADR 0019); the grant tables are dropped (chunk 6)
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
-                            Design Revisions; the ONLY writer of a Study's design (ADR 0016)
+                            Design Revisions; the ONLY writer of a Study's design (ADR 0016); a reused
+                            design's citation (study_design_sources, insert-once: record_source, source)
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
                             (a stale one refused), history; the brief's attachments as artifacts of
