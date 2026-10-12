@@ -570,16 +570,17 @@ reports eighteen `import-untyped` errors; run together with
 therefore pass all three trees to a single `mypy` invocation. Splitting that
 command "for speed" silently changes what is checked.
 
-**A partial run poisons the shared cache.** After `mypy packages/aia_core/src
-apps/executors/src`, the full four-tree invocation reported three false
-`create_model` errors in `domain/ai_respondent.py` (lines it had passed a minute
-earlier, unchanged); `rm -rf .mypy_cache` and the same full invocation passed
-(PR #315).
+**An incremental run can report false errors after an edit to a file using
+`pydantic.create_model`.** With a warm `.mypy_cache`, appending a comment to
+`domain/ai_respondent.py` made the full four-tree invocation report three
+`create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
+same invocation passed (reproduced twice, PR #315 and chunk 4b). CI starts from an
+empty cache, so it never sees them.
 
 ```bash
-# WRONG — a subset first, then the full run on the same cache
-mypy packages/aia_core/src apps/executors/src && make typecheck
-# RIGHT — only ever the Makefile's invocation; after a partial run, clear the cache
+# WRONG: trust a warm-cache failure on create_model and "fix" working code
+make typecheck            # 3 errors in ai_respondent.py after an unrelated edit
+# RIGHT: confirm on a clean cache before acting on it
 rm -rf .mypy_cache && make typecheck
 ```
 
