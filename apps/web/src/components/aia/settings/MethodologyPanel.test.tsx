@@ -177,7 +177,7 @@ describe("the Metodika tab", () => {
     expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
   });
 
-  it("opens the response process read-only: the unit's coefficients, the draw by code and D6", async () => {
+  it("opens the response process: the unit's coefficients, the draw by code, D6, and editable", async () => {
     fakeApi();
     render(<MethodologyPanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Odpověď respondenta: od pravděpodobností modelu k odpovědi" }));
@@ -186,9 +186,9 @@ describe("the Metodika tab", () => {
     expect(screen.getByText("Losování odpovědi kódem")).toBeTruthy();
     expect(screen.getByText("Strop podílu (λ max)")).toBeTruthy();
     expect(screen.getAllByText(/Nález D6/).length).toBeGreaterThan(0);
-    // Read-only until R1c, and the page says so.
-    expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
-    expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
+    // Editable from R1c: the page offers a new version, as for support and aggregation.
+    expect(screen.getByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeTruthy();
+    expect(screen.queryByText(/Tento postup je dostupný ke čtení/)).toBeNull();
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

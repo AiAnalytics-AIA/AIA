@@ -36,7 +36,8 @@ chunks:
   - "[ ] W1c. Weighting editable: the cleaning and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
-  - "[ ] R1c. Response process editable, with the draft check on fictional respondents; Results say when a run's process is not 18.6.6's"
+  - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
+  - "[ ] R1d. Results name the run's response process and say when it is not 18.6.6's (on Z1a's Metodika běhu, once #338 is merged)"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
@@ -1013,6 +1014,22 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     profile has its own wording and no threshold.
   - Results do not say yet when a run's process is not the unit's: nothing can be stored
     until R1c, which adds that sentence with the editor.
+
+- **R1c. Landed.** `response` is editable: a version is any `ResponseProcessSpec` the domain
+  validates (`versions.validate_version`, no formula slot), stored and put in force as for
+  support; a run started afterwards pins it under its own name
+  (`test_methodology_run_pins.py::test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units`).
+  - **Draft check** (`methodology/response_check.py`, `POST /methodology/response/compare`):
+    four fixed fictional questions (a 1-5 scale with "nevím" and declared agreement, a choice
+    with a declared desirable answer, a plain 1-7 scale, a choice satisficing toward the first
+    option), each with a fixed probability vector standing in for the model, answered by a
+    fixed roster of 80 under the process in force and the draft. Shown: each option's mean
+    share, the largest move in points, and each respondent's mean shift from the model's
+    vector -- styles are centred, so the mean alone hides what a style does (extremity 0.22 to
+    1.0 moves the 1-7 scale's mean by 0.64 pp, each respondent by 3.49 to 9.78 pp); and how
+    many profiles put a style into words. No model is called, nothing is drawn.
+  - **R1d split out:** Results naming the process and the deviation sentence belong on the
+    "Metodika běhu" line Z1a adds; they follow once #338 is merged, not stacked on it.
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 

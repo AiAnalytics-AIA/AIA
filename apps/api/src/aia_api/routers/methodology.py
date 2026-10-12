@@ -47,6 +47,10 @@ from aia_core.domain.methodology.aggregation_check import (
 )
 from aia_core.domain.methodology.expressions import compile_formula, latex
 from aia_core.domain.methodology.pins import support_spec_for, uncomputed_formulas
+from aia_core.domain.methodology.response_check import (
+    ResponseComparison,
+    compare_response_with_in_force,
+)
 from aia_core.domain.methodology.sociomap_check import PanelComparison, compare_with_in_force
 from aia_core.domain.methodology.support_check import (
     SupportComparison,
@@ -366,6 +370,32 @@ class AggregationCompareOut(_Strict):
     panels: list[AggregationPanelOut]
 
 
+class ResponseQuestionOut(_Strict):
+    """One fictional question: each option's share in percent under the model's vector, the
+    process in force and the draft, and how far one respondent moves from the model."""
+
+    question: str
+    label_cs: str
+    labels: list[str]
+    model: list[float]
+    in_force: list[float]
+    draft: list[float]
+    moved_pp: float
+    shift_in_force: float
+    shift_draft: float
+
+
+class ResponseCompareOut(_Strict):
+    """The response-process draft check (plan R1c): fixed fictional questions answered by a
+    fixed fictional roster under the process in force and the draft; no model is called."""
+
+    draft: str
+    respondents: int
+    questions: list[ResponseQuestionOut]
+    described_in_force: int
+    described_draft: int
+
+
 class CompareOut(_Strict):
     """``problems`` refuse the draft (nothing is computed); otherwise every panel of an
     object map, every cell of a support rule, or every estimate of the aggregation."""
@@ -376,6 +406,7 @@ class CompareOut(_Strict):
     panels: list[PanelOut]
     support: SupportCompareOut | None = None
     aggregation: AggregationCompareOut | None = None
+    response: ResponseCompareOut | None = None
 
 
 class ActivationIn(_Strict):
@@ -549,7 +580,30 @@ def _support_comparison(c: SupportComparison) -> SupportCompareOut:
 
 
 #: The modules a draft check is built for.
-_COMPARED: Final = frozenset({"sociomap", "support", "aggregation"})
+_COMPARED: Final = frozenset({"sociomap", "support", "aggregation", "response"})
+
+
+def _response_comparison(c: ResponseComparison) -> ResponseCompareOut:
+    return ResponseCompareOut(
+        draft=c.draft,
+        respondents=c.respondents,
+        questions=[
+            ResponseQuestionOut(
+                question=q.question,
+                label_cs=q.label_cs,
+                labels=list(q.labels),
+                model=list(q.model),
+                in_force=list(q.in_force),
+                draft=list(q.draft),
+                moved_pp=q.moved_pp,
+                shift_in_force=q.shift_in_force,
+                shift_draft=q.shift_draft,
+            )
+            for q in c.questions
+        ],
+        described_in_force=c.described_in_force,
+        described_draft=c.described_draft,
+    )
 
 
 def _aggregation_comparison(c: AggregationComparison) -> AggregationCompareOut:
@@ -761,6 +815,16 @@ def compare(
                 compare_aggregation_with_in_force(
                     stored, version_payload(validated), support=support
                 )
+            ),
+        )
+    if module_id == "response":
+        return CompareOut(
+            valid=True,
+            problems={},
+            in_force=_in_force(in_force).name,
+            panels=[],
+            response=_response_comparison(
+                compare_response_with_in_force(stored, version_payload(validated))
             ),
         )
     if module_id == "support":
