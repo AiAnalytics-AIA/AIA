@@ -7,7 +7,7 @@ chunks:
   - "[x] M1c. The route: GET /clients/{client_id}/memory/search"
   - "[x] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
   - "[x] M2a. The run's results read from the study frame alone, not the working-content store"
-  - "[ ] M2b. A run's labels, pure: synthetic, report draft, internal only, suppressed results"
+  - "[x] M2b. A run's labels, pure: synthetic, report draft, internal only, suppressed results"
   - "[ ] M2c. The page: /app/memory/<client>/<study>, its revisions, their runs, results and labels, read-only"
   - "[ ] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
   - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
