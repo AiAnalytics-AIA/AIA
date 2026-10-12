@@ -152,8 +152,9 @@ export function resultOriginKind(result: { synthetic?: boolean; data_origin_kind
 }
 
 /**
- * What a run says about its population: the version it recorded, and -- while fieldwork
- * reads none (OI-61) -- that the respondents did not come from it. Null: it recorded none.
+ * What a run says about its population: the version it recorded, and whether its respondents
+ * were drawn from it (the run's pinned persona source, `read_by_fieldwork`). Null: it recorded
+ * none.
  */
 export function populationNote(run: Pick<ResearchRun, "population">): string | null {
   const p = run.population;
