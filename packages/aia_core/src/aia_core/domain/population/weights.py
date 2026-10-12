@@ -25,7 +25,6 @@ import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
@@ -34,7 +33,6 @@ from .errors import WeightResolutionError
 
 __all__ = [
     "SchemeSpec",
-    "WeightCleaning",
     "WeightResolution",
     "WeightingSpec",
     "analysis_weights",
@@ -133,16 +131,6 @@ def analysis_weights(
 # drift from it.
 
 
-class WeightCleaning(StrEnum):
-    """What the aggregate does with a weight that is not a positive finite number."""
-
-    #: 18.6.6's ``clean_weights``: it becomes the median of the valid weights (none valid:
-    #: every weight 1). The unit's port, and what every aggregate does today.
-    MEDIAN = "median"
-    #: The aggregate is refused, as the population loader and the evidence gate refuse.
-    REFUSE = "refuse"
-
-
 class _Declared(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -175,16 +163,16 @@ class WeightingSpec(_Declared):
     """How AIA weights (plan ``methodology-tab.md`` W1a).
 
     ``schemes`` are keyed by role, in the contract's order; ``default_role`` is the scheme a
-    binding records when none is chosen; ``aggregate_cleaning`` is what the aggregate does
-    with an invalid weight. There is no calibration, raking or GREG step to declare: the
-    weights are the panel's own columns.
+    binding records when none is chosen. The population's weights are the panel's own
+    columns; what a run's sample does with them (the floor, raking to the audience's
+    targets, the audit) is the sampler's, shown on the Metodika tab beside this
+    (``methodology/weighting.py``, plan W1b).
     """
 
     methodology_version: str
     contract_id: str
     default_role: str
     schemes: dict[str, SchemeSpec]
-    aggregate_cleaning: WeightCleaning
 
     @model_validator(mode="after")
     def _the_default_is_declared(self) -> WeightingSpec:
@@ -205,7 +193,6 @@ def weighting_spec(
     contract: PopulationImportContract,
     *,
     methodology_version: str,
-    aggregate_cleaning: WeightCleaning,
 ) -> WeightingSpec:
     """The weighting ``contract`` declares, as a specification: its schemes in its order,
     its default role, its totals and tolerances, exactly."""
@@ -219,5 +206,4 @@ def weighting_spec(
             )
             for s in contract.weight_schemes
         },
-        aggregate_cleaning=aggregate_cleaning,
     )
