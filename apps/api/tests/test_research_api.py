@@ -913,6 +913,51 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
     assert read["population"] == note
 
 
+def test_a_run_names_the_methods_it_computed_under(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Methodology-tab Z1: Results say which Sociomap, support and aggregation a run pinned."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+    }
+
+    def version(module: str, name: str) -> dict[str, Any]:
+        return {"module": module, "version": 1, "name": name, "payload_sha256": "0" * 64}
+
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {
+            **row.metadata_json,
+            "methodology": version("sociomap", "aia-sociomap-3+e1"),
+            "support_methodology": version("support", "aia-support-1+e2"),
+            "aggregation_methodology": version("aggregation", "aia-aggregate-1+e1"),
+        }
+        session.commit()
+    read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert read["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3+e1", "stored": True},
+        "support": {"name": "aia-support-1+e2", "stored": True},
+        "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
+    }
+    listed = researcher.get(_runs(world)).json()["items"]
+    assert listed[0]["methodology"] == read["methodology"]
+
+
+def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under() -> None:
+    from aia_api.routers.research import _methodology
+
+    assert _methodology({}).model_dump() == {
+        "sociomap": {"name": "aia-sociomap-1", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+    }
+
+
 def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real() -> None:
     from aia_core.domain.fieldwork import OriginKind
 
