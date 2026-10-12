@@ -8,8 +8,8 @@ chunks:
   - "[x] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
   - "[x] M2a. The run's results read from the study frame alone, not the working-content store"
   - "[x] M2b. A run's labels, pure: synthetic, report draft, internal only, suppressed results"
-  - "[ ] M2c. The page: /app/memory/<client>/<study>, its revisions, their runs, results and labels, read-only"
-  - "[ ] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
+  - "[x] M2c. The page: /app/clients/<client>/memory/<study>, its revisions, their runs, results and labels, read-only"
+  - "[x] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
   - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
   - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
@@ -181,7 +181,8 @@ action those views carry (download, cancel, retry, budget, Interpretation Resear
   fictional source or step origin), the report's review state (draft unless approved), and
   internal only (any Sociomap, analysis or report is). Never a guess: a report not read is
   "unknown", not "approved".
-- **M2c. The page.** `/app/memory/<client>/<study>` (Projektová paměť → client → study).
+- **M2c. The page.** `/app/clients/<client>/memory/<study>` (Klienti → client → Projektová
+  paměť → study), under the client's layout so the client is resolved once, as everywhere.
   The study through `workspace.study` (404 outside scope; another client in the URL and a
   simulation are "not here"). Its revisions newest first; the chosen one's content drawn
   read-only (title, goal, decision use, research questions, objectives, questionnaire
@@ -192,6 +193,14 @@ action those views carry (download, cancel, retry, budget, Interpretation Resear
 - **M2d. Proof.** A test renders the page over a fictional study with a synthetic, draft
   run: every request it sends is a GET, the labels are shown, no download or action is
   enabled; a study of another client in the URL and a simulation render "not here".
+
+**Landed (2026-10-12).** `RunResults` (`ExecutionSteps.tsx`), `runLabels` and
+`designSummary` (`lib/memory.ts`), `MemoryStudy.tsx`, `research.revision` (`lib/api.ts`),
+`appRoutes.memoryStudy`. A research hit opens the page; a simulation hit still opens the
+study. Tests: `MemoryStudy.test.tsx` (3: the newest revision's design, its run's labels and
+results, only reads and no read of working content; a draft-only study labelled a draft; another
+client's study and a simulation not here), `memory.test.ts` (+4), `ExecutionSteps.test.tsx`
+(+1: a run read-only from the frame alone), `MemorySearch.test.tsx` (the hit's link).
 
 **Not in M2:** reuse (M3); a run-level label on the server (M3 derives the source's labels
 on the server by its own rule, recorded with the revision).
