@@ -25,8 +25,8 @@ import {
   type Study,
   research,
 } from "@/lib/api";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
 import { researchStepOrb } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
 import { saveBlob } from "@/lib/download";
 import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
 import {
@@ -57,6 +57,8 @@ import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
 import { ResearchContext, useResearch } from "./context";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -599,18 +601,15 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
-/** An orb beside a step while it runs (lib/activity-orb.ts), else nothing. */
-function StepOrb({ run, step }: { run: ResearchRun; step: ResearchStep }) {
-  const orb = researchStepOrb(run, step);
-  return orb ? <ActivityOrb orb={orb} /> : null;
-}
-
 export function ProgressStep() {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -662,7 +661,6 @@ export function ProgressStep() {
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
-                <StepOrb run={run} step={s} />
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {s.data_origin ? <Chip tone="fault">{s.data_origin}</Chip> : null}
               </div>
@@ -672,6 +670,7 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
               {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
                 <BudgetLift run={run} step={s} act={act} busy={busy} />
               ) : null}

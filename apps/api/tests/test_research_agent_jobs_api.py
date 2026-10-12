@@ -180,6 +180,46 @@ def test_same_design_can_resume_an_unbilled_runtime_park_after_activation(
     assert researcher.post(f"{url}/{job_id}/resume").status_code == 409
 
 
+class _Reports(_Proposes):
+    """Reports progress as the real executor does, then proposes."""
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.progress("Připravený kontext; AI zpracovává návrh", action="analyze_brief")
+        return super().execute(step, context)
+
+
+def test_the_job_feed_says_what_its_step_reported_after_a_cursor_and_only_under_its_study(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    rid = revision(researcher, world)
+    url = base(world)
+    job_id = researcher.post(
+        url, json={"design_revision_id": rid, "action": "analyze_brief"}
+    ).json()["run_id"]
+    assert _worker(app, _Reports(app.state.artifact_store)).run_once() is not None
+
+    feed = researcher.get(f"{url}/{job_id}/events")
+    assert feed.status_code == 200, feed.text
+    events = feed.json()
+    progress = [e for e in events if e["event_type"] == "STEP_PROGRESS"]
+    assert [(e["message"], e["payload"]) for e in progress] == [
+        ("Připravený kontext; AI zpracovává návrh", {"action": "analyze_brief"})
+    ]
+    assert progress[0]["attempt_id"]
+    # The event names the step the job lists, by the id the job's step carries.
+    steps = researcher.get(f"{url}/{job_id}").json()["steps"]
+    assert progress[0]["step_id"] == steps[0]["step_id"]
+    ids = [e["event_id"] for e in events]
+    assert ids == sorted(ids)
+    # After a cursor, only what came later.
+    later = researcher.get(f"{url}/{job_id}/events", params={"since": progress[0]["event_id"]})
+    assert [e["event_id"] for e in later.json()] == [i for i in ids if i > progress[0]["event_id"]]
+    # Found only under its own study's path; any member may read it there (ADR 0019).
+    assert outsider.get(f"{url}/{job_id}/events").status_code == 200
+    assert researcher.get(f"{base(world, 'sibling')}/{job_id}/events").status_code == 404
+    assert researcher.get(f"{url}/RUN-0000000000000000/events").status_code == 404
+
+
 @pytest.mark.parametrize("damage", ["tampered", "missing"])
 def test_a_corrupt_proposal_is_a_409_and_stays_marked_corrupt(
     app: FastAPI,

@@ -170,9 +170,16 @@ def test_kish_and_donor_support_follow_the_units_thresholds() -> None:
 
 
 def test_a_single_donor_has_no_interval_to_draw_and_says_so() -> None:
-    result = bootstrap_weighted_mean([1.0, 2.0, 3.0], [1.0] * 3, reps=10, seed=1, donors=["a"] * 3)
+    result = bootstrap_weighted_mean(
+        [1.0, 2.0, 3.0], [1.0] * 3, reps=10, seed=1, donors=["a"] * 3, quantiles=(0.025, 0.975)
+    )
     assert result == {"estimate": 2.0, "low": 2.0, "high": 2.0, "reps": 0}
-    assert bootstrap_weighted_mean([1.0], [1.0], reps=10, seed=1, donors=None) is None
+    assert (
+        bootstrap_weighted_mean(
+            [1.0], [1.0], reps=10, seed=1, donors=None, quantiles=(0.025, 0.975)
+        )
+        is None
+    )
 
 
 def test_the_weighted_median_interpolates_like_numpy() -> None:

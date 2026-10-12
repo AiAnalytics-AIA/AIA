@@ -194,6 +194,8 @@ class ResearchStepResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    #: The id the run's events name (``RunEventResponse.step_id``): which step reported what.
+    step_id: str
     node_key: str
     kind: str
     stage_type: str
@@ -510,6 +512,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
     error = (last or {}).get("error") or {}
     output = s.get("output") or {}
     return ResearchStepResponse(
+        step_id=s["step_id"],
         node_key=s["node_key"],
         kind=s["kind"],
         stage_type=s["stage_type"],
@@ -710,19 +713,20 @@ def run_events(
         events = ResearchRuns(session, scope).events(run_id, since=since, limit=limit)
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
-    return [
-        RunEventResponse(
-            event_id=e["event_id"],
-            step_id=e["step_id"],
-            attempt_id=e["attempt_id"],
-            event_type=e["event_type"],
-            level=e["level"],
-            message=e["message"],
-            payload=e["payload"],
-            created_at=e["created_at"],
-        )
-        for e in events
-    ]
+    return [_event(e) for e in events]
+
+
+def _event(e: dict[str, Any]) -> RunEventResponse:
+    return RunEventResponse(
+        event_id=e["event_id"],
+        step_id=e["step_id"],
+        attempt_id=e["attempt_id"],
+        event_type=e["event_type"],
+        level=e["level"],
+        message=e["message"],
+        payload=e["payload"],
+        created_at=e["created_at"],
+    )
 
 
 @router.post(
@@ -1337,6 +1341,20 @@ def read_agent_job(
 ) -> AgentJobResponse:
     with _agent_errors(session):
         return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
+
+
+@router.get("/research/agent-jobs/{run_id}/events", response_model=list[RunEventResponse])
+def agent_job_events(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    since: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=2000)] = 500,
+) -> list[RunEventResponse]:
+    """The job's events after a cursor: what its step reported while it ran."""
+    with _agent_errors(session):
+        events = ResearchAgentJobs(session, scope).events(run_id, since=since, limit=limit)
+    return [_event(e) for e in events]
 
 
 @router.post("/research/agent-jobs/{run_id}/cancel", response_model=AgentJobResponse)

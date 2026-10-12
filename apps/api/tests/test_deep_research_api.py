@@ -80,6 +80,12 @@ def test_start_is_scoped_idempotent_and_does_not_publish_before_worker(
     assert viewer.get(f"{run_url}/events").status_code == 200
     events = researcher.get(f"{run_url}/events")
     assert events.status_code == 200, events.text
+    # Each step names the id its events carry, so a reader can tell which step said what.
+    step_ids = {step["step_id"] for step in job["steps"]}
+    assert len(step_ids) == len(job["steps"])
+    assert all(step["started_at"] is None for step in job["steps"])  # no attempt yet
+    named = {e["step_id"] for e in events.json() if e["step_id"]}
+    assert named <= step_ids
     wrong_study = f"{_url(world, 'other_client')}/{job['run_id']}"
     for path in (run_url, f"{run_url}/events"):
         assert outsider.get(path).status_code == 200, path

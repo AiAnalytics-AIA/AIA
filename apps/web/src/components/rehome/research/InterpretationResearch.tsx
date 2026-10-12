@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { ApiError, deepResearch, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
-import { deepResearchRunOrb } from "@/lib/activity-orb";
+import { deepResearchRunningStep } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { phaseLabel } from "@/lib/research-execution";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
@@ -24,7 +26,9 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED")?.artifact_id;
   const current = jobs.find(j => j.run_id === selected);
   const running = jobs.some(j => !j.is_terminal);
-  const orb = current ? deepResearchRunOrb(current.steps) : null;
+  const active = current ? deepResearchRunningStep(current.steps) : null;
+  // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const feed = useStepActivity(current?.run_id ?? null, (since) => deepResearch.events(frame.studyId, current!.run_id, since), !!active);
 
   useEffect(() => {
     let live = true;
@@ -120,7 +124,8 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       {jobs.map(j => <option key={j.run_id} value={j.run_id}>{j.title ?? "Literární rešerše"} · {j.preset === "QUICK" ? "Rychlá" : j.preset === "STANDARD" ? "Standardní" : j.preset} · {phaseLabel(j.phase)} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</option>)}
     </Select></Field> : <p className="text-sm text-ink-muted">K tomuto běhu zatím není připojena interpretační rešerše.</p>}
     {current ? <div className="mt-3">
-      <div className="flex items-center gap-2">{orb ? <ActivityOrb orb={orb} /> : null}<p role="status" className="text-sm font-semibold">{phaseLabel(current.phase)}</p></div>
+      <p role="status" className="text-sm font-semibold">{phaseLabel(current.phase)}</p>
+      <StepActivityPanel orb={active?.orb ?? null} activity={activityOf(feed, active?.step.step_id)} startedAt={active?.step.started_at} label={active?.step.node_key ?? phaseLabel(current.phase)} />
       <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace rešerše</summary><p className="mt-1 break-all">{current.run_id}</p></details>
       {current.actual_cost_usd !== null ? <p className="mt-1 text-sm text-ink-muted">Skutečné náklady: {current.actual_cost_usd.toFixed(4)} USD</p> : null}
       {current.steps.filter(s => s.error_message || s.waiting_reason).map(s => <p key={s.node_key} className="mt-2 text-sm text-status-fault">{s.error_message ?? s.waiting_reason}</p>)}

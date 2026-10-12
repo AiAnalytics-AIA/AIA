@@ -46,7 +46,8 @@ For a research run, `ResearchRuns.start` performs step 1 when it creates the run
 binding goes to `create_run` through `start_workflow(population=)`. A start that finds its run
 keeps what that run recorded, and a retry keeps its original's. No research step declares
 `consumes_population` yet, so step 2 does not run, and the run says its respondents did not come
-from the population (fieldwork stays fictional until OI-61).
+from the population (fieldwork stays fictional until a panel persona source lands:
+`.planning/plans/panel-grounded-respondents.md`; the licence, OI-61, is closed).
 
 ## What the binding records (`PopulationBinding`)
 

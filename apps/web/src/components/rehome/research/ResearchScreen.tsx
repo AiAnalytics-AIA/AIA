@@ -273,7 +273,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
         </div>
       </section> : null}
       </StageChrome>
-      {job ? <JobPanel job={job} onCancel={onCancel} /> : null}
+      {job ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />

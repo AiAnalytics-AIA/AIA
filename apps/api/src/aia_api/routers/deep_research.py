@@ -157,10 +157,14 @@ class DesignProposalAccept(BaseModel):
 
 class DeepResearchStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    #: The id the run's events name: which step reported what.
+    step_id: str
     node_key: str
     status: str
     waiting_reason: str | None
     attempts_recorded: int
+    #: When its first attempt started; null before one has.
+    started_at: datetime | None = None
     artifact_id: str | None
     error_message: str | None
 
@@ -421,8 +425,10 @@ def _response(
         created_at=run.get("created_at"),
         steps=[
             DeepResearchStep(
+                step_id=step["step_id"],
                 node_key=step["node_key"],
                 status=step["status"].value,
+                started_at=step["attempts"][0]["started_at"] if step.get("attempts") else None,
                 waiting_reason=step.get("waiting_reason"),
                 attempts_recorded=step["attempts_recorded"],
                 artifact_id=(step.get("output") or {}).get("artifact_id"),

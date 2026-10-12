@@ -37,6 +37,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { describeError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
+import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Button, Chip, Field, Select, Tag, TextInput } from "../../rehome/ui";
@@ -151,7 +152,7 @@ export function Value({ value, unit }: { value: SettingValue; unit?: string | nu
   }
   return (
     <span className="font-mono text-sm tabular-nums">
-      {String(value)}
+      {typeof value === "number" ? new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: unit === "USD" ? 2 : 6 }).format(value) : String(value)}
       {unit ? <span className="ml-1 text-xs text-ink-faint">{unit}</span> : null}
     </span>
   );
@@ -178,8 +179,9 @@ export function SettingRow({ item }: { item: SettingItem }) {
   return (
     <div data-setting={item.key} className="grid grid-cols-1 gap-1 border-t border-border py-2 first:border-t-0 md:grid-cols-[minmax(0,2fr)_minmax(0,2fr)_auto] md:items-center md:gap-4">
       <div className="min-w-0">
-        <div className="text-sm text-ink">{t(`${P}.items.${item.key}`)}</div>
-        <code className="break-all text-[11px] text-ink-faint">{item.source}</code>
+        <div className="text-sm font-medium text-ink">{t(`${P}.items.${item.key}`).startsWith(P) ? item.key.replaceAll("_", " ") : t(`${P}.items.${item.key}`)}</div>
+        {SETTING_HELP[item.key] ? <p className="mt-1 text-xs leading-5 text-ink-muted">{SETTING_HELP[item.key]}</p> : null}
+        <details className="mt-1 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${P}.technical`)}</summary><code className="block break-all py-1">{item.source}</code></details>
       </div>
       <div className="min-w-0">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</div>
       <ControlBadge control={item.control} />
@@ -195,14 +197,13 @@ function Unavailable({ what, message }: { what: string; message: string }) {
   );
 }
 
-function Section({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <section id={`set-${id}`} aria-labelledby={`set-${id}-h`} className={`${CARD} scroll-mt-20`}>
-      <h2 id={`set-${id}-h`} className="text-base font-semibold">{t(`${P}.groups.${id}.title`)}</h2>
-      <p className="mt-1 max-w-3xl text-sm text-ink-muted">{t(`${P}.groups.${id}.intro`)}</p>
-      <div className="mt-4 flex flex-col gap-4">{children}</div>
-    </section>
-  );
+function Section({ id, children, collapsed = false }: { id: string; children: ReactNode; collapsed?: boolean }) {
+  const heading = <h2 id={`set-${id}-h`} className="text-base font-semibold">{t(`${P}.groups.${id}.title`).startsWith(P) ? id.replaceAll("_", " ") : t(`${P}.groups.${id}.title`)}</h2>;
+  const intro = t(`${P}.groups.${id}.intro`);
+  const content = <>{intro.startsWith(P) ? null : <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{intro}</p>}<div className="mt-4 flex flex-col gap-4">{children}</div></>;
+  return <section id={`set-${id}`} aria-labelledby={`set-${id}-h`} className={`${CARD} min-w-0 scroll-mt-20`}>
+    {collapsed ? <details><summary className="cursor-pointer">{heading}</summary>{content}</details> : <>{heading}{content}</>}
+  </section>;
 }
 
 function Sub({ children }: { children: ReactNode }) {
@@ -240,7 +241,7 @@ function ActionForm({
       reload();
     } catch (err) {
       if (err instanceof Unauthenticated) {
-        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        router.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
         return;
       }
       setAnswer({ ok: false, text: describe(err) });
@@ -250,10 +251,10 @@ function ActionForm({
   }
   return (
     <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
-      {children}
-      <Button type="submit" small disabled={busy}>{busy ? t(`${P}.sending`) : submit}</Button>
+      <fieldset disabled={busy} className="contents">{children}
+      <Button type="submit" small disabled={busy}>{busy ? t(`${P}.sending`) : submit}</Button></fieldset>
       {answer ? (
-        <span role="status" className={`text-xs ${answer.ok ? "text-status-done" : "text-status-fault"}`}>{answer.text}</span>
+        <span role={answer.ok ? "status" : "alert"} className={`text-xs ${answer.ok ? "text-status-done" : "text-status-fault"}`}>{answer.text}</span>
       ) : null}
     </form>
   );
@@ -272,9 +273,9 @@ function budget(form: FormData): number {
   return n;
 }
 
-function RoleSelect({ roles, label, prefix }: { roles: string[]; label: string; prefix: string }) {
+function RoleSelect({ roles, label, prefix, initial }: { roles: string[]; label: string; prefix: string; initial?: string }) {
   return (
-    <Select name="role" aria-label={label} className="w-auto">
+    <Select name="role" defaultValue={initial} aria-label={label} className="w-auto">
       {roles.map((r) => <option key={r} value={r}>{t(`${prefix}.${r}`)} ({r})</option>)}
     </Select>
   );
@@ -283,38 +284,23 @@ function RoleSelect({ roles, label, prefix }: { roles: string[]; label: string; 
 // ---------------------------------------------------------------- panels
 
 function MembersPanel({ members, vocab, canAdminister, reload }: { members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; reload: () => void }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <Sub>{t(`${P}.members.title`)}</Sub>
-      {members.ok ? (
-        <table className="w-full">
-          <thead><tr><th className={TH}>E-mail</th><th className={TH}>{t(`${P}.members.name`)}</th><th className={TH}>{t(`${P}.members.role`)}</th><th className={TH}>{t(`${P}.members.active`)}</th></tr></thead>
-          <tbody className="divide-y divide-border">
-            {members.data.map((m) => (
-              <tr key={m.user_id}>
-                <td className={TD}>{m.email}</td>
-                <td className={TD}>{m.display_name || <Value value={null} />}</td>
-                <td className={TD}>{t(`aia.orgRoles.${m.organization_role}`)}</td>
-                <td className={TD}><Value value={m.is_active} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : <Unavailable what={t(`${P}.members.title`)} message={members.message} />}
-      {canAdminister ? (
-        <ActionForm
-          submit={t(`${P}.members.add`)}
-          reload={reload}
-          run={(f) => admin.addMember({ email: str(f, "email"), display_name: str(f, "display_name"), role: str(f, "role") })}
-        >
-          <Field label="E-mail"><TextInput name="email" type="email" required className="w-64" /></Field>
-          <Field label={t(`${P}.members.name`)}><TextInput name="display_name" className="w-48" /></Field>
-          <Field label={t(`${P}.members.role`)}><RoleSelect roles={vocab.organization_roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" /></Field>
-        </ActionForm>
-      ) : null}
-      <p className="text-xs text-ink-faint">{t(`${P}.members.note`)}</p>
-    </div>
-  );
+  return <div className="flex min-w-0 flex-col gap-4">
+    <Sub>{t(`${P}.members.title`)}</Sub>
+    <p className="text-sm leading-6 text-ink-muted">{t(`${P}.members.roleHelp`)}</p>
+    {members.ok ? <ul className="grid gap-3 lg:grid-cols-2">{members.data.map((m) => <li key={m.user_id} data-member={m.user_id} className="min-w-0 rounded-md border border-border bg-surface p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2"><strong className="break-all text-sm">{m.email}</strong><Tag>{t(`aia.orgRoles.${m.organization_role}`)}</Tag></div>
+      <p className="mt-1 text-sm text-ink-muted">{m.display_name || t(`${P}.members.noName`)} · {t(`${P}.members.active`)}: {t(`${P}.${m.is_active ? "yes" : "no"}`)}</p>
+      {canAdminister ? <details className="mt-3"><summary className="cursor-pointer text-xs font-medium text-signal">{t(`${P}.members.edit`)}</summary><div className="mt-3"><ActionForm submit={t(`${P}.save`)} reload={reload} run={(f) => admin.addMember({ email: m.email, display_name: str(f, "display_name"), role: str(f, "role") })}>
+        <Field label={t(`${P}.members.name`)}><TextInput name="display_name" defaultValue={m.display_name} className="w-full" /></Field>
+        <Field label={t(`${P}.members.role`)}><RoleSelect roles={vocab.organization_roles} label={`${t(`${P}.members.role`)}: ${m.email}`} prefix="aia.orgRoles" initial={m.organization_role} /></Field>
+      </ActionForm><p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.editHelp`)}</p></div></details> : null}
+    </li>)}</ul> : <Unavailable what={t(`${P}.members.title`)} message={members.message} />}
+    {canAdminister ? <div className="rounded-md border border-border bg-surface-sunken p-4"><h4 className="mb-3 text-sm font-semibold">{t(`${P}.members.add`)}</h4><ActionForm submit={t(`${P}.members.add`)} reload={reload} run={(f) => admin.addMember({ email: str(f, "email"), display_name: str(f, "display_name"), role: str(f, "role") })}>
+      <Field label="E-mail"><TextInput name="email" type="email" required className="w-full sm:w-64" /></Field>
+      <Field label={t(`${P}.members.name`)}><TextInput name="display_name" className="w-full sm:w-48" /></Field>
+      <Field label={t(`${P}.members.role`)}><RoleSelect roles={vocab.organization_roles} label={t(`${P}.members.role`)} prefix="aia.orgRoles" initial="MEMBER" /></Field>
+    </ActionForm><p className="mt-3 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</p></div> : null}
+  </div>;
 }
 
 function ClientsPanel({ clients, vocab, canAdminister, reload }: {
@@ -324,7 +310,7 @@ function ClientsPanel({ clients, vocab, canAdminister, reload }: {
     <div className="flex flex-col gap-3">
       <Sub>{t(`${P}.clients.title`)}</Sub>
       {!clients.ok ? <Unavailable what={t(`${P}.clients.title`)} message={clients.message} /> : !clients.data.length ? <Empty>{t(`${P}.clients.none`)}</Empty> : (
-        <table className="w-full">
+        <div className="overflow-x-auto"><table className="w-full">
           <thead><tr><th className={TH}>{t(`${P}.clients.name`)}</th><th className={TH}>ID</th><th className={TH}>{t(`${P}.clients.studies`)}</th><th className={TH}>{t(`${P}.clients.status`)}</th></tr></thead>
           <tbody className="divide-y divide-border">
             {clients.data.map((c) => (
@@ -344,7 +330,7 @@ function ClientsPanel({ clients, vocab, canAdminister, reload }: {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );
@@ -353,15 +339,17 @@ function ClientsPanel({ clients, vocab, canAdminister, reload }: {
 function StudiesPanel({ studies, clients, vocab, reload }: {
   studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; vocab: Vocabularies; reload: () => void;
 }) {
+  const [query, setQuery] = useState("");
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   if (!studies.ok) return <Unavailable what={t(`${P}.studies.title`)} message={studies.message} />;
   if (!studies.data.length) return <Empty>{t(`${P}.studies.none`)}</Empty>;
   return (
     <div className="flex flex-col gap-2">
+      <TextInput type="search" aria-label={t(`${P}.studySearch`)} placeholder={t(`${P}.studySearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
       {studies.data.map(({ study, detail }) => {
         const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
         return (
-          <details key={study.study_id} data-study={study.study_id} className="rounded-sm border border-border">
+          <details key={study.study_id} hidden={!`${study.name} ${clientName.get(study.client_id) ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))} data-study={study.study_id} className="rounded-sm border border-border">
             <summary className="flex cursor-pointer flex-wrap items-center gap-3 px-3 py-2 text-sm">
               <span className="font-medium text-ink">{study.name}</span>
               <span className="text-xs text-ink-muted">{clientName.get(study.client_id) ?? study.client_id}</span>
@@ -458,16 +446,16 @@ function SelfApprovalPanel({ levels, clients, studies, reload }: {
     <div className="flex flex-col gap-3">
       <Sub>{t(`${P}.approvals.title`)}</Sub>
       <p className="text-sm text-ink-muted">{t(`${P}.approvals.rule`)}</p>
-      <table className="w-full">
+      <div className="overflow-x-auto"><table className="w-full">
         <thead><tr><th className={TH}>{t(`${P}.approvals.level`)}</th><th className={TH}>{t(`${P}.approvals.stored`)}</th><th className={TH} /></tr></thead>
         <tbody className="divide-y divide-border">
           {row("organization", t(`${P}.approvals.organization`), levels.data.organization, "")}
           {levels.data.clients.map((c) => row(`client:${c.client_id}`, `${t(`${P}.clients.client`)}: ${clientName.get(c.client_id) ?? c.client_id}`, c.allowed, `client:${c.client_id}`))}
           {levels.data.studies.map((s) => row(`study:${s.study_id}`, `${t(`${P}.studies.study`)}: ${studyName.get(s.study_id) ?? s.study_id}`, s.allowed, `study:${s.study_id}`))}
         </tbody>
-      </table>
+      </table></div>
       <div className="rounded-sm border border-border p-3">
-        <p className="mb-2 text-xs font-medium text-ink-muted">{t(`${P}.approvals.addOverride`)}</p>
+<p className="mb-2 text-xs font-medium text-ink-muted">{t(`${P}.approvals.addOverride`)}</p>
         <ActionForm submit={t(`${P}.save`)} reload={reload} run={set}>
           <Select name="target" required defaultValue="" aria-label={t(`${P}.approvals.chooseTarget`)} className="w-auto">
             <option value="" disabled>{t(`${P}.approvals.chooseTarget`)}</option>
@@ -537,7 +525,7 @@ function ActivityCard({ runtime, activity, switches }: { runtime: NativeRuntime;
       </div>
       <p className="text-sm text-ink-muted">{t(`${A}.text`)}</p>
       <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
-      <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
+      <details><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.activityTechnical`)}</summary><dl className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
         {activity.actions.length ? (
           <>
             <dt className="text-ink-faint">{t(`${R}.actions`)}</dt>
@@ -552,7 +540,7 @@ function ActivityCard({ runtime, activity, switches }: { runtime: NativeRuntime;
         </dd>
         <dt className="text-ink-faint">{t(`${R}.col.switches`)}</dt>
         <dd><Codes ids={activity.switches} /></dd>
-      </dl>
+      </dl></details>
     </article>
   );
 }
@@ -567,7 +555,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
       </div>
-      <div data-config className="rounded-sm border border-border p-3">
+      <details data-config className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">{t(`${P}.runtimeConfiguration`)}</summary>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <Sub>{t(`${R}.config`)}</Sub>
           <span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span>
@@ -591,7 +579,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
             </ConfigRow>
           </div>
         ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
-      </div>
+      </details>
       <div className="flex flex-col gap-2">
         <Sub>{t(`${R}.activities`)}</Sub>
         <div className="grid gap-3 lg:grid-cols-2">
@@ -693,31 +681,24 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
 }
 
 function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; members: Part<Member[]> }) {
+  const [query, setQuery] = useState("");
   if (audit === null) return <p className="text-sm text-ink-muted">{t(`${P}.audit.adminOnly`)}</p>;
   if (!audit.ok) return <Unavailable what={t(`${P}.groups.audit.title`)} message={audit.message} />;
   if (!audit.data.length) return <Empty>{t(`${P}.audit.none`)}</Empty>;
-  // An id the member list resolves is shown as an e-mail; one it does not stays an id.
   const who = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   const person = (id: string | null) => (id ? (who.get(id) ?? id) : "—");
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead><tr>{["when", "action", "actor", "subject", "scope", "detail"].map((k) => <th key={k} className={TH}>{t(`${P}.audit.${k}`)}</th>)}</tr></thead>
-        <tbody className="divide-y divide-border">
-          {audit.data.map((e) => (
-            <tr key={e.event_id}>
-              <td className={`${TD} font-mono text-xs`}>{e.created_at ?? "—"}</td>
-              <td className={`${TD} font-mono text-xs`}>{e.action}</td>
-              <td className={`${TD} font-mono text-xs`}>{person(e.actor_id)}</td>
-              <td className={`${TD} font-mono text-xs`}>{person(e.subject_user_id)}</td>
-              <td className={`${TD} font-mono text-xs`}>{e.study_id ?? e.client_id ?? "—"}</td>
-              <td className={TD}>{[e.role, e.reason].filter(Boolean).join(" · ") || "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení" };
+  const visible = audit.data.filter((e) => `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  return <div className="flex min-w-0 flex-col gap-3">
+    <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+    {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.noSearchResults`)}</p> : null}
+    <ol className="flex flex-col gap-2">{visible.map((e) => <li key={e.event_id} className="rounded-md border border-border bg-surface p-3 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2"><strong>{names[e.action] ?? e.action.replaceAll("_", " ").toLocaleLowerCase("cs")}</strong><time dateTime={e.created_at ?? undefined} className="text-xs text-ink-muted">{e.created_at ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(e.created_at)) : "—"}</time></div>
+      <p className="mt-1 break-words text-xs text-ink-muted">{t(`${P}.audit.actor`)}: {person(e.actor_id)}{e.subject_user_id ? ` · ${t(`${P}.audit.subject`)}: ${person(e.subject_user_id)}` : ""}</p>
+      {e.reason ? <p className="mt-2 break-words leading-6">{e.reason}</p> : null}
+      <details className="mt-2 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${P}.technical`)}</summary><p className="mt-1 break-all font-mono">{e.action} · {e.study_id ?? e.client_id ?? "—"} · {e.role ?? "—"}</p></details>
+    </li>)}</ol>
+  </div>;
 }
 
 // ---------------------------------------------------------------- the panel
@@ -757,6 +738,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
   const [active, setActive] = useState<TabId>("ai");
+  const [referenceQuery, setReferenceQuery] = useState("");
   const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["ai"]));
   const select = (tab: TabId) => {
     setActive(tab);
@@ -783,8 +765,8 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const at = TABS.indexOf(active);
     const next =
-      e.key === "ArrowRight" ? TABS[(at + 1) % TABS.length]
-      : e.key === "ArrowLeft" ? TABS[(at + TABS.length - 1) % TABS.length]
+      (e.key === "ArrowRight" || e.key === "ArrowDown") ? TABS[(at + 1) % TABS.length]
+      : (e.key === "ArrowLeft" || e.key === "ArrowUp") ? TABS[(at + TABS.length - 1) % TABS.length]
       : e.key === "Home" ? TABS[0]
       : e.key === "End" ? TABS[TABS.length - 1]
       : null;
@@ -814,12 +796,16 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const present = (k: string) => byKey.has(k) || k === "ai" || k === "roles" || k === "audit";
   const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
-  const section = (key: string) => (
-    <Section key={key} id={key}>
+  const section = (key: string) => {
+    const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
+    const query = referenceQuery.trim().toLocaleLowerCase("cs");
+    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || !query || `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(query));
+    if (reference && query && !items.length && !t(`${P}.groups.${key}.title`).toLocaleLowerCase("cs").includes(query)) return null;
+    return <Section key={key} id={key} collapsed={reference && !query || key === "roles" || key === "ai_history"}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" ? null : <div>{(byKey.get(key)?.items ?? []).map((item) => <SettingRow key={item.key} item={item} />)}</div>}
-    </Section>
-  );
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" ? null : <details open={!extra[key] || !!query}><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.relatedSettings`)}</summary><div className="mt-2">{items.map((item) => <SettingRow key={item.key} item={item} />)}</div></details>}
+    </Section>;
+  };
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} clients={clients} studies={studies} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? []} members={members} />;
@@ -827,9 +813,9 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
-        {tab === "reference" ? <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.referenceNote`)}</p> : null}
+        {tab === "reference" ? <><p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.referenceNote`)}</p><TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} /></> : null}
         {keys.map(section)}
-        {tab === "reference" ? <Section id="invariants"><div>{invariants.map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
+        {tab === "reference" ? <Section id="invariants" collapsed={!referenceQuery.trim()}><div>{invariants.filter((item) => `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"))).map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
       </>
     );
   };
@@ -844,28 +830,31 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
           ))}
         </ul></details>
       </div>
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex flex-wrap gap-1 border-b border-border">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[15rem_minmax(0,1fr)]">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="grid h-fit grid-cols-2 gap-1 rounded-md border border-border bg-surface-raised p-2 sm:grid-cols-4 xl:sticky xl:top-6 xl:grid-cols-1">
         {TABS.map((tab) => (
           <button
             key={tab}
             id={`tab-${tab}`}
             type="button"
             role="tab"
+            aria-label={t(`${P}.tabs.${tab}`)}
             aria-selected={active === tab}
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`-mb-px rounded-t-sm border border-b-0 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-border bg-surface-raised font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink"}`}
+            className={`rounded-sm border px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            {t(`${P}.tabs.${tab}`)}
+            <span className="block">{t(`${P}.tabs.${tab}`)}</span><span aria-hidden="true" className="mt-1 hidden text-xs font-normal leading-5 text-ink-muted xl:block">{TAB_GUIDE[tab].purpose}</span>
           </button>
         ))}
       </div>
-      {TABS.map((tab) => (
+      <div className="min-w-0">{TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
+          <div className="rounded-md border border-signal-edge bg-signal-wash px-4 py-3"><p className="text-sm font-semibold">{TAB_GUIDE[tab].purpose}</p><p className="mt-1 text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p></div>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
-      ))}
+      ))}</div></div>
     </div>
   );
 }
@@ -894,8 +883,8 @@ function DeepResearchSection({ items, members }: { items: SettingItem[]; members
   const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   return (
     <Section id="deep_research">
-      {items.length ? <div>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div> : null}
       <DeepResearchSettingsPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
+      {items.length ? <details><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.relatedSettings`)}</summary><div className="mt-2">{items.map((item) => <SettingRow key={item.key} item={item} />)}</div></details> : null}
     </Section>
   );
 }
