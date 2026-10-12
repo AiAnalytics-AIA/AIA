@@ -47,7 +47,7 @@ from aia_core.domain.ai_respondent import (
     plan_items,
     plan_respondent,
 )
-from aia_core.domain.fieldwork import Answer
+from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
@@ -65,6 +65,13 @@ __all__ = ["AIFieldwork", "AIFieldworkConfig", "ProducedDataset", "fieldwork_see
 _PARK_MESSAGE = (
     "AI respondenti nejsou pro tento výzkum povoleni: {why}. Běh čeká u sběru dat; nic "
     "nebylo odesláno ani vymyšleno. Po schválení trasy nebo licence spusťte běh znovu."
+)
+
+
+#: Why a run whose respondents come from its population waits on a worker without that path.
+_PANEL_UNAVAILABLE = (
+    "Tento běh má respondenty z populace, ale pracovník je neumí sestavit. Běh čeká u sběru "
+    "dat; nic nebylo odesláno ani vymyšleno."
 )
 
 
@@ -115,6 +122,24 @@ class AIFieldwork:
         self, spec: ResearchSpecification, step: StepInput, context: StepContext
     ) -> ProducedDataset | Failed:
         cfg = self._config
+        try:
+            persona_source = persona_source_of(step.payload)
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"message": str(exc), "reason": "persona_source_unknown"},
+            )
+        if persona_source is PersonaSource.PANEL:
+            # The run pinned respondents drawn from its population; this worker composes no
+            # panel path. It waits, and never answers with the fictional roster instead.
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "message": _PANEL_UNAVAILABLE,
+                    "reason": "panel_personas_unavailable",
+                    "source": "ai_runtime",
+                },
+            )
         if spec.n is None or spec.n < 1:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
         seed = fieldwork_seed(spec)

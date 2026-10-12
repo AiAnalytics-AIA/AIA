@@ -472,6 +472,30 @@ def test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exist
     assert _ledger(world, run_id) == []
 
 
+def test_a_run_pinned_to_its_population_waits_on_a_worker_without_that_path(
+    world: Any, run_with: Callable[..., Worker]
+) -> None:
+    """Plan panel-grounded-respondents 5c-5d: the run's pin decides who answers, never the
+    worker's composition. A worker that cannot draw from the population parks the run; it
+    never answers with the fictional roster instead, and nothing is sent or charged."""
+    from aia_core.infrastructure.tables import StepRunRow
+
+    run_id = _start(world)
+    with world.sessions() as session:
+        step = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == run_id, StepRunRow.node_key == "run")
+        ).one()
+        step.input_json = {**step.input_json, "persona_source": "panel"}
+        session.commit()
+    bedrock = ScriptedBedrock()
+    _drain(run_with(bedrock, env=_fictional(world)))
+    fw = _steps(_run(world, run_id))["run"]
+    assert fw["status"] is StepRunStatus.WAITING_PROVIDER
+    assert fw["attempts"][-1]["failure_class"] is FailureClass.RUNTIME_UNAVAILABLE
+    assert fw["attempts"][-1]["error"]["reason"] == "panel_personas_unavailable"
+    assert bedrock.requests == [] and _ledger(world, run_id) == []
+
+
 def test_a_route_approved_for_nothing_parks(world: Any, run_with: Callable[..., Worker]) -> None:
     bedrock = ScriptedBedrock()
     run_id = _start(world)
