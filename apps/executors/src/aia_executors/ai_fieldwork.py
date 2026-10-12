@@ -55,7 +55,7 @@ from aia_core.domain.ai_respondent import (
     plan_respondent,
 )
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
-from aia_core.domain.methodology.pins import read_response_pin
+from aia_core.domain.methodology.pins import is_units_process, read_response_pin
 from aia_core.domain.panel_persona import PersonaRefused
 from aia_core.domain.panel_source import PanelPlans, panel_plans, respondent_system
 from aia_core.domain.pipeline import fingerprint
@@ -66,7 +66,7 @@ from aia_core.domain.population.runtime import RuntimePopulation
 from aia_core.domain.population.sampling import SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
-from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1, BEHAVIOR_VERSION
+from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -378,7 +378,7 @@ class AIFieldwork:
             "response_process": {
                 "name": response.methodology_version,
                 "sha256": fingerprint(response.model_dump(mode="json")),
-                "unit": response == AIA_RESPONSE_V1,
+                "unit": is_units_process(response),
             },
             "fact_layer_version": FACT_LAYER_VERSION,
             "persona_source": (

@@ -21,7 +21,7 @@ from typing import Final
 
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
-from aia_core.infrastructure.population_store import PopulationStoreSettings
+from aia_core.infrastructure.population_store import PopulationStoreSettings, S3PopulationStore
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
@@ -44,6 +44,7 @@ __all__ = [
     "SOCIOMAP_CONNECTEDNESS_INTERVAL_KEY",
     "build_registry",
     "materialize_executor",
+    "population_store",
     "registry_for",
     "sociomap_connectedness_interval",
 ]
@@ -107,16 +108,24 @@ def registry_for(
 POPULATION_ASSET_ROOT_KEY: Final = "AIA_POPULATION_ASSET_ROOT"
 
 
-def materialize_executor(env: Mapping[str, str]) -> MaterializeExecutor:
+def population_store(env: Mapping[str, str]) -> S3PopulationStore | None:
+    """The population store, when configured; a store configured by halves stops the worker."""
+    settings = PopulationStoreSettings.from_env(env)
+    return settings.build() if settings is not None else None
+
+
+def materialize_executor(
+    env: Mapping[str, str], *, store: S3PopulationStore | None = None
+) -> MaterializeExecutor:
     """The materialize step over the configured store and shared population, if both are set.
 
     Either missing, the executor parks every materialize run (``RUNTIME_UNAVAILABLE``); a store
-    configured by halves stops the worker (``PopulationStoreSettings.from_env``).
+    configured by halves stops the worker (``PopulationStoreSettings.from_env``). ``store``
+    passes the one the composition already built.
     """
-    settings = PopulationStoreSettings.from_env(env)
     root = (env.get(POPULATION_ASSET_ROOT_KEY) or "").strip()
     return MaterializeExecutor(
-        store=settings.build() if settings is not None else None,
+        store=store if store is not None else population_store(env),
         shared=FilesystemPopulationSource(root) if root else None,
     )
 
@@ -153,13 +162,18 @@ def build_registry() -> dict[str, StepExecutor]:
         analysis = analysis_registry(
             store=store, build=build, gateway=build_gateway(settings), config=config
         )["research_analysis"]
+    children = population_store(os.environ)
     return registry_for(
         store=store,
-        materialize=materialize_executor(os.environ),
+        materialize=materialize_executor(os.environ, store=children),
         research_agent=agent,
         analysis=analysis,
         deep_research=deep_research_runtime(settings),
         build=build,
-        ai_runtime=build_ai_fieldwork(settings, build=build) if settings is not None else None,
+        ai_runtime=(
+            build_ai_fieldwork(settings, build=build, population_store=children)
+            if settings is not None
+            else None
+        ),
         sociomap_connectedness_interval=connectedness_interval,
     )

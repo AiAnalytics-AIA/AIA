@@ -36,7 +36,10 @@ from aia_core.domain.population import (
     content_sha256,
     field_names_fingerprint,
 )
-from aia_core.infrastructure.population_source import InMemoryPopulationSource
+from aia_core.infrastructure.population_source import (
+    InMemoryPopulationSource,
+    PopulationAssetSource,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from sqlalchemy.orm import Session
 
@@ -101,16 +104,26 @@ class GroundedPopulation:
     source: InMemoryPopulationSource
     rows: int
 
-    def runtime(self, session: Session) -> PopulationRuntime:
+    def runtime(
+        self, session: Session, source: PopulationAssetSource | None = None
+    ) -> PopulationRuntime:
         return PopulationRuntime(
-            session, contract=self.contract, source=self.source, enricher=_NoEnrichment()
+            session,
+            contract=self.contract,
+            source=source if source is not None else self.source,
+            enricher=_NoEnrichment(),
         )
 
-    def loader(self) -> Callable[[Session, WorkflowRepository, str], Any]:
-        """What the worker's panel path takes: the run's recorded binding, loaded."""
+    def loader(
+        self, source: PopulationAssetSource | None = None
+    ) -> Callable[[Session, WorkflowRepository, str], Any]:
+        """What the worker's panel path takes: the run's recorded binding, loaded.
+
+        ``source`` replaces where it reads (the worker's composed source over the store).
+        """
 
         def load(session: Session, workflow: WorkflowRepository, run_id: str) -> Any:
-            return self.runtime(session).load_for_run(workflow, run_id)
+            return self.runtime(session, source).load_for_run(workflow, run_id)
 
         return load
 

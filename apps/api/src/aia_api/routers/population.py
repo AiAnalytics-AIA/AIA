@@ -37,7 +37,6 @@ from typing import Any
 from aia_core.application.audience_catalogue import live_audience_catalogue
 from aia_core.application.population_characteristics import version_characteristics
 from aia_core.domain.population import (
-    CZ_LIVE,
     PopulationError,
     PopulationKind,
     UnknownDatasetVersion,
@@ -55,7 +54,12 @@ from aia_core.infrastructure.population_repository import PopulationRegistryRepo
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..dependencies import AudiencePreviewerDep, OrganizationDep, SessionDep
+from ..dependencies import (
+    AudiencePopulationDep,
+    AudiencePreviewerDep,
+    OrganizationDep,
+    SessionDep,
+)
 from ..schemas.projects import ErrorResponse
 
 router = APIRouter(
@@ -445,13 +449,15 @@ class AudienceCatalogueResponse(_Model):
     summary="What a study's audience may be filtered by",
     responses={404: {"model": ErrorResponse, "description": "No LIVE population or catalogue"}},
 )
-def audience_catalogue(member: OrganizationDep, session: SessionDep) -> AudienceCatalogueResponse:
+def audience_catalogue(
+    member: OrganizationDep, session: SessionDep, audience: AudiencePopulationDep
+) -> AudienceCatalogueResponse:
     """LIVE's factor catalogue, kept per version, and the built-in subpanels as filters."""
     try:
         found = live_audience_catalogue(
             session,
-            contract=CZ_SYNTHETIC_V17,
-            population_id=CZ_LIVE,
+            contract=audience.contract,
+            population_id=audience.population_id,
             organization_id=member.organization_id,
         )
     except VersionIntegrityError:
