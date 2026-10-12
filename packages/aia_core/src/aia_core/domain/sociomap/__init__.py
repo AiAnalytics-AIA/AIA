@@ -53,6 +53,7 @@ from .models_v3 import (
     RatingItem,
     SociomapArtifactV3,
     read_artifact,
+    read_object_maps,
 )
 from .specification import (
     AIA_OBJECT_ENVELOPE,
@@ -161,6 +162,7 @@ __all__ = [
     "compute_object_map",
     "compute_sociomap",
     "read_artifact",
+    "read_object_maps",
     "read_spec",
     "require_supported",
     "spec_payload",
