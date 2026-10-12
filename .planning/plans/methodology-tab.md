@@ -12,7 +12,7 @@ chunks:
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
   - "[x] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
-  - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
+  - "[x] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
   - "[x] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
   - "[x] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
@@ -21,7 +21,10 @@ chunks:
   - "[x] S4b. Sociomap draft check: the edit beside what is in force on fixed fictional panels (maps, Stress, statuses, aligned shifts, heights, K100 point, terrain)"
   - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
-  - "[ ] G1. Support and suppression documented and declared: one rule set, the combined n_eff named, thresholds in the spec, editable both ways (ADR 0023 decision 10)"
+  - "[x] G1a. Support documented: both rule sets side by side, read-only (the unit's donor rule as Results shows it; AIA's evidence gate as analysis applies it), D1-D4 named on their steps"
+  - "[ ] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
+  - "[ ] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
+  - "[ ] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
@@ -546,6 +549,31 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that
   plan's open PR.
+  - **Landed.** No open PR edited the register (checked 2026-10-12), so nothing had to land
+    first.
+  - **Pointers.**
+    - AUDIT-F1 now points at `engine_v2:_scaled` with three tests. It no longer says path A
+      reads raw ratings: only the reference map does, by design.
+    - AUDIT-F7 now points at `view:stress_quality`, the part every run computes. The alignment
+      (`align_to_reference`) is called only by the Metodika draft check, and the text says so.
+      It also records that Results and the report show the label
+      (`report_maps.py:89 @ 6556f27`), and that no test pins the printed sentence.
+    - SOMECS-H7 now points at the H-Model candidate's `_frame`, whose frame is [0.05, 0.95].
+  - **Rules for the steps without one.**
+    - A new label, `PORTED`, and a document, `NPC_UNIT` (the frozen unit's code). An exact
+      port of 18.6.6 had no honest label: DOCUMENTED and INFERRED need a paged document, and
+      PROPOSED means "no source speaks".
+    - Six rules, `LEGACY-R2` to `LEGACY-R7`: the weight rescale, the mutual relation, the
+      object metric, the respondent density terrain, the normaliser, and the mean rating. Each
+      cites the unit's line or function. `test_a_ported_rule_names_the_units_code_and_is_built_and_checked`
+      holds the label to that.
+    - The reference map's `scale` step cites AUDIT-F1 (the declared ends), and the object map's
+      `f3_effect_floor` cites AUDIT-F3 (Q6 shapes it, per the register's `aia_decisions`).
+    - `test_every_step_that_computes_cites_a_register_rule` now holds every registered module to
+      a rule per step. Only `method` is exempt: it names the method and computes nothing.
+  - **Finding (fixed here).** `object_rating_summaries` said the mean rating was "an AIA
+    declaration rather than a recovered function". The unit computes it the same way, in
+    `visualization_lab.py:131`, rounded to four decimals. The docstring now says so (LEGACY-R7).
 - **S2.** Every listed constant moves into the specification. The side tables, K100 and the
   readiness warning read the run's pin. A layer check forbids importing those constants on a run
   path. ~~This is one fingerprint move for new runs~~: superseded, see "No fingerprint move" below.
@@ -617,6 +645,26 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   response-process captures. Where floating-point order makes bit-identity impossible, the
   built-in keeps running the code path and the expression is shown with the measured maximum
   difference. Such cases are named, not hidden.
+- **G1, split four ways.** G1a documents; G1b declares both rule sets, bit-identical; G1c makes
+  one rule govern both Results and analysis; G1d makes it editable with the draft check.
+  - **G1c needs one decision first: which rule is in force before the methodologist activates
+    a version.** Each option changes what people see:
+    - AIA's gate everywhere: Results suppresses more cells.
+    - The unit's rule everywhere: analysis admits more.
+    - The two as today, until a version is put in force.
+  - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
+    specification yet, so every value is a code constant read where it is used.
+    - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the
+      combined effective n and the largest donor's share, and the status from donors alone
+      (25/50).
+    - Group A, AIA's evidence gate (what analysis applies): Kish n that refuses bad weights,
+      `assess_support` with all five `REFERENCE_THRESHOLDS`, and `analysis.native._support`
+      re-assessing the unit's status, the stricter winning.
+    - The findings are named on their steps: D1 (median imputation vs refusal), D2 (the two
+      rule sets), D3 (the gate's effective n is the combined one), D4 (the largest donor's
+      share is stored and never read).
+    - Checked before writing: `max_donor_share` is written at `research_aggregate.py:270, 438`
+      and read nowhere; `effective_n` is `effective_n_combined` at `:433` (@ ca56fd00).
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
@@ -627,7 +675,8 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
 - **H1.** `_rating` (`research_sociomap.py:267 @ 27062ec`) accepts only ints, so a float rating
   becomes missing. Tested in S1.
 - **H2.** AUDIT-F1 and SOMECS-H7 have `implementation: null` although the code exists, and
-  AUDIT-F7 points at a function only tests call. Tested in S1.
+  AUDIT-F7 points at a function only tests call. Tested in S1. **Confirmed and fixed in S1d.** By then the Metodika draft check also called
+  `align_to_reference`, but no run path did.
 - **H3.** The `aia-sociomap-1` artifact's spec differs from the pinned spec, because the
   battery's scale overwrites `rating_scale_min/max` (`research_sociomap.py:469-476`). Tested in
   S1.
