@@ -9,7 +9,8 @@ export type ResultPanel = { id: string; label: string; description: string; cont
 
 /** Views of the same frozen run. Hidden panels stay mounted so map cameras and review selections survive. */
 export function ResultsWorkspace({ run, panels, progressHref, notice }: {
-  run: ResearchRun; panels: ResultPanel[]; progressHref: string; notice: ReactNode;
+  /** The run's progress page; null where the page has none to link to (project memory). */
+  run: ResearchRun; panels: ResultPanel[]; progressHref: string | null; notice: ReactNode;
 }) {
   const [active, setActive] = useState("overview");
   const prefix = useId();
@@ -48,7 +49,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice }: {
         <div><p className="text-xs font-semibold uppercase tracking-wide text-signal">Výsledky studie</p>
           <h2 className="mt-1 text-xl font-semibold">Od výsledků k souvislostem a zprávě</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">Projděte data, prozkoumejte mapy a doplňte externí podklady. Zprávu stáhnete v oddílu Rešerše a zpráva.</p>
-        </div><Link href={progressHref} className="rounded-control border border-border px-3 py-2 text-sm font-medium no-underline hover:bg-surface-sunken">Průběh tohoto běhu →</Link>
+        </div>{progressHref ? <Link href={progressHref} className="rounded-control border border-border px-3 py-2 text-sm font-medium no-underline hover:bg-surface-sunken">Průběh tohoto běhu →</Link> : null}
       </div>
       <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
         <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{phaseLabel(run.phase)}</dd></div>

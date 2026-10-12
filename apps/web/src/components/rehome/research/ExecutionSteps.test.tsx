@@ -8,7 +8,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
+import type { ResearchRun } from "@/lib/api";
 import { CONFLICT_MESSAGE } from "@/research/store";
+import { RunResults } from "./ExecutionSteps";
+import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -776,6 +779,39 @@ describe("Results", () => {
   });
 });
 
+
+describe("A run's results outside a study session (project memory M2a)", () => {
+  it("draws a run from the frame alone, read-only: every label, no download, no interpretation research, only reads", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps,
+        step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", stage_type: "ANALYSIS", artifact_id: "ART-a" }),
+        step("report", "SUCCEEDED", { kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report" })],
+    });
+    api({
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ run_id: "RUN-1", internal_only: true, synthetic: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+    });
+    render(
+      <StudyFrameProvider frame={{ ...TEST_FRAME, canEdit: false }}>
+        <RunResults run={reportRun as unknown as ResearchRun} progressHref={null} />
+      </StudyFrameProvider>,
+    );
+    expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    expect(screen.queryByRole("link", { name: /Průběh tohoto běhu/ })).toBeNull();
+    expect(called("GET", "/api/v1/studies/STU-1/deep-research")).toHaveLength(0);
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+});
 
 describe("Interpretation research", () => {
   it("requires confirmation before cancelling an active interpretation review", async () => {

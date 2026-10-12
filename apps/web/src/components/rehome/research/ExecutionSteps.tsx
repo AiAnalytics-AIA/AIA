@@ -9,7 +9,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -54,7 +54,8 @@ import { withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
-import { useResearch } from "./context";
+import { ResearchContext, useResearch } from "./context";
+import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
@@ -105,8 +106,17 @@ function PopulationNote({ run }: { run: ResearchRun }) {
   ) : null;
 }
 
-function useFrame() {
-  return useResearch().frame;
+/**
+ * The study these views are in: the research session's frame on a stage, the frame alone where
+ * there is no session (project memory's read-only page, plans/project-memory-reuse.md M2a). The
+ * result views below read nothing else, so they draw a run outside a study's working content.
+ */
+function useFrame(): StudyFrame {
+  const session = useContext(ResearchContext);
+  const own = useStudyFrame();
+  const frame = session?.frame ?? own;
+  if (!frame) throw new Error("a research view outside a study frame");
+  return frame;
 }
 
 // ---------------------------------------------------------------- Run --------
@@ -807,6 +817,18 @@ function IntervalBar({ bar }: { bar: NonNullable<ResultTable["rows"][number]["ba
 export function ResultsStep() {
   const [run, refresh, , error] = useRun();
   const frame = useFrame();
+  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
+  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
+  return <RunResults key={run?.run_id ?? "none"} run={run} progressHref={run ? `${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}` : null} />;
+}
+
+/**
+ * One run's results, every label with them: the Results stage's body for the run it is given.
+ * Read-only where the frame says so (`canEdit: false`): no download, and no Interpretation
+ * Research, which starts work.
+ */
+export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
+  const frame = useFrame();
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -814,8 +836,6 @@ export function ResultsStep() {
     ? <InternalReport key={run.run_id} run={run} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
-  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
-  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
@@ -829,7 +849,7 @@ export function ResultsStep() {
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
-  return <ResultsWorkspace run={run} progressHref={`${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}`}
+  return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
@@ -861,7 +881,7 @@ export function ResultsStep() {
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
         <div id="res-report">{report}</div>
-        {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
       </> },
     ]} />;
 }

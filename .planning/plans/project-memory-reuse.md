@@ -6,7 +6,10 @@ chunks:
   - "[x] M1b. The search, scoped to one client: latest Design Revision, else the working draft, else the name"
   - "[x] M1c. The route: GET /clients/{client_id}/memory/search"
   - "[x] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
-  - "[ ] M2. Inspect: a past study's design, method, results and their labels, read-only"
+  - "[x] M2a. The run's results read from the study frame alone, not the working-content store"
+  - "[ ] M2b. A run's labels, pure: synthetic, report draft, internal only, suppressed results"
+  - "[ ] M2c. The page: /app/memory/<client>/<study>, its revisions, their runs, results and labels, read-only"
+  - "[ ] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
   - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
   - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
@@ -148,3 +151,47 @@ PostgreSQL. A client with hundreds of studies would want one client-wide read in
 `study_design_repository.py`; not built until that is measured.
 
 **Not in M1:** reuse (M3), the inspection page (M2), result search (after the MVP).
+
+## M2, the design (2026-10-12)
+
+**What the code has** (`develop @ bbe6730`). Every read M2 needs exists, found through the
+Study: the revisions (`GET …/design/revisions`, `routers/research.py:397-406`, no content in
+the list) and one revision with its content (`:409-422`); the runs (`:607-612`, summaries
+without steps) and one run in full (`:615-622`); a run's artifacts (`:787-835`, through
+`research_artifacts`), analysis (`:838-910`) and internal report (`:957-986`, with
+`review_state` and `synthetic`). No API change and no new reader is needed. The Results
+stage already draws every label a result carries: the fictional-data banner, suppression
+(`research-execution.ts` `resultTable`), the Sociomap's `INTERNAL_ONLY` note, the report's
+draft state. But its views read `useResearch().frame` (`ExecutionSteps.tsx:108-110`), which
+exists only inside a study's working-content session, and the hit of M1 links into that
+editable session (`MemorySearch.tsx:82-83`). Since ADR 0019 every member holds EDIT_STUDY,
+so "read-only" is the page's own: it is built with `canEdit: false`, which disables every
+action those views carry (download, cancel, retry, budget, Interpretation Research).
+
+**Chunks.**
+
+- **M2a. Results from the frame alone.** `ExecutionSteps.tsx`'s result views read the
+  `StudyFrame` (`frame.tsx`, already provided around every research screen), and
+  `RunResults({ run })` is exported: the Results stage's body for a run it is given.
+  Interpretation Research, which starts work and needs the session's dialog, is left out
+  when `canEdit` is false (on a stage too: a reader could start none of it anyway); the
+  progress link is given by the caller, null where there is none. The Results stage is
+  otherwise unchanged (`ExecutionSteps.test.tsx`, 37 tests as before).
+- **M2b. The labels, pure.** `lib/memory.ts` `runLabels(run, report?)`: synthetic (a
+  fictional source or step origin), the report's review state (draft unless approved), and
+  internal only (any Sociomap, analysis or report is). Never a guess: a report not read is
+  "unknown", not "approved".
+- **M2c. The page.** `/app/memory/<client>/<study>` (Projektová paměť → client → study).
+  The study through `workspace.study` (404 outside scope; another client in the URL and a
+  simulation are "not here"). Its revisions newest first; the chosen one's content drawn
+  read-only (title, goal, decision use, research questions, objectives, questionnaire
+  sections, dimensions by title). Without a revision, the working draft, labelled a working
+  draft and never a design. The runs of the chosen revision, each with its labels; the
+  chosen run's results through `RunResults` under a frame with `canEdit: false`. A memory
+  hit for a research links here; a simulation hit still opens the study.
+- **M2d. Proof.** A test renders the page over a fictional study with a synthetic, draft
+  run: every request it sends is a GET, the labels are shown, no download or action is
+  enabled; a study of another client in the URL and a simulation render "not here".
+
+**Not in M2:** reuse (M3); a run-level label on the server (M3 derives the source's labels
+on the server by its own rule, recorded with the revision).
