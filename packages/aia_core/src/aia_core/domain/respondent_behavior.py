@@ -151,10 +151,20 @@ class ResponseProcessSpec(_Declared):
             raise ValueError("the noise floor is a share above 0 and at most 1")
         return v
 
+    @field_validator("style_links", mode="before")
+    @classmethod
+    def _in_the_units_order(cls, v: Any) -> Any:
+        # A stored pin comes back from PostgreSQL's JSONB with its keys reordered; the six
+        # styles are put back in the unit's order. Each is computed on its own, so the order
+        # moves no value; it is what the page and a stored version show.
+        if isinstance(v, Mapping) and set(v) == set(STYLES):
+            return {name: v[name] for name in STYLES}
+        return v
+
     @model_validator(mode="after")
     def _every_style_once(self) -> ResponseProcessSpec:
         if tuple(self.style_links) != STYLES:
-            raise ValueError(f"style links name the six styles in order: {', '.join(STYLES)}")
+            raise ValueError(f"style links name the six styles, each once: {', '.join(STYLES)}")
         return self
 
 

@@ -1028,6 +1028,12 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     (`::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster`); a
     missing sex where the column exists counts as not male, as in 18.6.6
     (`::test_a_missing_sex_counts_as_not_male_as_in_the_unit`). The notes said otherwise.
+  - **Found by CI on #344:** a pin read back from PostgreSQL's JSONB has its keys reordered,
+    and the specification refused six style links that were not in the unit's order, so
+    every retry failed there (SQLite keeps the order; the local suites passed). The links
+    are now put back in the unit's order on read; each style is computed on its own, so the
+    order moves no value
+    (`test_methodology_response.py::test_a_pin_read_back_with_its_keys_reordered_is_the_same_process`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
