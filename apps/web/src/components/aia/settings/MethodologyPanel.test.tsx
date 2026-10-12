@@ -60,6 +60,7 @@ describe("the Metodika tab", () => {
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)",
       "Sociomapping: experimentální H-Model (kandidát AIA)",
       "Podpora a potlačení: kdy se číslo smí ukázat",
+      "Agregace: z odpovědí odhad s intervalem",
     ]);
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
@@ -138,6 +139,17 @@ describe("the Metodika tab", () => {
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
     await waitFor(() => expect(calls).toContain("/api/v1/methodology/support/versions")); // its versions, so its editor
+  });
+
+  it("opens aggregation with its declared bootstrap and the findings on their steps", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
+    await screen.findByRole("heading", { name: "Interval: bootstrap dárců" });
+    expect(screen.getByRole("heading", { name: "Věrohodnost otázky" })).toBeTruthy();
+    expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/nález D5/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/nález D7/).length).toBeGreaterThan(0);
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

@@ -29,7 +29,8 @@ def _values() -> dict[str, object]:
 
 
 def test_it_is_registered_after_the_sociomap_modules() -> None:
-    assert [m.id for m in MODULES][-1] == "support"
+    ids = [m.id for m in MODULES]
+    assert ids.index("support") == 3 and all(i.startswith("sociomap") for i in ids[:3])
 
 
 def test_today_is_the_preset_in_force_and_its_lines_are_editable() -> None:

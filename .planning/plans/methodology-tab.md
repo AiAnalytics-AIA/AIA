@@ -25,7 +25,9 @@ chunks:
   - "[x] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
   - "[x] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
   - "[x] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
-  - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
+  - "[x] G2a. Aggregation documented and declared: estimators, Kish, bootstrap reps/seeds/quantiles, top-2-box in AggregationSpec (aia-aggregate-1, the unit's literals bit for bit); D1, D5, D7 named on their steps"
+  - "[ ] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
+  - "[ ] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
@@ -723,6 +725,35 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     (`research_aggregate.py:60`, on the G1b branch) is the unit's text, verbatim: "<25 se nereportuje;
     25–49 je INDIKATIVNÍ". Once the Results rule is editable, the note must be written from the
     rule in force, or it will state lines the rule no longer uses.
+  - **G2 splits into G2a-G2c.** The unit wrote the bootstrap's values inline
+    (`research_aggregate.py`, `reps=400`, `seed=20260816`, …), so unlike G1a there is no module
+    constant for the tab to read. Documenting them means declaring them, so G2a does both.
+  - **G2a. Landed.**
+    - **Declared.** `research_aggregate.AggregationSpec`: `bootstrap` (`reps` 400, `reps_multi`
+      350, `seed` 20260816, `seed_top_box` 20260818, `quantiles` (0.025, 0.975)) and `top_box`
+      2. Its preset `AIA_AGGREGATE_V1` (`aia-aggregate-1`) holds the unit's literals.
+      - The quantiles are declared, not derived from a level: `(1 - 0.95) / 2` is
+        0.025000000000000022, and a derived bound would move every interval in its last bit.
+      - A multiple choice's seed stays `seed + i` (the option's index). That is the method, so
+        it is not a parameter.
+      - Refused: zero replicates, a negative seed, quantiles outside 0 < low < high < 1, an
+        empty top box, a boolean, an unknown field.
+    - **Read.** `aggregate_question(…, method=)` takes the specification, and
+      `bootstrap_weighted_mean` and `bootstrap_weighted_distribution` take `quantiles`; none of
+      them holds a literal any more (`test_the_preset_is_the_units_literals_bit_for_bit`).
+      `aggregate_dataset` passes `AIA_AGGREGATE_V1`. A run does not pin it yet (G3).
+    - **Bit-identical.** The exact-parity aggregate tests, the seed-spread tests and AIA's own
+      pinned bounds pass unchanged.
+    - **Module.** `domain/methodology/aggregation.py` is module `aggregation`, read-only, in
+      force `aia-aggregate-1`, registered after `support`. Its groups:
+      - M, the method;
+      - V, weights: cleaning (D1) and Kish;
+      - O, estimates: share, mean, median, sd, top box, multiple choice;
+      - B, the donor bootstrap: resampling and the percentile interval (D5);
+      - F, fidelity: the keyword lists (D7, shown as code constants) and the rating.
+    - **D7, tested.** `test_the_keyword_lists_decide_what_is_refused`: "Kolik byste zaplatili…"
+      is refused, while "Jakou částku … považujete za přiměřenou?" passes as AMBER. The refusal
+      is only as good as the lists.
   - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
     specification yet, so every value is a code constant read where it is used.
     - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the

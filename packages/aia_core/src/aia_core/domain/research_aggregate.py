@@ -19,6 +19,11 @@ only, so ``choose_donor_layer`` would return ``core`` in the unit too), segment
 and variant tables (``SEGMENTY`` columns and ``_variant_*`` are absent), the
 AI-probability summaries (``_probs_*``, ``_entropy_*``), and coded open answers.
 
+The values the unit wrote inline -- the bootstrap's replicates, seeds and percentile
+quantiles, and the top-2-box width -- are declared (plan ``methodology-tab`` G2a) in
+:class:`AggregationSpec`, whose preset :data:`AIA_AGGREGATE_V1` is the unit's literals, bit
+for bit. Every aggregate is computed under it; a run does not yet pin it (G3).
+
 Pure: no I/O, no clock.
 """
 
@@ -29,6 +34,8 @@ import random
 import re
 from collections.abc import Sequence
 from typing import Any, Final
+
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from .evidence.support import (
     UNIT_DONOR_THRESHOLDS,
@@ -42,7 +49,10 @@ from .research_design import ResearchSpecification, SpecQuestion
 
 __all__ = [
     "AGGREGATE_VERSION",
+    "AIA_AGGREGATE_V1",
     "BOOTSTRAP_GENERATOR",
+    "AggregationSpec",
+    "BootstrapSpec",
     "aggregate_dataset",
     "aggregate_question",
     "bootstrap_weighted_distribution",
@@ -62,6 +72,75 @@ __all__ = [
 AGGREGATE_VERSION: Final = "aia-research-aggregate-1"
 #: OI-62: the named generator, recorded on every artifact that holds an interval.
 BOOTSTRAP_GENERATOR: Final = "python-random-mt19937:floor(u*m)"
+
+
+class _Declared(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _a_number_not_a_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("expected a number, not a boolean")
+        return v
+
+
+class BootstrapSpec(_Declared):
+    """The donor-cluster bootstrap behind every interval (``uncertainty.py``).
+
+    ``reps`` resamples a share distribution, a mean and the top-2-box; ``reps_multi`` each
+    option of a multiple-choice question, whose seed is ``seed`` plus the option's index;
+    ``seed_top_box`` the top-2-box. The interval is the fixed-weight percentile interval
+    between ``quantiles`` of the resampled estimates (finding D5: the method was undeclared).
+    """
+
+    reps: int
+    reps_multi: int
+    seed: int
+    seed_top_box: int
+    quantiles: tuple[float, float]
+
+    @model_validator(mode="after")
+    def _usable(self) -> BootstrapSpec:
+        if self.reps < 1 or self.reps_multi < 1:
+            raise ValueError("a bootstrap needs at least one replicate")
+        if self.seed < 0 or self.seed_top_box < 0:
+            raise ValueError("a seed is a non-negative integer")
+        low, high = self.quantiles
+        if not (math.isfinite(low) and math.isfinite(high) and 0.0 < low < high < 1.0):
+            raise ValueError("quantiles must satisfy 0 < low < high < 1")
+        return self
+
+
+class AggregationSpec(_Declared):
+    """How a question is aggregated (plan ``methodology-tab`` G2a). ``top_box`` is how many of
+    a scale's top points count as its top box: an answer ``x`` counts when
+    ``x >= max - (top_box - 1)``."""
+
+    methodology_version: str
+    bootstrap: BootstrapSpec
+    top_box: int
+
+    @field_validator("top_box")
+    @classmethod
+    def _at_least_one_point(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("the top box holds at least one scale point")
+        return v
+
+
+#: 18.6.6's own values (``dotaznik.py`` ``agreguj_otazku``), inline there, declared here.
+AIA_AGGREGATE_V1: Final = AggregationSpec(
+    methodology_version="aia-aggregate-1",
+    bootstrap=BootstrapSpec(
+        reps=400,
+        reps_multi=350,
+        seed=20260816,
+        seed_top_box=20260818,
+        quantiles=(0.025, 0.975),
+    ),
+    top_box=2,
+)
 
 # dotaznik.py agreguj_otazku: the unit's note, verbatim, around the lines of the rule.
 _NOTE_INTERVAL: Final = (
@@ -353,8 +432,10 @@ def bootstrap_weighted_mean(
     reps: int,
     seed: int,
     donors: Sequence[str] | None,
+    quantiles: tuple[float, float],
 ) -> dict[str, float] | None:
-    """``bootstrap_weighted_mean``: resample donor clusters, not rows."""
+    """``bootstrap_weighted_mean``: resample donor clusters, not rows; the interval lies
+    between ``quantiles`` of the resampled means."""
     d = [str(i) for i in range(len(values))] if donors is None else [str(x) for x in donors]
     rows = [
         (x, w, dd)
@@ -382,8 +463,8 @@ def bootstrap_weighted_mean(
     vals.sort()
     return {
         "estimate": point,
-        "low": _quantile(vals, 0.025),
-        "high": _quantile(vals, 0.975),
+        "low": _quantile(vals, quantiles[0]),
+        "high": _quantile(vals, quantiles[1]),
         "reps": len(vals),
     }
 
@@ -396,8 +477,10 @@ def bootstrap_weighted_distribution(
     reps: int,
     seed: int,
     donors: Sequence[str] | None,
+    quantiles: tuple[float, float],
 ) -> dict[str, dict[str, float]]:
-    """``bootstrap_weighted_distribution``: a share per category, each with its interval."""
+    """``bootstrap_weighted_distribution``: a share per category, each with its interval
+    between ``quantiles`` of the resampled shares."""
     d = [str(i) for i in range(len(values))] if donors is None else [str(x) for x in donors]
     rows = [
         (str(v), w, dd)
@@ -435,7 +518,7 @@ def bootstrap_weighted_distribution(
             vals = sorted(
                 (100.0 * nums.get(c, 0.0) / den) if den > 0 else 0.0 for den, nums in per_rep
             )
-            lo, hi = _quantile(vals, 0.025), _quantile(vals, 0.975)
+            lo, hi = _quantile(vals, quantiles[0]), _quantile(vals, quantiles[1])
             rr = reps
         out[c] = {
             "estimate": round(point, 1),
@@ -465,9 +548,11 @@ def aggregate_question(
     *,
     validation_status: str,
     support_rule: SupportThresholds,
+    method: AggregationSpec,
 ) -> dict[str, Any]:
     """One question's weighted, interval-first aggregate, as the unit reports it, its status
-    decided by ``support_rule``."""
+    decided by ``support_rule`` and its intervals and top box by ``method``."""
+    boot = method.bootstrap
     rows = [(a, w, d) for a, w, d in zip(answers, weights, donors, strict=True) if a is not None]
     ok_answers = [r[0] for r in rows]
     w = clean_weights([r[1] for r in rows])
@@ -494,7 +579,13 @@ def aggregate_question(
     if q.typ == "vyber":
         dist = (
             bootstrap_weighted_distribution(
-                ok_answers, q.options, w, reps=400, seed=20260816, donors=ok_donors
+                ok_answers,
+                q.options,
+                w,
+                reps=boot.reps,
+                seed=boot.seed,
+                donors=ok_donors,
+                quantiles=boot.quantiles,
             )
             if rows
             else {}
@@ -514,7 +605,14 @@ def aggregate_question(
             )
             pct[choice] = round(point, 1)
             bci = (
-                bootstrap_weighted_mean(hit, w, reps=350, seed=20260816 + ii, donors=ok_donors)
+                bootstrap_weighted_mean(
+                    hit,
+                    w,
+                    reps=boot.reps_multi,
+                    seed=boot.seed + ii,
+                    donors=ok_donors,
+                    quantiles=boot.quantiles,
+                )
                 if rows
                 else None
             )
@@ -528,12 +626,25 @@ def aggregate_question(
         out["pozn"] = "více odpovědí, součet > 100 %"
     elif q.typ == "skala":
         v = [_numeric(a) for a in ok_answers]
-        ci = bootstrap_weighted_mean(v, w, reps=400, seed=20260816, donors=ok_donors) if v else None
+        ci = (
+            bootstrap_weighted_mean(
+                v, w, reps=boot.reps, seed=boot.seed, donors=ok_donors, quantiles=boot.quantiles
+            )
+            if v
+            else None
+        )
         var = weighted_variance(v, w)
         top = q.scale[1] if q.scale else 0
-        top_hit = [1.0 if x >= top - 1 else 0.0 for x in v]
+        top_hit = [1.0 if x >= top - (method.top_box - 1) else 0.0 for x in v]
         top_ci = (
-            bootstrap_weighted_mean(top_hit, w, reps=400, seed=20260818, donors=ok_donors)
+            bootstrap_weighted_mean(
+                top_hit,
+                w,
+                reps=boot.reps,
+                seed=boot.seed_top_box,
+                donors=ok_donors,
+                quantiles=boot.quantiles,
+            )
             if v
             else None
         )
@@ -578,7 +689,8 @@ def aggregate_dataset(
     """Every question and every battery object of ``spec``, aggregated over ``dataset``.
 
     ``support`` is the run's pinned support specification; its ``results`` rule decides
-    every cell's ``support_status`` (plan ``methodology-tab`` G1c).
+    every cell's ``support_status`` (plan ``methodology-tab`` G1c). Every question is
+    aggregated under :data:`AIA_AGGREGATE_V1`, the unit's own values (G2a).
 
     A battery object is aggregated as the scale question the unit compiles it to
     (``research_project.py`` ``_prefixed_battery_questions``).
@@ -597,6 +709,7 @@ def aggregate_dataset(
             donors,
             validation_status=validation_status,
             support_rule=support.results,
+            method=AIA_AGGREGATE_V1,
         )
         for q in spec.questions
     }
@@ -620,6 +733,7 @@ def aggregate_dataset(
                     donors,
                     validation_status=validation_status,
                     support_rule=support.results,
+                    method=AIA_AGGREGATE_V1,
                 ),
             }
         batteries[b.id] = {"title": b.title, "family": b.family, "objects": objects}
