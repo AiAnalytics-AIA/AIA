@@ -104,15 +104,18 @@ apps/
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
-                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
+                            optional technical details and protected policy drafts; settings-guide.ts
+                            explains each setting and its scope; every control from GET /settings, how each is set;
                             live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
                             the one AI section: ai_runtime beside /config's switches, never "connected"),
-                            settings/MethodologyPanel (the Metodika tab: each module's steps, formulas
+                            settings/MethodologyPanel (the Metodika tab: searchable modules and grouped steps, formulas
                             as MathML via Temml, every value with its origin), MethodologyVersions (in
                             force, stored versions and what each changes, activation with a reason,
-                            history; for an administrator the editor: the whole spec and each formula
+                            history; for an administrator the editor: one section at a time with original values,
+                            draft replacement guards, fresh check/compare results and optional expert formula
                             slot, the domain's check at the field) and MethodologyComparison (an edit
-                            beside what is in force on fictional panels); lib/methodology-edit.ts is
+                            beside what is in force on fictional panels or support cells); lib/methodology-edit.ts is
                             the editor's pure part,
                             FrontDoor (the branded frame of /login, /logout, /auth/callback)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
@@ -841,6 +844,7 @@ ungated fixture.
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
