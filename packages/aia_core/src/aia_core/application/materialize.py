@@ -9,15 +9,17 @@ anything is enqueued, and returns a :class:`MaterializationRequest` frozen to:
 * the **base**: LIVE as it stands now, recorded; a retry keeps it, never re-chooses it;
 * the **definition**, by its hash.
 
-Its :attr:`~MaterializationRequest.idempotency_key` is the owner, the base and the definition:
-the same request again finds the same run, from any of the client's studies.
+Its :attr:`~MaterializationRequest.child_key` is the owner, the base and the definition: one
+child, from any of the client's studies. The run's :attr:`~MaterializationRequest.idempotency_key`
+is that child's key within the study, so asking again finds the same run.
 
 The checks read the base version's kept dictionary and build the policy the loader builds
 (``shared_version_policy``); no respondent row is read. The materialize step (P4d3) asks the
 same question of the loaded population before it derives anything.
 
-The workflow template, its executor and the enqueue land together in P4d3: a step no worker
-can claim is never added (``domain/workflow_templates.py``).
+:func:`start_materialization` enqueues the request as a ``population_materialize`` run under
+the study's population project (``projects.owner = study_population``, created on first use),
+recording LIVE's binding as the run's population.
 """
 
 from __future__ import annotations
@@ -28,8 +30,10 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.pipeline import ProjectType
 from ..domain.population import (
     CZ_LIVE,
+    MATERIALIZE_PROJECT_OWNER,
     PopulationBinding,
     PopulationImportContract,
     VersionOwner,
@@ -38,15 +42,19 @@ from ..domain.population.czech import CZ_SYNTHETIC_V17
 from ..domain.population.definition import DimensionDefinition
 from ..domain.population.policy import FieldUse
 from ..domain.scope import Permission, StudyContext
+from ..domain.workflow_templates import POPULATION_MATERIALIZE
 from ..infrastructure.population_repository import PopulationRegistryRepository
+from ..infrastructure.repositories import ProjectRepository
 from .population import live_binding
 from .population_characteristics import shared_version_policy
+from .workflows import StartedRun, start_workflow
 
 __all__ = [
     "MATERIALIZE_KEY_PREFIX",
     "MaterializationRefused",
     "MaterializationRequest",
     "prepare_materialization",
+    "start_materialization",
 ]
 
 #: Every materialize run's idempotency key starts with this.
@@ -73,8 +81,12 @@ class MaterializationRequest:
     base: PopulationBinding
 
     @property
-    def idempotency_key(self) -> str:
-        """The owner, the base and the definition: one run per such triple."""
+    def child_key(self) -> str:
+        """The owner, the base and the definition: the one child they make, from any study.
+
+        The child itself is deduplicated by its owner-qualified version id and the write-once
+        store; this names it for a reader.
+        """
         material = "\n".join(
             (
                 self.owner.organization_id,
@@ -83,8 +95,17 @@ class MaterializationRequest:
                 self.definition.sha256,
             )
         )
-        digest = hashlib.sha256(material.encode("utf-8")).hexdigest()
-        return f"{MATERIALIZE_KEY_PREFIX}:{digest}"
+        return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+    @property
+    def idempotency_key(self) -> str:
+        """The run's key: the child's, within this study.
+
+        A run's key is unique across every study but looked up within one
+        (``WorkflowRepository.find_run_by_idempotency_key``), so a sibling study asking for the
+        same child starts its own run, which finds the child already made.
+        """
+        return f"{MATERIALIZE_KEY_PREFIX}:{self.study_id}:{self.child_key}"
 
     def step_input(self) -> dict[str, Any]:
         """What the materialize step is given: everything it needs, nothing it could re-choose."""
@@ -158,4 +179,52 @@ def prepare_materialization(
         owner=VersionOwner(organization_id=scope.organization_id, client_id=scope.client_id),
         study_id=scope.study_id,
         base=base,
+    )
+
+
+def _population_project(session: Session, scope: StudyContext) -> str:
+    """The study's population project, created on first use; seen by no generic route."""
+    projects = ProjectRepository(session, scope, owner=MATERIALIZE_PROJECT_OWNER)
+    found = projects.list_projects(limit=1).items
+    if found:
+        return found[0].project_id
+    project, _ = projects.create(
+        title="Population materializations",
+        project_type=ProjectType.RESEARCH,
+        content={},
+        created_by=scope.actor_id,
+        reason="population_materialize",
+    )
+    return project.project_id
+
+
+def start_materialization(
+    session: Session, scope: StudyContext, request: MaterializationRequest
+) -> StartedRun:
+    """Enqueue ``request`` as a ``population_materialize`` run, or find the one already made.
+
+    Only from the study the request was prepared in. The run records the base as its
+    population, so the step loads exactly what was checked and a retry never re-chooses it.
+    """
+    if request.study_id != scope.study_id:
+        raise MaterializationRefused(
+            "a request is started in the study it was checked in", reason="other_study"
+        )
+    scope.require(Permission.RUN_WORKFLOW)
+    scope.require_open_study()
+    return start_workflow(
+        session,
+        scope,
+        project_id=_population_project(session, scope),
+        workflow_type=POPULATION_MATERIALIZE,
+        idempotency_key=request.idempotency_key,
+        metadata={
+            "definition_sha256": request.definition.sha256,
+            "dimension_id": request.definition.dimension_id,
+            "child_key": request.child_key,
+            "base_version_id": request.base.version_id,
+        },
+        step_inputs={"materialize": request.step_input()},
+        owner=MATERIALIZE_PROJECT_OWNER,
+        population=request.base,
     )

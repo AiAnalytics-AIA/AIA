@@ -5,7 +5,7 @@ Keeping the mapping here, in the domain, means the API cannot compose a DAG from
 a request body and the worker cannot invent one -- both only ever see a
 template's output, and the templates are tested like any other rule.
 
-Two templates:
+The templates:
 
 * ``develop_snapshot`` -- a single deterministic step that records what a
   project's current revision looks like, as an artifact. It proves the deployed
@@ -19,6 +19,8 @@ Two templates:
   ``delivery``) join this template as their executors land; a node without an
   executor is never added, because a step no worker can claim would leave the run
   "running" forever.
+* ``population_materialize`` -- one step that derives a client's materialized dimension over
+  LIVE and registers the owned child version (population-operations P4d3); never promotes.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from .workflow import StepDefinition
 
 __all__ = [
     "DEVELOP_SNAPSHOT",
+    "POPULATION_MATERIALIZE",
     "REPORT_STEP_KIND",
     "RESEARCH",
     "RESEARCH_KINDS",
@@ -54,8 +57,14 @@ REPORT_STEP_KIND: Final = "research_report"
 SOCIOMAPPING_STEP_KIND: Final = "research_sociomapping"
 SOCIOMAPPING_REPORT_STEP_KIND: Final = "research_sociomapping_report"
 
+#: A materialized dimension (population-operations P4d3): one step that derives a client's
+#: dimension over LIVE and registers the owned child version. It never promotes.
+POPULATION_MATERIALIZE: Final = "population_materialize"
+
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
-WORKFLOW_TYPES: Final[frozenset[str]] = frozenset({DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT})
+WORKFLOW_TYPES: Final[frozenset[str]] = frozenset(
+    {DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT, POPULATION_MATERIALIZE}
+)
 
 #: The research template's step kinds, by node key -- what an executor registers for.
 RESEARCH_KINDS: Final[dict[str, str]] = {
@@ -105,6 +114,19 @@ def steps_for_workflow(
                 stage_type=first_stage,
                 artifact_target=DEVELOP_SNAPSHOT,
                 max_attempts=3,
+            )
+        ]
+    if workflow_type == POPULATION_MATERIALIZE:
+        # No model call and no money; a retry after a crash finds what the first stored.
+        return [
+            StepDefinition(
+                node_key="materialize",
+                kind=POPULATION_MATERIALIZE,
+                stage_type=stage_ids(project_type)[0],
+                artifact_target="population_child_version",
+                max_attempts=3,
+                # It reads the base: a run cannot be made without the binding it records.
+                consumes_population=True,
             )
         ]
     if workflow_type == RESEARCH_AGENT:
