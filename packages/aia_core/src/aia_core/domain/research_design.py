@@ -557,7 +557,9 @@ def _selection(content: dict[str, Any], audience: dict[str, Any]) -> SpecSelecti
 READINESS_RULES: Final = "aia-structural-readiness-1"
 
 
-def assess_readiness(spec: ResearchSpecification, *, pair_n_min: int) -> Readiness:
+def assess_readiness(
+    spec: ResearchSpecification, *, pair_n_min: int, filters_applied: bool = False
+) -> Readiness:
     """AIA's structural readiness checks. Ready means no check FAILed.
 
     ``pair_n_min`` is how many respondents each pair of a tracked set needs, as the run
@@ -652,12 +654,33 @@ def assess_readiness(spec: ResearchSpecification, *, pair_n_min: int) -> Readine
             + ", ".join(spec.selection.dimensions)
             + ") jsou uložené s během, ale AIA je zatím na respondenty neuplatní.",
         )
-    if spec.audience.get("has_filters") or spec.audience.get("source_mode") != "population":
+    # ``filters_applied``: the run is pinned to draw its respondents from the population, and
+    # draws them under the design's filters (plan panel-grounded-respondents 6d). Otherwise
+    # nothing applies them, and the check says so.
+    if spec.audience.get("source_mode") != "population":
         check(
             "audience",
             CheckStatus.WARN,
-            "AIA zatím nepoužije filtry ani vlastní publikum; běh počítá s celou populací.",
+            (
+                "AIA nemá vlastní publikum ani speciální panel; běh vybere respondenty z "
+                "populace" + (" pod uloženými filtry." if spec.audience.get("has_filters") else ".")
+            )
+            if filters_applied
+            else "AIA zatím nepoužije filtry ani vlastní publikum; běh počítá s celou populací.",
         )
+    elif spec.audience.get("has_filters"):
+        if filters_applied:
+            check(
+                "audience",
+                CheckStatus.PASS,
+                "Filtry se uplatní při výběru respondentů z populace.",
+            )
+        else:
+            check(
+                "audience",
+                CheckStatus.WARN,
+                "AIA zatím nepoužije filtry ani vlastní publikum; běh počítá s celou populací.",
+            )
     else:
         check("audience", CheckStatus.PASS, "Celá populace.")
 
@@ -669,10 +692,10 @@ def assess_readiness(spec: ResearchSpecification, *, pair_n_min: int) -> Readine
 
 
 def prepare(
-    content: dict[str, Any], *, pair_n_min: int
+    content: dict[str, Any], *, pair_n_min: int, filters_applied: bool = False
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
-    ``pair_n_min`` as :func:`assess_readiness` takes it."""
+    ``pair_n_min`` and ``filters_applied`` as :func:`assess_readiness` takes them."""
     spec, problems = compile_design(content)
     if spec is None:
         return None, Readiness(
@@ -685,4 +708,4 @@ def prepare(
                 for p in problems
             ),
         )
-    return spec, assess_readiness(spec, pair_n_min=pair_n_min)
+    return spec, assess_readiness(spec, pair_n_min=pair_n_min, filters_applied=filters_applied)

@@ -952,6 +952,32 @@ def test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population
     assert read["persona_source"] == "fictional_roster"
 
 
+def test_readiness_says_the_filters_apply_only_where_a_new_run_would_draw_from_the_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 6d: readiness reads the pin a start would make now."""
+    filtered = {
+        **DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def audience() -> dict[str, Any]:
+        body = researcher.get(url, params={"design_revision_id": revision_id}).json()
+        return next(c for c in body["checks"] if c["id"] == "audience")
+
+    assert audience()["status"] == "WARN"
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    assert audience() == {
+        "id": "audience",
+        "status": "PASS",
+        "message": "Filtry se uplatní při výběru respondentů z populace.",
+    }
+
+
 def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:

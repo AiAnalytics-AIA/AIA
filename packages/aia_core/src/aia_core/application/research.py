@@ -421,7 +421,7 @@ class ResearchRuns:
             },
             step_inputs={
                 "compile": {"design_revision_id": revision.revision_id},
-                "preflight": {"methods": pinned},
+                "preflight": {"methods": pinned, "persona_source": persona_source.value},
                 "run": {
                     "fieldwork_source": fieldwork_source.value,
                     "persona_source": persona_source.value,
@@ -520,15 +520,22 @@ class ResearchRuns:
         )
         return self.get(run_id)
 
-    def readiness(self, design_revision_id: str) -> tuple[ResearchSpecification | None, Readiness]:
+    def readiness(
+        self,
+        design_revision_id: str,
+        *,
+        persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
+    ) -> tuple[ResearchSpecification | None, Readiness]:
         """Compile a revision of this Study and assess it, without starting anything, under
-        the methodology a start would pin now (the one in force)."""
+        the methodology a start would pin now (the one in force) and the persona source it
+        would pin (a panel run applies the design's audience filters)."""
         designs = self._designs()
         revision = designs.get(design_revision_id)
         methods, _ = self._methods(None)
         return prepare(
             designs.content(revision.revision_id),
             pair_n_min=side_tables_of(methods).n_min,
+            filters_applied=persona_source is PersonaSource.PANEL,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:
