@@ -48,6 +48,7 @@ __all__ = [
     "RatingItem",
     "SociomapArtifactV3",
     "read_artifact",
+    "read_object_maps",
 ]
 
 ARTIFACT_CONTRACT_V3: Literal["3"] = "3"
@@ -397,3 +398,22 @@ def read_artifact(payload: Mapping[str, Any]) -> SociomapArtifact | SociomapArti
     if contract == ARTIFACT_CONTRACT_V3:
         return SociomapArtifactV3.from_payload(payload)
     raise ArtifactIntegrityError(f"no Sociomap artifact contract {contract!r}")
+
+
+def read_object_maps(battery: Mapping[str, Any]) -> tuple[tuple[str, SociomapArtifactV3], ...]:
+    """A stored battery's contract-3 object maps, in stored order, each read and checked.
+
+    The one reader of a battery's ``maps``: every map is read by :func:`read_artifact`
+    (every fingerprint verified), must be contract 3, and must have been computed under
+    the method it is stored by. Anything else is an :class:`~.models.ArtifactIntegrityError`,
+    so no consumer draws or describes a map the run did not compute under that name.
+    """
+    read: list[tuple[str, SociomapArtifactV3]] = []
+    for method, payload in (battery.get("maps") or {}).items():
+        artifact = read_artifact(payload)
+        if not isinstance(artifact, SociomapArtifactV3):
+            raise ArtifactIntegrityError("an object map must use contract 3")
+        if artifact.spec.methodology_version != method:
+            raise ArtifactIntegrityError("map method differs from its stored key")
+        read.append((str(method), artifact))
+    return tuple(read)

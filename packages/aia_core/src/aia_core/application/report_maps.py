@@ -20,7 +20,7 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.report.numbers import number
-from aia_core.domain.sociomap import SociomapArtifactV3, read_artifact
+from aia_core.domain.sociomap import read_object_maps
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 
 QUALITY = {
@@ -62,12 +62,7 @@ def compose_map_sections(
                 )
             ),
         ]
-        for ordinal, (method, payload) in enumerate(battery.get("maps", {}).items(), start=1):
-            artifact = read_artifact(payload)
-            if not isinstance(artifact, SociomapArtifactV3):
-                raise ValueError("an object map must use contract 3")
-            if artifact.spec.methodology_version != method:
-                raise ValueError("map method differs from its stored key")
+        for ordinal, (method, artifact) in enumerate(read_object_maps(battery), start=1):
             if artifact.layout is None:
                 assert artifact.not_mappable is not None
                 blocks.append(

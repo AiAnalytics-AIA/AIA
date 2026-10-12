@@ -10,10 +10,17 @@ import pytest
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.domain.report.model import Paragraph, SociomapFigure
 from aia_core.domain.sociomap import (
+    AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V3,
+    ArtifactIntegrityError,
     ObjectMapInputs,
     RatingItem,
+    RatingsMatrix,
+    RelationMatrix,
+    SociomapInputs,
     compute_object_map,
+    compute_sociomap,
+    read_object_maps,
 )
 from aia_core.domain.sociomap.layout import correlation_distance
 from aia_core.infrastructure.report_docx.cover import ASSET
@@ -112,3 +119,42 @@ def test_reading_guide_matches_signed_correlation_distance_not_link_strength() -
     assert "z korelace se znaménkem" in prose
     assert "silný záporný vztah znamená větší cílovou vzdálenost" in prose
     assert "bez ohledu na znaménko" not in prose
+
+
+def test_a_map_stored_under_another_method_is_refused_by_report_and_figure_alike() -> None:
+    # Both readers go through read_object_maps: neither describes nor draws a map the run did
+    # not compute under the name it is stored by (the figure renderer used not to check).
+    frozen = result()
+    maps = frozen["batteries"][0]["maps"]
+    maps["aia-sociomap-2"] = maps.pop(AIA_SOCIOMAP_V3.methodology_version)
+    with pytest.raises(ValueError, match="differs from its stored key"):
+        object_map_snapshots(frozen)
+    with pytest.raises(ValueError, match="differs from its stored key"):
+        compose_map_sections(frozen, {}, source="Frozen map SHA")
+
+
+def test_read_object_maps_reads_in_stored_order_and_refuses_another_contract() -> None:
+    frozen = result()
+    battery = frozen["batteries"][0]
+    [(method, artifact)] = read_object_maps(battery)
+    assert method == AIA_SOCIOMAP_V3.methodology_version
+    assert artifact.spec.methodology_version == method
+    assert read_object_maps({"maps": {}}) == () == read_object_maps({})
+    # A genuine contract-2 map stored where a contract-3 one belongs is refused, not drawn.
+    objects = ("a", "b", "c", "d")
+    contract_2 = compute_sociomap(
+        SociomapInputs(
+            ratings=RatingsMatrix(
+                respondent_ids=("p0", "p1", "p2", "p3"),
+                object_ids=objects,
+                values=((9, 3, 5, 1), (2, 8, 4, 7), (6, 6, 9, 2), (1, 2, 3, 10)),
+            ),
+            object_relation=RelationMatrix(
+                entity_ids=objects,
+                values=((0, 4, 9, 2), (6, 0, 3, 8), (7, 5, 0, 1), (3, 9, 2, 0)),
+            ),
+        ),
+        AIA_SOCIOMAP_V1,
+    ).to_payload()
+    with pytest.raises(ArtifactIntegrityError, match="must use contract 3"):
+        read_object_maps({"maps": {AIA_SOCIOMAP_V1.methodology_version: contract_2}})
