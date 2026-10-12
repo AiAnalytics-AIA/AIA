@@ -541,7 +541,7 @@ export const cs = {
         search: "Hledat oblast metodiky", searchPlaceholder: "Objektová mapa, referenční mapa…",
         noMatch: "Žádná část neodpovídá hledání.", findStep: "Hledat výpočet nebo parametr", findStepPlaceholder: "Např. spolehlivost, terén, velikost vzorku…",
         leaveEditor: "Přepnutí oblasti zavře rozpracovaný editor metodiky. Chcete pokračovat?", discardEditor: "Zahodit úpravy a přepnout",
-        editableModule: "Postup výpočtu mapy. Vlastník nebo správce může vytvořit novou verzi parametrů a vzorců; již hotové běhy zůstanou stejné.",
+        editableModule: "Postup výpočtu. Vlastník nebo správce může vytvořit novou verzi parametrů a vzorců; již hotové běhy zůstanou stejné.",
         readOnlyModule: "Tento postup je dostupný ke čtení. Úpravy zde nejsou podporované; nejde o nastavení, které lze změnit přepínačem.",
         methodNote: "Podrobnosti o metodě a jejích omezeních", catalogueTitle: "Prohlédnout výchozí postup výpočtu",
         catalogueHelp: "Zvolená předvolba je dokumentace z kódu. Její prohlížení nic neaktivuje. Skutečně platnou verzi a její úpravy najdete v části Verze metodiky.",

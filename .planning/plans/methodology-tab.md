@@ -37,10 +37,11 @@ chunks:
   - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
   - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
-  - "[ ] R1d. Results name the run's response process and say when it is not 18.6.6's (on Z1a's Metodika běhu, once #338 is merged)"
+  - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
-  - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
+  - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
+  - "[ ] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
 ---
 # The Metodika tab — every formula and statistic in AIA, shown from the code and editable by the methodologist
 
@@ -996,6 +997,39 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
   check lists every row a lowered threshold would newly report.
 
+- **Z1a. Landed.** Walked on the UI workbench at `develop @ a19af14d`.
+  - **Through the API, per module.** Edit, `/check`, `/compare`, store as a version, activate
+    with a reason: the Sociomap (`relation.n_min` 30 → 20), support (Results' lower donor line
+    25 → 20) and aggregation (`top_box` 2 → 1). Every step 200/201. The draft checks moved what
+    the edits should: the top boxes (small panel 52.7 % → 5.5 %, means unchanged) and one small-panel
+    cell SUPPRESS → INDICATIVE. The balanced panel's map did not move under n_min 20, as
+    expected at 120 raters.
+  - **The run.** A research run through the browser (`tools/ui_workbench/research_journey.mjs`)
+    pinned all three stored versions by name and hash, with the edited values. Results show the
+    map as `aia-sociomap-3+e1`, and the Data tab opens with the 18.6.6 deviation naming
+    `aia-aggregate-1+e1` and `top_box: 2 v 18.6.6, zde 1`, the top boxes reading "Horní body (1)".
+    The support edit cannot show on that run: every cell has 141 donors.
+  - **In the browser, as the methodologist clicks it.** Nastavení → Metodika → Podpora a
+    potlačení → Upravit metodiku → one field → Porovnat → Zkontrolovat a uložit → Uvést v
+    platnost with a reason: stored `aia-support-1+e2`, in force, no error.
+  - **Fixed here.** Results never said which methods a run used: the run API did not return
+    them, the run's provenance showed only its ids, and the support version appeared nowhere.
+    The run now carries `methodology` (each module's name, stored or the code's preset), read
+    from its metadata by `methodology.pins.run_methods` (the domain: layer_check keeps the
+    Sociomap preset's name out of the API; no pin reads as the preset, a pin that cannot be read as `null`, never a guess,
+    `test_run_methods.py`), and Results show it as "Metodika běhu"
+    (`test_research_api.py::test_a_run_names_the_methods_it_computed_under`). A retry kept its
+    original's pins but not where they came from: `retry` passes them explicitly, so the new
+    run had no `methodology` / `support_methodology` / `aggregation_methodology` records and
+    read as the code's (found in review on #338). A retry now keeps them, as metadata only,
+    never in its key
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`). Every editable
+    module also introduced itself as "Postup výpočtu mapy"; now "Postup výpočtu".
+  - **Not fixed (minor).** A line a rule does not check is edited as the text `null`; the
+    Metodika tab has no link of its own (`/app/settings?tab=` is not read).
+  - **Workbench in a git worktree.** The API and worker ran the main checkout's code through
+    the editable install until `PYTHONPATH` named the worktree's sources, and `next dev`
+    (Turbopack) refuses a symlinked `node_modules`. Doc follow-up for AGENTS.md.
 - **R1a. Landed.** `domain/methodology/response.py` is module `response`, read-only,
   registered after `weighting`.
   - **Declared and read.** `ResponseProcessSpec` (`respondent_behavior.py`): social
@@ -1071,6 +1105,22 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     many profiles put a style into words. No model is called, nothing is drawn.
   - **R1d split out:** Results naming the process and the deviation sentence belong on the
     "Metodika běhu" line Z1a adds; they follow once #338 is merged, not stacked on it.
+
+- **R1d. Landed** (on Z1a's "Metodika běhu", #338).
+  - The run's `methodology` names its response process like the other three
+    (`run_methods`: the stored version, else the pin's own name, else `aia-response-1` for a
+    run from before the pin, `null` for a pin that cannot be read) and carries
+    `response_deviates`: `true` when the process is not 18.6.6's, `null` when its pin cannot
+    be read, never guessed (`test_run_methods.py::test_a_response_process_says_whether_it_is_the_units`).
+  - The coefficients decide, not the name: a stored version holding the unit's values is the
+    unit's process (`methodology.pins.is_units_process`). R1b's dataset provenance `unit` flag
+    compared whole specifications, names included, and now uses the same function.
+  - Results show "Odpověď <name> (uložená verze | z kódu)" and, when it deviates, that the
+    answers came from another response process than 18.6.6's and are not directly comparable
+    with its results; when it cannot be read, that this cannot be told
+    (`ResultsWorkspace.test.tsx`).
+  - A retry keeps `response_methodology` with the other stored-version records
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 

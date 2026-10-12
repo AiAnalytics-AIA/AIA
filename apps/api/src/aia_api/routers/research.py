@@ -53,6 +53,7 @@ from aia_core.domain.fieldwork import (
     origin_kind,
     persona_source_of,
 )
+from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -243,6 +244,31 @@ class ResearchRunPopulation(BaseModel):
     read_by_fieldwork: bool
 
 
+class ResearchRunMethod(BaseModel):
+    """One method a run pinned when it started (plan ``methodology-tab`` Z1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: ``None``: the run recorded a pin that cannot be read as a name; never a guess.
+    name: str | None
+    #: ``True``: a version stored on the Metodika tab; ``False``: the code's preset.
+    stored: bool
+
+
+class ResearchRunMethodology(BaseModel):
+    """The methods a run computed under, by name: what Results says the numbers came from."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sociomap: ResearchRunMethod
+    support: ResearchRunMethod
+    aggregation: ResearchRunMethod
+    #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
+    response: ResearchRunMethod
+    #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
+    response_deviates: bool | None
+
+
 class ResearchRunResponse(BaseModel):
     """A research run of this Study, as a person needs to read it (ADR 0016)."""
 
@@ -270,6 +296,8 @@ class ResearchRunResponse(BaseModel):
     actual_cost_usd: float | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
+    #: The Sociomap, support and aggregation methods the run pinned when it started.
+    methodology: ResearchRunMethodology
     #: Who its AI respondents are, as the run pinned it: ``fictional_roster`` or ``panel``.
     persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
 
@@ -579,6 +607,16 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
     )
 
 
+def _methodology(meta: Mapping[str, Any]) -> ResearchRunMethodology:
+    methods = run_methods(meta)
+    return ResearchRunMethodology(
+        **{
+            module: ResearchRunMethod(name=m.name, stored=m.stored) for module, m in methods.items()
+        },
+        response_deviates=response_deviates(meta),
+    )
+
+
 def _run(
     run: dict[str, Any], scope: StudyContext, *, created: bool | None = None
 ) -> ResearchRunResponse:
@@ -616,6 +654,7 @@ def _run(
             if isinstance(meta.get("population"), dict)
             else None
         ),
+        methodology=_methodology(meta),
         persona_source=persona_source_of(meta).value,
     )
 

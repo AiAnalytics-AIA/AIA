@@ -19,6 +19,7 @@ Pure: stdlib and Pydantic only.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Final
 
 from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
@@ -34,11 +35,15 @@ __all__ = [
     "COMPUTED_SLOTS",
     "UNIT_AGGREGATION_PIN",
     "FormulaNotComputed",
+    "RunMethod",
     "aggregation_pin_for",
+    "is_units_process",
     "read_aggregation_pin",
     "read_response_pin",
     "read_support_pin",
+    "response_deviates",
     "response_spec_for",
+    "run_methods",
     "sociomap_methods_for",
     "support_spec_for",
     "uncomputed_formulas",
@@ -154,3 +159,101 @@ def read_response_pin(value: Any) -> ResponseProcessSpec:
     if value is None:
         return AIA_RESPONSE_V1
     return ResponseProcessSpec.model_validate(value)
+
+
+@dataclass(frozen=True)
+class RunMethod:
+    """One method a run computed under, by name (plan ``methodology-tab`` Z1a)."""
+
+    #: ``None``: the run recorded a pin that cannot be read as a name. Never guessed.
+    name: str | None
+    #: ``True``: a version stored on the Metodika tab; ``False``: the pin or the code's preset.
+    stored: bool
+
+
+def _stored_name(meta: Mapping[str, Any], key: str) -> str | None:
+    record = meta.get(key)
+    return str(record["name"]) if isinstance(record, Mapping) and record.get("name") else None
+
+
+def _version(spec: Any) -> str | None:
+    if isinstance(spec, Mapping) and spec.get("methodology_version"):
+        return str(spec["methodology_version"])
+    return None
+
+
+def _sociomap_name(value: Any) -> str | None:
+    reference = AIA_SOCIOMAP_V1.methodology_version
+    if value is None:
+        return reference  # before the pins: the legacy method (``LEGACY_METHODS``)
+    if not isinstance(value, list) or not value:
+        return None
+    ids = [m.get("method_id") if isinstance(m, Mapping) else None for m in value]
+    if not all(isinstance(i, str) and i for i in ids):
+        return None
+    edited = [i for i in ids if i != reference]
+    return str(edited[-1]) if edited else reference
+
+
+def run_methods(meta: Mapping[str, Any]) -> dict[str, RunMethod]:
+    """The Sociomap, support, aggregation and response methods a run's metadata records, by
+    name.
+
+    A stored version is named as stored. Otherwise the name is the pin's own: the last pinned
+    Sociomap method beside the reference map, the support and aggregation specifications'
+    ``methodology_version``. A run started before a module was pinned (no pin) was computed
+    under that module's code preset, which is what the pins' own readers read it as
+    (``read_methods``, :func:`read_support_pin`, :func:`read_aggregation_pin`). A pin that is
+    there but cannot be read gives ``None``, never a preset's name: the engine would refuse
+    it, and a guess here would say the run was computed under something it was not. Reading
+    only: nothing is validated or computed, so a list of runs never fails on one run's pin."""
+    support_pin = meta.get("support")
+    aggregation_pin = meta.get("aggregation")
+    response_pin = meta.get("response")
+    pinned = {
+        "sociomap": _sociomap_name(meta.get("sociomap_methods")),
+        "support": (
+            AIA_SUPPORT_V1.methodology_version if support_pin is None else _version(support_pin)
+        ),
+        "aggregation": (
+            AIA_AGGREGATE_V1.methodology_version
+            if aggregation_pin is None
+            else _version(aggregation_pin.get("spec"))
+            if isinstance(aggregation_pin, Mapping)
+            else None
+        ),
+        "response": (
+            AIA_RESPONSE_V1.methodology_version if response_pin is None else _version(response_pin)
+        ),
+    }
+    keys = {
+        "sociomap": "methodology",
+        "support": "support_methodology",
+        "aggregation": "aggregation_methodology",
+        "response": "response_methodology",
+    }
+    methods = {}
+    for module, key in keys.items():
+        stored = _stored_name(meta, key)
+        methods[module] = RunMethod(name=stored or pinned[module], stored=stored is not None)
+    return methods
+
+
+def response_deviates(meta: Mapping[str, Any]) -> bool | None:
+    """Whether the response process a run's answers came from is not 18.6.6's (plan
+    ``methodology-tab`` R1d). A run started before the process was pinned was answered under
+    ``aia-response-1``: ``False``. A pin that cannot be read gives ``None``: the run's answers
+    came from some process, and saying which would be a guess. The coefficients decide, not
+    the version's name."""
+    try:
+        pinned = read_response_pin(meta.get("response"))
+    except ValueError:
+        return None
+    return not is_units_process(pinned)
+
+
+def is_units_process(spec: ResponseProcessSpec) -> bool:
+    """Whether ``spec`` computes with 18.6.6's coefficients. The numbers decide, not the
+    name: a stored version holding the unit's values is the unit's process."""
+    unit = AIA_RESPONSE_V1.model_dump(exclude={"methodology_version"})
+    return bool(spec.model_dump(exclude={"methodology_version"}) == unit)

@@ -21,6 +21,7 @@ from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import (
@@ -925,6 +926,67 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
     assert read["population"] == note
+
+
+def test_a_run_names_the_methods_it_computed_under(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Methodology-tab Z1, R1d: Results say which Sociomap, support, aggregation and response
+    process a run pinned, and whether its response process is 18.6.6's."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+
+    def version(module: str, name: str) -> dict[str, Any]:
+        return {"module": module, "version": 1, "name": name, "payload_sha256": "0" * 64}
+
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {
+            **row.metadata_json,
+            "methodology": version("sociomap", "aia-sociomap-3+e1"),
+            "support_methodology": version("support", "aia-support-1+e2"),
+            "aggregation_methodology": version("aggregation", "aia-aggregate-1+e1"),
+            "response": {
+                **AIA_RESPONSE_V1.model_dump(mode="json"),
+                "methodology_version": "aia-response-1+e1",
+                "extremity": 0.5,
+            },
+            "response_methodology": version("response", "aia-response-1+e1"),
+        }
+        session.commit()
+    read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert read["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3+e1", "stored": True},
+        "support": {"name": "aia-support-1+e2", "stored": True},
+        "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
+        "response": {"name": "aia-response-1+e1", "stored": True},
+        "response_deviates": True,
+    }
+    listed = researcher.get(_runs(world)).json()["items"]
+    assert listed[0]["methodology"] == read["methodology"]
+
+
+def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under() -> None:
+    from aia_api.routers.research import _methodology
+
+    assert _methodology({}).model_dump() == {
+        "sociomap": {"name": "aia-sociomap-1", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+    unreadable = _methodology({"response": {"extremity": "much"}}).model_dump()
+    assert unreadable["response"] == {"name": None, "stored": False}
+    assert unreadable["response_deviates"] is None  # never a guess
 
 
 def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real() -> None:
