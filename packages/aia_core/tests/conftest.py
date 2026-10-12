@@ -1582,3 +1582,178 @@ def deep_research_bundles() -> Any:
     return SimpleNamespace(
         QUESTION=question, OBJECT=obj, WEB_O=web_o, accepted=accepted, bundle=bundle
     )
+
+
+# --------------------------------------------------------------------------- #
+# The sampler's fictional rows as a LIVE population (panel-grounded respondents)
+# --------------------------------------------------------------------------- #
+
+
+class _NoEnrichment:
+    enricher_id = "test-no-enrichment/v1"
+
+    def derive(self, panel: Any) -> dict[str, tuple[str | None, ...]]:
+        return {}
+
+
+@dataclass(frozen=True)
+class SampledPopulation:
+    """A runtime over the fictional population, and LIVE loaded as a run loads it."""
+
+    runtime: Any
+    population: Any
+
+
+@pytest.fixture
+def sampled_population(session: Any) -> Any:
+    """Build ``fixtures/representative_draw/rows.csv`` (3,000 fictional rows on 400 donors,
+    every quota field) as v1_BASE, v1_1 (STATIC) and v1_4 (LIVE), with the persona
+    companions, and load LIVE's ANALYSIS view. ``omit`` leaves companions out; ``policy``
+    overrides a field's dictionary row (block, evidence status, grade, use, persona)."""
+    import csv
+    import io
+    import math
+
+    from aia_core.application.population import PopulationRuntime
+    from aia_core.application.population_authority import (
+        PopulationAuthority,
+        PopulationOperatorConfig,
+    )
+    from aia_core.application.scope import AuthenticatedPrincipal
+    from aia_core.domain.population import (
+        CompanionKind,
+        CompanionSpec,
+        KnownVersion,
+        PopulationImportContract,
+        PopulationKind,
+        PopulationSelector,
+        PopulationView,
+        WeightScheme,
+        content_sha256,
+        field_names_fingerprint,
+    )
+    from aia_core.infrastructure.population_source import InMemoryPopulationSource
+
+    tests = Path(__file__).parent
+    weight = "vaha_strukturalni_2025"
+    raw = (tests / "fixtures" / "representative_draw" / "rows.csv").read_text("utf-8")
+    header_row, *body = list(csv.reader(io.StringIO(raw)))
+    header = tuple(header_row)
+    rows = [dict(zip(header, r, strict=True)) for r in body]
+    catalog = (tests / "fixtures" / "persona_profile" / "catalog.csv").read_bytes()
+    labels = (
+        tests.parents[2] / "legacy" / "npc-panel-18.6.6" / "app" / "PERSONA_VALUE_LABELS_v17.json"
+    ).read_bytes()
+    operator = PopulationAuthority(
+        PopulationOperatorConfig.from_names(
+            {"owner": ("POPULATION_ESTABLISH", "POPULATION_PROMOTE")}
+        )
+    ).operator_context(AuthenticatedPrincipal(user_id="owner", organization_id="platform"))
+
+    def build(
+        *,
+        omit: tuple[str, ...] = (),
+        policy: dict[str, tuple[str, str, str, str, str]] | None = None,
+    ) -> SampledPopulation:
+        versions = {
+            label: [{**r, "panel_row_id": f"{r['panel_row_id']}-{label}"} for r in rows]
+            for label in ("v1_BASE", "v1_1", "v1_4")
+        }
+        panels = {label: gzip_csv(header, vrows) for label, vrows in versions.items()}
+        dictionary = policy_dictionary_csv(
+            header,
+            {
+                "panel_row_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+                "core_donor_id": ("provenance", "PROVENANCE_OR_CORE", "T", "AUDIT_ONLY", "no"),
+                weight: ("weight", "NEW_WEIGHT", "T", "AUDIT_ONLY", "no"),
+                **(policy or {}),
+            },
+        )
+        certificate = joint_certificate_json(content_sha256(panels["v1_4"]))
+        assets = {
+            asset: data
+            for asset, data in (
+                ("CORE_JOINT_STATUS.json", certificate),
+                ("PERSONA_SIGNAL_CATALOG_v17.csv", catalog),
+                ("PERSONA_VALUE_LABELS_v17.json", labels),
+            )
+            if asset not in omit
+        }
+        total = math.fsum(float(r[weight] or 0) for r in rows)
+        contract = PopulationImportContract(
+            contract_id="panel_source_population/v1",
+            dataset_id="panel_source_population",
+            field_count=len(header),
+            field_names_sha256=field_names_fingerprint(header),
+            dictionary_sha256=content_sha256(dictionary),
+            primary_key="panel_row_id",
+            expected_rows=len(rows),
+            weight_schemes=(
+                WeightScheme("default_current", weight, expected_total=total, tolerance=1e-6),
+            ),
+            default_weight_role="default_current",
+            known_versions=(
+                KnownVersion("v1_BASE", content_sha256(panels["v1_BASE"]), len(panels["v1_BASE"])),
+                KnownVersion(
+                    "v1_1", content_sha256(panels["v1_1"]), len(panels["v1_1"]), "v1_BASE"
+                ),
+                KnownVersion("v1_4", content_sha256(panels["v1_4"]), len(panels["v1_4"]), "v1_1"),
+            ),
+            static_reference_label="v1_1",
+            enrichment_fields=(),
+            companions=tuple(
+                CompanionSpec(
+                    asset_id=asset,
+                    kind=CompanionKind.CORE_JOINT_STATUS
+                    if asset == "CORE_JOINT_STATUS.json"
+                    else CompanionKind.INTEGRITY_ONLY,
+                    sha256=content_sha256(data),
+                    byte_size=len(data),
+                    fmt="json" if asset.endswith(".json") else "csv",
+                )
+                for asset, data in assets.items()
+            ),
+            joint_certified_labels=frozenset({"v1_4"}),
+        )
+        source = InMemoryPopulationSource({"dictionary.csv": dictionary})
+        for label, data in panels.items():
+            source.put(f"panels/{label}.csv.gz", data)
+            for asset, blob in assets.items():
+                source.put(f"companions/{label}/{asset}", blob)
+        rt = PopulationRuntime(session, contract=contract, source=source, enricher=_NoEnrichment())
+
+        def load(label: str) -> Any:
+            return rt.import_version(
+                label=label,
+                panel_location=f"panels/{label}.csv.gz",
+                dictionary_location="dictionary.csv",
+                provenance="fictional sampling rows",
+                imported_by="importer",
+                companion_locations={a: f"companions/{label}/{a}" for a in assets},
+            )
+
+        load("v1_BASE")
+        anchor = load("v1_1")
+        rt.establish(
+            population_id="PANEL_SOURCE_STATIC",
+            kind=PopulationKind.STATIC,
+            version_id=anchor.version_id,
+            operator=operator,
+            reason="the anchor",
+        )
+        version = load("v1_4")
+        rt.establish(
+            population_id="PANEL_SOURCE_LIVE",
+            kind=PopulationKind.LIVE,
+            version_id=version.version_id,
+            operator=operator,
+            reason="the panel source's test population",
+        )
+        loaded = rt.load(
+            rt.resolve(
+                PopulationSelector.population("PANEL_SOURCE_LIVE"), view=PopulationView.ANALYSIS
+            )
+        )
+        return SampledPopulation(runtime=rt, population=loaded)
+
+    return build

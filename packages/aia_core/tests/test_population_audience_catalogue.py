@@ -9,19 +9,17 @@ differently (the module's docstring).
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 from sqlalchemy.orm import Session
-from test_population_audience import COLUMNS, FIXTURES, UNIT, _analysis_population
 
-from aia_core.application.population import PopulationRuntime
 from aia_core.domain.population import (
-    PopulationSelector,
-    PopulationView,
     UnknownDatasetVersion,
     VersionIntegrityError,
 )
@@ -32,6 +30,23 @@ from aia_core.domain.population.audience_catalogue import (
 )
 from aia_core.infrastructure.tables import PopulationVersionAudienceCatalogueRow
 
+FIXTURES = Path(__file__).parent / "fixtures" / "audience_filter"
+UNIT = Path(__file__).resolve().parents[3] / "legacy" / "npc-panel-18.6.6" / "app"
+EXPECTED: dict[str, Any] = json.loads((FIXTURES / "expected.json").read_text("utf-8"))
+
+
+def _columns() -> dict[str, tuple[str | None, ...]]:
+    """The fictional panel as AIA's parser holds it, plus the unit's derived columns."""
+    header, *rows = list(csv.reader(io.StringIO((FIXTURES / "rows.csv").read_text("utf-8"))))
+    columns = {
+        name: tuple(None if row[i] == "" else row[i] for row in rows)
+        for i, name in enumerate(header)
+    }
+    columns.update({k: tuple(v) for k, v in EXPECTED["derived_columns"].items()})
+    return columns
+
+
+COLUMNS = _columns()
 CAPTURED: dict[str, Any] = json.loads((FIXTURES / "catalogue.json").read_text("utf-8"))
 UNIT_ONLY = ("version", "base_columns", "runtime_columns")
 
@@ -78,19 +93,20 @@ def test_a_column_the_population_does_not_carry_is_left_out() -> None:
     assert "kraj" not in ids and "vek" in ids
 
 
+#: The fictional population's dictionary marks one curated column as audit-only.
+AUDIT_ONLY = {"is_student": ("core", "CANONICAL_CORE", "C", "AUDIT_ONLY", "no")}
+
+
 def test_a_population_catalogue_carries_each_factors_policy_answer(
-    session: Session, synthetic_population: Any
+    sampled_population: Any,
 ) -> None:
     """AIA's addition: the field policy is asked, and a refused factor stays listed."""
-    population = _analysis_population(session, synthetic_population)
+    population = sampled_population(policy=AUDIT_ONLY).population
     factors = {f["id"]: f for f in catalogue_of(population)["factors"]}
     assert factors["vek"]["policy_allowed"] is True
-    stage = factors["life_stage_derived"]
-    assert stage["filterable"] is True  # the unit's catalogue offered it
-    assert (stage["policy_allowed"], stage["policy_reason"]) == (
-        False,
-        "unclassified_derived_field",
-    )
+    student = factors["is_student"]
+    assert student["filterable"] is True  # the unit's catalogue offered it
+    assert (student["policy_allowed"], student["policy_reason"]) == (False, "audit_only")
     # The rest of each factor is the pure catalogue's, over the same columns.
     columns = {n: population.column(n) for n in population.fields if n != "_analysis_weight"}
     plain = audience_catalogue(columns)
@@ -99,32 +115,16 @@ def test_a_population_catalogue_carries_each_factors_policy_answer(
     ] == plain["factors"]
 
 
-def _runtime(session: Session, synthetic_population: Any) -> tuple[PopulationRuntime, str]:
-    """The audience tests' population, established; the runtime and LIVE's version id."""
-    population = _analysis_population(session, synthetic_population)
-    from test_population_runtime import LifeStageEnricher
-
-    rt = PopulationRuntime(
-        session,
-        contract=synthetic_population.contract,
-        source=synthetic_population.source,
-        enricher=LifeStageEnricher(),
-    )
-    return rt, population.binding.version_id
-
-
 def test_a_versions_catalogue_is_computed_once_and_kept(
-    session: Session, synthetic_population: Any
+    session: Session, sampled_population: Any
 ) -> None:
-    rt, version_id = _runtime(session, synthetic_population)
+    built = sampled_population()
+    rt, version_id = built.runtime, built.population.binding.version_id
     assert rt.audience_catalogue(version_id) is None
     assert rt.record_audience_catalogue(version_id, recorded_by="test") is True
     assert rt.record_audience_catalogue(version_id, recorded_by="test") is False  # insert-once
     kept = rt.audience_catalogue(version_id)
-    loaded = rt.load(
-        rt.resolve(PopulationSelector.pinned(version_id), view=PopulationView.ANALYSIS)
-    )
-    assert kept == catalogue_of(loaded)
+    assert kept == catalogue_of(built.population)
     assert kept is not None and kept["catalogue_version"] == AUDIENCE_CATALOGUE_VERSION
     row = session.get(
         PopulationVersionAudienceCatalogueRow, (version_id, AUDIENCE_CATALOGUE_VERSION)
@@ -134,9 +134,10 @@ def test_a_versions_catalogue_is_computed_once_and_kept(
 
 
 def test_a_kept_catalogue_that_does_not_hash_is_refused(
-    session: Session, synthetic_population: Any
+    session: Session, sampled_population: Any
 ) -> None:
-    rt, version_id = _runtime(session, synthetic_population)
+    built = sampled_population()
+    rt, version_id = built.runtime, built.population.binding.version_id
     rt.record_audience_catalogue(version_id, recorded_by="test")
     row = session.get(
         PopulationVersionAudienceCatalogueRow, (version_id, AUDIENCE_CATALOGUE_VERSION)
@@ -148,9 +149,7 @@ def test_a_kept_catalogue_that_does_not_hash_is_refused(
         rt.audience_catalogue(version_id)
 
 
-def test_an_unknown_version_has_no_catalogue_to_record(
-    session: Session, synthetic_population: Any
-) -> None:
-    rt, _ = _runtime(session, synthetic_population)
+def test_an_unknown_version_has_no_catalogue_to_record(sampled_population: Any) -> None:
+    rt = sampled_population().runtime
     with pytest.raises(UnknownDatasetVersion):
-        rt.record_audience_catalogue("synthetic_population@nope", recorded_by="test")
+        rt.record_audience_catalogue("panel_source_population@nope", recorded_by="test")

@@ -1087,7 +1087,7 @@ Tests: `test_population_audience_preview.py` (`test_a_filter_and_an_n_the_sample
 `test_the_preview_loads_live_once_per_version`, `test_without_an_asset_root_there_is_no_preview`,
 `test_a_preview_over_no_live_population_is_404_and_needs_a_member`,
 `test_a_population_that_will_not_load_is_unavailable_not_an_error`) over a fictional LIVE in
-the API's database (`apps/api/tests/population_world.py`).
+the API's database (`apps/api/tests/conftest.py` `fictional_live`).
 
 **6d landed.** `assess_readiness(spec, pair_n_min=, filters_applied=False)` (and `prepare`):
 with `filters_applied`, a population audience's filters PASS ("Filtry se uplatní při výběru
@@ -1127,6 +1127,18 @@ Tests: `research/audience.live.test.ts` (catalogue, subpanels, the range without
 preview in words); `AudienceStep.test.tsx` › *from AIA's population* (filters chosen and saved,
 an empty bound left out, a refused factor disabled; the preview counted and its body; the
 preview unavailable; a subpanel chosen as its filter and the step ready, a refused one disabled).
+
+**Two findings on #332 (Codex, after it merged), fixed here.** (1) A panel start with no
+population and a spend limit the run reaches was asked to confirm its cost before being refused
+(`application/research.py`, the population check after the cost gate @ `abd3ce88`): the person
+would confirm a run that can never start. The population is now resolved and checked before the
+gate; `test_research_runs.py::test_a_panel_start_with_no_population_is_refused_as_that_before_any_cost_is_asked`
+fails on the old order (`CostConfirmationRequired`) and passes on the new. (2) `test_panel_source.py`
+imported `conftest` and `test_population_runtime` as modules, which AGENTS.md § tests forbids;
+the fictional population is now `conftest.sampled_population`, used by it and by 6b-6c's tests, and
+the API's fictional LIVE is `conftest.fictional_live` (no helper module). The older
+cross-module imports elsewhere in the suites (about 40, e.g. `test_population_audience.py`,
+`apps/executors/tests/grounded_world.py`) are left as they are: not this PR's.
 
 Out of scope: own audience upload and special panels (no audience store in AIA), the AI's
 proposal of filters (the native job proposes a description only, `research_agents.py`),

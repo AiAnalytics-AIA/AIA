@@ -1,7 +1,7 @@
 """The audience step's feasibility preview (panel-grounded-respondents 6c).
 
 Over the sampler's 3,000 fictional rows, loaded as a run loads its population
-(``test_panel_source._population``). The preview asks the run's own functions, so each
+(``conftest.sampled_population``). The preview asks the run's own functions, so each
 answer here is checked against what ``select_audience`` and ``draw_panel_sample`` say.
 """
 
@@ -10,8 +10,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from sqlalchemy.orm import Session
-from test_panel_source import _population
 
 from aia_core.domain.population.audience import select_audience
 from aia_core.domain.population.audience_preview import PREVIEW_SEED, audience_preview
@@ -19,8 +17,8 @@ from aia_core.domain.population.sampling import draw_panel_sample
 
 
 @pytest.fixture
-def population(session: Session) -> Any:
-    return _population(session)
+def population(sampled_population: Any) -> Any:
+    return sampled_population().population
 
 
 def test_a_filter_and_an_n_the_sampler_can_draw(population: Any) -> None:

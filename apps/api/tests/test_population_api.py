@@ -470,14 +470,10 @@ def test_a_kept_catalogue_that_does_not_hash_is_a_conflict(
 
 
 @pytest.fixture
-def counted(app: FastAPI) -> Any:
+def counted(app: FastAPI, fictional_live: Any) -> Any:
     """A fictional LIVE in the API's database, and the API's previewer over it."""
-    from population_world import grounded_population
-
-    with create_session_factory(app.state.engine)() as session:
-        world = grounded_population(session)
-    app.state.audience_previewer = world.previewer()
-    return world
+    app.state.audience_previewer = fictional_live.previewer()
+    return fictional_live
 
 
 def test_the_preview_counts_the_audience_and_asks_the_sampler(
@@ -538,13 +534,16 @@ def test_without_an_asset_root_there_is_no_preview(
 def test_a_preview_over_no_live_population_is_404_and_needs_a_member(
     app: FastAPI, viewer: Any, client: Any, api_prefix: str
 ) -> None:
+    from aia_core.application.audience_preview import AudiencePreviewer
+    from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
     from aia_core.infrastructure.population_source import InMemoryPopulationSource
-    from population_world import GroundedPopulation
 
-    world = GroundedPopulation(
-        contract=CZ_SYNTHETIC_V17, source=InMemoryPopulationSource({}), rows=0
+    app.state.audience_previewer = AudiencePreviewer(
+        contract=CZ_SYNTHETIC_V17,
+        source=InMemoryPopulationSource({}),
+        enricher=AudienceDimensionsEnricher(),
+        population_id="CZ_LIVE",
     )
-    app.state.audience_previewer = world.previewer()
     url = f"{api_prefix}/population/audience-preview"
     missing = viewer.post(url, json={"filters": {}})
     assert missing.status_code == 404 and missing.json()["code"] == "population_not_established"
