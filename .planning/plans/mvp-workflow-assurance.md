@@ -9,7 +9,7 @@ chunks:
   - "[ ] A3. Review runtime complexity and carry out one measured simplification at a time"
   - "[x] A3a. Classify the candidate areas by traced consumers, at develop cd6da1e1"
   - "[x] A3b. Delete the root Fastify stub and its root npm package (no consumer)"
-  - "[ ] A3c. Remove the unconnected small surfaces once the owner confirms each (queue item 2)"
+  - "[x] A3c. Remove the unconnected small surfaces the owner confirmed; test the kept snapshot route"
   - "[ ] A3d. Decide the Sociomap body's duplicated side tables, then measure and simplify (queue item 3)"
   - "[ ] A3e. One reader of a stored contract-3 map for the report and its figures (queue item 4)"
   - "[ ] A4. Run the complete four-area recorded acceptance on a release candidate"
@@ -490,6 +490,29 @@ directory's own `package*.json`; the Python image copies no root package
 `apps/web` (lint, `tsc --noEmit`, `tokens:check`, 1,211 Vitest tests in 60 files, `next build`),
 all passing; `make layer_check` (113 rules) and `make exposure_check` (7 rules) pass. The image
 build itself was not run here (no Docker daemon); CI and the develop deploy build it.
+
+**A3c (owner, 2026-10-12: "go A3c" on the recommendation below).** The rule: nothing in the
+repository uses it and no plan needs it, remove it; a planned screen will need it, keep it and
+test it. Re-checked on `develop @ 42be47c1` before removal.
+
+| Item | Done | Why |
+| --- | --- | --- |
+| `api.ts` `workspace.revisions` and its `KnowledgeRevision` type, `deepResearch.run` | removed | no caller; `deepResearch[action]` in `InterpretationResearch.tsx:95` names only `retry` and `cancel` |
+| `application/analysis.py` `run_pending_modules` | removed | the worker reuses a module by `module_input_fingerprint` (`aia_executors/analysis.py:516, 712`), never through it |
+| `GET …/deep-research/runs/{id}/snapshots/{snapshot_id}` | kept, tested | a finding is a quote in a captured source; "show the source" is the screen that will read it |
+| `application/deep_research.py` `run_settings` | kept | seven lines; the verified read-back a Settings or audit view will need |
+| `POST /clients`, `POST /studies`, the project command routes | deferred past the MVP | unused, but removing them touches CI's required paths and repository code for no runtime gain |
+| `domain/simulation/reference.py:131` | corrected | cited the retired `.planning/PROGRESS.md`; the decision is `PROGRESS D10` in `overview.md` |
+
+Tests of `run_pending_modules`, and where each property is now held: resume after module five
+(`test_analysis_modules.py::test_resume_after_module_five_continues_at_six`); a blocked module
+strands no other (`test_analysis_executor.py::test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_strands_no_other`);
+a revoked holdout reruns every module as PENDING (`test_analysis_runner.py::test_revoking_a_holdout_does_not_reuse_the_validated_stamp`,
+rewritten over `modules_to_run` and `run_analysis_module`, its assertions unchanged). The new
+`test_deep_research_api.py::test_a_snapshot_is_read_only_through_its_own_published_run` fails
+when the route's snapshot-id pattern is loosened (checked by mutation). `modules_to_run` now has
+no production caller; it stays as the domain's statement of the unit's resume rule, which its
+tests pin.
 
 ## Findings
 

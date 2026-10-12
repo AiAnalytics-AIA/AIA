@@ -238,16 +238,6 @@ export type KnowledgeItem = {
   modified_at: string | null;
 };
 
-export type KnowledgeRevision = {
-  revision: number;
-  context_revision: number;
-  title: string;
-  summary: string;
-  provenance: Record<string, unknown>;
-  approved_by: string;
-  approved_at: string | null;
-};
-
 export type Proposal = {
   proposal_id: string;
   origin: "STUDY" | "CLIENT";
@@ -533,8 +523,6 @@ export const workspace = {
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
     request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q })}`),
-  revisions: (clientId: string, itemId: string) =>
-    request<KnowledgeRevision[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/items/${enc(itemId)}/revisions`),
   proposals: (clientId: string, status?: Proposal["status"]) =>
     request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
   propose: (clientId: string, body: { kind: string; title: string; summary?: string }) =>
@@ -790,7 +778,6 @@ export const deepResearch = {
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
-  run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
   events: (studyId: string, runId: string, since = 0) =>
     request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),

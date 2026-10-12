@@ -15,9 +15,8 @@ from aia_core.application.analysis import (
     ModuleOutcomeKind,
     input_fingerprint,
     run_analysis_module,
-    run_pending_modules,
 )
-from aia_core.domain.analysis import AnalysisModuleId
+from aia_core.domain.analysis import AnalysisModuleId, modules_to_run
 from aia_core.domain.evidence import (
     METHOD_STATUS_HOLDOUT_VALIDATED,
     METHOD_STATUS_PENDING,
@@ -167,23 +166,6 @@ def test_outcome_shape_is_enforced() -> None:
         ModuleOutcome(ModuleOutcomeKind.BLOCKED, AnalysisModuleId.EXECUTIVE, "f", 1)
 
 
-def test_pending_modules_resume_where_the_last_run_stopped(inputs: AnalysisInputs) -> None:
-    ids = list(AnalysisModuleId)
-    completed = {m: input_fingerprint(m, inputs) for m in ids[:5]}
-    generator = ScriptedGenerator([good(m.value) for m in ids[5:]])
-    outcomes = run_pending_modules(inputs, generator, completed)
-    assert [o.module_id for o in outcomes] == ids[5:]
-    assert all(o.kind is ModuleOutcomeKind.COMPLETED for o in outcomes)
-
-
-def test_a_blocked_module_does_not_stop_the_next(inputs: AnalysisInputs) -> None:
-    ids = list(AnalysisModuleId)
-    completed = {m: input_fingerprint(m, inputs) for m in ids[:6]}
-    drafts: list[object] = [bad("implications")] * 3 + [good("limitations")]
-    outcomes = run_pending_modules(inputs, ScriptedGenerator(drafts), completed)
-    assert [o.kind for o in outcomes] == [ModuleOutcomeKind.BLOCKED, ModuleOutcomeKind.COMPLETED]
-
-
 def _fields(inputs: AnalysisInputs) -> dict[str, Any]:
     return {name: getattr(inputs, name) for name in AnalysisInputs.__dataclass_fields__}
 
@@ -242,7 +224,11 @@ def test_revoking_a_holdout_does_not_reuse_the_validated_stamp(inputs: AnalysisI
         for m in ids
     ]
     generator = ScriptedGenerator(drafts)
-    outcomes = run_pending_modules(inputs, generator, completed)
+    # Every module completed under the validated inputs runs again on the revoked ones.
+    current = {m: input_fingerprint(m, inputs) for m in ids}
+    pending = modules_to_run(current, completed)
+    assert list(pending) == ids
+    outcomes = [run_analysis_module(m, inputs, generator) for m in pending]
     assert [o.module_id for o in outcomes] == ids
     assert all(o.result is not None and o.result.method_status == METHOD_STATUS_PENDING
                for o in outcomes)  # fmt: skip
