@@ -55,6 +55,12 @@ export function ResultsWorkspace({ run, panels, progressHref, notice }: {
         <div><dt className="text-xs text-ink-muted">Stav běhu</dt><dd className="font-semibold">{phaseLabel(run.phase)}</dd></div>
         <div><dt className="text-xs text-ink-muted">Revize návrhu</dt><dd className="font-semibold">{run.design_revision}</dd></div>
         <div><dt className="text-xs text-ink-muted">Skutečné náklady běhu</dt><dd className="font-semibold">{run.actual_cost_usd == null ? "Zatím nejsou vykázané" : `${run.actual_cost_usd.toFixed(2)} USD`}</dd></div>
+        {run.methodology ? <div data-run-methodology><dt className="text-xs text-ink-muted">Metodika běhu</dt><dd className="flex flex-wrap gap-x-3 gap-y-1">
+          {([["Sociomapa", run.methodology.sociomap], ["Podpora", run.methodology.support], ["Agregace", run.methodology.aggregation]] as const).map(([label, m]) =>
+            m.name == null
+              ? <span key={label}>{label} <span className="text-xs font-semibold">záznam nelze přečíst</span></span>
+              : <span key={label}>{label} <span className="font-mono text-xs font-semibold">{m.name}</span> <span className="text-xs text-ink-muted">({m.stored ? "uložená verze" : "z kódu"})</span></span>)}
+        </dd></div> : null}
       </dl>
       <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace a původ běhu</summary><p className="mt-2 break-all">{run.run_id} · {run.design_revision_id}</p></details>
     </section>

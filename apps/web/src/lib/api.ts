@@ -658,7 +658,13 @@ export type ResearchRun = {
   actual_cost_usd: number | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
+  /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
+  methodology?: ResearchRunMethodology;
 };
+/** One pinned method: its name, and whether it is a version stored on the Metodika tab. */
+/** `name: null`: the run recorded a pin that cannot be read as a name; never a guess. */
+export type ResearchRunMethod = { name: string | null; stored: boolean };
+export type ResearchRunMethodology = { sociomap: ResearchRunMethod; support: ResearchRunMethod; aggregation: ResearchRunMethod };
 /** What a run recorded about its population, and whether fieldwork read it (never, today). */
 export type ResearchRunPopulation = {
   population_id: string | null;

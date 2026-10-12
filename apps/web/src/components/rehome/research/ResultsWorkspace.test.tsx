@@ -64,3 +64,39 @@ it("supports arrow, Home and End keys with matching selection, focus and panel n
   fireEvent.keyDown(document.activeElement!, { key: "Home" });
   expect(document.activeElement).toBe(first);
 });
+
+it("names the methods the run computed under, stored version or code preset", () => {
+  const pinned = {
+    ...run,
+    methodology: {
+      sociomap: { name: "aia-sociomap-3", stored: false },
+      support: { name: "aia-support-1+e2", stored: true },
+      aggregation: { name: "aia-aggregate-1+e1", stored: true },
+    },
+  } as ResearchRun;
+  render(<ResultsWorkspace run={pinned} panels={panels} progressHref={null} notice={null} />);
+  const row = document.querySelector("[data-run-methodology]") as HTMLElement;
+  expect(row.textContent).toContain("Podpora aia-support-1+e2 (uložená verze)");
+  expect(row.textContent).toContain("Agregace aia-aggregate-1+e1 (uložená verze)");
+  expect(row.textContent).toContain("Sociomapa aia-sociomap-3 (z kódu)");
+});
+
+it("says nothing about methods an older API did not report", () => {
+  view();
+  expect(document.querySelector("[data-run-methodology]")).toBeNull();
+});
+
+it("says a pin it cannot read is unreadable, never a preset's name", () => {
+  const unreadable = {
+    ...run,
+    methodology: {
+      sociomap: { name: null, stored: false },
+      support: { name: "aia-support-1", stored: false },
+      aggregation: { name: "aia-aggregate-1", stored: false },
+    },
+  } as ResearchRun;
+  render(<ResultsWorkspace run={unreadable} panels={panels} progressHref={null} notice={null} />);
+  const row = document.querySelector("[data-run-methodology]") as HTMLElement;
+  expect(row.textContent).toContain("Sociomapa záznam nelze přečíst");
+  expect(row.textContent).not.toContain("aia-sociomap");
+});

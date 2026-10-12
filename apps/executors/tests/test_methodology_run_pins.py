@@ -15,7 +15,7 @@ import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
-from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN
+from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN, RunMethod, run_methods
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_sociomap import default_methods
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
@@ -532,3 +532,39 @@ def test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so(
     with world.sessions() as session:
         MethodologyRepository(session, world.admin_context(session)).activate("aggregation", None)
         session.commit()
+
+
+# ------------------------------------------------ Z1a: a retry keeps where its pins came from --
+
+
+def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> None:
+    """A retry pins its original's methods explicitly; it must still say they were stored
+    versions, not the code's (plan methodology-tab Z1a)."""
+    _edit(world, sigma=0.25, n_min=45)
+    support = AIA_SUPPORT_V1.model_dump(mode="json")
+    support["results"]["min_layer_donors"] = 20
+    aggregation = AIA_AGGREGATE_V1.model_dump(mode="json")
+    aggregation["top_box"] = 1
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        for module, base, spec in (
+            ("support", "aia-support-1", support),
+            ("aggregation", "aia-aggregate-1", aggregation),
+        ):
+            version = repo.propose(module, base_preset=base, spec=spec, formulas={}, note="test")
+            repo.activate(module, version.version_number, reason="test")
+        session.commit()
+    run_id = _start(world)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    original, retry = _run(world, run_id)["metadata"], _run(world, retried.run_id)["metadata"]
+    for key in ("methodology", "support_methodology", "aggregation_methodology"):
+        assert retry[key] == original[key], key
+    assert run_methods(retry) == {
+        "sociomap": RunMethod("aia-sociomap-3+e1", stored=True),
+        "support": RunMethod("aia-support-1+e1", stored=True),
+        "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
+    }
