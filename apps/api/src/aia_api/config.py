@@ -88,6 +88,11 @@ class Settings(BaseSettings):
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
+    # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
+    # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
+    # start, so a retry keeps the original's; the worker composes the panel path behind the same
+    # key and parks a panel run it cannot serve. Off by default: every run is the fictional roster.
+    ai_population_personas_enabled: bool = False
 
     # The clients whose studies an administrator may run a *draft* prompt on (ADR 0020). The
     # same variable the worker reads (``AIA_AI_FICTIONAL_CLIENT_IDS``), read here so the API

@@ -975,3 +975,38 @@ def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_rea
         "UNKNOWN"
     )
     assert _origin_flags(set()) == {"modelled": False, "data_origin_kind": None}
+
+
+def test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 5c: the switch decides what a new run pins; with it on
+    and no population established, nothing starts -- never a fictional run instead."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    roster = start(researcher, world, revision_id).json()
+    assert roster["persona_source"] == "fictional_roster"
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    refused = researcher.post(f"{_runs(world)}", json={"design_revision_id": revision_id})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "population_not_established"
+    # The fictional run is untouched and still reads as what it pinned.
+    read = researcher.get(f"{_runs(world)}/{roster['run_id']}").json()
+    assert read["persona_source"] == "fictional_roster"
+
+
+def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "persona_source"}
+        session.commit()
+    assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["persona_source"] == (
+        "fictional_roster"
+    )

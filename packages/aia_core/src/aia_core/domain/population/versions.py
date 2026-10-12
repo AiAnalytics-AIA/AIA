@@ -58,6 +58,7 @@ __all__ = [
     "descends_from",
     "is_sha256",
     "new_promotion_id",
+    "owned_version_id",
     "plan_establish",
     "plan_promotion",
     "require_runtime_eligible",
@@ -68,6 +69,9 @@ __all__ = [
 #: stored alongside and is the unique key; the id only has to be readable and
 #: collision-free in practice (64 bits).
 VERSION_ID_HASH_CHARS: Final = 16
+
+#: Hex characters of the owner digest an owned version's id carries (48 bits).
+OWNER_ID_HASH_CHARS: Final = 12
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
@@ -93,6 +97,19 @@ def dataset_version_id(dataset_id: str, sha256: str) -> str:
     if not is_sha256(sha256):
         raise ValueError(f"not a lowercase sha256 digest: {sha256!r}")
     return f"{dataset_id}@sha256:{sha256[:VERSION_ID_HASH_CHARS]}"
+
+
+def owned_version_id(dataset_id: str, sha256: str, owner: VersionOwner) -> str:
+    """Return the id of a child version ``owner`` holds with these bytes.
+
+    The content alone cannot name an owned version: two clients materializing the same
+    definition over the same base write the same bytes, and each owns its own child
+    (population-operations P4c). So the id is the content id qualified by an opaque
+    digest of the owner -- deterministic, so the same owner's same bytes are one
+    version, and naming no organization or client in clear.
+    """
+    owner_digest = content_sha256(f"{owner.organization_id}\n{owner.client_id}".encode())
+    return f"{dataset_version_id(dataset_id, sha256)}~{owner_digest[:OWNER_ID_HASH_CHARS]}"
 
 
 def new_promotion_id() -> str:
@@ -189,8 +206,6 @@ class DatasetVersion:
         for name in ("content_sha256", "dictionary_sha256", "field_names_sha256"):
             if not is_sha256(getattr(self, name)):
                 raise ValueError(f"{name} must be a lowercase sha256 digest")
-        if self.version_id != dataset_version_id(self.dataset_id, self.content_sha256):
-            raise ValueError("version_id must be derived from dataset_id and content_sha256")
         for name in (
             "label",
             "contract_id",
@@ -213,6 +228,16 @@ class DatasetVersion:
             raise ValueError("extension_sha256 must be a lowercase sha256 digest")
         if self.owner is not None and self.parent_version_id is None:
             raise ValueError("an owned version is a child: it names the version it extends")
+        expected = (
+            dataset_version_id(self.dataset_id, self.content_sha256)
+            if self.owner is None
+            else owned_version_id(self.dataset_id, self.content_sha256, self.owner)
+        )
+        if self.version_id != expected:
+            raise ValueError(
+                "version_id must be derived from dataset_id and content_sha256"
+                + ("" if self.owner is None else ", qualified by its owner")
+            )
 
 
 @dataclass(frozen=True, slots=True)

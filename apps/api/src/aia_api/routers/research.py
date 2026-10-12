@@ -33,6 +33,7 @@ from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
     DesignNotReady,
+    PanelPopulationMissing,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
@@ -45,7 +46,13 @@ from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFAC
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
-from aia_core.domain.fieldwork import OriginKind, origin_kind
+from aia_core.domain.fieldwork import (
+    FieldworkSource,
+    OriginKind,
+    PersonaSource,
+    origin_kind,
+    persona_source_of,
+)
 from aia_core.domain.methodology.pins import run_methods
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -222,8 +229,8 @@ class ResearchStepResponse(BaseModel):
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
-    ``read_by_fieldwork`` is ``False`` for every run today: fieldwork answers with
-    fictional respondents (OI-61), so the recorded population is a record, not a source.
+    ``read_by_fieldwork`` is whether the run pinned the panel persona source: only then is the
+    recorded population where its respondents come from; otherwise it is a record.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -284,6 +291,8 @@ class ResearchRunResponse(BaseModel):
     population: ResearchRunPopulation | None = None
     #: The Sociomap, support and aggregation methods the run pinned when it started.
     methodology: ResearchRunMethodology
+    #: Who its AI respondents are, as the run pinned it: ``fictional_roster`` or ``panel``.
+    persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
 
 
 class ResearchRunList(BaseModel):
@@ -624,6 +633,33 @@ def _run(
             else None
         ),
         methodology=_methodology(meta),
+        persona_source=persona_source_of(meta).value,
+    )
+
+
+def _persona_source(request: Request) -> PersonaSource:
+    """The deployment's choice for a new run: the panel only with the switch on and the AI
+    runtime as the source; the run pins it, and a retry keeps the original's instead."""
+    settings = request.app.state.settings
+    if (
+        settings.ai_population_personas_enabled
+        and _fieldwork_source(request) is FieldworkSource.AI_RUNTIME
+    ):
+        return PersonaSource.PANEL
+    return PersonaSource.FICTIONAL_ROSTER
+
+
+def _no_population(exc: PanelPopulationMissing) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_not_established",
+            "message": (
+                "Respondenti se berou z populace, ale žádná populace není založená. "
+                "Nic nebylo spuštěno."
+            ),
+            "details": {"reason": str(exc)},
+        },
     )
 
 
@@ -725,6 +761,7 @@ def start_run(
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
+            persona_source=_persona_source(request),
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -734,6 +771,8 @@ def start_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
     return _started(runs, started, response)
 
 
@@ -906,6 +945,8 @@ def retry_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

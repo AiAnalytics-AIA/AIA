@@ -24,10 +24,11 @@ import csv
 import gzip
 import io
 import zlib
+from collections.abc import Sequence
 
 from aia_core.domain.population import ImportRejected, ParsedDictionary, ParsedPanel
 
-__all__ = ["parse_dictionary", "parse_panel"]
+__all__ = ["parse_dictionary", "parse_panel", "write_panel"]
 
 _GZIP_MAGIC = b"\x1f\x8b"
 
@@ -121,3 +122,24 @@ def parse_dictionary(data: bytes, *, field_column: str = "field") -> ParsedDicti
             f"the dictionary is malformed: {exc}", failures=("dictionary.csv",)
         ) from exc
     return ParsedDictionary(fields=tuple(names), rows=tuple(rows), columns=columns)
+
+
+def write_panel(header: Sequence[str], columns: Sequence[Sequence[str | None]]) -> bytes:
+    """Gzip-compressed UTF-8 CSV that :func:`parse_panel` reads back to the same cells.
+
+    The inverse of the parser for a materialized child (population-operations P4d3): a missing
+    cell (``None``) is written empty, every other cell as its text, CSV-quoted only where it
+    must be. The bytes are deterministic -- fixed line ending, compression level and a zero
+    gzip timestamp -- so the same panel always has the same SHA256.
+    """
+    if len(header) != len(columns):
+        raise ValueError("a panel has one column per header field")
+    rows = len(columns[0]) if columns else 0
+    if any(len(c) != rows for c in columns):
+        raise ValueError("every column of a panel has the same number of rows")
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(header)
+    for i in range(rows):
+        writer.writerow(["" if c[i] is None else c[i] for c in columns])
+    return gzip.compress(buffer.getvalue().encode("utf-8"), compresslevel=6, mtime=0)

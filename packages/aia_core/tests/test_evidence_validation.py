@@ -144,3 +144,64 @@ def test_unknown_use_case_and_no_dimensions_refuse() -> None:
 
 def test_tier_a_permits_every_use_case() -> None:
     assert TIER_PERMITS[EvidenceTier.A] == frozenset(TierUseCase)
+
+
+# --- the respondent system a modelled validation is earned on (ADR 0024 §4) ---------------
+
+RESPONDENT = {
+    "respondent_prompt_sha256": "a" * 64,
+    "persona_builder": "aia-panel-persona-source-1/aia-persona-profile-1",
+    "persona_mode": "calibrated",
+    "sampler_version": "aia-panel-sample-1",
+    "population_version": "v17_4_0",
+    "model_binding": "bedrock/anthropic.claude/bedrock-eu-primary",
+    "response_process_version": "aia-response-process-1",
+}
+
+
+def test_the_respondent_system_fingerprint_moves_with_every_component() -> None:
+    from aia_core.domain.evidence import RESPONDENT_SYSTEM_COMPONENTS, respondent_system_fingerprint
+
+    assert set(RESPONDENT) == set(RESPONDENT_SYSTEM_COMPONENTS)
+    base = respondent_system_fingerprint(RESPONDENT)
+    moved = {
+        respondent_system_fingerprint(
+            {**RESPONDENT, key: "b" * 64 if key.endswith("sha256") else RESPONDENT[key] + "x"}
+        )
+        for key in RESPONDENT_SYSTEM_COMPONENTS
+    }
+    assert base not in moved and len(moved) == len(RESPONDENT_SYSTEM_COMPONENTS)
+
+
+@pytest.mark.parametrize("key", sorted(RESPONDENT))
+def test_the_respondent_system_refuses_a_missing_or_blank_component(key: str) -> None:
+    from aia_core.domain.evidence import respondent_system_fingerprint
+
+    with pytest.raises(ValueError, match=key):
+        respondent_system_fingerprint({k: v for k, v in RESPONDENT.items() if k != key})
+    with pytest.raises(ValueError, match=key):
+        respondent_system_fingerprint({**RESPONDENT, key: " "})
+
+
+def test_the_respondent_system_refuses_a_name_it_does_not_bind_and_a_prompt_not_hashed() -> None:
+    from aia_core.domain.evidence import respondent_system_fingerprint
+
+    with pytest.raises(ValueError, match="temperature"):
+        respondent_system_fingerprint({**RESPONDENT, "temperature": "0.7"})
+    with pytest.raises(ValueError, match="SHA-256"):
+        respondent_system_fingerprint({**RESPONDENT, "respondent_prompt_sha256": "v1"})
+
+
+def test_only_a_current_holdout_lifts_internal_only() -> None:
+    from aia_core.domain.evidence import lifts_internal_only, respondent_system_fingerprint
+
+    system = respondent_system_fingerprint(RESPONDENT)
+    other = respondent_system_fingerprint({**RESPONDENT, "population_version": "v17_5_0"})
+    holdout = ValidationState(ValidationStatus.HOLDOUT_VALIDATED, system)
+    assert lifts_internal_only(holdout, system)
+    assert not lifts_internal_only(holdout, other)  # stale: the population moved
+    assert not lifts_internal_only(holdout, None)  # no current system: nothing to judge
+    assert not lifts_internal_only(None, system)
+    assert not lifts_internal_only(
+        ValidationState(ValidationStatus.SMOKE_VALIDATED, system), system
+    )

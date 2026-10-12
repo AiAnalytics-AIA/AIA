@@ -13,8 +13,9 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -25,6 +26,7 @@ __all__ = [
     "DATASET_VERSION",
     "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
+    "RESPONDENT_SYSTEM_METADATA",
     "Answer",
     "DataOrigin",
     "FieldworkDataset",
@@ -32,7 +34,9 @@ __all__ = [
     "FieldworkSource",
     "InvalidDataset",
     "OriginKind",
+    "PersonaSource",
     "origin_kind",
+    "persona_source_of",
     "validate_dataset",
 ]
 
@@ -87,6 +91,40 @@ CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.
 MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
 
 
+class PersonaSource(StrEnum):
+    """Who the AI respondents of an ``ai_runtime`` run are, pinned on the run at start.
+
+    Never read from a switch at execution: a retry keeps the original's, so a run's respondents
+    are what it was created to have (plan ``panel-grounded-respondents`` 5a, decision 1).
+    """
+
+    #: Invented personas (``ai_respondent.fictional_roster``): ``SYNTHETIC_AI_FICTIONAL``.
+    FICTIONAL_ROSTER = "fictional_roster"
+    #: Respondents drawn from the run's recorded population (``panel_source``):
+    #: ``MODELLED_AI_PANEL``.
+    PANEL = "panel"
+
+
+def persona_source_of(metadata: Mapping[str, Any]) -> PersonaSource:
+    """The persona source a run pinned; a run started before the pin existed is the roster.
+
+    A value this code does not know is refused, never read as either source.
+    """
+    raw = metadata.get("persona_source")
+    if raw is None:
+        return PersonaSource.FICTIONAL_ROSTER
+    try:
+        return PersonaSource(raw)
+    except ValueError:
+        raise ValueError(f"unknown persona source {raw!r}") from None
+
+
+#: The fieldwork dataset artifact's metadata key holding the components of the respondent system
+#: its answers came from (``evidence.validation.RESPONDENT_SYSTEM_COMPONENTS``), written by the
+#: source that produced a modelled dataset. A modelled run's evidence is judged on it.
+RESPONDENT_SYSTEM_METADATA: Final = "respondent_system"
+
+
 class OriginKind(StrEnum):
     """How a label reads an origin: the one three-way reading every surface uses."""
 
@@ -129,7 +167,10 @@ class FieldworkRespondent(BaseModel):
 
     respondent_id: str
     donor_id: str
-    weight: float = Field(gt=0)
+    #: A positive finite number, or the dataset is refused: the one rule a run's weights meet
+    #: (plan ``methodology-tab`` W1b). ``gt=0`` alone let infinity through to the aggregate,
+    #: whose ``clean_weights`` then replaced it by the median.
+    weight: float = Field(gt=0, allow_inf_nan=False)
     answers: dict[str, Answer]
 
 

@@ -42,6 +42,7 @@ from .versions import DatasetVersion, is_sha256
 __all__ = [
     "EXTENSION_CONTRACT",
     "MATERIALIZED_BLOCK",
+    "MATERIALIZE_PROJECT_OWNER",
     "MaterializedField",
     "MaterializedKind",
     "PopulationContractExtension",
@@ -55,6 +56,10 @@ EXTENSION_CONTRACT: Final = "population-extension/v1"
 
 #: The block every materialized field is reported under.
 MATERIALIZED_BLOCK: Final = "materialized"
+
+#: The owner of a study's population project (``projects.owner``): the project a materialize
+#: run hangs off. No generic project route sees it.
+MATERIALIZE_PROJECT_OWNER: Final = "study_population"
 
 # 18.6.6 sanitised a dimension id to lowercase letters, digits and underscores
 # (audience_dimensions.py:315); a materialized column name is that id.

@@ -17,6 +17,14 @@ can guarantee:
 Platform reference data: not study-scoped, so no scope context is taken. Which
 population a *run* used is study-scoped and lives with the run
 (``WorkflowRepository``).
+
+**An owned child is its organization's** (population-operations P4c, M5). A version
+materialized for one client names its organization, its client and its contract
+extension. Every read that answers a person -- :meth:`versions`, :meth:`visible_version`
+-- returns the shared versions plus only the asking organization's own, and the lookups
+the import uses (:meth:`version_by_sha`, :meth:`version_by_label`) see shared versions
+alone. :meth:`get_version` reads any version by id, for the run that recorded it and the
+operator's planning, and is not for a person's request (``tools/layer_check.sh``).
 """
 
 from __future__ import annotations
@@ -25,7 +33,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import ColumnElement, or_, select, update
 from sqlalchemy.orm import Session
 
 from aia_core.domain.population import (
@@ -35,14 +43,19 @@ from aia_core.domain.population import (
     DatasetVersion,
     JointState,
     Population,
+    PopulationContractExtension,
     PopulationKind,
     PromotionConflict,
     PromotionRecord,
+    VersionIntegrityError,
+    VersionOwner,
 )
+from aia_core.domain.population.materialized import EXTENSION_CONTRACT
 
 from .tables import (
     PopulationCompanionAssetRow,
     PopulationCompanionSetRow,
+    PopulationContractExtensionRow,
     PopulationDatasetVersionRow,
     PopulationPromotionRow,
     PopulationRow,
@@ -71,7 +84,23 @@ def _version(row: PopulationDatasetVersionRow) -> DatasetVersion:
         provenance=row.provenance,
         imported_at=as_utc(row.imported_at),
         imported_by=row.imported_by,
+        owner=(
+            VersionOwner(organization_id=row.owner_organization_id, client_id=row.owner_client_id)
+            if row.owner_organization_id is not None and row.owner_client_id is not None
+            else None
+        ),
+        extension_sha256=row.extension_sha256,
     )
+
+
+_SHARED = PopulationDatasetVersionRow.owner_client_id.is_(None)
+
+
+def _visible_to(organization_id: str | None) -> ColumnElement[bool]:
+    """Shared versions, plus the owned ones of ``organization_id`` when it is given."""
+    if organization_id is None:
+        return _SHARED
+    return or_(_SHARED, PopulationDatasetVersionRow.owner_organization_id == organization_id)
 
 
 def _population(row: PopulationRow) -> Population:
@@ -106,34 +135,58 @@ class PopulationRegistryRepository:
     # --------------------------------------------------------------- versions --
 
     def get_version(self, version_id: str) -> DatasetVersion | None:
-        """Return one version, or ``None``."""
+        """Return one version by id, shared or owned, or ``None``.
+
+        Not for a person's request: the API reads :meth:`visible_version`.
+        """
         row = self._session.get(PopulationDatasetVersionRow, version_id)
         return _version(row) if row is not None else None
 
-    def version_by_sha(self, sha256: str) -> DatasetVersion | None:
-        """Return the version with these bytes, whatever its label."""
+    def visible_version(self, version_id: str, *, organization_id: str) -> DatasetVersion | None:
+        """Return one version as ``organization_id`` sees it: shared, or its own.
+
+        Another organization's child answers ``None``, exactly as an unknown id does.
+        """
         row = self._session.scalar(
             select(PopulationDatasetVersionRow).where(
-                PopulationDatasetVersionRow.content_sha256 == sha256
+                PopulationDatasetVersionRow.version_id == version_id,
+                _visible_to(organization_id),
+            )
+        )
+        return _version(row) if row is not None else None
+
+    def version_by_sha(self, sha256: str) -> DatasetVersion | None:
+        """Return the shared version with these bytes, whatever its label."""
+        row = self._session.scalar(
+            select(PopulationDatasetVersionRow).where(
+                PopulationDatasetVersionRow.content_sha256 == sha256, _SHARED
             )
         )
         return _version(row) if row is not None else None
 
     def version_by_label(self, dataset_id: str, label: str) -> DatasetVersion | None:
-        """Return the version a dataset's label names, whatever its bytes."""
+        """Return the shared version a dataset's label names, whatever its bytes."""
         row = self._session.scalar(
             select(PopulationDatasetVersionRow).where(
                 PopulationDatasetVersionRow.dataset_id == dataset_id,
                 PopulationDatasetVersionRow.label == label,
+                _SHARED,
             )
         )
         return _version(row) if row is not None else None
 
-    def versions(self, dataset_id: str) -> dict[str, DatasetVersion]:
-        """Every version of a dataset, by id."""
+    def versions(
+        self, dataset_id: str, *, organization_id: str | None = None
+    ) -> dict[str, DatasetVersion]:
+        """A dataset's shared versions by id, plus ``organization_id``'s own when given.
+
+        Without an organization no owned child is returned: the default never shows one
+        organization's version to anyone else.
+        """
         rows = self._session.scalars(
             select(PopulationDatasetVersionRow).where(
-                PopulationDatasetVersionRow.dataset_id == dataset_id
+                PopulationDatasetVersionRow.dataset_id == dataset_id,
+                _visible_to(organization_id),
             )
         )
         return {row.version_id: _version(row) for row in rows}
@@ -164,6 +217,47 @@ class PopulationRegistryRepository:
                 validation_json=validation,
                 imported_at=version.imported_at,
                 imported_by=version.imported_by,
+                owner_organization_id=version.owner.organization_id if version.owner else None,
+                owner_client_id=version.owner.client_id if version.owner else None,
+                extension_sha256=version.extension_sha256,
+            )
+        )
+        self._session.flush()
+
+    # ------------------------------------------------------------- extensions --
+
+    def extension(self, sha256: str) -> PopulationContractExtension | None:
+        """The stored extension with this hash, re-hashed; ``None`` when there is none.
+
+        A payload that no longer hashes to its key is refused (``VersionIntegrityError``).
+        """
+        row = self._session.get(PopulationContractExtensionRow, sha256)
+        if row is None:
+            return None
+        extension = PopulationContractExtension.from_payload(dict(row.payload))
+        if extension.sha256 != row.extension_sha256:
+            raise VersionIntegrityError(
+                f"the stored extension {row.extension_sha256} does not hash to its key"
+            )
+        return extension
+
+    def insert_extension(
+        self,
+        extension: PopulationContractExtension,
+        *,
+        recorded_at: datetime,
+        recorded_by: str,
+    ) -> None:
+        """Keep an extension by its hash. Insert-once: a stored one is the same, kept."""
+        if self._session.get(PopulationContractExtensionRow, extension.sha256) is not None:
+            return
+        self._session.add(
+            PopulationContractExtensionRow(
+                extension_sha256=extension.sha256,
+                contract=EXTENSION_CONTRACT,
+                payload=extension.payload(),
+                recorded_at=recorded_at,
+                recorded_by=recorded_by,
             )
         )
         self._session.flush()

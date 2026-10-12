@@ -111,8 +111,12 @@ def test_values_print_as_the_evidence_rounded_them_with_intervals(report_ledger:
     prose = next(p for p in lines if p.startswith("Bankám"))
     # a client estimate carries its interval although the block did not ask for it
     assert f"42,5{NB}%{NB}(38,1\u201346,9{NB}%)" in prose
-    assert f"36,1{NB}%{NB}(27,9\u201344,3{NB}%){NB} (orientační)" in prose
-    assert f"18,4{NB}%{NB}(14,9\u201321,9{NB}%)" in prose
+    # Every client-facing number rests on the one admissible origin, MODELLED_AI_PANEL, so
+    # each says so beside it (ADR 0024 §7), before "orientační".
+    modelled = "(modelováno: AI respondenti z populace)"
+    assert f"36,1{NB}%{NB}(27,9\u201344,3{NB}%){NB} {modelled} (orientační)" in prose
+    assert f"18,4{NB}%{NB}(14,9\u201321,9{NB}%){NB} {modelled}" in prose
+    assert prose.count(modelled) == 3
 
 
 def test_every_value_carries_its_grade_mark_with_alt_text(report_ledger: Any) -> None:
@@ -199,3 +203,33 @@ def test_components_are_styled_only_by_name_and_render_identically(report_ledger
     first = DocxRenderer().render(doc)
     assert first == DocxRenderer().render(doc)
     assert lint_docx(first) == []
+
+
+def test_only_numbers_on_ai_respondents_from_the_population_carry_the_modelled_words(
+    report_ledger: Any,
+) -> None:
+    """ADR 0024 §7 is about MODELLED_AI_PANEL: a simulated run's internal report has its own
+    framing (the "syntetičtí respondenti" callout) and never says "z populace" beside a number."""
+    from types import MappingProxyType
+
+    from aia_core.domain.fieldwork import DataOrigin
+
+    internal = report_ledger(ClaimSurface.INTERNAL)
+    simulated = replace(
+        internal,
+        rows=MappingProxyType(
+            {
+                ref: replace(row, data_origin=DataOrigin.SYNTHETIC_AI_FICTIONAL)
+                for ref, row in internal.rows.items()
+            }
+        ),
+    )
+    assert internal.modelled_panel(internal.rows) and not simulated.modelled_panel(simulated.rows)
+    assert not internal.modelled_panel(["not-a-ref"])  # nothing held, nothing said
+
+    def rendered(ledger: Any) -> str:
+        doc = components(ledger, kind=ReportKind.INTERNAL, classification=Classification.INTERNAL)
+        return "".join(_paragraphs(_body(_render(doc))))
+
+    assert "z populace" not in rendered(simulated)
+    assert "z populace" in rendered(internal)

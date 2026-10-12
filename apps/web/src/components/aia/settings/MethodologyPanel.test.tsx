@@ -159,18 +159,24 @@ describe("the Metodika tab", () => {
     expect(within(mean).queryByText(/až bude tato oblast upravitelná/)).toBeNull();
   });
 
-  it("opens weighting read-only: the contract's schemes, its totals, the cleaning and D1", async () => {
+  it("opens weighting read-only: the schemes, the sample's raking, the dataset's refusal and D1", async () => {
     fakeApi();
     render(<MethodologyPanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
-    await screen.findByRole("heading", { name: "Kishovo efektivní n na třech místech" });
+    await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
     expect(screen.getByText("vaha_strukturalni_2025")).toBeTruthy();
-    expect(screen.getByText("median")).toBeTruthy();
+    // What a run's respondent weighs: the sampler's raking, its values the code's constants.
+    expect(screen.getByRole("heading", { name: "Váha respondenta běhu: vzorek z panelu" })).toBeTruthy();
+    expect(screen.getByText("Raking vzorku na cíle")).toBeTruthy();
+    expect(screen.getByText("Nejvýš iterací")).toBeTruthy();
+    // The inert median/refuse switch is gone (W1b); the dataset refuses instead.
+    expect(screen.queryByText("median")).toBeNull();
+    expect(screen.getByText("Váha v datové sadě běhu")).toBeTruthy();
     // A total the contract does not declare is said, never shown as 0.
     expect(screen.getAllByText("žádná (null)").length).toBe(4);
     expect(screen.getAllByText(/nález D1/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Kalibrace, raking ani GREG/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/GREG ani jiná kalibrace v AIA nejsou/).length).toBeGreaterThan(0);
     // Read-only until W1c, and the page says so.
     expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
     expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();

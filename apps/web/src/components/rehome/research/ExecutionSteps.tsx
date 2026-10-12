@@ -951,6 +951,7 @@ function InternalReport({ run }: { run: ResearchRun }) {
 
   if (loaded.state === "hidden") return null;
   const status = loaded.state === "ready" ? loaded.value : null;
+  const reportKind = status ? resultOriginKind(status) ?? "UNKNOWN" : "UNKNOWN";
   const download = async () => {
     setDownloading(true);
     setDownloadError(null);
@@ -972,8 +973,9 @@ function InternalReport({ run }: { run: ResearchRun }) {
           <p className="text-sm">{status.review_state === "APPROVED_INTERNAL"
             ? t("research.exec.results.reportApprovedInternal")
             : t("research.exec.results.reportDraft")}</p>
-          <p data-origin-kind={resultOriginKind(status)} className={resultOriginKind(status) === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
-            {t(REPORT_ORIGIN[resultOriginKind(status)])}
+          {/* A ready report rests on data, so a kind it does not state is unknown, never neutral. */}
+          <p data-origin-kind={reportKind} className={reportKind === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
+            {t(REPORT_ORIGIN[reportKind])}
           </p>
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
@@ -1017,8 +1019,8 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready"
-          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)])
+        {loaded.state === "ready" && resultOriginKind(loaded.value)
+          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}

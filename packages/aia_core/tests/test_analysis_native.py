@@ -396,3 +396,141 @@ def test_a_draft_citing_native_evidence_passes_internally_and_never_client_facin
         ViolationCode.SYNTHETIC_DATA_ORIGIN,
         ViolationCode.JOINT_CERTIFICATE_DEGRADED,
     } <= refused
+
+
+def test_a_modelled_run_is_judged_under_the_modelled_policy_and_stays_internal() -> None:
+    """ADR 0024 §3-§4: a MODELLED_AI_PANEL dataset is declared under -2, every item internal
+    while no validation holds; the system it is judged on names that policy."""
+    from aia_core.domain.evidence import ClaimRule, InstrumentStatus, instrument_policy_version
+
+    spec, dataset, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    evidence = native_evidence(
+        spec,
+        {**aggregate, "data_origin": modelled.value},
+        dataset_sha256=DATASET_SHA,
+        origin=modelled,
+        support=REFERENCE_THRESHOLDS,
+    )
+    simulated = native_evidence(
+        spec,
+        aggregate,
+        dataset_sha256=DATASET_SHA,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
+    assert instrument_policy_version(evidence.origin) == "aia-instrument-evidence-2"
+    policies = [evidence.book.get(f) for f in evidence.book.fields]
+    assert policies and all(
+        p.evidence_status is InstrumentStatus.MODELLED_PANEL_RESPONSE
+        and p.has(ClaimRule.INTERNAL_ONLY)
+        for p in policies
+    )
+    assert evidence.system_fingerprint != simulated.system_fingerprint
+
+
+def test_a_modelled_run_is_bound_to_its_respondent_system_and_lifted_only_by_its_validation() -> (
+    None
+):
+    """ADR 0024 §4: the system enters the evidence's identity; only a holdout on it lifts
+    INTERNAL_ONLY, and the analysis passes none (nothing stores one yet)."""
+    from aia_core.domain.evidence import ClaimRule, ValidationState, ValidationStatus
+
+    spec, _, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    payload = {**aggregate, "data_origin": modelled.value}
+
+    def evidence(system: str | None, state: ValidationState | None = None) -> Any:
+        return native_evidence(
+            spec,
+            payload,
+            dataset_sha256=DATASET_SHA,
+            origin=modelled,
+            support=REFERENCE_THRESHOLDS,
+            respondent_system=system,
+            validation=state,
+        )
+
+    def internal(e: Any) -> bool:
+        return all(e.book.get(f).has(ClaimRule.INTERNAL_ONLY) for f in e.book.fields)
+
+    none, one, other = evidence(None), evidence("a" * 64), evidence("b" * 64)
+    assert len({none.system_fingerprint, one.system_fingerprint, other.system_fingerprint}) == 3
+    assert internal(none) and internal(one)
+    lifted = evidence("a" * 64, ValidationState(ValidationStatus.HOLDOUT_VALIDATED, "a" * 64))
+    assert not internal(lifted)
+    assert lifted.system_fingerprint != one.system_fingerprint
+
+
+def test_a_modelled_run_counts_its_donors_not_its_respondents() -> None:
+    """ADR 0024 §5: 1,000 modelled respondents built on 40 donors are 40-donor evidence --
+    indicative under the donor floor of 50 -- while the same answers on 1,000 donors are not
+    held back. Support is re-assessed from the donors the aggregate counted, never from n."""
+    spec, problems = compile_design({**DESIGN, "n": 1000})
+    assert spec is not None, problems
+    base = synthetic_dataset(spec, seed=20260816)
+    assert len(base.respondents) == 1000
+
+    def modelled(donors: int) -> Any:
+        respondents = tuple(
+            r.model_copy(update={"donor_id": f"DONOR-{i % donors:04d}"})
+            for i, r in enumerate(base.respondents)
+        )
+        dataset = base.model_copy(
+            update={"respondents": respondents, "origin": DataOrigin.MODELLED_AI_PANEL}
+        )
+        aggregate = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
+        return native_evidence(
+            spec,
+            aggregate,
+            dataset_sha256=DATASET_SHA,
+            origin=DataOrigin.MODELLED_AI_PANEL,
+            support=REFERENCE_THRESHOLDS,
+        )
+
+    def q1(evidence: Any) -> list[Any]:
+        rows = [r for r in evidence.table.rows.values() if r.question_id == "q1"]
+        assert rows
+        return rows
+
+    few, many = modelled(40), modelled(1000)
+    assert {r.support.status for r in q1(few)} == {SupportStatus.INDICATIVE}
+    assert all(r.data_origin is DataOrigin.MODELLED_AI_PANEL for r in q1(few))
+    assert {r.support.status for r in q1(many)} == {SupportStatus.REPORTABLE}
+    # Under the donor floor nothing is shown at all, however many respondents.
+    assert not [r for r in modelled(20).table.rows.values() if r.question_id == "q1"]
+
+
+def test_preflight_blocks_client_facing_only_while_the_policy_is_internal() -> None:
+    """A current holdout on the respondent system lifts INTERNAL_ONLY from -2; preflight then
+    leaves the claims to the gate instead of blocking the module outright. Unvalidated, it
+    blocks as before."""
+    from aia_core.domain.evidence import ValidationState, ValidationStatus
+
+    spec, _, aggregate = run()
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    system = "a" * 64
+
+    def preflight(state: ValidationState | None) -> set[ViolationCode]:
+        evidence = native_evidence(
+            spec,
+            {**aggregate, "data_origin": modelled.value},
+            dataset_sha256=DATASET_SHA,
+            origin=modelled,
+            support=REFERENCE_THRESHOLDS,
+            respondent_system=system,
+            validation=state,
+        )
+        found = native_preflight(
+            module_spec(AnalysisModuleId.EXECUTIVE),
+            evidence,
+            surface=ClaimSurface.CLIENT_FACING,
+            research_questions=("Q?",),
+        )
+        return {v.code for v in found}
+
+    assert ViolationCode.FIELD_INTERNAL_ONLY in preflight(None)
+    lifted = preflight(ValidationState(ValidationStatus.HOLDOUT_VALIDATED, system))
+    assert ViolationCode.FIELD_INTERNAL_ONLY not in lifted
+    # The certificate is still required client-facing (ADR 0024 §6); no run has one yet.
+    assert ViolationCode.JOINT_CERTIFICATE_DEGRADED in lifted

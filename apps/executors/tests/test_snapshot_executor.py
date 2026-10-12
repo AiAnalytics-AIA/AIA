@@ -13,6 +13,7 @@ from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
     DEVELOP_SNAPSHOT,
+    POPULATION_MATERIALIZE,
     REPORT_STEP_KIND,
     RESEARCH_AGENT,
     RESEARCH_KINDS,
@@ -83,6 +84,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         *DEEP_RESEARCH_KINDS.values(),
         INVESTIGATE_TRACK_KIND,
         KIND,
+        POPULATION_MATERIALIZE,
         REPORT_STEP_KIND,
         SOCIOMAPPING_REPORT_STEP_KIND,
         *PRODUCTION_RESEARCH_KINDS,
@@ -208,6 +210,7 @@ def test_a_member_with_no_grant_can_start_a_run(
 def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: BuildIdentity) -> None:
     registry = registry_for(store=store, build=build)
     assert list(registry) == [
+        POPULATION_MATERIALIZE,
         RESEARCH_AGENT,
         ANALYSIS_STEP_KIND,
         *DEEP_RESEARCH_KINDS.values(),

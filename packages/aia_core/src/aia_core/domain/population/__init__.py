@@ -67,6 +67,7 @@ from .errors import (
 )
 from .materialized import (
     EXTENSION_CONTRACT,
+    MATERIALIZE_PROJECT_OWNER,
     MATERIALIZED_BLOCK,
     MaterializedField,
     MaterializedKind,
@@ -97,6 +98,7 @@ from .runtime import FieldOrigin, RuntimePopulation
 from .table import ParsedDictionary, ParsedPanel
 from .validation import CheckResult, ImportReport, validate_import
 from .versions import (
+    OWNER_ID_HASH_CHARS,
     VERSION_ID_HASH_CHARS,
     DatasetVersion,
     Population,
@@ -110,6 +112,7 @@ from .versions import (
     descends_from,
     is_sha256,
     new_promotion_id,
+    owned_version_id,
     plan_establish,
     plan_promotion,
     require_runtime_eligible,
@@ -128,6 +131,8 @@ __all__ = [
     "KNOWN_GRADES",
     "KNOWN_JOINT_STATUSES",
     "MATERIALIZED_BLOCK",
+    "MATERIALIZE_PROJECT_OWNER",
+    "OWNER_ID_HASH_CHARS",
     "POLICY_COLUMNS",
     "RECOMMENDED_USE_POLICY",
     "VERSION_ID_HASH_CHARS",
@@ -207,6 +212,7 @@ __all__ = [
     "is_sha256",
     "materialized_policy_entry",
     "new_promotion_id",
+    "owned_version_id",
     "parse_weight",
     "plan_establish",
     "plan_promotion",

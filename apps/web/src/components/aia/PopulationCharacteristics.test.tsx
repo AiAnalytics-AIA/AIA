@@ -17,7 +17,7 @@ const C = "aia.intelligence.population.characteristics";
 const version = (id: string, label: string, status: PopulationRegistry["versions"][number]["status"]) => ({
   version_id: id, label, content_sha256: "a".repeat(64), row_count: 6, column_count: 4, parent_version_id: null, status,
   runtime_eligible: status !== "REGISTERED", companions_attached: true, imported_at: "2026-10-11T09:00:00Z",
-  imported_by: "USR-operator", provenance: "fictional",
+  imported_by: "USR-operator", provenance: "fictional", owner_client_id: null, extension_sha256: null,
 });
 
 const registry: PopulationRegistry = {
@@ -54,19 +54,21 @@ const kept: PopulationCharacteristics = {
     {
       field: "vek", block: "population_anchor", source: "Census 2021", evidence_status: "POPULATION_ANCHOR", provenance_class: "OBSERVED",
       production_grade: "A", recommended_use: "PERSONA_OR_ANALYSIS_WITH_SCOPE", description: "Věk respondenta", persona_eligible: true,
-      is_weight: false, derived: false,
+      is_weight: false, derived: false, materialized: false,
       uses: [answer("AUDIENCE_FILTERING", true, "internal_use", ["DISCLOSE_SCOPE"]), answer("WEIGHTING", false, "not_a_weight_column")],
     },
     {
       field: "panel_row_id", block: "provenance", source: "build", evidence_status: "PROVENANCE_OR_CORE", provenance_class: "PROVENANCE",
       production_grade: "T", recommended_use: "AUDIT_ONLY", description: "Identifikátor řádku", persona_eligible: false,
-      is_weight: false, derived: false, uses: [answer("AUDIENCE_FILTERING", false, "audit_only")],
+      is_weight: false, derived: false, materialized: false, uses: [answer("AUDIENCE_FILTERING", false, "audit_only")],
     },
   ],
   subpanels: [subpanel("young_18_29", "Mladí 18–29", true, null), subpanel("students", "Studenti", false, "unknown_field")],
   subpanels_measured_on: "17.1.2",
   subpanels_measured_under_weight: "vaha_strukturalni_2025",
   subpanel_note: "Donor support je autoritativní.",
+  owner_client_id: null,
+  extension_sha256: null,
 };
 
 let answers: Record<string, PopulationCharacteristics> = {};

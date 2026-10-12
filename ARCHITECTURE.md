@@ -271,8 +271,13 @@ can grant approval or supply deployment prices.
   The model returns only one respondent's probabilities, selections or short text
   under a strict per-block contract; facts the persona has are answered by code
   (`respondent_facts`), the response process and a seeded draw decide the answer
-  (`respondent_behavior`). Personas are the fictional roster only: its datasets
-  carry `data_origin = SYNTHETIC_AI_FICTIONAL`, and the fixture's
+  (`respondent_behavior`). Who the personas are is the run's pin, set at start and kept by a
+  retry (`PersonaSource`): the fictional roster, whose datasets carry
+  `data_origin = SYNTHETIC_AI_FICTIONAL`, or -- behind `AIA_AI_POPULATION_PERSONAS_ENABLED` --
+  respondents drawn from the population the run recorded (`panel_source.panel_plans`), Class A,
+  `MODELLED_AI_PANEL`, the dataset naming its respondent system; a worker without that path
+  parks such a run, and a sample or persona the population cannot give is refused by name
+  before any call. The fixture's
   `SYNTHETIC_FIXTURE` (in `aia_executors.workbench`, refused unless `AIA_ENV` is
   `local`/`test`). The client-facing origin gate is an allowlist,
   `CLIENT_ADMISSIBLE_ORIGINS` (ADR 0024 §2): a synthetic origin is refused as
@@ -318,9 +323,19 @@ can grant approval or supply deployment prices.
 - **A native run's analysis is internal, and an outcome is re-admitted whenever it is
   read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
   items become evidence fields only from what the run recorded
-  (`domain/evidence/instrument.py`): modelled, aggregate only, `INTERNAL_ONLY`, which the
-  claim gate refuses client-facing whatever the certificate or origin says. A run with no
-  panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
+  (`domain/evidence/instrument.py`), under the policy their answers' origin selects --
+  never a caller: `aia-instrument-evidence-1` for simulated answers, `-2` for
+  `MODELLED_AI_PANEL` (ADR 0024 §3); any other origin is refused. Both are modelled,
+  aggregate only, never one person's and never a measured fact. `-1` is `INTERNAL_ONLY`,
+  which the claim gate refuses client-facing whatever the certificate or origin says. `-2`
+  also needs a scope and the modelled-value disclosure on every client-facing claim
+  (`MODELED_DISCLOSURE_ALWAYS`; it and `INTERNAL_ONLY` are AIA-only rules, never extracted
+  from dictionary prose), and is `INTERNAL_ONLY` unless a `HOLDOUT_VALIDATED` validation was
+  earned on the run's current respondent system (`validation.lifts_internal_only` over
+  `respondent_system_fingerprint`: prompt, persona builder and mode, sampler, population
+  version, model binding, response process). Native preflight and the gate both read the
+  book, so a lift is honoured by both. A run with no panel has no certificate, and says so
+  (`MISSING`). A stored module outcome holds the
   accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
   from the run's own artifacts, requires every fingerprint to match and puts the draft
   through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
