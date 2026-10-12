@@ -663,3 +663,16 @@ the variables none of them reads. `terraform plan -target=…`: 8 to add, 1 to c
 instance policy), 0 to destroy; Cognito untouched. An untargeted plan needs the owner's
 tfvars.
 
+**P4d1 applied, 2026-10-12** (owner's go-ahead). The targeted plan above was applied: 8 added,
+1 changed, 0 destroyed, and nothing else in the account. Write-once was then proved against the
+real bucket `aia-develop-population-<account>` through `S3PopulationStore` itself:
+- a first write stored the object;
+- the same bytes again answered as written;
+- different bytes were refused (`PopulationStoreConflict`), and one object version remained;
+- reading back through `RoutingPopulationSource` returned the original bytes;
+- SSE `AES256`, with the SHA256 in the object's metadata; public access fully blocked;
+  versioning enabled.
+
+The proof object was deleted afterwards. The worker receives the two settings on the first
+deploy after #334 merges; nothing reads or writes the store until P4d3.
+
