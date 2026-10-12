@@ -429,6 +429,15 @@ which Compose sets to the read-only `/srv/population/v17`). Before turning it on
 Turning it off again does not change a run that already pinned the panel: a worker without the
 path parks it (`panel_personas_unavailable`) rather than answering with fictional respondents.
 
+### The audience preview
+
+The audience step's feasibility preview is counted by the API, which mounts the same
+directory read-only and loads LIVE once per process and version (measured on fictional rows
+of v17's shape: ~97 MB held, 360 MB peak while parsing, 3.6 s; the real panel holds more).
+The first preview after a deploy or a promotion pays the load; later ones only the count. The
+API never receives `AIA_POPULATION_OPERATORS`. Set `AIA_API_POPULATION_ASSET_ROOT=` (empty) in
+`.env` to turn the preview off; the step then says it is not available here.
+
 The panels are licence-bound (PIAAC 2023 CZ / ISSP 2022 CZ, open decision D3). They stay
 in the EU ops bucket and on this host's disk, never in Git or an image. Fifteen of the
 files come from the unit's data bundle (`legacy-data/86b70bfb5c1b`). The other four are the
@@ -518,6 +527,13 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    version's verified field dictionary in the database for the characteristics section
    on Společenská inteligence. It acts as no one and needs no sign-in. A refusal is logged
    as a warning and does not fail the deploy.
+
+   It then runs `bin/population.sh record-catalogue`, which keeps the audience factor
+   catalogue of each population's current version, computed once from its ANALYSIS view,
+   for the audience step's factor editor and subpanels. `establish` and `promote` keep the
+   catalogue of the version they move to as well, so a promotion between deploys does not
+   leave the step without one; a version no population has stood on has none. Either is
+   said in the command's answer, and a refusal does not undo the change or fail the deploy.
 
 **Exit codes.** `2` means refused before anything was written: a person the
 configuration does not name, a malformed argument. `3` means the population itself

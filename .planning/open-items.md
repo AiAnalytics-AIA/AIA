@@ -1698,7 +1698,11 @@ methodology decision.
 `null` instead of `0`.
 
 **Status.** Open; ported as the classic behaves; **decision for the data owner**
-before PR B merges.
+before PR B merges. **Update 2026-10-12 (#345, panel-grounded-respondents 6e):** AIA's
+live range editor leaves an empty bound out, so the population's own bound stands
+(`apps/web/src/research/audience.ts` `setRange`; `audience.live.test.ts` › *leaves an
+empty bound out, where the classic stored 0*). The classic `setAudienceRange` stays,
+characterised, as the parity port only. Closed for AIA once #345 merges.
 
 ## OI-51 · Finding · Picking a special-audience preset keeps the previous subpanel and its filters
 
@@ -3474,3 +3478,24 @@ such a row cannot back a measured claim at admission.
 **Test.** A ledger test asserting a modelled-panel row never grades `MEASURED`.
 
 **Status.** Open; analysis-governance's call, with OI-9.
+
+## OI-104 · Finding, closed · A panel start with no population asked to confirm its cost first
+
+**Claim.** `ResearchRuns.start` applied the spend-confirmation gate before the panel
+persona source's population check, so a panel start with no LIVE population, in a study
+whose limit the run reaches, raised `CostConfirmationRequired` (or `CostCeilingUnknown`)
+instead of `PanelPopulationMissing`.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research.py:373-393 @ abd3ce88`
+(the cost gate, then `_population_for`).
+
+**Reproduction.**
+`test_research_runs.py::test_a_panel_start_with_no_population_is_refused_as_that_before_any_cost_is_asked`
+fails on the old order with `CostConfirmationRequired`.
+
+**Consequence.** A person is asked to confirm the cost of a run that can never start; a yes
+only leads to the refusal.
+
+**Smallest fix / status.** Resolve and check the population before the cost gate. Found by
+Codex on #332 after it merged; fixed in #345 (panel-grounded-respondents).
+
