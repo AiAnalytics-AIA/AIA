@@ -157,7 +157,10 @@ apps/
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
-                            fictional data is labelled every time, the park is explained
+                            fictional data is labelled every time, the park is explained;
+                            originKind / resultOriginKind: the API's three-way reading of an
+                            origin (fictional, modelled, unknown -- never fieldwork), the one
+                            every screen's label uses
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
@@ -329,7 +332,8 @@ packages/aia_core/src/aia_core/
       steps.py              what each step stores; reusable (by content) vs this run's own;
                             tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
-                            contract, fictional roster, facts by code, interpretation, the dataset
+                            contract, fictional roster, facts by code, interpretation, the dataset;
+                            dataset_origin: the origin derived from the personas (a mixed roster refused)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
     persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
@@ -356,7 +360,11 @@ packages/aia_core/src/aia_core/
                             below n_min 30); a declaration not made is out of the fingerprint
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
-    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
+    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
+                            synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
+                            CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
+                            origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
+                            uses) and MODELLED_DISCLOSURE
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
