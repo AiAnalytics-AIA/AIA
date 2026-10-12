@@ -381,6 +381,8 @@ class GroundedPopulation:
     contract: PopulationImportContract
     source: InMemoryPopulationSource
     rows: int
+    #: The LIVE population it is established as.
+    live_id: str = LIVE
 
     def runtime(self, session: Session) -> PopulationRuntime:
         return PopulationRuntime(
