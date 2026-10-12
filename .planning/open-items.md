@@ -3419,3 +3419,31 @@ EXACT.
 
 **Status.** Closed by PR #315 (`341ea3b`).
 
+---
+
+## OI-102 · Hypothesis · A superseded Sociomap method can still be put in force as an edited version
+
+**Claim.** `aia-sociomap-2` remains a registered base preset, so an administrator can store and
+activate `aia-sociomap-2+e<n>`, and new runs would then pin a method that no unedited new run pins
+any more (new runs pin `aia-sociomap-1` + `-3`, `research_sociomap.py` `default_methods`).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/methodology/sociomap.py:623`,
+`apps/web/src/components/aia/settings/MethodologyVersions.tsx:319-323`,
+`apps/api/src/aia_api/routers/methodology.py:620, 665, 708`,
+`packages/aia_core/src/aia_core/domain/methodology/pins.py:60-71` @ `cd6da1e1`
+(`mvp-workflow-assurance.md` F3, #307).
+
+**Reproduction.** Not yet run: a `POST …/methodology/…/versions` with `base_preset =
+"aia-sociomap-2"`, its activation, then a run start, and read the run's pinned methods. Until it
+runs, this is a hypothesis.
+
+**Consequence.** A new run could compute a method the in-force default (-3) replaced, without
+anyone choosing -2 for new work on purpose.
+
+**Smallest fix.** If the owner confirms -2 is historical only, refuse it as a base for a new
+version while keeping it readable for stored runs and versions.
+
+**Test.** An API test that the version POST refuses a superseded base, and that a stored -2 run
+still reads and retries.
+
+**Status.** Open; reproduce or delete.

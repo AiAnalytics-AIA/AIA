@@ -209,7 +209,7 @@ dev-tool / data-pipeline decision and the phase that owns it -- see
 | 19 `.bat` launchers, `launcher_bootstrap.py` | Windows startup | — | Dropped | n/a | Replaced by containers + CI |
 | `legacy_job_dispatch.py`, `LEGACY_STAGE_MAP` | Pre-17.8 compatibility | — | Dropped | n/a | Remove after Phase 3 |
 | `anthropic_compat.py`, `spawn_env.py`, `portability_check.py` | Local-machine shims | — | Dropped | n/a | |
-| `src/server.js` (this repo) | Fastify login stub | `apps/api` | Retained | n/a | 44 lines, no domain logic. Holds the only existing login path; remove once the auth seam is filled |
+| `src/server.js` (this repo) | Fastify login stub | `apps/api` | Removed | n/a | 44 lines, no domain logic. Removed 2026-10-12 with its views and root npm package (#307); sign-in is Cognito through `apps/web` |
 
 ## Documented deviations
 

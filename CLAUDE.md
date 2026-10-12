@@ -222,7 +222,15 @@ apps/
                             (a refusal parks), one request per respondent block, answers drawn by code
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
-                            twice), AnalysisConfig.from_settings; registered by no composition yet
+                            twice), AnalysisConfig.from_settings; in the default registry: without
+                            AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured); the
+                            model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
+                            and a valid provider configuration), else it parks too (registry.py)
+    report.py               research_report: the internal draft from the eight analysis modules and
+                            the run's object maps (report_maps, object_map_figure); never approved here
+    sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; always registered.
+                            AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED decides only whether a newly started
+                            run includes its step; turning it off does not stop a run that already has it
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
@@ -447,7 +455,9 @@ packages/aia_core/src/aia_core/
                             cell no hill reaches is null; nothing outside the engine computes one)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
-                            support); read_artifact reads either contract, refuses any other
+                            support); read_artifact reads either contract, refuses any other;
+                            read_object_maps: the one reader of a battery's stored maps (contract 3,
+                            each map's method equal to its key), for the report and its figures
       view.py               drag overrides, view terrain, scenarios (never write) F9;
                             align_to_reference (a view), stress_quality (the audit's label)
     report/                 The report as data: document model, components, templates (DOCX output)
@@ -705,7 +715,6 @@ tools/ui_workbench/         AIA on this machine, for UI work: the real API on SQ
                             Run -> Results; workspace_journey.mjs: a study's content, file, import,
                             audience, dimensions; both fail on a request to a path the unit served
 .planning/                  Progress, plans, open items
-src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
                             by AIA-reference/tools/extract_legacy.py. Frozen: regenerated,
                             never edited. The baseline and parity oracle (ADR 0011).

@@ -1199,7 +1199,9 @@ skin, which ADR 0018 removed), so it names the self-hosted families directly and
 treated the monorepo as the workspace, and emitted
 `.next/standalone/apps/web/server.js` — while an image built from `apps/web`
 alone emits `.next/standalone/server.js`. The same Dockerfile then works in one
-place and not the other. Pin the trace root to the package:
+place and not the other. (That root lockfile was the retired Fastify stub's,
+removed in #307; the pin stays, so a lockfile added above `apps/web` cannot move
+the output again.) Pin the trace root to the package:
 
 ```ts
 // WRONG — layout depends on what is above apps/web
