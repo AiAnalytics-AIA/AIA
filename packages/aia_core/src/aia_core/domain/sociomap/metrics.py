@@ -274,9 +274,9 @@ def object_rating_summaries(
 
     ``mean_rating`` is the arithmetic mean of the observed raw ratings, ``None``
     when nobody rated the object; ``support_n`` is the number of observed
-    ratings. The reference's frontend receives both precomputed (F6); this is
-    the backend derivation, stated here because it is an AIA declaration rather
-    than a recovered function.
+    ratings. The reference's frontend receives both precomputed (F6); the unit
+    derives them in ``visualization_lab.py:131`` the same way, but rounds the mean to
+    four decimals, which this does not (register LEGACY-R7).
     """
     if not ratings:
         raise ValueError("ratings must have at least one respondent")
