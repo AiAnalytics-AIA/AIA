@@ -464,7 +464,7 @@ CATALOG: tuple[tuple[str, ...], ...] = (
         "CALIBRATED_MODELED_COMPOSITE",
         "jrc",
         "scale01",
-        "",
+        "1.0",
         "",
         "",
     ),
@@ -546,7 +546,9 @@ CATALOG: tuple[tuple[str, ...], ...] = (
         "",
         "",
     ),
-    ("SIG_raw", "syrové", "nakup", "X", "", "MEASURED_DERIVED", "brand", "", "1.0", "", ""),
+    # An empty priority reads NaN (the parse is compared); this signal's kind renders nothing,
+    # so its NaN never enters a ranking, whose order NaN would leave to the sort's internals.
+    ("SIG_raw", "syrové", "nakup", "X", "", "MEASURED_DERIVED", "brand", "", "", "", ""),
     (
         "SIG_absent",
         "chybí",

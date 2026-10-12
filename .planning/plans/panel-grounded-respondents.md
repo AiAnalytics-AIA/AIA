@@ -464,6 +464,15 @@ across 11 topic sets. All EXACT; re-captured byte-identical. Mutating a score co
 specific-topic multiplier or the generic set, the per-block cap, the concept rule, the prior gate,
 the order, the budget, a threshold, the anchor rules or the `"nan"` reading fails it.
 
+One difference, found by CI: an empty catalog `priority` reads NaN, so the signal's score is NaN,
+and `candidates.sort(key=lambda x: (-x[0], x[1]["column"]))` (`persona_grounded.py:290`) leaves a
+NaN key where the sort's internals put it. The unit's own output then differs by Python version:
+captured on 3.13, the first fixture ranked `SIG_risk01` (empty priority) before `SIG_brand`; CI's
+Python ranked it after (PR #315, run 38250340111, `test_the_grounded_signals_are_the_units[3]`).
+AIA ranks a NaN score last (`test_a_signal_with_an_unknown_priority_ranks_last`); the fixture's
+ranked signals all carry a priority, and the empty one sits on `SIG_raw`, which never renders, so
+the parse of an empty priority is still compared.
+
 ### 3e. Landed: panel personas
 
 `domain/panel_persona.py`: `panel_personas(population, sample) -> PanelPersonas`, one `Persona`

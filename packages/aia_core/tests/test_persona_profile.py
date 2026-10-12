@@ -326,3 +326,17 @@ def test_anchor_prose_is_compacted_as_the_unit_does(index: int) -> None:
     from aia_core.domain.persona_signals import _compact_anchor
 
     assert _compact_anchor(*_INPUTS["anchors"][index]) == EXPECTED["anchors"][index]
+
+
+def test_a_signal_with_an_unknown_priority_ranks_last() -> None:
+    """The one difference in the ranking: 18.6.6 left a NaN score where Python's sort put it,
+    which differs between Python versions; AIA ranks it after every known score."""
+    from dataclasses import replace
+
+    base = next(s for s in CATALOG if s.column == "SIG_brand")
+    known = replace(base, column="SIG_known", label="známé", priority=0.01)
+    unknown = replace(base, column="SIG_unknown", label="neznámé", priority=math.nan)
+    row: dict[str, Typed] = {"SIG_known": 5, "SIG_unknown": 9}
+    text = grounded_text(row, ["znacka"], [unknown, known], LABELS)
+    assert text.index("známé") < text.index("neznámé")
+    assert all(not math.isnan(s.priority) for s in CATALOG if s.column != "SIG_raw")

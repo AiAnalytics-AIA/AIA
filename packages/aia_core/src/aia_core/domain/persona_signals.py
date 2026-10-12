@@ -17,9 +17,10 @@ What the unit does, kept:
 * a column with value labels renders by them first; otherwise by its ``kind``;
 * the score is the catalog's priority, raised by the value's distance from the scale's middle and
   by each specific (non-generic) topic it matches;
-* candidates in score order, ties by column; at most 3 per block and one per concept, within
-  the signal budget (``product_policy.persona_signal_budget``, ``PRODUCT_POLICY.json``: 4, one
-  more per two extra topics, at most 8; then clamped to 3..9);
+* candidates in score order, ties by column (a NaN score last: the one difference, since the
+  unit's order for it depended on the Python version); at most 3 per block and one per
+  concept, within the signal budget (``product_policy.persona_signal_budget``,
+  ``PRODUCT_POLICY.json``: 4, one more per two extra topics, at most 8; then clamped to 3..9);
 * each signal carries its provenance in brackets (``_role_suffix``).
 
 The catalog is read as ``pandas.read_csv`` reads it (:func:`parse_catalog`), its quirks with it: an
@@ -393,7 +394,12 @@ def grounded_text(
         candidates.append((score, signal, text))
     if not candidates:
         return ""
-    candidates.sort(key=lambda c: (-c[0], c[1].column))
+    # The unit's order (score descending, then column). A NaN score (an empty priority) has no
+    # place in it: Python's sort leaves such a key where its internals put it, and 18.6.6's own
+    # output then differs between Python versions. AIA ranks it last: unknown is never good.
+    candidates.sort(
+        key=lambda c: (math.isnan(c[0]), 0.0 if math.isnan(c[0]) else -c[0], c[1].column)
+    )
     budget = max(3, min(9, signal_budget(topic_set)))
     selected: list[tuple[Signal, str]] = []
     per_block: dict[str, int] = {}

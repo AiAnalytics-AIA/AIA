@@ -633,7 +633,7 @@
    "kind": "scale01",
    "label": "ochota riskovat",
    "min_abs_z": NaN,
-   "priority": NaN,
+   "priority": 1.0,
    "source": "JRC",
    "topics": [
     "finance",
@@ -746,7 +746,7 @@
    "kind": "nan",
    "label": "syrové",
    "min_abs_z": NaN,
-   "priority": 1.0,
+   "priority": NaN,
    "source": "X",
    "topics": [
     "nakup"
@@ -848,7 +848,7 @@
    "wave": "2024.0"
   }
  ],
- "catalog_sha256": "c5f6d26095d3a0ad9493b03c55b36c1a7c936c0ee168b6d0ad52b9add55fbc81",
+ "catalog_sha256": "246e1de0d2107bebbf5d446becf2aa982924af32778a7e54f664b6d0ca3b2364",
  "prose": [
   {
    "id": "F01_prefixes",
@@ -1125,7 +1125,7 @@
    null,
    [
     "ochota riskovat: 0.22 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -1216,7 +1216,7 @@
    ],
    [
     "ochota riskovat: 0.54 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -1310,7 +1310,7 @@
    ],
    [
     "ochota riskovat: 0.36 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -1398,7 +1398,7 @@
    ],
    [
     "ochota riskovat: 0.42 (0–1)",
-    NaN
+    1.0
    ],
    null,
    [
@@ -1489,7 +1489,7 @@
    ],
    [
     "ochota riskovat: 0.70 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -1583,7 +1583,7 @@
    ],
    [
     "ochota riskovat: 0.51 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -1674,7 +1674,7 @@
    ],
    [
     "ochota riskovat: 0.47 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -1765,7 +1765,7 @@
    ],
    [
     "ochota riskovat: 0.90 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -1859,7 +1859,7 @@
    ],
    [
     "ochota riskovat: 0.35 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -1956,7 +1956,7 @@
    ],
    [
     "ochota riskovat: 0.23 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 2/4",
@@ -2038,7 +2038,7 @@
    ],
    [
     "ochota riskovat: 0.95 (0–1)",
-    NaN
+    1.0
    ],
    null,
    [
@@ -2120,7 +2120,7 @@
    ],
    [
     "ochota riskovat: 0.81 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -2211,7 +2211,7 @@
    ],
    [
     "ochota riskovat: 0.54 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -2299,7 +2299,7 @@
    ],
    [
     "ochota riskovat: 0.37 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 2/4",
@@ -2381,7 +2381,7 @@
    ],
    [
     "ochota riskovat: 0.33 (0–1)",
-    NaN
+    1.0
    ],
    null,
    [
@@ -2548,7 +2548,7 @@
    ],
    [
     "ochota riskovat: 0.96 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -2645,7 +2645,7 @@
    ],
    [
     "ochota riskovat: 0.56 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -2812,7 +2812,7 @@
    ],
    [
     "ochota riskovat: 0.28 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -2909,7 +2909,7 @@
    ],
    [
     "ochota riskovat: 0.55 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -3000,7 +3000,7 @@
    ],
    [
     "ochota riskovat: 0.77 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -3094,7 +3094,7 @@
    ],
    [
     "ochota riskovat: 0.88 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -3176,7 +3176,7 @@
    ],
    [
     "ochota riskovat: 0.54 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -3270,7 +3270,7 @@
    ],
    [
     "ochota riskovat: 0.78 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -3349,7 +3349,7 @@
    ],
    [
     "ochota riskovat: 0.51 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -3437,7 +3437,7 @@
    ],
    [
     "ochota riskovat: 0.23 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -3525,7 +3525,7 @@
    ],
    [
     "ochota riskovat: 0.51 (0–1)",
-    NaN
+    1.0
    ],
    null,
    [
@@ -3698,7 +3698,7 @@
    ],
    [
     "ochota riskovat: 0.30 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 4/4",
@@ -3795,7 +3795,7 @@
    ],
    [
     "ochota riskovat: 0.41 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -3895,7 +3895,7 @@
    ],
    [
     "ochota riskovat: 0.97 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -4059,7 +4059,7 @@
    ],
    [
     "ochota riskovat: 0.23 (0–1)",
-    NaN
+    1.0
    ],
    null,
    [
@@ -4147,7 +4147,7 @@
    ],
    [
     "ochota riskovat: 0.69 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 1/4",
@@ -4235,7 +4235,7 @@
    ],
    [
     "ochota riskovat: 0.12 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -4314,7 +4314,7 @@
    ],
    [
     "ochota riskovat: 0.30 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -4390,7 +4390,7 @@
    null,
    [
     "ochota riskovat: 0.42 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -4475,7 +4475,7 @@
    ],
    [
     "ochota riskovat: 0.89 (0–1)",
-    NaN
+    1.0
    ],
    null,
    null,
@@ -4551,7 +4551,7 @@
    ],
    [
     "ochota riskovat: 0.89 (0–1)",
-    NaN
+    1.0
    ],
    [
     "dluhy: 3/4",
@@ -4608,16 +4608,16 @@
    "persona": "Jsem muž, ve věku neuvedeno. Mám střední bez maturity vzdělání. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 4. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 17/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; stres: 6/6 [something else]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
   },
   {
-   "grounded": "Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]",
-   "persona": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: bydlí v rodinném domě, děti v domácnosti"
+   "grounded": "Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem žena, ve věku 92 let. Mám střední s maturitou vzdělání. Žiju v kraji Karlovarský kraj. Osobní příjem: 60 tisíc Kč a více čistého měsíčně Příjmová pozice (compatibility proxy): 2/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: specialisté Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 8/10 [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.42 (0–1) [kalibrovaný modelový kompozit] Domácnost: bydlí v rodinném domě, děti v domácnosti"
   },
   {
    "grounded": "Relevantní datové signály: výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 0/10 [kalibrovaný behaviorální model]; věrnost značce: 3.2/10 [kalibrovaný behaviorální model]; sport: ~240 min/den [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]",
    "persona": "Jsem žena, ve věku 82 let. Mám základní vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 54. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: obsluha strojů a zařízení Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: má stálého partnera/partnerku, ale nežijí ve společné domácnosti Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; sledování zpráv: alespoň měsíčně, ne týdně [statisticky přiřazený celý donor blok; ISSP 2021.0, match vysoká]; smartphone: 0/10 [kalibrovaný behaviorální model]; věrnost značce: 3.2/10 [kalibrovaný behaviorální model]; sport: ~240 min/den [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: svobodný(á), děti v domácnosti, žije sám"
   },
   {
-   "grounded": "Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 1/6 [something else]",
-   "persona": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; stres: 1/6 [something else]"
+   "grounded": "Relevantní datové signály: stres: 1/6 [something else]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem muž, ve věku 32 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 60 tisíc Kč a více čistého měsíčně Relativní příjmová pozice: přibližně 81. percentil v harmonizované příjmové pozici Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 4 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 3. místo ze 14 Relevantní datové signály: stres: 1/6 [something else]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]"
   },
   {
    "grounded": "Relevantní datové signály: smartphone: 8/10 [kalibrovaný behaviorální model]",
@@ -4652,8 +4652,8 @@
    "persona": "Jsem muž, ve věku 89 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: 20–30 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 26. percentil v harmonizované příjmové pozici Pracovní status: ekonomicky neaktivní Poslední/uváděná profesní skupina: specialisté Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: velmi dobré Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: nikdy [statisticky přiřazený celý donor blok; JRC 2022.0]; sport: ~15 min/den [kalibrovaný behaviorální model]"
   },
   {
-   "grounded": "Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit]; věrnost značce: 1/10 [kalibrovaný behaviorální model]",
-   "persona": "Jsem muž, ve věku 48 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 57. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit]; věrnost značce: 1/10 [kalibrovaný behaviorální model] Domácnost: bydlí v rodinném domě, děti v domácnosti"
+   "grounded": "Relevantní datové signály: věrnost značce: 1/10 [kalibrovaný behaviorální model]; spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem muž, ve věku 48 let. Mám základní vzdělání. Žiju v kraji Jihomoravský kraj. Relativní příjmová pozice: přibližně 57. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: ozbrojené síly Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 0 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: žije s partnerem/manželem či partnerkou/manželkou ve společné domácnosti Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: věrnost značce: 1/10 [kalibrovaný behaviorální model]; spíše vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.33 (0–1) [kalibrovaný modelový kompozit] Domácnost: bydlí v rodinném domě, děti v domácnosti"
   },
   {
    "grounded": "Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; spíše vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 10/10 [kalibrovaný behaviorální model]; banka: ČSOB [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
@@ -4696,8 +4696,8 @@
    "persona": "Jsem muž, ve věku 50 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Příjmová pozice (compatibility proxy): 5/10 Pracovní status: ekonomicky neaktivní Velikost domácnosti: 5 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: dobré Kvalita života v kraji: 9. místo ze 14 Relevantní datové signály: stres: 6/6 [something else]; GAD-7 symptom score: 9/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; PHQ-9 symptom score: 6/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]"
   },
   {
-   "grounded": "Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]",
-   "persona": "Jsem žena, ve věku 73 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: bydlí v bytě v osobním vlastnictví"
+   "grounded": "Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem žena, ve věku 73 let. Mám střední bez maturity vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: kvalifikovaní pracovníci v zemědělství Kvalita života v kraji: 2. místo ze 14 Relevantní datové signály: věrnost značce: 3.1/10 [kalibrovaný behaviorální model]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.51 (0–1) [kalibrovaný modelový kompozit] Domácnost: bydlí v bytě v osobním vlastnictví"
   },
   {
    "grounded": "Relevantní datové signály: sledování zpráv: denně [statisticky přiřazený celý donor blok; ISSP 2021.0, match střední]; smartphone: 7/10 [kalibrovaný behaviorální model]; sport: ~120 min/den [kalibrovaný behaviorální model]; banka: Komerční banka [měřeno ve stejném core donorovi; JRC 2022.0]; věrnost značce: 5/10 [kalibrovaný behaviorální model]; čtení: ~10.8 h/týden [modelový hodnotový proxy]",
@@ -4740,8 +4740,8 @@
    "persona": "Jsem žena, ve věku 87 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 3/10 Pracovní status: jiná ekonomická neaktivita Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 4 dítě/dětí celkem; nemusí žít ve stejné domácnosti Zdraví v core datech: uspokojivé Kvalita života v kraji: 14. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 20/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 5/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: většinu času [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: výborné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
   },
   {
-   "grounded": "Relevantní datové signály: ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit]; dluhy: 3/4 [kalibrovaná modelová položka]",
-   "persona": "Jsem žena, ve věku 53 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 73. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit]; dluhy: 3/4 [kalibrovaná modelová položka] Domácnost: bydlí v nájemním bytě"
+   "grounded": "Relevantní datové signály: dluhy: 3/4 [kalibrovaná modelová položka]; ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem žena, ve věku 53 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Pracovní výdělek: do 20 tisíc Kč čistého měsíčně Relativní příjmová pozice: přibližně 73. percentil v harmonizované příjmové pozici Pracovní status: důchodce/kyně Poslední/uváděná profesní skupina: řemeslníci a opraváři Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 2 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 5. místo ze 14 Relevantní datové signály: dluhy: 3/4 [kalibrovaná modelová položka]; ochota riskovat: 0.30 (0–1) [kalibrovaný modelový kompozit] Domácnost: bydlí v nájemním bytě"
   },
   {
    "grounded": "Relevantní datové signály: sledování zpráv: méně než měsíčně [statisticky přiřazený celý donor blok; ISSP 2021.0]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; smartphone: 5/10 [kalibrovaný behaviorální model]; osamělost: více než jednou týdně [statisticky přiřazený celý donor blok; JRC 2022.0]",
@@ -4784,16 +4784,16 @@
    "persona": "Jsem muž, ve věku 78 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 66. percentil v harmonizované příjmové pozici Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: úředníci Velikost domácnosti: 6 osoba/y Rodičovství: uvádí 1 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Zdraví v core datech: dobré Kvalita života v kraji: 10. místo ze 14 Relevantní datové signály: PHQ-9 symptom score: 25/27 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; GAD-7 symptom score: 8/21 (nikoli diagnóza) [statisticky přiřazený celý donor blok; EHIS 2019.0]; osamělost: občas [statisticky přiřazený celý donor blok; JRC 2022.0]; zdraví: špatné [statisticky přiřazený celý donor blok; EHIS 2019.0]"
   },
   {
-   "grounded": "Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]",
-   "persona": "Jsem muž, ve věku 67 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: pracuje Aktuální profesní skupina: úředníci Velikost domácnosti: 2 osoba/y Kvalita života v kraji: 1. místo ze 14 Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0] Domácnost: děti v domácnosti"
+   "grounded": "Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem muž, ve věku 67 let. Mám střední s maturitou vzdělání. Žiju v kraji Jihomoravský kraj. Příjmová pozice (compatibility proxy): 8/10 Pracovní status: pracuje Aktuální profesní skupina: úředníci Velikost domácnosti: 2 osoba/y Kvalita života v kraji: 1. místo ze 14 Relevantní datové signály: výrazně nižší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; dluhy: 1/4 [kalibrovaná modelová položka]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; ochota riskovat: 0.90 (0–1) [kalibrovaný modelový kompozit] Domácnost: děti v domácnosti"
   },
   {
    "grounded": "Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 7/10 [kalibrovaný behaviorální model]; smartphone: 7/10 [kalibrovaný behaviorální model]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model]",
    "persona": "Jsem žena, ve věku 47 let. Mám střední bez maturity vzdělání. Žiju v kraji Hlavní město Praha. Relativní příjmová pozice: přibližně 71. percentil v harmonizované příjmové pozici Pracovní status: pracuje Aktuální profesní skupina: úředníci Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 6. místo ze 14 Relevantní datové signály: sledování zpráv: alespoň týdně, ne denně [statisticky přiřazený celý donor blok; ISSP 2021.0]; výrazně vyšší extraverze než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; věrnost značce: 7/10 [kalibrovaný behaviorální model]; smartphone: 7/10 [kalibrovaný behaviorální model]; banka: Fio [měřeno ve stejném core donorovi; JRC 2022.0]; sport: ~45 min/den [kalibrovaný behaviorální model] Brand-specific background: NEDODÁN — nepředpokládej předchozí znalost, používání ani zkušenost s konkrétní značkou; vyhodnocuj pouze stimulus a obecné predispozice. Domácnost: rozvedený(á)"
   },
   {
-   "grounded": "Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]; stres: 6/6 [something else]",
-   "persona": "Jsem žena, ve věku 46 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]; stres: 6/6 [something else]"
+   "grounded": "Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; stres: 6/6 [something else]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]",
+   "persona": "Jsem žena, ve věku 46 let. Mám střední s maturitou vzdělání. Žiju v kraji Zlínský kraj. Příjmová pozice (compatibility proxy): 4/10 Pracovní status: nezaměstnaný/á Poslední/uváděná profesní skupina: techničtí a odborní pracovníci Velikost domácnosti: 1 osoba/y Rodičovství: uvádí 3 dítě/dětí celkem; nemusí žít ve stejné domácnosti Partnerský status v core datech: nemá stálého partnera/partnerku Kvalita života v kraji: 13. místo ze 14 Relevantní datové signály: výrazně vyšší svědomitost než populační průměr [měřeno v core donorovi; PIAAC 2023.0]; stres: 6/6 [something else]; ochota riskovat: 0.23 (0–1) [kalibrovaný modelový kompozit]"
   },
   {
    "grounded": "Relevantní datové signály: smartphone: 2/10 [kalibrovaný behaviorální model]",
