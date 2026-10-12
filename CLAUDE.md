@@ -126,7 +126,11 @@ apps/
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
                             --status-running when code does; aria-hidden beside the status it decorates.
-                            64 px in a running step's panel and the job dialog, 32 px by default
+                            64 px in a running step's panel and the job dialog, 32 px by default.
+                            Liftoff: the lift-off film (public/skin/brand/aia-liftoff.{webm,mp4}) in
+                            the front door's mark slot after a sign-in the person started
+                            (lib/liftoff.ts arms and takes it); muted, decoration, its end the way in;
+                            on `brand-stage`, the film's ground, used on the front door only
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
