@@ -14,7 +14,7 @@ chunks:
   - "[x] M3b. The citation, stored: study_design_sources, one per study, insert-once, written by the design repository"
   - "[x] M3c. Reuse, scoped: into a new research study or an empty one of the same client; working content, first revision, citation in one transaction"
   - "[x] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
-  - "[ ] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"
+  - "[x] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"
   - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
 # Project memory: a past study's design reused in a new one, with its citation
@@ -254,6 +254,15 @@ provenance today is only `source_stage`, kept in `project_revisions.reason`
   new study's name, or one of the client's empty research studies; then the target opens. Every
   stage of a reused study says, in the frame's notice, which past study and revision its design
   came from and the labels it carries (fictional data, draft report, never run).
+
+**Landed (2026-10-12).** `domain/design_reuse.py` (`derive_source_labels`, `DesignSource`),
+`study_design_sources` (migration `e8a0c2e4f6b8`; `StudyDesignRepository.record_source` /
+`source`, kept there by `layer_check`), `application/design_reuse.py` (`reuse_design`,
+`source_runs`), `POST /clients/{id}/memory/reuse` and `GET /studies/{id}/design/source`; on the
+web, `ReuseDesign` on the past-research page and `DesignSourceNote` on every stage. Tests:
+`test_design_reuse_labels.py` (4), `test_design_revisions.py` (+2), `test_design_reuse.py` (6),
+`test_project_memory_reuse_api.py` (4), `MemoryStudy.test.tsx` (+2), `DesignSourceNote.test.tsx`
+(2), `memory.test.ts` (+1).
 
 **Not in M3:** reusing a part; a reused design's data counted as evidence (nothing of the data is
 copied); the connected proof (M4).

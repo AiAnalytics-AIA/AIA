@@ -472,6 +472,34 @@ export type PopulationCharacteristics = {
   subpanel_note: string;
 };
 
+// GET /api/v1/studies/{id}/design/source, POST /api/v1/clients/{id}/memory/reuse (project memory M3).
+export type DesignSourceLabels = {
+  synthetic: boolean;
+  draft: boolean;
+  never_run: boolean;
+  unlabelled_data: boolean;
+  run_ids: string[];
+  report_artifact_ids: string[];
+};
+export type DesignSource = {
+  study_id: string;
+  revision_id: string;
+  source_study_id: string;
+  source_revision_id: string;
+  source_revision: number;
+  source_content_sha256: string;
+  labels: DesignSourceLabels;
+  created_by: string;
+  created_at: string;
+};
+export type MemoryReuse = {
+  source_study_id: string;
+  source_revision_id: string;
+  target_study_id?: string;
+  new_study_name?: string;
+};
+export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
+
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
 const enc = encodeURIComponent;
@@ -498,6 +526,9 @@ export const workspace = {
   /** Project memory M1: this client's past studies whose name or design holds every word of q. */
   memorySearch: (clientId: string, q: string) =>
     request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
+  /** Project memory M3: start a new or empty research study of this client from a past design. */
+  memoryReuse: (clientId: string, body: MemoryReuse) =>
+    request<MemoryReused>("POST", `/api/v1/clients/${enc(clientId)}/memory/reuse`, body),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
@@ -660,6 +691,8 @@ export const research = {
     request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  /** Where the study's design came from, when it was reused (404: it was not). */
+  designSource: (studyId: string) => request<DesignSource>("GET", `${studyPath(studyId)}/design/source`),
   /** One Design Revision with its content (project memory M2c reads a past study's). */
   revision: (studyId: string, revisionId: string) =>
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),

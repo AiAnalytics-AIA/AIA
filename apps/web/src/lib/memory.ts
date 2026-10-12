@@ -2,7 +2,7 @@
 // what matches (one client, every word, accent-folded); this says when a query is worth
 // sending and how a hit explains itself.
 
-import type { MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, StudyKind } from "./api";
+import type { DesignSourceLabels, MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, StudyKind } from "./api";
 import { isSynthetic } from "./research-execution";
 
 /** The server refuses a shorter query (MIN_QUERY_LENGTH); the page does not send one. */
@@ -102,4 +102,14 @@ export function designSummary(content: Record<string, unknown>, labels: Readonly
     dimensions,
   };
   return DESIGN_FIELDS.filter((f) => values[f].length).map((field) => ({ field, values: values[field] }));
+}
+
+/** The words a reused design's labels are said in, in a fixed order; none for a clean source. */
+export function sourceLabelWords(labels: DesignSourceLabels): ("synthetic" | "draft" | "neverRun" | "unlabelled")[] {
+  const out: ("synthetic" | "draft" | "neverRun" | "unlabelled")[] = [];
+  if (labels.synthetic) out.push("synthetic");
+  if (labels.unlabelled_data) out.push("unlabelled");
+  if (labels.draft) out.push("draft");
+  if (labels.never_run) out.push("neverRun");
+  return out;
 }

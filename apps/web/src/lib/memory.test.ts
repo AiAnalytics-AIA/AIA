@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MemoryHit, ResearchReport, ResearchRun, ResearchRunSummary, ResearchStep } from "./api";
-import { designSummary, evidence, ofKind, runLabels, sendable } from "./memory";
+import { designSummary, evidence, ofKind, runLabels, sendable, sourceLabelWords } from "./memory";
 
 const hit = (over: Partial<MemoryHit> = {}): MemoryHit => ({
   study_id: "STU-1",
@@ -98,5 +98,14 @@ describe("a past design, as the page draws it", () => {
       { field: "dimensions", values: ["Zdraví", "Ranní rituály", "neznama"] },
     ]);
     expect(designSummary({}, {})).toEqual([]);
+  });
+});
+
+describe("a reused design's labels, in words", () => {
+  const base = { synthetic: false, draft: false, never_run: false, unlabelled_data: false, run_ids: [], report_artifact_ids: [] };
+  it("says every label the source carries, in a fixed order, and none for a clean source", () => {
+    expect(sourceLabelWords({ ...base, synthetic: true, draft: true, never_run: false, unlabelled_data: true })).toEqual(["synthetic", "unlabelled", "draft"]);
+    expect(sourceLabelWords({ ...base, never_run: true })).toEqual(["neverRun"]);
+    expect(sourceLabelWords(base)).toEqual([]);
   });
 });
