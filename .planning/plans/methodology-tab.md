@@ -12,7 +12,7 @@ chunks:
   - "[x] S1a. Sociomap documented: the object map (aia-sociomap-3 / -2) in the audit's order F1-F16"
   - "[x] S1b. Sociomap documented: the reference map aia-sociomap-1 (contract 2, F1-F9 fixtures)"
   - "[ ] S1c. Sociomap documented: the experimental H-Model candidate (read-only)"
-  - "[ ] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
+  - "[x] S1d. Evidence register: rules for the uncovered steps, the wrong pointers fixed (own PR)"
   - "[x] S2a. Sociomap declared: the object map's own constants (K100 quantiles, Stress bands, the three-object minimum) in the spec; preset aia-sociomap-4"
   - "[x] S2b. Sociomap declared: the reference set's side tables and K100 read the run's object-map pin; a layer check keeps the constants off run paths"
   - "[ ] S2c. Sociomap declared: the readiness warning reads the organization's methodology in force"
@@ -525,6 +525,31 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   (AUDIT-F1, SOMECS-H7, AUDIT-F7). **The register is also edited by
   `sociomap-formula-corrections.md`:** land S1's register change as its own small PR, after that
   plan's open PR.
+  - **Landed.** No open PR edited the register (checked 2026-10-12), so nothing had to land
+    first.
+  - **Pointers.**
+    - AUDIT-F1 now points at `engine_v2:_scaled` with three tests. It no longer says path A
+      reads raw ratings: only the reference map does, by design.
+    - AUDIT-F7 now points at `view:stress_quality`, the part every run computes. The alignment
+      (`align_to_reference`) is called only by the Metodika draft check, and the text says so.
+      It also records that Results and the report show the label
+      (`report_maps.py:89 @ 6556f27`), and that no test pins the printed sentence.
+    - SOMECS-H7 now points at the H-Model candidate's `_frame`, whose frame is [0.05, 0.95].
+  - **Rules for the steps without one.**
+    - A new label, `PORTED`, and a document, `NPC_UNIT` (the frozen unit's code). An exact
+      port of 18.6.6 had no honest label: DOCUMENTED and INFERRED need a paged document, and
+      PROPOSED means "no source speaks".
+    - Six rules, `LEGACY-R2` to `LEGACY-R7`: the weight rescale, the mutual relation, the
+      object metric, the respondent density terrain, the normaliser, and the mean rating. Each
+      cites the unit's line or function. `test_a_ported_rule_names_the_units_code_and_is_built_and_checked`
+      holds the label to that.
+    - The reference map's `scale` step cites AUDIT-F1 (the declared ends), and the object map's
+      `f3_effect_floor` cites AUDIT-F3 (Q6 shapes it, per the register's `aia_decisions`).
+    - `test_every_step_that_computes_cites_a_register_rule` now holds every registered module to
+      a rule per step. Only `method` is exempt: it names the method and computes nothing.
+  - **Finding (fixed here).** `object_rating_summaries` said the mean rating was "an AIA
+    declaration rather than a recovered function". The unit computes it the same way, in
+    `visualization_lab.py:131`, rounded to four decimals. The docstring now says so (LEGACY-R7).
 - **S2.** Every listed constant moves into the specification. The side tables, K100 and the
   readiness warning read the run's pin. A layer check forbids importing those constants on a run
   path. ~~This is one fingerprint move for new runs~~: superseded, see "No fingerprint move" below.
@@ -593,7 +618,8 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
 - **H1.** `_rating` (`research_sociomap.py:267 @ 27062ec`) accepts only ints, so a float rating
   becomes missing. Tested in S1.
 - **H2.** AUDIT-F1 and SOMECS-H7 have `implementation: null` although the code exists, and
-  AUDIT-F7 points at a function only tests call. Tested in S1.
+  AUDIT-F7 points at a function only tests call. Tested in S1. **Confirmed and fixed in S1d.** By then the Metodika draft check also called
+  `align_to_reference`, but no run path did.
 - **H3.** The `aia-sociomap-1` artifact's spec differs from the pinned spec, because the
   battery's scale overwrites `rating_scale_min/max` (`research_sociomap.py:469-476`). Tested in
   S1.

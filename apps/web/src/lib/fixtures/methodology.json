@@ -687,6 +687,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
@@ -2357,6 +2362,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
        {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
@@ -4029,6 +4039,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AUDIT-F3"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
@@ -5128,6 +5143,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R2"
+       },
+       {
         "kind": "legacy_port",
         "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
         "ref": "project_engine.py:34-35 (vaha)"
@@ -5154,6 +5174,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "Deklarované konce škály; referenční mapa hodnocení na 0-1 nepřevádí.",
+        "ref": "AUDIT-F1"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5340,6 +5365,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R3"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5577,6 +5607,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R4"
+       },
+       {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
         "ref": "F6"
@@ -5684,6 +5719,11 @@
      {
       "evidence": [
        {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R7"
+       },
+       {
         "kind": "aia_decision",
         "note_cs": "Rozhodnutí AIA, ne převzatá funkce.",
         "ref": "docs/architecture/sociomapa-methodology-decision.md § 1"
@@ -5694,7 +5734,7 @@
       "id": "mean_rating",
       "implements": "aia_core.domain.sociomap.metrics:object_rating_summaries",
       "note_cs": "Nevážený průměr; matice vztahů výše počítá vážený.",
-      "source_sha256": "dc29b1dea0005c2c747fa9617c6a4142140078b55aa4ada0a6d4d6bd6b2cf48f",
+      "source_sha256": "6532c9f3db04cc9df23cce989217acddb488be1ec30acdfe6beb040ef6582a1b",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_metrics.py::test_rating_summaries_use_observed_cells_only"
@@ -5704,6 +5744,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R5"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",
@@ -5835,6 +5880,11 @@
      },
      {
       "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "LEGACY-R6"
+       },
        {
         "kind": "fixture",
         "note_cs": "packages/aia_core/tests/fixtures/sociomap/",

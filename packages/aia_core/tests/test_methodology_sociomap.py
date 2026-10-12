@@ -13,6 +13,7 @@ from pathlib import Path
 
 from aia_core.domain.methodology import (
     ABSENT,
+    MODULES,
     EvidenceKind,
     ValueOrigin,
     describe,
@@ -96,12 +97,24 @@ def test_every_register_rule_cited_is_in_the_register() -> None:
     rules = {r["id"] for r in json.loads(REGISTER.read_text(encoding="utf-8"))["rules"]}
     cited = {
         e.ref
-        for m in (SOCIOMAP, SOCIOMAP_REFERENCE)
+        for m in MODULES
         for s in m.steps
         for e in s.evidence
         if e.kind is EvidenceKind.REGISTER_RULE
     }
     assert cited and cited <= rules, sorted(cited - rules)
+
+
+def test_every_step_that_computes_cites_a_register_rule() -> None:
+    """Plan methodology-tab S1d: no step of a registered module computes without a rule of
+    the register behind it. ``method`` names the method and computes nothing."""
+    bare = [
+        f"{m.id}/{s.id}"
+        for m in MODULES
+        for s in m.steps
+        if s.id != "method" and not any(e.kind is EvidenceKind.REGISTER_RULE for e in s.evidence)
+    ]
+    assert bare == []
 
 
 def test_every_audit_point_the_map_computes_cites_its_rule() -> None:

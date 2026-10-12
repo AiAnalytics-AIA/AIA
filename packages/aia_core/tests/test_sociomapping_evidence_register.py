@@ -94,6 +94,22 @@ def test_labels_are_backed_by_what_they_claim() -> None:
             assert rule["validation"], f"{rule['id']} is implemented but never checked"
 
 
+def test_a_ported_rule_names_the_units_code_and_is_built_and_checked() -> None:
+    """PORTED: the frozen 18.6.6 unit's code is the source (plan methodology-tab S1d). Each
+    cites the line or function it ports, and AIA's port exists and is tested."""
+    unit = REPO / "legacy/npc-panel-18.6.6"
+    ported = [r for r in REGISTER["rules"] if r["label"] == "PORTED"]
+    assert ported, "the reference map's ports are registered"
+    for rule in ported:
+        assert rule["product"] == "LEGACY_AIA", rule["id"]
+        assert rule["implementation"] is not None and rule["validation"], rule["id"]
+        assert rule["sources"], rule["id"]
+        for source in rule["sources"]:
+            assert source["document"] == "NPC_UNIT", rule["id"]
+            file = source["section"].split(":")[0]
+            assert (unit / file).is_file(), f"{rule['id']}: {file} is not in the unit"
+
+
 def test_the_canonical_block_names_what_it_overrides() -> None:
     assert set(CANONICAL["documents"]) <= set(REGISTER["documents"])
     canonical_ids = {r["id"] for r in REGISTER["rules"] if r["label"] == "CANONICAL"}
