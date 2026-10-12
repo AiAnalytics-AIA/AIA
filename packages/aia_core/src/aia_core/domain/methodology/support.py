@@ -13,8 +13,9 @@ side by side, because they disagree (finding D2):
 So a cell can read INDIKATIVNÍ in Results while analysis suppresses it. Both rule sets are
 declared (G1b) in one specification, ``SupportSpec``: ``results`` and ``analysis``, each a
 ``SupportThresholds`` whose ``None`` means a line the rule does not check. The preset
-``aia-support-1`` is today, bit for bit. Which single rule holds is the methodologist's
-decision (G1c); the module is not yet editable (G1d).
+``aia-support-1`` is today, bit for bit. A run pins the version in force when it starts
+(G1c): with nothing stored, both rules as today (owner, 2026-10-12). The module is not yet
+editable (G1d).
 
 Pure: stdlib and Pydantic only.
 """
@@ -112,7 +113,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"s_{\max} = \max_d \tfrac{n_d}{n}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
+        source_sha256="817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
         symbols=(
             Symbol("n_D", "počet různých dárců (vrstva core)"),
             Symbol(r"s_{\max}", "podíl největšího dárce"),
@@ -135,7 +136,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{INDIKATIVNÍ};\quad \text{jinak REPORTOVATELNÉ}"
         ),
         implements=f"{_A}:donor_support",
-        source_sha256="f127603edb3fa2d26c310cdcf99ee7d4a4f48736d4a37f47c9bd8550ea19d75d",
+        source_sha256="817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
         parameters=(
             ParameterRef("results.min_cell", "Nejmenší surové n buňky"),
             ParameterRef("results.n_guard", "Potlačit pod efektivním n"),
@@ -203,7 +204,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\left(\text{stav}_{\mathrm{jednotka}},\ \text{brána}(n, n_{\mathrm{eff}}, n_D)\right)"
         ),
         implements="aia_core.domain.analysis.native:_support",
-        source_sha256="8cec538199db79932651b8640e3486e4e197cb966d0affa5f57ff7993e2af06f",
+        source_sha256="97b3a69fb0653dcd2d1a44264c2948bca57602be6551fd00e031899858b44bfd",
         evidence=(_D2,),
         tests=(
             f"{_T}/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds",

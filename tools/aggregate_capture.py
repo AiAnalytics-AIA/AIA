@@ -41,6 +41,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+
 ROOT = Path(__file__).resolve().parents[1]
 UNIT = ROOT / "legacy" / "npc-panel-18.6.6" / "app"
 OUT = ROOT / "packages" / "aia_core" / "tests" / "fixtures" / "research_aggregate"
@@ -190,7 +192,7 @@ def self_fixture() -> int:
         case = json.loads(case_path.read_text(encoding="utf-8"))
         spec = ResearchSpecification.model_validate(case["spec"])
         dataset = FieldworkDataset.model_validate(case["dataset"])
-        pinned[case["case_id"]] = aggregate_dataset(spec, dataset)
+        pinned[case["case_id"]] = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
     _dump(OUT / "aia_self.json", pinned)
     print(f"wrote aia_self.json ({len(pinned)} cases)")
     return 0

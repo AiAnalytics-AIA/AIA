@@ -25,12 +25,14 @@ from collections.abc import Callable, Mapping
 from typing import Any, Final, Protocol
 
 from aia_core.application.research import research_artifacts
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
     validate_dataset,
 )
+from aia_core.domain.methodology.pins import read_support_pin
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
@@ -430,7 +432,16 @@ class AggregateExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = aggregate_dataset(spec, dataset)
+        # The run's pinned support rules (plan methodology-tab G1c); a run started before they
+        # were pinned reads as aia-support-1, the rules it was computed under.
+        try:
+            support = read_support_pin(step.payload.get("support"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "support_pin_invalid", "message": str(exc)},
+            )
+        result = aggregate_dataset(spec, dataset, support=support)
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -444,6 +455,13 @@ class AggregateExecutor(_Step):
                         "dataset": dataset_sha,
                         "aggregate": AGGREGATE_VERSION,
                         "spec": spec.fingerprint(),
+                        # Only a rule other than today's enters the key, so an aggregate
+                        # stored under aia-support-1 is reused as it always was.
+                        **(
+                            {}
+                            if support == AIA_SUPPORT_V1
+                            else {"support": support.model_dump(mode="json")}
+                        ),
                     }
                 ),
                 depends_on=[spec_id, dataset_id],

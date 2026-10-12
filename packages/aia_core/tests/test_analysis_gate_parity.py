@@ -37,6 +37,7 @@ import pytest
 from aia_core.domain.analysis import AnalysisModuleId, check_analysis_draft, module_spec
 from aia_core.domain.analysis.native import NativeEvidence, native_evidence
 from aia_core.domain.evidence import ClaimSurface, ViolationCode
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
@@ -98,8 +99,14 @@ def evidence() -> Evidence:
     spec, problems = compile_design(DESIGN)
     assert spec is not None, problems
     dataset = synthetic_dataset(spec, seed=20260816)
-    aggregate = aggregate_dataset(spec, dataset)
-    native = native_evidence(spec, aggregate, dataset_sha256="d" * 64, origin=dataset.origin)
+    aggregate = aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
+    native = native_evidence(
+        spec,
+        aggregate,
+        dataset_sha256="d" * 64,
+        origin=dataset.origin,
+        support=REFERENCE_THRESHOLDS,
+    )
     return Evidence(native=native, summary={"vysledky": aggregate["questions"]})
 
 

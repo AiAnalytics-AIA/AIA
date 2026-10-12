@@ -88,9 +88,11 @@ from ..domain.evidence import (
     Violation,
     method_status,
 )
+from ..domain.evidence.support import SupportSpec
 from ..domain.fieldwork import DataOrigin, FieldworkSource
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from ..domain.methodology.pins import read_support_pin
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
@@ -169,6 +171,9 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
+    #: gates every number this run's analysis admits.
+    support: SupportSpec
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -327,6 +332,11 @@ def native_sources(
     if not isinstance(aggregate, Mapping):
         raise SourcesRefused("aggregate_shape", "the aggregate artifact holds no aggregate")
 
+    try:
+        support = read_support_pin((run.get("metadata") or {}).get("support"))
+    except ValueError as exc:
+        raise SourcesRefused("support_pin", f"the run's support pin does not read: {exc}") from None
+
     raw_origin = dataset_row.metadata.get("data_origin")
     try:
         origin = DataOrigin(raw_origin) if raw_origin is not None else None
@@ -347,6 +357,7 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        support=support,
     )
 
 
@@ -456,6 +467,7 @@ def prepare_module(
         sources.aggregate,
         dataset_sha256=sources.refs.dataset.sha256,
         origin=sources.dataset_origin,
+        support=sources.support.analysis,
     )
     inputs = AnalysisInputs(
         table=evidence.table,

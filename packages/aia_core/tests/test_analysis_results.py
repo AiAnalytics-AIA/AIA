@@ -52,6 +52,7 @@ from aia_core.domain.evidence import (
     Violation,
     ViolationCode,
 )
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from aia_core.domain.pipeline import ProjectType, fingerprint
@@ -225,7 +226,10 @@ class World:
                 work,
                 stored.get(
                     "aggregate",
-                    {"kind": AGGREGATE_ARTIFACT, "aggregate": aggregate_dataset(spec, dataset)},
+                    {
+                        "kind": AGGREGATE_ARTIFACT,
+                        "aggregate": aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1),
+                    },
                 ),
                 AGGREGATE_ARTIFACT,
                 depends_on=[ids["spec"], ids["dataset"]] if lineage else [ids["spec"]],
@@ -1007,3 +1011,35 @@ def test_report_preserves_admitted_paragraphs_without_rewriting_claims(world: Wo
         )
     assert "q1.mean" in cited_refs(doc)
     assert doc.ledger.surface is ClaimSurface.INTERNAL
+
+
+def test_a_runs_pinned_support_rules_reach_its_analysis(world: World) -> None:
+    """Plan methodology-tab G1c: analysis gates by the rule the run pinned."""
+    run_id = world.start()
+    world.upstream()
+    assert world.sources(run_id).support == AIA_SUPPORT_V1
+    edited = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "analysis": AIA_SUPPORT_V1.analysis.model_copy(update={"min_cell": 7}),
+        }
+    )
+    pinned = world.run(run_id)
+    pinned["metadata"] = {**pinned["metadata"], "support": edited.model_dump(mode="json")}
+    assert native_sources(world.session, world.scope, world.store, pinned).support == edited
+    unpinned = world.run(run_id)
+    unpinned["metadata"] = {k: v for k, v in unpinned["metadata"].items() if k != "support"}
+    # A run started before support was pinned was computed under aia-support-1.
+    assert native_sources(world.session, world.scope, world.store, unpinned).support == (
+        AIA_SUPPORT_V1
+    )
+
+
+def test_a_support_pin_that_does_not_read_is_refused_by_name(world: World) -> None:
+    run_id = world.start()
+    world.upstream()
+    broken = world.run(run_id)
+    broken["metadata"] = {**broken["metadata"], "support": {"methodology_version": "x"}}
+    with pytest.raises(SourcesRefused) as refused:
+        native_sources(world.session, world.scope, world.store, broken)
+    assert refused.value.reason == "support_pin"
