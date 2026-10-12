@@ -11,7 +11,7 @@
 import type { ReactNode } from "react";
 
 import { t, tv } from "@/i18n/t";
-import type { MethodCompare, MethodMapSummary, MethodPanel, MethodSupportCompare } from "@/lib/api";
+import type { MethodAggregationPanel, MethodCompare, MethodEstimate, MethodMapSummary, MethodPanel, MethodSupportCompare } from "@/lib/api";
 
 const C = "aia.settings.methodology.versions.compare";
 const number = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 4 });
@@ -43,7 +43,12 @@ export function MethodologyComparison({ result }: { result: MethodCompare }) {
   return (
     <section aria-label={t(`${C}.title`)} data-methodology-compare className="flex min-w-0 flex-col gap-3">
       <h5 className="text-sm font-semibold">{tv(`${C}.heading`, { name: result.in_force })}</h5>
-      {result.support ? (
+      {result.aggregation ? (
+        <div data-compare-aggregation className="flex min-w-0 flex-col gap-3">
+          <p className="max-w-3xl text-xs text-ink-muted">{t(`${A}.intro`)}</p>
+          {result.aggregation.panels.map((p, i) => <AggregationPanel key={p.panel} panel={p} initiallyOpen={i === 0} />)}
+        </div>
+      ) : result.support ? (
         <SupportCheck support={result.support} />
       ) : (
         <>
@@ -193,5 +198,56 @@ function StatusCell({ pair: [a, b] }: { pair: [string, string] }) {
     <td className="py-1 pr-3">
       {a === b ? status(a) : <>{status(a)} → <strong>{status(b)}</strong></>}
     </td>
+  );
+}
+
+const A = `${C}.aggregation`;
+
+/** An estimate with its interval as the draft check shows it: "41,0 (35,0–47,0)". */
+function estimate([value, low, high]: [number | null, number | null, number | null]): string {
+  if (value === null) return "—";
+  return low === null || high === null ? number.format(value) : `${number.format(value)} (${number.format(low)}–${number.format(high)})`;
+}
+
+function measureLabel(r: MethodEstimate): string {
+  if (r.measure.startsWith("share:")) return tv(`${A}.share`, { option: r.measure.slice("share:".length) });
+  return t(`${A}.measure.${r.measure}`);
+}
+
+function AggregationPanel({ panel: p, initiallyOpen }: { panel: MethodAggregationPanel; initiallyOpen: boolean }) {
+  const moved = p.rows.filter((r) => r.moved);
+  const effective = Object.entries(p.effective_n).filter(([, [a, b]]) => Math.abs(a - b) > SAME);
+  return (
+    <article data-compare-aggregation-panel={p.panel} aria-label={p.label_cs} className="min-w-0 rounded-sm border border-border p-3 text-sm">
+      <details open={initiallyOpen}>
+        <summary className="cursor-pointer">
+          <h6 className="inline font-semibold">{p.label_cs}</h6>{" "}
+          <span className="text-xs text-ink-muted">{tv(`${A}.summary`, { moved: moved.length, rows: p.rows.length, respondents: p.respondents })}</span>
+        </summary>
+        <div className="mt-3 flex min-w-0 flex-col gap-2">
+          <Part title={t(`${A}.moved`)} empty={t(`${A}.noneMoved`)} has={moved.length > 0}>
+            <ul className="flex flex-col gap-0.5 text-xs">
+              {moved.map((r) => (
+                <li key={`${r.question}|${r.measure}`}>
+                  <span className="font-mono">{r.question}</span> · {measureLabel(r)}: <span className="tabular-nums">{estimate(r.in_force)}</span> → <strong className="tabular-nums">{estimate(r.draft)}</strong>
+                </li>
+              ))}
+            </ul>
+          </Part>
+          <Part title={t(`${A}.statuses`)} empty={t(`${A}.noStatusChange`)} has={p.status_changes.length > 0}>
+            <ul className="flex flex-col gap-0.5 text-xs">
+              {p.status_changes.map((s) => (
+                <li key={s.question}><span className="font-mono">{s.question}</span>: {t(`${C}.support.status.${s.in_force}`)} → <strong>{t(`${C}.support.status.${s.draft}`)}</strong></li>
+              ))}
+            </ul>
+          </Part>
+          <Part title={t(`${C}.effectiveN`)} empty={t(`${C}.noChange`)} has={effective.length > 0}>
+            <ul className="flex flex-col gap-0.5 text-xs tabular-nums">
+              {effective.map(([q, [a, b]]) => <li key={q}><span className="font-mono">{q}</span>: {number.format(a)} → {number.format(b)}</li>)}
+            </ul>
+          </Part>
+        </div>
+      </details>
+    </article>
   );
 }

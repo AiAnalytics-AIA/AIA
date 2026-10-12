@@ -13,6 +13,7 @@ from typing import Any
 import pytest
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.methodology import MODULES
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
 from fastapi.testclient import TestClient
@@ -377,3 +378,55 @@ def test_the_support_draft_check_lists_every_cell_newly_reported_or_suppressed(
     ]
     assert ["stredni.q2", "analysis"] in stricter["newly_suppressed"]
     assert all(surface == "analysis" for _, surface in stricter["newly_suppressed"])
+
+
+# ----------------------------------------------------------------------- aggregation (G3b)
+
+AGGREGATION = f"{METHODOLOGY}/aggregation"
+
+
+def _aggregation_edit(formulas: dict[str, str] | None = None, **values: Any) -> dict[str, Any]:
+    """``aia-aggregate-1`` with values changed (``bootstrap__reps=200``) and formulas replaced."""
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    for path, value in values.items():
+        node = spec
+        *parents, leaf = path.split("__")
+        for p in parents:
+            node = node[p]
+        node[leaf] = value
+    return {"base_preset": "aia-aggregate-1", "spec": spec, "formulas": formulas or {}}
+
+
+def test_aggregation_is_edited_and_put_in_force_with_its_formulas(owner: TestClient) -> None:
+    presets = owner.get(f"{AGGREGATION}/versions").json()["presets"]
+    assert presets == {"aia-aggregate-1": AIA_AGGREGATE_V1.model_dump(mode="json")}
+    edit = _aggregation_edit({"agg.top_box": "x >= top"}, top_box=1)
+    checked = owner.post(f"{AGGREGATION}/check", json=edit).json()
+    assert (checked["valid"], checked["not_computed"]) == (True, [])
+    assert set(checked["formulas_latex"]) == {"agg.top_box"}
+    stored = owner.post(f"{AGGREGATION}/versions", json=edit)
+    assert stored.status_code == 201 and stored.json()["name"] == "aia-aggregate-1+e1"
+    put = owner.put(f"{AGGREGATION}/activation", json={"version_number": 1, "reason": "test"})
+    assert put.status_code == 200 and put.json()["origin"] == "stored"
+
+
+def test_an_aggregation_formula_that_breaks_its_slot_is_refused(owner: TestClient) -> None:
+    edit = _aggregation_edit({"agg.share": "200 * sum(w * hit) / sum(w)"})
+    checked = owner.post(f"{AGGREGATION}/check", json=edit).json()
+    assert checked["valid"] is False
+    assert any(k.startswith("formula.agg.share") for k in checked["problems"])
+    assert owner.post(f"{AGGREGATION}/versions", json=edit).status_code == 422
+
+
+def test_the_aggregation_draft_check_names_every_estimate_it_moves(as_user: Any) -> None:
+    member: TestClient = as_user("researcher")
+    body = member.post(f"{AGGREGATION}/compare", json=_aggregation_edit(top_box=1)).json()
+    assert (body["valid"], body["in_force"], body["panels"]) == (True, "aia-aggregate-1", [])
+    check = body["aggregation"]
+    assert check["draft"] == "aia-aggregate-1+e1"
+    assert [p["panel"] for p in check["panels"]] == ["maly", "vazeny", "velky"]
+    for panel in check["panels"]:
+        moved = {(r["question"], r["measure"]) for r in panel["rows"] if r["moved"]}
+        assert moved == {("spokojenost", "top2box"), ("doporuceni", "top2box")}
+        assert panel["status_changes"] == []  # a top box decides no status
+        assert set(panel["effective_n"]) == {"spokojenost", "doporuceni", "volba", "kanaly"}

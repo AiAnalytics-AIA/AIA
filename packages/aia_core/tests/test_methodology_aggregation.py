@@ -18,6 +18,11 @@ from pydantic import ValidationError
 from aia_core.domain import research_aggregate
 from aia_core.domain.methodology import MODULES, ValueOrigin, describe
 from aia_core.domain.methodology.aggregation import AGGREGATION
+from aia_core.domain.methodology.versions import (
+    MethodologyVersionInvalid,
+    named,
+    validate_version,
+)
 from aia_core.domain.research_aggregate import (
     AGGREGATE_SLOTS,
     AIA_AGGREGATE_V1,
@@ -50,12 +55,44 @@ def test_the_preset_is_the_units_literals_bit_for_bit() -> None:
         assert literal not in source, literal
 
 
-def test_it_is_declared_in_force_and_not_editable_yet() -> None:
+def test_it_is_declared_in_force_and_editable() -> None:
     assert [p.name for p in AGGREGATION.presets] == ["aia-aggregate-1"]
     assert AGGREGATION.presets[0].spec is AIA_AGGREGATE_V1
     assert AGGREGATION.in_force == "aia-aggregate-1"
-    assert AGGREGATION.editable is False  # its slots are shown (G2b), edited in G3
+    assert AGGREGATION.editable is True  # values and estimator slots alike (G3b)
     assert {f.slot.id for f in AGGREGATION.formulas} == AGGREGATE_SLOTS
+
+
+def _version(spec: dict[str, Any], formulas: dict[str, str] | None = None) -> Any:
+    return validate_version(
+        AGGREGATION,
+        base_preset="aia-aggregate-1",
+        spec=spec,
+        formulas=formulas or {},
+        version_name=named("aia-aggregate-1", 1),
+    )
+
+
+def test_a_version_may_change_values_and_replace_estimators() -> None:
+    version = _version(
+        _spec(bootstrap__reps=1000, bootstrap__quantiles=[0.05, 0.95], top_box=3),
+        {"agg.top_box": "x >= top - b + 1", "agg.kish": "count(w)"},
+    )
+    assert version.spec.methodology_version == "aia-aggregate-1+e1"
+    assert version.spec.top_box == 3 and version.spec.bootstrap.quantiles == (0.05, 0.95)
+    assert set(version.formulas) == {"agg.top_box", "agg.kish"}
+
+
+def test_a_version_that_breaks_a_slots_properties_or_the_spec_is_refused_by_name() -> None:
+    with pytest.raises(MethodologyVersionInvalid) as refused:
+        _version(
+            _spec(bootstrap__reps=0),
+            {"agg.share": "200 * sum(w * hit) / sum(w)", "agg.mean": "open('x')"},
+        )
+    problems = refused.value.problems
+    assert "spec.bootstrap" in problems  # zero replicates
+    assert any(k.startswith("formula.agg.share") for k in problems)  # a share above 100 %
+    assert "formula.agg.mean" in problems  # not the formula language
 
 
 def test_every_declared_value_is_shown_from_the_specification() -> None:

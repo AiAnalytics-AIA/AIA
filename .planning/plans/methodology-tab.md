@@ -29,7 +29,7 @@ chunks:
   - "[x] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
   - "[x] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
   - "[x] G3a. Aggregation pinned: a run pins the aggregation version in force (spec + replaced formulas), a retry keeps it, the aggregate computes under it and its deviation label is reachable"
-  - "[ ] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
+  - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
   - "[ ] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
   - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
@@ -759,6 +759,45 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - **G3 splits into G3a-G3c.** Support has been editable since G1d, so G3 is aggregation's.
     It follows support's order: pin (G1c), then editing with its draft check (G1d). The
     label's reach past Results is its own chunk.
+  - **G3b. Landed.**
+    - **Editable.** Module `aggregation` is `editable`. A version may change any declared value
+      and replace any of the five estimator slots. `validate_version` checks both: the
+      specification's own refusals (zero replicates, quantiles out of order) and each slot's
+      properties on its grid (a share above 100 % is refused by name).
+    - **The draft check.** `domain/methodology/aggregation_check.py` aggregates three fixed
+      fictional panels through `aggregate_dataset` itself, under the aggregation in force and
+      under the draft:
+      - a small unweighted panel (60 respondents, 24 donors), SUPPRESS;
+      - a strongly weighted panel (240, 40, weights 0.2-4), INDICATIVE;
+      - a large panel (500, 160), REPORTABLE.
+
+      Each panel answers two scales, a single choice and a multiple choice: 11 estimates.
+      - It compares every estimate with its 95 % interval, each question's support status
+        under the support rules in force, and each question's effective n.
+      - It names every estimate that moved and every status that changed.
+      - Computed in memory only: nothing is stored or reaches a run. About 1 s per side.
+    - **What it shows, measured on the panels.**
+      - A one-point top box moves exactly the two top boxes, downward.
+      - Fewer replicates move intervals, never estimates.
+      - Kish replaced by `count(w)` lifts the weighted panel's effective n from about 31 to
+        its 40 donors (the combined n is capped by them). Under a rule suppressing below an
+        effective n of 35, that turns all four of its questions from SUPPRESS to REPORTABLE.
+    - **API.** `POST /methodology/aggregation/compare` returns `aggregation` (panels, rows,
+      `status_changes` as `QuestionStatusOut`, `effective_n`). Statuses are decided by the
+      organization's support rules in force, as a run started now would decide them.
+    - **Web.** `MethodologyComparison.tsx`, `AggregationPanel`, following the settings
+      workspace (#290):
+      - one collapsible panel each, the first open;
+      - every moved estimate as "value (low-high) → value (low-high)";
+      - status and effective-n changes;
+      - "Žádný odhad se nemění." where nothing moved.
+
+      The version editor needed no change: the quantiles are a JSON field, and each slot shows
+      its built-in expression.
+    - **End to end.** An aggregation version stored and put in force as the tab does is pinned
+      by the next run (`aggregation_methodology` names it), computed under, and labelled. A
+      run started before keeps the unit's port
+      (`test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so`).
   - **G3a. Landed.**
     - **The pin.** `ResearchRuns.start(…, aggregation=)` pins the organization's aggregation
       version in force (`methodology_in_force_for_study(…, "aggregation")`). With nothing

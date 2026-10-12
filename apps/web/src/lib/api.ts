@@ -1097,10 +1097,24 @@ export type MethodSupportCompare = {
   draft: string; cells: MethodSupportCell[];
   newly_reported: [string, "results" | "analysis"][]; newly_suppressed: [string, "results" | "analysis"][];
 };
-/** Panels for an object map; `support` for the support rules (then `panels` is empty). */
+/** One estimate of the aggregation draft check (plan G3b): `[value, low, high]` in force
+ *  and in the draft, `null` where the aggregate reports none. */
+export type MethodEstimate = {
+  question: string; measure: string; moved: boolean;
+  in_force: [number | null, number | null, number | null]; draft: [number | null, number | null, number | null];
+};
+export type MethodAggregationPanel = {
+  panel: string; label_cs: string; respondents: number; rows: MethodEstimate[];
+  status_changes: { question: string; in_force: string; draft: string }[];
+  effective_n: Record<string, [number, number]>;
+};
+export type MethodAggregationCompare = { draft: string; panels: MethodAggregationPanel[] };
+/** Panels for an object map; `support` for the support rules, `aggregation` for the
+ *  aggregation (then `panels` is empty). */
 export type MethodCompare = {
   valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[];
   support?: MethodSupportCompare | null;
+  aggregation?: MethodAggregationCompare | null;
 };
 
 const METHODOLOGY = "/api/v1/methodology";
