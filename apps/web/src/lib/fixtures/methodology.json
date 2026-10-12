@@ -6520,7 +6520,7 @@
   },
   "support": {
    "aia-support-1": {
-    "editable": false,
+    "editable": true,
     "groups": [
      {
       "id": "M",
@@ -6554,7 +6554,7 @@
     ],
     "id": "support",
     "in_force": "aia-support-1",
-    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); které jedno bude platit, rozhodne metodik (G1c).",
+    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
     "preset": "aia-support-1",
     "presets": [
      "aia-support-1"
@@ -6576,7 +6576,8 @@
       "source_sha256": "2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_evidence_support.py::test_today_is_declared_both_rule_sets"
+       "packages/aia_core/tests/test_evidence_support.py::test_today_is_declared_both_rule_sets",
+       "packages/aia_core/tests/test_methodology_support.py::test_a_rule_that_suppresses_nothing_is_refused"
       ],
       "title_cs": "Pojmenování pravidel",
       "values": [
@@ -6678,17 +6679,18 @@
         "ref": ".planning/plans/methodology-tab.md, finding D2"
        }
       ],
-      "formula_latex": "n_D < 25 \\Rightarrow \\text{POTLAČIT};\\quad n_D < 50 \\Rightarrow \\text{INDIKATIVNÍ};\\quad \\text{jinak REPORTOVATELNÉ}",
+      "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{jinak REPORTOVATELNÉ}",
       "formulas": [],
       "id": "unit_status",
       "implements": "aia_core.domain.research_aggregate:donor_support",
-      "note_cs": "Rozhoduje jen počet dárců: čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota).",
+      "note_cs": "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky se píše z pravidla, které platí.",
       "source_sha256": "817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_uncertainty_note_states_the_lines_of_the_rule_in_force"
       ],
-      "title_cs": "Stav podpory podle jednotky (ukazují ho Výsledky)",
+      "title_cs": "Stav podpory pro Výsledky (pravidlo results)",
       "values": [
        {
         "absent": false,
@@ -6824,12 +6826,13 @@
       "formula_latex": "\\text{stav}_{\\mathrm{analýza}} = \\text{přísnější z}\\ \\left(\\text{stav}_{\\mathrm{jednotka}},\\ \\text{brána}(n, n_{\\mathrm{eff}}, n_D)\\right)",
       "formulas": [],
       "id": "gate_reassess",
-      "implements": "aia_core.domain.analysis.native:_support",
+      "implements": "aia_core.domain.analysis.native:reassess_support",
       "note_cs": "Brána dostává jako efektivní n kombinované efektivní n jednotky zaokrouhlené na jedno místo, ne Kishovo (nález D3). Buňka tak může být ve Výsledcích INDIKATIVNÍ a v analýze potlačená (nález D2).",
-      "source_sha256": "97b3a69fb0653dcd2d1a44264c2948bca57602be6551fd00e031899858b44bfd",
+      "source_sha256": "89ecd1adeb1e29d417d4120873f4f8fc9149ca07cf2c7592f960fcd7f4252cbc",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds"
+       "packages/aia_core/tests/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_stricter_of_the_two_rules_still_wins_in_analysis"
       ],
       "title_cs": "Analýza přehodnotí stav jednotky branou AIA",
       "values": []
@@ -7118,7 +7121,7 @@
    "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
   },
   {
-   "editable": false,
+   "editable": true,
    "groups": [
     {
      "id": "M",
@@ -7152,7 +7155,7 @@
    ],
    "id": "support",
    "in_force": "aia-support-1",
-   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); které jedno bude platit, rozhodne metodik (G1c).",
+   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
    "presets": [
     "aia-support-1"
    ],
@@ -7287,6 +7290,24 @@
   },
   "sociomap_reference": {},
   "sociomapping": {},
-  "support": {}
+  "support": {
+   "aia-support-1": {
+    "analysis": {
+     "indicative": 50.0,
+     "indicative_layer_donors": 50,
+     "min_cell": 50,
+     "min_layer_donors": 25,
+     "n_guard": 25.0
+    },
+    "methodology_version": "aia-support-1",
+    "results": {
+     "indicative": null,
+     "indicative_layer_donors": 50,
+     "min_cell": null,
+     "min_layer_donors": 25,
+     "n_guard": null
+    }
+   }
+  }
  }
 }

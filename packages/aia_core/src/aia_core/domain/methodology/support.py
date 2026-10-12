@@ -14,14 +14,20 @@ So a cell can read INDIKATIVNÍ in Results while analysis suppresses it. Both ru
 declared (G1b) in one specification, ``SupportSpec``: ``results`` and ``analysis``, each a
 ``SupportThresholds`` whose ``None`` means a line the rule does not check. The preset
 ``aia-support-1`` is today, bit for bit. A run pins the version in force when it starts
-(G1c): with nothing stored, both rules as today (owner, 2026-10-12). The module is not yet
-editable (G1d).
+(G1c): with nothing stored, both rules as today (owner, 2026-10-12).
+
+Both rules are editable both ways (G1d): any line may move up or down, become checked or stop
+being checked, so a version can make the two rules one. A rule that suppresses nothing is
+refused (:func:`_validate`): every rule keeps at least one line below which a cell is not
+shown. The draft check (:mod:`.support_check`) lists every cell an edit newly reports or
+newly suppresses.
 
 Pure: stdlib and Pydantic only.
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Final
 
 from pydantic import BaseModel
@@ -38,7 +44,7 @@ from .catalogue import (
     Symbol,
 )
 
-__all__ = ["SUPPORT"]
+__all__ = ["SUPPORT", "SupportRuleRefused"]
 
 _A: Final = "aia_core.domain.research_aggregate"
 _E: Final = "aia_core.domain.evidence.support"
@@ -61,9 +67,32 @@ _D2: Final = Evidence(
 )
 
 
+class SupportRuleRefused(ValueError):
+    """A support specification the module will not put in force; ``unsupported`` names each
+    rule and why, as :func:`..versions.validate_version` reports a module's refusal."""
+
+    def __init__(self, unsupported: Mapping[str, str]) -> None:
+        self.unsupported = dict(unsupported)
+        super().__init__("; ".join(f"{k}: {v}" for k, v in sorted(self.unsupported.items())))
+
+
 def _validate(spec: BaseModel) -> None:
+    """Refuse a rule that suppresses nothing: it would show every cell, however thin."""
     if not isinstance(spec, SupportSpec):
         raise TypeError(f"not a support specification: {type(spec).__name__}")
+    refused = {
+        name: (
+            "pravidlo nic nepotlačí: nastavte aspoň jednu z čar min_cell, n_guard "
+            "nebo min_layer_donors"
+        )
+        for name in ("results", "analysis")
+        if all(
+            getattr(getattr(spec, name), line) is None
+            for line in ("min_cell", "n_guard", "min_layer_donors")
+        )
+    }
+    if refused:
+        raise SupportRuleRefused(refused)
 
 
 _STEPS: Final[tuple[MethodStep, ...]] = (
@@ -75,7 +104,10 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
         parameters=(ParameterRef("methodology_version", "Verze pravidel"),),
         evidence=(_D2,),
-        tests=(f"{_T}/test_evidence_support.py::test_today_is_declared_both_rule_sets",),
+        tests=(
+            f"{_T}/test_evidence_support.py::test_today_is_declared_both_rule_sets",
+            f"{_T}/test_methodology_support.py::test_a_rule_that_suppresses_nothing_is_refused",
+        ),
     ),
     # ------------------------------------------------------- the unit's rule (Results)
     MethodStep(
@@ -130,10 +162,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
     ),
     MethodStep(
         id="unit_status",
-        title_cs="Stav podpory podle jednotky (ukazují ho Výsledky)",
+        title_cs="Stav podpory pro Výsledky (pravidlo results)",
         formula_latex=(
-            r"n_D < 25 \Rightarrow \text{POTLAČIT};\quad n_D < 50 \Rightarrow "
-            r"\text{INDIKATIVNÍ};\quad \text{jinak REPORTOVATELNÉ}"
+            r"n < n_{\mathrm{cell}} \lor n_{\mathrm{eff}} < n_{\mathrm{guard}} \lor "
+            r"n_D < D_{\min} \Rightarrow \text{POTLAČIT};\ "
+            r"n_{\mathrm{eff}} < n_{\mathrm{ind}} \lor n_D < D_{\mathrm{ind}} \Rightarrow "
+            r"\text{INDIKATIVNÍ};\ \text{jinak REPORTOVATELNÉ}"
         ),
         implements=f"{_A}:donor_support",
         source_sha256="817b93613fd72f74c94e37147919e0bbaade8f9fd12fdc65cbdba45e1e2af1ae",
@@ -147,10 +181,13 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         evidence=(_UNIT, _D2),
         tests=(
             f"{_T}/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+            f"{_T}/test_methodology_support_check.py::test_the_uncertainty_note_states_the_lines_of_the_rule_in_force",
         ),
         note_cs=(
-            "Rozhoduje jen počet dárců: čáry pro surové a efektivní n pravidlo nekontroluje "
-            "(prázdná hodnota)."
+            "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro "
+            "surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou "
+            "pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky "
+            "se píše z pravidla, které platí."
         ),
     ),
     # --------------------------------------------------- AIA's evidence gate (analysis)
@@ -203,11 +240,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{stav}_{\mathrm{analýza}} = \text{přísnější z}\ "
             r"\left(\text{stav}_{\mathrm{jednotka}},\ \text{brána}(n, n_{\mathrm{eff}}, n_D)\right)"
         ),
-        implements="aia_core.domain.analysis.native:_support",
-        source_sha256="97b3a69fb0653dcd2d1a44264c2948bca57602be6551fd00e031899858b44bfd",
+        implements="aia_core.domain.analysis.native:reassess_support",
+        source_sha256="89ecd1adeb1e29d417d4120873f4f8fc9149ca07cf2c7592f960fcd7f4252cbc",
         evidence=(_D2,),
         tests=(
             f"{_T}/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds",
+            f"{_T}/test_methodology_support_check.py::test_the_stricter_of_the_two_rules_still_wins_in_analysis",
         ),
         note_cs=(
             "Brána dostává jako efektivní n kombinované efektivní n jednotky zaokrouhlené na "
@@ -233,12 +271,14 @@ SUPPORT: Final = MethodModule(
     steps=_STEPS,
     presets=(Preset("aia-support-1", AIA_SUPPORT_V1, _validate),),
     in_force="aia-support-1",
+    editable=True,
     groups=_GROUPS,
     note_cs=(
         "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet "
         "dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, "
         "dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a "
-        "v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek); "
-        "které jedno bude platit, rozhodne metodik (G1c)."
+        "v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) "
+        "a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu "
+        "ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí."
     ),
 )

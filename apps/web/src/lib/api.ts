@@ -1033,7 +1033,22 @@ export type MethodPanel = {
   heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
-export type MethodCompare = { valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[] };
+/** One fixed fictional cell of the support draft check (plan G1d). Statuses are
+ *  `[in force, draft]`; `changes` names each surface whose status moved. */
+export type MethodSupportCell = {
+  cell: string; label_cs: string; n: number; effective_n: number; donors: number;
+  results: [string, string]; analysis: [string, string];
+  changes: Partial<Record<"results" | "analysis", "reported" | "suppressed" | "changed">>;
+};
+export type MethodSupportCompare = {
+  draft: string; cells: MethodSupportCell[];
+  newly_reported: [string, "results" | "analysis"][]; newly_suppressed: [string, "results" | "analysis"][];
+};
+/** Panels for an object map; `support` for the support rules (then `panels` is empty). */
+export type MethodCompare = {
+  valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[];
+  support?: MethodSupportCompare | null;
+};
 
 const METHODOLOGY = "/api/v1/methodology";
 

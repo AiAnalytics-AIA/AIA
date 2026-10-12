@@ -81,6 +81,7 @@ __all__ = [
     "native_evidence",
     "native_items",
     "native_preflight",
+    "reassess_support",
     "research_questions_of",
 ]
 
@@ -242,9 +243,10 @@ def _number(value: object) -> float | None:
     return number if math.isfinite(number) else None
 
 
-def _support(result: Mapping[str, Any], rule: SupportThresholds) -> SupportAssessment:
+def reassess_support(result: Mapping[str, Any], rule: SupportThresholds) -> SupportAssessment:
     """The aggregate's support, re-assessed by the run's pinned ``analysis`` rule (AIA's
-    thresholds unless a version is in force). Unknown suppresses."""
+    thresholds unless a version is in force); the stricter of the two wins. Unknown
+    suppresses. The Metodika tab's draft check decides through this function too."""
     unit = result.get("support_status")
     if unit not in _UNIT_SUPPORT:
         return SupportAssessment(reasons=(f"unknown support status {unit!r}",))
@@ -258,7 +260,8 @@ def _support(result: Mapping[str, Any], rule: SupportThresholds) -> SupportAsses
         rule,
     )
     if unit == "SUPPRESS" and assessed.reportable:
-        # Cannot happen with the unit's own thresholds; if it ever does, the stricter wins.
+        # Not under aia-support-1; a version whose analysis rule is looser than its
+        # results rule gets here, and the stricter wins.
         return SupportAssessment(reasons=("the unit suppressed this cell",))
     return assessed
 
@@ -352,7 +355,7 @@ def _scale(q: SpecQuestion) -> str:
 
 def _item_rows(rows: _Rows, item: _Item, rule: SupportThresholds) -> None:
     q, r = item.question, item.result
-    support = _support(r, rule)
+    support = reassess_support(r, rule)
     refusal = _fidelity_refusal(r)
     rows.add(
         item,

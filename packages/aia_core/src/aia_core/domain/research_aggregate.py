@@ -30,7 +30,13 @@ import re
 from collections.abc import Sequence
 from typing import Any, Final
 
-from .evidence.support import SupportEvidence, SupportSpec, SupportThresholds, support_status
+from .evidence.support import (
+    UNIT_DONOR_THRESHOLDS,
+    SupportEvidence,
+    SupportSpec,
+    SupportThresholds,
+    support_status,
+)
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecQuestion
 
@@ -46,6 +52,7 @@ __all__ = [
     "donor_support",
     "evidence_rating",
     "kish_effective_n",
+    "uncertainty_note",
     "weighted_distribution",
     "weighted_mean",
     "weighted_quantile",
@@ -56,12 +63,40 @@ AGGREGATE_VERSION: Final = "aia-research-aggregate-1"
 #: OI-62: the named generator, recorded on every artifact that holds an interval.
 BOOTSTRAP_GENERATOR: Final = "python-random-mt19937:floor(u*m)"
 
-# dotaznik.py agreguj_otazku: the unit's notes and thresholds, verbatim.
-UNCERTAINTY_NOTE: Final = (
+# dotaznik.py agreguj_otazku: the unit's note, verbatim, around the lines of the rule.
+_NOTE_INTERVAL: Final = (
     "95% interval = vážený bootstrap přes reálné donor clustery příslušné vrstvy. "
-    "n_unique_layer_donors <25 se nereportuje; 25\u201349 je INDIKATIVNÍ. "
-    "Interval není důkaz externí prediktivní validity."
 )
+_NOTE_VALIDITY: Final = "Interval není důkaz externí prediktivní validity."
+
+
+def _support_lines(rule: SupportThresholds) -> str:
+    """The lines ``rule`` checks, in the unit's words: ``<a`` is not reported, ``a-b`` is
+    INDIKATIVNÍ. A line the rule does not check is not written."""
+    parts: list[str] = []
+    if rule.min_cell is not None:
+        parts.append(f"n_platnych <{rule.min_cell} se nereportuje")
+    if rule.n_guard is not None:
+        parts.append(f"effective_n <{rule.n_guard:g} se nereportuje")
+    if rule.indicative is not None and (rule.n_guard is None or rule.indicative > rule.n_guard):
+        parts.append(f"effective_n <{rule.indicative:g} je INDIKATIVNÍ")
+    low, high = rule.min_layer_donors, rule.indicative_layer_donors
+    if low is not None:
+        parts.append(f"n_unique_layer_donors <{low} se nereportuje")
+    if high is not None and (low is None or high > low):
+        band = f"{low}\u2013{high - 1}" if low is not None else f"n_unique_layer_donors <{high}"
+        parts.append(f"{band} je INDIKATIVNÍ")
+    return "; ".join(parts) + ". " if parts else "Podpora se nekontroluje. "
+
+
+def uncertainty_note(rule: SupportThresholds) -> str:
+    """The note every cell carries, written from the rule that decides its status (plan
+    ``methodology-tab`` G1d): under 18.6.6's donor rule it is the unit's text, verbatim."""
+    return _NOTE_INTERVAL + _support_lines(rule) + _NOTE_VALIDITY
+
+
+#: The unit's note, verbatim: what :func:`uncertainty_note` writes under its donor rule.
+UNCERTAINTY_NOTE: Final = uncertainty_note(UNIT_DONOR_THRESHOLDS)
 
 
 # --------------------------------------------------------------------------- #
@@ -453,7 +488,7 @@ def aggregate_question(
         "support_status": support["support_status"],
         "n_guard_threshold": _line(support_rule.min_layer_donors),
         "indicative_threshold": _line(support_rule.indicative_layer_donors),
-        "uncertainty_note": UNCERTAINTY_NOTE,
+        "uncertainty_note": uncertainty_note(support_rule),
         "evidence": evidence_rating(q.text, q.typ, validation_status=validation_status),
     }
     if q.typ == "vyber":
