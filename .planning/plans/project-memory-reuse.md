@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] M0. Decide the reuse unit, its eligibility and its reach (owner, 2026-10-10)"
   - "[x] M1a. The match, pure: dimension titles in the core, accent-folded words, the fields that matched"
@@ -15,7 +15,7 @@ chunks:
   - "[x] M3c. Reuse, scoped: into a new research study or an empty one of the same client; working content, first revision, citation in one transaction"
   - "[x] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
   - "[x] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"
-  - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
+  - "[x] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
 # Project memory: a past study's design reused in a new one, with its citation
 
@@ -266,3 +266,15 @@ web, `ReuseDesign` on the past-research page and `DesignSourceNote` on every sta
 
 **Not in M3:** reusing a part; a reused design's data counted as evidence (nothing of the data is
 copied); the connected proof (M4).
+
+## M4, landed (2026-10-12)
+
+`apps/executors/tests/test_project_memory_proof.py`
+(`test_a_fictional_source_reused_stays_untouched_cites_its_labels_and_never_crosses_a_boundary`):
+through the real worker, a study runs its design on the fictional fixture to completion; a new
+study of the same client starts from that design. The source's revisions, their content, its run
+and every artifact's bytes are compared before and after (byte-identical); the new study's working
+content and first revision are the design and its citation is `synthetic`, naming the run it read.
+A sibling client of the same organization and another organization are each refused on their own,
+and neither refusal writes a study. Checked by mutation: removing `reuse_design`'s client check
+makes the sibling-client assertion fail (`DID NOT RAISE`).
