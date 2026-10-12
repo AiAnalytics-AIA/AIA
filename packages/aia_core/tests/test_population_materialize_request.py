@@ -185,13 +185,16 @@ def test_a_request_is_frozen_to_the_studys_owner_lives_base_and_the_definition(
     assert step["definition_sha256"] == d.sha256
     assert step["base_version_id"] == live["live"].version_id
     assert DimensionDefinition.from_payload(step["definition"]) == d
-    # One run per owner, base and definition -- from any of the client's studies.
+    # One child per owner, base and definition -- from any of the client's studies -- and
+    # one run per study: a run's key is unique across studies but found within one.
     sibling = prepare(session, scoped.scope(study="sibling"), live, d)
-    assert sibling.idempotency_key == request.idempotency_key
+    assert sibling.child_key == request.child_key
+    assert sibling.idempotency_key != request.idempotency_key
+    assert request.study_id in request.idempotency_key
     other_client = prepare(session, scoped.scope(user="other_lead", study="other_client"), live, d)
-    assert other_client.idempotency_key != request.idempotency_key
+    assert other_client.child_key != request.child_key
     changed = prepare(session, scope, live, replace(d, target=0.4))
-    assert changed.idempotency_key != request.idempotency_key
+    assert changed.child_key != request.child_key
 
 
 def test_a_predictor_the_base_lacks_or_may_not_build_a_persona_is_refused(

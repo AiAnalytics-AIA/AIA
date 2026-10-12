@@ -10,7 +10,7 @@ chunks:
   - "[x] P4c. Storage: the child's owner and extension recorded; the registry shows it to its organization only"
   - "[x] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
   - "[x] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, frozen to one run key per owner, base and definition"
-  - "[ ] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
+  - "[x] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
   - "[ ] P4e. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
@@ -718,4 +718,66 @@ What landed:
   - `step_input()` is everything the step needs and nothing it could re-choose.
 - Tests: `test_population_materialize_request.py` (14). Dropping the predictor's policy check
   fails one; dropping the client from the run key fails one (both checked by mutation).
+
+**P4d3, 2026-10-12** (`feature/population-materialize-step`, stacked on P4d2).
+
+- **The template:** `workflow_templates.POPULATION_MATERIALIZE` is one step, `materialize`, of
+  kind `population_materialize`. It is `consumes_population`, so no run is made without the
+  binding it records, and it has 3 attempts.
+- **The enqueue:** `application/materialize.start_materialization` refuses a request from
+  another study, then starts the run under the study's population project
+  (`projects.owner = study_population`, `MATERIALIZE_PROJECT_OWNER`, created on first use; no
+  generic route sees it). LIVE's binding is the run's population.
+  - *A key split, found while wiring it:* a run's idempotency key is unique across every study
+    but looked up within one (`workflow_repository.py:444-451 @ 09a94e53`). P4d2's one key
+    (owner, base, definition) would have made a sibling study's request collide on insert.
+    The request now has `child_key` (owner, base, definition: the one child) and
+    `idempotency_key` (that, within the study).
+  - The child is still made once: its owner-qualified id and the write-once store
+    deduplicate it.
+- **The work:** `PopulationRuntime.materialize_child`, inside the one loader (`parse_panel` is
+  allowed only there, `tools/layer_check.sh`):
+  - the base is verified as every load is, and must be shared;
+  - every predictor is asked again of its policy (`PERSONA_CONSTRUCTION`), and the name must
+    be free;
+  - predictors and the weight are read as numbers the way pandas read them
+    (`derivation.numeric_column`), and P4b's `derive_dimension` writes the values;
+  - the child is the base's columns in order plus the new one: `population_parser.write_panel`
+    gives deterministic gzip CSV, binary as `0`/`1`, scale with two decimals;
+  - it is `put_once` to the store under `<dataset>/<sha256>.csv.gz`, then
+    `check_child_version`, then the extension and the version are registered. The validation
+    record holds the target, the achieved value and the usable predictors.
+  - A retry finds the version; another client gets its own version over the same object.
+- **The executor:** `aia_executors/materialize.py` checks that the definition is the requested
+  hash, the owner is the study's client, and the base is the binding the run recorded, then
+  calls the runtime.
+  - Without a population store or `AIA_POPULATION_ASSET_ROOT`, the run parks
+    (`RUNTIME_UNAVAILABLE`, `population_store_unconfigured`) and nothing is written.
+  - A request the data does not support is `SCHEMA_VIOLATION`, by name, and never retried.
+  - Registered in `registry_for`; `materialize_executor(env)` composes it from the
+    environment.
+- **Tests:**
+  - `test_population_materialize_child.py` (5, on SQLite and PostgreSQL): bytes read back as
+    base plus column, values equal to P4b's derivation, retry, second client, scale format,
+    refusals before any write, an owned base refused;
+  - `test_materialize_executor.py` (2): a run under the real worker loop registers the child;
+    with no store it parks and nothing is written;
+  - `test_population_materialize_request.py` updated for the split keys.
+- **Measured, on a fictional panel of the v17 shape** (18,766 rows by 400 columns, 6.7 MB
+  gzip; three predictors, scale kind): `materialize_child` took 4.6 s and the process peaked at
+  315 MB RSS (226 MB traced); the child is 6.8 MB. The worker container has no memory limit, on
+  a 4 GB host. No model call, no money.
+
+**Finding for P4e (reproduced).** The loader refuses a child. `_verified_panel` re-applies
+the *base* contract to every panel it loads (`application/population.py`, `validate_import`),
+and a child has one more column than the contract declares.
+- Reproduced by calling `PopulationRuntime._verified_panel(child.version)` on a child made
+  in `test_population_materialize_child.py`'s fixture: `VersionIntegrityError ... schema.
+  column_count: expected 6 columns; panel has 7`.
+- Consequence: no run can yet load a child, which P4e needs.
+- Smallest fix: when loading an owned child, validate the base's columns against the base
+  contract and the added ones against the stored extension (`check_child_version`'s rule),
+  rather than the base contract alone. The policy then becomes `with_materialized_fields`.
+- Test that would catch it: a P4e test that loads a child through `load()` and reads its
+  added field through `RuntimePopulation.decide`.
 
