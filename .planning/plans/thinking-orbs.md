@@ -78,9 +78,7 @@ plain 2D canvas, no network). No API, worker, token or migration change.
 
 ## Findings
 
-- **Hypothesis (not reproduced):** `QuestionnaireStep.test.tsx` › "reviews the native brief analysis
-  and questionnaire before opening the editor" timed out at 15 s in one full `npx vitest run` on this
-  branch on 2026-10-07; it takes ~340 ms alone (twice), and the next full run passed 615/615. Its
-  stubbed job is `COMPLETED` with `steps: []` (`src/components/rehome/research/test-native-agents.ts:29`),
-  so no orb mounts on its path. Suspect: `followAgentJob`'s real 1 s poll
-  (`src/lib/research-agent-jobs.ts`) under four-worker load. Needs a reproduction before it is an item.
+- **Resolved elsewhere:** the `QuestionnaireStep.test.tsx` › "reviews the native brief analysis…"
+  timeout seen once on this branch on 2026-10-07 was reproduced and fixed as OI-89 (a mount effect in
+  `useResearchAgents` reset state a click already owned; PR #184, `7a2673a`), not the orb, as
+  suspected here: its job has no RUNNING step.
