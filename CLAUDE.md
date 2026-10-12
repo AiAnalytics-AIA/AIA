@@ -71,7 +71,8 @@ apps/
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
-                            a study's frame and its working content in AIA, ADR 0015, ADR 0018),
+                            a study's frame and its working content in AIA, ADR 0015, ADR 0018;
+                            GET /clients/{id}/memory/search: project memory, one client's studies),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
@@ -89,7 +90,8 @@ apps/
                             its versions, POST check and compare (any member); POST versions and PUT
                             activation (an organization OWNER or ADMIN)),
                             population (GET /population: the registry, read-only, any member;
-                            status derived, never stored)
+                            status derived, never stored; GET /population/versions/{id}/
+                            characteristics: a version's weights, blocks, fields and subpanels)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -142,7 +144,11 @@ apps/
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
                             fictional data is labelled every time, the park is explained
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
-                            labelOf, shortSha); read-only
+                            labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
+                            a version's weights, blocks, the 18 subpanels and every field's uses
+    src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
+                            components/aia/MemorySearch.tsx: one client's search, on Projektová
+                            paměť (a client chosen first) and on the client's Výzkumy
     src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
                             that hold a model caller): agent jobs, run steps, Deep Research steps; a
                             queued, waiting or finished step shows none
@@ -233,7 +239,9 @@ apps/
     population_ops.py       Operator command: status / import / attach / establish / promote over
                             PopulationRuntime, as a person AIA_POPULATION_OPERATORS names (user id
                             -> permissions; unset: nobody); bundles under AIA_POPULATION_ASSET_ROOT;
-                            --all-companions reads each companion the contract declares by its id
+                            --all-companions reads each companion the contract declares by its id;
+                            record-dictionary (acts as no one; run by the develop deploy) keeps a
+                            version's verified dictionary with it
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -318,6 +326,8 @@ packages/aia_core/src/aia_core/
       policy.py             Field policy as code: what each field may be used for
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
+      subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
+                            BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -338,6 +348,8 @@ packages/aia_core/src/aia_core/
     workspace_migration.py  The 18.6.6 migration's rules: file references, the record rewrite, the
                             copy checked against the unit's own hashes, one-for-one validation, report
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
+    project_memory.py       Project memory's match: every word, accent-folded, a four-letter stem;
+                            DIMENSION_LABELS, the canonical dimension titles pinned to the web's
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
     methodology/            The Metodika tab's model (ADR 0023), pure: catalogue.py (module, step,
@@ -417,6 +429,12 @@ packages/aia_core/src/aia_core/
                             the binding a new run records (None until the population is
                             established; reads no panel)
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
+    population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
+                            per-use policy answers, the subpanels checked; from the kept
+                            dictionary, re-hashed; reads no row
+    project_memory.py       search_client_studies: one client's studies through ScopeResolver,
+                            each under its own study context; latest Design Revision, else the
+                            working draft, else the name
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
@@ -531,7 +549,8 @@ packages/aia_core/src/aia_core/
     fan_out_coordination.py  ModelSlots (model requests in flight across processes, PostgreSQL
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
-    population_repository.py  Population registry: versions, populations, history
+    population_repository.py  Population registry: versions, populations, history; each version's
+                            dictionary bytes (population_version_dictionaries), insert-once
     population_parser.py    Text-preserving panel + dictionary parser (stdlib)
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
