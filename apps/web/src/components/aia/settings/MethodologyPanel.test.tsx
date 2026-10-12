@@ -147,6 +147,10 @@ describe("the Metodika tab", () => {
     expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/nález D5/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/nález D7/).length).toBeGreaterThan(0);
+    // Its estimators are shown as expressions, but nothing offers to replace them yet (G3).
+    const mean = document.querySelector('[data-slot="agg.mean"]') as HTMLElement;
+    expect(within(mean).getByText("sum(w * x) / sum(w)")).toBeTruthy();
+    expect(within(mean).getByText(/Nahradit ho půjde, až bude tato oblast upravitelná/)).toBeTruthy();
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {

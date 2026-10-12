@@ -30,6 +30,7 @@ Pure: no I/O, no clock.
 from __future__ import annotations
 
 import math
+import operator
 import random
 import re
 from collections.abc import Sequence
@@ -46,11 +47,18 @@ from .evidence.support import (
 )
 from .fieldwork import FieldworkDataset
 from .research_design import ResearchSpecification, SpecQuestion
+from .sociomap.slots import NO_SLOTS, Slots
 
 __all__ = [
+    "AGGREGATE_SLOTS",
     "AGGREGATE_VERSION",
     "AIA_AGGREGATE_V1",
     "BOOTSTRAP_GENERATOR",
+    "KISH",
+    "MEAN",
+    "SHARE",
+    "TOP_BOX",
+    "VARIANCE",
     "AggregationSpec",
     "BootstrapSpec",
     "aggregate_dataset",
@@ -72,6 +80,18 @@ __all__ = [
 AGGREGATE_VERSION: Final = "aia-research-aggregate-1"
 #: OI-62: the named generator, recorded on every artifact that holds an interval.
 BOOTSTRAP_GENERATOR: Final = "python-random-mt19937:floor(u*m)"
+
+# The estimators a methodology version may replace (ADR 0023 decision 4, plan G2b), by the id
+# ``domain.methodology.aggregation_formulas`` declares them under. A replaced slot is called
+# with its variables by name, vectors as tuples; with none replaced the code computes, and its
+# sums are ``math.fsum``, so each built-in expression gives the code's exact bits.
+MEAN: Final = "agg.mean"
+SHARE: Final = "agg.share"
+TOP_BOX: Final = "agg.top_box"
+KISH: Final = "agg.kish"
+VARIANCE: Final = "agg.variance"
+#: Every slot the aggregate reads from a version.
+AGGREGATE_SLOTS: Final = frozenset({MEAN, SHARE, TOP_BOX, KISH, VARIANCE})
 
 
 class _Declared(BaseModel):
@@ -278,12 +298,14 @@ def clean_weights(weights: Sequence[float]) -> list[float]:
     return [w if _positive(w) else fill for w in weights]
 
 
-def kish_effective_n(weights: Sequence[float]) -> float:
+def kish_effective_n(weights: Sequence[float], slots: Slots = NO_SLOTS) -> float:
     w = [x for x in weights if _positive(x)]
     if not w:
         return 0.0
-    den = sum(x * x for x in w)
-    return float(sum(w) ** 2 / den) if den > 0 else 0.0
+    if KISH in slots:
+        return float(slots[KISH](w=tuple(w)))
+    den = math.fsum(x * x for x in w)
+    return float(math.fsum(w) ** 2 / den) if den > 0 else 0.0
 
 
 def weighted_mean(values: Sequence[float], weights: Sequence[float]) -> float | None:
@@ -292,7 +314,7 @@ def weighted_mean(values: Sequence[float], weights: Sequence[float]) -> float | 
     ]
     if not pairs:
         return None
-    return sum(x * w for x, w in pairs) / sum(w for _, w in pairs)
+    return math.fsum(x * w for x, w in pairs) / math.fsum(w for _, w in pairs)
 
 
 def weighted_distribution(
@@ -343,15 +365,19 @@ def _interp(q: float, xp: Sequence[float], fp: Sequence[float]) -> float:
     return float(fp[-1])  # pragma: no cover - the loop returns
 
 
-def weighted_variance(values: Sequence[float], weights: Sequence[float]) -> float | None:
+def weighted_variance(
+    values: Sequence[float], weights: Sequence[float], slots: Slots = NO_SLOTS
+) -> float | None:
     pairs = [
         (x, w) for x, w in zip(values, weights, strict=True) if math.isfinite(x) and _positive(w)
     ]
     if len(pairs) < 2:
         return None
-    total = sum(w for _, w in pairs)
-    mu = sum(x * w for x, w in pairs) / total
-    return sum(w * (x - mu) ** 2 for x, w in pairs) / total
+    if VARIANCE in slots:
+        return float(slots[VARIANCE](x=tuple(x for x, _ in pairs), w=tuple(w for _, w in pairs)))
+    total = math.fsum(w for _, w in pairs)
+    mu = math.fsum(x * w for x, w in pairs) / total
+    return math.fsum(w * (x - mu) ** 2 for x, w in pairs) / total
 
 
 def _line(value: float | None) -> float | None:
@@ -360,7 +386,11 @@ def _line(value: float | None) -> float | None:
 
 
 def donor_support(
-    donors: Sequence[str], weights: Sequence[float], *, rule: SupportThresholds
+    donors: Sequence[str],
+    weights: Sequence[float],
+    *,
+    rule: SupportThresholds,
+    slots: Slots = NO_SLOTS,
 ) -> dict[str, Any]:
     """``donor_support`` for the core layer: the only layer a fieldwork dataset carries.
 
@@ -368,7 +398,7 @@ def donor_support(
     ``results`` rule (plan ``methodology-tab`` G1c), 18.6.6's donor lines 25 / 50 unless a
     version is in force."""
     n = len(donors)
-    kish = kish_effective_n(clean_weights(weights))
+    kish = kish_effective_n(clean_weights(weights), slots)
     counts: dict[str, int] = {}
     for d in donors:
         counts[d] = counts.get(d, 0) + 1
@@ -397,6 +427,9 @@ def donor_support(
         "effective_n_combined": round(combined, 1),
         "support_status": status,
     }
+
+
+_times: Final = operator.mul
 
 
 def _factorize(donors: Sequence[str]) -> tuple[list[int], int]:
@@ -433,9 +466,11 @@ def bootstrap_weighted_mean(
     seed: int,
     donors: Sequence[str] | None,
     quantiles: tuple[float, float],
+    slots: Slots = NO_SLOTS,
 ) -> dict[str, float] | None:
     """``bootstrap_weighted_mean``: resample donor clusters, not rows; the interval lies
-    between ``quantiles`` of the resampled means."""
+    between ``quantiles`` of the resampled means. A replaced ``agg.mean`` computes the point
+    and every replicate."""
     d = [str(i) for i in range(len(values))] if donors is None else [str(x) for x in donors]
     rows = [
         (x, w, dd)
@@ -446,20 +481,24 @@ def bootstrap_weighted_mean(
         return None
     xs = [r[0] for r in rows]
     ws = [r[1] for r in rows]
-    point = sum(x * w for x, w in zip(xs, ws, strict=True)) / sum(ws)
+    mean = slots.get(MEAN)
+    x_all = tuple(xs)
+    if mean is None:
+        point = math.fsum(x * w for x, w in zip(xs, ws, strict=True)) / math.fsum(ws)
+    else:
+        point = float(mean(x=x_all, w=tuple(ws)))
     codes, m = _factorize([r[2] for r in rows])
     if m < 2:
         return {"estimate": point, "low": point, "high": point, "reps": 0}
     vals: list[float] = []
     for mult in _multipliers(m, reps, seed):
-        den = 0.0
-        num = 0.0
-        for x, w, c in zip(xs, ws, codes, strict=True):
-            wb = mult[c] * w
-            den += wb
-            num += wb * x
+        wbs = list(map(_times, map(mult.__getitem__, codes), ws))
+        den = math.fsum(wbs)
         if den > 0:
-            vals.append(num / den)
+            if mean is None:
+                vals.append(math.fsum(map(_times, wbs, xs)) / den)
+            else:
+                vals.append(float(mean(x=x_all, w=tuple(wbs))))
     vals.sort()
     return {
         "estimate": point,
@@ -478,9 +517,11 @@ def bootstrap_weighted_distribution(
     seed: int,
     donors: Sequence[str] | None,
     quantiles: tuple[float, float],
+    slots: Slots = NO_SLOTS,
 ) -> dict[str, dict[str, float]]:
     """``bootstrap_weighted_distribution``: a share per category, each with its interval
-    between ``quantiles`` of the resampled shares."""
+    between ``quantiles`` of the resampled shares. A replaced ``agg.share`` computes the point
+    and every replicate."""
     d = [str(i) for i in range(len(values))] if donors is None else [str(x) for x in donors]
     rows = [
         (str(v), w, dd)
@@ -492,31 +533,44 @@ def bootstrap_weighted_distribution(
     ss = [r[0] for r in rows]
     ws = [r[1] for r in rows]
     codes, m = _factorize([r[2] for r in rows])
-    denom0 = sum(ws)
-    per_rep: list[tuple[float, dict[str, float]]] = []
+    denom0 = math.fsum(ws)
+    share = slots.get(SHARE)
+    hits = {str(c): tuple(1.0 if s == str(c) else 0.0 for s in ss) for c in categories}
+    per_rep: list[tuple[float, dict[str, float], tuple[float, ...]]] = []
     if m >= 2:
+        rows_of: dict[str, list[int]] = {}
+        for i, label in enumerate(ss):
+            rows_of.setdefault(label, []).append(i)
         for mult in _multipliers(m, reps, seed):
-            den = 0.0
-            nums: dict[str, float] = {}
-            for label, weight, code in zip(ss, ws, codes, strict=True):
-                wb = mult[code] * weight
-                den += wb
-                nums[label] = nums.get(label, 0.0) + wb
-            per_rep.append((den, nums))
+            wbs = list(map(_times, map(mult.__getitem__, codes), ws))
+            nums = (
+                {label: math.fsum(map(wbs.__getitem__, rows)) for label, rows in rows_of.items()}
+                if share is None
+                else {}
+            )
+            per_rep.append((math.fsum(wbs), nums, tuple(wbs) if share is not None else ()))
     out: dict[str, dict[str, float]] = {}
     for c0 in categories:
         c = str(c0)
-        point = (
-            100.0 * sum(w for s, w in zip(ss, ws, strict=True) if s == c) / denom0
-            if denom0
-            else 0.0
-        )
+        if not denom0:
+            point = 0.0
+        elif share is None:
+            point = 100.0 * math.fsum(w for s, w in zip(ss, ws, strict=True) if s == c) / denom0
+        else:
+            point = float(share(hit=hits[c], w=tuple(ws)))
         if m < 2:
             lo = hi = point
             rr = 0
         else:
             vals = sorted(
-                (100.0 * nums.get(c, 0.0) / den) if den > 0 else 0.0 for den, nums in per_rep
+                0.0
+                if den <= 0
+                else (
+                    100.0 * nums.get(c, 0.0) / den
+                    if share is None
+                    else float(share(hit=hits[c], w=wbs))
+                )
+                for den, nums, wbs in per_rep
             )
             lo, hi = _quantile(vals, quantiles[0]), _quantile(vals, quantiles[1])
             rr = reps
@@ -549,15 +603,17 @@ def aggregate_question(
     validation_status: str,
     support_rule: SupportThresholds,
     method: AggregationSpec,
+    slots: Slots = NO_SLOTS,
 ) -> dict[str, Any]:
     """One question's weighted, interval-first aggregate, as the unit reports it, its status
-    decided by ``support_rule`` and its intervals and top box by ``method``."""
+    decided by ``support_rule`` and its intervals and top box by ``method``. ``slots`` are the
+    estimators a methodology version replaced (none: the code computes every one)."""
     boot = method.bootstrap
     rows = [(a, w, d) for a, w, d in zip(answers, weights, donors, strict=True) if a is not None]
     ok_answers = [r[0] for r in rows]
     w = clean_weights([r[1] for r in rows])
     ok_donors = [r[2] for r in rows]
-    support = donor_support(ok_donors, [r[1] for r in rows], rule=support_rule)
+    support = donor_support(ok_donors, [r[1] for r in rows], rule=support_rule, slots=slots)
     out: dict[str, Any] = {
         "typ": q.typ,
         "n_eligible": len(answers),
@@ -586,6 +642,7 @@ def aggregate_question(
                 seed=boot.seed,
                 donors=ok_donors,
                 quantiles=boot.quantiles,
+                slots=slots,
             )
             if rows
             else {}
@@ -593,16 +650,17 @@ def aggregate_question(
         out["celkem_pct"] = {k: float(v["estimate"]) for k, v in dist.items()}
         out["intervaly_95"] = {k: {"low": v["low"], "high": v["high"]} for k, v in dist.items()}
     elif q.typ == "multi":
-        denom = sum(w) if w else 0.0
+        denom = math.fsum(w) if w else 0.0
         pct: dict[str, float] = {}
         intervals: dict[str, dict[str, float]] = {}
         for ii, choice in enumerate(q.options):
             hit = [1.0 if choice in (a or []) else 0.0 for a in ok_answers]
-            point = (
-                100.0 * sum(h * x for h, x in zip(hit, w, strict=True)) / denom
-                if denom > 0
-                else 0.0
-            )
+            if denom <= 0:
+                point = 0.0
+            elif SHARE in slots:
+                point = float(slots[SHARE](hit=tuple(hit), w=tuple(w)))
+            else:
+                point = 100.0 * math.fsum(h * x for h, x in zip(hit, w, strict=True)) / denom
             pct[choice] = round(point, 1)
             bci = (
                 bootstrap_weighted_mean(
@@ -612,6 +670,7 @@ def aggregate_question(
                     seed=boot.seed + ii,
                     donors=ok_donors,
                     quantiles=boot.quantiles,
+                    slots=slots,
                 )
                 if rows
                 else None
@@ -628,14 +687,25 @@ def aggregate_question(
         v = [_numeric(a) for a in ok_answers]
         ci = (
             bootstrap_weighted_mean(
-                v, w, reps=boot.reps, seed=boot.seed, donors=ok_donors, quantiles=boot.quantiles
+                v,
+                w,
+                reps=boot.reps,
+                seed=boot.seed,
+                donors=ok_donors,
+                quantiles=boot.quantiles,
+                slots=slots,
             )
             if v
             else None
         )
-        var = weighted_variance(v, w)
+        var = weighted_variance(v, w, slots)
         top = q.scale[1] if q.scale else 0
-        top_hit = [1.0 if x >= top - (method.top_box - 1) else 0.0 for x in v]
+        in_box = slots.get(TOP_BOX)
+        top_hit = (
+            [1.0 if x >= top - (method.top_box - 1) else 0.0 for x in v]
+            if in_box is None
+            else [float(in_box(x=x, top=float(top), b=float(method.top_box))) for x in v]
+        )
         top_ci = (
             bootstrap_weighted_mean(
                 top_hit,
@@ -644,6 +714,7 @@ def aggregate_question(
                 seed=boot.seed_top_box,
                 donors=ok_donors,
                 quantiles=boot.quantiles,
+                slots=slots,
             )
             if v
             else None
@@ -685,12 +756,14 @@ def aggregate_dataset(
     *,
     support: SupportSpec,
     validation_status: str = "UNVALIDATED",
+    slots: Slots = NO_SLOTS,
 ) -> dict[str, Any]:
     """Every question and every battery object of ``spec``, aggregated over ``dataset``.
 
     ``support`` is the run's pinned support specification; its ``results`` rule decides
     every cell's ``support_status`` (plan ``methodology-tab`` G1c). Every question is
-    aggregated under :data:`AIA_AGGREGATE_V1`, the unit's own values (G2a).
+    aggregated under :data:`AIA_AGGREGATE_V1`, the unit's own values (G2a). ``slots`` are the
+    estimators a methodology version replaced (G2b); a run does not pin any yet (G3).
 
     A battery object is aggregated as the scale question the unit compiles it to
     (``research_project.py`` ``_prefixed_battery_questions``).
@@ -710,6 +783,7 @@ def aggregate_dataset(
             validation_status=validation_status,
             support_rule=support.results,
             method=AIA_AGGREGATE_V1,
+            slots=slots,
         )
         for q in spec.questions
     }
@@ -734,6 +808,7 @@ def aggregate_dataset(
                     validation_status=validation_status,
                     support_rule=support.results,
                     method=AIA_AGGREGATE_V1,
+                    slots=slots,
                 ),
             }
         batteries[b.id] = {"title": b.title, "family": b.family, "objects": objects}

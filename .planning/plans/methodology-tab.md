@@ -26,7 +26,7 @@ chunks:
   - "[x] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
   - "[x] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
   - "[x] G2a. Aggregation documented and declared: estimators, Kish, bootstrap reps/seeds/quantiles, top-2-box in AggregationSpec (aia-aggregate-1, the unit's literals bit for bit); D1, D5, D7 named on their steps"
-  - "[ ] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
+  - "[x] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
   - "[ ] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
   - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
   - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
@@ -729,6 +729,47 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
     - **D7, tested.** `test_the_keyword_lists_decide_what_is_refused`: "Kolik byste zaplatili…"
       is refused, while "Jakou částku … považujete za přiměřenou?" passes as AMBER. The refusal
       is only as good as the lists.
+  - **G2b. Landed.**
+    - **The obstacle.** A built-in expression must give the code's exact bits, and the
+      formula language's `sum` is `math.fsum`. The aggregate summed with plain `sum`, so an
+      expression and the code differed in the last bit.
+      - The sociomap engine already sums with `fsum`, which is why S3's slots could be
+        bit-identical.
+      - Plain `sum` was never the unit's bits either: 18.6.6 sums with NumPy.
+      - So the aggregate now sums with `fsum` (exactly rounded), not the expressions with
+        something looser.
+    - **Nothing visible moved.** The exact-parity tests against the unit, the seed-spread tests
+      and AIA's pinned bounds pass unchanged. A 1,000-respondent × 18-question fictional
+      aggregate hashes identically before and after (`62d3fe29…`).
+    - **Cost.** That aggregate takes 2.54 s before and 2.84 s after (+12 %), median of three
+      runs. A first cut cost +35 %; most of it was won back by computing each replicate's
+      weights once with `map` and grouping a distribution's rows by label outside the
+      replicate loop. `_multipliers` (the random draws) still dominates the profile.
+    - **The slots** (`domain/methodology/aggregation_formulas.py`, ids in
+      `research_aggregate`, `AGGREGATE_SLOTS`):
+
+      | Slot | Built-in | Step |
+      |---|---|---|
+      | `agg.kish` | `sum(w) ** 2 / sum(w * w)` | kish |
+      | `agg.share` | `100 * sum(w * hit) / sum(w)` | share |
+      | `agg.mean` | `sum(w * x) / sum(w)` | mean |
+      | `agg.variance` | `sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)` | sd |
+      | `agg.top_box` | `x >= top - (b - 1)` | top_box |
+
+      - Weight cleaning, the weighted median, the resampling and the linear quantile are
+        algorithms, so they stay code without a slot.
+    - **The engine.** Every estimator function takes `slots` (default none: the code, bit for
+      bit). A replaced slot computes the point and every bootstrap replicate.
+      `aggregate_dataset(…, slots=)` passes them through; no run pins any yet (G3).
+    - **One estimator, used consistently.** The top box's share and each multiple-choice
+      option's share are weighted means of 0/1 indicators, so they follow `agg.mean`. The
+      mean step says so: editing the mean edits them too.
+    - **Proof** (`test_methodology_aggregation_formulas.py`):
+      - every fixture, aggregated with all five slots replaced by their own built-ins, is
+        identical to the code's aggregate;
+      - unrounded points, bounds, Kish n and variances are equal as floats on random inputs;
+      - the top-box rule matches the code's for every width;
+      - a replaced estimator moves what the aggregate reports and nothing else.
   - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
     specification yet, so every value is a code constant read where it is used.
     - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the

@@ -483,6 +483,8 @@ export const cs = {
         editable: "Vzorec jako výraz",
         editableHelp:
           "Tento výraz dává přesně stejná čísla jako kód (ověřeno testem). V editoru verzí ho lze nahradit; náhrada musí splnit podmínky níže.",
+        editableHelpLater:
+          "Tento výraz dává přesně stejná čísla jako kód (ověřeno testem). Nahradit ho půjde, až bude tato oblast upravitelná; náhrada pak bude muset splnit podmínky níže.",
         expression: "Výraz",
         variables: "Proměnné",
         vector: "vektor",
