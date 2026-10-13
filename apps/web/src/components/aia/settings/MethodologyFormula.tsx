@@ -7,13 +7,15 @@
 // system math font stack: Cambria Math on Windows, STIX Two Math on macOS.
 import "temml/dist/Temml-Local.css";
 
+import { memo } from "react";
+
 import { t } from "@/i18n/t";
 import { formulaMathML } from "@/lib/methodology";
 
 const M = "aia.settings.methodology";
 
 /** A formula as MathML; its LaTeX, said so, when it cannot be drawn. */
-export function Formula({ latex, display = true }: { latex: string; display?: boolean }) {
+export const Formula = memo(function Formula({ latex, display = true }: { latex: string; display?: boolean }) {
   const mathml = formulaMathML(latex, display);
   if (mathml === null) {
     return (
@@ -25,4 +27,4 @@ export function Formula({ latex, display = true }: { latex: string; display?: bo
   }
   // Temml's own output, trust off: built from the catalogue's LaTeX, no link or HTML passes.
   return <span className={display ? "block min-w-0 max-w-full overflow-x-auto" : "inline-block max-w-full overflow-x-auto align-middle"} dangerouslySetInnerHTML={{ __html: mathml }} />;
-}
+});
