@@ -28,24 +28,32 @@ Pure: stdlib and the domain.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import hashlib
+from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
 from ..evidence.validation import RESPONDENT_SYSTEM_COMPONENTS
+from ..population.sampling import PanelSample
 from ..research_design import COMPILER_VERSION, ResearchSpecification, SpecQuestion
 from ..respondent_facts import FactStatus, classify_question
 from ..workflow import StepDefinition
-from .bank import ItemBank
+from .bank import ItemBank, canonical_json
 from .preregistration import HoldoutRefused, Preregistration
+from .scoring import ArmRun
 
 __all__ = [
+    "ARM_ARTIFACT",
     "ARM_KIND",
+    "SAMPLE_ARTIFACT",
     "SAMPLE_KIND",
     "SCORE_KIND",
     "VALIDATION_PROJECT_OWNER",
     "VALIDATION_WORKFLOW",
     "arm_node_key",
+    "arm_record",
     "preregistered_blocks",
+    "read_arm_record",
+    "sample_sha256",
     "shuffle_seed",
     "system_mismatch",
     "validation_cost_ceiling",
@@ -61,6 +69,9 @@ VALIDATION_PROJECT_OWNER: Final = "study_validation"
 SAMPLE_KIND: Final = "holdout_sample"
 ARM_KIND: Final = "holdout_arm"
 SCORE_KIND: Final = "holdout_score"
+#: The artifacts the sample and arm steps write.
+SAMPLE_ARTIFACT: Final = "holdout_sample"
+ARM_ARTIFACT: Final = "holdout_arm_answers"
 #: What a confirmation run is titled in its questionnaire.
 _TITLE: Final = "Validace respondentního systému"
 
@@ -160,6 +171,12 @@ def validation_specification(
                 raise HoldoutRefused(
                     f"{field} is not in the item bank", reason="holdout_bank_mismatch"
                 ) from None
+            labels = [o.label for o in item.options]
+            if len(set(labels)) != len(labels):
+                raise HoldoutRefused(
+                    f"{field}'s option labels repeat; an answer could not name its code",
+                    reason="holdout_option_labels_repeat",
+                )
             question = SpecQuestion(
                 id=item.field,
                 section_id=f"holdout-{item.domain}",
@@ -219,3 +236,81 @@ def system_mismatch(
         for name in RESPONDENT_SYSTEM_COMPONENTS
         if name != "model_binding" and current.get(name) != pinned.get(name)
     )
+
+
+def sample_sha256(sample: PanelSample) -> str:
+    """The sample's identity: who was drawn, in order, with their weights, from which version.
+
+    Every arm and the score re-draw the sample under the preregistered seed and compare this
+    with the sample step's record, so all of them ask and score exactly the same people.
+    """
+    return hashlib.sha256(
+        canonical_json(
+            {
+                "version_id": sample.version_id,
+                "content_sha256": sample.content_sha256,
+                "seed": sample.seed,
+                "respondents": [
+                    [r.row, r.donor, repr(r.base_weight), repr(r.analysis_weight)]
+                    for r in sample.respondents
+                ],
+            }
+        )
+    ).hexdigest()
+
+
+def _answer_missing(message: str) -> HoldoutRefused:
+    return HoldoutRefused(message, reason="holdout_answer_missing")
+
+
+def arm_record(
+    spec: ResearchSpecification,
+    codes: Mapping[str, Sequence[str]],
+    rows: Sequence[tuple[str, Mapping[str, Any]]],
+    details: Sequence[Mapping[str, Mapping[str, Any]]],
+) -> dict[str, Any]:
+    """One arm replicate's answers as codes, and the probabilities they were drawn from.
+
+    ``rows`` are each respondent's id and drawn answers (an option label), ``details`` what the
+    draw recorded per item, in the same order. A label is mapped back to its code by its position
+    in the fielded order. Every item has an answer and a probability over every option for every
+    respondent, or the record is refused (``holdout_answer_missing``): a missing answer is never
+    scored as any answer.
+    """
+    if len(rows) != len(details):
+        raise _answer_missing("every respondent's answers need their draw's record")
+    answers: dict[str, dict[str, str]] = {}
+    probabilities: dict[str, dict[str, list[float]]] = {}
+    for question in spec.questions:
+        item_codes = list(codes.get(question.id, ()))
+        if len(item_codes) != len(question.options):
+            raise _answer_missing(f"{question.id}: its codes are not its options")
+        by_label = dict(zip(question.options, item_codes, strict=True))
+        answers[question.id] = {}
+        probabilities[question.id] = {}
+        for (respondent, drawn), detail in zip(rows, details, strict=True):
+            label = drawn.get(question.id)
+            meta = detail.get(question.id) or {}
+            probs = meta.get("probabilities")
+            if label not in by_label or not isinstance(probs, list):
+                raise _answer_missing(f"{respondent} has no answer to {question.id}")
+            if len(probs) != len(item_codes):
+                raise _answer_missing(f"{respondent}'s {question.id} draw is not over its options")
+            answers[question.id][respondent] = by_label[label]
+            probabilities[question.id][respondent] = [float(p) for p in probs]
+    return {"answers": answers, "probabilities": probabilities}
+
+
+def read_arm_record(arm: str, replicate: int, record: Mapping[str, Any]) -> ArmRun:
+    """An arm replicate's stored record as the scoring reads it."""
+    answers = {
+        (str(item), str(respondent)): str(code)
+        for item, by in record["answers"].items()
+        for respondent, code in by.items()
+    }
+    probabilities = {
+        (str(item), str(respondent)): tuple(float(p) for p in probs)
+        for item, by in record["probabilities"].items()
+        for respondent, probs in by.items()
+    }
+    return ArmRun(arm=arm, replicate=replicate, answers=answers, probabilities=probabilities)

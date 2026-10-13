@@ -58,6 +58,7 @@ import { Icon } from "../icons";
 import { ActionDock, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { useResearch, useSessionState } from "./context";
+import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
 
@@ -151,8 +152,9 @@ export function PersonaStep() {
   const n = Number(p.n) || r.n;
 
   return (
-    <div className="flex max-w-[82.5rem] flex-wrap items-start gap-6">
-      <aside aria-label={t("research.persona.asideLabel")} className="sticky top-60 order-2 flex flex-[1_1_280px] flex-col gap-4">
+    <div className="flex max-w-[82.5rem] flex-col gap-4">
+      <InspectorSlot>
+        <aside aria-label={t("research.persona.asideLabel")} className="flex flex-col gap-3">
         <section aria-labelledby="per-chosen" className="rounded-card border border-border bg-surface-raised p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 id="per-chosen" className="text-sm font-semibold">{t("research.persona.chosenTitle")}</h2>
@@ -188,46 +190,10 @@ export function PersonaStep() {
           </ul>
         </section>
 
-        <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.persona.sampleChip", { n: r.n })}</span>
-          </div>
-          <div className="mt-3">
-            <SampleInput
-              key={n}
-              value={n}
-              onCommit={(raw) => {
-                const c = setSampleSize(store.get().project, raw);
-                apply(c);
-                return Number(c.project.n);
-              }}
-            />
-          </div>
-          <SampleSlider key={`s-${n}`} value={n} recommended={r.n} onCommit={(v) => apply(setSampleSize(store.get().project, String(v)))} />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              aria-label={tv("research.persona.sampleUse", { n: r.n })}
-              aria-pressed={n === r.n}
-              onClick={() => apply(applyRecommendedSample(store.get().project))}
-              className={`${PRESET} ${n === r.n ? PRESET_ON : ""}`}
-            >
-              {tv("research.persona.presetRecommended", { n: r.n })}
-            </button>
-            {[400, 800, 1200].filter((x) => x !== r.n).map((x) => (
-              <button key={x} type="button" aria-pressed={n === x} onClick={() => apply(setSampleSize(store.get().project, String(x)))} className={`${PRESET} ${n === x ? PRESET_ON : ""}`}>
-                {x}
-              </button>
-            ))}
-          </div>
-          <p className={`mt-3 text-xs leading-[18px] ${n < r.n ? "text-status-you-ink" : "text-ink-muted"}`}>
-            {n < r.n ? tv("research.persona.sampleBelow", { n: r.n }) : r.why}
-          </p>
-        </section>
-      </aside>
+        </aside>
+      </InspectorSlot>
 
-      <div className="order-1 flex min-w-0 flex-[999_1_520px] flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
         {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
 
         <StepSection
@@ -287,6 +253,43 @@ export function PersonaStep() {
           </section>
         ) : null}
 
+        <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.persona.sampleChip", { n: r.n })}</span>
+          </div>
+          <div className="mt-3">
+            <SampleInput
+              key={n}
+              value={n}
+              onCommit={(raw) => {
+                const c = setSampleSize(store.get().project, raw);
+                apply(c);
+                return Number(c.project.n);
+              }}
+            />
+          </div>
+          <SampleSlider key={`s-${n}`} value={n} recommended={r.n} onCommit={(v) => apply(setSampleSize(store.get().project, String(v)))} />
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              aria-label={tv("research.persona.sampleUse", { n: r.n })}
+              aria-pressed={n === r.n}
+              onClick={() => apply(applyRecommendedSample(store.get().project))}
+              className={`${PRESET} ${n === r.n ? PRESET_ON : ""}`}
+            >
+              {tv("research.persona.presetRecommended", { n: r.n })}
+            </button>
+            {[400, 800, 1200].filter((x) => x !== r.n).map((x) => (
+              <button key={x} type="button" aria-pressed={n === x} onClick={() => apply(setSampleSize(store.get().project, String(x)))} className={`${PRESET} ${n === x ? PRESET_ON : ""}`}>
+                {x}
+              </button>
+            ))}
+          </div>
+          <p className={`mt-3 text-xs leading-[18px] ${n < r.n ? "text-status-you-ink" : "text-ink-muted"}`}>
+            {n < r.n ? tv("research.persona.sampleBelow", { n: r.n }) : r.why}
+          </p>
+        </section>
         <StepSection n={2} optional title={t("research.persona.customSummary")} hint={t("research.persona.customHelper")}>
           <div className="flex flex-wrap items-end gap-2">
             <Field label={t("research.persona.customLabel")} className="min-w-64 flex-1">
@@ -338,7 +341,7 @@ function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {
         <h3 className="text-[13px] font-semibold">{title}</h3>
         {action}
       </div>
-      <ul className="mt-1.5 divide-y divide-border overflow-hidden rounded-control border border-border">
+      <ul className="mt-1.5 grid grid-cols-[repeat(auto-fill,minmax(min(15rem,100%),1fr))] gap-1.5">
         {rows.map((d) => {
           const on = chosen.has(d.id);
           return (
@@ -347,7 +350,7 @@ function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {
                 type="button"
                 aria-pressed={on}
                 onClick={() => onToggle(d.id)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold" : "bg-surface-raised hover:bg-surface-sunken"}`}
+                className={`flex h-full w-full items-center gap-2.5 rounded-control border px-2.5 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash font-semibold" : "border-border bg-surface-raised hover:border-border-strong"}`}
               >
                 <span aria-hidden="true" className={`inline-flex size-4 shrink-0 items-center justify-center rounded-sm border ${on ? "border-signal bg-signal text-on-signal" : "border-border-strong bg-surface-raised"}`}>
                   {on ? <Icon name="done" size={12} /> : null}

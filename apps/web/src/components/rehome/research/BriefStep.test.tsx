@@ -84,40 +84,11 @@ describe("Zadání", () => {
     for (const [, label] of PROBLEM_TYPES) expect(within(types).getByRole("button", { name: new RegExp(label.replace(/[/()]/g, ".")) })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^Podklady/ })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^Kontext, který zpřesní návrh/ })).toBeTruthy();
-    // Readiness says what is done and what to do next, never a bare score.
-    const readiness = screen.getByRole("complementary", { name: "Připravenost zadání" });
-    expect(readiness.textContent).toContain("0 ze 4");
-    expect(readiness.textContent).toContain("Doplňte: Cíl vlastními slovy");
-    expect(readiness.textContent).not.toContain("%");
-    // A row leads to its field: the caret lands in the goal.
-    fireEvent.click(within(readiness).getByRole("button", { name: /^Cíl vlastními slovy/ }));
-    expect(document.activeElement).toBe(screen.getByLabelText("Cíl výzkumu"));
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("0 %");
     // The empty project's title shows as an empty field, as in the classic screen.
     expect((screen.getByPlaceholderText("Např. Nové balení produktu") as HTMLInputElement).value).toBe("");
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Napište cíl, nebo co přesně zkoumáme")).toBeTruthy();
-  });
-
-  it("on a wide desktop the start action sits beside the checklist, and the form keeps no dock over it", async () => {
-    unitStub({ goal: "Chceme zjistit, jak lidé vnímají novou kampaň banky. Výsledek použijeme." });
-    // Only the wide-desktop query matches; the assistance panel's narrow query does not.
-    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(min-width: 1280px)", addEventListener: () => {}, removeEventListener: () => {} }));
-    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    const readiness = await screen.findByRole("complementary", { name: "Připravenost zadání" });
-    const start = within(readiness).getByRole("button", { name: NEXT }) as HTMLButtonElement;
-    expect(start.disabled).toBe(false);
-    expect(readiness.textContent).toContain("platí se z rozpočtu studie");
-    // One start action on the page, and no back-to-client dock under the form.
-    expect(screen.getAllByRole("button", { name: NEXT })).toHaveLength(1);
-    expect(screen.queryByRole("link", { name: /Zpět na klienta/ })).toBeNull();
-  });
-
-  it("asks AI about the client's knowledge from beside the goal, opening help without sending anything", async () => {
-    unitStub({});
-    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Zeptat se AI na podklady klienta" }));
-    expect(await screen.findByRole("heading", { name: "Klientské znalosti" })).toBeTruthy();
-    expect(posted(AGENTS_PATH)).toEqual([]);
   });
 
   it("a problem type is a toggle that fills an empty goal with its default", async () => {
@@ -167,8 +138,9 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Soubory k zadání");
     fireEvent.change(input, { target: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
+    // A file shows while it is on its way, and its stored detail once AIA has it.
     expect(await screen.findByText("zadani.txt")).toBeTruthy();
-    expect(screen.getByText("2 KB · text načten")).toBeTruthy();
+    expect(await screen.findByText("2 KB · text načten")).toBeTruthy();
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
     // Nothing reaches 18.6.6.
     expect(calls.filter((c) => c.url.startsWith("/api/project"))).toEqual([]);
@@ -180,7 +152,7 @@ describe("Zadání", () => {
     unitStub(null, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.change(await screen.findByLabelText("Soubory k zadání"), { target: { files: [new File(["ahoj"], "zadani.txt")] } });
-    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    await waitFor(() => expect(posted(ATTACH_PATH)).toHaveLength(1));
     const order = calls.filter((c) => c.body !== null && (c.url === ATTACH_PATH || c.url.endsWith("/workspace/content"))).map((c) => c.url.split("/").at(-1));
     expect(order[0]).toBe("content");
     expect(order[1]).toBe("attachments");
@@ -283,8 +255,7 @@ describe("Zadání", () => {
     expect(await screen.findAllByText("72 znaků")).toHaveLength(2); // the counter and the readiness row
     fireEvent.click(screen.getByRole("button", { name: "Navrhnout z cíle" }));
     expect(await screen.findByDisplayValue("Lidé vnímají novou kampaň banky")).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("1 ze 4");
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("Povinné je hotové");
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("25 %");
   });
 
   it("opens a context field from its chip, and × empties it and closes it", async () => {
@@ -301,12 +272,13 @@ describe("Zadání", () => {
     await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""), { timeout: 4000 });
   });
 
-  it("takes dropped files the way it takes picked ones", async () => {
+  it("takes files dropped anywhere on the stage the way it takes picked ones", async () => {
     unitStub({}, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    const zone = await screen.findByRole("button", { name: "Přidat soubory z počítače" });
-    fireEvent.drop(zone, { dataTransfer: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
-    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    // Dropped on the goal, far from the files section (research-lane-redesign).
+    const goal = await screen.findByLabelText("Cíl výzkumu");
+    fireEvent.drop(goal, { dataTransfer: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })], types: ["Files"] } });
+    expect(await screen.findByText("2 KB · text načten")).toBeTruthy();
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
   });
 });

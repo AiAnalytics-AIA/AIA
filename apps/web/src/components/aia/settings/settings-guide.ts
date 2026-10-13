@@ -1,11 +1,11 @@
 // Presentation explanations only. Permission, effective values and validation stay in the API.
 export const TAB_GUIDE: Record<string, { purpose: string; action: string }> = {
   ai: { purpose: "Co AI umí a co je zapnuté", action: "Zkontrolujte dostupné schopnosti. Model a přepínače spravuje nasazení; rozpočty upravíte u studií." },
-  prompts: { purpose: "Jaké instrukce dostávají agenti", action: "Vyberte agenta, upravte instrukci a uložte novou verzi. Zapnutí je samostatný krok." },
-  deep_research: { purpose: "Zdroje, náklady a pravidla rešerše", action: "Najděte pravidlo podle účelu, navrhněte hodnotu a potom ji schvalte. Rozsah je celá organizace." },
+  prompts: { purpose: "Jaké instrukce dostávají agenti", action: "Vyberte agenta, upravte jeho instrukci a uložte ji jako verzi. Běžet začne až po zapnutí; úloha už zadaná si nechá instrukci, se kterou byla zadána." },
+  deep_research: { purpose: "Zdroje, náklady a pravidla rešerše", action: "Navrhněte hodnotu pravidla a pak ji schvalte; platí pro běhy zařazené po schválení. Ochrany v kódu (robots.txt, žádné přihlášení ani paywall, osobní údaje, třída dat C) vypnout nejdou." },
   methodology: { purpose: "Jak se počítají mapy a statistiky", action: "Projděte výpočet nebo upravte jeho parametry. Návrh zkontrolujte, porovnejte a uložte; v platnost vstoupí až po aktivaci." },
   access: { purpose: "Členové, role a schvalování", action: "Spravujte členy a stav klientů. Pravidla samoschválení mohou platit pro organizaci, klienta nebo jedinou studii." },
-  studies: { purpose: "Stav studií a limity útraty", action: "Vyhledejte studii a otevřete její kartu. Rozpočet je maximální celková útrata studie v USD." },
+  studies: { purpose: "Stav studií a limity útraty", action: "Vyhledejte studii a stiskněte Upravit. Rozpočet je maximální celková útrata studie v USD." },
   audit: { purpose: "Kdo co změnil a kdy", action: "Vyhledejte událost, osobu nebo důvod změny. Historie je pouze ke čtení." },
   reference: { purpose: "Technické hodnoty a pevná pravidla", action: "Tyto hodnoty nejsou běžné uživatelské volby. U každé zjistíte její účel a zda změnu spravuje nasazení nebo kód." },
 };

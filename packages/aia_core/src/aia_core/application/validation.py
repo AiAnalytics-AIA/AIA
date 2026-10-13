@@ -36,7 +36,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from ..domain.holdout.bank import ItemBank
+from ..domain.holdout.bank import ItemBank, item_payload
 from ..domain.holdout.preregistration import HoldoutRefused, Preregistration
 from ..domain.holdout.run import (
     VALIDATION_PROJECT_OWNER,
@@ -55,15 +55,28 @@ from ..domain.pipeline import ProjectType
 from ..domain.population import CZ_LIVE, PopulationImportContract
 from ..domain.population.czech import CZ_SYNTHETIC_V17
 from ..domain.scope import Permission, StudyContext
+from ..infrastructure.artifact_repository import ArtifactRepository
 from ..infrastructure.holdout_repository import HoldoutRepository
 from ..infrastructure.repositories import ProjectRepository
 from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
 from .population import live_binding
 from .research import CostConfirmationRequired
 from .workflows import StartedRun
 
-__all__ = ["ValidationRuns"]
+__all__ = ["ValidationRuns", "validation_artifacts"]
+
+
+def validation_artifacts(
+    session: Session, scope: StudyContext, store: ArtifactStore
+) -> ArtifactRepository:
+    """The artifacts of the Study's validation: those of its owned validation project.
+
+    The one way to reach them, as ``research_artifacts`` is for a research run's: no generic
+    project route sees an owned project's artifacts.
+    """
+    return ArtifactRepository(session, scope, store, owner=VALIDATION_PROJECT_OWNER)
 
 
 def _refused(message: str, reason: str) -> HoldoutRefused:
@@ -210,7 +223,9 @@ class ValidationRuns:
                     "read_by_fieldwork": True,
                 },
             },
-            step_inputs=self._step_inputs(stored.sha256, prereg, spec.model_dump(mode="json")),
+            step_inputs=self._step_inputs(
+                stored.sha256, prereg, bank, spec.model_dump(mode="json")
+            ),
             fingerprints={s.node_key: stored.sha256 for s in steps},
             population=population,
         )
@@ -234,12 +249,14 @@ class ValidationRuns:
 
     @staticmethod
     def _step_inputs(
-        sha256: str, prereg: Preregistration, specification: Mapping[str, Any]
+        sha256: str, prereg: Preregistration, bank: ItemBank, specification: Mapping[str, Any]
     ) -> dict[str, dict[str, Any]]:
         """Every step's input: all it needs, from the preregistration, nothing it re-chooses."""
         document = prereg.document
         blocks = [list(b) for b in preregistered_blocks(prereg)]
         exclusions = _block_exclusions(prereg)
+        items = [bank.item(field) for block in blocks for field in block]
+        codes = {item.field: list(item.codes) for item in items}
         binding = document["respondent_system"]["components"]["model_binding"]
         inputs: dict[str, dict[str, Any]] = {
             "sample": {
@@ -247,7 +264,11 @@ class ValidationRuns:
                 "n": document["n"],
                 "sample_seed": document["sample_seed"],
             },
-            "score": {"preregistration_sha256": sha256, "preregistration": dict(document)},
+            "score": {
+                "preregistration_sha256": sha256,
+                "preregistration": dict(document),
+                "items": [item_payload(item) for item in items],
+            },
         }
         for arm in document["model_arms"]:
             for k, seed in enumerate(document["replicate_seeds"], start=1):
@@ -260,6 +281,7 @@ class ValidationRuns:
                     "specification": dict(specification),
                     "blocks": blocks,
                     "exclusions": exclusions,
+                    "codes": codes,
                     "model_binding": binding,
                 }
         return inputs

@@ -22,10 +22,12 @@ from typing import Final
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.population_store import PopulationStoreSettings, S3PopulationStore
+from aia_core.infrastructure.report_pdf import PdfConverter, report_pdf_from_env
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
 
+from .ai_fieldwork import AIFieldwork
 from .ai_runtime import AIRuntimeSettings, build_ai_fieldwork, build_gateway
 from .analysis import AnalysisConfig, analysis_registry
 from .deep_research import DeepResearchRuntime, deep_research_registry
@@ -38,6 +40,7 @@ from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
 from .snapshot import KIND as SNAPSHOT_KIND
 from .snapshot import SnapshotExecutor
 from .sociomapping_report import sociomapping_report_registry
+from .validation import validation_registry
 
 __all__ = [
     "POPULATION_ASSET_ROOT_KEY",
@@ -80,6 +83,7 @@ def registry_for(
     deep_research: DeepResearchRuntime | None = None,
     sociomap_connectedness_interval: bool = False,
     materialize: StepExecutor | None = None,
+    report_pdf: PdfConverter | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
@@ -93,13 +97,20 @@ def registry_for(
         ),
         **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
-        **report_registry(store=store, build=build),
+        **report_registry(store=store, build=build, pdf=report_pdf),
         **sociomapping_report_registry(store=store, build=build),
         **research_registry(
             store=store,
             build=build,
             ai_runtime=ai_runtime,
             sociomap_connectedness_interval=sociomap_connectedness_interval,
+        ),
+        # The validation's sample and arms answer through the same fieldwork; without it (or
+        # its panel path) they park (panel-grounded-respondents 7e4).
+        **validation_registry(
+            store=store,
+            build=build,
+            ai=ai_runtime if isinstance(ai_runtime, AIFieldwork) else None,
         ),
     }
 
@@ -176,4 +187,5 @@ def build_registry() -> dict[str, StepExecutor]:
             else None
         ),
         sociomap_connectedness_interval=connectedness_interval,
+        report_pdf=report_pdf_from_env(os.environ),
     )

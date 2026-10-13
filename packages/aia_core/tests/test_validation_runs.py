@@ -125,6 +125,10 @@ def test_a_confirmation_run_is_made_from_the_stored_preregistration_alone(
     assert [q["id"] for q in arm["specification"]["questions"]] == ["c1", "c2", "c3"]
     assert "shuffle_seed" not in inputs[arm_node_key("D", 1)]
     assert inputs["score"]["preregistration"] == dict(stored.preregistration.document)
+    # An arm answers by option label and records codes; the score reads each item as fielded.
+    assert arm["codes"] == {"c1": ["1", "2", "3"], "c2": ["1", "2", "3"], "c3": ["1", "2", "3"]}
+    assert [i["field"] for i in inputs["score"]["items"]] == ["c1", "c2", "c3"]
+    assert inputs["score"]["items"][0]["options"][0] == {"code": "1", "label": "Rozhodně ano"}
     # The run is the Study's confirmation, found through the Study.
     assert validation().run()["run_id"] == started.run_id
     assert HoldoutRepository(session, scoped.scope()).confirmation().run_id == started.run_id

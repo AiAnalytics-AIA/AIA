@@ -12,6 +12,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report_design import DesignSections
+from aia_core.application.report_tables import QuestionTables
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
@@ -38,6 +40,8 @@ from aia_core.domain.report.model import (
 from aia_core.domain.report.validation import require_valid
 
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
+# The stored DOCX rendered as PDF beside it (complete-study-report B3).
+INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
@@ -120,10 +124,18 @@ def compose_internal_report(
     *,
     map_sections: tuple[Section, ...] = (),
     context_sections: tuple[Section, ...] = (),
+    question_tables: QuestionTables | None = None,
+    design: DesignSections | None = None,
+    method: Section | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
     Caller supplies the Study-scoped ``reconstruct_run`` outcome and metadata.
+    ``question_tables`` (``compose_question_tables``) follow the methodology chapter; their
+    claims must be over this run's evidence table, admitted for the internal surface.
+    ``design`` (``compose_design_sections``): its chapter follows the introduction and the
+    questionnaire is an appendix before the evidence appendix. ``method``
+    (``compose_method_section``): who answered and the run's methods, after the methodology.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -197,6 +209,8 @@ def compose_internal_report(
             )
         )
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
+    if design is not None:
+        sections.append(design.chapter)
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
     if deviation is not None:
         audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
@@ -262,6 +276,19 @@ def compose_internal_report(
                     id="methodology",
                 )
             )
+            if method is not None:
+                sections.append(method)
+            if question_tables is not None:
+                for claim in question_tables.claims:
+                    if (
+                        claim.surface is not ClaimSurface.INTERNAL
+                        or reference.table.rows.get(claim.row.evidence_ref) != claim.row
+                    ):
+                        raise ReportCompositionRefused(
+                            f"question table cites {claim.row.evidence_ref!r} outside run evidence"
+                        )
+                claims.extend(question_tables.claims)
+                sections.extend(question_tables.sections)
         module = run.modules[spec.module_id]
         result = module.result
         if result is None or result.module_id is not spec.module_id:
@@ -337,6 +364,8 @@ def compose_internal_report(
     ledger = EvidenceLedger.from_claims(
         claims, surface=ClaimSurface.INTERNAL, table=reference.table
     )
+    if design is not None:
+        sections.append(design.appendix)
     sections.append(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )

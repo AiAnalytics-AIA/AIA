@@ -4,6 +4,7 @@
 // API's Pydantic models (apps/api/src/aia_api/schemas); the client renders what
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
+import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 
 export class ApiError extends Error {
@@ -886,6 +887,8 @@ export type ResearchReport = {
   synthetic?: boolean;
   modelled?: boolean;
   data_origin_kind?: string | null;
+  /** The stored DOCX rendered as PDF; null when this run's worker made none (B3). */
+  pdf?: { state: "READY"; artifact_id: string; size_bytes: number } | { state: string; reason?: string | null } | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -942,6 +945,19 @@ export const research = {
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
   downloadReport: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
+  sociomapRegister: (studyId: string) =>
+    request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
+  /** The client report of a modelled run (complete-study-report B5c); 409 names why a run has none. */
+  downloadClientReport: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
+  downloadReportPdf: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
+  /** A person approves a stored report of the run (internal only; recorded in the ledger). */
+  approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
+    request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
+    ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
   sociomappingReport: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/sociomapping/report`),

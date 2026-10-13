@@ -26,7 +26,6 @@ from aia_core.domain.research_sociomap import (
     CONNECTEDNESS_NOT_COMPUTED,
     CONNECTEDNESS_RESAMPLES,
     CONNECTEDNESS_SEED,
-    D6_OPEN,
     LEGACY_METHODS,
     PAIR_CONFIDENCE,
     MethodologyStatus,
@@ -100,7 +99,8 @@ def test_the_relation_matrix_is_exact_against_the_unit(name: str) -> None:
 def test_the_map_is_the_engines_under_the_adopted_preset_and_internal_only() -> None:
     spec, dataset = _case("A01_full_questionnaire")
     result = research_sociomaps(spec, dataset, methods=LEGACY_METHODS, connectedness_interval=False)
-    assert D6_OPEN and result["methodology_status"] == MethodologyStatus.INTERNAL_ONLY.value
+    # aia-sociomap-1 draws the map and is not in the Sociomap register (B4).
+    assert result["methodology_status"] == MethodologyStatus.INTERNAL_ONLY.value
     assert result["data_origin"] == "SYNTHETIC_FIXTURE"
     (one,) = result["batteries"]
     assert one["methodology_status"] == "INTERNAL_ONLY"

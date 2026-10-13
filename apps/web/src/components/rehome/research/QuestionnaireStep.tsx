@@ -64,6 +64,7 @@ import {
   setSectionField,
   toAudience,
   updateObjects,
+  SET_SIZE,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
 import { Icon, type IconName } from "../icons";
@@ -71,6 +72,8 @@ import { ActionDock, ChipInput, InlineConfirm, Segmented, Switch } from "../step
 import { AiButton, Button } from "../ui";
 import { isNativeResult } from "@/lib/research-agent-jobs";
 import { useResearch } from "./context";
+import { InspectorSlot } from "./Inspector";
+import { questionnaireIssues } from "@/research/lane";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
@@ -168,7 +171,13 @@ export function QuestionnaireStep() {
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
+      {editor ? (
+        <InspectorSlot>
+          <QuestionnaireReadiness />
+        </InspectorSlot>
+      ) : null}
+      {/* One toolbar: where the questionnaire comes from, how it is seen, and the AI that improves it. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-surface-raised px-3 py-2">
         <span className={LABEL}>{t("research.questionnaire.method")}</span>
         <Segmented
           label={t("research.questionnaire.method")}
@@ -180,6 +189,24 @@ export function QuestionnaireStep() {
           ]}
           onChange={path}
         />
+        {editor ? (
+          <>
+            <span aria-hidden="true" className="hidden h-6 w-px bg-border sm:block" />
+            <Segmented
+              label={t("research.questionnaire.viewLabel")}
+              value={tab}
+              options={[
+                { key: "edit", label: t("research.questionnaire.viewEdit") },
+                { key: "preview", label: t("research.questionnaire.viewPreview") },
+              ]}
+              onChange={setTab}
+            />
+            <span className="flex-1" />
+            <AiButton small disabled={step.busy} onClick={() => void optimize()}>
+              {t("research.questionnaire.optimizeAction")}
+            </AiButton>
+          </>
+        ) : null}
       </div>
       {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} /> : null}
@@ -196,18 +223,9 @@ export function QuestionnaireStep() {
       ) : null}
       {editor ? (
         <>
-          <div className="flex flex-wrap items-start gap-6">
+          <div className="flex flex-wrap items-start gap-4">
             <Outline update={update} />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              <Segmented
-                label={t("research.questionnaire.viewLabel")}
-                value={tab}
-                options={[
-                  { key: "edit", label: t("research.questionnaire.viewEdit") },
-                  { key: "preview", label: t("research.questionnaire.viewPreview") },
-                ]}
-                onChange={setTab}
-              />
               {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
             </div>
           </div>
@@ -215,10 +233,7 @@ export function QuestionnaireStep() {
             <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
             <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
             <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.optimizeHelp")}</p>
-            <AiButton className="mt-3" disabled={step.busy} onClick={() => void optimize()}>
-              {t("research.questionnaire.optimizeAction")}
-            </AiButton>
-            <details className="mt-4 rounded-control border border-border bg-surface px-3 py-2" open>
+            <details className="mt-3 rounded-control border border-border bg-surface px-3 py-2" open>
               <summary className="cursor-pointer text-[13px] font-medium">{t("research.questionnaire.deepTitle")}</summary>
               <div className="mt-2"><DeepResearchPanel /></div>
             </details>
@@ -227,6 +242,39 @@ export function QuestionnaireStep() {
       ) : null}
       {dock}
     </div>
+  );
+}
+
+/** The questionnaire's readiness beside it: what stops the run, each a way to the question. */
+function QuestionnaireReadiness() {
+  const { state } = useResearch();
+  const counts = questionnaireCounts(state.project);
+  const issues = questionnaireIssues(state.project);
+  const firstUnworded = () => document.querySelector<HTMLElement>("[data-unworded]")?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+  const rows: { label: string; detail: string; ok: boolean; go?: () => void }[] = [
+    { label: tv("research.questionnaire.readyCounts", counts), detail: t("research.questionnaire.readyCountsDetail"), ok: counts.questions > 0 },
+    ...(issues.empty ? [{ label: tv("research.questionnaire.dockEmpty", { n: issues.empty }), detail: t("research.questionnaire.unworded"), ok: false, go: firstUnworded }] : []),
+    ...(issues.badSets ? [{ label: tv("research.questionnaire.dockSets", { n: issues.badSets }), detail: SET_SIZE, ok: false }] : []),
+  ];
+  return (
+    <section aria-labelledby="q-ready" className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
+      <h2 id="q-ready" className="text-sm font-semibold">{t("research.questionnaire.readyTitle")}</h2>
+      <ul className="flex flex-col gap-0.5">
+        {rows.map((r) => (
+          <li key={r.label}>
+            <button type="button" disabled={!r.go} onClick={r.go} className={`grid w-full grid-cols-[18px_1fr] items-start gap-2 rounded-control p-1.5 text-left enabled:hover:bg-surface-sunken ${FOCUS}`}>
+              <span aria-hidden="true" className={`mt-px inline-flex size-[18px] items-center justify-center rounded-full ${r.ok ? "bg-status-done text-surface-raised" : "bg-status-you text-ink"}`}>
+                {r.ok ? <Icon name="done" size={10} /> : <span className="text-[11px] font-bold leading-none">!</span>}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[13px] font-medium leading-[18px]">{r.label}</span>
+                <span className="block text-xs leading-4 text-ink-muted">{r.detail}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -460,7 +508,7 @@ function Outline({ update }: { update: Update }) {
   );
 
   return (
-    <aside aria-labelledby="q-editor" className="sticky top-60 flex flex-[1_1_260px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-4">
+    <aside aria-labelledby="q-editor" className="sticky top-[136px] flex flex-[1_1_240px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{t("research.questionnaire.editorTag")}</div>
         <h2 id="q-editor" className="mt-0.5 text-sm font-semibold">{tv("research.questionnaire.editorCounts", counts)}</h2>
@@ -546,7 +594,7 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
   const qs = sec.questions || [];
   const [confirming, setConfirming] = useState(false);
   return (
-    <article id={`qblock_${sec.id || si}`} className="scroll-mt-60 rounded-panel bg-surface-sunken p-4">
+    <article id={`qblock_${sec.id || si}`} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: qs.length })}</div>
@@ -585,8 +633,11 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
   const typ = String(q.typ || "");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
+  // A question without wording stops the run: marked where it is, not only in the dock.
+  const unworded = !String(q.text || "").trim();
+  const hint = `qedit_${q.id || "Q"}_missing`;
   return (
-    <div id={`qedit_${q.id || "Q"}`} className="scroll-mt-60 rounded-card border border-border bg-surface-raised p-4">
+    <div id={`qedit_${q.id || "Q"}`} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         <span className="sr-only">{q.id || "Q"}</span>
@@ -619,11 +670,19 @@ function QuestionCard({ n, q, si, qi, update }: { n: number; q: Question; si: nu
       </div>
       <textarea
         aria-label={t("research.questionnaire.questionText")}
+        aria-describedby={unworded ? hint : undefined}
+        aria-invalid={unworded || undefined}
         value={q.text || ""}
         onChange={(e) => update((p) => setQuestionText(p, si, qi, e.target.value))}
         rows={2}
-        className={`mt-3 block w-full resize-y rounded-control border border-border-strong bg-surface px-3 py-2 text-[15px] font-medium leading-6 ${FOCUS} ${String(q.text || "").trim() ? "" : "border-status-you-ink"}`}
+        className={`mt-3 block w-full resize-y rounded-control border border-border-strong bg-surface px-3 py-2 text-[15px] font-medium leading-6 ${FOCUS} ${unworded ? "border-status-you-ink" : ""}`}
       />
+      {unworded ? (
+        <p id={hint} className="mt-1.5 flex items-center gap-1.5 text-xs text-status-you-ink">
+          <Icon name="you" size={12} />
+          {t("research.questionnaire.unworded")}
+        </p>
+      ) : null}
       {typ === "vyber" || typ === "multi" ? (
         <OptionRows key={(q.kategorie || []).join("\n")} multi={typ === "multi"} options={q.kategorie || []} onCommit={(raw) => update((p) => setQuestionOptions(p, si, qi, raw))} />
       ) : null}
@@ -740,7 +799,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     setNote(r.note);
   };
   return (
-    <article id={`qset_${sec.id || si}`} className="scroll-mt-60 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4">
+    <article id={`qset_${sec.id || si}`} className="scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4">
       <div className="flex items-start gap-3">
         <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
         <div className="min-w-0 flex-1">

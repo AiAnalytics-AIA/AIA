@@ -15,7 +15,8 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
-from aia_core.application.contextual_report import contextual_report
+from aia_core.application.client_report import ClientReportRefused, stored_client_report
+from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
@@ -26,8 +27,10 @@ from aia_core.application.deep_research import (
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
+    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
     ReportCompositionRefused,
 )
+from aia_core.application.report_approval import ReportNotApprovable, approve_report
 from aia_core.application.research import (
     BudgetNotRaised,
     CostCeilingUnknown,
@@ -57,9 +60,21 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
+from aia_core.domain.scope import (
+    Permission,
+    ScopeDenied,
+    SeparationOfDutiesViolation,
+    StudyContext,
+)
+from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER
 from aia_core.domain.workflow import StepRunStatus
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
+from aia_core.infrastructure.artifact_repository import (
+    Artifact,
+    ArtifactNotFound,
+    ArtifactRepository,
+    ArtifactStatus,
+)
+from aia_core.infrastructure.report_pdf import PDF_MEDIA_TYPE
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -804,6 +819,21 @@ def start_run(
     return _started(runs, started, response)
 
 
+@router.get(
+    "/research/sociomap-register",
+    response_model=dict[str, Any],
+    summary="Which Sociomap methods are approved, at which exact specification",
+)
+def sociomap_register(scope: StudyScopeDep) -> dict[str, Any]:
+    """The register a map's status is read from (complete-study-report B4): a map is approved
+    only when its run recorded exactly an entry's method id and spec fingerprint."""
+    try:
+        scope.require(Permission.VIEW_RESULTS)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return {"entries": [entry.model_dump(mode="json") for entry in SOCIOMAP_REGISTER]}
+
+
 @router.get("/research/runs", response_model=ResearchRunList, summary="The Study's research runs")
 def list_runs(
     scope: StudyScopeDep, session: SessionDep, limit: Annotated[int, Query(ge=1, le=100)] = 20
@@ -1166,6 +1196,28 @@ def _report_for_run(
     return step, artifact
 
 
+def _report_pdf(
+    step: dict[str, Any] | None, report: Artifact | None, run_id: str, repo: ArtifactRepository
+) -> tuple[Artifact | None, dict[str, Any] | None]:
+    """The PDF the report step stored beside ``report``, verified as its rendering; and what
+    the step said about it (None when the step made no PDF: the switch was off)."""
+    said = ((step or {}).get("output") or {}).get("pdf")
+    if report is None or not isinstance(said, dict) or said.get("state") != "READY":
+        return None, said if isinstance(said, dict) else None
+    try:
+        pdf = repo.get(str(said.get("artifact_id")))
+    except ArtifactNotFound as exc:
+        raise HTTPException(409, detail={"code": "report_artifact_missing"}) from exc
+    if (
+        pdf.artifact_type != INTERNAL_REPORT_PDF_ARTIFACT_TYPE
+        or pdf.status is not ArtifactStatus.VALID
+        or pdf.metadata.get("run_id") != run_id
+        or pdf.metadata.get("rendering_of") != report.artifact_id
+    ):
+        raise HTTPException(409, detail={"code": "report_artifact_invalid"})
+    return pdf, said
+
+
 @router.get(
     "/research/runs/{run_id}/report",
     response_model=dict[str, Any],
@@ -1196,7 +1248,55 @@ def run_report(
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
         **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
+        "pdf": _pdf_state(step, artifact, run_id, research_artifacts(session, scope, store)),
     }
+
+
+def _pdf_state(
+    step: dict[str, Any], report: Artifact, run_id: str, repo: ArtifactRepository
+) -> dict[str, Any] | None:
+    try:
+        pdf, said = _report_pdf(step, report, run_id, repo)
+    except HTTPException:
+        # The report stands; a PDF that is not its rendering is never offered.
+        return {"state": "INVALID", "reason": None}
+    if pdf is not None:
+        return {"state": "READY", "artifact_id": pdf.artifact_id, "size_bytes": pdf.size_bytes}
+    if said is not None:
+        return {"state": str(said.get("state") or "FAILED"), "reason": said.get("reason")}
+    return None
+
+
+@router.get(
+    "/research/runs/{run_id}/report/pdf/download",
+    summary="Download the run's internal report as PDF (a rendering of the stored DOCX)",
+)
+def download_run_report_pdf(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> Response:
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    step, report = _report_for_run(run_id, scope, session, store)
+    repo = research_artifacts(session, scope, store)
+    pdf, _said = _report_pdf(step, report, run_id, repo)
+    if pdf is None:
+        raise _not_found("report_pdf")
+    try:
+        data = repo.read(pdf.artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    return Response(
+        content=data,
+        media_type=PDF_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="AIA-{scope.study_id}-internal-draft.pdf"'
+            ),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get(
@@ -1243,14 +1343,17 @@ def download_contextual_report(
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
+    settings: SettingsDep,
 ) -> Response:
-    from aia_core.infrastructure.report_docx.renderer import DocxRenderer
-
     try:
-        document = contextual_report(
-            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+        artifact, data = stored_contextual_report(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
+            build=settings.build.sha or "",
         )
-        data = DocxRenderer().render(document)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except (ResearchRunNotFound, DeepResearchRunNotFound) as exc:
@@ -1279,8 +1382,127 @@ def download_contextual_report(
                 f'attachment; filename="AIA-{scope.study_id}-with-research.docx"'
             ),
             "Cache-Control": "no-store",
+            # The stored draft these bytes are, for its review and approval (B2).
+            "X-AIA-Artifact-Id": artifact.artifact_id,
+            "X-AIA-Review-State": "APPROVED_INTERNAL"
+            if artifact.is_approved
+            else "DRAFT_UNAPPROVED",
         },
     )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/download",
+    response_class=Response,
+    summary="The run's client report (modelled data, labelled; a stored, unapproved draft)",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> Response:
+    """Complete-study-report B5c: only a run whose respondents were modelled from the
+    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    try:
+        artifact, data = stored_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except ClientReportRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_refused",
+                "message": str(exc),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    except (ReportCompositionRefused, ReportInvalid, ArtifactNotFound) as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_refused",
+                "message": str(exc),
+                "details": {"reason": "composition_refused"},
+            },
+        ) from exc
+    return Response(
+        content=data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="AIA-{scope.study_id}-client-draft.docx"',
+            "Cache-Control": "no-store",
+            "X-AIA-Artifact-Id": artifact.artifact_id,
+            "X-AIA-Review-State": "APPROVED_INTERNAL"
+            if artifact.is_approved
+            else "DRAFT_UNAPPROVED",
+        },
+    )
+
+
+class ReportApprovalRequest(BaseModel):
+    """Which stored report of the run a person approves, and why."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    artifact_id: str = Field(pattern=r"^ART-[0-9a-f]{16}$")
+    note: str = Field(default="", max_length=2000)
+
+
+@router.post(
+    "/research/runs/{run_id}/report/approve",
+    response_model=dict[str, Any],
+    summary="Approve a stored report of the run (internal approval, recorded)",
+    responses={403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def approve_run_report(
+    run_id: RunIdPath,
+    body: ReportApprovalRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    try:
+        artifact = approve_report(
+            session, scope, store, run_id=run_id, artifact_id=body.artifact_id, note=body.note
+        )
+    except SeparationOfDutiesViolation as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": exc.reason,
+                "message": "Someone other than the report's producer must approve it.",
+            },
+        ) from exc
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except ArtifactNotFound as exc:
+        raise _not_found("report") from exc
+    except ReportNotApprovable as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_not_approvable",
+                "message": "The artifact is not a valid stored report of this run.",
+            },
+        ) from exc
+    return {
+        "run_id": run_id,
+        "artifact_id": artifact.artifact_id,
+        "artifact_type": artifact.artifact_type,
+        "review_state": "APPROVED_INTERNAL",
+        "internal_only": True,
+    }
 
 
 def _sociomapping_report(

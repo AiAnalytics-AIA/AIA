@@ -749,6 +749,7 @@ class PopulationRuntime:
                 columns=cached._columns,
                 analysis_weight=cached._analysis_weight,
                 companions=cached._companions,
+                joint_certificate=cached.joint_certificate,
             )
 
         extension: PopulationContractExtension | None = None
@@ -757,6 +758,14 @@ class PopulationRuntime:
         else:
             panel, dictionary, extension = self._verified_child(version)
         joint, companion_bytes = self._verified_joint(joint_version, companions)
+        certificate = next(
+            (
+                companion_bytes[spec.asset_id]
+                for spec in self._contract.companions
+                if spec.kind is CompanionKind.CORE_JOINT_STATUS and spec.asset_id in companion_bytes
+            ),
+            None,
+        )
         policy = build_field_policy(
             dictionary.rows,
             dictionary_sha256=version.dictionary_sha256,
@@ -785,6 +794,9 @@ class PopulationRuntime:
             columns=columns,
             analysis_weight=weights,
             companions=companion_bytes,
+            joint_certificate=(
+                None if certificate is None else (certificate, joint_version.content_sha256)
+            ),
         )
         self._cache[key] = population
         while len(self._cache) > self._cache_size:

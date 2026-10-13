@@ -50,7 +50,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   const [error, setError] = useState<string | null>(null);
   const narrow = useSyncExternalStore(subscribeNarrow, narrowSnapshot, serverSnapshot);
   const invoker = useRef<HTMLElement | null>(null);
-  const fallback = useRef<HTMLDivElement | null>(null);
+  const fallback = useRef<HTMLElement | null>(null);
   const dialog = useRef<HTMLDialogElement | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const question = useRef<HTMLTextAreaElement | null>(null);
@@ -64,7 +64,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   };
   const ask = (action: AdviceAction, value?: string) => {
     if (!actions.some((item) => item.action === action)) return;
-    if (!visible) invoker.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    invoker.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setSelected(action); setError(null); setOpened(true);
     if (value !== undefined) writeQuestion(action, value);
   };
@@ -110,21 +110,22 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   };
   const suggestion = SUGGESTIONS[step];
   const suggestionAction: AdviceAction = actions.some((item) => item.action === "design_copilot") ? "design_copilot" : "answer_memory";
-  // The header holds a single utility action. A full help card made the entire
-  // header as tall as its text and pushed the actual research form below the fold.
-  const card = <div ref={fallback} tabIndex={-1} role="region" aria-label={t("research.aiHelpLabel")} data-contextual-assistance>
-    <Button data-assistance-trigger="open" aria-expanded={visible} aria-controls="research-assistance-panel" className="!min-h-9" onClick={(event) => {
-      invoker.current = event.currentTarget;
-      if (visible) (review || selected === "critique_design" ? heading.current : question.current)?.focus();
-      else if (saved.length && !canEdit) setOpened(true);
-      else ask(suggestionAction);
-    }}><Sparkle size={15} />{review ? "Odpověď AI" : agents.busy ? "Průběh AI" : t("research.aiHelp")}</Button>
-  </div>;
+  const card = <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border border-ai-edge bg-ai-wash p-3.5 text-ink">
+    <h2 className="flex items-center gap-2 text-sm font-semibold text-ai-ink"><Sparkle size={15} />{t("research.aiHelp")} · {t(`aia.stages.${step}`)}</h2>
+    {visible ? <><p className="mt-1 text-xs leading-5 text-ink-muted">Pomoc je otevřená vedle pracovní plochy. Otázka se zachová při přepínání kroků.</p><Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => (review || selected === "critique_design" ? heading.current : question.current)?.focus()}>Přejít k AI pomoci</Button></> : <>
+    <p className="mt-1 text-xs leading-5 text-ink-muted">Uložený návrh a schválené znalosti klienta. AI odpověď nemění návrh ani schválení evidence.</p>
+    {canEdit ? <p className="mt-1 text-xs text-ink-muted">AI kroky čerpají rozpočet této studie.</p> : null}
+    {canEdit ? <div className="mt-2 flex flex-wrap gap-2">{actions.map((item, index) => <AiButton key={item.action} data-assistance-trigger={item.action} variant={index === 0 ? "primary" : "secondary"} className="!min-h-11 !whitespace-normal text-left" disabled={agents.busy}
+      onClick={(event) => { invoker.current = event.currentTarget; if (item.action === "critique_design") send(item.action); else if (isAdviceAction(item.action)) ask(item.action); }}>{t(item.label)}</AiButton>)}</div>
+      : <p className="mt-2 text-xs text-ink-muted">Pouze ke čtení. Uložené odpovědi můžete otevřít; nový AI krok zde nelze spustit.</p>}
+    {canEdit && suggestion ? <button type="button" data-assistance-trigger="suggestion" disabled={agents.busy} onClick={() => ask(suggestionAction, suggestion)} className="mt-2 !min-h-11 rounded-control border border-dashed border-ai-edge px-3 py-2 text-left text-xs leading-5 focus-visible:outline-2 focus-visible:outline-focus-ring disabled:opacity-50">{suggestion}</button> : null}
+    {agents.busy || saved.length ? <Button data-assistance-trigger="history" className="mt-2 !min-h-11 !whitespace-normal" onClick={() => { invoker.current = document.activeElement as HTMLElement; setOpened(true); }}>{agents.busy ? "Zobrazit průběh AI úlohy" : "Otevřít uložené odpovědi"}</Button> : null}
+    </>}
+  </section>;
   const content = <>
     <div className="flex items-start justify-between gap-3"><div><h2 ref={heading} tabIndex={-1} id="research-assistance-title" className="text-base font-semibold text-ai-ink">{review ? "Odpověď AI" : ACTION_LABELS[selected]}</h2><p className="mt-1 text-xs text-ink-muted">{studyName} · {t(`aia.stages.${step}`)}</p></div><Button className="!min-h-11 min-w-11 justify-center" aria-label="Zavřít AI pomoc" onClick={close}>×</Button></div>
     <section className="rounded-md border border-border bg-surface-sunken p-3 text-xs leading-5"><h3 className="font-semibold">Co AI uvidí</h3><p>Uloženou revizi návrhu, schválené znalosti dostupné této studii a vaši otázku.</p><p className="mt-2 text-ink-muted">Hodnoty výsledků a sociomap se neposílají automaticky. Odpověď z klientských znalostí nenahrazuje literární rešerši ani numerickou interpretaci.</p></section>
     {review ? <section aria-label="Uložená odpověď AI"><p className="mb-3 text-xs leading-5 text-ink-muted">Odpověď vychází z uloženého kontextu. Nenahrazuje schválení evidence.</p><AgentProposalContent result={review.result} /><details className="mt-3 text-xs text-ink-muted"><summary className="!min-h-11 cursor-pointer py-3">Původ odpovědi</summary><p className="break-all">Revize {review.result.provenance.design_revision_id} · kontext {review.result.provenance.context_sha256}</p></details><Button className="!min-h-11" onClick={close}>Zavřít</Button></section> : <>
-      {canEdit && suggestion ? <button type="button" disabled={agents.busy} onClick={() => ask(suggestionAction, suggestion)} className="rounded-control border border-dashed border-ai-edge px-3 py-2 text-left text-xs leading-5 focus-visible:outline-2 focus-visible:outline-focus-ring disabled:opacity-50">Začít otázkou: {suggestion}</button> : null}
       {canEdit ? <form onSubmit={(event) => { event.preventDefault(); send(selected); }} className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-2">{actions.filter((item) => isAdviceAction(item.action)).map((item) => <Button key={item.action} aria-pressed={selected === item.action} disabled={agents.busy} className="!min-h-11 !whitespace-normal text-left" onClick={() => setSelected(item.action as AdviceAction)}>{item.title}</Button>)}</div>
         {selected === "critique_design" ? <p className="text-sm">Zkontroluje současný uložený návrh. Rozpracované změny AIA před odesláním uloží.</p> : <Field label="Co chcete zjistit?"><TextArea ref={question} rows={4} maxLength={8000} value={questions[selected] ?? ""} disabled={agents.busy} onChange={(event) => writeQuestion(selected, event.target.value)} /></Field>}
@@ -145,8 +146,8 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
       </section>
     </>}
   </>;
-  const panel = !visible ? null : narrow ? <dialog id="research-assistance-panel" ref={dialog} aria-labelledby="research-assistance-title" onCancel={(event) => { event.preventDefault(); close(); }} className="fixed inset-y-0 right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-md overflow-auto border-l border-ai-edge bg-surface-overlay p-4 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"><div className="flex min-w-0 flex-col gap-4">{content}</div></dialog>
-    : <aside id="research-assistance-panel" aria-labelledby="research-assistance-title" data-assistance-panel className="sticky top-6 flex max-h-[calc(100vh-3rem)] min-w-0 flex-col gap-4 overflow-auto rounded-md border border-ai-edge bg-surface-raised p-4">{content}</aside>;
+  const panel = !visible ? null : narrow ? <dialog ref={dialog} aria-labelledby="research-assistance-title" onCancel={(event) => { event.preventDefault(); close(); }} className="fixed inset-y-0 right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-md overflow-auto border-l border-ai-edge bg-surface-overlay p-4 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"><div className="flex min-w-0 flex-col gap-4">{content}</div></dialog>
+    : <aside aria-labelledby="research-assistance-title" data-assistance-panel className="flex max-h-[calc(100vh-10rem)] min-w-0 flex-col gap-4 overflow-auto rounded-card border border-ai-edge bg-surface-raised p-4">{content}</aside>;
   // eslint-disable-next-line react-hooks/refs -- passes rendered elements and event callbacks; no ref value is read during render
   return children({ card, panel, expanded: visible && !narrow, ask });
 }

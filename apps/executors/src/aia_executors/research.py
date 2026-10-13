@@ -27,6 +27,7 @@ from typing import Any, Final, Protocol
 from aia_core.application.research import research_artifacts
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
     RESPONDENT_SYSTEM_METADATA,
     FieldworkDataset,
     FieldworkSource,
@@ -375,6 +376,7 @@ class FieldworkExecutor(_Step):
 
         provenance: dict[str, Any] | None = None
         system: dict[str, str] | None = None
+        certificate: dict[str, str] | None = None
         if source is FieldworkSource.AI_RUNTIME:
             assert self._ai is not None
             produced = self._ai.produce(spec, step, context)
@@ -382,6 +384,7 @@ class FieldworkExecutor(_Step):
                 return produced
             dataset, provenance = produced.dataset, produced.provenance
             system = produced.respondent_system
+            certificate = produced.joint_certificate
         else:
             assert producer is not None
             dataset = producer(spec)
@@ -420,6 +423,10 @@ class FieldworkExecutor(_Step):
                     "fieldwork_source": source.value,
                     # What a modelled analysis is judged on (ADR 0024 §4, plan 4e3).
                     **({RESPONDENT_SYSTEM_METADATA: system} if system is not None else {}),
+                    # The certificate that covered those respondents (B5a).
+                    **(
+                        {JOINT_CERTIFICATE_METADATA: certificate} if certificate is not None else {}
+                    ),
                 },
             )
         context.progress(

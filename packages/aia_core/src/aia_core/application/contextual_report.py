@@ -7,6 +7,9 @@ citations have their own L labels; they never enter the respondent evidence ledg
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
 from urllib.parse import urlsplit
 
 from sqlalchemy.orm import Session
@@ -18,14 +21,15 @@ from aia_core.application.report import (
     ReportCompositionRefused,
     compose_internal_report,
 )
-from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_chapters import report_chapters
 from aia_core.application.research import ResearchRuns, research_artifacts
-from aia_core.domain.analysis import AnalysisModuleId
+from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import EvidenceOrigin
 from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
 from aia_core.domain.fieldwork import origin_kind
+from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import (
     Block,
     Classification,
@@ -41,11 +45,14 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import ArtifactStatus
+from aia_core.infrastructure.artifact_repository import Artifact
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-2"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-3"
+# Stored beside the run's own report, on the Study's design project (ADR 0016).
+CONTEXT_REPORT_ARTIFACT_TYPE = "research_internal_docx_with_research"
+CONTEXT_REPORT_STAGE = "REPORT"
 _ACQUISITION_REASONS = {
     AcquisitionReason.PAYWALL: "Zdroj vyžaduje placený přístup.",
     AcquisitionReason.LOGIN: "Zdroj vyžaduje přihlášení.",
@@ -267,6 +274,16 @@ def literature_sections(bundle: EvidenceBundle, *, research_run_id: str) -> tupl
     return (Section("Literární rešerše a externí kontext", tuple(blocks), id="literature"),)
 
 
+@dataclass(frozen=True, slots=True)
+class _Composed:
+    """A composed report with literature and every source it was composed from."""
+
+    document: ReportDocument
+    run: Mapping[str, Any]
+    sources: dict[str, Any]
+    depends_on: tuple[str, ...]
+
+
 def contextual_report(
     session: Session,
     scope: StudyContext,
@@ -275,8 +292,74 @@ def contextual_report(
     run_id: str,
     deep_research_run_id: str,
 ) -> ReportDocument:
-    """Resolve both owned runs, verify their exact lineage and compose fresh bytes."""
-    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
+    """Resolve both owned runs, verify their exact lineage and compose the document."""
+    return _compose(
+        session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+    ).document
+
+
+def stored_contextual_report(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    deep_research_run_id: str,
+    build: str = "",
+) -> tuple[Artifact, bytes]:
+    """The report with literature as a stored, unapproved draft artifact, and its bytes.
+
+    Composed from the same verified sources every time; rendered and stored only when
+    no valid artifact exists for exactly those sources. A later download of the same
+    pair reads the stored bytes, and a person can approve that artifact (B2) -- a
+    document rendered afresh on each download could never be the one approved.
+    """
+    from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+
+    composed = _compose(
+        session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+    )
+    artifacts = research_artifacts(session, scope, store)
+    key = fingerprint(composed.sources)
+    found = artifacts.find_reusable(
+        project_id=composed.run["project_id"],
+        stage_type=CONTEXT_REPORT_STAGE,
+        artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
+        input_fingerprint=key,
+    )
+    if found is not None:
+        return found, artifacts.read(found.artifact_id)
+    data = DocxRenderer().render(composed.document)
+    artifact, _created = artifacts.put(
+        project_id=composed.run["project_id"],
+        revision=int(composed.run["project_revision"]),
+        stage_type=CONTEXT_REPORT_STAGE,
+        artifact_type=CONTEXT_REPORT_ARTIFACT_TYPE,
+        data=data,
+        content_type=DocxRenderer.media_type,
+        input_fingerprint=key,
+        runtime_version=build,
+        metadata={
+            "run_id": run_id,
+            "deep_research_run_id": deep_research_run_id,
+            "report_kind": ReportKind.INTERNAL.value,
+            "review_state": "DRAFT_UNAPPROVED",
+            "report_contract": CONTEXT_REPORT_CONTRACT,
+            "evidence_bundle_sha256": composed.sources["bundle"],
+        },
+        depends_on=list(composed.depends_on),
+    )
+    return artifact, data
+
+
+def _compose(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    deep_research_run_id: str,
+) -> _Composed:
 
     scope.require(Permission.EDIT_STUDY)
     run = ResearchRuns(session, scope).get(run_id)
@@ -303,34 +386,20 @@ def contextual_report(
     first = analysis.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:
         raise ReportCompositionRefused("executive analysis is incomplete")
-    repo = research_artifacts(session, scope, store)
-    map_id = next(
-        (
-            (s.get("output") or {}).get("artifact_id")
-            for s in run["steps"]
-            if s["node_key"] == "sociomap"
+    # The same run-derived chapters as the stored internal report (complete-study-report B1d).
+    chapters = report_chapters(
+        research_artifacts(session, scope, store),
+        run,
+        analysis,
+        map_artifact_id=next(
+            (
+                (s.get("output") or {}).get("artifact_id")
+                for s in run["steps"]
+                if s["node_key"] == "sociomap"
+            ),
+            None,
         ),
-        None,
-    )
-    if not map_id:
-        raise ReportCompositionRefused("the run has no frozen sociomap")
-    map_source = repo.get(map_id)
-    deps = repo.dependencies(map_id)
-    if (
-        map_source.artifact_type != "research_sociomap"
-        or map_source.status is not ArtifactStatus.VALID
-        or not any(d.sha256 == first.record.sources.dataset.sha256 for d in deps)
-        or not any(
-            d.artifact_type == "research_specification"
-            and repo.read_json(d.artifact_id).get("specification_fingerprint")
-            == first.record.sources.specification_fingerprint
-            for d in deps
-        )
-    ):
-        raise ReportCompositionRefused("sociomap does not belong to the frozen analysis inputs")
-    body = repo.read_json(map_id)["sociomap"]
-    maps = compose_map_sections(
-        body, object_map_snapshots(body), source=f"Běh {run_id}; SHA-256 {map_source.sha256}"
+        run_id=run_id,
     )
     names = ScopeRepository(session)
     meta = ReportMeta(
@@ -351,9 +420,31 @@ def contextual_report(
             ("Kontrakt", CONTEXT_REPORT_CONTRACT),
         ),
     )
-    return compose_internal_report(
+    document = compose_internal_report(
         analysis,
         meta,
-        map_sections=maps,
+        map_sections=chapters.maps,
         context_sections=literature_sections(bundle, research_run_id=deep_research_run_id),
+        question_tables=chapters.questions,
+        design=chapters.design,
+        method=chapters.method,
+    )
+    modules = [analysis.modules[m.module_id] for m in ANALYSIS_MODULES]
+    return _Composed(
+        document=document,
+        run=run,
+        sources={
+            "contract": CONTEXT_REPORT_CONTRACT,
+            "run_id": run_id,
+            "deep_research_run_id": deep_research_run_id,
+            "analysis": [m.artifact_sha256 for m in modules],
+            "sociomap": chapters.map_sha256,
+            "bundle": provenance.evidence_bundle_artifact_sha256,
+            "title": meta.title,
+            "subtitle": meta.subtitle,
+            "client": meta.client_name,
+            "study": meta.study_name,
+            "issued_on": meta.issued_on.isoformat(),
+        },
+        depends_on=(*(m.artifact_id for m in modules), chapters.map_artifact_id),
     )

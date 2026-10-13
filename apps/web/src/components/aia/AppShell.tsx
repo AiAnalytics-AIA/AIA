@@ -90,6 +90,56 @@ export function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
   );
 }
 
+/** Inside a study the global navigation is icons only: the study gets the width (research-lane-redesign). */
+function CompactSidebar({ path, client }: { path: string; client?: ShellClient }) {
+  const [expanded, setExpanded] = useState(false);
+  const session = useSession();
+  const email = session?.email ?? null;
+  return (
+    <div className="flex w-full shrink-0 flex-col bg-shell text-shell-ink lg:sticky lg:top-0 lg:h-screen lg:w-16">
+      <button type="button" aria-expanded={expanded} aria-controls="aia-main-navigation" onClick={() => setExpanded(!expanded)} className={`flex min-h-12 items-center justify-between px-4 text-sm font-semibold lg:hidden ${FOCUS}`}>
+        <span>AI Analytics · {client?.name ?? t("aia.workspaceLabel")}</span><span>{expanded ? "Zavřít menu" : "Menu"}</span>
+      </button>
+      <nav id="aia-main-navigation" aria-label={t("aia.mainNav")} className={`${expanded ? "flex" : "hidden lg:flex"} min-h-0 flex-1 flex-col gap-1 px-2.5 py-3.5 lg:items-center lg:px-0`}>
+        <Link href={appRoutes.home()} aria-label={t("aia.product")} title={t("aia.product")} className={`mb-2.5 inline-flex rounded-control no-underline ${FOCUS}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}
+          <img src="/skin/brand/aia-mark-on-graphite.svg" alt="" width={30} height={30} />
+        </Link>
+        {NAV.map((item) => {
+          const active = item.match(path);
+          const label = t(`aia.${item.key}`);
+          return (
+            <Link
+              key={item.key}
+              href={item.href}
+              aria-label={label}
+              title={label}
+              aria-current={active ? "page" : undefined}
+              className={`flex min-h-11 items-center gap-3 rounded-control px-2.5 text-sm no-underline lg:size-11 lg:justify-center lg:px-0 ${FOCUS} ${active ? "bg-shell-strong/12 text-shell-strong" : `${item.idle} hover:bg-shell-strong/8 hover:text-shell-strong`}`}
+            >
+              <Icon name={item.icon} size={18} />
+              <span className="lg:sr-only">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+      <div className={`${expanded ? "flex" : "hidden lg:flex"} flex-col items-center gap-2 px-2 pb-3.5`}>
+        <Link
+          href={appRoutes.settings()}
+          aria-label={`${t("aia.account")}${email ? ` · ${email}` : ""}`}
+          title={email ?? t("aia.account")}
+          className={`inline-flex size-8 items-center justify-center rounded-full bg-shell-avatar text-[11px] font-semibold text-shell-avatar-ink no-underline ${FOCUS}`}
+        >
+          {email ? initials(email.split("@")[0]!) : "?"}
+        </Link>
+        <button type="button" onClick={() => void signOut()} aria-label={t("aia.signOut")} title={t("aia.signOut")} className={`rounded-sm px-1 text-shell-muted hover:text-shell-strong ${FOCUS}`}>
+          <span aria-hidden="true">⎋</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Sidebar({ path, client }: { path: string; client?: ShellClient }) {
   const [expanded, setExpanded] = useState(false);
   const session = useSession();
@@ -178,7 +228,7 @@ export function AppShell({
   client,
   back,
   aside,
-  compact = false,
+  track,
   children,
 }: {
   crumbs?: Crumb[];
@@ -201,56 +251,82 @@ export function AppShell({
   /** The rail of the open study: its stages. Never global navigation. */
   aside?: ReactNode;
   /**
-   * A working surface (a study's stage): the header is one row -- where you are,
-   * the save state, the utility action -- and the title opens the work below it,
-   * so the first field is on screen without scrolling (desktop UX overhaul).
+   * The open study's stage track. Its presence puts the shell in study mode: icons-only
+   * global navigation, a one-row header, the title at the top of the page.
    */
-  compact?: boolean;
+  track?: ReactNode;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
   // The header's top edge: the client's accent inside a client, quiet on settings, the signal elsewhere.
   const accent = client ? clientAccent(client.id) : path.startsWith("/app/settings") ? "bg-ink-muted" : "bg-signal";
+  if (track) {
+    return (
+      <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
+        <a href="#aia-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:p-3 focus:text-ink">Přejít k obsahu</a>
+        <CompactSidebar path={path} client={client} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
+            <div aria-hidden="true" className={`h-[3px] ${accent}`} />
+            <div className="flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-1.5 lg:px-6">
+              {back ? (
+                <Link href={back.href} aria-label={back.label} title={back.label} className={`inline-flex size-8 shrink-0 items-center justify-center rounded-control text-ink-muted no-underline hover:bg-surface-sunken hover:text-ink ${FOCUS}`}>
+                  <Icon name="back" size={16} />
+                </Link>
+              ) : null}
+              {client ? (
+                <span aria-hidden="true" className={`inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[11px] font-semibold text-shell-strong ${clientAccent(client.id)}`}>
+                  {initials(client.name)}
+                </span>
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <Breadcrumbs crumbs={crumbs} />
+              </div>
+              {status}
+              {action}
+            </div>
+            {track}
+          </header>
+          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-10 pt-5 lg:px-6">
+            <div className="mb-4 min-w-0">
+              {eyebrow ? <div className="mb-1 font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-ink-faint">{eyebrow}</div> : null}
+              <h1 className="text-[22px] font-semibold leading-7 tracking-[-0.01em]">{title}</h1>
+              {sub ? <p className="mt-0.5 max-w-4xl text-sm leading-6 text-ink-muted">{sub}</p> : null}
+            </div>
+            {children}
+          </main>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
       <a href="#aia-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:p-3 focus:text-ink">Přejít k obsahu</a>
       <Sidebar path={path} client={client} />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {compact ? (
-          <header data-compact-header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
-            <div aria-hidden="true" className={`-mx-4 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
-            <div className="flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-1 py-1.5">
-              <div className="min-w-0 flex-1"><Breadcrumbs crumbs={crumbs} /></div>
-              <div className="flex flex-wrap items-center gap-3">
-                {status}
-                {action}
-              </div>
-            </div>
-          </header>
-        ) : (
         <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
-          <div aria-hidden="true" className={`-mx-4 mb-2 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
+          <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (
               <Link
                 href={back.href}
-                className={`mb-1.5 inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-control border border-border bg-surface pl-1.5 pr-2.5 text-[13px] font-medium leading-[18px] text-ink no-underline hover:border-border-strong hover:bg-surface-sunken ${FOCUS}`}
+                className={`mb-2.5 inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-control border border-border bg-surface pl-1.5 pr-2.5 text-[13px] font-medium leading-[18px] text-ink no-underline hover:border-border-strong hover:bg-surface-sunken ${FOCUS}`}
               >
                 <Icon name="back" size={14} />
                 {back.label}
               </Link>
             ) : null}
             <Breadcrumbs crumbs={crumbs} />
-            <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-3 pb-3 pt-1.5`}>
+            <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-4 pb-5 pt-2`}>
               <div className="min-w-0 max-w-3xl">
                 {eyebrow ? (
-                  <div className="mb-1 inline-flex items-center gap-2.5 whitespace-nowrap rounded-pill bg-signal-wash px-2.5 py-[2px] font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-signal">
+                  <div className="mb-2 inline-flex items-center gap-2.5 whitespace-nowrap rounded-pill bg-signal-wash px-2.5 py-[3px] font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-signal">
                     {eyebrow}
                   </div>
                 ) : null}
-                <h1 className="text-[24px] font-semibold leading-8 tracking-[-0.02em]">{title}</h1>
-                {sub ? <p className="text-sm leading-5 text-ink-muted">{sub}</p> : null}
+                <h1 className="text-[28px] font-semibold leading-9 tracking-[-0.02em]">{title}</h1>
+                {sub ? <p className="mt-1 text-sm leading-6 text-ink-muted">{sub}</p> : null}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {status}
@@ -290,21 +366,12 @@ export function AppShell({
             ) : null}
           </div>
         </header>
-        )}
         <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           {aside ? (
             <aside className="shrink-0 border-b border-border bg-surface-raised xl:w-56 xl:border-b-0 xl:border-r">{aside}</aside>
           ) : null}
-          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-8 pt-4 lg:px-6 xl:px-8">
-            <div className="mx-auto max-w-[88rem]">
-              {compact ? (
-                <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                  <h1 className="text-xl font-semibold leading-7 tracking-[-0.01em]">{title}</h1>
-                  {sub ? <p className="text-sm leading-5 text-ink-muted">{sub}</p> : null}
-                </div>
-              ) : null}
-              {children}
-            </div>
+          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 lg:px-6 xl:px-8">
+            <div className="mx-auto max-w-[88rem]">{children}</div>
           </main>
         </div>
       </div>
