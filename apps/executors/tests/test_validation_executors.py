@@ -1,8 +1,8 @@
-"""A confirmation run's sample and arms under the real worker (panel-grounded-respondents 7e4).
+"""A confirmation run under the real worker (panel-grounded-respondents 7e4): sample, arms, score.
 
 Over the fictional grounded population and a scripted caller in place of the gateway: nothing
-leaves the process. The run is started from a stored preregistration, as the service starts it;
-the score step has no executor yet (7e4b), so the run stops after its arms.
+leaves the process. The run is started from a stored preregistration, as the service starts it.
+The items are fields of that population, so the score step reads the sampled people's own answers.
 """
 
 from __future__ import annotations
@@ -22,7 +22,12 @@ from aia_core.domain.holdout.preregistration import (
     THRESHOLDS,
     Preregistration,
 )
-from aia_core.domain.holdout.run import ARM_ARTIFACT, SAMPLE_ARTIFACT, arm_node_key
+from aia_core.domain.holdout.run import (
+    ARM_ARTIFACT,
+    SAMPLE_ARTIFACT,
+    SCORE_ARTIFACT,
+    arm_node_key,
+)
 from aia_core.domain.holdout.scoring import SCORING_VERSION
 from aia_core.domain.panel_source import pinned_components
 from aia_core.domain.providers import Provider
@@ -41,13 +46,15 @@ from sqlalchemy.orm import Session, sessionmaker
 N = 200
 MODEL, ROUTE = "model-x", "route-x"
 BINDING = f"{Provider.AWS_BEDROCK.value}/{MODEL}/{ROUTE}"
-OPTIONS = (Option("1", "Rozhodně ano"), Option("2", "Spíše ano"), Option("3", "Ne"))
+# The items are fields of the grounded population, so the score reads real truths: each holds
+# 0 or 1; the third option is one nobody stored.
+OPTIONS = (Option("1", "Rozhodně ano"), Option("0", "Spíše ne"), Option("9", "Nevím"))
 WORDING = {
-    "c1": "Do jaké míry souhlasíte: rodina je základ společnosti?",
-    "c2": "Jak často se vídáte se svými sourozenci?",
-    "c3": "Jak jste spokojen se svou prací?",
+    "is_parent": "Do jaké míry souhlasíte: rodina je základ společnosti?",
+    "has_partner": "Jak často se vídáte se svými sourozenci?",
+    "is_student": "Jak jste spokojen se svou prací?",
 }
-BLOCKS = [["c1", "c2"], ["c3"]]
+BLOCKS = [["is_parent", "has_partner"], ["is_student"]]
 
 
 def _bank() -> ItemBank:
@@ -56,14 +63,14 @@ def _bank() -> ItemBank:
             HoldoutItem(
                 field=field,
                 survey="ISSP_2022_CZ",
-                domain="family" if field != "c3" else "work",
+                domain="family" if field != "is_student" else "work",
                 wording=WORDING[field],
                 options=OPTIONS,
                 measured_ages=None,
                 ordinal=True,
                 source=SourceDocument("https://example.org/q.pdf", "d" * 64, "3", field),
             )
-            for field in ("c1", "c2", "c3")
+            for field in ("is_parent", "has_partner", "is_student")
         ),
         sha256="b" * 64,
     )
@@ -81,18 +88,28 @@ def _preregistration(live_version: str, *, binding: str = BINDING) -> Preregistr
                 "development_share": 0.4,
                 "near_duplicate": 0.7,
                 "development": ["d1"],
-                "confirmation": ["c1", "c2", "c3"],
+                "confirmation": ["is_parent", "has_partner", "is_student"],
                 "duplicates": [],
             },
             "blocks": [
                 {
-                    "items": ["c1", "c2"],
+                    "items": ["is_parent", "has_partner"],
                     "excluded": [
-                        {"field": "c1", "item": "c1", "reason": "ITEM", "association": None},
-                        {"field": "c2", "item": "c2", "reason": "ITEM", "association": None},
+                        {
+                            "field": "is_parent",
+                            "item": "is_parent",
+                            "reason": "ITEM",
+                            "association": None,
+                        },
+                        {
+                            "field": "has_partner",
+                            "item": "has_partner",
+                            "reason": "ITEM",
+                            "association": None,
+                        },
                         {
                             "field": "vzdelani",
-                            "item": "c1",
+                            "item": "is_parent",
                             "reason": "ASSOCIATED",
                             "association": 0.4,
                         },
@@ -100,9 +117,14 @@ def _preregistration(live_version: str, *, binding: str = BINDING) -> Preregistr
                     "signals": [],
                 },
                 {
-                    "items": ["c3"],
+                    "items": ["is_student"],
                     "excluded": [
-                        {"field": "c3", "item": "c3", "reason": "ITEM", "association": None}
+                        {
+                            "field": "is_student",
+                            "item": "is_student",
+                            "reason": "ITEM",
+                            "association": None,
+                        }
                     ],
                     "signals": [],
                 },
@@ -263,9 +285,8 @@ def test_the_sample_is_drawn_once_and_every_arm_answers_the_same_people_through_
 ) -> None:
     run_id = _start(world, grounded, _preregistration(_live_version(world, grounded)))
     caller = _Caller()
-    assert _drain(worker_with(_fieldwork(caller, grounded))) == ["completed"] * 16
+    assert _drain(worker_with(_fieldwork(caller, grounded))) == ["completed"] * 17
     steps = _steps(world, run_id)
-    assert steps["score"]["status"] is not StepRunStatus.SUCCEEDED  # its executor is 7e4b's
     sample = steps["sample"]["output"]
     assert sample["respondents"] == N
     # One request per respondent per preregistered block per arm replicate: two blocks, even
@@ -286,17 +307,43 @@ def test_the_sample_is_drawn_once_and_every_arm_answers_the_same_people_through_
         assert record["sample_sha256"] == sample["sample_sha256"]
         assert record["model_binding"] == BINDING
         assert record["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
-        assert set(record["answers"]) == {"c1", "c2", "c3"}
+        assert set(record["answers"]) == {"is_parent", "has_partner", "is_student"}
         # Every answer is a code, drawn from the probabilities stored beside it.
-        for item in ("c1", "c2", "c3"):
-            assert set(record["answers"][item].values()) <= {"1", "2", "3"}
+        for item in ("is_parent", "has_partner", "is_student"):
+            assert set(record["answers"][item].values()) <= {"1", "0", "9"}
             assert all(len(p) == 3 for p in record["probabilities"][item].values())
-        respondents = set(record["answers"]["c1"])
+        respondents = set(record["answers"]["is_parent"])
         assert len(respondents) == N
         people = respondents if people is None else people
         assert respondents == people  # every arm, the same sampled people
     # Each replicate draws under its own seed.
     assert records[("D", 1)]["answers"] != records[("D", 2)]["answers"]
+
+    # The score: the sampled people's own answers against every arm, by the preregistered rules.
+    score = steps["score"]["output"]
+    assert score["verdict"] in {"PASS", "FAIL"}
+    assert score["requests"] == len(caller.requests)
+    assert score["total_cost_usd"] == pytest.approx(0.001 * len(caller.requests))
+    with world.sessions() as session:
+        artifacts = validation_artifacts(session, world.lead_scope(session), store)
+        verdict = artifacts.read_json(score["artifact_id"])
+    assert verdict["kind"] == SCORE_ARTIFACT
+    assert verdict["sample_sha256"] == sample["sample_sha256"]
+    assert verdict["verdict"]["verdict"] == score["verdict"]
+    names = [c["name"] for c in verdict["verdict"]["criteria"]]
+    assert names[0].startswith("P1") and names[-1].startswith("P8")
+    assert set(verdict["verdict"]["arms"]) == set(MODEL_ARMS)
+    assert set(verdict["baselines"]) == {"L0", "L1"}
+    assert {m["item"] for m in verdict["baselines"]["L0"]} == {
+        "is_parent",
+        "has_partner",
+        "is_student",
+    }
+    # Every sampled person holds a real 0/1 answer to each of these fields.
+    assert verdict["scored"] == {"is_parent": N, "has_partner": N, "is_student": N}
+    # A model that always leans to the first option has learnt nothing about the people: the
+    # production persona cannot beat no persona, so the verdict must not pass.
+    assert score["verdict"] == "FAIL"
 
 
 def test_an_arm_from_another_model_binding_fails_before_any_request(

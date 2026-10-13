@@ -41,7 +41,7 @@ chunks:
   - "[x] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
   - "[x] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
   - "[x] 7e4a. The sample and arm executors: the sample drawn once, each arm's replicate over the preregistered blocks through answer_plans, the binding checked at the preflight; the layer rule on arms"
-  - "[ ] 7e4b. The score executor: truths from the population, L0 and L1, the P1-P8 verdict artifact with the run's ledger totals"
+  - "[x] 7e4b. The score executor: truths from the population, L0 and L1, the P1-P8 verdict artifact with the run's ledger totals"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
   - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
@@ -1911,6 +1911,41 @@ Tests:
   sample's identity.
 - `test_holdout_bank.py`: the payload round-trip and repeated labels.
 - `test_ai_fieldwork_answer_plans.py`: the draw records and the binding check.
+
+**7e4b landed. A confirmation run now runs end to end:** sample, the 15 arm replicates, then
+`holdout_score` (`aia_executors/validation.py`).
+
+- **The score step checks its inputs first.**
+  - It refuses a preregistration that does not hash to the one the run was started from
+    (`holdout_preregistration_altered`).
+  - It draws the sample once more and refuses one that moved (`holdout_sample_moved`), as it
+    does an arm record of another sample.
+- **The truths** (`run.scoring_inputs`) are the sampled people's own answers, read from the
+  run's population:
+  - only on the rows the item is scored on: a core item in the ages its survey asked;
+  - only where an answer is stored. A missing answer is not scored as any answer;
+  - a stored value that is not an option is refused (`holdout_truth_not_an_option`), never
+    coerced; an item the population lacks is refused (`holdout_item_not_in_population`);
+  - a core item's answer is the person's own (Brier applies); a matched block's is its donor's.
+  - Each respondent's subgroup cell is sex x age band, none when either is unknown.
+- **The verdict** is `scoring.verdict` over every arm's stored records, with the preregistered
+  bootstrap seed and resamples. The code baselines L0 and L1 are computed beside it and never
+  decide it.
+- **The artifact (`holdout_verdict`)** holds:
+  - the verdict document;
+  - the baselines' per-item metrics;
+  - how many people each item scored;
+  - the preregistration's and the sample's hashes, and the respondent system's fingerprint;
+  - the run's ledger totals (requests and cost, from the arm records).
+
+  Recording it as the system's validation is 7f; nothing here lifts anything.
+
+Tests:
+- `test_validation_executors.py`: the full run under the real worker, with items that are fields
+  of the grounded population. All 17 steps complete. Every arm answers alike, so D cannot beat A,
+  and the verdict is FAIL, as it must be.
+- `test_holdout_run.py`: `test_each_person_is_scored_on_their_own_answer_where_it_is_real` and
+  the refusals.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
