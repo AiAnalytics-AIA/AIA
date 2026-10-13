@@ -744,3 +744,71 @@ def test_filing_never_crosses_clients_and_is_all_or_nothing(
     # Shape is checked before anything is read.
     assert researcher.put(f"{mine}/placement", json={"item_ids": []}).status_code == 422
     assert researcher.put(f"{mine}/placement", json={"item_ids": ["nope"]}).status_code == 422
+
+
+# --------------------------------------------------------------------------- #
+# The client's profile and contacts (client-workspace C5)
+# --------------------------------------------------------------------------- #
+
+
+def test_a_member_fills_in_the_clients_profile_and_its_history_says_what_changed(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    url = f"{API}/clients/{world.client_id()}/profile"
+    empty = researcher.get(url).json()
+    assert {k: empty[k] for k in ("short_code", "industry", "market", "description")} == {
+        "short_code": "",
+        "industry": "",
+        "market": "",
+        "description": "",
+    }
+    assert empty["contacts"] == [] and empty["history"] == []
+    saved = researcher.put(
+        url, json={"short_code": " AC ", "industry": "Automotive", "market": "Česko"}
+    )
+    assert saved.status_code == 200, saved.text
+    body = saved.json()
+    assert (body["short_code"], body["industry"], body["description"]) == ("AC", "Automotive", "")
+    assert body["history"][0]["action"] == "CLIENT_PROFILE_CHANGED"
+    assert set(body["history"][0]["fields"]) == {"short_code", "industry", "market"}
+    too_long = researcher.put(url, json={"short_code": "x" * 30})
+    assert too_long.status_code == 422 and too_long.json()["code"] == "invalid_profile"
+    # Another client's profile is its own.
+    theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/profile").json()
+    assert theirs["industry"] == ""
+
+
+def test_contacts_are_kept_per_client_and_checked(researcher: TestClient, world: Any) -> None:
+    base = f"{API}/clients/{world.client_id()}/contacts"
+    added = researcher.post(
+        base, json={"name": "Jana Nová", "email": "jana@klient.cz", "receives_reports": True}
+    )
+    assert added.status_code == 201, added.text
+    contact = added.json()
+    assert researcher.post(base, json={"name": "x", "email": "nope"}).status_code == 422
+    changed = researcher.put(
+        f"{base}/{contact['contact_id']}", json={"name": "Jana Nová", "role": "Insights"}
+    ).json()
+    assert (changed["role"], changed["email"], changed["receives_reports"]) == (
+        "Insights",
+        "",
+        False,
+    )
+    other = f"{API}/clients/{world.client_id('other')}/contacts/{contact['contact_id']}"
+    assert researcher.delete(other).status_code == 404
+    profile = researcher.get(f"{API}/clients/{world.client_id()}/profile").json()
+    assert [c["name"] for c in profile["contacts"]] == ["Jana Nová"]
+    assert "jana@klient.cz" not in str(profile["history"])
+    assert researcher.delete(f"{base}/{contact['contact_id']}").status_code == 204
+    assert researcher.get(f"{API}/clients/{world.client_id()}/profile").json()["contacts"] == []
+
+
+def test_the_client_says_whether_a_proposer_may_accept_their_own_proposal(
+    owner: TestClient, researcher: TestClient, world: Any
+) -> None:
+    url = f"{API}/clients/{world.client_id()}"
+    before = researcher.get(url).json()
+    assert before["self_approval_allowed"] is True and before["self_approval_source"] == "default"
+    owner.put(f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()})
+    after = researcher.get(url).json()
+    assert after["self_approval_allowed"] is False and after["self_approval_source"] == "client"

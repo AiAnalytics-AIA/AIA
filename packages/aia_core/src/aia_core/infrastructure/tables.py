@@ -475,6 +475,15 @@ class ClientRow(Base):
     reference: Mapped[str] = mapped_column(String(128), nullable=False, default="")
     # Overrides the organization setting; NULL inherits it.
     allow_self_approval: Mapped[bool | None] = mapped_column(Boolean)
+    # The profile (client-workspace C5). Empty is "not filled in".
+    short_code: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="", server_default=""
+    )
+    industry: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="", server_default=""
+    )
+    market: Mapped[str] = mapped_column(String(120), nullable=False, default="", server_default="")
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
@@ -837,6 +846,29 @@ class ClientKnowledgeItemRow(Base):
         CheckConstraint("status in ('ACTIVE','RETIRED')", name="knowledge_item_status_known"),
         CheckConstraint("current_revision >= 1", name="knowledge_item_revision_positive"),
         Index("ix_client_knowledge_items_client", "client_id", "kind", "status"),
+    )
+
+
+class ClientContactRow(Base):
+    """A person at a client (client-workspace C5): on the client record, read by no model."""
+
+    __tablename__ = "client_contacts"
+
+    contact_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    role: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    email: Mapped[str] = mapped_column(String(254), nullable=False, default="")
+    receives_reports: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        Index("ix_client_contacts_client", "client_id"),
     )
 
 

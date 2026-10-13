@@ -179,17 +179,34 @@ forbid "the worker never builds an unscoped repository" \
 # decision 7). A table used anywhere else is a query that could forget the
 # client: an unscoped pool filtered afterwards, which the ADR forbids.
 forbid "client knowledge tables are touched only by their repository" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$CORE" \
   tables.py client_knowledge_repository.py
 forbid "the API never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$API"
 forbid "the worker never touches the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
   "$WORKER"
 forbid "executors never touch the client knowledge tables" \
-  'ClientKnowledge(Item|Revision|Proposal)Row' \
+  'ClientKnowledge(Item|Revision|Proposal|Folder|Label|ItemFolder|ItemLabel)Row' \
+  "$EXECUTORS"
+
+# A client's contacts are personal data on the client record (client-workspace C5). They
+# are read and written only by their repository, under an issued ClientContext; nothing
+# that builds a study context or a model request may reach them.
+forbid "client contacts are touched only by their repository" \
+  'ClientContactRow' \
+  "$CORE" \
+  tables.py client_profile_repository.py
+forbid "the API never touches the client contacts table" \
+  'ClientContactRow' \
+  "$API"
+forbid "the worker never touches the client contacts table" \
+  'ClientContactRow' \
+  "$WORKER"
+forbid "executors never touch the client contacts table" \
+  'ClientContactRow' \
   "$EXECUTORS"
 
 # System prompts are data an administrator edits (ADR 0020). Their rows are written and

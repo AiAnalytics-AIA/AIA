@@ -226,6 +226,8 @@ class ClientPermission(StrEnum):
     PROPOSE_CLIENT_KNOWLEDGE = "PROPOSE_CLIENT_KNOWLEDGE"
     APPROVE_CLIENT_KNOWLEDGE = "APPROVE_CLIENT_KNOWLEDGE"
     CREATE_STUDY = "CREATE_STUDY"
+    #: The client's profile and contacts (client-workspace C5); its name and status are not.
+    EDIT_CLIENT_PROFILE = "EDIT_CLIENT_PROFILE"
 
 
 # Client role -> client permissions. A Researcher holds all of them (ADR 0019).
@@ -539,6 +541,11 @@ class Client(BaseModel):
     # inherits; an explicit False overrides an organization that allows it,
     # because a client's contract may require independent review regardless.
     allow_self_approval: bool | None = None
+    # The profile (client-workspace C5): empty means not filled in.
+    short_code: str = ""
+    industry: str = ""
+    market: str = ""
+    description: str = ""
     created_at: datetime | None = None
     modified_at: datetime | None = None
 

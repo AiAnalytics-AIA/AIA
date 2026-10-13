@@ -27,6 +27,7 @@ from aia_core.application.project_memory import (
     search_client_studies,
 )
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
@@ -62,6 +63,7 @@ from aia_core.infrastructure.client_knowledge_repository import (
     KEEP_FOLDER,
     ClientKnowledgeRepository,
 )
+from aia_core.infrastructure.client_profile_repository import ClientProfileRepository
 from aia_core.infrastructure.questionnaire_file import (
     TEMPLATE_FILENAME,
     import_questionnaire,
@@ -74,7 +76,7 @@ from aia_core.infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -212,6 +214,10 @@ class ClientWorkspace(BaseModel):
     your_role: str | None
     permissions: list[str]
     counts: ClientCounts | None = None
+    #: Whether a proposer may accept their own knowledge proposal here, and which level
+    #: decided it (default, organization, client). Set from Settings or the profile.
+    self_approval_allowed: bool | None = None
+    self_approval_source: str | None = None
 
 
 class OutputItem(BaseModel):
@@ -629,6 +635,8 @@ def _workspace(scope: ClientContext, repo: Any) -> ClientWorkspace:
         status=client.status.value,
         your_role=scope.client_role.value if scope.client_role else None,
         permissions=sorted(p.value for p in scope.permissions),
+        self_approval_allowed=scope.self_approval.allowed,
+        self_approval_source=scope.self_approval.source.value,
     )
 
 
@@ -1070,6 +1078,218 @@ def client_overview(
         pending=pending,
         recent_changes=changes,
     )
+
+
+# --------------------------------------------------------------------------- #
+# The client's profile and contacts (client-workspace C5)
+# --------------------------------------------------------------------------- #
+
+
+class ClientProfileWrite(BaseModel):
+    """The whole profile, as the form sends it; an empty field is not filled in."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    short_code: str = Field(default="", max_length=64)
+    industry: str = Field(default="", max_length=400)
+    market: str = Field(default="", max_length=400)
+    description: str = Field(default="", max_length=8000)
+
+
+class ContactWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=400)
+    role: str = Field(default="", max_length=400)
+    email: str = Field(default="", max_length=400)
+    receives_reports: bool = False
+
+
+class ContactResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contact_id: str
+    name: str
+    role: str
+    email: str
+    receives_reports: bool
+
+
+class ProfileChangeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: str
+    at: datetime | None
+    fields: list[str]
+    contact_name: str | None
+
+
+class ClientProfileResponse(BaseModel):
+    """The client's profile, its contacts and what changed in them, newest first."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    short_code: str
+    industry: str
+    market: str
+    description: str
+    contacts: list[ContactResponse]
+    history: list[ProfileChangeResponse]
+
+
+ContactIdPath = Annotated[str, Path(max_length=64, pattern=r"^CON-[0-9a-f]{1,32}$")]
+
+
+def _contact_out(c: ClientContact) -> ContactResponse:
+    return ContactResponse(
+        contact_id=c.contact_id,
+        name=c.name,
+        role=c.role,
+        email=c.email,
+        receives_reports=c.receives_reports,
+    )
+
+
+def _profile_out(scope: ClientContext, repo: ClientProfileRepository) -> ClientProfileResponse:
+    p = repo.profile(scope)
+    return ClientProfileResponse(
+        short_code=p.short_code,
+        industry=p.industry,
+        market=p.market,
+        description=p.description,
+        contacts=[_contact_out(c) for c in repo.contacts(scope)],
+        history=[
+            ProfileChangeResponse(
+                action=h.action, at=h.at, fields=list(h.fields), contact_name=h.contact_name
+            )
+            for h in repo.history(scope)
+        ],
+    )
+
+
+def _profile_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, ScopeDenied):
+        if exc.reason in {"unknown_contact", "unknown_client"}:
+            return _not_found()
+        return _forbidden(
+            exc.reason, "Your role for this client does not permit editing its profile."
+        )
+    return HTTPException(status_code=422, detail={"code": "invalid_profile", "message": str(exc)})
+
+
+def _validated(model: Any, data: dict[str, Any]) -> Any:
+    try:
+        return model(**data)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_profile",
+                "message": "; ".join(e["msg"] for e in exc.errors()),
+            },
+        ) from exc
+
+
+@router.get(
+    "/clients/{client_id}/profile",
+    response_model=ClientProfileResponse,
+    summary="The client's profile and contacts",
+)
+def client_profile(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> ClientProfileResponse:
+    """Any member who may open the client reads it. No model ever reads it."""
+    scope = _client_scope(principal, resolver, client_id)
+    return _profile_out(scope, ClientProfileRepository(session))
+
+
+@router.put(
+    "/clients/{client_id}/profile",
+    response_model=ClientProfileResponse,
+    summary="Replace the client's profile",
+)
+def update_client_profile(
+    client_id: ClientIdPath,
+    body: ClientProfileWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ClientProfileResponse:
+    """The whole profile at once; only a real change enters the history."""
+    scope = _client_scope(principal, resolver, client_id)
+    repo = ClientProfileRepository(session)
+    profile = _validated(ClientProfile, body.model_dump())
+    try:
+        repo.update_profile(scope, profile)
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+    return _profile_out(scope, repo)
+
+
+@router.post(
+    "/clients/{client_id}/contacts",
+    response_model=ContactResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a contact at the client",
+)
+def add_client_contact(
+    client_id: ClientIdPath,
+    body: ContactWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ContactResponse:
+    scope = _client_scope(principal, resolver, client_id)
+    draft = _validated(ContactDraft, body.model_dump())
+    try:
+        return _contact_out(ClientProfileRepository(session).add_contact(scope, draft))
+    except (ScopeDenied, ValueError) as exc:
+        raise _profile_error(exc) from exc
+
+
+@router.put(
+    "/clients/{client_id}/contacts/{contact_id}",
+    response_model=ContactResponse,
+    summary="Change a contact",
+)
+def update_client_contact(
+    client_id: ClientIdPath,
+    contact_id: ContactIdPath,
+    body: ContactWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ContactResponse:
+    scope = _client_scope(principal, resolver, client_id)
+    draft = _validated(ContactDraft, body.model_dump())
+    try:
+        return _contact_out(
+            ClientProfileRepository(session).update_contact(
+                scope, contact_id=contact_id, draft=draft
+            )
+        )
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+
+
+@router.delete(
+    "/clients/{client_id}/contacts/{contact_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a contact",
+)
+def remove_client_contact(
+    client_id: ClientIdPath,
+    contact_id: ContactIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _client_scope(principal, resolver, client_id)
+    try:
+        ClientProfileRepository(session).remove_contact(scope, contact_id=contact_id)
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --------------------------------------------------------------------------- #
