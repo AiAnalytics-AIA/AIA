@@ -56,14 +56,14 @@ describe("the Metodika tab", () => {
     fakeApi();
     render(<MethodologyPanel />);
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
-    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual([
-      "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)",
-      "Sociomapping: experimentální H-Model (kandidát AIA)",
-      "Podpora a potlačení: kdy se číslo smí ukázat",
-      "Agregace: z odpovědí odhad s intervalem",
-      "Vážení: která váha patří respondentovi a co s neplatnou",
-      "Odpověď respondenta: od pravděpodobností modelu k odpovědi",
+    expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
+      "Agregace: z odpovědí odhad s intervalem", "Podpora a potlačení: kdy se číslo smí ukázat",
+      "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
     ]);
+    expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();
+    expect(within(nav).getByRole("group", { name: "Čísla ve výsledcích" })).toBeTruthy();
+    expect(within(nav).getByRole("group", { name: "Respondenti a váhy" })).toBeTruthy();
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 4)).toEqual(["Metoda", "F1 Které položky jsou hodnocení", "F2 Hodnoticí zvyklosti", "F3 Vztah dvou objektů a jeho spolehlivost"]);

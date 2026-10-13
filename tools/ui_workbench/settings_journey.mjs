@@ -112,6 +112,7 @@ try {
   await (await chooseField("relation.n_min")).fill("34"); assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
   await methodForm.getByLabel("Vycházet z metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
+  await page.getByRole("button", { name: "Změnit oblast", exact: true }).click();
   await page.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   await widths("methodology editor"); await screenshot("methodology-editor");
   await methodForm.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();

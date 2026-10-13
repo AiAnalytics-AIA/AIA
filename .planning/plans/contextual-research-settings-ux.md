@@ -3,8 +3,8 @@ status: in-progress
 chunks:
   - "[x] 1. Obtain and inspect Research variants and reusable exports from Claude Design"
   - "[x] 2. Implement contextual Research assistance with preserved drafts and truthful job states"
-  - "[ ] 3. Obtain and implement Settings variants, prioritizing methodology parent/variable hierarchy"
-  - "[ ] 4. Verify both lanes with real local APIs, responsive/keyboard checks and measured interaction latency"
+  - "[x] 3. Obtain and implement Settings variants, prioritizing methodology parent/variable hierarchy"
+  - "[x] 4. Verify both lanes with real local APIs, responsive/keyboard checks and measured interaction latency"
   - "[ ] 5. Pass release checks, deploy, verify live behavior and reconcile shared documentation"
 ---
 # Contextual Research assistance and understandable Settings
@@ -99,3 +99,23 @@ actual API response. The earlier 404.5ms miss was addressed by starting the
 content read immediately after study scope checks. A viewport listener race in
 the acceptance script was repaired by waiting for the desktop panel before
 arming its timing observer, without changing the 400ms threshold.
+
+Settings implementation: all eight tabs now explain their purpose, scope and
+owner, with a grouped responsive navigation. Methodology uses the actual API
+catalogue to group modules, shows the currently active version and values,
+and guides editing through one calculation block at a time with readable
+formulas. It retains the real validation, comparison, immutable save,
+reasoned activation, draft protection and read-only rules. The audit view
+filters actual events by person, event and reason.
+
+Settings browser acceptance passed on the final production build: seven
+workflow checks, 52 layouts at desktop/tablet/phone widths, 15 local API
+writes, zero page errors and zero paid jobs. The strict timing suite also
+passed all eight tabs, module selection, 44px controls, focus and mobile
+editing, dark/reduced-motion views and delayed server-check feedback.
+`tmp/ui-workbench/contextual-settings/checks.json` and
+`tmp/ui-workbench/contextual-settings-timing/checks.json` record 362.4ms
+fresh document-to-content without browser cache, 84.3ms first methodology
+tab, 48ms module opening, 31.3ms next block and 32.9ms pending feedback.
+One earlier cold run was 410.5ms and remains a performance-variance concern;
+repeat monitoring should use separate cold and warm measurements.
