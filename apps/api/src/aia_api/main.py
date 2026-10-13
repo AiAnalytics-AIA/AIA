@@ -22,6 +22,7 @@ from .observability import (
     install_exception_handlers,
 )
 from .routers import (
+    client_sources,
     deep_research,
     deep_research_settings,
     health,
@@ -132,6 +133,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(runs.router, prefix=API_PREFIX)
     app.include_router(session.router, prefix=API_PREFIX)
     app.include_router(workspace.router, prefix=API_PREFIX)
+    app.include_router(client_sources.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)
     app.include_router(deep_research_settings.router, prefix=API_PREFIX)

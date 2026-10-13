@@ -4,7 +4,7 @@ chunks:
   - "[x] K0. Audit current client knowledge intake, payloads, decisions and consumers at 67af44e"
   - "[x] K1. Draft the client knowledge structure, intake and acceptance contracts for review"
   - "[ ] K2. Deliver document, dataset and web intake through one source-to-reviewed-knowledge journey"
-  - "[ ] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
+  - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
   - "[ ] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[ ] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
   - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
@@ -275,15 +275,50 @@ generic historical records without inventing source spans or validated dimension
     counted, never shown.
 
 **Slices.** Each is one PR-sized change with its tests.
-- **K2a. The client source store.**
-  - Tables: sources (client, sha256, media type, size, reading outcome) and occurrences
-    (source, filename, added by, added at, folder and labels suggested).
-  - Its migration; `ClientSourceRepository`; the client-prefixed key.
-  - Routes: `POST /clients/{id}/sources` (25 MiB, base64 JSON like the brief), the list, one
-    source with its reading, and the original served as `application/octet-stream`.
-  - Readers with locators: PDF (`read_pdf`, per page), DOCX (paragraphs and tables), TXT and MD.
-  - Tests: dedupe, wrong client 404, bounds, partial PDF, image `UNREADABLE`, unknown suffix
-    `UNSUPPORTED`, and `for_study` reads no source.
+- **K2a. The client source store.** *(Landed.)*
+  - **Domain**, `domain/client_sources.py`:
+    - `SourceFamily` by suffix, with the owner's list exactly; anything else is `UNKNOWN`
+      and refused at upload;
+    - `Locator`, which must place something; `Segment`;
+    - `ReadingNote`, a code the page puts into words;
+    - `SourceReading`, which refuses a complete reading that explains anything, an
+      incomplete one without a reason, and segments on an unread outcome;
+    - `reading_of_segments`: empty parts dropped, 250,000 characters kept, a scan named
+      `no_text`;
+    - `display_name`.
+  - **Reader**, `infrastructure/source_reading.py`:
+    - PDF through `document_text.read_pdf`: pages and its tables by row;
+    - DOCX in body order: paragraphs numbered as a reader counts them, empty ones included,
+      and tables by row;
+    - TXT and MD by paragraph, at their first line;
+    - an image or video `UNREADABLE`; DOC, ODT, PPTX and every dataset `UNSUPPORTED` /
+      `reader_pending` until K2b and K2c.
+    - `document_text.check_zip_bounds` (formerly `_zip_within_web_bounds`, now with the
+      file's kind) runs before an Office ZIP is inflated.
+  - **Storage:**
+    - `client_sources` and `client_source_occurrences`, migration `b3d5f7a9c1e2`. Checked on
+      PostgreSQL 16: upgrade, `alembic check`, downgrade, re-upgrade.
+    - `ClientSourceRepository` is their only reader and writer (layer_check, four rules).
+    - Bytes and reading go under `org/<org>/client/<client>/sources/<sha256>/`, read back
+      against the kept hash.
+    - The unique (client, sha256) constraint settles two requests racing with the same
+      bytes: one source.
+  - **Routes** (`routers/client_sources.py`):
+    - `POST /clients/{id}/sources`: 201 when new, 200 with `created: false` for another
+      occurrence;
+    - `GET` the list, one source with its reading, and `…/original` as an
+      `application/octet-stream` attachment with an RFC 5987 name.
+  - **A name is kept as written.** The brief's `safe_filename` (18.6.6's rule) reduced
+    "Zadání.pdf" to "Zad_n_.pdf". A source's name is only displayed, since its key is the
+    hash, so `display_name` keeps accents and removes only the path and control characters.
+  - **Tests:**
+    - `test_client_sources.py`, 22 tests, on SQLite and PostgreSQL. Among them:
+      `test_a_source_is_kept_once_by_its_bytes_with_every_occurrence`,
+      `test_a_source_is_found_only_within_its_client`,
+      `test_a_reading_altered_in_storage_is_refused`,
+      `test_the_same_bytes_kept_by_another_request_first_is_one_source`,
+      `test_a_source_is_not_knowledge_and_no_study_reads_it`;
+    - `apps/api/tests/test_client_sources_api.py`, 5 tests.
 - **K2b. PPTX, ODT, DOC.**
   - PPTX and ODT are read from their ZIP parts with the stdlib, under the existing ZIP bounds.
   - DOC needs a new dependency: `olefile` (BSD, pure Python) for the compound file, then the
