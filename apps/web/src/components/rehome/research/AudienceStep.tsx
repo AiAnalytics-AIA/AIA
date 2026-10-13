@@ -68,6 +68,7 @@ import { Icon } from "../icons";
 import { ActionDock, RadioCard, StepSection } from "../step";
 import { AiButton, Button, Chip, Field, Tag, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
+import { InspectorSlot } from "./Inspector";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 
 const NOT_IN_AIA = "rounded-control border border-status-you-ink/40 bg-status-you-wash p-4";
@@ -134,10 +135,12 @@ export function AudienceStep() {
   const pickStrategy = (k: Strategy) => (p.audience.strategy || "population") !== k && apply(chooseAudience(store.get().project, k));
 
   return (
-    <div className="flex max-w-[82.5rem] flex-wrap items-start gap-6">
-      <Summary project={p} entry={entry} choice={choice} strategy={view === "cz18" ? strategy : null} />
+    <div className="flex max-w-[82.5rem] flex-col gap-4">
+      <InspectorSlot>
+        <Summary project={p} entry={entry} choice={choice} strategy={view === "cz18" ? strategy : null} />
+      </InspectorSlot>
 
-      <div className="order-1 flex min-w-0 flex-[999_1_520px] flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-4">
         {entry === "analytics" ? (
           <p className="rounded-card border border-signal-edge bg-signal-tint p-3 text-[13px] leading-5">
             <b>{t("research.audience.bannerPopulation")}</b> {t("research.audience.bannerPopulationText")} <b>{t("research.audience.bannerIdeal")}</b>{" "}
@@ -206,7 +209,7 @@ export function AudienceStep() {
 
         {view === "cz18" ? (
           <StepSection n={3} done title={t("research.audience.strategyTitle")} hint={t("research.audience.czIntroBefore")}>
-            <div role="radiogroup" aria-label={t("research.audience.strategyTitle")} className="flex flex-col gap-2">
+            <div role="radiogroup" aria-label={t("research.audience.strategyTitle")} className="grid gap-2 md:grid-cols-3">
               {([["population", "strategyPopulation"], ["filters", "strategyFilters"], ["discover", "strategyDiscover"]] as const).map(([k, key]) => (
                 <RadioCard
                   key={k}
@@ -503,7 +506,7 @@ function Summary({ project, entry, choice, strategy }: { project: ResearchProjec
   const population = entry !== "analytics" ? null : choice === "cz18" ? t("research.audience.cz18") : choice === "cz_coming" ? t("research.audience.czComing") : choice === "special" ? t("research.audience.special") : null;
   const strat = strategy ? t(`research.audience.strategy${strategy[0]!.toUpperCase()}${strategy.slice(1)}`) : null;
   return (
-    <aside aria-labelledby="aud-summary" className="sticky top-60 order-2 flex flex-[1_1_280px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-4">
+    <aside aria-labelledby="aud-summary" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="aud-summary" className="text-sm font-semibold">{t("research.audience.summaryTitleV3")}</h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
         {([["summarySource", source], ["summaryPopulation", population], ["summaryStrategy", strat]] as const).map(([k, v]) => (
