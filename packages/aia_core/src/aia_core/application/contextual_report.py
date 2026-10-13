@@ -18,7 +18,7 @@ from aia_core.application.report import (
     ReportCompositionRefused,
     compose_internal_report,
 )
-from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_chapters import report_chapters
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle
@@ -41,11 +41,10 @@ from aia_core.domain.report.model import (
     text,
 )
 from aia_core.domain.scope import Permission, StudyContext
-from aia_core.infrastructure.artifact_repository import ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 
-CONTEXT_REPORT_CONTRACT = "aia-contextual-report-2"
+CONTEXT_REPORT_CONTRACT = "aia-contextual-report-3"
 _ACQUISITION_REASONS = {
     AcquisitionReason.PAYWALL: "Zdroj vyžaduje placený přístup.",
     AcquisitionReason.LOGIN: "Zdroj vyžaduje přihlášení.",
@@ -276,7 +275,6 @@ def contextual_report(
     deep_research_run_id: str,
 ) -> ReportDocument:
     """Resolve both owned runs, verify their exact lineage and compose fresh bytes."""
-    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 
     scope.require(Permission.EDIT_STUDY)
     run = ResearchRuns(session, scope).get(run_id)
@@ -303,34 +301,20 @@ def contextual_report(
     first = analysis.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:
         raise ReportCompositionRefused("executive analysis is incomplete")
-    repo = research_artifacts(session, scope, store)
-    map_id = next(
-        (
-            (s.get("output") or {}).get("artifact_id")
-            for s in run["steps"]
-            if s["node_key"] == "sociomap"
+    # The same run-derived chapters as the stored internal report (complete-study-report B1d).
+    chapters = report_chapters(
+        research_artifacts(session, scope, store),
+        run,
+        analysis,
+        map_artifact_id=next(
+            (
+                (s.get("output") or {}).get("artifact_id")
+                for s in run["steps"]
+                if s["node_key"] == "sociomap"
+            ),
+            None,
         ),
-        None,
-    )
-    if not map_id:
-        raise ReportCompositionRefused("the run has no frozen sociomap")
-    map_source = repo.get(map_id)
-    deps = repo.dependencies(map_id)
-    if (
-        map_source.artifact_type != "research_sociomap"
-        or map_source.status is not ArtifactStatus.VALID
-        or not any(d.sha256 == first.record.sources.dataset.sha256 for d in deps)
-        or not any(
-            d.artifact_type == "research_specification"
-            and repo.read_json(d.artifact_id).get("specification_fingerprint")
-            == first.record.sources.specification_fingerprint
-            for d in deps
-        )
-    ):
-        raise ReportCompositionRefused("sociomap does not belong to the frozen analysis inputs")
-    body = repo.read_json(map_id)["sociomap"]
-    maps = compose_map_sections(
-        body, object_map_snapshots(body), source=f"Běh {run_id}; SHA-256 {map_source.sha256}"
+        run_id=run_id,
     )
     names = ScopeRepository(session)
     meta = ReportMeta(
@@ -354,6 +338,9 @@ def contextual_report(
     return compose_internal_report(
         analysis,
         meta,
-        map_sections=maps,
+        map_sections=chapters.maps,
         context_sections=literature_sections(bundle, research_run_id=deep_research_run_id),
+        question_tables=chapters.questions,
+        design=chapters.design,
+        method=chapters.method,
     )

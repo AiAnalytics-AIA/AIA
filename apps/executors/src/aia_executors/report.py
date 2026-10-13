@@ -9,28 +9,22 @@ from aia_core.application.report import (
     ReportCompositionRefused,
     compose_internal_report,
 )
-from aia_core.application.report_design import compose_design_sections
-from aia_core.application.report_maps import compose_map_sections
-from aia_core.application.report_method import compose_method_section
-from aia_core.application.report_tables import compose_question_tables
+from aia_core.application.report_chapters import report_chapters
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
-from aia_core.domain.analysis.native import native_items
 from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import ReportInvalid
-from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import REPORT_STEP_KIND
 from aia_core.infrastructure.build_identity import BuildIdentity
-from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
 
-from .research import SOCIOMAP, upstream_artifact
+from .research import upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
 REPORT_CONTRACT_VERSION = "aia-internal-report-7"
@@ -68,57 +62,22 @@ class ReportExecutor:
                     classification=Classification.INTERNAL,
                     identifiers=(("Běh", step.run_id),),
                 )
-                map_id = upstream_artifact(workflow, step, "sociomap")
-                if map_id is None:
-                    raise ReportCompositionRefused("the run recorded no sociomap artifact")
-                repo = research_artifacts(session, context.scope, self._store)
-                map_source = repo.get(map_id)
-                if map_source.artifact_type != SOCIOMAP:
-                    raise ReportCompositionRefused("the map source has the wrong artifact type")
-                map_body = repo.read_json(map_id)["sociomap"]
-                dataset_sha = first.record.sources.dataset.sha256
-                map_dependencies = repo.dependencies(map_id)
-                if not any(d.sha256 == dataset_sha for d in map_dependencies):
-                    raise ReportCompositionRefused("the map is not derived from this run's dataset")
-                specification = next(
-                    (
-                        payload
-                        for d in map_dependencies
-                        if d.artifact_type == "research_specification"
-                        and (payload := repo.read_json(d.artifact_id)).get(
-                            "specification_fingerprint"
-                        )
-                        == first.record.sources.specification_fingerprint
-                    ),
-                    None,
-                )
-                if specification is None:
-                    raise ReportCompositionRefused("the map is not derived from this specification")
-                spec = ResearchSpecification.model_validate(specification["specification"])
-                # Every question's numbers, in the questionnaire's order and words (B1a).
-                questions = compose_question_tables(
+                # Maps, every question's numbers, the design and who answered: the same
+                # chapters as the report with literature, from the run's verified sources.
+                chapters = report_chapters(
+                    research_artifacts(session, context.scope, self._store),
+                    run,
                     analysis,
-                    native_items(spec),
-                    source=f"Zmrazený výsledek běhu {step.run_id}; evidence "
-                    f"{first.inputs.table.fingerprint()[:12]}",
+                    map_artifact_id=upstream_artifact(workflow, step, "sociomap"),
+                    run_id=step.run_id,
                 )
-                sections = compose_map_sections(
-                    map_body,
-                    object_map_snapshots(map_body),
-                    source=f"Zmrazený výsledek běhu {step.run_id}; SHA-256 {map_source.sha256}",
-                )
-                # The design the run executed, and its questionnaire (B1b).
-                design = compose_design_sections(spec, first.inputs.research_questions)
                 document = compose_internal_report(
                     analysis,
                     meta,
-                    map_sections=sections,
-                    question_tables=questions,
-                    design=design,
-                    # Who answered and the methods the run pinned, from its own record (B1c).
-                    method=compose_method_section(
-                        run.get("metadata") or {}, first.record.labels.data_origin
-                    ),
+                    map_sections=chapters.maps,
+                    question_tables=chapters.questions,
+                    design=chapters.design,
+                    method=chapters.method,
                 )
             except (
                 ReconstructionRefused,
@@ -139,7 +98,7 @@ class ReportExecutor:
                 "contract": REPORT_CONTRACT_VERSION,
                 "run_id": step.run_id,
                 "sources": [m.artifact_sha256 for m in sources],
-                "sociomap": map_source.sha256,
+                "sociomap": chapters.map_sha256,
                 "title": meta.title,
                 "subtitle": meta.subtitle,
                 "client": meta.client_name,
@@ -166,10 +125,10 @@ class ReportExecutor:
                     "review_state": "DRAFT_UNAPPROVED",
                     "synthetic": bool(first.record.labels.simulated_respondents),
                     "data_origin": first.record.labels.data_origin.value,
-                    "map_source_sha256": map_source.sha256,
+                    "map_source_sha256": chapters.map_sha256,
                     "report_contract": REPORT_CONTRACT_VERSION,
                 },
-                depends_on=[*[m.artifact_id for m in sources], map_id],
+                depends_on=[*[m.artifact_id for m in sources], chapters.map_artifact_id],
             )
         return Succeeded(
             output={

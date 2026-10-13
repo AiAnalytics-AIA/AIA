@@ -81,6 +81,14 @@ number labelled (B5); stages before backend (done in PR #382).
   did not record is said to be unrecorded. Contract `aia-internal-report-7`. Tests:
   test_report_method.py (4), `test_who_answered_comes_after_the_methodology_and_before_the_numbers`;
   the stored DOCX orders methodology < respondents < question tables.
+- B1d (first part): `application/report_chapters.py` `report_chapters(repo, run, analysis,
+  map_artifact_id=, run_id=)` is the one place both reports take their run-derived chapters
+  from -- the map verified as this run's (`research_sociomap`, VALID, derived from the
+  analysed dataset and specification), the question tables, the design and the method.
+  The worker's report step and `contextual_report` both call it; the report with
+  literature now carries the design, method, question and questionnaire sections too
+  (it had only the maps). Contract `aia-contextual-report-3`. Test: the interpretation
+  journey in test_analysis_executor.py asserts the four section ids on the combined report.
 
 ## Findings
 
@@ -108,4 +116,8 @@ number labelled (B5); stages before backend (done in PR #382).
 - CLAUDE.md § 2 map, application/: `report_method.py  compose_method_section: who answered
   (by origin kind), the population recorded and read, filters applied or not, the methods
   pinned; from the run's record, unrecorded said so`.
+- CLAUDE.md § 2 map, application/: `report_chapters.py  report_chapters: the map, question,
+  design and method chapters from the run's verified sources; the worker's report and the
+  report with literature both take them from here`; contextual_report.py's line gains "the
+  same chapters as the internal report (report_chapters)".
 - open-items.md: F1 to be numbered there.

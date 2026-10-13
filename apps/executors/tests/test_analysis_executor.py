@@ -860,6 +860,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 )
                 assert any(s.id == "literature" for s in combined.sections)
                 assert any((s.id or "").startswith("ch-native-map-") for s in combined.sections)
+                # The same study's report: the same design, method and question chapters.
+                assert {"ch-design", "ch-method", "ch-questions", "app-questionnaire"} <= {
+                    s.id for s in combined.sections
+                }
                 assert DocxRenderer().render(combined).startswith(b"PK")
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
