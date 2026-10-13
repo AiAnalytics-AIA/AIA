@@ -203,7 +203,8 @@ def _factor(
     described = factor(name, columns)
     assert described is not None  # every catalogue column is one the filter knows
     cells = columns[name]
-    typed = [_typed(c, column_type(name, cells)) for c in cells]
+    kind = column_type(name, cells)
+    typed = [_typed(c, kind) for c in cells]
     out: dict[str, Any] = {
         "id": name,
         "column": name,
