@@ -432,7 +432,7 @@ describe("what powers AIA", () => {
     expect(await screen.findByRole("heading", { name: "AI v AIA" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Amazon Bedrock" })).toBeNull();
     // Account details remain available without interrupting the settings task.
-    expect(screen.getByText(/Účet · owner@example.test/)).toBeTruthy();
+    expect(screen.getByText("Účet").closest("summary")?.textContent).toBe("Účet · owner@example.test");
     expect(screen.queryByRole("heading", { name: "Klasické rozhraní 18.6.6" })).toBeNull();
     expect(document.querySelector('a[href^="/classic"], a[href*="classic-projects"]')).toBeNull();
     expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();

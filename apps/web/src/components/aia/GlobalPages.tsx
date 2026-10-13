@@ -205,7 +205,7 @@ export function SettingsPage() {
     <AppShell title={t("aia.settings.title")} sub={t("aia.settings.sub")}>
       <ControlPanel />
       <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
-        <summary className="cursor-pointer font-medium">{t("aia.settings.account")}{session?.email ? ` · ${session.email}` : ""}</summary>
+        <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
         {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
         <p className="mt-1">{t("aia.settings.accessNote")}</p>
       </details>
