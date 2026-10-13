@@ -4,7 +4,7 @@ chunks:
   - "[x] 0. Design on the canvas (Klient row of the research studio) and this plan"
   - "[x] C1. Client shell: Profil tab, counts on tabs, status in the bar, Přidat znalost beside Nový výzkum"
   - "[x] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
-  - "[ ] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
+  - "[x] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
   - "[ ] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
   - "[ ] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
@@ -139,29 +139,61 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   - web: `lib/study-table.test.ts` (filters, counts, orders, unknown versus nothing), plus two
     rendering tests in `ClientFirst.test.tsx`.
 
-### C3. Folders and labels
-- **Domain:** `domain/knowledge.py` gains `KnowledgeFolder` and `KnowledgeLabel`, with:
-  - names unique per client, case-folded;
-  - a closed `LabelColour` set mapped to existing tokens;
-  - a depth limit of one: no nested folders until a client needs them.
-- **Migration:**
-  - `client_knowledge_folders` and `client_knowledge_labels`, both per client;
-  - `client_knowledge_items.folder_id`, nullable, set to null when its folder is deleted;
-  - `client_knowledge_item_labels`.
-- **Repository:** `ClientKnowledgeRepository` stays the only reader and writer, so `make
-  layer_check` keeps the rows inside it, and every change is audited.
+### C3. Folders and labels (landed)
+
+- **Domain** (`domain/knowledge.py`):
+  - `KnowledgeFolder`, `KnowledgeLabel` and the closed `LabelColour` set: BLUE, TEAL, GREEN,
+    ORANGE, VIOLET and SLATE, the design system's wayfinding hues. A label never borrows a status
+    colour.
+  - `organizer_name` stores a name trimmed and with inner whitespace collapsed, at 1-80
+    characters. `organizer_key` compares names: case and spacing do not count, accents do,
+    because in Czech they change the word.
+  - `OrganizerNameTaken` is raised for a name the client already uses.
+  - `KnowledgeItem` gains `folder_id` and `label_ids`.
+  - Folders are flat: no nesting until a client needs it.
+- **Migration** `e8a0c2e4f6b8`: `client_knowledge_folders` and `client_knowledge_labels`, each
+  unique on (client, name key); `client_knowledge_item_folders`; `client_knowledge_item_labels`.
+  - **Changed from the plan:** an item's folder is its own table, not a column on
+    `client_knowledge_items`. That row's `modified_at` has `onupdate`, so filing an item would
+    have moved its date and made it look edited. That would also corrupt *Starší než rok* (C4).
+    Filing now touches neither the item's revision nor its date.
+  - Checked on PostgreSQL 16: `alembic upgrade head`, `alembic check` (no drift) and a downgrade
+    with re-upgrade.
+- **Repository:** `ClientKnowledgeRepository` stays the only reader and writer of these tables.
+  - Methods: `folders` and `labels` (each with its count of active items);
+    `create_folder`/`rename_folder`/`delete_folder`; `create_label`/`update_label`/`delete_label`;
+    `place`.
+  - Behaviour of `place`: it is all-or-nothing, at most 200 items. `KEEP_FOLDER` leaves the
+    folder as it is, `None` takes items out of their folder, and a label both added and removed
+    is refused.
+  - `items()` filters by `folder_id`, `unfiled` and `label_id`, and only this workspace read
+    carries the filing. `for_study` never does (D4), and both study consumers
+    (`context_snapshot`, `freeze_knowledge`) pick explicit fields.
+  - Every change writes an `access_audit` row (`CLIENT_KNOWLEDGE_FOLDER_*`,
+    `CLIENT_KNOWLEDGE_LABEL_*`, `CLIENT_KNOWLEDGE_ORGANIZED`).
+  - Organizing needs `PROPOSE_CLIENT_KNOWLEDGE`; reading needs `VIEW_CLIENT_KNOWLEDGE`.
 - **Routes**, under `/clients/{id}/knowledge/`:
-  - `folders` and `labels`: list, create, rename, delete;
-  - `items/{id}/placement`: set an item's folder and labels;
-  - `placement`: the bulk form, taking explicit item ids;
-  - `GET …/knowledge` filters by `folder` (or `unfiled`) and `label`.
-- **Permissions:** whoever may propose knowledge may organize it.
+  - `GET`/`POST folders`, `PUT`/`DELETE folders/{KNF-…}`;
+  - `GET`/`POST labels`, `PUT`/`DELETE labels/{KNL-…}`;
+  - `PUT placement` with `item_ids`, `folder_id` (left out keeps the folder, `null` takes items
+    out) and `add_labels`/`remove_labels`;
+  - `GET …/knowledge?folder=KNF-…|unfiled&label=KNL-…`;
+  - items carry `folder_id` and `label_ids`.
+  - Errors: a name clash is 409 `name_taken`; a folder, label or item of another client is 404;
+    a bad shape is 422.
+  - **Changed from the plan:** there is no per-item placement route. The bulk route with one id
+    does the same.
 - **Tests:**
-  - per-client uniqueness;
-  - a folder from another client is refused (404, not 403);
-  - deleting a folder leaves its items as *Bez složky*;
-  - moving writes no revision and leaves `context_revision` unchanged (D4);
-  - the bulk route is all-or-nothing.
+  - core, `test_client_knowledge.py`, seven new tests:
+    - name rules per client;
+    - filing writes no revision and moves no dates;
+    - filters by folder, by label and for items in no folder;
+    - deleting a folder or label keeps the items;
+    - all-or-nothing and never across clients;
+    - what a study reads carries no filing;
+    - permission and audit.
+  - These run on SQLite and on PostgreSQL 16.
+  - API, `test_client_api.py`: filing end to end, and across clients with all-or-nothing.
 
 ### C4. Knowledge library
 - **What it does** (`KnowledgeArea.tsx` rebuilt to the design):

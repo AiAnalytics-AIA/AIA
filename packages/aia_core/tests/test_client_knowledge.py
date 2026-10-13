@@ -9,14 +9,21 @@ the client's knowledge revision.
 
 from __future__ import annotations
 
+import dataclasses
 import inspect
 from typing import Any
 
 import pytest
 
-from aia_core.domain.knowledge import KnowledgeKind, ProposalStatus
+from aia_core.domain.knowledge import (
+    KnowledgeKind,
+    LabelColour,
+    OrganizerNameTaken,
+    ProposalStatus,
+)
 from aia_core.domain.scope import (
     ClientContext,
+    ClientPermission,
     ScopeDenied,
     SeparationOfDutiesViolation,
 )
@@ -363,3 +370,192 @@ def test_retrieval_takes_an_issued_scope_and_nothing_else(
         params = list(inspect.signature(method).parameters)
         assert params[1] == "scope", name
         assert "client_id" not in params, name
+
+
+# --------------------------------------------------------------------------- #
+# Folders and labels (client-workspace C3): organization, not knowledge
+# --------------------------------------------------------------------------- #
+
+
+def _two_items(knowledge: ClientKnowledgeRepository, scope: ClientContext) -> tuple[str, str]:
+    for title in ("Výroční zpráva 2025", "Hlavní konkurenti"):
+        knowledge.add(scope, kind=KnowledgeKind.SOURCE, title=title)
+    a, b = sorted(i.item_id for i in knowledge.items(scope))
+    return a, b
+
+
+def test_a_folder_name_is_the_clients_own_once_whatever_its_case_and_spacing(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    made = knowledge.create_folder(lead, name="  Trh a   konkurence ")
+    assert made.name == "Trh a konkurence"
+    with pytest.raises(OrganizerNameTaken):
+        knowledge.create_folder(lead, name="TRH A KONKURENCE")
+    with pytest.raises(ValueError):
+        knowledge.create_folder(lead, name="   ")
+    with pytest.raises(ValueError):
+        knowledge.create_folder(lead, name="x" * 81)
+    # Accents count: in Czech they change the word.
+    knowledge.create_folder(lead, name="Trh a konkurencé")
+    # Another client may use the same name; it never sees this one.
+    globex = client_scope(scoped, "other_lead", "other")
+    knowledge.create_folder(globex, name="Trh a konkurence")
+    assert [f.name for f in knowledge.folders(globex)] == ["Trh a konkurence"]
+    assert len(knowledge.folders(lead)) == 2
+    renamed = knowledge.rename_folder(lead, folder_id=made.folder_id, name="Konkurence")
+    assert renamed.name == "Konkurence"
+    with pytest.raises(OrganizerNameTaken):
+        knowledge.rename_folder(lead, folder_id=made.folder_id, name="trh a konkurencé")
+    # Renaming to its own name in another case is not a clash.
+    assert knowledge.rename_folder(lead, folder_id=made.folder_id, name="KONKURENCE").name == (
+        "KONKURENCE"
+    )
+
+
+def test_filing_writes_no_revision_and_moves_no_dates(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """D4: folders and labels are organization; the knowledge itself does not change."""
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    before = {i.item_id: i for i in knowledge.items(lead)}
+    context_before = knowledge.summary(lead).context_revision
+    folder = knowledge.create_folder(lead, name="Minulé výzkumy")
+    label = knowledge.create_label(lead, name="2025", colour=LabelColour.BLUE)
+
+    placed = knowledge.place(
+        lead, item_ids=[a, b, a], folder_id=folder.folder_id, add_labels=[label.label_id]
+    )
+    assert [(i.item_id, i.folder_id, i.label_ids) for i in placed] == [
+        (a, folder.folder_id, (label.label_id,)),
+        (b, folder.folder_id, (label.label_id,)),
+    ]
+    for item in knowledge.items(lead):
+        assert item.revision == before[item.item_id].revision
+        assert item.modified_at == before[item.item_id].modified_at
+    assert knowledge.summary(lead).context_revision == context_before
+    assert [len(knowledge.revisions(lead, item_id=i)) for i in (a, b)] == [1, 1]
+    # Adding the same label again changes nothing; the folder is kept unless named.
+    knowledge.place(lead, item_ids=[a], add_labels=[label.label_id])
+    [again] = knowledge.items(lead, label_id=label.label_id, text="výroční")
+    assert again.label_ids == (label.label_id,) and again.folder_id == folder.folder_id
+
+
+def test_items_are_found_by_folder_by_label_and_by_having_no_folder(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Značka")
+    label = knowledge.create_label(lead, name="ověřit", colour=LabelColour.ORANGE)
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    knowledge.place(lead, item_ids=[b], add_labels=[label.label_id])
+    assert [i.item_id for i in knowledge.items(lead, folder_id=folder.folder_id)] == [a]
+    assert [i.item_id for i in knowledge.items(lead, unfiled=True)] == [b]
+    assert [i.item_id for i in knowledge.items(lead, label_id=label.label_id)] == [b]
+    assert [f.item_count for f in knowledge.folders(lead)] == [1]
+    assert [lb.item_count for lb in knowledge.labels(lead)] == [1]
+    # Out of the folder, a label off: back where it started.
+    knowledge.place(lead, item_ids=[a], folder_id=None)
+    knowledge.place(lead, item_ids=[b], remove_labels=[label.label_id])
+    assert {i.item_id for i in knowledge.items(lead, unfiled=True)} == {a, b}
+    assert knowledge.items(lead, label_id=label.label_id) == []
+
+
+def test_deleting_a_folder_or_a_label_keeps_the_items(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Dočasná")
+    label = knowledge.create_label(lead, name="koncept", colour=LabelColour.SLATE)
+    knowledge.place(lead, item_ids=[a, b], folder_id=folder.folder_id, add_labels=[label.label_id])
+    knowledge.delete_folder(lead, folder_id=folder.folder_id)
+    knowledge.delete_label(lead, label_id=label.label_id)
+    items = knowledge.items(lead)
+    assert {i.item_id for i in items} == {a, b}
+    assert all(i.folder_id is None and i.label_ids == () for i in items)
+    assert knowledge.folders(lead) == [] and knowledge.labels(lead) == []
+    with pytest.raises(ScopeDenied):
+        knowledge.delete_folder(lead, folder_id=folder.folder_id)
+
+
+def test_filing_is_all_or_nothing_and_never_crosses_clients(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    a, _ = _two_items(knowledge, lead)
+    mine = knowledge.create_folder(lead, name="Moje")
+    label = knowledge.create_label(lead, name="moje", colour=LabelColour.GREEN)
+    globex = client_scope(scoped, "other_lead", "other")
+    knowledge.add(globex, kind=KnowledgeKind.FACT, title="Globex only")
+    [theirs] = knowledge.items(globex)
+    their_folder = knowledge.create_folder(globex, name="Jejich")
+
+    for attempt in (
+        {"item_ids": [a, theirs.item_id], "folder_id": mine.folder_id},
+        {"item_ids": [a], "folder_id": their_folder.folder_id},
+        {"item_ids": [a], "add_labels": [label.label_id, "KNL-00000000000000"]},
+    ):
+        with pytest.raises(ScopeDenied):
+            knowledge.place(lead, **attempt)  # type: ignore[arg-type]
+    with pytest.raises(ValueError):
+        knowledge.place(
+            lead, item_ids=[a], add_labels=[label.label_id], remove_labels=[label.label_id]
+        )
+    with pytest.raises(ValueError):
+        knowledge.place(lead, item_ids=[])
+    # Nothing of the refused attempts was written.
+    [item] = [i for i in knowledge.items(lead) if i.item_id == a]
+    assert item.folder_id is None and item.label_ids == ()
+    # Through another client's context, this client's folders are not found.
+    with pytest.raises(ScopeDenied):
+        knowledge.rename_folder(globex, folder_id=mine.folder_id, name="hijack")
+    assert knowledge.items(globex, folder_id=mine.folder_id) == []
+
+
+def test_what_a_study_reads_never_carries_folders_or_labels(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """D4: no model sees how people filed the knowledge."""
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Interní")
+    label = knowledge.create_label(lead, name="citlivé", colour=LabelColour.VIOLET)
+    knowledge.place(lead, item_ids=[a, b], folder_id=folder.folder_id, add_labels=[label.label_id])
+    consumed = knowledge.for_study(scoped.scope(user="researcher"))
+    assert {i.item_id for i in consumed} == {a, b}
+    assert all(i.folder_id is None and i.label_ids == () for i in consumed)
+
+
+def test_organizing_needs_the_permission_to_propose_and_is_audited(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    from sqlalchemy import select
+
+    from aia_core.infrastructure.tables import AccessAuditRow
+
+    lead = client_scope(scoped, "lead")
+    a, _ = _two_items(knowledge, lead)
+    folder = knowledge.create_folder(lead, name="Audit")
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    actions = session.scalars(
+        select(AccessAuditRow.action).where(AccessAuditRow.action.like("CLIENT_KNOWLEDGE_%"))
+    ).all()
+    assert "CLIENT_KNOWLEDGE_FOLDER_CREATED" in actions
+    assert "CLIENT_KNOWLEDGE_ORGANIZED" in actions
+
+    # Every member holds every permission today (ADR 0019); a narrower context is what a
+    # future reader-only role would be issued, so the rule is pinned against it.
+    reader = dataclasses.replace(
+        lead,
+        permissions=frozenset(
+            p for p in lead.permissions if p is not ClientPermission.PROPOSE_CLIENT_KNOWLEDGE
+        ),
+    )
+    with pytest.raises(ScopeDenied):
+        knowledge.create_folder(reader, name="Bez práva")
+    with pytest.raises(ScopeDenied):
+        knowledge.place(reader, item_ids=[a], folder_id=None)
+    assert [f.name for f in knowledge.folders(reader)] == ["Audit"]

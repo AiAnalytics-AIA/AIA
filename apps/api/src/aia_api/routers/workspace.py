@@ -28,9 +28,13 @@ from aia_core.application.project_memory import (
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
+    KnowledgeFolder,
     KnowledgeItem,
     KnowledgeKind,
+    KnowledgeLabel,
     KnowledgeProposal,
+    LabelColour,
+    OrganizerNameTaken,
     ProposalStatus,
 )
 from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
@@ -52,7 +56,10 @@ from aia_core.domain.workspace import (
     WorkspaceRejected,
 )
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
-from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.client_knowledge_repository import (
+    KEEP_FOLDER,
+    ClientKnowledgeRepository,
+)
 from aia_core.infrastructure.questionnaire_file import (
     TEMPLATE_FILENAME,
     import_questionnaire,
@@ -224,6 +231,80 @@ class KnowledgeItemResponse(BaseModel):
     content: dict[str, Any]
     revision: int
     modified_at: datetime | None = None
+    #: Where people filed it (client-workspace C3); not part of the knowledge itself.
+    folder_id: str | None = None
+    label_ids: list[str] = Field(default_factory=list)
+
+
+class KnowledgeFolderResponse(BaseModel):
+    """A folder of the client's knowledge and how many active items it holds."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    folder_id: str
+    name: str
+    item_count: int
+
+
+class KnowledgeLabelResponse(BaseModel):
+    """A label of the client's knowledge and how many active items carry it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    label_id: str
+    name: str
+    colour: LabelColour
+    item_count: int
+
+
+class FolderWrite(BaseModel):
+    """A folder's name: trimmed, at most 80 characters, unique within the client."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=200)
+
+
+class LabelCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=200)
+    colour: LabelColour
+
+
+class LabelChange(BaseModel):
+    """Rename, recolour, or both; at least one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    colour: LabelColour | None = None
+
+
+_ITEM_ID = r"^KNW-[0-9a-f]{1,32}$"
+_FOLDER_ID = r"^KNF-[0-9a-f]{1,32}$"
+_LABEL_ID = r"^KNL-[0-9a-f]{1,32}$"
+
+
+class Placement(BaseModel):
+    """File items: into a folder, out of every folder, labels on and off.
+
+    ``folder_id`` left out keeps each item's folder; ``null`` takes the items out
+    of any folder. All or nothing.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_ids: list[Annotated[str, Field(max_length=64, pattern=_ITEM_ID)]] = Field(
+        min_length=1, max_length=200
+    )
+    folder_id: Annotated[str, Field(max_length=64, pattern=_FOLDER_ID)] | None = None
+    add_labels: list[Annotated[str, Field(max_length=64, pattern=_LABEL_ID)]] = Field(
+        default_factory=list, max_length=50
+    )
+    remove_labels: list[Annotated[str, Field(max_length=64, pattern=_LABEL_ID)]] = Field(
+        default_factory=list, max_length=50
+    )
 
 
 class KnowledgeRevisionResponse(BaseModel):
@@ -533,6 +614,8 @@ def _item(i: KnowledgeItem) -> KnowledgeItemResponse:
         content=i.content,
         revision=i.revision,
         modified_at=i.modified_at,
+        folder_id=i.folder_id,
+        label_ids=list(i.label_ids),
     )
 
 
@@ -883,11 +966,257 @@ def client_knowledge(
         Literal["sources", "knowledge", "dimensions", "audiences", "data"] | None, Query()
     ] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
+    folder: Annotated[
+        str | None, Query(max_length=64, pattern=r"^(KNF-[0-9a-f]{1,32}|unfiled)$")
+    ] = None,
+    label: Annotated[str | None, Query(max_length=64, pattern=_LABEL_ID)] = None,
 ) -> list[KnowledgeItemResponse]:
-    """Approved knowledge of this client only: the client is resolved first and is in the query."""
+    """Approved knowledge of this client only: the client is resolved first and is in the query.
+
+    ``folder`` keeps one folder's items (``unfiled``: those in none); ``label`` those
+    carrying it. Each item says where it is filed.
+    """
     scope = _knowledge_scope(principal, resolver, client_id)
     kinds = KNOWLEDGE_SECTIONS[section] if section else None
-    return [_item(i) for i in ClientKnowledgeRepository(session).items(scope, kinds=kinds, text=q)]
+    items = ClientKnowledgeRepository(session).items(
+        scope,
+        kinds=kinds,
+        text=q,
+        folder_id=folder if folder and folder != "unfiled" else None,
+        unfiled=folder == "unfiled",
+        label_id=label,
+    )
+    return [_item(i) for i in items]
+
+
+# Folders and labels (client-workspace C3): organization, never knowledge. Whoever may
+# propose the client's knowledge may file it; nothing here writes a revision.
+
+
+def _organizer_error(exc: Exception, what: str) -> HTTPException:
+    if isinstance(exc, OrganizerNameTaken):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "name_taken",
+                "message": f"This client already has a {what} by that name.",
+            },
+        )
+    if isinstance(exc, ScopeDenied):
+        if exc.reason in {"unknown_folder", "unknown_label", "unknown_item"}:
+            return _not_found()
+        return _forbidden(exc.reason, "Your role for this client does not permit filing knowledge.")
+    return HTTPException(status_code=422, detail={"code": "invalid_name", "message": str(exc)})
+
+
+def _folder(f: KnowledgeFolder) -> KnowledgeFolderResponse:
+    return KnowledgeFolderResponse(folder_id=f.folder_id, name=f.name, item_count=f.item_count)
+
+
+def _label(lb: KnowledgeLabel) -> KnowledgeLabelResponse:
+    return KnowledgeLabelResponse(
+        label_id=lb.label_id, name=lb.name, colour=lb.colour, item_count=lb.item_count
+    )
+
+
+FolderIdPath = Annotated[str, Path(max_length=64, pattern=_FOLDER_ID)]
+LabelIdPath = Annotated[str, Path(max_length=64, pattern=_LABEL_ID)]
+
+
+@router.get(
+    "/clients/{client_id}/knowledge/folders",
+    response_model=list[KnowledgeFolderResponse],
+    summary="The client's knowledge folders",
+)
+def knowledge_folders(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> list[KnowledgeFolderResponse]:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    return [_folder(f) for f in ClientKnowledgeRepository(session).folders(scope)]
+
+
+@router.post(
+    "/clients/{client_id}/knowledge/folders",
+    response_model=KnowledgeFolderResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a knowledge folder",
+)
+def create_knowledge_folder(
+    client_id: ClientIdPath,
+    body: FolderWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeFolderResponse:
+    """409 when the client has a folder by that name (case and spacing do not count)."""
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _folder(ClientKnowledgeRepository(session).create_folder(scope, name=body.name))
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "folder") from exc
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/folders/{folder_id}",
+    response_model=KnowledgeFolderResponse,
+    summary="Rename a knowledge folder",
+)
+def rename_knowledge_folder(
+    client_id: ClientIdPath,
+    folder_id: FolderIdPath,
+    body: FolderWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeFolderResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _folder(
+            ClientKnowledgeRepository(session).rename_folder(
+                scope, folder_id=folder_id, name=body.name
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "folder") from exc
+
+
+@router.delete(
+    "/clients/{client_id}/knowledge/folders/{folder_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a knowledge folder; its items stay, in no folder",
+)
+def delete_knowledge_folder(
+    client_id: ClientIdPath,
+    folder_id: FolderIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        ClientKnowledgeRepository(session).delete_folder(scope, folder_id=folder_id)
+    except ScopeDenied as exc:
+        raise _organizer_error(exc, "folder") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/clients/{client_id}/knowledge/labels",
+    response_model=list[KnowledgeLabelResponse],
+    summary="The client's knowledge labels",
+)
+def knowledge_labels(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> list[KnowledgeLabelResponse]:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    return [_label(lb) for lb in ClientKnowledgeRepository(session).labels(scope)]
+
+
+@router.post(
+    "/clients/{client_id}/knowledge/labels",
+    response_model=KnowledgeLabelResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a knowledge label",
+)
+def create_knowledge_label(
+    client_id: ClientIdPath,
+    body: LabelCreate,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeLabelResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _label(
+            ClientKnowledgeRepository(session).create_label(
+                scope, name=body.name, colour=body.colour
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "label") from exc
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/labels/{label_id}",
+    response_model=KnowledgeLabelResponse,
+    summary="Rename or recolour a knowledge label",
+)
+def change_knowledge_label(
+    client_id: ClientIdPath,
+    label_id: LabelIdPath,
+    body: LabelChange,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeLabelResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    if body.name is None and body.colour is None:
+        raise HTTPException(
+            status_code=422, detail={"code": "nothing_to_change", "message": "Name a change."}
+        )
+    try:
+        return _label(
+            ClientKnowledgeRepository(session).update_label(
+                scope, label_id=label_id, name=body.name, colour=body.colour
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "label") from exc
+
+
+@router.delete(
+    "/clients/{client_id}/knowledge/labels/{label_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a knowledge label; it comes off every item",
+)
+def delete_knowledge_label(
+    client_id: ClientIdPath,
+    label_id: LabelIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        ClientKnowledgeRepository(session).delete_label(scope, label_id=label_id)
+    except ScopeDenied as exc:
+        raise _organizer_error(exc, "label") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/placement",
+    response_model=list[KnowledgeItemResponse],
+    summary="File knowledge items: folder and labels",
+)
+def place_knowledge(
+    client_id: ClientIdPath,
+    body: Placement,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> list[KnowledgeItemResponse]:
+    """All or nothing: 404 if any item, the folder or a label is not this client's.
+
+    Writes no knowledge revision; the items come back filed as they are now.
+    """
+    scope = _knowledge_scope(principal, resolver, client_id)
+    folder = body.folder_id if "folder_id" in body.model_fields_set else KEEP_FOLDER
+    try:
+        placed = ClientKnowledgeRepository(session).place(
+            scope,
+            item_ids=body.item_ids,
+            folder_id=folder,
+            add_labels=body.add_labels,
+            remove_labels=body.remove_labels,
+        )
+    except (ScopeDenied, ValueError) as exc:
+        if isinstance(exc, ValueError):
+            raise HTTPException(
+                status_code=422, detail={"code": "invalid_placement", "message": str(exc)}
+            ) from exc
+        raise _organizer_error(exc, "folder") from exc
+    return [_item(i) for i in placed]
 
 
 @router.get(

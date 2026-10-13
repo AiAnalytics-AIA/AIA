@@ -21,6 +21,12 @@ appends an item revision and advances the client's knowledge revision. Where
 self-approval is off, a person's own addition is held as a proposal as well.
 Revisions are append-only and carry their provenance.
 
+**Folders and labels** organize a client's items for the people who work with
+them (client-workspace plan, D2-D4). They are per client; an item sits in at
+most one folder and carries any number of labels. They are organization, not
+knowledge: no model sees them, and moving or labelling an item writes no
+revision and leaves the client's knowledge revision where it was.
+
 Pure: stdlib and Pydantic only.
 """
 
@@ -35,16 +41,25 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "KNOWLEDGE_SECTIONS",
+    "ORGANIZER_NAME_MAX",
+    "KnowledgeFolder",
     "KnowledgeItem",
     "KnowledgeKind",
+    "KnowledgeLabel",
     "KnowledgeLayer",
     "KnowledgeProposal",
     "KnowledgeRevision",
     "KnowledgeSummary",
+    "LabelColour",
+    "OrganizerNameTaken",
     "ProposalOrigin",
     "ProposalStatus",
+    "new_knowledge_folder_id",
     "new_knowledge_item_id",
+    "new_knowledge_label_id",
     "new_knowledge_proposal_id",
+    "organizer_key",
+    "organizer_name",
 ]
 
 
@@ -56,6 +71,60 @@ def new_knowledge_item_id() -> str:
 def new_knowledge_proposal_id() -> str:
     """``KNP-`` followed by 14 hex characters."""
     return f"KNP-{uuid4().hex[:14]}"
+
+
+def new_knowledge_folder_id() -> str:
+    """``KNF-`` followed by 14 hex characters."""
+    return f"KNF-{uuid4().hex[:14]}"
+
+
+def new_knowledge_label_id() -> str:
+    """``KNL-`` followed by 14 hex characters."""
+    return f"KNL-{uuid4().hex[:14]}"
+
+
+ORGANIZER_NAME_MAX: Final = 80
+
+
+def organizer_name(name: str) -> str:
+    """A folder's or label's name as stored: trimmed, inner whitespace collapsed.
+
+    Raises ``ValueError`` when nothing is left or it is longer than
+    ``ORGANIZER_NAME_MAX`` characters.
+    """
+    cleaned = " ".join(name.split())
+    if not cleaned:
+        raise ValueError("a name cannot be empty")
+    if len(cleaned) > ORGANIZER_NAME_MAX:
+        raise ValueError(f"a name has at most {ORGANIZER_NAME_MAX} characters")
+    return cleaned
+
+
+def organizer_key(name: str) -> str:
+    """What makes two names the same within one client: case and spacing do not count.
+
+    "Trh a konkurence" and " trh  A KONKURENCE" are one folder. Accents do count:
+    in Czech they change the word.
+    """
+    return organizer_name(name).casefold()
+
+
+class OrganizerNameTaken(ValueError):
+    """The client already has a folder (or a label) by that name."""
+
+
+class LabelColour(StrEnum):
+    """The closed set of label colours: the design system's wayfinding hues.
+
+    Never a status colour, so a label never reads as "failed" or "waiting".
+    """
+
+    BLUE = "BLUE"
+    TEAL = "TEAL"
+    GREEN = "GREEN"
+    ORANGE = "ORANGE"
+    VIOLET = "VIOLET"
+    SLATE = "SLATE"
 
 
 class KnowledgeLayer(StrEnum):
@@ -124,6 +193,34 @@ class KnowledgeItem(BaseModel):
     content: dict[str, Any] = Field(default_factory=dict)
     revision: int
     modified_at: datetime | None = None
+    #: Organization, not knowledge: where people filed it. Changing these writes no revision.
+    folder_id: str | None = None
+    label_ids: tuple[str, ...] = ()
+
+
+class KnowledgeFolder(BaseModel):
+    """A folder of one client's knowledge. An item sits in at most one."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    folder_id: str
+    client_id: str
+    name: str
+    #: The client's active items in it.
+    item_count: int = 0
+
+
+class KnowledgeLabel(BaseModel):
+    """A label of one client's knowledge. An item carries any number."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    label_id: str
+    client_id: str
+    name: str
+    colour: LabelColour
+    #: The client's active items carrying it.
+    item_count: int = 0
 
 
 class KnowledgeRevision(BaseModel):

@@ -652,3 +652,89 @@ def test_the_questionnaire_template_is_aias_workbook_for_any_reader_of_the_study
     )
     # Any member reads it, another client's lead included (ADR 0019).
     assert other_client_lead.get(url).status_code == 200
+
+
+# --------------------------------------------------------------------------- #
+# Folders and labels (client-workspace C3)
+# --------------------------------------------------------------------------- #
+
+
+def test_a_person_files_the_clients_knowledge_in_folders_and_labels(
+    researcher: TestClient, world: Any
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    for title in ("Výroční zpráva 2025", "Hlavní konkurenti"):
+        researcher.post(f"{base}/proposals", json={"kind": "SOURCE", "title": title})
+    items = researcher.get(base).json()
+    assert all(i["folder_id"] is None and i["label_ids"] == [] for i in items)
+    a, b = sorted(i["item_id"] for i in items)
+
+    folder = researcher.post(f"{base}/folders", json={"name": " Minulé  výzkumy "})
+    assert folder.status_code == 201, folder.text
+    folder_id = folder.json()["folder_id"]
+    assert folder.json() == {"folder_id": folder_id, "name": "Minulé výzkumy", "item_count": 0}
+    taken = researcher.post(f"{base}/folders", json={"name": "minulé výzkumy"})
+    assert taken.status_code == 409 and taken.json()["code"] == "name_taken"
+    label = researcher.post(f"{base}/labels", json={"name": "2025", "colour": "BLUE"}).json()
+    assert researcher.post(f"{base}/labels", json={"name": "x", "colour": "RED"}).status_code == 422
+
+    placed = researcher.put(
+        f"{base}/placement",
+        json={"item_ids": [a, b], "folder_id": folder_id, "add_labels": [label["label_id"]]},
+    )
+    assert placed.status_code == 200, placed.text
+    assert {(i["folder_id"], tuple(i["label_ids"])) for i in placed.json()} == {
+        (folder_id, (label["label_id"],))
+    }
+    # Filing is not a change to the knowledge: no new revision.
+    assert len(researcher.get(f"{base}/items/{a}/revisions").json()) == 1
+    assert researcher.get(f"{base}/folders").json()[0]["item_count"] == 2
+
+    # Left out, the folder is kept; null takes the item out of it.
+    researcher.put(
+        f"{base}/placement", json={"item_ids": [a], "remove_labels": [label["label_id"]]}
+    )
+    researcher.put(f"{base}/placement", json={"item_ids": [b], "folder_id": None})
+    by_folder = researcher.get(base, params={"folder": folder_id}).json()
+    assert [i["item_id"] for i in by_folder] == [a]
+    assert [i["item_id"] for i in researcher.get(base, params={"folder": "unfiled"}).json()] == [b]
+    labelled = researcher.get(base, params={"label": label["label_id"]}).json()
+    assert [i["item_id"] for i in labelled] == [b]
+
+    renamed = researcher.put(f"{base}/folders/{folder_id}", json={"name": "Archiv"})
+    assert renamed.status_code == 200 and renamed.json()["name"] == "Archiv"
+    recoloured = researcher.put(
+        f"{base}/labels/{label['label_id']}", json={"colour": "TEAL"}
+    ).json()
+    assert recoloured["colour"] == "TEAL" and recoloured["name"] == "2025"
+    assert researcher.delete(f"{base}/folders/{folder_id}").status_code == 204
+    assert researcher.delete(f"{base}/labels/{label['label_id']}").status_code == 204
+    assert all(i["folder_id"] is None and i["label_ids"] == [] for i in researcher.get(base).json())
+    assert researcher.delete(f"{base}/folders/{folder_id}").status_code == 404
+
+
+def test_filing_never_crosses_clients_and_is_all_or_nothing(
+    researcher: TestClient, world: Any
+) -> None:
+    mine = f"{API}/clients/{world.client_id()}/knowledge"
+    theirs = f"{API}/clients/{world.client_id('other')}/knowledge"
+    researcher.post(f"{mine}/proposals", json={"kind": "FACT", "title": "Acme"})
+    researcher.post(f"{theirs}/proposals", json={"kind": "FACT", "title": "Globex"})
+    [a] = researcher.get(mine).json()
+    [g] = researcher.get(theirs).json()
+    my_folder = researcher.post(f"{mine}/folders", json={"name": "Moje"}).json()["folder_id"]
+    their_folder = researcher.post(f"{theirs}/folders", json={"name": "Moje"}).json()["folder_id"]
+
+    for body in (
+        {"item_ids": [a["item_id"], g["item_id"]], "folder_id": my_folder},
+        {"item_ids": [a["item_id"]], "folder_id": their_folder},
+    ):
+        assert researcher.put(f"{mine}/placement", json=body).status_code == 404
+    assert researcher.get(mine).json()[0]["folder_id"] is None
+    # Another client's folder is not found under this client's path.
+    assert researcher.put(f"{mine}/folders/{their_folder}", json={"name": "x"}).status_code == 404
+    assert researcher.get(mine, params={"folder": their_folder}).json() == []
+    assert [f["folder_id"] for f in researcher.get(f"{theirs}/folders").json()] == [their_folder]
+    # Shape is checked before anything is read.
+    assert researcher.put(f"{mine}/placement", json={"item_ids": []}).status_code == 422
+    assert researcher.put(f"{mine}/placement", json={"item_ids": ["nope"]}).status_code == 422

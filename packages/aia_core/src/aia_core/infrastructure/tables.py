@@ -735,6 +735,95 @@ class ClientKnowledgeItemRow(Base):
     )
 
 
+class ClientKnowledgeFolderRow(Base):
+    """A folder of one client's knowledge (client-workspace C3): organization, not knowledge."""
+
+    __tablename__ = "client_knowledge_folders"
+
+    folder_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    # The name as compared: two folders of one client may not share it.
+    name_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "name_key", name="uq_client_knowledge_folders_name"),
+    )
+
+
+class ClientKnowledgeLabelRow(Base):
+    """A label of one client's knowledge (client-workspace C3): organization, not knowledge."""
+
+    __tablename__ = "client_knowledge_labels"
+
+    label_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    name_key: Mapped[str] = mapped_column(String(80), nullable=False)
+    colour: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "name_key", name="uq_client_knowledge_labels_name"),
+        CheckConstraint(
+            "colour in ('BLUE','TEAL','GREEN','ORANGE','VIOLET','SLATE')",
+            name="knowledge_label_colour_known",
+        ),
+    )
+
+
+class ClientKnowledgeItemFolderRow(Base):
+    """Which folder an item is filed in, if any.
+
+    Kept apart from the item row on purpose: filing is not a change to the
+    knowledge, so it must not touch the item's ``modified_at`` or revision. The
+    row goes with its folder (an item then has no folder) and with its item.
+    """
+
+    __tablename__ = "client_knowledge_item_folders"
+
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    folder_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["item_id"], ["client_knowledge_items.item_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["folder_id"], ["client_knowledge_folders.folder_id"], ondelete="CASCADE"
+        ),
+        Index("ix_client_knowledge_item_folders_folder", "folder_id"),
+    )
+
+
+class ClientKnowledgeItemLabelRow(Base):
+    """One label on one item; both of the same client."""
+
+    __tablename__ = "client_knowledge_item_labels"
+
+    item_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    label_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["item_id"], ["client_knowledge_items.item_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(
+            ["label_id"], ["client_knowledge_labels.label_id"], ondelete="CASCADE"
+        ),
+        Index("ix_client_knowledge_item_labels_label", "label_id"),
+    )
+
+
 class ClientKnowledgeRevisionRow(Base):
     """An approved revision of one item: append-only, with its provenance.
 

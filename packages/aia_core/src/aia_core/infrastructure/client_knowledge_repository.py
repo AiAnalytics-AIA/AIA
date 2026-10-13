@@ -9,22 +9,30 @@ afterwards: retrieval resolves the client first.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Any, Final
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.knowledge import (
+    KnowledgeFolder,
     KnowledgeItem,
     KnowledgeKind,
+    KnowledgeLabel,
     KnowledgeProposal,
     KnowledgeRevision,
     KnowledgeSummary,
+    LabelColour,
+    OrganizerNameTaken,
     ProposalOrigin,
     ProposalStatus,
+    new_knowledge_folder_id,
     new_knowledge_item_id,
+    new_knowledge_label_id,
     new_knowledge_proposal_id,
+    organizer_key,
+    organizer_name,
 )
 from ..domain.scope import (
     ClientContext,
@@ -36,16 +44,32 @@ from ..domain.scope import (
 )
 from .tables import (
     AccessAuditRow,
+    ClientKnowledgeFolderRow,
+    ClientKnowledgeItemFolderRow,
+    ClientKnowledgeItemLabelRow,
     ClientKnowledgeItemRow,
+    ClientKnowledgeLabelRow,
     ClientKnowledgeProposalRow,
     ClientKnowledgeRevisionRow,
     as_utc,
     utcnow,
 )
 
-__all__ = ["ClientKnowledgeRepository"]
+__all__ = ["KEEP_FOLDER", "ClientKnowledgeRepository"]
 
 _MAX_RESULTS = 200
+#: The most items one placement may move or label at once.
+_MAX_PLACED = 200
+
+
+class _KeepFolder:
+    """The placement leaves each item's folder as it is."""
+
+    def __repr__(self) -> str:
+        return "KEEP_FOLDER"
+
+
+KEEP_FOLDER: Final = _KeepFolder()
 
 
 def _client(scope: object) -> ClientContext:
@@ -129,11 +153,14 @@ class ClientKnowledgeRepository:
         client_id: str,
         kinds: Iterable[KnowledgeKind] | None,
         text: str | None,
+        *,
+        conditions: Sequence[Any] = (),
     ) -> list[KnowledgeItem]:
         stmt = select(ClientKnowledgeItemRow).where(
             ClientKnowledgeItemRow.organization_id == organization_id,
             ClientKnowledgeItemRow.client_id == client_id,
             ClientKnowledgeItemRow.status == "ACTIVE",
+            *conditions,
         )
         kind_values = [k.value for k in kinds] if kinds is not None else None
         if kind_values is not None:
@@ -157,11 +184,80 @@ class ClientKnowledgeRepository:
         *,
         kinds: Iterable[KnowledgeKind] | None = None,
         text: str | None = None,
+        folder_id: str | None = None,
+        unfiled: bool = False,
+        label_id: str | None = None,
     ) -> list[KnowledgeItem]:
-        """The client's approved knowledge. Needs a client-level grant."""
+        """The client's approved knowledge, with where people filed it. Needs a client-level grant.
+
+        ``folder_id`` keeps the items in that folder, ``unfiled`` those in none,
+        ``label_id`` those carrying that label. A folder or label of another
+        client matches nothing. Only this workspace read carries the folder and
+        labels: what a study reads (:meth:`for_study`) never does.
+        """
         scope = _client(scope)
         scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
-        return self._approved(scope.organization_id, scope.client_id, kinds, text)
+        filed = select(ClientKnowledgeItemFolderRow.item_id).where(
+            ClientKnowledgeItemFolderRow.client_id == scope.client_id
+        )
+        conditions: list[Any] = []
+        if folder_id is not None:
+            conditions.append(
+                ClientKnowledgeItemRow.item_id.in_(
+                    filed.where(ClientKnowledgeItemFolderRow.folder_id == folder_id)
+                )
+            )
+        if unfiled:
+            conditions.append(ClientKnowledgeItemRow.item_id.not_in(filed))
+        if label_id is not None:
+            conditions.append(
+                ClientKnowledgeItemRow.item_id.in_(
+                    select(ClientKnowledgeItemLabelRow.item_id).where(
+                        ClientKnowledgeItemLabelRow.client_id == scope.client_id,
+                        ClientKnowledgeItemLabelRow.label_id == label_id,
+                    )
+                )
+            )
+        found = self._approved(
+            scope.organization_id, scope.client_id, kinds, text, conditions=conditions
+        )
+        return self._with_placement(scope, found)
+
+    def _with_placement(
+        self, scope: ClientContext, items: list[KnowledgeItem]
+    ) -> list[KnowledgeItem]:
+        if not items:
+            return items
+        ids = [i.item_id for i in items]
+        folders = dict(
+            self._session.execute(
+                select(
+                    ClientKnowledgeItemFolderRow.item_id, ClientKnowledgeItemFolderRow.folder_id
+                ).where(
+                    ClientKnowledgeItemFolderRow.client_id == scope.client_id,
+                    ClientKnowledgeItemFolderRow.item_id.in_(ids),
+                )
+            ).all()
+        )
+        labels: dict[str, list[str]] = {}
+        for item_id, label in self._session.execute(
+            select(ClientKnowledgeItemLabelRow.item_id, ClientKnowledgeItemLabelRow.label_id)
+            .where(
+                ClientKnowledgeItemLabelRow.client_id == scope.client_id,
+                ClientKnowledgeItemLabelRow.item_id.in_(ids),
+            )
+            .order_by(ClientKnowledgeItemLabelRow.label_id)
+        ).all():
+            labels.setdefault(item_id, []).append(label)
+        return [
+            i.model_copy(
+                update={
+                    "folder_id": folders.get(i.item_id),
+                    "label_ids": tuple(labels.get(i.item_id, ())),
+                }
+            )
+            for i in items
+        ]
 
     def for_study(
         self,
@@ -274,6 +370,352 @@ class ClientKnowledgeRepository:
             pending_proposals=int(pending or 0),
             last_approved_at=as_utc(last[1]) if last[1] else None,
         )
+
+    # ----------------------------------------------------------- organization
+    #
+    # Folders and labels are the people's way of filing the client's knowledge
+    # (client-workspace D4). Whoever may propose knowledge may organize it; no
+    # change here writes a revision or moves the client's knowledge revision.
+    # Each change is audited.
+
+    def _audit(self, scope: ClientContext, action: str, payload: dict[str, Any]) -> None:
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                actor_id=scope.actor_id,
+                action=action,
+                reason="",
+                payload=payload,
+                request_id=scope.request_id,
+            )
+        )
+
+    def _active_counts(self, scope: ClientContext, column: Any, link: Any) -> dict[str, int]:
+        rows: Sequence[tuple[Any, int]] = self._session.execute(
+            select(column, func.count())
+            .select_from(link)
+            .join(ClientKnowledgeItemRow, ClientKnowledgeItemRow.item_id == link.item_id)
+            .where(link.client_id == scope.client_id, ClientKnowledgeItemRow.status == "ACTIVE")
+            .group_by(column)
+        ).tuples().all()
+        return {str(k): int(n) for k, n in rows}
+
+    def folders(self, scope: ClientContext) -> list[KnowledgeFolder]:
+        """The client's folders by name, each with how many of its active items it holds."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        rows = self._session.scalars(
+            select(ClientKnowledgeFolderRow).where(
+                ClientKnowledgeFolderRow.organization_id == scope.organization_id,
+                ClientKnowledgeFolderRow.client_id == scope.client_id,
+            )
+        ).all()
+        counts = self._active_counts(
+            scope, ClientKnowledgeItemFolderRow.folder_id, ClientKnowledgeItemFolderRow
+        )
+        return sorted(
+            (
+                KnowledgeFolder(
+                    folder_id=r.folder_id,
+                    client_id=r.client_id,
+                    name=r.name,
+                    item_count=counts.get(r.folder_id, 0),
+                )
+                for r in rows
+            ),
+            key=lambda f: f.name.casefold(),
+        )
+
+    def _folder_row(self, scope: ClientContext, folder_id: str) -> ClientKnowledgeFolderRow:
+        row = self._session.scalar(
+            select(ClientKnowledgeFolderRow).where(
+                ClientKnowledgeFolderRow.folder_id == folder_id,
+                ClientKnowledgeFolderRow.organization_id == scope.organization_id,
+                ClientKnowledgeFolderRow.client_id == scope.client_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_folder")
+        return row
+
+    def _name_free(self, scope: ClientContext, table: Any, key: str, own_id: str | None) -> None:
+        id_column = table.folder_id if table is ClientKnowledgeFolderRow else table.label_id
+        clash = self._session.scalar(
+            select(id_column).where(
+                table.client_id == scope.client_id,
+                table.name_key == key,
+                *([id_column != own_id] if own_id else []),
+            )
+        )
+        if clash is not None:
+            raise OrganizerNameTaken(key)
+
+    def create_folder(self, scope: ClientContext, *, name: str) -> KnowledgeFolder:
+        """A new, empty folder. ``OrganizerNameTaken`` when the client has one by that name."""
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        cleaned, key = organizer_name(name), organizer_key(name)
+        self._name_free(scope, ClientKnowledgeFolderRow, key, None)
+        row = ClientKnowledgeFolderRow(
+            folder_id=new_knowledge_folder_id(),
+            organization_id=scope.organization_id,
+            client_id=scope.client_id,
+            name=cleaned,
+            name_key=key,
+            created_by=scope.actor_id,
+            created_at=utcnow(),
+        )
+        self._session.add(row)
+        self._audit(
+            scope, "CLIENT_KNOWLEDGE_FOLDER_CREATED", {"folder_id": row.folder_id, "name": cleaned}
+        )
+        self._session.flush()
+        return KnowledgeFolder(folder_id=row.folder_id, client_id=row.client_id, name=row.name)
+
+    def rename_folder(self, scope: ClientContext, *, folder_id: str, name: str) -> KnowledgeFolder:
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._folder_row(scope, folder_id)
+        cleaned, key = organizer_name(name), organizer_key(name)
+        self._name_free(scope, ClientKnowledgeFolderRow, key, folder_id)
+        before = row.name
+        row.name, row.name_key = cleaned, key
+        self._audit(
+            scope,
+            "CLIENT_KNOWLEDGE_FOLDER_RENAMED",
+            {"folder_id": folder_id, "from": before, "to": cleaned},
+        )
+        self._session.flush()
+        return next(f for f in self.folders(scope) if f.folder_id == folder_id)
+
+    def delete_folder(self, scope: ClientContext, *, folder_id: str) -> None:
+        """Delete a folder. Its items stay, in no folder; nothing about them changes."""
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._folder_row(scope, folder_id)
+        self._session.execute(
+            delete(ClientKnowledgeItemFolderRow).where(
+                ClientKnowledgeItemFolderRow.folder_id == folder_id
+            )
+        )
+        self._audit(
+            scope, "CLIENT_KNOWLEDGE_FOLDER_DELETED", {"folder_id": folder_id, "name": row.name}
+        )
+        self._session.delete(row)
+        self._session.flush()
+
+    def labels(self, scope: ClientContext) -> list[KnowledgeLabel]:
+        """The client's labels by name, each with how many of its active items carry it."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        rows = self._session.scalars(
+            select(ClientKnowledgeLabelRow).where(
+                ClientKnowledgeLabelRow.organization_id == scope.organization_id,
+                ClientKnowledgeLabelRow.client_id == scope.client_id,
+            )
+        ).all()
+        counts = self._active_counts(
+            scope, ClientKnowledgeItemLabelRow.label_id, ClientKnowledgeItemLabelRow
+        )
+        return sorted(
+            (
+                KnowledgeLabel(
+                    label_id=r.label_id,
+                    client_id=r.client_id,
+                    name=r.name,
+                    colour=LabelColour(r.colour),
+                    item_count=counts.get(r.label_id, 0),
+                )
+                for r in rows
+            ),
+            key=lambda lb: lb.name.casefold(),
+        )
+
+    def _label_row(self, scope: ClientContext, label_id: str) -> ClientKnowledgeLabelRow:
+        row = self._session.scalar(
+            select(ClientKnowledgeLabelRow).where(
+                ClientKnowledgeLabelRow.label_id == label_id,
+                ClientKnowledgeLabelRow.organization_id == scope.organization_id,
+                ClientKnowledgeLabelRow.client_id == scope.client_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_label")
+        return row
+
+    def create_label(
+        self, scope: ClientContext, *, name: str, colour: LabelColour
+    ) -> KnowledgeLabel:
+        """A new label. ``OrganizerNameTaken`` when the client has one by that name."""
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        cleaned, key = organizer_name(name), organizer_key(name)
+        colour = LabelColour(colour)
+        self._name_free(scope, ClientKnowledgeLabelRow, key, None)
+        row = ClientKnowledgeLabelRow(
+            label_id=new_knowledge_label_id(),
+            organization_id=scope.organization_id,
+            client_id=scope.client_id,
+            name=cleaned,
+            name_key=key,
+            colour=colour.value,
+            created_by=scope.actor_id,
+            created_at=utcnow(),
+        )
+        self._session.add(row)
+        self._audit(
+            scope,
+            "CLIENT_KNOWLEDGE_LABEL_CREATED",
+            {"label_id": row.label_id, "name": cleaned, "colour": colour.value},
+        )
+        self._session.flush()
+        return KnowledgeLabel(
+            label_id=row.label_id, client_id=row.client_id, name=row.name, colour=colour
+        )
+
+    def update_label(
+        self,
+        scope: ClientContext,
+        *,
+        label_id: str,
+        name: str | None = None,
+        colour: LabelColour | None = None,
+    ) -> KnowledgeLabel:
+        """Rename a label, recolour it, or both."""
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._label_row(scope, label_id)
+        before = {"name": row.name, "colour": row.colour}
+        if name is not None:
+            cleaned, key = organizer_name(name), organizer_key(name)
+            self._name_free(scope, ClientKnowledgeLabelRow, key, label_id)
+            row.name, row.name_key = cleaned, key
+        if colour is not None:
+            row.colour = LabelColour(colour).value
+        self._audit(
+            scope,
+            "CLIENT_KNOWLEDGE_LABEL_CHANGED",
+            {"label_id": label_id, "from": before, "to": {"name": row.name, "colour": row.colour}},
+        )
+        self._session.flush()
+        return next(lb for lb in self.labels(scope) if lb.label_id == label_id)
+
+    def delete_label(self, scope: ClientContext, *, label_id: str) -> None:
+        """Delete a label; it comes off every item that carried it, and nothing else changes."""
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._label_row(scope, label_id)
+        self._session.execute(
+            delete(ClientKnowledgeItemLabelRow).where(
+                ClientKnowledgeItemLabelRow.label_id == label_id
+            )
+        )
+        self._audit(
+            scope, "CLIENT_KNOWLEDGE_LABEL_DELETED", {"label_id": label_id, "name": row.name}
+        )
+        self._session.delete(row)
+        self._session.flush()
+
+    def place(
+        self,
+        scope: ClientContext,
+        *,
+        item_ids: Sequence[str],
+        folder_id: str | _KeepFolder | None = KEEP_FOLDER,
+        add_labels: Sequence[str] = (),
+        remove_labels: Sequence[str] = (),
+    ) -> list[KnowledgeItem]:
+        """File items: into a folder (``None``: out of any), and labels on and off.
+
+        All or nothing: every item, the folder and every label must be this
+        client's, or nothing changes (``ScopeDenied``). A label both added and
+        removed is refused (``ValueError``). Writes no revision; the items'
+        ``modified_at`` does not move. Returns the items as they are filed now.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        ids = list(dict.fromkeys(item_ids))
+        if not ids:
+            raise ValueError("name at least one item")
+        if len(ids) > _MAX_PLACED:
+            raise ValueError(f"at most {_MAX_PLACED} items at once")
+        adding, removing = list(dict.fromkeys(add_labels)), list(dict.fromkeys(remove_labels))
+        if set(adding) & set(removing):
+            raise ValueError("a label cannot be added and removed at once")
+        found = set(
+            self._session.scalars(
+                select(ClientKnowledgeItemRow.item_id).where(
+                    ClientKnowledgeItemRow.organization_id == scope.organization_id,
+                    ClientKnowledgeItemRow.client_id == scope.client_id,
+                    ClientKnowledgeItemRow.item_id.in_(ids),
+                )
+            ).all()
+        )
+        if found != set(ids):
+            raise ScopeDenied("not found", reason="unknown_item")
+        if isinstance(folder_id, str):
+            self._folder_row(scope, folder_id)
+        for label in [*adding, *removing]:
+            self._label_row(scope, label)
+
+        if not isinstance(folder_id, _KeepFolder):
+            self._session.execute(
+                delete(ClientKnowledgeItemFolderRow).where(
+                    ClientKnowledgeItemFolderRow.client_id == scope.client_id,
+                    ClientKnowledgeItemFolderRow.item_id.in_(ids),
+                )
+            )
+            if folder_id is not None:
+                self._session.add_all(
+                    ClientKnowledgeItemFolderRow(
+                        item_id=i, folder_id=folder_id, client_id=scope.client_id
+                    )
+                    for i in ids
+                )
+        if removing:
+            self._session.execute(
+                delete(ClientKnowledgeItemLabelRow).where(
+                    ClientKnowledgeItemLabelRow.client_id == scope.client_id,
+                    ClientKnowledgeItemLabelRow.item_id.in_(ids),
+                    ClientKnowledgeItemLabelRow.label_id.in_(removing),
+                )
+            )
+        if adding:
+            have = set(
+                self._session.execute(
+                    select(
+                        ClientKnowledgeItemLabelRow.item_id, ClientKnowledgeItemLabelRow.label_id
+                    ).where(
+                        ClientKnowledgeItemLabelRow.client_id == scope.client_id,
+                        ClientKnowledgeItemLabelRow.item_id.in_(ids),
+                        ClientKnowledgeItemLabelRow.label_id.in_(adding),
+                    )
+                ).all()
+            )
+            self._session.add_all(
+                ClientKnowledgeItemLabelRow(item_id=i, label_id=lb, client_id=scope.client_id)
+                for i in ids
+                for lb in adding
+                if (i, lb) not in have
+            )
+        self._audit(
+            scope,
+            "CLIENT_KNOWLEDGE_ORGANIZED",
+            {
+                "item_ids": ids,
+                "folder_id": None if isinstance(folder_id, _KeepFolder) else folder_id,
+                "folder_changed": not isinstance(folder_id, _KeepFolder),
+                "add_labels": adding,
+                "remove_labels": removing,
+            },
+        )
+        self._session.flush()
+        rows = self._session.scalars(
+            select(ClientKnowledgeItemRow).where(ClientKnowledgeItemRow.item_id.in_(ids))
+        ).all()
+        by_id = {r.item_id: _item(r) for r in rows}
+        return self._with_placement(scope, [by_id[i] for i in ids])
 
     # -------------------------------------------------------------- proposals
 
