@@ -11,7 +11,9 @@ chunks:
   - "[x] P4d1. A population store in EU S3: a private bucket, an object written once and checked by hash, read by the one loader"
   - "[x] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, frozen to one run key per owner, base and definition"
   - "[x] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
-  - "[ ] P4d4. A researcher starts it and reads its outcome: the route, and target beside achieved on Společenská inteligence"
+  - "[x] P4d4a. The routes: start a materialization from a study and read its run; each child's target beside what was achieved in the registry"
+  - "[ ] P4d4b. Společenská inteligence shows the organization's children, target beside achieved, an unmet target said so"
+  - "[ ] P4d4c. The Run stage offers the study's client's children: a run started over one records it"
   - "[x] P4e1. The loader resolves and loads an owned child: base by its contract, child by its extension, the base's companions"
   - "[x] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
@@ -859,3 +861,30 @@ reproduced before the fix:
   the grounded fictional population's loader, and
   `test_the_composed_panel_source_reads_the_store_only_when_it_is_configured` covers the
   production composition.
+
+**P4d4, split (2026-10-13).** The route, the screen and the Run stage's choice of a child (which
+P4e2 left to "P4d4's screen") are three chunks: P4d4a the API, P4d4b Společenská inteligence,
+P4d4c the Run stage.
+
+**P4d4a, 2026-10-13** (`feature/population-materialize-route`).
+- `POST /studies/{study_id}/population/materializations {definition}` runs
+  `prepare_materialization` + `start_materialization`: 201 with the run, 200 when this study
+  already asked for the child. A definition that cannot become a child is 422
+  `materialization_refused` with the domain's reason; a LIVE that exists but cannot be resolved
+  is 409 `population_unavailable` (it was an unhandled error before). The owner is the scope's.
+- `GET …/materializations` and `…/{run_id}`: the study's runs and one run, found only through
+  the study (`materialization_run`, `materialization_runs`): the step's state, why it waits or
+  failed by name, and, once it has succeeded, the child with its target, what was achieved
+  and `target_met`.
+- `GET /population`: each owned child carries `materialized` (`child_outcome`: its field from
+  the stored extension, the outcome from the record it was registered with; nothing
+  reconstructed when the record has none).
+- `target_met(kind, target, achieved)` (`domain/population/materialized.py`): within
+  `TARGET_TOLERANCE` (binary 0.005, the crossing row; scale 0.01, two-decimal rounding), never
+  presumed. P4b's M04 (2.0 asked, 2.68 achieved) reads not met.
+- A run records its definition's kind in its metadata, so a reader needs no other lookup.
+- Tests: `test_population_api.py` (the routes, refusals by name, the study boundary, an
+  unresolvable LIVE, the registry's `materialized`), `test_population_materialized.py`
+  (`target_met`), `test_materialize_executor.py` (the run read through its study and the
+  child's outcome after the real worker).
+

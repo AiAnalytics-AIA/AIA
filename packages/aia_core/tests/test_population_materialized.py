@@ -309,3 +309,15 @@ def test_an_owned_child_is_never_a_shared_populations_version(world: dict) -> No
             at=AT,
         )
     assert refused.value.reason == "owned_version"
+
+
+def test_a_target_is_met_only_within_its_kinds_tolerance() -> None:
+    """P4d4: a target the derivation left unmet is never called met (P4b's M04)."""
+    from aia_core.domain.population import TARGET_TOLERANCE, MaterializedKind, target_met
+
+    scale, binary = MaterializedKind.SCALE_1_10, MaterializedKind.BINARY
+    assert not target_met(scale, 2.0, 2.68)  # the clip left the mean off target
+    assert target_met(scale, 6.2, 6.205)  # two-decimal rounding
+    assert target_met(binary, 0.4, 0.4002)  # the crossing row
+    assert not target_met(binary, 0.4, 0.41)
+    assert target_met(binary, 0.4, 0.4 + TARGET_TOLERANCE[binary] / 2)
