@@ -1757,3 +1757,58 @@ def sampled_population(session: Any) -> Any:
         return SampledPopulation(runtime=rt, population=loaded)
 
     return build
+
+
+@dataclass
+class HoldoutPopulation:
+    """A fictional population with the four things the holdout reads (7b): its fields, their
+    dictionary policy, the analysis weight and the columns."""
+
+    columns: dict[str, tuple[str | None, ...]]
+    weights: tuple[float, ...]
+    policy_rows: list[dict[str, str]]
+
+    @property
+    def fields(self) -> tuple[str, ...]:
+        return tuple(self.columns)
+
+    @property
+    def field_policy(self) -> Any:
+        from aia_core.domain.population.policy import build_field_policy
+
+        return build_field_policy(self.policy_rows, dictionary_sha256="a" * 64, weight_columns=())
+
+    @property
+    def analysis_weight(self) -> tuple[float, ...]:
+        return self.weights
+
+    def column(self, name: str) -> tuple[str | None, ...]:
+        return self.columns[name]
+
+
+@pytest.fixture
+def holdout_population() -> Any:
+    """Build a :class:`HoldoutPopulation` from ``{field: (block, evidence_status, cells)}``
+    and the weights (default 1.0 each)."""
+
+    def build(
+        spec: dict[str, tuple[str, str, tuple[str | None, ...]]],
+        weights: tuple[float, ...] | None = None,
+    ) -> HoldoutPopulation:
+        n = len(next(iter(spec.values()))[2])
+        rows = [
+            {
+                "field": name,
+                "block": block,
+                "source": "fictional",
+                "evidence_status": status,
+                "production_grade": "B",
+                "recommended_use": "PERSONA_OR_ANALYSIS_WITH_SCOPE",
+                "persona_eligible": "yes",
+            }
+            for name, (block, status, _) in spec.items()
+        ]
+        columns = {name: cells for name, (_, _, cells) in spec.items()}
+        return HoldoutPopulation(columns, weights or tuple(1.0 for _ in range(n)), rows)
+
+    return build
