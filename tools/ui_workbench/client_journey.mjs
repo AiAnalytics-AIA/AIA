@@ -157,15 +157,36 @@ try {
   await main.getByRole("row").filter({ hasText: names.item }).waitFor();
   checks.push("Deleting the folder and the label keeps the item");
 
-  // Profil: the record, and no field that saves nowhere.
+  // Profil: the details saved on the client and read back; a contact added and removed.
   await visit(`${clientPath}/profile`);
-  await page.getByRole("heading", { name: "Profil klienta" }).waitFor();
-  assert.equal(await main.getByRole("textbox").count(), 0);
-  checks.push("Profil shows the record and offers no field that saves nowhere");
+  const details = main.locator("form").filter({ has: page.getByRole("heading", { name: "Základní údaje" }) });
+  await details.waitFor();
+  const market = `Česko ${stamp}`;
+  await details.getByRole("textbox", { name: "Trh" }).fill(market);
+  await details.getByRole("button", { name: "Uložit profil" }).click();
+  await main.getByText(/^Změněno: Trh/).first().waitFor();
+  await page.reload();
+  await main.getByRole("textbox", { name: "Trh" }).waitFor();
+  assert.equal(await main.getByRole("textbox", { name: "Trh" }).inputValue(), market);
+  checks.push("Profil saves the client's details and reads them back after a reload");
+  const contacts = main.locator("section").filter({ has: page.getByRole("heading", { name: "Kontakty" }) });
+  const person = `Kontakt ${stamp}`;
+  await contacts.getByRole("button", { name: "Přidat kontakt" }).click();
+  await contacts.getByRole("textbox", { name: "Jméno" }).fill(person);
+  await contacts.getByRole("textbox", { name: "E-mail" }).fill(`${stamp}@klient.test`);
+  await contacts.getByRole("button", { name: "Uložit kontakt" }).click();
+  await contacts.getByRole("cell", { name: person, exact: true }).waitFor();
+  await contacts.getByRole("button", { name: `Odebrat kontakt ${person}` }).click();
+  await contacts.getByRole("cell", { name: person, exact: true }).waitFor({ state: "detached" });
+  await main.getByText(`Odebrán kontakt ${person}`).waitFor();
+  const history = main.locator("section").filter({ has: page.getByRole("heading", { name: "Historie profilu" }) });
+  assert(!(await history.innerText()).includes(`${stamp}@klient.test`), "the history names an e-mail");
+  checks.push("A contact is added and removed, and the history names it without its e-mail");
+  await measure("profile");
 
   const paid = writes.filter((w) => /\/(research\/runs|research\/agent-jobs|deep-research|budget|spend-confirm)/.test(w.path));
   assert.deepEqual(paid, [], `paid or budget writes: ${JSON.stringify(paid)}`);
-  checks.push(`Zero paid jobs; ${writes.length} writes, all to the client's knowledge`);
+  checks.push(`Zero paid jobs; ${writes.length} writes, all to the client's knowledge and profile`);
   assert.deepEqual(errors, [], `page errors: ${errors.join("; ")}`);
   assert.deepEqual(httpErrors, [], `HTTP errors: ${JSON.stringify(httpErrors)}`);
 } catch (e) {

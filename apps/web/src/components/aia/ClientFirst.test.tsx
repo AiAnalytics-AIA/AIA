@@ -254,18 +254,98 @@ describe("a client's workspace", () => {
     expect(screen.queryByRole("button", { name: "Přidat znalost" })).toBeNull();
   });
 
-  it("shows the client record on Profil and says the rest of the profile is not in AIA yet", async () => {
+  const EDITOR = { ...A, permissions: [...A.permissions, "EDIT_CLIENT_PROFILE"], self_approval_allowed: true, self_approval_source: "default" };
+  const PROFILE = {
+    short_code: "KA", industry: "Bankovnictví", market: "Česko", description: "",
+    contacts: [{ contact_id: "CON-1", client_id: "CLI-a", name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true }],
+    history: [{ action: "CLIENT_CONTACT_ADDED", actor_id: "USR-1", at: "2026-10-12T10:00:00Z", fields: [], contact_name: "Jana Nová" }],
+  };
+  const profileApi = (extra: Record<string, (body: unknown) => unknown> = {}) =>
+    api({
+      "GET /api/v1/clients/CLI-a": () => EDITOR,
+      "GET /api/v1/clients/CLI-a/profile": () => PROFILE,
+      "PUT /api/v1/clients/CLI-a/profile": (b) => ({ ...PROFILE, ...(b as object) }),
+      "POST /api/v1/clients/CLI-a/contacts": (b) => ({ contact_id: "CON-2", client_id: "CLI-a", ...(b as object) }),
+      "DELETE /api/v1/clients/CLI-a/contacts/CON-1": () => new Response(null, { status: 204 }),
+      "GET /api/v1/clients/CLI-a/knowledge": () => [
+        { item_id: "KNW-5", kind: "ENTITY", title: "Konkurent B", summary: "", content: { role: "competitor" }, revision: 1, modified_at: null, folder_id: null, label_ids: [] },
+        { item_id: "KNW-1", kind: "SOURCE", title: "Výroční zpráva", summary: "", content: {}, revision: 1, modified_at: null, folder_id: null, label_ids: [] },
+      ],
+      ...extra,
+    });
+
+  it("shows the client record on Profil and saves its details on the client", async () => {
     path = "/app/clients/CLI-a/profile";
-    api();
+    profileApi();
     render(inClient("CLI-a", <ProfileArea />));
     const record = (await screen.findByRole("heading", { name: "Klient" })).closest("section")!;
     expect(within(record).getByText("Klient A")).toBeTruthy();
     expect(within(record).getByText("Aktivní")).toBeTruthy();
-    expect(screen.getByText(/AIA zatím neeviduje/)).toBeTruthy();
-    // Nothing to type into: no field that would save nowhere.
-    expect(screen.queryByRole("textbox")).toBeNull();
     const tab = within(screen.getByRole("navigation", { name: "Oblasti klienta" })).getByRole("link", { name: "Profil" });
     expect(tab.getAttribute("aria-current")).toBe("page");
+
+    const details = (await screen.findByRole("heading", { name: "Základní údaje" })).closest("form")!;
+    const industry = within(details).getByRole("textbox", { name: "Odvětví" }) as HTMLInputElement;
+    expect(industry.value).toBe("Bankovnictví");
+    const save = within(details).getByRole("button", { name: "Uložit profil" }) as HTMLButtonElement;
+    // Nothing changed, nothing to save.
+    expect(save.disabled).toBe(true);
+    fireEvent.change(industry, { target: { value: "Pojišťovnictví" } });
+    fireEvent.click(save);
+    await waitFor(() => expect(called("PUT", "/api/v1/clients/CLI-a/profile")).toHaveLength(1));
+    expect(called("PUT", "/api/v1/clients/CLI-a/profile")[0].body).toEqual({ short_code: "KA", industry: "Pojišťovnictví", market: "Česko", description: "" });
+    // The history names the contact, and what the profile changed re-reads it.
+    expect(screen.getByText("Přidán kontakt Jana Nová")).toBeTruthy();
+    await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a/profile")).toHaveLength(2));
+  });
+
+  it("adds and removes a contact, and adds a competitor as the client's knowledge", async () => {
+    path = "/app/clients/CLI-a/profile";
+    profileApi();
+    render(inClient("CLI-a", <ProfileArea />));
+    const contacts = (await screen.findByRole("heading", { name: "Kontakty" })).closest("section")!;
+    expect(within(contacts).getByText("jana@klient.test")).toBeTruthy();
+    fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
+    fireEvent.change(within(contacts).getByRole("textbox", { name: "Jméno" }), { target: { value: "Petr" } });
+    fireEvent.click(within(contacts).getByRole("checkbox", { name: "Dostává výsledky" }));
+    fireEvent.click(within(contacts).getByRole("button", { name: "Uložit kontakt" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/contacts")).toHaveLength(1));
+    expect(called("POST", "/api/v1/clients/CLI-a/contacts")[0].body).toEqual({ name: "Petr", role: "", email: "", receives_reports: true });
+    fireEvent.click(within(contacts).getByRole("button", { name: "Odebrat kontakt Jana Nová" }));
+    await waitFor(() => expect(called("DELETE", "/api/v1/clients/CLI-a/contacts/CON-1")).toHaveLength(1));
+
+    const entities = screen.getByRole("heading", { name: "Značky a konkurenti" }).closest("section")!;
+    expect(await within(entities).findByText("Konkurent B")).toBeTruthy();
+    // A source is not an entity.
+    expect(within(entities).queryByText("Výroční zpráva")).toBeNull();
+    fireEvent.change(within(entities).getByRole("textbox", { name: "Název" }), { target: { value: "Naše značka" } });
+    fireEvent.change(within(entities).getByRole("combobox", { name: "Druh" }), { target: { value: "own_brand" } });
+    fireEvent.click(within(entities).getByRole("button", { name: "Přidat do Znalostí" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")).toHaveLength(1));
+    expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")[0].body).toMatchObject({ kind: "ENTITY", title: "Naše značka", content: { role: "own_brand" } });
+  });
+
+  it("offers the self-approval switch to an administrator and turns it off for this client", async () => {
+    path = "/app/clients/CLI-a/profile";
+    profileApi({ "PUT /api/v1/self-approval": () => ({}) });
+    render(inClient("CLI-a", <ProfileArea />));
+    const sw = await screen.findByRole("switch", { name: /Vlastní schvalování znalostí/ });
+    expect(sw.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(sw);
+    await waitFor(() => expect(calls.some((c) => c.method !== "GET" && c.url.includes("self-approval"))).toBe(true));
+    expect(calls.find((c) => c.method !== "GET" && c.url.includes("self-approval"))!.body).toEqual({ allowed: false, client_id: "CLI-a" });
+  });
+
+  it("shows the profile read-only to a person who may not change it", async () => {
+    path = "/app/clients/CLI-a/profile";
+    profileApi({ "GET /api/v1/clients/CLI-a": () => A, "GET /api/v1/workspace/me": () => ({ user_id: "USR-2", email: "b@example.test", organization_role: "MEMBER", may_administer: false }) });
+    render(inClient("CLI-a", <ProfileArea />));
+    const details = (await screen.findByRole("heading", { name: "Základní údaje" })).closest("form")!;
+    expect((within(details).getByRole("textbox", { name: "Odvětví" }) as HTMLInputElement).readOnly).toBe(true);
+    expect(screen.queryByRole("button", { name: "Uložit profil" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Přidat kontakt" })).toBeNull();
+    expect(screen.queryByRole("switch")).toBeNull();
+    expect(screen.getByText("Pravidlo mění správce organizace.")).toBeTruthy();
   });
 
   it("shows a client's research as a table: archived out of the default view, what each brought, two orders", async () => {

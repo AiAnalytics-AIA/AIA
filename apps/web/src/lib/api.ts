@@ -236,7 +236,17 @@ export type ClientWorkspace = {
   permissions: string[];
   /** Present on GET /clients/{id}; the overview's copy of the client carries none. */
   counts?: ClientCounts | null;
+  /** Whether a proposer may accept their own proposal here, and which level decided it. */
+  self_approval_allowed?: boolean | null;
+  self_approval_source?: string | null;
 };
+
+/** The client's profile (client-workspace C5): on its record, read by no model. Empty is not filled in. */
+export type ClientProfileFields = { short_code: string; industry: string; market: string; description: string };
+export type ClientContact = { contact_id: string; name: string; role: string; email: string; receives_reports: boolean };
+export type ContactWrite = Omit<ClientContact, "contact_id">;
+export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
+export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
 
 export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";
 
@@ -666,6 +676,15 @@ export const workspace = {
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
     request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q, folder: filing.folder, label: filing.label })}`),
+  profile: (clientId: string) => request<ClientProfile>("GET", `/api/v1/clients/${enc(clientId)}/profile`),
+  saveProfile: (clientId: string, fields: ClientProfileFields) =>
+    request<ClientProfile>("PUT", `/api/v1/clients/${enc(clientId)}/profile`, fields),
+  addContact: (clientId: string, contact: ContactWrite) =>
+    request<ClientContact>("POST", `/api/v1/clients/${enc(clientId)}/contacts`, contact),
+  changeContact: (clientId: string, contactId: string, contact: ContactWrite) =>
+    request<ClientContact>("PUT", `/api/v1/clients/${enc(clientId)}/contacts/${enc(contactId)}`, contact),
+  removeContact: (clientId: string, contactId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/contacts/${enc(contactId)}`),
   folders: (clientId: string) => request<KnowledgeFolder[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/folders`),
   createFolder: (clientId: string, name: string) =>
     request<KnowledgeFolder>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/folders`, { name }),
@@ -687,7 +706,7 @@ export const workspace = {
   proposals: (clientId: string, status?: Proposal["status"]) =>
     request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
   /** Add knowledge, or (with `item_id`) edit an item: a new revision, or a proposal where self-approval is off. */
-  propose: (clientId: string, body: { kind: string; title: string; summary?: string; item_id?: string }) =>
+  propose: (clientId: string, body: { kind: string; title: string; summary?: string; item_id?: string; content?: Record<string, unknown> }) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
   decide: (clientId: string, proposalId: string, approve: boolean, note = "") =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {

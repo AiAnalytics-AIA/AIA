@@ -6,7 +6,7 @@ chunks:
   - "[x] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
   - "[x] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
   - "[x] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
-  - "[ ] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
+  - "[x] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
   - "[ ] C8. Data area: datasets with column check, personal-data columns dropped, ownership and licence; use in a study says V AIA zatím není (needs lifecycle K2)"
@@ -74,7 +74,7 @@ The rules between the two:
 | D2 | **Folders are per client.** No organization-wide template. | Owner, 2026-10-13 |
 | D3 | An item is in **at most one folder** and has **any number of labels**; no folder means *Bez složky*. Labels are per client, with a colour from a closed set of tokens. | Drawn in the design; not objected to. Confirm in the C3 review |
 | D4 | **Folders and labels are organization, not knowledge.** AI does not see them, changing them writes no knowledge revision and does not advance `context_revision`, and each change is audited. A proposal may carry a suggested folder and labels, applied when it is accepted. | This plan |
-| D5 | **Profile fields live on the client record** (`clients`), not as knowledge items; brands and competitors are kept as ENTITY items so studies can use them. | Proposed in the design; **open**, owner to confirm before C5 |
+| D5 | **Profile fields live on the client record** (`clients`), not as knowledge items; brands and competitors are kept as ENTITY items so studies can use them. | **Decided** by the owner, 2026-10-13 ("profile on the client record; start C5") |
 | D6 | Buttons say what is decided, never a bare *Schválit*: *Přijmout do znalostí*, *Upravit a přijmout*, *Zamítnout*. This follows the lifecycle plan's review interface ("Avoid an unqualified Approve label"). The canvas's Ke schválení artboard is updated in C6. | Lifecycle plan § Acceptance actions |
 | D7 | Retiring never deletes. A retired item stays in history and in the studies that used it, and new studies do not see it. | Lifecycle plan § Corrections and lifecycle |
 | D8 | Using a client dataset in a study is not built here. The Data area says *V AIA zatím není* where a person would expect it. | ADR 0018's rule for what AIA does not have |
@@ -262,21 +262,51 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   - a reader without the right to propose.
 - `ClientFirst.test.tsx`: updated for the new controls.
 
-### C5. Profile
-- **Depends on:** D5 being confirmed first.
-- **Migration:** `clients` gains short code, industry, market, description and research language.
-  `client_contacts` holds name, role, e-mail and whether they receive reports; AI never sees
-  contacts.
-- **Brands and competitors:** written as ENTITY items through the repository.
-- **Self-approval:** `allow_self_approval` (`domain/scope.py:541`) becomes a switch on the
-  profile, behind the same permission Settings uses for it. Status is shown and stays the
-  administrator's (`routers/scope.py:342`).
-- **Profile history:** read from the audit.
+### C5. Profile (landed)
+- **Decided:** D5, by the owner on 2026-10-13.
+- **Domain:** `domain/client_profile.py`.
+  - `ClientProfile`: short code (16), industry (120), market (120), description (4000). Empty
+    means "not filled in". One-line fields are trimmed and collapsed.
+  - `ContactDraft` / `ClientContact`: a name is required, an e-mail is checked if given.
+  - `ClientPermission.EDIT_CLIENT_PROFILE`, held by every member (ADR 0019).
+- **Migration** `a8c0e2f4b6d1`:
+  - `clients` gains `short_code`, `industry`, `market`, `description`, each `server_default ''`;
+  - `client_contacts` is new, cascading with its client.
+  - Checked on PostgreSQL 16: upgrade, downgrade, re-upgrade.
+  - *Research language* from the original chunk text is **not** added: nothing would read it yet,
+    and a field nobody reads is a guess waiting to be believed.
+- **Repository:** `ClientProfileRepository` is the only reader and writer of the contacts and
+  the profile columns (`make layer_check`, two new rules). Every change is audited, and the
+  profile's history is read back from the audit. A contact's history entry names the person,
+  never their e-mail. Only a real change writes history.
+- **Routes:** `GET`/`PUT /clients/{id}/profile` (the profile, its contacts, its history),
+  `POST /clients/{id}/contacts`, `PUT`/`DELETE /clients/{id}/contacts/{contact_id}`.
+  `ClientWorkspace` gains `self_approval_allowed` and `self_approval_source`.
+- **Brands and competitors:** written as ENTITY knowledge items with `content.role`
+  (`own_brand` / `competitor`) through the existing propose route. Where independent review is
+  on, the addition waits, and the page says so.
+- **Self-approval:** a switch on Profil for a person who may administer. It calls the same
+  `PUT /self-approval` Settings uses, so the permission is the same. Everyone else sees the
+  rule and who changes it. Status stays the administrator's.
 - **Tests:**
-  - contacts never appear in any payload built for a model. Assert it on the study context the
-    research agents freeze (`domain/research_agents.py`);
-  - a member without the permission cannot change self-approval;
-  - archive and status are unchanged.
+  - `test_client_profile.py`:
+    - trim and bounds;
+    - contact validation;
+    - a profile change touches neither name, status nor the self-approval rule;
+    - contacts are per client and their history holds no e-mail;
+    - the permission is checked;
+    - `context_snapshot` over `for_study` carries no contact.
+  - `test_client_api.py`: the profile with its history, contacts, the self-approval fields.
+  - `test_self_approval_api.py::test_a_study_lead_cannot_configure_or_read_it` already pins
+    who may change the rule.
+  - `ClientFirst.test.tsx`, four Profil tests:
+    - saving the details;
+    - adding and removing a contact, and adding a competitor;
+    - the administrator's switch;
+    - the read-only view.
+  - `client_journey.mjs`:
+    - the details are saved and read back after a reload;
+    - a contact is added and removed, and the history shows no e-mail.
 
 ### C6. Review queue
 - **Depends on:** lifecycle K3.
@@ -410,6 +440,9 @@ the docs PR after each chunk merges:
   - `routers/workspace` gains the folder, label and placement routes (C3) and the profile
     routes (C5);
   - `components/aia/clients/` gains the library, review, intake and profile screens;
+  - C5: `domain/client_profile.py`, `infrastructure/client_profile_repository.py` (the only
+    reader and writer of `client_contacts` and the profile columns of `clients`),
+    `ClientPermission.EDIT_CLIENT_PROFILE`, and `ClientWorkspace.self_approval_*`;
   - `ClientKnowledgeRepository` stays the only reader and writer, now of folders and labels too.
 - **`ARCHITECTURE.md`:** folders and labels are organization, not knowledge (D4); AI never
   sees contacts (C5).
