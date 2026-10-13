@@ -101,7 +101,11 @@ apps/
                             18 subpanels as filters, reading no row; POST /population/audience-preview:
                             what filters select in LIVE and whether n can be drawn, counts only,
                             503 without AIA_POPULATION_ASSET_ROOT, the API's one population read;
-                            an owned child listed and readable only within its organization)
+                            an owned child listed and readable only within its organization, with its
+                            materialized outcome: target beside achieved, target_met never presumed),
+                            materialize (POST/GET /studies/{id}/population/materializations: a
+                            client's dimension materialized from a study, refused by name (422), an
+                            unresolvable LIVE 409; the study's runs and each child's outcome)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -166,7 +170,9 @@ apps/
                             The audience step's factor editor, feasibility preview and built-in
                             subpanels come from AIA's population (the two /population audience
                             routes; without them the step says why); special panels, own audiences
-                            and panel factors say "V AIA zatím není" where they are met
+                            and panel factors say "V AIA zatím není" where they are met.
+                            The Run stage offers the study's client's materialized children
+                            ("Populace běhu"; LIVE by default) and sends the one chosen
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
@@ -175,7 +181,10 @@ apps/
                             origin (fictional, modelled, unknown -- never fieldwork), the one
                             every screen's label uses
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
-                            labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
+                            labelOf, shortSha); read-only. children / clientChildren / sharedVersions /
+                            targetVerdict / outcomeValue: an organization's materialized children,
+                            listed on their own with target beside achieved, unknown never met.
+                            components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
                             runLabels (a past run's data, report, reach: unknown never good),
@@ -438,7 +447,8 @@ packages/aia_core/src/aia_core/
       materialized.py       A materialized dimension (P4): the hash-pinned contract extension, the M3
                             field policy (modelled; never measured, never weighting),
                             check_child_version; a child is owned by one organization and never a
-                            shared population's version (OwnedVersionNotShared)
+                            shared population's version (OwnedVersionNotShared); target_met within
+                            TARGET_TOLERANCE (binary 0.005, scale 0.01), never presumed
       derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
                             refuses a dimension no predictor varies for (no_varying_predictor)
       definition.py         DimensionDefinition: the K5 contract as a type (kind, target with its
@@ -561,7 +571,9 @@ packages/aia_core/src/aia_core/
                             LIVE's kept policy (owner from the scope, base, definition);
                             start_materialization: a population_materialize run under the study's
                             population project (owner study_population); child_key, and the run's
-                            key within the study
+                            key within the study; materialization_run / materialization_runs, found
+                            only through the study; child_outcome: a child's dimension and what it
+                            reached, from its stored extension and registration record
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
