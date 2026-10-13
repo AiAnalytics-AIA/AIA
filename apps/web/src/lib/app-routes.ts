@@ -7,7 +7,7 @@ import { type StepKey, stepSlug } from "@/research/steps";
 
 const e = encodeURIComponent;
 
-export type ClientArea = "overview" | "research" | "simulations" | "knowledge" | "data";
+export type ClientArea = "overview" | "research" | "simulations" | "knowledge" | "data" | "profile";
 
 export const appRoutes = {
   home: () => "/app/clients",

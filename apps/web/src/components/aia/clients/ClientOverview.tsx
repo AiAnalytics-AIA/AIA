@@ -1,8 +1,10 @@
 "use client";
 
-// Přehled: what a researcher needs to continue their work for this client --
-// what is active and where it stands, recent outputs, the state of the client's
-// knowledge, and what waits for their approval.
+// Přehled: what a researcher needs to continue their work for this client
+// (client-workspace C10) -- first what waits on a person's decision, then the
+// work in progress, what changed in the client's knowledge, recent outputs, and
+// the knowledge at a glance with what in it wants attention (unchanged for a
+// year, in no folder), each a link to the view that shows it.
 
 import Link from "next/link";
 
@@ -59,10 +61,14 @@ const SECTION_COUNTS: [string, string[]][] = [
   ["audiences", ["AUDIENCE"]],
 ];
 
+const knowledgeView = (clientId: string, view: "review" | "unfiled" | "old") => `${appRoutes.area(clientId, "knowledge")}?view=${view}`;
+
 function Context({ clientId, o }: { clientId: string; o: Overview }) {
   if (!o.knowledge) return <p className="text-sm text-ink-muted">{t("aia.overview.noKnowledgeAccess")}</p>;
   const k = o.knowledge;
   const count = (kinds: string[]) => kinds.reduce((n, kind) => n + (k.items_by_kind[kind] ?? 0), 0);
+  const stale = k.stale_items ?? 0;
+  const unfiled = k.unfiled_items ?? 0;
   return (
     <>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -81,10 +87,80 @@ function Context({ clientId, o }: { clientId: string; o: Overview }) {
         {tv("aia.overview.revision", { n: k.context_revision })} ·{" "}
         {k.last_approved_at ? tv("aia.overview.contextUpdated", { when: relative(k.last_approved_at) ?? "" }) : t("aia.overview.contextNever")}
       </p>
+      <ul className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-[13px]">
+        {stale ? (
+          <li>
+            <Link href={knowledgeView(clientId, "old")} className="text-status-you-ink underline-offset-2 hover:underline">{tv("aia.overview.stale", { n: stale })}</Link>
+          </li>
+        ) : null}
+        {unfiled ? (
+          <li>
+            <Link href={knowledgeView(clientId, "unfiled")} className="text-ink-muted underline-offset-2 hover:underline">{tv("aia.overview.unfiled", { n: unfiled })}</Link>
+          </li>
+        ) : null}
+        {!stale && !unfiled ? <li className="text-ink-faint">{t("aia.overview.healthAll")}</li> : null}
+      </ul>
       <Link href={appRoutes.area(clientId, "knowledge")} className="mt-3 inline-block text-sm font-medium text-signal underline">
         {t("aia.overview.openKnowledge")}
       </Link>
     </>
+  );
+}
+
+/** What stands until someone decides it: proposals for the client's knowledge, studies in review. */
+function YourTurn({ clientId, o }: { clientId: string; o: Overview }) {
+  const waiting = o.knowledge?.pending_proposals ?? 0;
+  const inReview = o.active.filter((s) => s.status === "IN_REVIEW");
+  if (!waiting && !inReview.length) return <Empty>{t("aia.overview.youEmpty")}</Empty>;
+  return (
+    <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
+      {waiting ? (
+        <li className="flex flex-wrap items-start gap-3 px-5 py-3">
+          <Chip tone="you">{t("aia.library.views.review")}</Chip>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium">{tv("aia.overview.youProposals", { n: waiting })}</span>
+            <span className="block text-sm text-ink-muted">
+              {o.pending.slice(0, 3).map((p) => p.title).join(" · ")}
+              {waiting > 3 ? ` ${tv("aia.overview.youProposalsMore", { n: waiting - 3 })}` : ""}
+            </span>
+          </span>
+          <Link href={knowledgeView(clientId, "review")} className="text-sm font-medium text-signal">{t("aia.overview.review")}</Link>
+        </li>
+      ) : null}
+      {inReview.map((s) => (
+        <li key={s.study_id}>
+          <Link href={studyHref(clientId, s)} className="flex flex-wrap items-center gap-3 px-5 py-3 no-underline hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring">
+            <Chip tone="you">{t("aia.overview.youReview")}</Chip>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-medium text-ink">{s.name}</span>
+              <span className="block text-sm text-ink-muted">{studyWhere(s)}</span>
+            </span>
+            <span className="text-sm font-medium text-signal">{t("aia.overview.continue")}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function Changes({ clientId, o }: { clientId: string; o: Overview }) {
+  const changes = o.recent_changes ?? [];
+  if (!changes.length) return <Empty>{t("aia.overview.changesEmpty")}</Empty>;
+  return (
+    <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
+      {changes.map((c) => (
+        <li key={`${c.item_id}@${c.revision}`} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3">
+          <span className="min-w-0 flex-1 font-medium">{c.title}</span>
+          <span className="text-xs text-ink-muted">
+            {t(`aia.overview.changeOrigin.${c.origin}`)} · {tv("aia.overview.changeRevision", { n: c.revision })}
+          </span>
+          <span className="w-24 text-right text-xs text-ink-faint">{relative(c.at)}</span>
+        </li>
+      ))}
+      <li className="px-5 py-2">
+        <Link href={appRoutes.area(clientId, "knowledge")} className="text-sm font-medium text-signal">{t("aia.overview.openKnowledge")}</Link>
+      </li>
+    </ul>
   );
 }
 
@@ -97,10 +173,20 @@ export function ClientOverview() {
         {(o) => (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
             <div className="flex min-w-0 flex-col gap-6">
+              <section aria-labelledby="ov-you">
+                <h2 id="ov-you" className="mb-3 text-base font-semibold">{t("aia.overview.youTitle")}</h2>
+                <YourTurn clientId={client.client_id} o={o} />
+              </section>
               <section aria-labelledby="ov-active">
                 <h2 id="ov-active" className="mb-3 text-base font-semibold">{t("aia.overview.activeTitle")}</h2>
                 <Active clientId={client.client_id} list={o.active} />
               </section>
+              {o.knowledge ? (
+                <section aria-labelledby="ov-changes">
+                  <h2 id="ov-changes" className="mb-3 text-base font-semibold">{t("aia.overview.changesTitle")}</h2>
+                  <Changes clientId={client.client_id} o={o} />
+                </section>
+              ) : null}
               <section aria-labelledby="ov-outputs">
                 <h2 id="ov-outputs" className="mb-3 text-base font-semibold">{t("aia.overview.outputsTitle")}</h2>
                 {o.recent_outputs.length ? (
@@ -125,26 +211,6 @@ export function ClientOverview() {
                   <Context clientId={client.client_id} o={o} />
                 </div>
               </section>
-              {o.knowledge ? (
-                <section className={CARD} aria-labelledby="ov-pending">
-                  <h2 id="ov-pending" className="text-base font-semibold">{t("aia.overview.pendingTitle")}</h2>
-                  {o.pending.length ? (
-                    <ul className="mt-3 flex flex-col gap-2 text-sm">
-                      {o.pending.map((p) => (
-                        <li key={p.proposal_id} className="flex items-start gap-2">
-                          <Chip tone="you">{t(`aia.knowledge.kinds.${p.kind}`)}</Chip>
-                          <span className="min-w-0 flex-1">
-                            <span className="block">{p.title}</span>
-                            {p.study_name ? <span className="block text-xs text-ink-faint">{tv("aia.knowledge.fromStudy", { name: p.study_name })}</span> : null}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-2 text-sm text-ink-muted">{t("aia.overview.pendingEmpty")}</p>
-                  )}
-                </section>
-              ) : null}
             </div>
           </div>
         )}

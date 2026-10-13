@@ -204,6 +204,8 @@ export type WorkspaceStudy = {
   content_state: ContentState;
   created_at: string | null;
   modified_at: string | null;
+  /** On the studies list, for a caller who may read the client's knowledge: what this study proposed to it. */
+  knowledge?: { approved: number; proposed: number; rejected: number } | null;
 };
 
 export type ClientCard = {
@@ -217,6 +219,14 @@ export type ClientCard = {
   modified_at: string | null;
 };
 
+/** What a client's tabs count; the knowledge counts are null when the caller may not read them. */
+export type ClientCounts = {
+  research: number;
+  simulations: number;
+  pending_proposals: number | null;
+  datasets: number | null;
+};
+
 export type ClientWorkspace = {
   client_id: string;
   name: string;
@@ -224,7 +234,19 @@ export type ClientWorkspace = {
   status: string;
   your_role: string | null;
   permissions: string[];
+  /** Present on GET /clients/{id}; the overview's copy of the client carries none. */
+  counts?: ClientCounts | null;
+  /** Whether a proposer may accept their own proposal here, and which level decided it. */
+  self_approval_allowed?: boolean | null;
+  self_approval_source?: string | null;
 };
+
+/** The client's profile (client-workspace C5): on its record, read by no model. Empty is not filled in. */
+export type ClientProfileFields = { short_code: string; industry: string; market: string; description: string };
+export type ClientContact = { contact_id: string; name: string; role: string; email: string; receives_reports: boolean };
+export type ContactWrite = Omit<ClientContact, "contact_id">;
+export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
+export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
 
 export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";
 
@@ -236,6 +258,28 @@ export type KnowledgeItem = {
   content: Record<string, unknown>;
   revision: number;
   modified_at: string | null;
+  /** Where people filed it: organization, not knowledge (no model sees it). */
+  folder_id?: string | null;
+  label_ids?: string[];
+};
+
+export type LabelColour = "BLUE" | "TEAL" | "GREEN" | "ORANGE" | "VIOLET" | "SLATE";
+export const LABEL_COLOURS: readonly LabelColour[] = ["BLUE", "TEAL", "GREEN", "ORANGE", "VIOLET", "SLATE"];
+export type KnowledgeFolder = { folder_id: string; name: string; item_count: number };
+export type KnowledgeLabel = { label_id: string; name: string; colour: LabelColour; item_count: number };
+/** Which items to show: a folder ("unfiled": in none) and a label, beside section and search. */
+export type KnowledgeFiling = { folder?: string; label?: string };
+/** `folder_id` left out keeps each item's folder; null takes the items out of any. */
+export type Placement = { item_ids: string[]; folder_id?: string | null; add_labels?: string[]; remove_labels?: string[] };
+
+export type KnowledgeRevision = {
+  revision: number;
+  context_revision: number;
+  title: string;
+  summary: string;
+  provenance: Record<string, unknown>;
+  approved_by: string;
+  approved_at: string | null;
 };
 
 export type Proposal = {
@@ -262,7 +306,13 @@ export type KnowledgeSummary = {
   items_by_kind: Record<string, number>;
   pending_proposals: number;
   last_approved_at: string | null;
+  /** Active items unchanged for over a year, and active items in no folder. */
+  stale_items?: number;
+  unfiled_items?: number;
 };
+
+/** One recent revision of the client's knowledge: a study's finding, a person's writing, or a decided proposal. */
+export type KnowledgeChange = { item_id: string; title: string; revision: number; origin: "STUDY" | "PERSON" | "PROPOSAL"; at: string | null };
 
 export type OutputItem = {
   artifact_id: string;
@@ -281,6 +331,7 @@ export type ClientOverview = {
   recent_outputs: OutputItem[];
   knowledge: KnowledgeSummary | null;
   pending: Proposal[];
+  recent_changes?: KnowledgeChange[];
 };
 
 export type StudyWorkspace = {
@@ -623,11 +674,39 @@ export const workspace = {
     request<MemoryReused>("POST", `/api/v1/clients/${enc(clientId)}/memory/reuse`, body),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
-  knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
-    request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q })}`),
+  knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
+    request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q, folder: filing.folder, label: filing.label })}`),
+  profile: (clientId: string) => request<ClientProfile>("GET", `/api/v1/clients/${enc(clientId)}/profile`),
+  saveProfile: (clientId: string, fields: ClientProfileFields) =>
+    request<ClientProfile>("PUT", `/api/v1/clients/${enc(clientId)}/profile`, fields),
+  addContact: (clientId: string, contact: ContactWrite) =>
+    request<ClientContact>("POST", `/api/v1/clients/${enc(clientId)}/contacts`, contact),
+  changeContact: (clientId: string, contactId: string, contact: ContactWrite) =>
+    request<ClientContact>("PUT", `/api/v1/clients/${enc(clientId)}/contacts/${enc(contactId)}`, contact),
+  removeContact: (clientId: string, contactId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/contacts/${enc(contactId)}`),
+  folders: (clientId: string) => request<KnowledgeFolder[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/folders`),
+  createFolder: (clientId: string, name: string) =>
+    request<KnowledgeFolder>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/folders`, { name }),
+  renameFolder: (clientId: string, folderId: string, name: string) =>
+    request<KnowledgeFolder>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/folders/${enc(folderId)}`, { name }),
+  deleteFolder: (clientId: string, folderId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/knowledge/folders/${enc(folderId)}`),
+  labels: (clientId: string) => request<KnowledgeLabel[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/labels`),
+  createLabel: (clientId: string, name: string, colour: LabelColour) =>
+    request<KnowledgeLabel>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/labels`, { name, colour }),
+  changeLabel: (clientId: string, labelId: string, change: { name?: string; colour?: LabelColour }) =>
+    request<KnowledgeLabel>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/labels/${enc(labelId)}`, change),
+  deleteLabel: (clientId: string, labelId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/knowledge/labels/${enc(labelId)}`),
+  place: (clientId: string, placement: Placement) =>
+    request<KnowledgeItem[]>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/placement`, placement),
+  revisions: (clientId: string, itemId: string) =>
+    request<KnowledgeRevision[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/items/${enc(itemId)}/revisions`),
   proposals: (clientId: string, status?: Proposal["status"]) =>
     request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
-  propose: (clientId: string, body: { kind: string; title: string; summary?: string }) =>
+  /** Add knowledge, or (with `item_id`) edit an item: a new revision, or a proposal where self-approval is off. */
+  propose: (clientId: string, body: { kind: string; title: string; summary?: string; item_id?: string; content?: Record<string, unknown> }) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
   decide: (clientId: string, proposalId: string, approve: boolean, note = "") =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {

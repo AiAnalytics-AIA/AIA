@@ -48,7 +48,7 @@ const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.js
 const { client, study } = fixtures.persona;
 const clientPath = `/app/clients/${client}`;
 const studyPath = `${clientPath}/research/${study}`;
-const routes = ["/app/clients", clientPath, ...["research", "simulations", "knowledge", "data"].map(s => `${clientPath}/${s}`), "/app/intelligence", "/app/memory", "/app/settings", ...["brief", "plan", "questionnaire", "audience", "dimensions", "run", "progress", "results"].map(s => `${studyPath}/${s}`)];
+const routes = ["/app/clients", clientPath, ...["research", "simulations", "knowledge", "data", "profile"].map(s => `${clientPath}/${s}`), "/app/intelligence", "/app/memory", "/app/settings", ...["brief", "plan", "questionnaire", "audience", "dimensions", "run", "progress", "results"].map(s => `${studyPath}/${s}`)];
 const visit = async path => {
   await page.goto(base + path);
   await page.locator("main h1, header h1").waitFor();

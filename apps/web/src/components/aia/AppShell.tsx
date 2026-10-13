@@ -19,7 +19,11 @@ import { signOut } from "@/lib/session";
 import { Icon, type IconName } from "../rehome/icons";
 
 export type Crumb = { label: string; href?: string };
-export type Tab = { key: string; label: string; href: string; active: boolean };
+/**
+ * A tab, optionally with a count: `countLabel` says it in words for a screen reader
+ * ("3 čekají na schválení"), `attention` marks a count that waits on a person.
+ */
+export type Tab = { key: string; label: string; href: string; active: boolean; count?: number | null; countLabel?: string; attention?: boolean };
 /** The client a page belongs to: named on the sidebar, its accent across the header. */
 export type ShellClient = { id: string; name: string };
 
@@ -39,6 +43,7 @@ const AREA_LOOK: Record<ClientArea, { icon: IconName; on: string; off: string; e
   simulations: { icon: "simulation", on: "bg-hue-orange", off: "bg-hue-orange/12 text-hue-orange", edge: "border-hue-orange" },
   knowledge: { icon: "knowledge", on: "bg-hue-violet", off: "bg-hue-violet/12 text-hue-violet", edge: "border-hue-violet" },
   data: { icon: "data", on: "bg-hue-green", off: "bg-hue-green/12 text-hue-green", edge: "border-hue-green" },
+  profile: { icon: "client", on: "bg-hue-slate", off: "bg-hue-slate/12 text-hue-slate", edge: "border-hue-slate" },
 };
 
 // The six client accents of the design system; a client keeps the same one wherever it is drawn.
@@ -269,6 +274,15 @@ export function AppShell({
                         </span>
                       ) : null}
                       {tab.label}
+                      {tab.count != null && tab.count > 0 ? (
+                        <span
+                          aria-hidden="true"
+                          className={`ml-0.5 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-pill px-1.5 font-mono text-[11px] font-semibold leading-4 ${tab.attention ? "bg-status-you text-ink" : "bg-surface-sunken text-ink-muted"}`}
+                        >
+                          {tab.count}
+                        </span>
+                      ) : null}
+                      {tab.count != null && tab.count > 0 && tab.countLabel ? <span className="sr-only">, {tab.countLabel}</span> : null}
                     </Link>
                   );
                 })}

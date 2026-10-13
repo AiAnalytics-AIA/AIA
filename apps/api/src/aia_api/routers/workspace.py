@@ -17,7 +17,7 @@ import base64
 import binascii
 import re
 import unicodedata
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
@@ -27,12 +27,17 @@ from aia_core.application.project_memory import (
     search_client_studies,
 )
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
+from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
+    KnowledgeFolder,
     KnowledgeItem,
     KnowledgeKind,
+    KnowledgeLabel,
     KnowledgeProposal,
+    LabelColour,
+    OrganizerNameTaken,
     ProposalStatus,
 )
 from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
@@ -54,7 +59,11 @@ from aia_core.domain.workspace import (
     WorkspaceRejected,
 )
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
-from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.client_knowledge_repository import (
+    KEEP_FOLDER,
+    ClientKnowledgeRepository,
+)
+from aia_core.infrastructure.client_profile_repository import ClientProfileRepository
 from aia_core.infrastructure.questionnaire_file import (
     TEMPLATE_FILENAME,
     import_questionnaire,
@@ -67,7 +76,7 @@ from aia_core.infrastructure.study_workspace_repository import (
     WorkspaceConflict,
 )
 from fastapi import APIRouter, HTTPException, Path, Query, Response, status
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..dependencies import (
     ArtifactStoreDep,
@@ -109,6 +118,16 @@ OPEN_STATUSES = (StudyStatus.DRAFT, StudyStatus.ACTIVE, StudyStatus.IN_REVIEW)
 # --------------------------------------------------------------------------- #
 
 
+class StudyKnowledgeCounts(BaseModel):
+    """What one study proposed to the client's knowledge: accepted, waiting, turned down."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approved: int = 0
+    proposed: int = 0
+    rejected: int = 0
+
+
 class WorkspaceStudy(BaseModel):
     """A research or a simulation, as the client workspace lists it."""
 
@@ -127,6 +146,8 @@ class WorkspaceStudy(BaseModel):
     content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
+    #: Only on the studies list, and only for a caller who may read the client's knowledge.
+    knowledge: StudyKnowledgeCounts | None = None
 
 
 class MemoryFieldMatch(BaseModel):
@@ -166,6 +187,21 @@ class ClientCard(BaseModel):
     modified_at: datetime | None = None
 
 
+class ClientCounts(BaseModel):
+    """What the client's tabs count: open studies, and knowledge waiting or held.
+
+    Archived studies are not counted. The knowledge counts are null for a caller
+    who may not read the client's knowledge: unknown, never zero.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    research: int
+    simulations: int
+    pending_proposals: int | None
+    datasets: int | None
+
+
 class ClientWorkspace(BaseModel):
     """The client a workspace is about, and what the caller may do in it."""
 
@@ -177,6 +213,11 @@ class ClientWorkspace(BaseModel):
     status: str
     your_role: str | None
     permissions: list[str]
+    counts: ClientCounts | None = None
+    #: Whether a proposer may accept their own knowledge proposal here, and which level
+    #: decided it (default, organization, client). Set from Settings or the profile.
+    self_approval_allowed: bool | None = None
+    self_approval_source: str | None = None
 
 
 class OutputItem(BaseModel):
@@ -205,6 +246,80 @@ class KnowledgeItemResponse(BaseModel):
     content: dict[str, Any]
     revision: int
     modified_at: datetime | None = None
+    #: Where people filed it (client-workspace C3); not part of the knowledge itself.
+    folder_id: str | None = None
+    label_ids: list[str] = Field(default_factory=list)
+
+
+class KnowledgeFolderResponse(BaseModel):
+    """A folder of the client's knowledge and how many active items it holds."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    folder_id: str
+    name: str
+    item_count: int
+
+
+class KnowledgeLabelResponse(BaseModel):
+    """A label of the client's knowledge and how many active items carry it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    label_id: str
+    name: str
+    colour: LabelColour
+    item_count: int
+
+
+class FolderWrite(BaseModel):
+    """A folder's name: trimmed, at most 80 characters, unique within the client."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=200)
+
+
+class LabelCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=200)
+    colour: LabelColour
+
+
+class LabelChange(BaseModel):
+    """Rename, recolour, or both; at least one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    colour: LabelColour | None = None
+
+
+_ITEM_ID = r"^KNW-[0-9a-f]{1,32}$"
+_FOLDER_ID = r"^KNF-[0-9a-f]{1,32}$"
+_LABEL_ID = r"^KNL-[0-9a-f]{1,32}$"
+
+
+class Placement(BaseModel):
+    """File items: into a folder, out of every folder, labels on and off.
+
+    ``folder_id`` left out keeps each item's folder; ``null`` takes the items out
+    of any folder. All or nothing.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_ids: list[Annotated[str, Field(max_length=64, pattern=_ITEM_ID)]] = Field(
+        min_length=1, max_length=200
+    )
+    folder_id: Annotated[str, Field(max_length=64, pattern=_FOLDER_ID)] | None = None
+    add_labels: list[Annotated[str, Field(max_length=64, pattern=_LABEL_ID)]] = Field(
+        default_factory=list, max_length=50
+    )
+    remove_labels: list[Annotated[str, Field(max_length=64, pattern=_LABEL_ID)]] = Field(
+        default_factory=list, max_length=50
+    )
 
 
 class KnowledgeRevisionResponse(BaseModel):
@@ -253,6 +368,23 @@ class KnowledgeSummaryResponse(BaseModel):
     items_by_kind: dict[str, int]
     pending_proposals: int
     last_approved_at: datetime | None = None
+    #: Active items unchanged for over a year, and active items in no folder.
+    stale_items: int = 0
+    unfiled_items: int = 0
+
+
+class KnowledgeChangeResponse(BaseModel):
+    """One recent revision of the client's knowledge, for Přehled's feed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_id: str
+    title: str
+    revision: int
+    #: STUDY: a study's finding accepted; PERSON: written by a person; PROPOSAL: a person's
+    #: proposal decided by someone else.
+    origin: Literal["STUDY", "PERSON", "PROPOSAL"]
+    at: datetime | None = None
 
 
 class ClientOverview(BaseModel):
@@ -266,6 +398,7 @@ class ClientOverview(BaseModel):
     recent_outputs: list[OutputItem]
     knowledge: KnowledgeSummaryResponse | None
     pending: list[ProposalResponse]
+    recent_changes: list[KnowledgeChangeResponse] = Field(default_factory=list)
 
 
 class StudyCreate(BaseModel):
@@ -502,6 +635,8 @@ def _workspace(scope: ClientContext, repo: Any) -> ClientWorkspace:
         status=client.status.value,
         your_role=scope.client_role.value if scope.client_role else None,
         permissions=sorted(p.value for p in scope.permissions),
+        self_approval_allowed=scope.self_approval.allowed,
+        self_approval_source=scope.self_approval.source.value,
     )
 
 
@@ -514,6 +649,8 @@ def _item(i: KnowledgeItem) -> KnowledgeItemResponse:
         content=i.content,
         revision=i.revision,
         modified_at=i.modified_at,
+        folder_id=i.folder_id,
+        label_ids=list(i.label_ids),
     )
 
 
@@ -640,9 +777,27 @@ def client_workspace(
     principal: PrincipalDep,
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
+    session: SessionDep,
 ) -> ClientWorkspace:
-    """The client, the caller's role in it and what they may do. 404 outside their scope."""
-    return _workspace(_client_scope(principal, resolver, client_id), repo)
+    """The client, the caller's role in it, what they may do, and what its tabs count.
+
+    404 outside their scope.
+    """
+    scope = _client_scope(principal, resolver, client_id)
+    studies = repo.studies_in_client(scope, include_archived=False)
+    pending: int | None = None
+    datasets: int | None = None
+    if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
+        summary = ClientKnowledgeRepository(session).summary(scope)
+        pending = summary.pending_proposals
+        datasets = summary.items_by_kind.get(KnowledgeKind.DATASET, 0)
+    counts = ClientCounts(
+        research=sum(1 for s in studies if s.kind is StudyKind.RESEARCH),
+        simulations=sum(1 for s in studies if s.kind is StudyKind.SIMULATION),
+        pending_proposals=pending,
+        datasets=datasets,
+    )
+    return _workspace(scope, repo).model_copy(update={"counts": counts})
 
 
 @router.get(
@@ -659,13 +814,30 @@ def client_studies(
     kind: Annotated[Literal["RESEARCH", "SIMULATION"] | None, Query()] = None,
     include_archived: bool = True,
 ) -> list[WorkspaceStudy]:
-    """The studies of this client the caller may open, newest change first."""
+    """The studies of this client the caller may open, newest change first.
+
+    Each says what it brought into the client's knowledge when the caller may read it:
+    zeros for a study that proposed nothing, null when the caller may not know.
+    """
     scope = _client_scope(principal, resolver, client_id)
     studies = repo.studies_in_client(
         scope, kind=StudyKind(kind) if kind else None, include_archived=include_archived
     )
     bound = StudyWorkspaceRepository(session).in_client(scope)
-    return [_study(s, bound.get(s.study_id)) for s in studies]
+    listed = [_study(s, bound.get(s.study_id)) for s in studies]
+    if not scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
+        return listed
+    counts = ClientKnowledgeRepository(session).proposal_counts_by_study(scope)
+
+    def brought(study_id: str) -> StudyKnowledgeCounts:
+        c = counts.get(study_id, {})
+        return StudyKnowledgeCounts(
+            approved=c.get(ProposalStatus.APPROVED, 0),
+            proposed=c.get(ProposalStatus.PROPOSED, 0),
+            rejected=c.get(ProposalStatus.REJECTED, 0),
+        )
+
+    return [s.model_copy(update={"knowledge": brought(s.study_id)}) for s in listed]
 
 
 @router.get(
@@ -864,18 +1036,38 @@ def client_overview(
 
     knowledge: KnowledgeSummaryResponse | None = None
     pending: list[ProposalResponse] = []
+    changes: list[KnowledgeChangeResponse] = []
     if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
         kr = ClientKnowledgeRepository(session)
         summary = kr.summary(scope)
+        health = kr.health(scope, now=datetime.now(UTC))
         knowledge = KnowledgeSummaryResponse(
             context_revision=summary.context_revision,
             items_by_kind={k.value: n for k, n in summary.items_by_kind.items()},
             pending_proposals=summary.pending_proposals,
             last_approved_at=summary.last_approved_at,
+            stale_items=health.stale,
+            unfiled_items=health.unfiled,
         )
         pending = [
             _proposal(p, actor=scope.actor_id, names=names)
             for p in kr.proposals(scope, status=ProposalStatus.PROPOSED)[:5]
+        ]
+        changes = [
+            KnowledgeChangeResponse(
+                item_id=r.item_id,
+                title=r.title,
+                revision=r.revision,
+                origin=(
+                    "STUDY"
+                    if r.provenance.get("origin") == "STUDY"
+                    else "PERSON"
+                    if r.provenance.get("authored") == "person"
+                    else "PROPOSAL"
+                ),
+                at=r.approved_at,
+            )
+            for r in kr.recent_revisions(scope, limit=6)
         ]
     return ClientOverview(
         client=_workspace(scope, repo),
@@ -884,7 +1076,220 @@ def client_overview(
         recent_outputs=outputs[:6],
         knowledge=knowledge,
         pending=pending,
+        recent_changes=changes,
     )
+
+
+# --------------------------------------------------------------------------- #
+# The client's profile and contacts (client-workspace C5)
+# --------------------------------------------------------------------------- #
+
+
+class ClientProfileWrite(BaseModel):
+    """The whole profile, as the form sends it; an empty field is not filled in."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    short_code: str = Field(default="", max_length=64)
+    industry: str = Field(default="", max_length=400)
+    market: str = Field(default="", max_length=400)
+    description: str = Field(default="", max_length=8000)
+
+
+class ContactWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=400)
+    role: str = Field(default="", max_length=400)
+    email: str = Field(default="", max_length=400)
+    receives_reports: bool = False
+
+
+class ContactResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contact_id: str
+    name: str
+    role: str
+    email: str
+    receives_reports: bool
+
+
+class ProfileChangeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    action: str
+    at: datetime | None
+    fields: list[str]
+    contact_name: str | None
+
+
+class ClientProfileResponse(BaseModel):
+    """The client's profile, its contacts and what changed in them, newest first."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    short_code: str
+    industry: str
+    market: str
+    description: str
+    contacts: list[ContactResponse]
+    history: list[ProfileChangeResponse]
+
+
+ContactIdPath = Annotated[str, Path(max_length=64, pattern=r"^CON-[0-9a-f]{1,32}$")]
+
+
+def _contact_out(c: ClientContact) -> ContactResponse:
+    return ContactResponse(
+        contact_id=c.contact_id,
+        name=c.name,
+        role=c.role,
+        email=c.email,
+        receives_reports=c.receives_reports,
+    )
+
+
+def _profile_out(scope: ClientContext, repo: ClientProfileRepository) -> ClientProfileResponse:
+    p = repo.profile(scope)
+    return ClientProfileResponse(
+        short_code=p.short_code,
+        industry=p.industry,
+        market=p.market,
+        description=p.description,
+        contacts=[_contact_out(c) for c in repo.contacts(scope)],
+        history=[
+            ProfileChangeResponse(
+                action=h.action, at=h.at, fields=list(h.fields), contact_name=h.contact_name
+            )
+            for h in repo.history(scope)
+        ],
+    )
+
+
+def _profile_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, ScopeDenied):
+        if exc.reason in {"unknown_contact", "unknown_client"}:
+            return _not_found()
+        return _forbidden(
+            exc.reason, "Your role for this client does not permit editing its profile."
+        )
+    return HTTPException(status_code=422, detail={"code": "invalid_profile", "message": str(exc)})
+
+
+def _validated(model: Any, data: dict[str, Any]) -> Any:
+    try:
+        return model(**data)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_profile",
+                "message": "; ".join(e["msg"] for e in exc.errors()),
+            },
+        ) from exc
+
+
+@router.get(
+    "/clients/{client_id}/profile",
+    response_model=ClientProfileResponse,
+    summary="The client's profile and contacts",
+)
+def client_profile(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> ClientProfileResponse:
+    """Any member who may open the client reads it. No model ever reads it."""
+    scope = _client_scope(principal, resolver, client_id)
+    return _profile_out(scope, ClientProfileRepository(session))
+
+
+@router.put(
+    "/clients/{client_id}/profile",
+    response_model=ClientProfileResponse,
+    summary="Replace the client's profile",
+)
+def update_client_profile(
+    client_id: ClientIdPath,
+    body: ClientProfileWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ClientProfileResponse:
+    """The whole profile at once; only a real change enters the history."""
+    scope = _client_scope(principal, resolver, client_id)
+    repo = ClientProfileRepository(session)
+    profile = _validated(ClientProfile, body.model_dump())
+    try:
+        repo.update_profile(scope, profile)
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+    return _profile_out(scope, repo)
+
+
+@router.post(
+    "/clients/{client_id}/contacts",
+    response_model=ContactResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a contact at the client",
+)
+def add_client_contact(
+    client_id: ClientIdPath,
+    body: ContactWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ContactResponse:
+    scope = _client_scope(principal, resolver, client_id)
+    draft = _validated(ContactDraft, body.model_dump())
+    try:
+        return _contact_out(ClientProfileRepository(session).add_contact(scope, draft))
+    except (ScopeDenied, ValueError) as exc:
+        raise _profile_error(exc) from exc
+
+
+@router.put(
+    "/clients/{client_id}/contacts/{contact_id}",
+    response_model=ContactResponse,
+    summary="Change a contact",
+)
+def update_client_contact(
+    client_id: ClientIdPath,
+    contact_id: ContactIdPath,
+    body: ContactWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> ContactResponse:
+    scope = _client_scope(principal, resolver, client_id)
+    draft = _validated(ContactDraft, body.model_dump())
+    try:
+        return _contact_out(
+            ClientProfileRepository(session).update_contact(
+                scope, contact_id=contact_id, draft=draft
+            )
+        )
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+
+
+@router.delete(
+    "/clients/{client_id}/contacts/{contact_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a contact",
+)
+def remove_client_contact(
+    client_id: ClientIdPath,
+    contact_id: ContactIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _client_scope(principal, resolver, client_id)
+    try:
+        ClientProfileRepository(session).remove_contact(scope, contact_id=contact_id)
+    except ScopeDenied as exc:
+        raise _profile_error(exc) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --------------------------------------------------------------------------- #
@@ -913,11 +1318,257 @@ def client_knowledge(
         Literal["sources", "knowledge", "dimensions", "audiences", "data"] | None, Query()
     ] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
+    folder: Annotated[
+        str | None, Query(max_length=64, pattern=r"^(KNF-[0-9a-f]{1,32}|unfiled)$")
+    ] = None,
+    label: Annotated[str | None, Query(max_length=64, pattern=_LABEL_ID)] = None,
 ) -> list[KnowledgeItemResponse]:
-    """Approved knowledge of this client only: the client is resolved first and is in the query."""
+    """Approved knowledge of this client only: the client is resolved first and is in the query.
+
+    ``folder`` keeps one folder's items (``unfiled``: those in none); ``label`` those
+    carrying it. Each item says where it is filed.
+    """
     scope = _knowledge_scope(principal, resolver, client_id)
     kinds = KNOWLEDGE_SECTIONS[section] if section else None
-    return [_item(i) for i in ClientKnowledgeRepository(session).items(scope, kinds=kinds, text=q)]
+    items = ClientKnowledgeRepository(session).items(
+        scope,
+        kinds=kinds,
+        text=q,
+        folder_id=folder if folder and folder != "unfiled" else None,
+        unfiled=folder == "unfiled",
+        label_id=label,
+    )
+    return [_item(i) for i in items]
+
+
+# Folders and labels (client-workspace C3): organization, never knowledge. Whoever may
+# propose the client's knowledge may file it; nothing here writes a revision.
+
+
+def _organizer_error(exc: Exception, what: str) -> HTTPException:
+    if isinstance(exc, OrganizerNameTaken):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "name_taken",
+                "message": f"This client already has a {what} by that name.",
+            },
+        )
+    if isinstance(exc, ScopeDenied):
+        if exc.reason in {"unknown_folder", "unknown_label", "unknown_item"}:
+            return _not_found()
+        return _forbidden(exc.reason, "Your role for this client does not permit filing knowledge.")
+    return HTTPException(status_code=422, detail={"code": "invalid_name", "message": str(exc)})
+
+
+def _folder(f: KnowledgeFolder) -> KnowledgeFolderResponse:
+    return KnowledgeFolderResponse(folder_id=f.folder_id, name=f.name, item_count=f.item_count)
+
+
+def _label(lb: KnowledgeLabel) -> KnowledgeLabelResponse:
+    return KnowledgeLabelResponse(
+        label_id=lb.label_id, name=lb.name, colour=lb.colour, item_count=lb.item_count
+    )
+
+
+FolderIdPath = Annotated[str, Path(max_length=64, pattern=_FOLDER_ID)]
+LabelIdPath = Annotated[str, Path(max_length=64, pattern=_LABEL_ID)]
+
+
+@router.get(
+    "/clients/{client_id}/knowledge/folders",
+    response_model=list[KnowledgeFolderResponse],
+    summary="The client's knowledge folders",
+)
+def knowledge_folders(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> list[KnowledgeFolderResponse]:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    return [_folder(f) for f in ClientKnowledgeRepository(session).folders(scope)]
+
+
+@router.post(
+    "/clients/{client_id}/knowledge/folders",
+    response_model=KnowledgeFolderResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a knowledge folder",
+)
+def create_knowledge_folder(
+    client_id: ClientIdPath,
+    body: FolderWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeFolderResponse:
+    """409 when the client has a folder by that name (case and spacing do not count)."""
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _folder(ClientKnowledgeRepository(session).create_folder(scope, name=body.name))
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "folder") from exc
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/folders/{folder_id}",
+    response_model=KnowledgeFolderResponse,
+    summary="Rename a knowledge folder",
+)
+def rename_knowledge_folder(
+    client_id: ClientIdPath,
+    folder_id: FolderIdPath,
+    body: FolderWrite,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeFolderResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _folder(
+            ClientKnowledgeRepository(session).rename_folder(
+                scope, folder_id=folder_id, name=body.name
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "folder") from exc
+
+
+@router.delete(
+    "/clients/{client_id}/knowledge/folders/{folder_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a knowledge folder; its items stay, in no folder",
+)
+def delete_knowledge_folder(
+    client_id: ClientIdPath,
+    folder_id: FolderIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        ClientKnowledgeRepository(session).delete_folder(scope, folder_id=folder_id)
+    except ScopeDenied as exc:
+        raise _organizer_error(exc, "folder") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/clients/{client_id}/knowledge/labels",
+    response_model=list[KnowledgeLabelResponse],
+    summary="The client's knowledge labels",
+)
+def knowledge_labels(
+    client_id: ClientIdPath, principal: PrincipalDep, resolver: ResolverDep, session: SessionDep
+) -> list[KnowledgeLabelResponse]:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    return [_label(lb) for lb in ClientKnowledgeRepository(session).labels(scope)]
+
+
+@router.post(
+    "/clients/{client_id}/knowledge/labels",
+    response_model=KnowledgeLabelResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a knowledge label",
+)
+def create_knowledge_label(
+    client_id: ClientIdPath,
+    body: LabelCreate,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeLabelResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        return _label(
+            ClientKnowledgeRepository(session).create_label(
+                scope, name=body.name, colour=body.colour
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "label") from exc
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/labels/{label_id}",
+    response_model=KnowledgeLabelResponse,
+    summary="Rename or recolour a knowledge label",
+)
+def change_knowledge_label(
+    client_id: ClientIdPath,
+    label_id: LabelIdPath,
+    body: LabelChange,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> KnowledgeLabelResponse:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    if body.name is None and body.colour is None:
+        raise HTTPException(
+            status_code=422, detail={"code": "nothing_to_change", "message": "Name a change."}
+        )
+    try:
+        return _label(
+            ClientKnowledgeRepository(session).update_label(
+                scope, label_id=label_id, name=body.name, colour=body.colour
+            )
+        )
+    except (OrganizerNameTaken, ScopeDenied, ValueError) as exc:
+        raise _organizer_error(exc, "label") from exc
+
+
+@router.delete(
+    "/clients/{client_id}/knowledge/labels/{label_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a knowledge label; it comes off every item",
+)
+def delete_knowledge_label(
+    client_id: ClientIdPath,
+    label_id: LabelIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> Response:
+    scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        ClientKnowledgeRepository(session).delete_label(scope, label_id=label_id)
+    except ScopeDenied as exc:
+        raise _organizer_error(exc, "label") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/clients/{client_id}/knowledge/placement",
+    response_model=list[KnowledgeItemResponse],
+    summary="File knowledge items: folder and labels",
+)
+def place_knowledge(
+    client_id: ClientIdPath,
+    body: Placement,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+) -> list[KnowledgeItemResponse]:
+    """All or nothing: 404 if any item, the folder or a label is not this client's.
+
+    Writes no knowledge revision; the items come back filed as they are now.
+    """
+    scope = _knowledge_scope(principal, resolver, client_id)
+    folder = body.folder_id if "folder_id" in body.model_fields_set else KEEP_FOLDER
+    try:
+        placed = ClientKnowledgeRepository(session).place(
+            scope,
+            item_ids=body.item_ids,
+            folder_id=folder,
+            add_labels=body.add_labels,
+            remove_labels=body.remove_labels,
+        )
+    except (ScopeDenied, ValueError) as exc:
+        if isinstance(exc, ValueError):
+            raise HTTPException(
+                status_code=422, detail={"code": "invalid_placement", "message": str(exc)}
+            ) from exc
+        raise _organizer_error(exc, "folder") from exc
+    return [_item(i) for i in placed]
 
 
 @router.get(
