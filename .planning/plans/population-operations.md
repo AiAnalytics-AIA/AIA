@@ -12,7 +12,7 @@ chunks:
   - "[x] P4d2. The materialize service: a typed definition checked against K5's contract and the field policy, frozen to one run key per owner, base and definition"
   - "[x] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[x] P4d4a. The routes: start a materialization from a study and read its run; each child's target beside what was achieved in the registry"
-  - "[ ] P4d4b. Společenská inteligence shows the organization's children, target beside achieved, an unmet target said so"
+  - "[x] P4d4b. Společenská inteligence shows the organization's children, target beside achieved, an unmet target said so"
   - "[ ] P4d4c. The Run stage offers the study's client's children: a run started over one records it"
   - "[x] P4e1. The loader resolves and loads an owned child: base by its contract, child by its extension, the base's companions"
   - "[x] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
@@ -887,4 +887,16 @@ P4d4c the Run stage.
   unresolvable LIVE, the registry's `materialized`), `test_population_materialized.py`
   (`target_met`), `test_materialize_executor.py` (the run read through its study and the
   child's outcome after the real worker).
+
+**P4d4b, 2026-10-13** (`feature/population-children-screen`, stacked on P4d4a).
+- Společenská inteligence lists the organization's children under "Materializované dimenze",
+  newest first: the dimension, its client (by name where the workspace lists it), the target
+  beside what was achieved (a binary share in percent, a scale to two decimals), the base it
+  extends, and a verdict tag: "cíl dosažen", "cíl nedosažen" (with "cíl nebyl dosažen" beside
+  the numbers), or "neznámo" when the child's record carries no outcome; never met by default.
+- The shared versions list and the unused-candidate count no longer include a client's
+  children (`sharedVersions`; `summarize`).
+- `lib/population.ts`: `children`, `sharedVersions`, `targetVerdict`, `outcomeValue`; tested in
+  `population.test.ts` (P4b's M04 reads "unmet"; a missing outcome "unknown").
+- Not checked in a browser in this session: `make ui-capture` on the workbench would show it.
 

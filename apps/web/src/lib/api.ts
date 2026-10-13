@@ -354,6 +354,20 @@ export type PopulationVersion = {
   owner_client_id: string | null;
   /** null on a shared version; on an owned child, the hash of the fields it adds. */
   extension_sha256: string | null;
+  /** null on a shared version (or a child whose record carries none); on an owned child, its outcome. */
+  materialized?: PopulationMaterialized | null;
+};
+/** What an owned child adds and what its derivation reached (P4d4): target beside achieved. */
+export type PopulationMaterialized = {
+  dimension_id: string;
+  kind: "binary" | "scale_1_10";
+  definition_sha256: string;
+  method: string;
+  target: number;
+  achieved: number;
+  /** Within the kind's tolerance; never presumed. */
+  target_met: boolean;
+  usable_predictors: string[];
 };
 export type PopulationRecord = {
   population_id: string;

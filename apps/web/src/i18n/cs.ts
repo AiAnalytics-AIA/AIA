@@ -184,6 +184,16 @@ export const cs = {
         rows: "{n} řádků",
         companionsMissing: "bez doprovodných souborů",
         moved: "{population}: {from} → {to}",
+        children: {
+          title: "Materializované dimenze",
+          text: "Dimenze klientů vaší organizace dopočtené nad sdílenou populací. Každá hodnota je modelovaná, nikdy měřená; vidí je jen vaše organizace.",
+          client: "klient {client}",
+          outcome: "cíl {target}, dosaženo {achieved}",
+          unmetNote: "cíl nebyl dosažen",
+          noOutcome: "Výsledek odvození není zaznamenaný.",
+          over: "nad verzí {base}",
+          verdict: { met: "cíl dosažen", unmet: "cíl nedosažen", unknown: "neznámo" },
+        },
         status: {
           REGISTERED: "Jen registrovaná",
           STATIC_REFERENCE: "Statická reference",

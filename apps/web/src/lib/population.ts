@@ -1,7 +1,7 @@
 // How the population registry reads on Společenská inteligence (population-operations P2).
 // Read-only: nothing here, and nothing on the page, can import, establish or promote.
 
-import type { PopulationField, PopulationRegistry, PopulationSubpanel, PopulationVersion } from "./api";
+import type { PopulationField, PopulationMaterialized, PopulationRegistry, PopulationSubpanel, PopulationVersion } from "./api";
 
 export type RegistrySummary = {
   /** The version the LIVE population points at now, or null: no LIVE yet. */
@@ -23,7 +23,7 @@ export function summarize(registry: PopulationRegistry): RegistrySummary {
   return {
     live: pointedBy("LIVE"),
     reference: pointedBy("STATIC"),
-    candidates: registry.versions.filter((v) => v.status === "REGISTERED").length,
+    candidates: registry.versions.filter((v) => v.owner_client_id === null && v.status === "REGISTERED").length,
     history: [...registry.history].sort((a, b) => b.promoted_at.localeCompare(a.promoted_at)),
   };
 }
@@ -37,6 +37,34 @@ export function shortSha(sha: string): string {
 export function labelOf(registry: PopulationRegistry, versionId: string | null): string {
   if (!versionId) return "—";
   return registry.versions.find((v) => v.version_id === versionId)?.label ?? versionId;
+}
+
+/** The versions every study may run over: shared, never a client's child. */
+export function sharedVersions(registry: PopulationRegistry): PopulationVersion[] {
+  return registry.versions.filter((v) => v.owner_client_id === null);
+}
+
+// ------------------------------------------------------------ materialized children (P4d4)
+
+/** This organization's owned children, newest first. */
+export function children(registry: PopulationRegistry): PopulationVersion[] {
+  return registry.versions
+    .filter((v) => v.owner_client_id !== null)
+    .sort((a, b) => b.imported_at.localeCompare(a.imported_at));
+}
+
+export type TargetVerdict = "met" | "unmet" | "unknown";
+
+/** Met, not met, or unknown: a child without a recorded outcome is never shown as met. */
+export function targetVerdict(m: PopulationMaterialized | null | undefined): TargetVerdict {
+  if (!m) return "unknown";
+  return m.target_met ? "met" : "unmet";
+}
+
+/** A target or an achieved value as a person reads it: a binary share in percent, a scale to two decimals. */
+export function outcomeValue(kind: PopulationMaterialized["kind"], value: number): string {
+  if (kind === "binary") return `${(value * 100).toLocaleString("cs", { maximumFractionDigits: 1 })} %`;
+  return value.toLocaleString("cs", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ------------------------------------------------------------ characteristics (P7d)
