@@ -10,7 +10,7 @@ afterwards: retrieval resolves the client first.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
@@ -392,14 +392,14 @@ class ClientKnowledgeRepository:
         )
 
     def _active_counts(self, scope: ClientContext, column: Any, link: Any) -> dict[str, int]:
-        rows: Sequence[tuple[Any, int]] = self._session.execute(
+        rows = self._session.execute(
             select(column, func.count())
             .select_from(link)
             .join(ClientKnowledgeItemRow, ClientKnowledgeItemRow.item_id == link.item_id)
             .where(link.client_id == scope.client_id, ClientKnowledgeItemRow.status == "ACTIVE")
             .group_by(column)
-        ).tuples().all()
-        return {str(k): int(n) for k, n in rows}
+        ).all()
+        return {str(k): int(cast(int, n)) for k, n in rows}
 
     def folders(self, scope: ClientContext) -> list[KnowledgeFolder]:
         """The client's folders by name, each with how many of its active items it holds."""
