@@ -234,6 +234,14 @@ achieved) reads not met. Společenská inteligence lists the organization's chil
 with that outcome ("neznámo" when a child's record carries none), and the Run stage offers the
 study's client's children beside LIVE.
 
+**Never promoted (P5).** Moving LIVE stays an operator's explicit act through
+`population_ops promote --to … --expected …`, a compare-and-set that refuses a stale pointer
+(`test_a_promotion_naming_a_stale_version_is_refused_and_live_does_not_move`). Naming a client's
+child exits 3 with `OwnedVersionNotShared`, and LIVE and the promotion history are unchanged
+(`test_a_clients_materialized_child_is_never_promoted_and_live_does_not_move`). Making a child
+and running over it moves no shared population and writes no promotion
+(`test_materializing_and_selecting_a_child_leaves_live_where_it_was`).
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
