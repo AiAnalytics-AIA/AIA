@@ -16,8 +16,13 @@ describe("reportParts", () => {
     expect(state([step("report", "research_report", "SUCCEEDED")])["Sociomapy"]).toBe("later");
   });
 
-  it("never says a part AIA does not compose yet is in the report", () => {
+  it("claims the question tables, the design and the questionnaire once the report step composed them", () => {
     const parts = reportParts({ steps: [step("report", "research_report", "SUCCEEDED"), step("sociomap", "sociomap", "SUCCEEDED")] });
-    expect(parts.filter((p) => p.state === "later").map((p) => p.label)).toEqual(["Tabulky všech otázek", "Zadání, návrh a dotazník v příloze"]);
+    const states = Object.fromEntries(parts.map((p) => [p.label, p.state]));
+    expect(states["Tabulky všech otázek"]).toBe("in");
+    expect(states["Návrh studie a dotazník v příloze"]).toBe("in");
+    expect(states["Respondenti a výpočet"]).toBe("in");
+    // Literature waits on a chosen review; nothing claims it.
+    expect(states["Literatura (Deep Research)"]).toBe("pending");
   });
 });

@@ -30,7 +30,6 @@ import {
 import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
-import { saveBlob } from "@/lib/download";
 import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
@@ -1024,75 +1023,28 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
 
 function InternalReport({ run }: { run: ResearchRun }) {
   const frame = useFrame();
-  const [loaded, setLoaded] = useState<Loaded<ResearchReport>>({ state: "loading" });
-  const [downloading, setDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
-  const [approving, setApproving] = useState(false);
-  const [approveError, setApproveError] = useState<string | null>(null);
   const step = stepOf(run, "report");
+  // What the last read answered, and for which state of the report step: a read for an
+  // earlier state reads as loading, so nothing is set synchronously in the effect.
+  const key = `${frame.studyId}:${run.run_id}:${step?.status ?? ""}:${step?.artifact_id ?? ""}`;
+  const [answer, setAnswer] = useState<{ key: string; loaded: Loaded<ResearchReport> } | null>(null);
+  const loaded: Loaded<ResearchReport> = answer?.key === key ? answer.loaded : { state: "loading" };
   useEffect(() => {
     let live = true;
-    setLoaded({ state: "loading" });
     research.report(frame.studyId, run.run_id).then(
-      (value) => live && setLoaded({ state: "ready", value }),
-      (error: unknown) => live && setLoaded(
-        error instanceof ApiError && error.status === 403
-          ? { state: "hidden" } : { state: "failed", message: message(error) }
-      ),
+      (value) => live && setAnswer({ key, loaded: { state: "ready", value } }),
+      (error: unknown) => live && setAnswer({
+        key,
+        loaded: error instanceof ApiError && error.status === 403
+          ? { state: "hidden" } : { state: "failed", message: message(error) },
+      }),
     );
     return () => { live = false; };
-  }, [frame.studyId, run.run_id, step?.status, step?.artifact_id]);
+  }, [frame.studyId, run.run_id, key]);
 
   if (loaded.state === "hidden") return null;
   const status = loaded.state === "ready" ? loaded.value : null;
   const reportKind = status ? resultOriginKind(status) ?? "UNKNOWN" : "UNKNOWN";
-  const download = async () => {
-    setDownloading(true);
-    setDownloadError(null);
-    try {
-      saveBlob(await research.downloadReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-internal-draft.docx`);
-    } catch (error) {
-      setDownloadError(message(error));
-    } finally {
-      setDownloading(false);
-    }
-  };
-  const downloadClient = async () => {
-    setDownloading(true);
-    setDownloadError(null);
-    try {
-      saveBlob(await research.downloadClientReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-client-draft.docx`);
-    } catch (error) {
-      setDownloadError(message(error));
-    } finally {
-      setDownloading(false);
-    }
-  };
-  const downloadPdf = async () => {
-    setDownloading(true);
-    setDownloadError(null);
-    try {
-      saveBlob(await research.downloadReportPdf(frame.studyId, run.run_id), `AIA-${frame.studyId}-internal-draft.pdf`);
-    } catch (error) {
-      setDownloadError(message(error));
-    } finally {
-      setDownloading(false);
-    }
-  };
-  const approve = async () => {
-    if (!status?.artifact_id) return;
-    setApproving(true);
-    setApproveError(null);
-    try {
-      const approved = await research.approveReport(frame.studyId, run.run_id, status.artifact_id);
-      setLoaded({ state: "ready", value: { ...status, review_state: approved.review_state } });
-    } catch (error) {
-      setApproveError(error instanceof ApiError && error.code === "separation_of_duties"
-        ? t("research.exec.results.reportApproveIndependent") : message(error));
-    } finally {
-      setApproving(false);
-    }
-  };
   return (
     <Card title={t("research.exec.results.report")} tone="notice">
       <p role="note" className="mb-2 text-sm font-semibold">{t("research.exec.results.reportInternal")}</p>
@@ -1110,34 +1062,10 @@ function InternalReport({ run }: { run: ResearchRun }) {
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button onClick={download} disabled={downloading || !frame.canEdit}>
-              {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
-            </Button>
-            {reportKind === "MODELLED" ? (
-              <Button onClick={downloadClient} disabled={downloading || !frame.canEdit}>
-                {t("research.exec.results.reportDownloadClient")}
-              </Button>
-            ) : null}
-            {status.pdf?.state === "READY" ? (
-              <Button onClick={downloadPdf} disabled={downloading || !frame.canEdit}>
-                {t("research.exec.results.reportDownloadPdf")}
-              </Button>
-            ) : null}
-            {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit && status.artifact_id ? (
-              <Button variant="secondary" onClick={approve} disabled={approving}>
-                {approving ? t("research.exec.results.reportApproving") : t("research.exec.results.reportApprove")}
-              </Button>
-            ) : null}
-          </div>
-          {reportKind === "MODELLED" ? (
-            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportClientHint")}</p>
-          ) : null}
+          {/* Downloading and approving happen in one place: the report card above (CompleteReport). */}
+          {frame.canEdit ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
           {status.pdf && status.pdf.state !== "READY" ? (
             <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportPdfFailed")}</p>
-          ) : null}
-          {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit ? (
-            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportApproveHint")}</p>
           ) : null}
         </>
       ) : null}
@@ -1150,8 +1078,6 @@ function InternalReport({ run }: { run: ResearchRun }) {
             : t("research.exec.results.reportWaiting")}
         </p>
       ) : null}
-      {downloadError ? <p role="alert" className="mt-2 text-sm text-status-fault">{downloadError}</p> : null}
-      {approveError ? <p role="alert" className="mt-2 text-sm text-status-fault">{approveError}</p> : null}
     </Card>
   );
 }
