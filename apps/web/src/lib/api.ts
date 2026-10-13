@@ -217,6 +217,14 @@ export type ClientCard = {
   modified_at: string | null;
 };
 
+/** What a client's tabs count; the knowledge counts are null when the caller may not read them. */
+export type ClientCounts = {
+  research: number;
+  simulations: number;
+  pending_proposals: number | null;
+  datasets: number | null;
+};
+
 export type ClientWorkspace = {
   client_id: string;
   name: string;
@@ -224,6 +232,8 @@ export type ClientWorkspace = {
   status: string;
   your_role: string | null;
   permissions: string[];
+  /** Present on GET /clients/{id}; the overview's copy of the client carries none. */
+  counts?: ClientCounts | null;
 };
 
 export type KnowledgeSection = "sources" | "knowledge" | "dimensions" | "audiences" | "data";

@@ -48,8 +48,15 @@ export const cs = {
       noActive: "Žádná rozpracovaná práce",
     },
     client: {
-      tabs: { overview: "Přehled", research: "Výzkumy", simulations: "Simulace", knowledge: "Znalosti", data: "Data" },
+      tabs: { overview: "Přehled", research: "Výzkumy", simulations: "Simulace", knowledge: "Znalosti", data: "Data", profile: "Profil" },
       tabsLabel: "Oblasti klienta",
+      status: { ACTIVE: "Aktivní", DORMANT: "Neaktivní", ARCHIVED: "Archivovaný" },
+      counts: {
+        open: "otevřených: {n}",
+        pending: "čeká na schválení: {n}",
+        datasets: "datových sad: {n}",
+      },
+      addKnowledge: "Přidat znalost",
       newResearch: "Nový výzkum",
       newSimulation: "Nová simulace",
       newResearchTitle: "Nový výzkum",
@@ -58,6 +65,16 @@ export const cs = {
       researchPlaceholder: "Např. Vnímání značky 2026",
       simulationPlaceholder: "Např. Cenové scénáře 2027",
       cannotStart: "Vaše role u tohoto klienta nedovoluje zakládat novou práci.",
+    },
+    profile: {
+      sub: "Co AIA ví o klientovi samotném.",
+      recordTitle: "Klient",
+      name: "Název",
+      status: "Stav",
+      yourRole: "Vaše role",
+      statusOwner: "Stav klienta mění správce organizace v Nastavení. Archivace klienta skryje, nic nesmaže.",
+      missingTitle: "Profil klienta",
+      missingText: "Odvětví, trh, značky, konkurenty a kontakty klienta AIA zatím neeviduje. Co o klientovi víte, zatím zapište do Znalostí.",
     },
     overview: {
       activeTitle: "Aktivní práce",

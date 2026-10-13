@@ -157,6 +157,21 @@ class ClientCard(BaseModel):
     modified_at: datetime | None = None
 
 
+class ClientCounts(BaseModel):
+    """What the client's tabs count: open studies, and knowledge waiting or held.
+
+    Archived studies are not counted. The knowledge counts are null for a caller
+    who may not read the client's knowledge: unknown, never zero.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    research: int
+    simulations: int
+    pending_proposals: int | None
+    datasets: int | None
+
+
 class ClientWorkspace(BaseModel):
     """The client a workspace is about, and what the caller may do in it."""
 
@@ -168,6 +183,7 @@ class ClientWorkspace(BaseModel):
     status: str
     your_role: str | None
     permissions: list[str]
+    counts: ClientCounts | None = None
 
 
 class OutputItem(BaseModel):
@@ -631,9 +647,27 @@ def client_workspace(
     principal: PrincipalDep,
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
+    session: SessionDep,
 ) -> ClientWorkspace:
-    """The client, the caller's role in it and what they may do. 404 outside their scope."""
-    return _workspace(_client_scope(principal, resolver, client_id), repo)
+    """The client, the caller's role in it, what they may do, and what its tabs count.
+
+    404 outside their scope.
+    """
+    scope = _client_scope(principal, resolver, client_id)
+    studies = repo.studies_in_client(scope, include_archived=False)
+    pending: int | None = None
+    datasets: int | None = None
+    if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
+        summary = ClientKnowledgeRepository(session).summary(scope)
+        pending = summary.pending_proposals
+        datasets = summary.items_by_kind.get(KnowledgeKind.DATASET, 0)
+    counts = ClientCounts(
+        research=sum(1 for s in studies if s.kind is StudyKind.RESEARCH),
+        simulations=sum(1 for s in studies if s.kind is StudyKind.SIMULATION),
+        pending_proposals=pending,
+        datasets=datasets,
+    )
+    return _workspace(scope, repo).model_copy(update={"counts": counts})
 
 
 @router.get(

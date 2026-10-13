@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. Design on the canvas (Klient row of the research studio) and this plan"
-  - "[ ] C1. Client shell: Profil tab, counts on tabs, status and industry in the bar, Přidat podklady beside Nový výzkum"
+  - "[x] C1. Client shell: Profil tab, counts on tabs, status in the bar, Přidat znalost beside Nový výzkum"
   - "[ ] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
   - "[ ] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
   - "[ ] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
@@ -83,17 +83,34 @@ The rules between the two:
 
 Each chunk is its own PR into `develop`, small enough to review in one sitting.
 
-### C1. Client shell
-- **What it does:**
-  - adds the **Profil** tab to `AREAS`, `ClientContext.tsx:72`, and its route;
-  - puts counts on the tabs (studies, pending proposals, datasets);
-  - shows the status chip and a one-line profile summary in the bar;
-  - offers **Přidat podklady** beside **Nový výzkum** on every area. Until C7 lands it opens the
-    existing add form.
-- **API:** `GET /clients/{id}/overview` (`workspace.py:731`) gains the tab counts.
-- **Tests:** API: the counts are scoped to the client, an archived study is not counted, and a
-  client with no knowledge permission gets no counts. Web: the tab and URL map in
-  `lib/app-routes.ts`.
+### C1. Client shell (landed)
+
+- **Profil tab:** `profile` in `AREAS` and `ClientArea`, with its route at
+  `app/app/clients/[clientId]/profile`. Until C5 it shows the client record: name, status and
+  your role. It says that the profile proper (industry, market, brands, competitors, contacts)
+  is not in AIA yet, and offers no field that would save nowhere.
+- **Counts on the tabs:** the client's tabs count its open studies by kind, proposals waiting
+  for a decision (marked as waiting on a person) and datasets. A badge is drawn only for a
+  count above zero. Each count is also said in words for a screen reader.
+- **The counts come from `GET /clients/{id}`, not the overview.** The layout reads that route
+  once per client, and every area shows the tabs. The overview reads up to 12 studies' artifacts,
+  which is too heavy for every tab.
+- **The counts in the API:** the response gains `counts`. It holds `research` and `simulations`,
+  which leave archived studies out, and `pending_proposals` and `datasets`, which are null
+  without `VIEW_CLIENT_KNOWLEDGE`: unknown, never zero.
+- **Status chip:** the client's status sits in the bar. The one-line profile summary waits for
+  C5's fields.
+- **Přidat znalost:** shown beside *Nový výzkum* on every area to whoever may propose
+  knowledge. It opens the existing add form on Znalosti (`?add=1`, read once and then removed
+  from the URL). It is named *Přidat znalost*, not *Přidat podklady*, because the form takes no
+  file yet; C7 renames it when the intake sheet lands.
+- **Counts follow changes:** adding knowledge or deciding a proposal re-reads the client, so
+  the counts follow.
+- **Tests:**
+  - API: `test_the_client_counts_its_open_studies_and_its_knowledge_for_the_tabs`;
+  - web: `ClientFirst.test.tsx`, which covers the counts and their words, null counts drawn as
+    nothing, the add action and the form it opens, its absence without permission, and Profil;
+  - the UX journey visits `/profile`.
 
 ### C2. Výzkumy as a table
 - **What it does:**

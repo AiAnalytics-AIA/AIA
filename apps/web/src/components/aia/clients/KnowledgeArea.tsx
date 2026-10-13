@@ -6,10 +6,12 @@
 // what a study or an AI offers waits as a proposal a person accepts -- the one who
 // offered it may accept it, unless the client turned that off and the API says so.
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type KnowledgeItem, type KnowledgeSection, type Proposal, workspace } from "@/lib/api";
+import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import { Button, Chip, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -82,11 +84,17 @@ function Previous({ clientId }: { clientId: string }) {
   );
 }
 
-function Pending({ clientId, mayApprove }: { clientId: string; mayApprove: boolean }) {
+function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApprove: boolean; onDecided: () => void }) {
   const [res, retry] = useResource(() => workspace.proposals(clientId, "PROPOSED"), [clientId]);
   const [error, setError] = useState<string | null>(null);
   const decide = (p: Proposal, approve: boolean) =>
-    workspace.decide(clientId, p.proposal_id, approve).then(retry, (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    workspace.decide(clientId, p.proposal_id, approve).then(
+      () => {
+        retry();
+        onDecided();
+      },
+      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+    );
   return (
     <>
       {error ? <p role="alert" className="mb-3 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
@@ -163,14 +171,24 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   );
 }
 
+const addRequested = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1";
+
 export function KnowledgeArea() {
-  const { client } = useClient();
-  const [section, setSection] = useState<Section>("sources");
-  const [proposing, setProposing] = useState(false);
-  const [version, setVersion] = useState(0);
+  // `reload` re-reads the client, so the tabs' counts follow an addition or a decision.
+  const { client, reload } = useClient();
+  const router = useRouter();
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
   const mayPropose = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
   const mayApprove = client.permissions.includes("APPROVE_CLIENT_KNOWLEDGE");
+  const [section, setSection] = useState<Section>("sources");
+  // "Přidat znalost" on any other area of the client lands here with ?add=1: the form opens.
+  // The client is resolved in the browser before this renders, so `window` is there.
+  const [proposing, setProposing] = useState(() => mayPropose && mayView && addRequested());
+  const [version, setVersion] = useState(0);
+  // Once read, the request leaves the URL, so a reload or a shared link does not reopen the form.
+  useEffect(() => {
+    if (addRequested()) router.replace(appRoutes.area(client.client_id, "knowledge"));
+  }, [client.client_id, router]);
   return (
     <ClientPage
       sub={t("aia.knowledge.sub")}
@@ -188,6 +206,7 @@ export function KnowledgeArea() {
                 // Added knowledge is listed where it belongs; only a held-back one (the client asked for independent review) is in Pending.
                 if (added) setSection(added.status === "PROPOSED" ? "pending" : (SECTION_OF[added.kind] ?? "knowledge"));
                 setVersion((v) => v + 1);
+                if (added) reload();
               }}
             />
           ) : null}
@@ -209,7 +228,7 @@ export function KnowledgeArea() {
             {section === "previous" ? (
               <Previous clientId={client.client_id} />
             ) : section === "pending" ? (
-              <Pending clientId={client.client_id} mayApprove={mayApprove} />
+              <Pending clientId={client.client_id} mayApprove={mayApprove} onDecided={reload} />
             ) : (
               <Items clientId={client.client_id} section={section} />
             )}

@@ -100,6 +100,40 @@ def test_a_client_workspace_opens_for_every_member_and_an_unknown_one_is_404(
     assert lead.get(f"{API}/clients/not-a-client").status_code == 422
 
 
+def test_the_client_counts_its_open_studies_and_its_knowledge_for_the_tabs(
+    owner: TestClient, researcher: TestClient, world: Any
+) -> None:
+    """The tabs' counts: open studies by kind, proposals waiting, datasets; this client only."""
+    url = f"{API}/clients/{world.client_id()}"
+    assert researcher.get(url).json()["counts"] == {
+        "research": 2,
+        "simulations": 0,
+        "pending_proposals": 0,
+        "datasets": 0,
+    }
+    start(researcher, world, "Cenové scénáře", kind="SIMULATION")
+    start(researcher, world, "Jinde", client="other")
+    researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FINDING", "title": "Mladší kupci řeší cenu"},
+    )
+    researcher.post(
+        f"{url}/knowledge/proposals", json={"kind": "DATASET", "title": "Klientská báze 2026"}
+    )
+    archived = owner.put(
+        f"{API}/studies/{world.study_id('sibling')}/status", json={"status": "ARCHIVED"}
+    )
+    assert archived.status_code == 200, archived.text
+    assert researcher.get(url).json()["counts"] == {
+        "research": 1,
+        "simulations": 1,
+        "pending_proposals": 1,
+        "datasets": 1,
+    }
+    other = researcher.get(f"{API}/clients/{world.client_id('other')}").json()["counts"]
+    assert other == {"research": 2, "simulations": 0, "pending_proposals": 0, "datasets": 0}
+
+
 def test_research_and_simulation_belong_to_the_selected_client(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:

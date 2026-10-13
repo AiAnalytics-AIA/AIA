@@ -13,6 +13,7 @@ import { ClientDirectory } from "./clients/ClientDirectory";
 import { ClientProvider } from "./clients/ClientContext";
 import { ClientOverview } from "./clients/ClientOverview";
 import { KnowledgeArea } from "./clients/KnowledgeArea";
+import { ProfileArea } from "./clients/ProfileArea";
 import { StudyList } from "./clients/StudyList";
 import { SettingsPage } from "./GlobalPages";
 import { ResearchStage, ResearchStudy } from "./ResearchStudy";
@@ -182,6 +183,7 @@ describe("a client's workspace", () => {
       ["Simulace", "/app/clients/CLI-a/simulations"],
       ["Znalosti", "/app/clients/CLI-a/knowledge"],
       ["Data", "/app/clients/CLI-a/data"],
+      ["Profil", "/app/clients/CLI-a/profile"],
     ]);
     const research = (await screen.findByText("Vnímání značky")).closest("a")!;
     expect(research.getAttribute("href")).toBe("/app/clients/CLI-a/research/STU-1/questionnaire");
@@ -191,6 +193,73 @@ describe("a client's workspace", () => {
     expect(screen.getByText("Značka působí spolehlivě")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nový výzkum" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nová simulace" })).toBeTruthy();
+  });
+
+  it("counts on its tabs what is open and what waits on a person, and says it in words", async () => {
+    path = "/app/clients/CLI-a";
+    api({ "GET /api/v1/clients/CLI-a": () => ({ ...A, counts: { research: 3, simulations: 1, pending_proposals: 2, datasets: 0 } }) });
+    render(inClient("CLI-a", <ClientOverview />));
+    const tabs = within(await screen.findByRole("navigation", { name: "Oblasti klienta" }));
+    expect(tabs.getByRole("link", { name: "Výzkumy, otevřených: 3" })).toBeTruthy();
+    expect(tabs.getByRole("link", { name: "Simulace, otevřených: 1" })).toBeTruthy();
+    expect(tabs.getByRole("link", { name: "Znalosti, čeká na schválení: 2" })).toBeTruthy();
+    // Nothing counted, nothing drawn: no "0" badge on Data, none on Přehled or Profil.
+    expect(tabs.getByRole("link", { name: "Data" })).toBeTruthy();
+    expect(tabs.getByRole("link", { name: "Profil" })).toBeTruthy();
+    // The client's status beside its name.
+    expect(within(screen.getByRole("banner")).getByText("Aktivní")).toBeTruthy();
+  });
+
+  it("draws no counts when the API sends none: unknown is not zero", async () => {
+    path = "/app/clients/CLI-a";
+    api({ "GET /api/v1/clients/CLI-a": () => ({ ...A, counts: { research: 3, simulations: 0, pending_proposals: null, datasets: null } }) });
+    render(inClient("CLI-a", <ClientOverview />));
+    const tabs = within(await screen.findByRole("navigation", { name: "Oblasti klienta" }));
+    expect(tabs.getByRole("link", { name: "Znalosti" })).toBeTruthy();
+    expect(tabs.getByRole("link", { name: "Data" })).toBeTruthy();
+  });
+
+  it("adds knowledge from any area: the button opens the form on Znalosti, once", async () => {
+    path = "/app/clients/CLI-a";
+    api();
+    render(inClient("CLI-a", <ClientOverview />));
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
+    expect(push).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge?add=1");
+    cleanup();
+
+    path = "/app/clients/CLI-a/knowledge";
+    window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?add=1");
+    api();
+    render(inClient("CLI-a", <KnowledgeArea />));
+    const form = (await screen.findByRole("heading", { name: "Přidat znalost klienta" })).closest("section")!;
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
+    window.history.pushState({}, "", "/");
+    // What is added re-reads the client, so the tabs' counts follow.
+    fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Výroční zpráva 2026" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Přidat znalost" }));
+    await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a").filter((c) => c.url.endsWith("/CLI-a"))).toHaveLength(2));
+  });
+
+  it("does not offer to add knowledge to a person who may not", async () => {
+    path = "/app/clients/CLI-a";
+    api({ "GET /api/v1/clients/CLI-a": () => ({ ...A, permissions: ["CREATE_STUDY", "VIEW_CLIENT"] }) });
+    render(inClient("CLI-a", <ClientOverview />));
+    expect(await screen.findByRole("button", { name: "Nový výzkum" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Přidat znalost" })).toBeNull();
+  });
+
+  it("shows the client record on Profil and says the rest of the profile is not in AIA yet", async () => {
+    path = "/app/clients/CLI-a/profile";
+    api();
+    render(inClient("CLI-a", <ProfileArea />));
+    const record = (await screen.findByRole("heading", { name: "Klient" })).closest("section")!;
+    expect(within(record).getByText("Klient A")).toBeTruthy();
+    expect(within(record).getByText("Aktivní")).toBeTruthy();
+    expect(screen.getByText(/AIA zatím neeviduje/)).toBeTruthy();
+    // Nothing to type into: no field that would save nowhere.
+    expect(screen.queryByRole("textbox")).toBeNull();
+    const tab = within(screen.getByRole("navigation", { name: "Oblasti klienta" })).getByRole("link", { name: "Profil" });
+    expect(tab.getAttribute("aria-current")).toBe("page");
   });
 
   it("lists the client's research only, and starts a new one under the client", async () => {
