@@ -158,7 +158,7 @@ persona signal catalog and the value labels, are read only through
 `RuntimePopulation.companion(asset_id)`: the bytes the loader verified against their recorded
 SHA256 at load, never the asset source.
 
-## Materialized dimensions (P4, domain only)
+## Materialized dimensions (P4)
 
 An accepted dimension becomes respondent values as an **owned child** `DatasetVersion`: the
 shared base's panel plus one column per materialized field, the base as its parent, owned by the
@@ -178,6 +178,52 @@ evidence rule, ported EXACT (`domain/population/derivation.py`, method
 `tools/materialize_capture.py`), with one named deviation: a dimension no predictor varies for
 is refused (`no_varying_predictor`) where the unit wrote hash noise.
 
+**Stored (P4c, migration `f0b2d4e6a8c1`).** An owned child's id is its content qualified by an
+opaque owner digest (`owned_version_id`), so two clients' identical children are two versions.
+It is seen only by its organization: `PopulationRegistryRepository.versions(…, organization_id=)`
+and `visible_version` return shared versions plus that organization's own, and the import's
+lookups (`version_by_sha`, `version_by_label`) see shared versions alone. Its extension is kept
+insert-once in `population_contract_extensions` and re-hashed on read
+(`test_population_owned_versions.py`).
+
+**Made by a worker step (P4d).** A researcher asks from a study:
+`prepare_materialization` (`application/materialize.py`) checks a `DimensionDefinition`
+(`domain/population/definition.py`, hash-identified) against LIVE's kept policy before anything
+is enqueued: the name is free and every predictor is a field that may build a persona. The owner
+is the study's organization and client, from the scope, never an argument.
+`start_materialization` enqueues a `population_materialize` run under the study's population
+project (`projects.owner = study_population`), recording LIVE as the run's population. The step
+(`aia_executors.materialize`) runs `PopulationRuntime.materialize_child`: the base read and
+verified as every load is, each predictor asked again of its policy, the values derived, the
+child written once to the population store and registered. It never promotes. Without a
+population store or `AIA_POPULATION_ASSET_ROOT` the run parks (`population_store_unconfigured`).
+
+The population store (`infrastructure/population_store.py`) keeps children in EU S3
+(`AIA_POPULATION_STORE_BUCKET` / `_REGION`, both or neither) under `materialized/`, written with a
+conditional put: the same bytes answer as written, other bytes are refused. A
+`RoutingPopulationSource` reads `s3://` locations from the store and every other location from the
+shared copy.
+
+**Loaded through the one loader (P4e1).** `PopulationRuntime.resolve_child(version_id,
+organization_id=)` resolves only that organization's own child, to a `PINNED` binding with no
+population. Loading it verifies the base by its contract, then the child against the base: its
+SHA256 and `check_child_version`, a header that is the base's plus exactly the extension's
+fields, the same rows with the base's columns equal cell for cell, and every added cell valid for
+its kind. Any drift is refused; a child is never partly used. Companions, the joint certificate
+and the policy are the base's, the policy with the materialized fields added
+(`test_population_load_child.py`).
+
+**Selected at run start (P4e2).** `ResearchRuns.start(population_version_id=)` and
+`POST …/research/runs {population_version_id}` record the child's binding instead of LIVE.
+`child_binding` resolves only a child of the study's own client: another client's (in the same
+organization or another), a shared version and an unknown id are all unknown (404
+`population_version_not_found`), checked before the spend confirmation, and nothing starts. The
+selection is part of the run's identity, and a retry keeps the binding its original recorded
+(`test_research_population_child.py`). A panel run over a child reads it from the population
+store: the worker gives the panel loader the same store as the materialize step
+(`ai_runtime.panel_population_source`); without a store the run parks
+(`test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store`).
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
@@ -186,4 +232,4 @@ is refused (`no_varying_predictor`) where the unit wrote hash noise.
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
 | An S3 asset source read directly by the loader (today: the host's synced copy) | a deployment without a host disk | `.planning/overview.md` Next |
 | Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
-| Storing an owned child version, the materialize step, binding a child to a run | any materialized dimension | `plans/population-operations.md` P4c-P4e |
+| A route and a screen to ask for a dimension (today: the service and the step only) | a researcher materializing without code | `plans/population-operations.md` P4d4 |

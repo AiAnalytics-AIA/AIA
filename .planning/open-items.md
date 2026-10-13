@@ -3501,3 +3501,25 @@ only leads to the refusal.
 **Smallest fix / status.** Resolve and check the population before the cost gate. Found by
 Codex on #332 after it merged; fixed in #345 (panel-grounded-respondents).
 
+
+## OI-105 · Finding, closed · A panel run over a selected child could not read the child
+
+**Claim.** The worker's panel loader read only the shared population's directory, so a panel
+run over a client's materialized child (selected at start since #343) could not load the
+child, which lives in the population store.
+
+**Anchor.** `apps/executors/src/aia_executors/ai_runtime.py:529 @ a7ef6acc` (the panel loader
+over `FilesystemPopulationSource` alone) and `apps/executors/src/aia_executors/registry.py:163
+@ a7ef6acc` (no store handed to it).
+
+**Reproduction.**
+`apps/executors/tests/test_ai_fieldwork.py::test_without_the_store_a_panel_run_over_a_child_parks_and_sends_nothing`:
+the fieldwork step waits `RUNTIME_UNAVAILABLE`, with no request and no ledger row.
+
+**Consequence.** Selecting a child for a panel run did nothing: the run parked at fieldwork.
+Nothing was sent, drawn or substituted.
+
+**Smallest fix / status.** Give the panel loader the population store as the materialize step
+has it (`ai_runtime.panel_population_source`, one store built in `registry.population_store`).
+Found in #343 (population-operations P4e2) as a hypothesis, reproduced and fixed in #351;
+`test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store` covers it.

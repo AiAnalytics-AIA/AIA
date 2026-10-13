@@ -429,6 +429,21 @@ which Compose sets to the read-only `/srv/population/v17`). Before turning it on
 Turning it off again does not change a run that already pinned the panel: a worker without the
 path parks it (`panel_personas_unavailable`) rather than answering with fictional respondents.
 
+### Materialized children (the population store)
+
+A client's materialized dimension is written once, as an owned child version, to its own bucket,
+`aia-develop-population-<account>` (Terraform `aws_s3_bucket.population`; no `force_destroy`), under
+`materialized/`. Its name and region are the SSM parameters `/aia/develop/aia_population_store_bucket`
+and `/aia/develop/aia_population_store_region`, which the deploy hands the worker as
+`AIA_POPULATION_STORE_BUCKET` / `AIA_POPULATION_STORE_REGION` (both or neither: neither means no
+store, nothing written or read). The instance role may get and put objects under `materialized/`
+and list the bucket, nothing else.
+
+The worker builds one store and gives it to both the `population_materialize` step, which writes a
+child, and the panel loader, which reads a selected child back. Without a store, a materialize run
+parks (`population_store_unconfigured`), and a panel run over a child parks at fieldwork; neither
+writes or substitutes anything.
+
 ### The audience preview
 
 The audience step's feasibility preview is counted by the API, which mounts the same
