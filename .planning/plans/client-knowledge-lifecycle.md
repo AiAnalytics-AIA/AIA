@@ -4,6 +4,12 @@ chunks:
   - "[x] K0. Audit current client knowledge intake, payloads, decisions and consumers at 67af44e"
   - "[x] K1. Draft the client knowledge structure, intake and acceptance contracts for review"
   - "[ ] K2. Deliver document, dataset and web intake through one source-to-reviewed-knowledge journey"
+  - "[ ] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
+  - "[ ] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
+  - "[ ] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
+  - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
+  - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
+  - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
   - "[ ] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
@@ -220,6 +226,111 @@ No vector service or additional agent framework is selected by this plan. Start 
 records, locators and scoped retrieval over existing infrastructure; add indexing only when a
 representative retrieval task demonstrates the need. Migration must preserve existing ids and
 generic historical records without inventing source spans or validated dimensions for them.
+
+## K2 slicing (2026-10-13)
+
+**Owner decisions, 2026-10-13:**
+- **Formats.** The wider set:
+  - documents: PDF, DOCX, DOC, ODT, TXT, MD and PPTX;
+  - datasets: CSV, XLSX, XLS and ODS;
+  - web: one public URL (HTML or PDF), plus import from a finished Deep Research run.
+  - Images and video are stored with the named outcome *AI cannot read this*. Anything else
+    is refused by name.
+- **AI proposals are in K2.** They are paid by a study the person picks, under client-workspace
+  D1. Nothing is accepted automatically.
+- **URL capture runs beneath a chosen study.** It uses the existing `RetrievalGate`
+  (`application/web_retrieval.py:529-560` @ 362f90e0) unchanged: fee-free, public Class C only.
+  No client-level gate.
+
+**Shape:**
+- A **source** is the client's stored material: the original bytes, the hash, the occurrence
+  (who added it, when, under what name) and what reading it produced.
+- A source is **not knowledge**:
+  - storing it accepts nothing (§ Acceptance actions, "Add source");
+  - `for_study` never reads it;
+  - knowledge comes from it only as proposals a person accepts.
+- **Storage:**
+  - bytes live in the `ArtifactStore` under a client prefix,
+    `org/<org>/client/<client>/sources/<sha256>`, so a client-wide deletion stays a prefix
+    operation (`storage.py:123-158` @ 362f90e0);
+  - rows live in their own tables, read and written only by `ClientSourceRepository`
+    (`make layer_check`);
+  - the same bytes added twice are one source with two occurrences.
+- **Deterministic reading** runs in the API at upload, bounded:
+  - this is the precedent of a study brief's attachment
+    (`study_workspace_repository.py:492` @ 362f90e0) and the questionnaire import;
+  - it deviates from "keep parsing in the worker" (§ Implementation slices) because a worker job
+    needs a study (`workflow_repository.py:248-255` @ 362f90e0), and D1 stores files without
+    one;
+  - the reading is a pure function over bytes, so moving it to a worker later changes no
+    contract.
+- **The reading's outcome** is `READ` / `PARTIAL` / `UNREADABLE` / `UNSUPPORTED` / `REFUSED`,
+  each with its reason. Every readable segment carries a locator: page, paragraph, slide, sheet
+  and row, or column.
+- **Model-backed work** (K2d) and **outbound fetching** (K2e) run in the worker beneath the
+  chosen study.
+  - Each proposal's provenance names the source, the occurrence, the locator, the paying study
+    and the run.
+  - A quote is checked by code against the stored reading. One that is not there is dropped and
+    counted, never shown.
+
+**Slices.** Each is one PR-sized change with its tests.
+- **K2a. The client source store.**
+  - Tables: sources (client, sha256, media type, size, reading outcome) and occurrences
+    (source, filename, added by, added at, folder and labels suggested).
+  - Its migration; `ClientSourceRepository`; the client-prefixed key.
+  - Routes: `POST /clients/{id}/sources` (25 MiB, base64 JSON like the brief), the list, one
+    source with its reading, and the original served as `application/octet-stream`.
+  - Readers with locators: PDF (`read_pdf`, per page), DOCX (paragraphs and tables), TXT and MD.
+  - Tests: dedupe, wrong client 404, bounds, partial PDF, image `UNREADABLE`, unknown suffix
+    `UNSUPPORTED`, and `for_study` reads no source.
+- **K2b. PPTX, ODT, DOC.**
+  - PPTX and ODT are read from their ZIP parts with the stdlib, under the existing ZIP bounds.
+  - DOC needs a new dependency: `olefile` (BSD, pure Python) for the compound file, then the
+    Word 97 piece table read by code.
+  - Each reader is pinned by fictional fixtures; a malformed file is `REFUSED` by name.
+- **K2c. Datasets.**
+  - CSV and XLSX use the existing readers (`document_text.py:384-463` @ 362f90e0). XLS uses
+    `xlrd` (BSD, pure Python, .xls only). ODS is stdlib ZIP and XML.
+  - A typed `DatasetPreview`: sheets, columns (header, inferred kind, non-empty count, distinct
+    count capped), row count and a bounded sample.
+  - The sample is masked where a column looks like personal data. The detector's patterns are
+    pinned by fictional values (client-workspace C8).
+  - The person's column roles are K3 and C8. K2c only reads.
+- **K2d. AI proposals from a source.**
+  - A new workflow type beneath the chosen study, in a study-owned hidden project, as
+    `population_materialize` does (`application/materialize.py:204-245` @ 362f90e0).
+  - The executor uses `StepModelCaller`; the reservation is held against the study's budget.
+  - A closed output contract: FACT / FINDING / TERM / ENTITY proposals, each with a quote and its
+    locator.
+  - Code grounds every quote in the stored reading.
+  - Off by default behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it, the job parks by
+    name.
+  - Burst, latency and money are measured before merge (CLAUDE.md § 8).
+- **K2e. Web intake.**
+  - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
+    stored as a client source with `origin=web`, the URL and the retrieval time.
+  - Deep Research import: from a finished run of a study of the same client, the person picks
+    accepted evidence. Each becomes a proposal whose locator is the snapshot and the quote.
+    There is no model call.
+  - A run of another client's study is refused (404).
+- **K2f. Review and acceptance.**
+  - The review payload: the proposal beside its source excerpt at the locator, its origin and the
+    paying study.
+  - Batch accept names exact proposal ids.
+  - The connected acceptance test at API, worker and PostgreSQL level covers documents, a dataset
+    and web, and the plan's failure cases:
+    - partial parse;
+    - duplicate source;
+    - unavailable extraction runtime;
+    - wrong-client source;
+    - interrupted processing;
+    - a quote not found.
+  - The screens are client-workspace C6, C7 and C8 on the client-workspace plan. K2 is complete
+    when they pass the same journey in a browser.
+
+**Not in K2:** typed revisions and base-revision checks (K3), study context selection (K4),
+dimensions (K5) and retirement (K6).
 
 ## Findings
 
