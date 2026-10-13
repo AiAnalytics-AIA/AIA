@@ -35,7 +35,7 @@ chunks:
   - "[x] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
   - "[x] 7a. Validation contract (plan before code): the claim, held-out truth, leakage, arms, metrics, P1-P8, money, recording"
   - "[x] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
-  - "[ ] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
+  - "[x] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
   - "[ ] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
@@ -1670,6 +1670,45 @@ Tests (`test_holdout_bank.py`, `test_holdout_leakage.py`, `test_holdout_preregis
 - `test_a_preregistration_pins_everything_that_decides_the_verdict`
 
 The fictional population is `conftest.holdout_population`, a session-scoped factory.
+
+**7c landed.** `domain/holdout/arms.py`, pure. `arm_plans(personas, spec, arm, exclusions=,
+shuffle_seed=)` builds every respondent's plan under an arm.
+
+- **The block's exclusion is applied first.** A block's exclusion is the union of its items'
+  exclusions, and it is taken off the row and the catalog before any profile is written.
+- **What each arm shows:**
+
+  | Arm | Profile |
+  |---|---|
+  | `A` | An empty profile; the request's frame is unchanged |
+  | `B` | `persona_text` over the four base columns (`BASE_COLUMNS`) |
+  | `C` | `persona_text` with no behaviour block, so no catalog signal |
+  | `D` | `PanelPersonas.profile`'s own composition, without the excluded fields and signals |
+  | `S` | D's profiles shown through `derangement` |
+
+- **`derangement`.** Sattolo's algorithm over the sorted ids, under a seed: one cycle, so no
+  respondent is shown their own profile.
+- **What every arm keeps.** The respondent's own facts and styles: the response process is the
+  system's and does not change between arms. `S` therefore isolates the description.
+- **Refusals:** `arm_seed_missing` (S without its seed) and `arm_too_few` (fewer than two
+  respondents).
+- **Not yet enforced.** That only a validation run builds arms is held by `panel_plans` taking
+  no arm. 7e's validation executor is the one module that will import `arms`, and its
+  `layer_check` rule lands with it.
+
+Tests (`test_holdout_arms.py`, on `conftest.sampled_population`, 200 respondents):
+- `test_the_production_arm_without_exclusions_is_todays_persona`: D with no exclusion is equal,
+  plan for plan, to `PanelPersonas.plan`;
+- `test_arm_a_shows_no_persona_and_keeps_the_facts_and_styles`;
+- `test_arm_b_shows_the_demographic_lines_alone_and_c_no_signal`;
+- `test_an_excluded_field_is_never_shown_in_any_arm`;
+- `test_the_shuffled_arm_shows_each_respondent_someone_elses_profile`;
+- `test_a_derangement_has_no_fixed_point_and_moves_only_with_its_seed`;
+- `test_the_shuffled_arm_needs_its_seed`.
+
+The fixture's rows carry no catalog-signal columns, so D and C coincide there. That D adds the
+signals is held by the equality with `PanelPersonas.plan`, whose signal content 3d's EXACT
+fixtures pin.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
