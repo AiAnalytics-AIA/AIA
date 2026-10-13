@@ -434,7 +434,10 @@ packages/aia_core/src/aia_core/
                             concept), preregistration.py (the seeded split: near-duplicates >= 0.70
                             dropped, 40 % of each domain to development; the hashed record of
                             everything that decides the verdict, P1-P8 included; a confirmation set
-                            under 40 items / 5 domains of 4 refused), arms.py (the model arms: A none,
+                            under 40 items / 5 domains of 4 refused; read_preregistration: a stored
+                            record checked as written -- canonical bytes, the code's thresholds, the
+                            system's fingerprint and population version, the blocks exactly the
+                            confirmation set), arms.py (the model arms: A none,
                             B demographics, C core without catalog signals, D the production persona,
                             S D's profiles deranged; the block's exclusion applied in every arm, each
                             respondent keeping their own facts and styles; D unexcluded is today's
@@ -695,6 +698,9 @@ packages/aia_core/src/aia_core/
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
                             Design Revisions; the ONLY writer of a Study's design (ADR 0016); a reused
                             design's citation (study_design_sources, insert-once: record_source, source)
+    holdout_repository.py   A validation Study's preregistration (holdout_preregistrations): kept once
+                            as its canonical bytes, re-hashed and re-checked on every read; found only
+                            through the Study
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
                             (a stale one refused), history; the brief's attachments as artifacts of
