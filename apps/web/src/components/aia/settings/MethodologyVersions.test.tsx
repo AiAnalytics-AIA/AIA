@@ -206,7 +206,8 @@ describe("the methodology's versions", () => {
     const version = await found('[data-methodology-version="1"]', section);
     expect(within(version).getByText(/layout\.stress_bands.*terrain\.sigma/)).toBeTruthy();
 
-    fireEvent.click(within(version).getByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
+    // The just-saved version is put in force from its confirmation, the one button offering it.
+    fireEvent.click(within(section).getByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }));
     const confirm = await found("[data-methodology-activate]", section);
     fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "ověřeno" } });
     fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));
@@ -438,6 +439,9 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
     const section = await versionsSection();
     const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }, { timeout: 5000 });
+    // Once the list holds the saved version, it still offers one button for it: the confirmation's.
+    await found('[data-methodology-version="1"]', section);
+    expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" })).toEqual([offer]);
     fireEvent.click(offer);
     const confirm = await found("[data-methodology-activate]", section);
     fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "širší kopec" } });

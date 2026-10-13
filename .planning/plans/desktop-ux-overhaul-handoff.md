@@ -168,5 +168,7 @@ brought it to 284-365 ms (< 400 ms) under dev-mode React. A filtered-out study's
 hidden, never unmounted, so a typed budget survives the search (test: "filters studies without
 unmounting their budget drafts").
 
-Finding (from #379, not this slice): after a Metodika save, its confirmation and the version list
-both offer "Uvést … v platnost"; the journey now clicks the confirmation's.
+Fixed here (from #379): after a Metodika save, its confirmation and the version list both offered
+"Uvést … v platnost" for the same version. The owner chose to drop the list's: while the
+confirmation offers a version, the list does not (test: "offers to put a just-saved version in
+force"). The list keeps the button for every other version, which is how an older one is put back.

@@ -161,8 +161,8 @@ try {
   await methodForm.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click();
   await methodForm.waitFor({ state: "detached" }); await page.unroute("**/api/v1/methodology/sociomap/versions");
   let versions = await get("/api/v1/methodology/sociomap/versions"); const created = versions.versions.find((v) => v.spec.terrain.sigma === 0.3 && v.spec.relation.n_min === 34 && !beforeVersions.versions.some((old) => old.version_number === v.version_number)); assert(created); assert.equal(versions.in_force.origin, "code");
-  // Right after a save its confirmation offers the activation (the version list offers it too).
-  await page.getByRole("status").getByRole("button", { name: `Uvést ${created.name} v platnost`, exact: true }).click();
+  // Right after a save its confirmation offers the activation, the one button for that version.
+  await page.getByRole("button", { name: `Uvést ${created.name} v platnost`, exact: true }).click();
   await page.locator("[data-methodology-activate]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor(); await page.reload();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor();
