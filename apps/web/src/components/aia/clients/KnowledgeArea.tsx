@@ -8,7 +8,7 @@
 // accepts -- the one who offered it may accept it, unless the client turned that off and
 // the API says so. Folders and labels are organization, never knowledge (D4).
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
@@ -129,7 +129,11 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   );
 }
 
-const addRequested = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1";
+/** A view another page links to (Přehled's "Projít", its health lines); any other value is ignored. */
+const viewRequested = (params: URLSearchParams): LibraryView | null => {
+  const v = params.get("view");
+  return v === "review" || v === "unfiled" || v === "old" ? v : null;
+};
 
 function NavButton({ on, onClick, children, count, attention = false }: { on: boolean; onClick: () => void; children: ReactNode; count?: number | null; attention?: boolean }) {
   return (
@@ -199,12 +203,16 @@ export function KnowledgeArea() {
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
   const mayPropose = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
   const mayApprove = client.permissions.includes("APPROVE_CLIENT_KNOWLEDGE");
-  const [view, setView] = useState<LibraryView>("all");
+  // What another page asked for (?add=1, ?view=…), from the router: after an in-app navigation
+  // window.location is not yet the new URL when this first renders.
+  const params = useSearchParams();
+  const addRequested = params.get("add") === "1";
+  const asked = params.get("add") !== null || params.get("view") !== null;
+  const [view, setView] = useState<LibraryView>(() => viewRequested(new URLSearchParams(params.toString())) ?? "all");
   const [label, setLabel] = useState<string | null>(null);
   const [section, setSection] = useState<KnowledgeSection | "all">("all");
   // "Přidat znalost" on any other area of the client lands here with ?add=1: the form opens.
-  // The client is resolved in the browser before this renders, so `window` is there.
-  const [proposing, setProposing] = useState(() => mayPropose && mayView && addRequested());
+  const [proposing, setProposing] = useState(() => mayPropose && mayView && addRequested);
   const [version, setVersion] = useState(0);
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -212,8 +220,8 @@ export function KnowledgeArea() {
   const [labels, retryLabels] = useResource(() => (mayView ? workspace.labels(clientId) : Promise.resolve([])), [clientId, mayView, version]);
   // Once read, the request leaves the URL, so a reload or a shared link does not reopen the form.
   useEffect(() => {
-    if (addRequested()) router.replace(appRoutes.area(clientId, "knowledge"));
-  }, [clientId, router]);
+    if (asked) router.replace(appRoutes.area(clientId, "knowledge"));
+  }, [asked, clientId, router]);
 
   const changed = () => {
     setVersion((v) => v + 1);

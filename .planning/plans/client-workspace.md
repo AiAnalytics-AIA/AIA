@@ -11,7 +11,7 @@ chunks:
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
   - "[ ] C8. Data area: datasets with column check, personal-data columns dropped, ownership and licence; use in a study says V AIA zatím není (needs lifecycle K2)"
   - "[ ] C9. Retire and restore an item from the library (needs lifecycle K6's contract)"
-  - "[ ] C10. Přehled complete (Čeká na vás, feed, knowledge health); workbench journey at four widths; Doc follow-up"
+  - "[x] C10. Přehled complete (Čeká na vás, feed, knowledge health); workbench journey at four widths; Doc follow-up"
 ---
 # The client workspace: managing a client's knowledge and taking in its data
 
@@ -325,17 +325,56 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
 - **Tests:** a retired item is absent from a new study's context and present in a frozen run's,
   and restore brings it back.
 
-### C10. Přehled, the journey, Doc follow-up
-- **Přehled:** *Čeká na vás* (pending proposals, datasets to check, studies waiting on the
-  person), the intake and knowledge-change feed, and knowledge health (starší než rok, bez
-  složky).
-- **Journey:** `tools/ui_workbench/client_journey.mjs`, which:
-  - creates a fictional client;
-  - adds folders and labels;
-  - edits and moves items;
-  - reviews proposals;
-  - runs at 1440/1024/768/390;
-  - makes zero paid jobs.
+### C10. Přehled, the journey, Doc follow-up (landed)
+
+**Přehled** now opens on *Čeká na vás*. It lists:
+- the knowledge proposals waiting, with their count and the first three titles, and *Projít*
+  opening Znalosti on *Ke schválení*;
+- studies in review, each linking to where it stands.
+
+Below come *Rozpracovaná práce* and *Poslední změny znalostí*. The change feed shows the client's
+latest revisions, each saying where it came from: from a study, written by a person, or a
+decided proposal. *Nejnovější výstupy* follows.
+
+*Kontext klienta* adds what wants attention: *Neměněno déle než rok: n* and *Bez složky: n*.
+Each is a link to its view, and when there is nothing it says so.
+
+**API and repository:**
+- `GET /clients/{id}/overview`'s `knowledge` gains `stale_items` and `unfiled_items`, and the
+  response gains `recent_changes`.
+- `ClientKnowledgeRepository.health(now=)` counts what wants attention, in SQL.
+  `domain/knowledge.STALE_AFTER` is 365 days, the same rule the library's *Starší než rok* uses.
+- `recent_revisions(limit)` returns the latest revisions by context revision.
+- Both are tested on SQLite and PostgreSQL 16.
+
+**Znalosti opens on a view another page names** (`?view=review|unfiled|old`), read once and then
+removed from the URL.
+
+**Fixed: the add form did not open after an in-app navigation.** The journey found it. *Přidat
+znalost* on Přehled navigates in-app to `?add=1`, but Znalosti read `window.location`, which is
+not yet the new URL on that first render, so the form did not open. The C1 unit test had passed
+only because it set the URL before rendering. Znalosti now reads `useSearchParams()`, inside a
+`Suspense` boundary on its page.
+
+**The journey: `tools/ui_workbench/client_journey.mjs`.** Run it after `make ui-workbench` and
+`make ui-fixtures`; it uses the local fictional identity only. It checks:
+- six client areas at 1440/1024/768/390 with no page overflow;
+- Přehled's order and the Výzkumy table with its filters;
+- *Přidat znalost* from Přehled, and the new item listed at once;
+- a folder and a label created; bulk move and label; the folder view;
+- an edit saved as revision 2 and shown in the history;
+- deleting the folder and the label keeps the item;
+- Profil has no field;
+- zero paid jobs and no HTTP or page errors.
+
+It passed on 2026-10-13, with eight writes, all to the client's knowledge.
+
+**Tests:**
+- core: `test_health_counts_items_unchanged_for_a_year_and_items_in_no_folder`,
+  `test_recent_revisions_are_the_clients_latest_changes_newest_first`;
+- API: the overview test asserts health and the feed;
+- web, in `ClientFirst.test.tsx`: Čeká na vás, the feed and the health links; the empty states;
+  Znalosti opened on a linked view.
 
 ## What this plan deliberately does not do
 
@@ -346,11 +385,27 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
 
 ## Findings
 
-None yet.
+**F-CW1: the workbench UX journey stops at the object map's rotate button after develop's
+Results changes.** Status: hypothesis about the cause; the failure itself reproduces.
+
+1. **Claim:** `tools/ui_workbench/ux_journey.mjs` times out at line 95, waiting for the
+   *Otočit vpravo* button of `object-map-sec_wb_set`.
+2. **Anchor:** `tools/ui_workbench/ux_journey.mjs:95` and
+   `apps/web/src/components/rehome/research/ObjectMapView.tsx:307`, on this branch after merging
+   develop `04c8830`. The branch changes nothing under `components/rehome`, so the failure is
+   develop's.
+3. **Reproduction:** `make ui-workbench && make ui-fixtures && make ui-research`, then
+   `node tools/ui_workbench/ux_journey.mjs`.
+4. **Consequence:** the UX regression journey reports failure before its keyboard and camera
+   checks. The 17 routes at four widths, the client search and the result tabs before it pass.
+5. **Smallest fix:** unknown until the Results change that moved or relabelled the control is
+   read. Belongs to the plan that changed Results.
+6. **Test that would have caught it:** this journey, run before that Results change merged.
 
 ## Doc follow-up
 
-For the docs PR after each chunk merges:
+The full list for C1–C4 and C10 is in PR #380's description, under Doc follow-up. In short, for
+the docs PR after each chunk merges:
 - **`CLAUDE.md` § 2:**
   - `routers/workspace` gains the folder, label and placement routes (C3) and the profile
     routes (C5);

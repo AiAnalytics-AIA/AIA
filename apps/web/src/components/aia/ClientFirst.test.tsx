@@ -24,6 +24,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: () => path,
   useRouter: () => ({ push, replace }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
   notFound: () => {
     throw new Error("NEXT_NOT_FOUND");
   },
@@ -309,6 +310,64 @@ describe("a client's workspace", () => {
     const table = await screen.findByRole("table", { name: "Simulace" });
     expect(within(table).queryByRole("columnheader", { name: "Přineslo do znalostí" })).toBeNull();
     expect(within(table).getByText("Cenové scénáře")).toBeTruthy();
+  });
+
+  it("opens on what waits on a person, then what changed and what in the knowledge wants attention", async () => {
+    path = "/app/clients/CLI-a";
+    api({
+      "GET /api/v1/clients/CLI-a/overview": () => ({
+        client: A,
+        active: [...STUDIES, study("STU-5", "Firemní klienti", "RESEARCH", { status: "IN_REVIEW", has_working_content: true, last_stage: "results" })],
+        previous_count: 0,
+        recent_outputs: [],
+        knowledge: { context_revision: 9, items_by_kind: { FACT: 3 }, pending_proposals: 5, last_approved_at: null, stale_items: 2, unfiled_items: 4 },
+        pending: [PROPOSALS[0], PROPOSALS[1]],
+        recent_changes: [
+          { item_id: "KNW-1", title: "Hlavní konkurenti", revision: 3, origin: "PERSON", at: null },
+          { item_id: "KNW-2", title: "Mladší kupci řeší cenu", revision: 1, origin: "STUDY", at: null },
+        ],
+      }),
+    });
+    render(inClient("CLI-a", <ClientOverview />));
+    const yours = (await screen.findByRole("heading", { name: "Čeká na vás" })).closest("section")!;
+    expect(within(yours).getByText("Návrhy znalostí ke schválení: 5")).toBeTruthy();
+    expect(within(yours).getByText(/Značka působí spolehlivě · Můj pojem/)).toBeTruthy();
+    expect(within(yours).getByRole("link", { name: "Projít" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=review");
+    expect(within(yours).getByText("Firemní klienti").closest("a")!.getAttribute("href")).toBe("/app/clients/CLI-a/research/STU-5/results");
+
+    const changes = screen.getByRole("heading", { name: "Poslední změny znalostí" }).closest("section")!;
+    expect(within(changes).getByText("napsal člověk · revize 3")).toBeTruthy();
+    expect(within(changes).getByText("ze studie · revize 1")).toBeTruthy();
+
+    const context = screen.getByRole("heading", { name: "Kontext klienta" }).closest("section")!;
+    expect(within(context).getByRole("link", { name: "Neměněno déle než rok: 2" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=old");
+    expect(within(context).getByRole("link", { name: "Bez složky: 4" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=unfiled");
+  });
+
+  it("says when nothing waits on a person", async () => {
+    path = "/app/clients/CLI-a";
+    api({
+      "GET /api/v1/clients/CLI-a/overview": () => ({
+        client: A, active: [], previous_count: 0, recent_outputs: [],
+        knowledge: { context_revision: 0, items_by_kind: {}, pending_proposals: 0, last_approved_at: null, stale_items: 0, unfiled_items: 0 },
+        pending: [], recent_changes: [],
+      }),
+    });
+    render(inClient("CLI-a", <ClientOverview />));
+    expect(await screen.findByText("Nic nečeká na vaše rozhodnutí.")).toBeTruthy();
+    expect(screen.getByText("Zatím se ve znalostech nic nezměnilo.")).toBeTruthy();
+    expect(screen.getByText("Vše je v některé složce a nic není starší než rok.")).toBeTruthy();
+  });
+
+  it("opens Znalosti on the view a link names, and forgets it once read", async () => {
+    path = "/app/clients/CLI-a/knowledge";
+    window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?view=review");
+    api();
+    render(inClient("CLI-a", <KnowledgeArea />));
+    expect(await screen.findByText("Značka působí spolehlivě")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Ke schválení/ }).getAttribute("aria-pressed")).toBe("true");
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
+    window.history.pushState({}, "", "/");
   });
 
   it("lists the client's research only, and starts a new one under the client", async () => {

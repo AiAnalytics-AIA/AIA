@@ -12,6 +12,7 @@ import { KnowledgeArea } from "./KnowledgeArea";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/app/clients/CLI-a/knowledge",
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
 }));
 
 const ALL = ["APPROVE_CLIENT_KNOWLEDGE", "CREATE_STUDY", "PROPOSE_CLIENT_KNOWLEDGE", "VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"];

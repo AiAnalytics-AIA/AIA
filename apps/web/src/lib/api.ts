@@ -296,7 +296,13 @@ export type KnowledgeSummary = {
   items_by_kind: Record<string, number>;
   pending_proposals: number;
   last_approved_at: string | null;
+  /** Active items unchanged for over a year, and active items in no folder. */
+  stale_items?: number;
+  unfiled_items?: number;
 };
+
+/** One recent revision of the client's knowledge: a study's finding, a person's writing, or a decided proposal. */
+export type KnowledgeChange = { item_id: string; title: string; revision: number; origin: "STUDY" | "PERSON" | "PROPOSAL"; at: string | null };
 
 export type OutputItem = {
   artifact_id: string;
@@ -315,6 +321,7 @@ export type ClientOverview = {
   recent_outputs: OutputItem[];
   knowledge: KnowledgeSummary | null;
   pending: Proposal[];
+  recent_changes?: KnowledgeChange[];
 };
 
 export type StudyWorkspace = {
