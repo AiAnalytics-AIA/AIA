@@ -112,6 +112,26 @@ under `-2`'s other rules.
 The tier gate still applies on top (`evaluate_tier`): segment breakdowns need a tier that permits
 `demographic_breakdown` or `segmentation`.
 
+**Amendment, 2026-10-13: the client report ahead of the validation.** The product owner decided
+(in session, recorded in
+[complete-study-report](../../../.planning/plans/complete-study-report.md), "B5 owner
+decisions") that modelled numbers may enter the **client report only** before a validation
+exists. It is a recorded exception to this section, not a change of its rule:
+
+- It is data, `MODELLED_CLIENT_REPORT_LIFT` (`domain/evidence/report_lift.py`): who decided,
+  when, the surface (`CLIENT_REPORT`), and the note every client report prints. Only the client
+  composer (`application/client_report.py`) passes it, and it drops `INTERNAL_ONLY` from a
+  modelled run's `-2` items, for a run that recorded its respondent system, and nothing else.
+  The lift's id is part of the instrument declaration's identity.
+- Every other rule stands: support and suppression, the interval a client estimate needs, the
+  modelled disclosure on every number, the refusal of any predictive-validity claim, and the
+  population's joint certificate, which a panel run now records beside its dataset
+  (`JOINT_CERTIFICATE_METADATA`) and its evidence is judged under.
+- Client-facing **analysis** (the eight modules' prose) never passes the lift and still waits
+  for the validation this section describes.
+
+Revoking it is removing that record; the chunk-7 validation, once earned, supersedes it.
+
 ### 5. Support counts donors, not respondents
 
 - Grounded respondents are drawn from synthetic rows that share survey donors. Support is the
@@ -173,4 +193,6 @@ footnote, along with the validation's date and fingerprint.
 
 - **Legal's confirmation of OI-61.** The basis recorded is the owner's determination alone.
 - **The validation thresholds** for §4: methodology owner, with chunk 7's result.
+- **The client-report lift** (§4 amendment): to be retired once a validation on the current
+  respondent system is recorded.
 - **ANL-1 for every other origin**, and D6, remain as they are.

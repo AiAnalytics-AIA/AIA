@@ -574,8 +574,10 @@ command "for speed" silently changes what is checked.
 `pydantic.create_model`.** With a warm `.mypy_cache`, appending a comment to
 `domain/ai_respondent.py` made the full four-tree invocation report three
 `create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
-same invocation passed (reproduced twice, PR #315 and chunk 4b). CI starts from an
-empty cache, so it never sees them.
+same invocation passed (reproduced twice, PR #315 and chunk 4b). A third time (#385,
+pydantic 2.14.1, mypy 1.20.2) the edit was to an unrelated module
+(`domain/panel_source.py`, which imports it), not to `ai_respondent.py` itself. CI starts
+from an empty cache, so it never sees them.
 
 ```bash
 # WRONG: trust a warm-cache failure on create_model and "fix" working code

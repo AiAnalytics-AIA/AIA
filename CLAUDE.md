@@ -82,7 +82,12 @@ apps/
                             readiness with the run's cost ceiling and the study's spend limit, and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry); GET …/design/source: where a reused design
-                            came from), deep research (a Study's Deep Research
+                            came from; a run's reports: GET …/report, …/report/download,
+                            …/report/pdf/download, …/report/context/download (stored, names its
+                            artifact), …/report/client/download (a modelled run's client report;
+                            409 client_report_refused otherwise), POST …/report/approve (a stored
+                            report of the run, once); GET …/research/sociomap-register),
+                            deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
                             interpretation, over a result of the Study's own run), scope
                             (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
@@ -116,7 +121,9 @@ apps/
                             (a past research, read-only), intelligence, memory, settings
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
-                            action, tabs), the client workspace and its areas, ResearchStudy
+                            action, tabs; a `track` puts it in study mode: icon-only global
+                            navigation, a one-row header, the title in the page), the client
+                            workspace and its areas, ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
                             settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
@@ -156,9 +163,15 @@ apps/
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
-    src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights): rail,
-                            save state, job panel, the shared brief analysis (useAnalysis), one
-                            screen per stage; ProposalEditor and PlanStep edit the research narrative
+    src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights):
+                            StageTrack (every stage with its state, Průběh a stage of its own),
+                            Inspector (InspectorProvider / InspectorSlot: a stage's readiness beside
+                            it, then AI pomoc, then "Do spuštění zbývá"), save state, job panel, the
+                            shared brief analysis (useAnalysis), one screen per stage; ProposalReview
+                            (a design proposal reviewed inline, its changes listed); CompleteReport
+                            (the report card on Výsledky: a part claimed only when the run's steps
+                            made it); the internal report's card approves it, downloads its PDF and,
+                            for a modelled run, the client report; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
                             RunResults, one run's results from the StudyFrame alone (read-only when
@@ -208,7 +221,12 @@ apps/
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
                             /config reads server values at request time, never credentials
-    src/lib/object-map-view.ts  The contract-3 object map read from its artifact: ten display terraces
+    src/research/lane.ts    Each stage's state from the study's working content and runs (no new
+                            rule: Kontrola's server readiness stays the authority); proposal-diff.ts:
+                            a proposal's changes against the working content
+    src/lib/object-map-view.ts  The contract-3 object map read from its artifact: mapApproval (a map's
+                            approval in the Sociomap register, by the method its run recorded; an
+                            unread register is internal); ten display terraces
                             on the absolute 0-1 scale, mapLinks (the one link rule), pairDetail (UNKNOWN
                             with an r apart from an undefined r), mapFrame, screen-space label placement
     src/lib/object-map-3d.ts  terraceLayers (terraces cut from the stored mesh at the band thresholds) and
@@ -262,7 +280,10 @@ apps/
                             model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
                             and a valid provider configuration), else it parks too (registry.py)
     report.py               research_report: the internal draft from the eight analysis modules and
-                            the run's object maps (report_maps, object_map_figure); never approved here
+                            the run's chapters (report_chapters: maps, question tables, design,
+                            respondents); never approved here; with AIA_REPORT_PDF_ENABLED (off by
+                            default, on for develop) its PDF rendering beside it (research_internal_pdf,
+                            infrastructure/report_pdf.py; a failed conversion fails nothing)
     sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; always registered.
                             AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED decides only whether a newly started
                             run includes its step; turning it off does not stop a run that already has it
@@ -385,7 +406,9 @@ packages/aia_core/src/aia_core/
     panel_source.py         A run's panel respondents: panel_plans (the sample under the design's
                             audience filters, the personas, a plan per respondent, in that order);
                             respondent_system (ADR 0024 §4's components); pinned_components: every
-                            component but the model binding; PanelPlans.provenance
+                            component but the model binding; PanelPlans.provenance;
+                            joint_certificate_record (the population's certificate as a panel
+                            dataset records it: text, SHA-256, the panel SHA-256)
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
@@ -404,14 +427,21 @@ packages/aia_core/src/aia_core/
                             synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
                             CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
                             origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
-                            uses), MODELLED_DISCLOSURE and RESPONDENT_SYSTEM_METADATA (the dataset's
-                            record of its respondent system); PersonaSource (fictional_roster | panel)
+                            uses), MODELLED_DISCLOSURE, RESPONDENT_SYSTEM_METADATA (the dataset's
+                            record of its respondent system) and JOINT_CERTIFICATE_METADATA (a panel
+                            dataset's record of its population's CORE_JOINT_STATUS, which its evidence
+                            is judged under); PersonaSource (fictional_roster | panel)
                             and persona_source_of (a run before the pin: the roster)
+    sociomap_register.py    SOCIOMAP_REGISTER: which Sociomap method, at which exact spec fingerprint,
+                            is approved (MethodologyStatus); a method absent is INTERNAL_ONLY, never
+                            presumed; aia-sociomap-3 approved by the product owner 2026-10-13 (D6);
+                            read whenever a map is read (recorded_statuses), never stored on a run
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
-    research_sociomap.py    The unit's relation matrix -> compute_sociomap; INTERNAL_ONLY while D6
-                            is open; require_client_facing refuses it. Beside it each pair's signed r,
+    research_sociomap.py    The unit's relation matrix -> compute_sociomap; a map's status is the
+                            Sociomap register's for its method (sociomap_register.py);
+                            require_client_facing refuses anything it does not approve. Beside it each pair's signed r,
                             n, interval and status, relation_rescaled (F2), object_scores (F8), K100
                             only with AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED; rating_universe
                             (every set's items + the declared rating questions); SociomapMethod,
@@ -461,7 +491,8 @@ packages/aia_core/src/aia_core/
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
       runtime.py            RuntimePopulation, issued only by the loader; companion(asset_id): a
-                            companion's bytes as the loader verified them at load
+                            companion's bytes as the loader verified them at load; joint_certificate:
+                            the certificate's verified bytes and the panel SHA-256 it was checked against
       subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
                             BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
       audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
@@ -581,7 +612,11 @@ packages/aia_core/src/aia_core/
                             respondent_system_fingerprint (ADR 0024 §4) and lifts_internal_only (a
                             current holdout on it, nothing else)
       instrument.py         A Study's own items as evidence fields: -1 (simulated) and -2
-                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until lifted
+                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until a holdout lifts
+                            it, or, for the client report alone, the owner's lift
+      report_lift.py        MODELLED_CLIENT_REPORT_LIFT: the product owner's 2026-10-13 decision as
+                            data (ADR 0024 §4 amendment): drops -2's INTERNAL_ONLY for the client
+                            report only; only application/client_report.py passes it
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
@@ -629,15 +664,41 @@ packages/aia_core/src/aia_core/
                             source_runs
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
-                            body prose keeps evidence refs and actual headings keep semantic styles
+                            body prose keeps evidence refs and actual headings keep semantic styles;
+                            the design chapter after the introduction, "Respondenti a výpočet" and the
+                            per-question tables after the methodology, the questionnaire appendix
+    report_chapters.py      report_chapters: the map, question, design and method chapters from the
+                            run's verified sources (verified_map: the run's Sociomap, derived from its
+                            dataset and specification); the worker's report and the report with
+                            literature both take them from here
+    report_tables.py        question_tables: every question's numbers as tables, each cell a claim
+                            admitted question by question for the given surface (internal: a refused
+                            question named with its reasons; client: left out and counted)
+    report_design.py        compose_design_sections: the design the run executed (questions, sets,
+                            sample, audience as stated) and its questionnaire as an appendix
+    report_method.py        compose_method_section: who answered (by origin kind), the population
+                            recorded and read, filters applied or not, the methods pinned;
+                            unrecorded said so
+    report_approval.py      approve_report: a person approves a run's stored report (internal, with
+                            literature, or client) through ArtifactRepository.approve, once
+    client_report.py        compose_client_report / stored_client_report: a modelled run's client
+                            report: numbers admitted CLIENT_FACING under the owner's lift and the
+                            run's recorded certificate, each labelled modelled with its scope;
+                            approved maps only, as figures; the design and the questionnaire;
+                            stored once as a draft (research_client_docx); refused by name
+                            (ClientReportRefused) for any other run
     contextual_report.py    Combined internal report over an explicitly selected completed interpretation
                             run: scoped ownership, bundle seal and exact frozen lineage; accepted source
                             claims, complete cited numeric context and explicit coverage limits. Generated
                             interpretation remains an unapproved UI draft outside the report; external L
-                            citations stay outside respondent evidence. Read-only export, original unchanged.
+                            citations stay outside respondent evidence. The same chapters as the
+                            internal report (report_chapters); stored once per exact source set as
+                            research_internal_docx_with_research (DRAFT_UNAPPROVED,
+                            stored_contextual_report); the original run is unchanged.
                             See test_citation_valid_inapplicability_inference_is_not_published.
-    report_maps.py          Internal chapters from frozen object maps and supplied print snapshots;
-                            reading guide, fit/support and signed relationship table
+    report_maps.py          Map chapters from frozen object maps and supplied print snapshots, each
+                            map with the Sociomap register's status; reading guide, fit/support and
+                            signed relationship table; client=True: approved maps only, as figures
     workflows.py            start_workflow: a run from a template, idempotent per revision
     research.py             ResearchRuns: start/list/get/cancel/retry over a Design Revision,
                             found only through the Study; research_artifacts, the ONLY reader;
@@ -674,6 +735,9 @@ packages/aia_core/src/aia_core/
     workspace_migration.py  migrate_unit_workspaces: each waiting Study as a named person, through
                             ScopeResolver, in its own transaction; missing is not lost until said so
   infrastructure/
+    report_pdf.py           LibreOfficePdf: a stored DOCX rendered as PDF (headless soffice, a private
+                            profile per conversion, a timeout); AIA_REPORT_PDF_ENABLED (off by
+                            default; on without soffice stops the worker)
     report_docx/            The report as DOCX (python-docx; the `report` extra, imported lazily)
       cover.py, assets/     Original Claude Design lockup/field SVGs in a cover-only header;
                             editable bottom-aligned cover text and preserved draft footer
@@ -777,7 +841,9 @@ packages/aia_core/src/aia_core/
     build_identity.py       AIA_BUILD_SHA: the commit a process runs; null, never a guess
 
 migrations/                 Alembic
-deploy/docker/              python.Dockerfile (api + worker targets); apps/web/Dockerfile is the client
+deploy/docker/              python.Dockerfile (api + worker targets; the worker build arg AIA_WORKER_PDF
+                            installs LibreOffice Writer, ~300 MB, on for develop); apps/web/Dockerfile
+                            is the client
 deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/restore/smoke, runbook.
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
@@ -961,7 +1027,9 @@ and refuses it on any other route. A run pins its persona source at start
 respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
 worker without the path parks it, never answering with the roster instead
 ([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
-The Sociomap is computed but `INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
+A Sociomap's status is the Sociomap register's for the exact method, at its spec fingerprint, that
+computed it (`domain/sociomap_register.py`): `aia-sociomap-3` is approved (the product owner,
+2026-10-13, D6); `aia-sociomap-1` and anything not registered is `INTERNAL_ONLY`. A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
 (ADR 0019 gate 2).
 
@@ -1017,7 +1085,11 @@ rewrites deterministic research truth.
 **Evidence is a capability, like scope.** A number reaches an analysis result only
 as an `AdmittedClaim`, minted only by `admit_numeric_claims` after field policy,
 joint structure, support, interval and tier have all passed. Prompts state the
-rules; they never enforce them.
+rules; they never enforce them. A modelled number (`MODELLED_AI_PANEL`) reaches a client
+only in the client report (`application/client_report.py`): admitted `CLIENT_FACING` under
+the owner's recorded lift (`MODELLED_CLIENT_REPORT_LIFT`, ADR 0024 §4 amendment) and the
+population certificate its run recorded, labelled modelled; client-facing analysis prose
+still waits for a holdout validation.
 
 **The unit is the oracle, and its functions are fixtures.** The strangler plan
 ([`.planning/plans/legacy-strangler.md`](.planning/plans/legacy-strangler.md))
@@ -1062,6 +1134,7 @@ ungated fixture.
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
 | Capture UI function fixtures | `python tools/ui_function_capture.py capture` (needs Node); `verify` re-runs and compares |
 | **Plan status** | `python tools/progress.py`; `--check` validates every plan's front-matter |
+| **Report PDFs** | The worker renders each report's PDF with `AIA_REPORT_PDF_ENABLED=true`, in an image built with `AIA_WORKER_PDF=true` (both on for develop: `.github/workflows/deploy-develop.yml`, `deploy/develop/docker-compose.yml`); on without `soffice` the worker stops at start |
 | **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
 | **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
 | Lint | `make lint` |

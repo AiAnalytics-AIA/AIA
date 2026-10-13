@@ -529,7 +529,7 @@ reference's `parity-plan.md` records for F12.
 
 ---
 
-## OI-16 · Question · The AIA layout and its declarations need methodology sign-off
+## OI-16 · Question, decided · The AIA layout and its declarations need methodology sign-off
 
 **Claim.** Four spec values in `AIA_SOCIOMAP_V1` are AIA declarations, not
 recovered reference behaviour: the dissimilarity target `scale_top_minus_rating`,
@@ -550,12 +550,16 @@ ACCEPT, REPLACE or DEFER per declaration, each with the evidence, the
 consequence, the real alternatives and legacy comparability. The answer is
 recorded there, here and in D6.
 
-**Status.** Open — decision package ready, awaiting the owner (D6). **This is the
-only methodology decision preventing client use.** It does not block computation.
+**Status.** Decided for `aia-sociomap-3`, 2026-10-13: the product owner chose to use the
+current methodology, `aia-sociomap-3`, in reports as it stands (PROGRESS D6), and it is the
+Sociomap register's entry (`domain/sociomap_register.py` @ `ab91373`, #385). The four
+`aia-sociomap-1` declarations this item lists stay unapproved, so its map stays
+`INTERNAL_ONLY`; nothing here asks for them any longer, because new runs draw the object map
+of `aia-sociomap-3`.
 
 ---
 
-## OI-17 · Requirement · No gate yet stops an unapproved Sociomap reaching a client
+## OI-17 · Requirement, closed · No gate yet stops an unapproved Sociomap reaching a client
 
 **Claim.** Nothing yet checks that a Sociomap entering a client deliverable was
 computed under an approved methodology. The engine computes any supported spec
@@ -588,6 +592,15 @@ yet" is stale. The `sociomap` research step and its route exist
 `apps/api/src/aia_api/routers/research.py` `_RESEARCHERS_ONLY`), and the artifact is
 `INTERNAL_ONLY`; `research_sociomap.require_client_facing` refuses it while D6 is open.
 The exposure is still nil, and the registry this item asks for is still owed.
+
+*2026-10-13, closed by #385 (complete-study-report B4).* The registry is
+`SOCIOMAP_REGISTER` (`packages/aia_core/src/aia_core/domain/sociomap_register.py` @ `21c29a0`):
+entries `(method_id, spec_fingerprint, status, decided_by, decided_on, record)`; a map's status
+is read from it whenever the map is read; the client composer draws only maps it approves and
+`require_client_facing` still refuses any other. Tests:
+`test_sociomap_register.py::test_anything_else_is_internal_never_presumed_approved` (an
+unregistered pair and a registered id at another fingerprint refused) and
+`::test_the_owners_decision_approves_aia_sociomap_3_exactly_as_the_code_computes_it`.
 
 ---
 
@@ -2105,7 +2118,11 @@ resolved per source. It can be built and tested on synthetic or explicitly clear
 **What resolves it.** A source-specific determination (per dataset: which providers, which data
 classes, by whom, when, on what basis) from legal and the data owner.
 
-**Status.** Open; blocks live AI fieldwork, not PR C.
+**Status.** Closed 2026-10-12: the data owner determined that panel-derived sources may reach
+`bedrock-eu-primary` alone (`domain/licence_determinations.py`, `PANEL_APPROVED_ROUTE`; the
+licence gate stays beside residency and refuses every other route). Legal's confirmation is
+still owed (ADR 0024, Open). *The line read "Open" under a "closed" heading until 2026-10-13
+(OI-108).*
 
 ## OI-62 · Decided (engineering, on evidence) · Bootstrap intervals need not follow NumPy's random stream
 
@@ -3523,3 +3540,75 @@ Nothing was sent, drawn or substituted.
 has it (`ai_runtime.panel_population_source`, one store built in `registry.population_store`).
 Found in #343 (population-operations P4e2) as a hypothesis, reproduced and fixed in #351;
 `test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store` covers it.
+
+
+## OI-106 · Finding, closed · The UX journey had drifted from develop twice
+
+**Claim.** `tools/ui_workbench/ux_journey.mjs` failed on develop for two reasons unrelated to
+any change under test: it clicked the 3D camera's "Otočit vpravo", which had moved into a closed
+disclosure, and it counted `GET …/design/source`'s 404 (which means "not reused") as an error.
+
+**Anchor.** `apps/web/src/components/rehome/research/ObjectMapView.tsx:302` (the disclosure, since
+`1eb36ab`) and `DesignSourceNote` (since `213d491`), against the journey's last update `19d1179`;
+develop @ `b05b698`.
+
+**Reproduction.** `node tools/ui_workbench/ux_journey.mjs` on develop @ `b05b698` with the
+workbench up: a timeout on the hidden button, then an error for the expected 404.
+
+**Consequence.** The research UX regression check could not pass, so it proved nothing.
+
+**Smallest fix / status.** Open the disclosure, name the expected 404 and judge a logged 404 by
+its request. Fixed in #382 (research-lane-redesign, F1).
+
+## OI-107 · Finding, closed · A report could never be approved
+
+**Claim.** `ArtifactRepository.approve` had no caller for reports, so every report's
+`review_state` stayed `DRAFT_UNAPPROVED`.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/artifact_repository.py:523` @
+`b05b698`.
+
+**Reproduction.** `grep -rn "\.approve(" apps/api/src packages/aia_core/src/aia_core/application`
+@ `b05b698` finds no report route.
+
+**Consequence.** "Koncept čeká na schválení" could never change.
+
+**Smallest fix / status.** `approve_report` and `POST …/report/approve`, through the one approve
+method. Fixed in #385 (complete-study-report B2);
+`test_research_api.py::test_a_person_approves_a_runs_stored_report_once_and_only_that`.
+
+## OI-108 · Finding, closed · OI-61's status line said Open under a "closed" heading
+
+**Claim.** OI-61's heading reads "Decision, closed" while its Status line read "Open; blocks live
+AI fieldwork".
+
+**Anchor.** `.planning/open-items.md:2080` and `:2108` @ `b05b698`.
+
+**Consequence.** A reader of the item could believe live panel fieldwork was still blocked.
+
+**Smallest fix / status.** Correct the Status line from `licence_determinations.py`. Fixed in this
+docs PR (research-lane-redesign F3).
+
+## OI-109 · Hypothesis · Fictional data prints the grade "modelováno"
+
+**Claim.** Every native evidence row has basis MODELED and `grade_of` prints MODELED as
+"modelováno", so a table of a fictional (SYNTHETIC_FIXTURE) run reads "(n = 56; modelováno)".
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/analysis/native.py` (`_Rows.add`,
+`basis=ClaimBasis.MODELED`) and `packages/aia_core/src/aia_core/domain/report/evidence.py:59`
+(`grade_of`) @ `04c8830`.
+
+**Reproduction.** Render the DOCX of
+`test_analysis_results.py::test_every_question_prints_its_numbers_through_admission_after_the_methodology`
+and read a table caption.
+
+**Consequence.** On an internal draft of fictional data the caption says modelled while the
+report's frame says fictional; the frame is right. The client report is unaffected (a fictional
+run has none).
+
+**Smallest fix.** A print grade for a non-evidence origin (SIMULATED), chosen by `origin_kind`
+beside the basis.
+
+**Test.** A caption assertion on a SYNTHETIC_FIXTURE table.
+
+**Status.** Open; analysis-governance's call, with OI-9 and OI-103 (complete-study-report F1).
