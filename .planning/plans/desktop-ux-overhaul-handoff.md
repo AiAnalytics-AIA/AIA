@@ -137,3 +137,36 @@ API calls, guards and server checks; nothing about what a version may be moved.
   first preset (`aia-sociomap-4`), not the one in force (`aia-sociomap-3`)
   (`MethodologyVersions.tsx` `editStart`). Kept as it was; whether an edit should start from what is
   in force is the product owner's call.
+
+## Chunk 4, second slice: the other Settings tabs (plan, 2026-10-13)
+
+The research lane belongs to `research-lane-redesign.md` (PR #382, the owner's decision); this plan
+keeps Settings. Problems seen in the running app (settings journey screenshots, 1440 px): every tab
+opens with a run-on sentence, a "Rozsah a správa změn" disclosure and an inner card repeating the
+title; technical detail (env names, codes, client ids, catalogue ids, raw audit actions) is behind
+dozens of disclosure arrows or shown to researchers outright; Reference is a column of closed
+disclosures.
+
+- [x] S1. One tab header: title, one sentence, a "platí pro / mění" line without a disclosure; no
+      inner card repeating the title.
+- [x] S2. One "Technické údaje" switch per page (off by default, kept for the session) instead of
+      every technical disclosure: env names, codes, ids, catalogue and implementation references.
+- [x] S3. AI běh as one table: capability, state, the reason in words, what happens meanwhile.
+- [x] S4. Přístup: members, clients and self-approval as tables with an "Upravit" action per row;
+      roles in words.
+- [x] S5. Studie a rozpočty as a table with "Upravit" per row; audit events named in Czech (the
+      audit stays a list of entries: each has a reason line a table cell would truncate).
+- [x] S6. Reference: headed groups with a jump list, searchable, nothing collapsed.
+- [ ] S7 (next PR). Deep Research and Systémové prompty on the same pattern.
+
+Landed (S1-S6), measured with `tools/ui_workbench/settings_journey.mjs` on the local workbench
+(next dev, fictional data): three consecutive PASS runs; no `details`/`summary` in AI běh, Přístup,
+Studie, Audit or Reference; no page overflow at 1440x900, 1710x1000, 1920x1080 (and 1024/768/390).
+The technical switch first took 514 ms to show its details, because the toggle re-rendered every
+tab and Metodika re-typeset its formulas; memoising the three tabs that read their own routes
+brought it to 284-365 ms (< 400 ms) under dev-mode React. A filtered-out study's open edit row is
+hidden, never unmounted, so a typed budget survives the search (test: "filters studies without
+unmounting their budget drafts").
+
+Finding (from #379, not this slice): after a Metodika save, its confirmation and the version list
+both offer "Uvést … v platnost"; the journey now clicks the confirmation's.

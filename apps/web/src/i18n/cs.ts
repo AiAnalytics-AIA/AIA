@@ -889,6 +889,8 @@ export const cs = {
         studySearch: "Hledat studii nebo klienta", studySearchPlaceholder: "Název studie nebo klienta…", auditSearch: "Hledat v historii", auditSearchPlaceholder: "Událost, osoba, studie nebo důvod…", noSearchResults: "Žádný záznam neodpovídá hledání.",
         relatedSettings: "Související hodnoty a technická pravidla", activityTechnical: "Technické údaje této schopnosti", runtimeConfiguration: "Model a konfigurace nasazení (pouze ke čtení)",
         technical: "Technický zdroj",
+        technicalSwitch: "Technické údaje", appliesTo: "Platí pro", changedBy: "Mění", edit: "Upravit", closeEdit: "Zavřít úpravu",
+        referenceJump: "Skupiny technických hodnot", col: { member: "Člen", name: "Jméno", role: "Role", active: "Aktivní", study: "Studie", client: "Klient", status: "Stav", budget: "Rozpočet", spent: "Utraceno", remaining: "Zbývá", capability: "Schopnost", state: "Stav", why: "Proč a co se mezitím děje" },
         legendTitle: "Jak jsou nastavení spravována",
         title: "Ovládání systému",
         intro:
@@ -923,8 +925,6 @@ export const cs = {
           audit: "Audit",
           reference: "Reference",
         },
-        referenceNote:
-          "Hodnoty, které se tady nemění: proměnné nasazení, konstanty z kódu a invarianty. Změní je nasazení nebo revidovaná změna kódu.",
         groups: {
           deployment: {
             title: "Nasazení",
@@ -1052,7 +1052,7 @@ export const cs = {
         },
         clientStatus: { ACTIVE: "Aktivní", DORMANT: "Neaktivní", ARCHIVED: "Archivovaný" },
         members: {
-          edit: "Upravit jméno a roli", noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
+          noName: "Bez uvedeného jména", roleHelp: "Výzkumník pracuje s klienty a studiemi. Vlastník a správce navíc spravují členy a systémová nastavení.",
           editHelp: "Změna role mění oprávnění tohoto člena v celé organizaci. Přístup k jednotlivým studiím se zde nenastavuje.",
           title: "Členové organizace",
           name: "Jméno",
@@ -1128,10 +1128,12 @@ export const cs = {
           },
           reason: {
             configured: "Nasazení ji zapíná. Neověřeno: tato stránka nevolá model.",
-            off: "Přepínač {switch} je v tomto nasazení vypnutý.",
-            invalid: "{switch} má hodnotu, kterou worker odmítne: worker se nespustí a žádná AI neběží.",
-            needs: "{switch} je zapnutý bez {needs}: worker se nespustí a žádná AI neběží.",
-            unknown: "Stránka nevidí přepínač {switch}, takže nic netvrdí.",
+            off: "Vypnuto v konfiguraci nasazení.",
+            invalid: "Konfigurace nasazení má hodnotu, kterou worker odmítne: worker se nespustí a žádná AI neběží.",
+            needs: "Zapnuto bez dalšího povinného přepínače: worker se nespustí a žádná AI neběží.",
+            unknown: "Stránka nevidí přepínač v konfiguraci nasazení, takže nic netvrdí.",
+            switchNamed: "Přepínač: {switch}",
+            switchNeeds: "Přepínač: {switch} · chybí: {needs}",
             unknownConfig: "Konfiguraci nasazení se nepodařilo načíst, takže nic netvrdí.",
           },
           activity: {
@@ -1143,7 +1145,7 @@ export const cs = {
             respondent_fieldwork: {
               title: "Sběr dat AI respondenty",
               text: "Fiktivní respondenti odpovídají na dotazník běhu výzkumu. Model vrací jen pravděpodobnosti odpovědí; fakta a výsledné odpovědi určuje kód. Data jsou označená jako fiktivní a nejsou zjištěním.",
-              off: "Běh výzkumu počká u sběru dat (ai_runtime_unavailable) a modelu se nic neodešle.",
+              off: "Běh výzkumu počká u sběru dat a modelu se nic neodešle.",
             },
             design_agents: {
               title: "AI návrhy výzkumu",
@@ -1153,7 +1155,7 @@ export const cs = {
             deep_research: {
               title: "Deep Research",
               text: "Výzkum z veřejných zdrojů pro studii: kód vybírá témata a posílá každý dotaz, modely jen navrhují a každé zjištění je citace ze zachycené stránky. Pravidla běhu jsou na kartě Deep Research.",
-              off: "Běh Deep Research počká u plánu (deep_research_unconfigured) a nic se neodešle.",
+              off: "Běh Deep Research počká u plánu a nic se neodešle.",
             },
             deep_research_lead: {
               title: "Vedoucí výzkumník Deep Research",

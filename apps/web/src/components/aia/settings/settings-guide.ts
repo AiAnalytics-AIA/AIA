@@ -5,7 +5,7 @@ export const TAB_GUIDE: Record<string, { purpose: string; action: string }> = {
   deep_research: { purpose: "Zdroje, náklady a pravidla rešerše", action: "Najděte pravidlo podle účelu, navrhněte hodnotu a potom ji schvalte. Rozsah je celá organizace." },
   methodology: { purpose: "Jak se počítají mapy a statistiky", action: "Projděte výpočet nebo upravte jeho parametry. Návrh zkontrolujte, porovnejte a uložte; v platnost vstoupí až po aktivaci." },
   access: { purpose: "Členové, role a schvalování", action: "Spravujte členy a stav klientů. Pravidla samoschválení mohou platit pro organizaci, klienta nebo jedinou studii." },
-  studies: { purpose: "Stav studií a limity útraty", action: "Vyhledejte studii a otevřete její kartu. Rozpočet je maximální celková útrata studie v USD." },
+  studies: { purpose: "Stav studií a limity útraty", action: "Vyhledejte studii a stiskněte Upravit. Rozpočet je maximální celková útrata studie v USD." },
   audit: { purpose: "Kdo co změnil a kdy", action: "Vyhledejte událost, osobu nebo důvod změny. Historie je pouze ke čtení." },
   reference: { purpose: "Technické hodnoty a pevná pravidla", action: "Tyto hodnoty nejsou běžné uživatelské volby. U každé zjistíte její účel a zda změnu spravuje nasazení nebo kód." },
 };
