@@ -24,6 +24,7 @@ from .research_design import ResearchSpecification
 __all__ = [
     "CLIENT_ADMISSIBLE_ORIGINS",
     "DATASET_VERSION",
+    "JOINT_CERTIFICATE_METADATA",
     "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
     "RESPONDENT_SYSTEM_METADATA",
@@ -123,6 +124,12 @@ def persona_source_of(metadata: Mapping[str, Any]) -> PersonaSource:
 #: its answers came from (``evidence.validation.RESPONDENT_SYSTEM_COMPONENTS``), written by the
 #: source that produced a modelled dataset. A modelled run's evidence is judged on it.
 RESPONDENT_SYSTEM_METADATA: Final = "respondent_system"
+
+#: The fieldwork dataset artifact's metadata key holding the ``CORE_JOINT_STATUS`` certificate of
+#: the population a modelled dataset's respondents were drawn from (its text, its SHA-256 and the
+#: panel SHA-256 the loader checked it against; complete-study-report B5a). A modelled run's
+#: evidence is judged under it, so a client claim meets the certificate that covered its people.
+JOINT_CERTIFICATE_METADATA: Final = "joint_certificate"
 
 
 class OriginKind(StrEnum):

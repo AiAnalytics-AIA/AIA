@@ -449,6 +449,7 @@ def native_evidence(
     support: SupportThresholds,
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
+    joint_certificate: tuple[bytes, str] | None = None,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
 
@@ -492,7 +493,11 @@ def native_evidence(
     table = EvidenceTable(
         rows=built.rows, suppressed=MappingProxyType({**built.suppressed, **rows.removed})
     )
-    joint = load_joint_status(None, measured_panel_sha256=None)
+    # A modelled run is judged under the certificate of the population its respondents were
+    # drawn from, checked against the panel hash the loader measured (B5a); anything else has
+    # none, and its evidence is uncertified: nothing client-facing.
+    certificate, panel_sha256 = joint_certificate if joint_certificate is not None else (None, None)
+    joint = load_joint_status(certificate, measured_panel_sha256=panel_sha256)
     return NativeEvidence(
         table=table,
         book=book,

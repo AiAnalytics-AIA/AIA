@@ -8,7 +8,9 @@ chunks:
   - "[x] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
   - "[x] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
   - "[x] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
-  - "[ ] B5. Client report composer: client_report recipe over a CLIENT_FACING ledger admitting MODELLED_AI_PANEL under the owner's 2026-10-13 decision, every modelled number labelled"
+  - "[x] B5a. A panel run records the CORE_JOINT_STATUS certificate of the population its respondents were drawn from (text, SHA-256, the panel SHA-256 the loader verified), and its evidence is judged under it, re-hashed on read; every other run stays uncertified"
+  - "[ ] B5b. The owner's recorded lift of -2's INTERNAL_ONLY for the client report only (2026-10-13): support, intervals, the certificate and the no-predictive-validity rule still apply; client-facing analysis modules stay blocked until the holdout"
+  - "[ ] B5c. Client report composer: the client recipe over a CLIENT_FACING ledger of admitted modelled numbers, every one labelled 'modelováno: AI respondenti z populace', approved maps only; a route, a stored artifact and the button on Výsledky"
   - "[ ] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
 ---
 # The complete study report
@@ -145,6 +147,24 @@ number labelled (B5); stages before backend (done in PR #382).
   otherwise (`mapApproval` in lib/object-map-view.ts: an unread register is internal).
   Tests: test_sociomap_register.py (6), the populated-map executor test (the stored report
   prints the approval), the register route test, `mapApproval` and ObjectMapView tests.
+- B5 owner decisions (2026-10-13, asked in session): (1) modelled data enters the **client
+  report only** under a recorded owner lift of ADR 0024 §4's holdout requirement -- support,
+  intervals, the joint certificate and "no predictive-validity claim" still apply, and the
+  client-facing analysis modules stay blocked until a holdout validation; (2) the joint
+  certificate is met by a panel run **recording** its population's certificate, not waived.
+- B5a: `RuntimePopulation.joint_certificate` (the certificate's verified bytes and the panel
+  SHA-256 the loader checked it against, `PopulationRuntime` fills it at load);
+  `panel_source.joint_certificate_record` writes it to the fieldwork dataset's metadata
+  (`JOINT_CERTIFICATE_METADATA`, the text without a BOM, its SHA-256, the panel SHA-256);
+  `analysis_results._joint_certificate` re-hashes it on read (a mismatch is refused,
+  never read as none) for a modelled origin only; `native_evidence(joint_certificate=)`
+  loads it with `load_joint_status` against the recorded panel hash. The certificate enters
+  the system fingerprint, so a panel run's analysis modules are judged afresh once (cost:
+  one re-run of the eight modules per panel run analysed after this lands; fictional runs
+  are unchanged). Whether develop's LIVE certificate certifies its panel is the population's
+  recorded `joint_state` (`population_ops status`); if it does not, nothing client-facing
+  passes, as before. Tests: test_modelled_joint_certificate.py (6), the panel fieldwork
+  test asserts the recorded certificate.
 - PDFs on for develop (owner, 2026-10-13): `AIA_WORKER_PDF=true` in the worker image build
   (.github/workflows/deploy-develop.yml) and `AIA_REPORT_PDF_ENABLED` defaulting to true in
   the develop worker's Compose environment (deploy/develop/docker-compose.yml, env.example).
@@ -203,4 +223,10 @@ number labelled (B5); stages before backend (done in PR #382).
   web lib/object-map-view.ts: "mapApproval".
 - overview.md PROGRESS D6: the global switch is replaced by the register; D6 stays open for
   aia-sociomap-1's four declarations; OI-17 (the register) is closed by B4.
+- AGENTS.md § mypy: an incremental `.mypy_cache` reported three `create_model` arg-type
+  errors in domain/ai_respondent.py (pydantic 2.14.1, mypy 1.20.2) after an unrelated
+  module changed; the same tree with a fresh `--cache-dir` is clean (382 files). Wrong:
+  chase the errors. Right: `rm -rf .mypy_cache` and re-run before believing them.
+- CLAUDE.md § 2 map: domain/fieldwork.py gains JOINT_CERTIFICATE_METADATA; panel_source.py
+  gains joint_certificate_record; population/runtime.py gains joint_certificate.
 - open-items.md: F1 to be numbered there.

@@ -1120,7 +1120,7 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
     run recorded; the dataset is MODELLED_AI_PANEL, names its respondent system, and the
     deterministic steps run over it unchanged."""
     from aia_core.domain.evidence import respondent_system_fingerprint
-    from aia_core.domain.fieldwork import RESPONDENT_SYSTEM_METADATA
+    from aia_core.domain.fieldwork import JOINT_CERTIFICATE_METADATA, RESPONDENT_SYSTEM_METADATA
     from aia_core.domain.licence_determinations import PANEL_DERIVED_DATASETS
 
     bedrock = ScriptedBedrock()
@@ -1162,6 +1162,13 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
     assert system["population_version"] == source["binding"]["version_id"]
     assert system["model_binding"] == f"aws_bedrock/{PROFILE}/bedrock-eu-primary"
     assert len(respondent_system_fingerprint(system)) == 64
+    # The certificate those respondents were drawn under, as the loader verified it (B5a).
+    import hashlib
+
+    certificate = artifact.metadata[JOINT_CERTIFICATE_METADATA]
+    text = certificate["certificate"]
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == certificate["sha256"]
+    assert json.loads(text)["panel_sha256"] == certificate["panel_sha256"]
 
     events = _ledger(world, run_id)
     assert {e.data_class.value for e in events} == {"CLASS_A_CLIENT_CONFIDENTIAL"}

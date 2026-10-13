@@ -23,6 +23,7 @@ Pure: stdlib only.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -39,6 +40,7 @@ from .respondent_facts import FACT_LAYER_VERSION
 __all__ = [
     "PANEL_SOURCE",
     "PanelPlans",
+    "joint_certificate_record",
     "panel_plans",
     "pinned_components",
     "respondent_system",
@@ -104,6 +106,23 @@ def respondent_system(population: RuntimePopulation, *, model_binding: str) -> d
     return {
         **pinned_components(population.binding.version_id),
         "model_binding": model_binding,
+    }
+
+
+def joint_certificate_record(population: RuntimePopulation) -> dict[str, str] | None:
+    """The certificate a panel run's respondents were drawn under, as its dataset records it:
+    the text, its SHA-256 and the panel SHA-256 the loader verified it against. None when the
+    population carries no certificate (its run's evidence is then judged uncertified)."""
+    held = population.joint_certificate
+    if held is None:
+        return None
+    data, panel_sha256 = held
+    text = data.decode("utf-8-sig")
+    # The digest is of the text as recorded (UTF-8, no byte-order mark), which is what is read.
+    return {
+        "certificate": text,
+        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "panel_sha256": panel_sha256,
     }
 
 
