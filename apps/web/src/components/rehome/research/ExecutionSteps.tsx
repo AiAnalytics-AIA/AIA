@@ -873,6 +873,7 @@ export function ResultsStep() {
  */
 export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
   const frame = useFrame();
+  const assistance = useContext(ResearchContext)?.askAssistance;
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -893,6 +894,11 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
+  const knowledgeContext = <section aria-label="Kontext klienta a literatura" className="rounded-md border border-border bg-surface-raised p-4">
+    <h3 className="text-sm font-semibold">Doplňte souvislosti k interpretaci</h3>
+    <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
+    <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
+  </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
     panels={[
@@ -904,6 +910,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </Card>
       </> },
       ...(showMap || showMapping ? [{ id: "maps", label: "Sociomapy", description: "Prostorové vztahy a 3D pohledy nad uloženými výsledky. Výška, vzdálenost a barva mají odlišný význam; metodická omezení jsou uvedena u každé mapy.", content: <>
+      <details className="rounded-md border border-border bg-surface-raised p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">Jak používat mapu a AI pomoc</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Začněte legendou a metodikou uloženou u konkrétní mapy. Polohu, výšku a barvu čtěte odděleně. Potlačené a chybějící hodnoty nenahrazujte nulou. AI pomoc pracuje s návrhem a schválenými znalostmi; číselné hodnoty z mapy se do otázky neposílají automaticky.</p></details>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
@@ -922,8 +929,9 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         </Card>
       ) : null}
       </> }] : []),
-      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <>{knowledgeContext}<div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div></> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
+        {knowledgeContext}
         <div id="res-report">{report}</div>
         {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
       </> },

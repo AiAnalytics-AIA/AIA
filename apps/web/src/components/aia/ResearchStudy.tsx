@@ -10,7 +10,7 @@ import { notFound, useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
 import { t } from "@/i18n/t";
-import { type StudyWorkspace, workspace } from "@/lib/api";
+import { type StudyWorkspace, type WorkingContent, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { type StepKey, isStepKey, stepFromSlug } from "@/research/steps";
 import { ResearchScreen, ResearchSession } from "../rehome/research/ResearchScreen";
@@ -38,7 +38,7 @@ function Waiting({ children, name }: { children: ReactNode; name?: string }) {
   );
 }
 
-function Frame({ w, children }: { w: StudyWorkspace; children: ReactNode }) {
+function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingContent; children: ReactNode }) {
   const { client } = useClient();
   const studyId = w.study.study_id;
   const clientId = client.client_id;
@@ -64,14 +64,21 @@ function Frame({ w, children }: { w: StudyWorkspace; children: ReactNode }) {
   );
   return (
     <StudyFrameProvider frame={frame}>
-      <ResearchSession studyId={studyId}>{children}</ResearchSession>
+      <ResearchSession studyId={studyId} initialContent={content}>{children}</ResearchSession>
     </StudyFrameProvider>
   );
 }
 
 export function ResearchStudy({ studyId, children }: { studyId: string; children: ReactNode }) {
   const { client } = useClient();
-  const [res, retry] = useResource(() => workspace.study(studyId), [studyId]);
+  const [res, retry] = useResource(async () => {
+    const w = await workspace.study(studyId);
+    // Start the editor read directly after scope/relationship checks, without
+    // waiting for another component mount. Wrong-client and empty read-only
+    // workspaces never request working content.
+    const permitted = w.study.client_id === client.client_id && w.study.kind === "RESEARCH" && !(w.content_state === "EMPTY" && !w.can_edit);
+    return { w, content: permitted ? await workspace.content(studyId) : undefined };
+  }, [studyId, client.client_id]);
   if (res.state !== "ready") {
     return (
       <Waiting>
@@ -79,7 +86,7 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
       </Waiting>
     );
   }
-  const w = res.data;
+  const { w, content } = res.data;
   // The study must belong to the client in the URL, and be a research.
   if (w.study.client_id !== client.client_id || w.study.kind !== "RESEARCH") {
     return (
@@ -97,7 +104,7 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
       </Waiting>
     );
   }
-  return <Frame w={w}>{children}</Frame>;
+  return <Frame w={w} content={content}>{children}</Frame>;
 }
 
 /** /research/<study>: continue where the study was left, else its brief. */
