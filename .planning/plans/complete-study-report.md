@@ -126,10 +126,9 @@ number labelled (B5); stages before backend (done in PR #382).
   Docker build could not reach Debian's mirror. Tests: test_report_pdf.py (a stand-in
   soffice), the three PDF tests in test_analysis_executor.py, the two in
   test_research_api.py, ExecutionSteps "offers the report's PDF…".
-- Operator call (open): turning PDFs on for develop needs `AIA_WORKER_PDF=true` in the
-  worker image build (.github/workflows/deploy-develop.yml) and
-  `AIA_REPORT_PDF_ENABLED=true` in the worker's environment; ~300 MB per worker image on
-  a host that already prunes images for disk.
+- PDFs on for develop (owner, 2026-10-13): `AIA_WORKER_PDF=true` in the worker image build
+  (.github/workflows/deploy-develop.yml) and `AIA_REPORT_PDF_ENABLED` defaulting to true in
+  the develop worker's Compose environment (deploy/develop/docker-compose.yml, env.example).
 
 ## Findings
 
