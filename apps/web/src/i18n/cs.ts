@@ -795,9 +795,12 @@ export const cs = {
           backToPreset: "zpět na {preset}",
           edit: "Upravit metodiku",
           editorTitle: "Úprava metodiky (výchozí: {from})",
+          editorInForce: "Úprava metodiky v platnosti ({name})",
+          editorSameAs: "Úprava se uloží nad {base}: počítá stejně jako {name} v platnosti a navíc má v metodice hodnoty, které {name} drží v kódu, takže je můžete upravit.",
+          inForceOption: "Metodika v platnosti",
           editorHelp:
             "Celá metodika, pole po poli, a každý vzorec jako výraz. Kontrola je stejná, jakou provede uložení: všechny problémy najednou, u pole, kterého se týkají. Uložení vytvoří novou neměnnou verzi; v platnost ji uvedete zvlášť.",
-          base: "Vycházet z metodiky z kódu",
+          base: "Začít od metodiky z kódu",
           changed: "změněno",
           formula: "Vzorec",
           variables: "Proměnné",
