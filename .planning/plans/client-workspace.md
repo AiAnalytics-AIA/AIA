@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] 0. Design on the canvas (Klient row of the research studio) and this plan"
   - "[x] C1. Client shell: Profil tab, counts on tabs, status in the bar, Přidat znalost beside Nový výzkum"
-  - "[ ] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
+  - "[x] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
   - "[ ] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
   - "[ ] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
   - "[ ] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
@@ -112,17 +112,32 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
     nothing, the add action and the form it opens, its absence without permission, and Profil;
   - the UX journey visits `/profile`.
 
-### C2. Výzkumy as a table
-- **What it does:**
-  - columns: study, status, where it is, what it brought into knowledge, who, updated;
-  - status filters (Vše, Rozpracované, Ke kontrole, Předané);
-  - a sort control;
-  - one search box. Its query goes to the existing project-memory search (`workspace.py:662`)
-    once two characters are typed; below that it filters names.
-- **API:** the studies listing (`workspace.py:639`) gains each study's knowledge-proposal counts
-  by status, from `client_knowledge_proposals.study_id`.
-- **Tests:** API: the count per study, and nothing from another client's studies. Web: the
-  filter and sort functions as pure tests.
+### C2. Výzkumy as a table (landed)
+
+- **The table:** Výzkumy and Simulace list the client's studies as a table. Columns: the study
+  (its name, linking to where it stands, and the stage line); its status; what it brought into
+  the client's knowledge; when it changed.
+- **Filters:** *Aktuální* is the default and leaves out archived and cancelled studies. The
+  others are *Rozpracované*, *Ke kontrole*, *Předané* and *Archiv*, each with its count. An
+  unknown status falls under *Rozpracované* rather than nowhere.
+- **Orders:** newest change first, or by name in Czech order (`localeCompare("cs")`: *č* after
+  *c*, *ch* after *h*).
+- **Search:** stays the existing project-memory search above the table (`MemorySearch`). From
+  two characters it searches the studies' designs; below that it says to type more. The plan's
+  "filter names below two characters" was not built: one search, one behaviour.
+- **What a study brought:** `GET /clients/{id}/studies` gives each study `knowledge`, holding
+  `approved`, `proposed` and `rejected`. It comes from the new
+  `ClientKnowledgeRepository.proposal_counts_by_study`, one grouped query.
+  - Present only for a caller who may read the client's knowledge; otherwise the column is not
+    drawn.
+  - A person's own addition counts against no study.
+  - The cell shows *přijato: n* and *čeká: n*. A turned-down proposal is not counted as
+    brought.
+- **Tests:**
+  - core: `test_each_study_counts_what_it_proposed_by_status_within_its_own_client`;
+  - API: `test_the_studies_list_says_what_each_study_brought_into_the_clients_knowledge`;
+  - web: `lib/study-table.test.ts` (filters, counts, orders, unknown versus nothing), plus two
+    rendering tests in `ClientFirst.test.tsx`.
 
 ### C3. Folders and labels
 - **Domain:** `domain/knowledge.py` gains `KnowledgeFolder` and `KnowledgeLabel`, with:

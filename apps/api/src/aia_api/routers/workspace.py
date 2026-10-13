@@ -100,6 +100,16 @@ OPEN_STATUSES = (StudyStatus.DRAFT, StudyStatus.ACTIVE, StudyStatus.IN_REVIEW)
 # --------------------------------------------------------------------------- #
 
 
+class StudyKnowledgeCounts(BaseModel):
+    """What one study proposed to the client's knowledge: accepted, waiting, turned down."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approved: int = 0
+    proposed: int = 0
+    rejected: int = 0
+
+
 class WorkspaceStudy(BaseModel):
     """A research or a simulation, as the client workspace lists it."""
 
@@ -118,6 +128,8 @@ class WorkspaceStudy(BaseModel):
     content_state: str = ContentState.EMPTY.value
     created_at: datetime | None = None
     modified_at: datetime | None = None
+    #: Only on the studies list, and only for a caller who may read the client's knowledge.
+    knowledge: StudyKnowledgeCounts | None = None
 
 
 class MemoryFieldMatch(BaseModel):
@@ -684,13 +696,30 @@ def client_studies(
     kind: Annotated[Literal["RESEARCH", "SIMULATION"] | None, Query()] = None,
     include_archived: bool = True,
 ) -> list[WorkspaceStudy]:
-    """The studies of this client the caller may open, newest change first."""
+    """The studies of this client the caller may open, newest change first.
+
+    Each says what it brought into the client's knowledge when the caller may read it:
+    zeros for a study that proposed nothing, null when the caller may not know.
+    """
     scope = _client_scope(principal, resolver, client_id)
     studies = repo.studies_in_client(
         scope, kind=StudyKind(kind) if kind else None, include_archived=include_archived
     )
     bound = StudyWorkspaceRepository(session).in_client(scope)
-    return [_study(s, bound.get(s.study_id)) for s in studies]
+    listed = [_study(s, bound.get(s.study_id)) for s in studies]
+    if not scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
+        return listed
+    counts = ClientKnowledgeRepository(session).proposal_counts_by_study(scope)
+
+    def brought(study_id: str) -> StudyKnowledgeCounts:
+        c = counts.get(study_id, {})
+        return StudyKnowledgeCounts(
+            approved=c.get(ProposalStatus.APPROVED, 0),
+            proposed=c.get(ProposalStatus.PROPOSED, 0),
+            rejected=c.get(ProposalStatus.REJECTED, 0),
+        )
+
+    return [s.model_copy(update={"knowledge": brought(s.study_id)}) for s in listed]
 
 
 @router.get(

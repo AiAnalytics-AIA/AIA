@@ -211,6 +211,34 @@ class ClientKnowledgeRepository:
         ).all()
         return [_proposal(r) for r in rows]
 
+    def proposal_counts_by_study(
+        self, scope: ClientContext
+    ) -> dict[str, dict[ProposalStatus, int]]:
+        """How many proposals each of the client's studies made, by status.
+
+        What a study brought into the client's knowledge, for the studies list.
+        A study that proposed nothing is absent, not zero.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        rows = self._session.execute(
+            select(
+                ClientKnowledgeProposalRow.study_id,
+                ClientKnowledgeProposalRow.status,
+                func.count(),
+            )
+            .where(
+                ClientKnowledgeProposalRow.organization_id == scope.organization_id,
+                ClientKnowledgeProposalRow.client_id == scope.client_id,
+                ClientKnowledgeProposalRow.study_id.is_not(None),
+            )
+            .group_by(ClientKnowledgeProposalRow.study_id, ClientKnowledgeProposalRow.status)
+        ).all()
+        counts: dict[str, dict[ProposalStatus, int]] = {}
+        for study_id, status, n in rows:
+            counts.setdefault(str(study_id), {})[ProposalStatus(status)] = int(n)
+        return counts
+
     def summary(self, scope: ClientContext) -> KnowledgeSummary:
         """Counts, pending proposals and the knowledge revision, for the overview."""
         scope = _client(scope)

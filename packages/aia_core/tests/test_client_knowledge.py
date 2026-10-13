@@ -253,6 +253,30 @@ def test_every_member_proposes_and_approves_including_one_with_no_grant(
     }
 
 
+def test_each_study_counts_what_it_proposed_by_status_within_its_own_client(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """What a study brought into the client's knowledge, for the studies list."""
+    study = scoped.scope(user="researcher")
+    taken = knowledge.propose_from_study(study, kind=KnowledgeKind.FINDING, title="Taken")
+    knowledge.propose_from_study(study, kind=KnowledgeKind.FINDING, title="Waiting")
+    dropped = knowledge.propose_from_study(study, kind=KnowledgeKind.TERM, title="Dropped")
+    lead = client_scope(scoped, "lead")
+    knowledge.decide(lead, proposal_id=taken.proposal_id, approve=True)
+    knowledge.decide(lead, proposal_id=dropped.proposal_id, approve=False)
+    # A person's own addition belongs to no study and is not counted against one.
+    knowledge.propose(lead, kind=KnowledgeKind.FACT, title="Typed in the workspace")
+
+    assert knowledge.proposal_counts_by_study(lead) == {
+        scoped.studies["primary"].study_id: {
+            ProposalStatus.APPROVED: 1,
+            ProposalStatus.PROPOSED: 1,
+            ProposalStatus.REJECTED: 1,
+        }
+    }
+    assert knowledge.proposal_counts_by_study(client_scope(scoped, "other_lead", "other")) == {}
+
+
 def test_client_a_knowledge_never_appears_under_client_b(
     scoped: Any, knowledge: ClientKnowledgeRepository
 ) -> None:

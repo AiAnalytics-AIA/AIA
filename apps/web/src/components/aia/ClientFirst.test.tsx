@@ -262,6 +262,50 @@ describe("a client's workspace", () => {
     expect(tab.getAttribute("aria-current")).toBe("page");
   });
 
+  it("shows a client's research as a table: archived out of the default view, what each brought, two orders", async () => {
+    path = "/app/clients/CLI-a/research";
+    const k = (approved: number, proposed: number) => ({ approved, proposed, rejected: 0 });
+    api({
+      "GET /api/v1/clients/CLI-a/studies": () => [
+        study("STU-1", "Vnímání značky", "RESEARCH", { last_stage: "questionnaire", has_working_content: true, modified_at: "2026-10-10T10:00:00Z", knowledge: k(2, 1) }),
+        study("STU-3", "Archivní brand", "RESEARCH", { status: "ARCHIVED", modified_at: "2026-01-01T10:00:00Z", knowledge: k(0, 0) }),
+        study("STU-4", "Cena účtů", "RESEARCH", { status: "IN_REVIEW", modified_at: "2026-09-01T10:00:00Z", knowledge: k(0, 0) }),
+      ],
+    });
+    render(inClient("CLI-a", <StudyList kind="RESEARCH" />));
+    const table = await screen.findByRole("table", { name: "Výzkumy" });
+    // Re-read the table each time: an empty filter unmounts it.
+    const names = () => within(screen.getByRole("table", { name: "Výzkumy" })).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0].querySelector("a span span")!.textContent);
+    expect(names()).toEqual(["Vnímání značky", "Cena účtů"]);
+    const first = within(table).getAllByRole("row")[1];
+    expect(within(first).getByText("přijato: 2")).toBeTruthy();
+    expect(within(first).getByText("čeká: 1")).toBeTruthy();
+    expect(within(first).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-a/research/STU-1/questionnaire");
+
+    const filters = screen.getByRole("group", { name: "Stav studií" });
+    expect(within(filters).getByRole("button", { name: "Aktuální 2" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(filters).getByRole("button", { name: "Archiv 1" }));
+    expect(names()).toEqual(["Archivní brand"]);
+    fireEvent.click(within(filters).getByRole("button", { name: "Ke kontrole 1" }));
+    expect(names()).toEqual(["Cena účtů"]);
+    fireEvent.click(within(filters).getByRole("button", { name: "Předané 0" }));
+    expect(screen.queryByRole("table")).toBeNull();
+    expect(screen.getByText("Zatím nic předaného.")).toBeTruthy();
+
+    fireEvent.click(within(filters).getByRole("button", { name: "Aktuální 2" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Řadit" }), { target: { value: "name" } });
+    expect(names()).toEqual(["Cena účtů", "Vnímání značky"]);
+  });
+
+  it("leaves out what a study brought when the API does not say", async () => {
+    path = "/app/clients/CLI-a/simulations";
+    api();
+    render(inClient("CLI-a", <StudyList kind="SIMULATION" />));
+    const table = await screen.findByRole("table", { name: "Simulace" });
+    expect(within(table).queryByRole("columnheader", { name: "Přineslo do znalostí" })).toBeNull();
+    expect(within(table).getByText("Cenové scénáře")).toBeTruthy();
+  });
+
   it("lists the client's research only, and starts a new one under the client", async () => {
     path = "/app/clients/CLI-a/research";
     api();

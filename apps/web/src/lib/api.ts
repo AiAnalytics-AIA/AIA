@@ -204,6 +204,8 @@ export type WorkspaceStudy = {
   content_state: ContentState;
   created_at: string | null;
   modified_at: string | null;
+  /** On the studies list, for a caller who may read the client's knowledge: what this study proposed to it. */
+  knowledge?: { approved: number; proposed: number; rejected: number } | null;
 };
 
 export type ClientCard = {

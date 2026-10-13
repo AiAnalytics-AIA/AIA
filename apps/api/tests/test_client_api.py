@@ -134,6 +134,31 @@ def test_the_client_counts_its_open_studies_and_its_knowledge_for_the_tabs(
     assert other == {"research": 2, "simulations": 0, "pending_proposals": 0, "datasets": 0}
 
 
+def test_the_studies_list_says_what_each_study_brought_into_the_clients_knowledge(
+    researcher: TestClient, lead: TestClient, world: Any
+) -> None:
+    base = f"{API}/clients/{world.client_id()}/knowledge/proposals"
+    for title in ("Mladší kupci řeší cenu", "Starší kupci řeší servis"):
+        researcher.post(
+            f"{API}/studies/{world.study_id()}/knowledge-proposals",
+            json={"kind": "FINDING", "title": title},
+        )
+    waiting = lead.get(base, params={"status": "PROPOSED"}).json()
+    lead.post(f"{base}/{waiting[0]['proposal_id']}/decision", json={"approve": True})
+    # A person's own addition counts against no study.
+    researcher.post(base, json={"kind": "TERM", "title": "Flotilový zákazník"})
+
+    listed = {
+        s["study_id"]: s["knowledge"]
+        for s in researcher.get(f"{API}/clients/{world.client_id()}/studies").json()
+    }
+    assert listed[world.study_id()] == {"approved": 1, "proposed": 1, "rejected": 0}
+    assert listed[world.study_id("sibling")] == {"approved": 0, "proposed": 0, "rejected": 0}
+    # Another client's list knows nothing of it.
+    theirs = researcher.get(f"{API}/clients/{world.client_id('other')}/studies").json()
+    assert all(s["knowledge"] == {"approved": 0, "proposed": 0, "rejected": 0} for s in theirs)
+
+
 def test_research_and_simulation_belong_to_the_selected_client(
     researcher: TestClient, other_client_lead: TestClient, world: Any
 ) -> None:
