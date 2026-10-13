@@ -38,7 +38,7 @@ chunks:
   - "[x] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
   - "[x] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[x] 7e1. Fieldwork's answering extracted (answer_plans): plans from any source answered exactly as a run answers them"
-  - "[ ] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
+  - "[x] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
   - "[ ] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
   - "[ ] 7e4. Its executors: an arm's replicate answered through answer_plans, the score step's verdict artifact; the layer rule on arms"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
@@ -1774,6 +1774,40 @@ seed.
 
 Test: `test_ai_fieldwork_answer_plans.py`, `test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code`
 (a scripted caller, no network).
+
+**7e2 landed.** A validation Study's preregistration is kept once, in `holdout_preregistrations`
+(migration `b4d6f8a0c2e5`). The row holds:
+- the record's canonical JSON bytes and their SHA-256;
+- the respondent system's fingerprint and its population version.
+
+How it is written and read:
+- **One way in and out.** `infrastructure/holdout_repository.py`'s `HoldoutRepository` is the
+  only reader and writer, and it is found through the Study (an issued `StudyContext`).
+- **Recording.** `record_preregistration` needs `EDIT_STUDY` on an open research Study. The
+  same record again answers the stored one; another is refused
+  (`holdout_preregistration_recorded`). A record naming another scoring version than the code's
+  is refused (`holdout_scoring_stale`).
+- **Reading.** `preregistration` re-hashes the bytes and checks them on every read. A row changed
+  behind AIA's back is refused (`holdout_preregistration_altered`), never scored.
+- **The check.** `domain/holdout/preregistration.py`'s `read_preregistration` refuses
+  (`holdout_preregistration_malformed`) bytes that are not the record's canonical JSON, another
+  version, other thresholds, a fingerprint its components do not compute, a population version
+  that is not the system's, and blocks that are not exactly the confirmation set or that overlap
+  the development set.
+
+**What 7e3 must add (decided here).** A confirmation run's start refuses:
+- a Study with no preregistration;
+- one whose fingerprint is not the current system's;
+- a second confirmation run for the same fingerprint in the organization, once one has started.
+
+Without that last rule, several Studies could each preregister the same system and the one
+that passes could be recorded: the forking path the preregistration exists to close.
+`ix_holdout_preregistrations_system` is the index that lookup reads.
+
+Tests:
+- `test_holdout_repository.py`, run on SQLite and PostgreSQL;
+- `test_holdout_preregistration.py`: `test_a_stored_preregistration_reads_back_as_written_and_hashes_the_same`
+  and `test_a_preregistration_altered_after_it_was_made_does_not_read`.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
