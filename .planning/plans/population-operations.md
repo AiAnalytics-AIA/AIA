@@ -13,7 +13,7 @@ chunks:
   - "[x] P4d3. The materialize step: its template, executor and enqueue; the base loaded through PopulationRuntime, derived, the child written to S3 and registered; never promotes"
   - "[x] P4d4a. The routes: start a materialization from a study and read its run; each child's target beside what was achieved in the registry"
   - "[x] P4d4b. Společenská inteligence shows the organization's children, target beside achieved, an unmet target said so"
-  - "[ ] P4d4c. The Run stage offers the study's client's children: a run started over one records it"
+  - "[x] P4d4c. The Run stage offers the study's client's children: a run started over one records it"
   - "[x] P4e1. The loader resolves and loads an owned child: base by its contract, child by its extension, the base's companions"
   - "[x] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
   - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
@@ -899,4 +899,15 @@ P4d4c the Run stage.
 - `lib/population.ts`: `children`, `sharedVersions`, `targetVerdict`, `outcomeValue`; tested in
   `population.test.ts` (P4b's M04 reads "unmet"; a missing outcome "unknown").
 - Not checked in a browser in this session: `make ui-capture` on the workbench would show it.
+
+**P4d4c, 2026-10-13** (`feature/population-run-child-picker`, stacked on P4d4b). The web side of
+P4e2's selection.
+- The Run stage reads the registry and, when the study's client has a materialized child,
+  shows "Populace běhu": LIVE (the default) or one of the client's children, each with its
+  target beside what it reached and the verdict. Another client's child is never offered
+  (`clientChildren`). A registry that does not answer offers nothing, and the run is LIVE's.
+- `research.start(…, populationVersionId)` sends `population_version_id` only when a child is
+  chosen, through the cost confirmation's retry too.
+- Tests: `ExecutionSteps.test.tsx` (the client's child offered with its unmet target, another
+  client's not, the start body naming it; no child, no choice and no field).
 

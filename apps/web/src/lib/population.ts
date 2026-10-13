@@ -53,6 +53,13 @@ export function children(registry: PopulationRegistry): PopulationVersion[] {
     .sort((a, b) => b.imported_at.localeCompare(a.imported_at));
 }
 
+/** One client's children, newest first: what a run of that client's study may be started over. */
+export function clientChildren(registry: Partial<PopulationRegistry>, clientId: string): PopulationVersion[] {
+  return (registry.versions ?? [])
+    .filter((v) => v.owner_client_id === clientId)
+    .sort((a, b) => b.imported_at.localeCompare(a.imported_at));
+}
+
 export type TargetVerdict = "met" | "unmet" | "unknown";
 
 /** Met, not met, or unknown: a child without a recorded outcome is never shown as met. */
