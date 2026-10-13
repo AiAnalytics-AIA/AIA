@@ -270,4 +270,8 @@ def test_the_deploy_keeps_each_populations_catalogue_after_its_dictionary() -> N
     dictionary = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-dictionary')
     step = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-catalogue')
     assert dictionary < step < deploy.index('log "smoke tests"')
-    assert 'if ! "$DEPLOY_DIR/bin/population.sh" record-catalogue; then' in deploy
+    assert (
+        'timeout --kill-after=30 300 "$DEPLOY_DIR/bin/population.sh" record-catalogue'
+        " || catalogue_status=$?"
+    ) in deploy
+    assert "124|137)" in deploy[step:]
