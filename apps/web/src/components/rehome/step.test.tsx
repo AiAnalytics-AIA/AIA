@@ -11,7 +11,8 @@ describe("Studio v3 step pieces", () => {
     render(<StepSection id="s" n={3} optional title="Podklady" hint="Dokumenty">tělo</StepSection>);
     const section = screen.getByRole("region", { name: /^Podklady\s*· volitelné$/ });
     expect(section.id).toBe("s");
-    expect(section.textContent).toContain("3");
+    // The stage track carries the order: a section is not numbered (research-lane-redesign).
+    expect(section.textContent).not.toContain("3");
     expect(section.textContent).toContain("tělo");
   });
 

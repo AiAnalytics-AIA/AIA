@@ -65,14 +65,15 @@ import { withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { useFrame } from "./frame-hook";
 import { ResearchContext, useResearch } from "./context";
-import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
+import { CompleteReport } from "./CompleteReport";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -150,18 +151,6 @@ function PopulationNote({ run }: { run: ResearchRun }) {
   ) : null;
 }
 
-/**
- * The study these views are in: the research session's frame on a stage, the frame alone where
- * there is no session (project memory's read-only page, plans/project-memory-reuse.md M2a). The
- * result views below read nothing else, so they draw a run outside a study's working content.
- */
-function useFrame(): StudyFrame {
-  const session = useContext(ResearchContext);
-  const own = useStudyFrame();
-  const frame = session?.frame ?? own;
-  if (!frame) throw new Error("a research view outside a study frame");
-  return frame;
-}
 
 // ---------------------------------------------------------------- Run --------
 
@@ -357,6 +346,9 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
   );
 }
 
+/** Failures first, then warnings: what stops the run is read before what passed. */
+const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
+
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
   const frame = useFrame();
@@ -474,10 +466,10 @@ export function RunStep() {
       {prepared.kind === "none" ? <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card> : null}
       {prepared.kind === "ready" ? (
         <>
-          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
+          {/* What stops the run first, then what runs (research-lane-redesign). */}
           <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
-              {prepared.readiness.checks.map((c) => (
+              {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
                   <Chip tone={c.status === "FAIL" ? "fault" : c.status === "WARN" ? "you" : "done"}>{c.status}</Chip>
                   <span className="flex-1">{c.message}</span>
@@ -491,6 +483,7 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
@@ -933,7 +926,8 @@ export function ResultsStep() {
  */
 export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
   const frame = useFrame();
-  const assistance = useContext(ResearchContext)?.askAssistance;
+  const session = useContext(ResearchContext);
+  const assistance = session?.askAssistance;
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -961,6 +955,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
+    lead={session ? <CompleteReport run={run} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>

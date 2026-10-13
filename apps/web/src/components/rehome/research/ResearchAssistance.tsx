@@ -110,7 +110,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   };
   const suggestion = SUGGESTIONS[step];
   const suggestionAction: AdviceAction = actions.some((item) => item.action === "design_copilot") ? "design_copilot" : "answer_memory";
-  const card = <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full max-w-lg rounded-md border border-ai-edge bg-ai-wash p-3 text-ink">
+  const card = <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border border-ai-edge bg-ai-wash p-3.5 text-ink">
     <h2 className="flex items-center gap-2 text-sm font-semibold text-ai-ink"><Sparkle size={15} />{t("research.aiHelp")} · {t(`aia.stages.${step}`)}</h2>
     {visible ? <><p className="mt-1 text-xs leading-5 text-ink-muted">Pomoc je otevřená vedle pracovní plochy. Otázka se zachová při přepínání kroků.</p><Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => (review || selected === "critique_design" ? heading.current : question.current)?.focus()}>Přejít k AI pomoci</Button></> : <>
     <p className="mt-1 text-xs leading-5 text-ink-muted">Uložený návrh a schválené znalosti klienta. AI odpověď nemění návrh ani schválení evidence.</p>
@@ -147,7 +147,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
     </>}
   </>;
   const panel = !visible ? null : narrow ? <dialog ref={dialog} aria-labelledby="research-assistance-title" onCancel={(event) => { event.preventDefault(); close(); }} className="fixed inset-y-0 right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-md overflow-auto border-l border-ai-edge bg-surface-overlay p-4 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"><div className="flex min-w-0 flex-col gap-4">{content}</div></dialog>
-    : <aside aria-labelledby="research-assistance-title" data-assistance-panel className="sticky top-6 flex max-h-[calc(100vh-3rem)] min-w-0 flex-col gap-4 overflow-auto rounded-md border border-ai-edge bg-surface-raised p-4">{content}</aside>;
+    : <aside aria-labelledby="research-assistance-title" data-assistance-panel className="flex max-h-[calc(100vh-10rem)] min-w-0 flex-col gap-4 overflow-auto rounded-card border border-ai-edge bg-surface-raised p-4">{content}</aside>;
   // eslint-disable-next-line react-hooks/refs -- passes rendered elements and event callbacks; no ref value is read during render
   return children({ card, panel, expanded: visible && !narrow, ask });
 }
