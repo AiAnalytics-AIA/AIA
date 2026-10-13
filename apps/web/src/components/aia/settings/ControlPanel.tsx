@@ -756,8 +756,8 @@ const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
 ];
 const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
   methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
-  prompts: { scope: "Budoucí AI úlohy", owner: "Uložení nové instrukce a její aktivace jsou samostatné kroky" },
-  deep_research: { scope: "Celá organizace", owner: "Navržené hodnoty se uplatní až po schválení" },
+  prompts: { scope: "Nově zadané AI úlohy organizace", owner: "Vlastník nebo správce; uložení a zapnutí jsou samostatné kroky" },
+  deep_research: { scope: "Celá organizace", owner: "Vlastník nebo správce; návrh platí až po schválení" },
   ai: { scope: "Toto nasazení", owner: "Modely a připojení spravuje nasazení" },
   access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
   studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
@@ -913,13 +913,13 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
       <div className="min-w-0">{TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
           <header data-tab-header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-border pb-4">
-            <div className="min-w-0 max-w-3xl">
+            <div className="min-w-0 max-w-3xl flex-[1_1_28rem]">
               <h2 className="text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h2>
               <p className="mt-1 text-sm font-medium leading-6 text-ink">{TAB_GUIDE[tab].purpose}</p>
               <p className="text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p>
               <p data-tab-facts className="mt-2 text-sm leading-6 text-ink"><span className="font-medium">{t(`${P}.appliesTo`)}:</span> {TAB_FACTS[tab].scope} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="font-medium">{t(`${P}.changedBy`)}:</span> {TAB_FACTS[tab].owner}</p>
             </div>
-            {tab === "methodology" || tab === "prompts" ? null : <TechnicalSwitch on={technical} onChange={setTechnical} />}
+            {tab === "methodology" ? null : <TechnicalSwitch on={technical} onChange={setTechnical} />}
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>

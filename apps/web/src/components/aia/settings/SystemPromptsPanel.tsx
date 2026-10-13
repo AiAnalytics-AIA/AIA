@@ -14,7 +14,7 @@
 // Nothing here calls a model. A test queues a normal agent job pinned to the version.
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -34,7 +34,8 @@ import {
 } from "@/lib/api";
 import { relative } from "@/lib/format";
 import { diffLines, differs, summarise } from "@/lib/text-diff";
-import { Button, Chip, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Technical } from "./technical";
 import { EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import type { Part, StudyRow } from "./ControlPanel";
@@ -59,6 +60,16 @@ export const nameOf = (id: string) => {
   return label === key ? id.split(".").at(-1)!.replaceAll("_", " ") : label;
 };
 const short = (hash: string) => hash.slice(0, 8);
+/** A stored version's label as a reader says it: the API's "e3" is "verze 3". */
+export const versionName = (label: string) => {
+  const n = /^e(\d+)$/.exec(label)?.[1];
+  return n ? tv(`${P}.versionName`, { n }) : label;
+};
+/** The same, as the object of a verb ("Zapnout verzi 3"). */
+const versionAcc = (label: string) => {
+  const n = /^e(\d+)$/.exec(label)?.[1];
+  return n ? tv(`${P}.versionAcc`, { n }) : label;
+};
 const when = (iso: string | null) => (iso ? (relative(iso) ?? iso) : "—");
 
 type People = (id: string | null) => string;
@@ -105,7 +116,7 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
           else setSelected(id);
         };
         return (
-          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]">
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
             <PromptList rows={rows} current={current} onChoose={choose} />
             <div className="min-w-0">
               {pending ? (
@@ -128,10 +139,11 @@ function Workspace({ people, clients, studies }: { people: People; clients: Prop
   );
 }
 
-function stateChip(row: PromptSlotSummary): ReactNode {
-  if (!row.wired) return <Tag>{t(`${P}.state.locked`)}</Tag>;
-  if (row.active.origin === "stored") return <Chip tone="done">{tv(`${P}.state.edited`, { label: row.active.label })}</Chip>;
-  return <Chip tone="neutral">{t(`${P}.state.baseline`)}</Chip>;
+/** Where a prompt stands, in words: no chip, no colour that has to be learnt. */
+function stateText(row: PromptSlotSummary): ReactNode {
+  if (!row.wired) return <span className="text-ink-faint">{t(`${P}.state.locked`)}</span>;
+  if (row.active.origin === "stored") return <span className="text-ink">{tv(`${P}.state.edited`, { label: versionName(row.active.label) })}</span>;
+  return <span className="text-ink-muted">{t(`${P}.state.baseline`)}</span>;
 }
 
 function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; current: string | null; onChoose: (id: string) => void }) {
@@ -142,26 +154,26 @@ function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; cu
     `${nameOf(r.prompt_id)} ${r.prompt_id} ${t(`${P}.families.${r.family}`)}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
   const families = [...new Set(matching.map((r) => r.family))];
   return (
-    <nav aria-label={t(`${P}.listLabel`)} className="min-w-0 rounded-md border border-border bg-surface-sunken lg:sticky lg:top-4">
-      <div className="flex flex-col gap-2 border-b border-border p-3">
+    <nav aria-label={t(`${P}.listLabel`)} className="min-w-0 lg:sticky lg:top-4">
+      <div className="flex flex-col gap-2 pb-3">
         <TextInput type="search" aria-label={t(`${P}.search`)} placeholder={t(`${P}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
         <Select aria-label={t(`${P}.filter`)} value={filter} onChange={(e) => setFilter(e.target.value)}>
           {["all", "editable", "readOnly"].map((f) => <option key={f} value={f}>{t(`${P}.${f}`)}</option>)}
         </Select>
         <span role="status" className="text-xs text-ink-muted">{tv(`${P}.found`, { shown: matching.length, total: rows.length })}</span>
       </div>
-      <div className="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain p-3 lg:max-h-[65vh]">
+      <div className="flex max-h-64 flex-col gap-4 overflow-y-auto overscroll-contain lg:max-h-[70vh]">
         {families.map((family) => (
           <div key={family} data-family={family}>
             <h3 className={EYEBROW}>{t(`${P}.families.${family}`)}</h3>
-            <ul className="mt-2 flex flex-col gap-1">
+            <ul className="mt-1 flex flex-col gap-0.5">
               {matching.filter((r) => r.family === family).map((row) => (
                 <li key={row.prompt_id}>
                   <button type="button" data-prompt={row.prompt_id} aria-current={row.prompt_id === current ? "true" : undefined}
                     onClick={() => onChoose(row.prompt_id)}
-                    className={`flex w-full min-w-0 flex-col items-start gap-1 rounded-sm border p-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${row.prompt_id === current ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:bg-surface"}`}>
-                    <span className="break-words font-medium text-ink">{nameOf(row.prompt_id)}</span>
-                    {stateChip(row)}
+                    className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center rounded-sm px-3 py-1.5 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${row.prompt_id === current ? "bg-signal-wash" : "hover:bg-surface-sunken"}`}>
+                    <span className={`break-words ${row.prompt_id === current ? "font-semibold text-signal" : "text-ink"}`}>{nameOf(row.prompt_id)}</span>
+                    <span className="text-xs">{stateText(row)}</span>
                   </button>
                 </li>
               ))}
@@ -205,15 +217,18 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   const [basedOn, setBasedOn] = useState(detail.active.origin === "stored" ? detail.active.label : "baseline");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const [answer, setAnswer] = useState<{ ok: boolean; text: string; savedVersion?: number } | null>(null);
+  const [answer, setAnswer] = useState<{ ok: boolean; text: string } | null>(null);
   // The version this editor just saved, as the server returned it. Its "Zapnout" button shows
   // at once, before the detail has been read again, so what is said about that version (its
   // declaration, its text) is read from here until the detail lists it.
   const [justSaved, setJustSaved] = useState<PromptVersion | null>(null);
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
+  // The version this editor saved and has not seen switched on: the next step offers it until
+  // it runs. Its own state, so clearing a message or reverting an edit never loses it.
+  const [offer, setOffer] = useState<number | null>(null);
   const [testing, setTesting] = useState<number | null>(null);
   const [pendingLoad, setPendingLoad] = useState<{ text: string; label: string } | null>(null);
-  const compareRef = useRef<HTMLDetailsElement>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
   const activationRef = useRef<HTMLDivElement>(null);
   const [compare, setCompare] = useState<{ a: string; b: string }>({
     a: detail.active.origin === "stored" ? `v${detail.active.version_number}` : "baseline",
@@ -272,7 +287,8 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
       setBasedOn(saved.label);
       setNote("");
       setJustSaved(saved);
-      setAnswer({ ok: true, text: tv(`${P}.editor.saved`, { label: saved.label }), savedVersion: saved.version_number });
+      setOffer(saved.version_number);
+      setAnswer({ ok: true, text: tv(`${P}.editor.saved`, { label: versionName(saved.label) }) });
       reload();
     } catch (e) {
       fail(e);
@@ -293,196 +309,254 @@ function EditorBody({ detail, people, clients, studies, reload, onDirty }: {
   ];
   const side = (key: string) => options.find((o) => o.key === key) ?? options[0];
 
-  return (
-    <div data-editor={detail.prompt_id} className="flex min-w-0 flex-col gap-5">
-      <p className="rounded-sm border border-signal-edge bg-signal-wash p-3 text-sm font-medium text-signal">{t(`${P}.workflow`)}</p>
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-xl font-semibold">{nameOf(detail.prompt_id)}</h3>
-          {stateChip(detail)}
-          {dirty ? <Chip tone="you">{t(`${P}.guard.unsaved`)}</Chip> : null}
-        </div>
-        <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.about.${detail.family}`)}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-sm border border-border bg-surface-sunken p-3"><p className={EYEBROW}>{t(`${P}.liveLabel`)}</p><p className="mt-1 font-semibold">{detail.active.origin === "stored" ? detail.active.label : t(`${P}.baselineName`)}</p></div>
-          <div className="rounded-sm border border-border bg-surface-sunken p-3"><p className={EYEBROW}>{t(`${P}.draftLabel`)}</p><p className="mt-1 text-sm">{dirty ? tv(`${P}.editor.basedOn`, {label: basedOn === "baseline" ? t(`${P}.baselineName`) : basedOn}) : t(`${P}.unchanged`)}</p></div>
-        </div>
-        <details className="text-xs text-ink-muted"><summary className="cursor-pointer">{t(`${P}.technical`)}</summary><p className="mt-2 break-words">
-          <code className="break-all">{detail.prompt_id}</code> · {t(`${P}.runs`)}: {detail.active.origin === "stored" ? detail.active.label : tv(`${P}.baselineVersion`, { version: detail.baseline_version })}
-          {" · "}SHA-256 <code>{short(detail.active.text_sha256)}</code>
-          {detail.active.activated_by ? <> · {tv(`${P}.activatedBy`, { who: people(detail.active.activated_by), when: when(detail.active.activated_at) })}</> : null}
-        </p></details>
-      </header>
+  const running = detail.active.origin === "stored" ? versionName(detail.active.label) : t(`${P}.baselineName`);
+  const savedWaiting = offer !== null && detail.active.version_number !== offer ? offer : null;
+  const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
+  const basedOnName = basedOn === "baseline" ? t(`${P}.baselineName`) : versionName(basedOn);
 
-      {!detail.wired ? (
+  if (!detail.wired) {
+    return (
+      <div data-editor={detail.prompt_id} className="flex min-w-0 flex-col gap-4">
+        <Heading detail={detail} dirty={false} />
         <div data-locked className="flex flex-col gap-3">
-          <p role="note" className="rounded-sm border border-border bg-surface-sunken p-3 text-sm">
-            {t(`${P}.unwired.${detail.unwired_reason ?? "unknown"}`)}
-          </p>
-          <details className="rounded-sm border border-border">
-            <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.editor.showBaseline`)}</summary>
-            <pre className="max-h-96 overflow-auto whitespace-pre-wrap border-t border-border p-3 font-mono text-xs leading-5">{detail.baseline_text}</pre>
-          </details>
+          <p role="note" className="max-w-3xl text-sm">{t(`${P}.unwired.${detail.unwired_reason ?? "unknown"}`)}</p>
+          <h4 className="text-sm font-semibold">{t(`${P}.editor.showBaseline`)}</h4>
+          <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-sm border border-border bg-surface-raised p-4 text-sm leading-6">{detail.baseline_text}</pre>
         </div>
-      ) : (
-        <>
-          <details data-frame className="rounded-sm border border-border bg-surface-sunken">
-            <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.editor.frameTitle`)}</summary>
-            <div className="border-t border-border p-3">
-              <p className="mb-2 text-xs text-ink-muted">{t(`${P}.editor.frameNote`)}</p>
-              <pre className="max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs leading-5 text-ink-muted">{detail.fixed_prefix}</pre>
-            </div>
-          </details>
+      </div>
+    );
+  }
 
-          <form
-            className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4 sm:p-5"
-            onSubmit={(e) => { e.preventDefault(); if (canSave) void save(); }}
-          >
-            {pendingLoad ? <div role="alert" className="flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
-              <p>{tv(`${P}.loadGuard`, { label: pendingLoad.label })}</p><div className="flex flex-wrap gap-2">
-                <Button small disabled={busy} onClick={() => { setDraft(pendingLoad.text); setReference(pendingLoad.text); setBasedOn(pendingLoad.label); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.loadDiscard`)}</Button>
-                <Button small onClick={() => setPendingLoad(null)}>{t(`${P}.loadStay`)}</Button>
-              </div></div> : null}
-            <Field label={t(`${P}.editor.textLabel`)}>
-              <TextArea
-                aria-label={t(`${P}.editor.textLabel`)}
-                name="instruction" rows={18} disabled={busy} spellCheck={false} value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                aria-invalid={problem ? true : undefined}
-                aria-describedby={`${detail.prompt_id}-hint`}
-                className="w-full resize-y font-mono text-[13px] leading-6"
-              />
-            </Field>
-            <div id={`${detail.prompt_id}-hint`} className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span data-problem={problem ? "yes" : "no"} className={problem ? "text-status-fault" : duplicateOf ? "text-ink-muted" : "text-ink-faint"}>
-                {problem ?? (duplicateOf ? tv(`${P}.editor.duplicate`, { label: duplicateOf }) : tv(`${P}.editor.basedOn`, { label: basedOn === "baseline" ? t(`${P}.baselineName`) : basedOn }))}
-              </span>
-              <span className="font-mono text-ink-faint">{trimmed.length} / {detail.max_chars}</span>
-            </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <Field label={t(`${P}.editor.noteLabel`)} className="w-full sm:flex-1">
-                <TextInput name="note" disabled={busy} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder={t(`${P}.editor.notePlaceholder`)} />
-              </Field>
-              <Button type="submit" variant="primary" disabled={!canSave}>{busy ? t(`${P}.editor.saving`) : t(`${P}.editor.save`)}</Button>
-              <Button disabled={!dirty || busy} onClick={() => { setDraft(reference); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.editor.revert`)}</Button>
-            </div>
-            <p data-declaration className="text-xs text-ink-muted">{t(`${P}.editor.declaration`)}</p>
-            <p className="text-xs text-ink-faint">{t(`${P}.editor.notLiveYet`)}</p>
-            {answer ? (
-              <div role={answer.ok ? "status" : "alert"} data-answer={answer.ok ? "ok" : "refused"} className={`flex flex-wrap items-center gap-3 text-sm ${answer.ok ? "text-status-done" : "text-status-fault"}`}>
-                <span>{answer.text}</span>
-                {answer.ok && answer.savedVersion ? (
-                  <Button small onClick={() => setActivating({ version: answer.savedVersion ?? null })}>{tv(`${P}.versions.activate`, { label: `e${answer.savedVersion}` })}</Button>
-                ) : null}
-              </div>
-            ) : null}
-          </form>
+  return (
+    <div data-editor={detail.prompt_id} className="grid min-w-0 items-start gap-6 2xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <Heading detail={detail} dirty={dirty} />
+        <Flow dirty={dirty} savedWaiting={savedWaiting !== null} />
+        <div data-frame className="flex min-w-0 flex-col gap-2">
+          <p className="flex max-w-3xl items-start gap-2 text-sm text-ink-muted">
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v6.5h-9z" /></svg>
+            <span><span className="sr-only">{t(`${P}.editor.frameTitle`)}: </span>{t(`${P}.editor.frameNote`)}</span>
+          </p>
+          <Technical>
+            <pre data-technical className="max-h-64 overflow-auto whitespace-pre-wrap border-l-2 border-border-strong bg-surface-sunken px-3 py-2 font-mono text-xs leading-5 text-ink-muted">{detail.fixed_prefix}</pre>
+          </Technical>
+        </div>
 
-          <Versions
-            detail={detail} people={people}
-            onLoad={(text, label) => {
-              if (busy) return;
-              if (dirty) { setPendingLoad({ text, label }); return; }
-              setDraft(text); setReference(text); setBasedOn(label); setAnswer(null); setPendingLoad(null);
-            }}
-            onCompare={(key) => { setCompare((c) => ({ ...c, a: key })); if (compareRef.current) { compareRef.current.open = true; compareRef.current.scrollIntoView?.({ block: "center", behavior: "smooth" }); } }}
-            onActivate={(version) => setActivating({ version })}
-            onTest={(version) => setTesting(version)}
+        <form className="flex min-w-0 flex-col gap-3" onSubmit={(e) => { e.preventDefault(); if (canSave) void save(); }}>
+          {pendingLoad ? <div role="alert" className="flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            <p>{tv(`${P}.loadGuard`, { label: pendingLoad.label === "baseline" ? t(`${P}.baselineName`) : versionName(pendingLoad.label) })}</p><div className="flex flex-wrap gap-2">
+              <Button small disabled={busy} onClick={() => { setDraft(pendingLoad.text); setReference(pendingLoad.text); setBasedOn(pendingLoad.label); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.loadDiscard`)}</Button>
+              <Button small onClick={() => setPendingLoad(null)}>{t(`${P}.loadStay`)}</Button>
+            </div></div> : null}
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <label htmlFor={`${detail.prompt_id}-text`} className="text-sm font-semibold">{t(`${P}.editor.textLabel`)}</label>
+            <span className="text-xs text-ink-faint">{tv(`${P}.editor.basedOn`, { label: basedOnName })} · <span className="font-mono">{trimmed.length} / {detail.max_chars}</span></span>
+          </div>
+          <TextArea
+            id={`${detail.prompt_id}-text`}
+            aria-label={t(`${P}.editor.textLabel`)}
+            name="instruction" rows={18} disabled={busy} spellCheck={false} value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-invalid={problem ? true : undefined}
+            aria-describedby={`${detail.prompt_id}-hint`}
+            className="w-full resize-y text-sm leading-6"
           />
+          <p id={`${detail.prompt_id}-hint`} data-problem={problem ? "yes" : "no"} className={`text-sm ${problem ? "text-status-fault" : "text-ink-muted"}`}>
+            {problem ?? (duplicateOf ? tv(`${P}.editor.duplicate`, { label: duplicateOf === t(`${P}.baselineName`) ? duplicateOf : versionName(duplicateOf) }) : t(`${P}.editor.notLiveYet`))}
+          </p>
+          {dirty && differs(draft, reference) ? <LiveDiff from={reference} to={draft} label={basedOnName} /> : null}
+          <Field label={t(`${P}.editor.noteLabel`)}>
+            <TextInput name="note" disabled={busy} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder={t(`${P}.editor.notePlaceholder`)} />
+          </Field>
+          <p data-declaration className="max-w-3xl text-sm text-ink-muted">{t(`${P}.editor.declaration`)}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="primary" disabled={!canSave}>{busy ? t(`${P}.editor.saving`) : t(`${P}.editor.save`)}</Button>
+            <Button disabled={!dirty || busy} onClick={() => { setDraft(reference); setNote(""); setAnswer(null); setPendingLoad(null); }}>{t(`${P}.editor.revert`)}</Button>
+          </div>
+          {answer ? (
+            <p role={answer.ok ? "status" : "alert"} data-answer={answer.ok ? "ok" : "refused"} className={`text-sm ${answer.ok ? "font-medium text-ink" : "text-status-fault"}`}>{answer.text}</p>
+          ) : null}
+        </form>
 
-          <div ref={activationRef}>
+        {testing !== null ? (
+          <TestRun key={testing} detail={detail} version={testing} studies={studies} clients={clients} onClose={() => setTesting(null)} />
+        ) : null}
+        {compareOpen ? <Compare options={options} state={compare} onChange={setCompare} side={side} onClose={() => setCompareOpen(false)} /> : null}
+      </div>
+
+      <aside aria-label={t(`${P}.versions.title`)} className="flex min-w-0 flex-col gap-5 2xl:sticky 2xl:top-4">
+        <div data-running-card className="rounded-md border border-border bg-surface-raised p-4">
+          <p className="text-xs font-semibold text-ink-faint">{t(`${P}.liveLabel`)}</p>
+          <p className="mt-0.5 text-base font-semibold">{running}</p>
+          <p className="text-sm text-ink-muted">
+            {detail.active.activated_by ? tv(`${P}.activatedBy`, { who: people(detail.active.activated_by), when: when(detail.active.activated_at) }) : t(`${P}.runsFromCode`)}
+          </p>
+          <Technical>
+            <p data-technical className="mt-2 break-words text-xs text-ink-faint"><code className="break-all">{detail.prompt_id}</code> · {tv(`${P}.baselineVersion`, { version: detail.baseline_version })} · SHA-256 <code>{short(detail.active.text_sha256)}</code></p>
+          </Technical>
+        </div>
+
+        {savedWaiting !== null && !activating ? (
+          <div data-next-step className="flex flex-col gap-2 rounded-md border border-signal-edge bg-signal-wash p-4 text-sm">
+            <p><strong className="font-semibold">{tv(`${P}.next.saved`, { label: versionName(`e${savedWaiting}`) })}</strong> {t(`${P}.next.what`)}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => setActivating({ version: savedWaiting })}>{tv(`${P}.versions.activate`, { label: versionAcc(`e${savedWaiting}`) })}</Button>
+              {canTest ? <Button onClick={() => setTesting(savedWaiting)}>{t(`${P}.versions.test`)}</Button> : null}
+            </div>
+          </div>
+        ) : null}
+
+        <div ref={activationRef}>
           {activating ? (
             <Activation
               key={`${activating.version}`}
               detail={detail}
               version={activating.version}
               record={activating.version === null ? undefined : versionOf(activating.version)}
-              label={activating.version === null ? t(`${P}.baselineName`) : `e${activating.version}`}
+              label={activating.version === null ? t(`${P}.baselineName`) : versionName(`e${activating.version}`)}
               dirty={dirty}
               onCancel={() => setActivating(null)}
               onDone={(label, text) => {
                 setActivating(null);
+                setOffer(null);
                 if (!dirty) { setDraft(text); setReference(text); setBasedOn(label); }
-                setAnswer({ ok: true, text: tv(`${P}.activate.done`, { label: activating.version === null ? t(`${P}.baselineName`) : label }) });
+                setAnswer({ ok: true, text: tv(`${P}.activate.done`, { label: activating.version === null ? t(`${P}.baselineName`) : versionName(label) }) });
                 reload();
               }}
               textOf={textOf}
             />
           ) : null}
+        </div>
 
+        <Versions
+          detail={detail} people={people} canTest={canTest} offered={activating ? null : savedWaiting}
+          onLoad={(text, label) => {
+            if (busy) return;
+            if (dirty) { setPendingLoad({ text, label }); return; }
+            setDraft(text); setReference(text); setBasedOn(label); setAnswer(null); setPendingLoad(null);
+          }}
+          onCompare={(key) => { setCompare((c) => ({ ...c, a: key })); setCompareOpen(true); }}
+          onActivate={(version) => setActivating({ version })}
+          onTest={(version) => setTesting(version)}
+        />
+
+        <History detail={detail} people={people} />
+      </aside>
+    </div>
+  );
+}
+
+/** The prompt's name, what its family does, and whether an edit waits to be saved. */
+function Heading({ detail, dirty }: { detail: PromptSlotDetail; dirty: boolean }) {
+  return (
+    <header className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h3 className="text-xl font-semibold">{nameOf(detail.prompt_id)}</h3>
+        {dirty ? <span className="text-sm font-medium text-status-you-ink">{t(`${P}.guard.unsaved`)}</span> : null}
+      </div>
+      <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.about.${detail.family}`)}</p>
+    </header>
+  );
+}
+
+/** The safe order of a change: edit, save a version, try it (optional), switch it on. */
+function Flow({ dirty, savedWaiting }: { dirty: boolean; savedWaiting: boolean }) {
+  const now = savedWaiting ? 4 : dirty ? 2 : 1;
+  return (
+    <ol data-prompt-flow aria-label={t(`${P}.flow.label`)} className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+      {([1, 2, 3, 4] as const).map((n) => {
+        const st = n === 3 ? (savedWaiting ? "optional" : "") : n < now ? "done" : n === now ? "now" : "";
+        return (
+          <li key={n} data-state={st || "later"} className={`flex items-center gap-2 ${st === "now" ? "font-semibold text-signal" : st === "done" ? "text-ink" : "text-ink-faint"}`}>
+            <span aria-hidden="true" className={`inline-flex size-5 items-center justify-center rounded-full border font-mono text-[11px] ${st === "done" ? "border-ink bg-ink text-surface-raised" : st === "now" ? "border-signal" : "border-border-strong"}`}>{n}</span>
+            {t(`${P}.flow.step${n}`)}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** What the edit changes against the text it started from, as it is typed. */
+function LiveDiff({ from, to, label }: { from: string; to: string; label: string }) {
+  const deferred = useDeferredValue(to);
+  const ops = useMemo(() => diffLines(from, deferred), [from, deferred]);
+  const { added, removed } = summarise(ops);
+  const changed = ops.filter((op) => op.kind !== "same");
+  return (
+    <div data-live-diff className="rounded-sm border border-border bg-surface-raised">
+      <p className="border-b border-border px-3 py-1.5 text-xs font-semibold text-ink-faint">{tv(`${P}.editor.liveDiff`, { label, added, removed })}</p>
+      <div className="max-h-48 overflow-auto py-1 text-[13px] leading-5">
+        {changed.map((op, i) => (
+          <div key={i} data-diff={op.kind} className={`flex gap-2 px-3 ${op.kind === "add" ? "bg-status-running-wash" : "bg-status-fault-wash"}`}>
+            <span aria-hidden className="w-3 shrink-0 select-none text-ink-faint">{op.kind === "add" ? "+" : "−"}</span>
+            <span className="sr-only">{t(`${P}.compare.${op.kind}`)}: </span>
+            <span className="whitespace-pre-wrap break-words">{op.text || " "}</span>
           </div>
-          {testing !== null ? (
-            <TestRun key={testing} detail={detail} version={testing} studies={studies} clients={clients} onClose={() => setTesting(null)} />
-          ) : null}
-
-          <Compare options={options} state={compare} onChange={setCompare} side={side} detailsRef={compareRef} />
-
-          <History detail={detail} people={people} />
-        </>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
 
 // ---------------------------------------------------------------- versions
 
-function Versions({ detail, people, onLoad, onCompare, onActivate, onTest }: {
-  detail: PromptSlotDetail; people: People;
+function Versions({ detail, people, canTest, offered, onLoad, onCompare, onActivate, onTest }: {
+  detail: PromptSlotDetail; people: People; canTest: boolean;
+  /** The version the next-step card offers to switch on: its own button is the one, never two. */
+  offered: number | null;
   onLoad: (text: string, label: string) => void;
   onCompare: (key: string) => void;
   onActivate: (version: number | null) => void;
   onTest: (version: number) => void;
 }) {
   const baselineRunning = detail.active.origin === "baseline";
-  const canTest = actionOf(detail.prompt_id) !== null && detail.draft_test_client_ids.length > 0;
   const row = (v: PromptVersion | null) => {
     const running = v === null ? baselineRunning : detail.active.version_number === v.version_number;
     const key = v === null ? "baseline" : `v${v.version_number}`;
-    const label = v === null ? t(`${P}.baselineName`) : v.label;
+    const label = v === null ? t(`${P}.baselineName`) : versionName(v.label);
     return (
-      <article key={key} data-version={key} data-running={running ? "yes" : "no"} className={`flex min-w-0 flex-col gap-3 rounded-sm border p-3 sm:p-4 ${running ? "border-signal-edge bg-signal-wash" : "border-border bg-surface-raised"}`}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <li key={key} data-version={key} data-running={running ? "yes" : "no"} className="flex min-w-0 flex-col gap-2 py-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
           <strong className="text-sm">{label}</strong>
-          {running ? <Chip tone="done">{t(`${P}.versions.running`)}</Chip> : null}
+          {running ? <span className="text-xs font-semibold text-signal">{t(`${P}.versions.running`)}</span> : null}
         </div>
-        <p className="break-words text-xs text-ink-muted">{v === null ? tv(`${P}.baselineVersion`, { version: detail.baseline_version }) : <><span>{people(v.created_by)}</span> · <span>{when(v.created_at)}</span></>}</p>
+        <p className="break-words text-xs text-ink-muted">{v === null ? t(`${P}.versions.byCode`) : <><span>{people(v.created_by)}</span> · <span>{when(v.created_at)}</span></>}</p>
         {v?.note ? <p className="break-words text-sm text-ink-muted">{v.note}</p> : null}
         <div className="flex flex-wrap gap-2">
           <Button small onClick={() => onLoad(v === null ? detail.baseline_text : v.text, v === null ? "baseline" : v.label)}>{t(`${P}.versions.load`)}</Button>
           <Button small onClick={() => onCompare(key)}>{t(`${P}.versions.compare`)}</Button>
-          {!running ? <Button small variant="primary" onClick={() => onActivate(v === null ? null : v.version_number)}>{v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label })}</Button> : null}
+          {!running && (v === null || v.version_number !== offered) ? <Button small onClick={() => onActivate(v === null ? null : v.version_number)}>{v === null ? t(`${P}.versions.reset`) : tv(`${P}.versions.activate`, { label: versionAcc(v.label) })}</Button> : null}
           {v !== null && canTest ? <Button small onClick={() => onTest(v.version_number)}>{t(`${P}.versions.test`)}</Button> : null}
         </div>
-      </article>
+      </li>
     );
   };
   return (
-    <section aria-labelledby="pv-h" className="flex flex-col gap-2">
-      <h4 id="pv-h" className={EYEBROW}>{t(`${P}.versions.title`)}</h4>
-      <div className="grid gap-3 xl:grid-cols-2">
+    <section aria-labelledby="pv-h" className="flex flex-col">
+      <h4 id="pv-h" className="text-sm font-semibold">{t(`${P}.versions.title`)}</h4>
+      <ul className="flex flex-col divide-y divide-border">
         {[...detail.versions].map((v) => row(v))}
         {row(null)}
-      </div>
+      </ul>
       {!detail.versions.length ? <p className="text-xs text-ink-faint">{t(`${P}.versions.none`)}</p> : null}
-      {!canTest && actionOf(detail.prompt_id) !== null ? <p data-test-off className="text-xs text-ink-muted">{t(`${P}.test.noFictional`)}</p> : null}
+      {!canTest && actionOf(detail.prompt_id) !== null ? <p data-test-off className="mt-2 text-xs text-ink-muted">{t(`${P}.test.noFictional`)}</p> : null}
       {detail.versions.length ? (
-        <details data-approval className="rounded-sm border border-border">
-          <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.approval.title`)}</summary>
-          <div className="flex flex-col gap-2 border-t border-border p-3">
-            <p className="max-w-3xl text-xs text-ink-muted">{t(`${P}.approval.text`)}</p>
-            <ul className="flex flex-col gap-1 text-xs">
-              {detail.versions.map((v) => (
-                <li key={v.version_number} data-material={v.label}>
-                  <strong>{v.label}</strong> ·{" "}
-                  {v.declared_class
-                    ? tv(`${P}.approval.declaredBy`, { who: people(v.declared_by), when: when(v.declared_at) })
-                    : <span data-undeclared>{t(`${P}.approval.undeclared`)}</span>}
-                  {" · "}{t(`${P}.approval.hash`)}: <code className="break-all">{v.material_sha256}</code>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </details>
+        <div data-approval className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+          <h5 className="text-sm font-semibold">{t(`${P}.approval.title`)}</h5>
+          <ul className="flex flex-col gap-1 text-xs">
+            {detail.versions.map((v) => (
+              <li key={v.version_number} data-material={v.label}>
+                <strong>{versionName(v.label)}</strong> ·{" "}
+                {v.declared_class
+                  ? tv(`${P}.approval.declaredBy`, { who: people(v.declared_by), when: when(v.declared_at) })
+                  : <span data-undeclared>{t(`${P}.approval.undeclared`)}</span>}
+                <Technical>{" · "}{t(`${P}.approval.hash`)}: <code className="break-all">{v.material_sha256}</code></Technical>
+              </li>
+            ))}
+          </ul>
+          <Technical><p data-technical className="text-xs text-ink-muted">{t(`${P}.approval.text`)}</p></Technical>
+        </div>
       ) : null}
     </section>
   );
@@ -519,7 +593,7 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
   }
   return (
     <section data-activation aria-labelledby="pa-h" className="flex flex-col gap-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-4">
-      <h4 id="pa-h" className="text-sm font-semibold">{version === null ? t(`${P}.activate.resetTitle`) : tv(`${P}.activate.title`, { label })}</h4>
+      <h4 id="pa-h" className="text-sm font-semibold">{version === null ? t(`${P}.activate.resetTitle`) : tv(`${P}.activate.title`, { label: version === null ? label : versionAcc(`e${version}`) })}</h4>
       <p className="text-sm">{tv(`${P}.activate.impact`, { from: detail.active.origin === "stored" ? detail.active.label : t(`${P}.baselineName`), to: label })}</p>
       <p className="text-xs text-ink-muted">{t(`${P}.activate.queuedKeep`)}</p>
       {undeclared ? <p data-needs-approval className="text-xs text-ink-muted">{tv(`${P}.activate.needsApproval`, { label })}</p> : null}
@@ -540,51 +614,51 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
 
 type Option = { key: string; label: string; text: string };
 
-function Compare({ options, state, onChange, side, detailsRef }: {
-  detailsRef: RefObject<HTMLDetailsElement | null>;
-  options: Option[]; state: { a: string; b: string }; onChange: (s: { a: string; b: string }) => void; side: (key: string) => Option;
+function Compare({ options, state, onChange, side, onClose }: {
+  options: Option[]; state: { a: string; b: string }; onChange: (s: { a: string; b: string }) => void; side: (key: string) => Option; onClose: () => void;
 }) {
   const a = side(state.a);
   const b = side(state.b);
-  const [expanded, setExpanded] = useState(false);
-  // Do no quadratic line comparison while the person types in a closed comparison.
-  const ops = useMemo(() => expanded ? diffLines(a.text, b.text) : [], [a.text, b.text, expanded]);
+  const ops = useMemo(() => diffLines(a.text, b.text), [a.text, b.text]);
   const { added, removed } = summarise(ops);
   const same = !differs(a.text, b.text);
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { ref.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }); }, []);
   return (
-    <details ref={detailsRef} data-compare onToggle={(e) => setExpanded(e.currentTarget.open)} className="rounded-sm border border-border">
-      <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.compare.title`)}</summary>
-      <div className="flex flex-col gap-3 border-t border-border p-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label={t(`${P}.compare.from`)}>
-            <Select value={state.a} onChange={(e) => onChange({ ...state, a: e.target.value })} className="w-full sm:w-auto">
-              {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-            </Select>
-          </Field>
-          <Field label={t(`${P}.compare.to`)}>
-            <Select value={state.b} onChange={(e) => onChange({ ...state, b: e.target.value })} className="w-full sm:w-auto">
-              {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-            </Select>
-          </Field>
-          <span data-summary className="pb-2 text-xs text-ink-muted">{same ? t(`${P}.compare.same`) : tv(`${P}.compare.summary`, { added, removed })}</span>
-        </div>
-        {same ? null : (
-          <pre aria-label={t(`${P}.compare.title`)} className="max-h-96 overflow-auto rounded-sm border border-border bg-surface p-0 font-mono text-xs leading-5">
-            {ops.map((op, i) => (
-              <div
-                key={i}
-                data-diff={op.kind}
-                className={`flex gap-2 px-2 ${op.kind === "add" ? "bg-status-running-wash text-ink" : op.kind === "del" ? "bg-status-fault-wash text-ink" : "text-ink-muted"}`}
-              >
-                <span aria-hidden className="w-3 shrink-0 select-none text-ink-faint">{op.kind === "add" ? "+" : op.kind === "del" ? "−" : " "}</span>
-                <span className="sr-only">{t(`${P}.compare.${op.kind === "same" ? "same_line" : op.kind}`)}: </span>
-                <span className="whitespace-pre-wrap break-words">{op.text || " "}</span>
-              </div>
-            ))}
-          </pre>
-        )}
+    <section ref={ref} data-compare aria-labelledby="pc-h" className="flex flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h4 id="pc-h" className="text-sm font-semibold">{t(`${P}.compare.title`)}</h4>
+        <Button small variant="quiet" onClick={onClose}>{t(`${P}.compare.close`)}</Button>
       </div>
-    </details>
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label={t(`${P}.compare.from`)}>
+          <Select value={state.a} onChange={(e) => onChange({ ...state, a: e.target.value })} className="w-full sm:w-auto">
+            {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </Select>
+        </Field>
+        <Field label={t(`${P}.compare.to`)}>
+          <Select value={state.b} onChange={(e) => onChange({ ...state, b: e.target.value })} className="w-full sm:w-auto">
+            {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </Select>
+        </Field>
+        <span data-summary className="pb-2 text-xs text-ink-muted">{same ? t(`${P}.compare.same`) : tv(`${P}.compare.summary`, { added, removed })}</span>
+      </div>
+      {same ? null : (
+        <pre aria-label={t(`${P}.compare.title`)} className="max-h-96 overflow-auto rounded-sm border border-border bg-surface p-0 text-[13px] leading-5">
+          {ops.map((op, i) => (
+            <div
+              key={i}
+              data-diff={op.kind}
+              className={`flex gap-2 px-2 ${op.kind === "add" ? "bg-status-running-wash text-ink" : op.kind === "del" ? "bg-status-fault-wash text-ink" : "text-ink-muted"}`}
+            >
+              <span aria-hidden className="w-3 shrink-0 select-none text-ink-faint">{op.kind === "add" ? "+" : op.kind === "del" ? "−" : " "}</span>
+              <span className="sr-only">{t(`${P}.compare.${op.kind === "same" ? "same_line" : op.kind}`)}: </span>
+              <span className="whitespace-pre-wrap break-words font-sans">{op.text || " "}</span>
+            </div>
+          ))}
+        </pre>
+      )}
+    </section>
   );
 }
 
@@ -592,21 +666,19 @@ function Compare({ options, state, onChange, side, detailsRef }: {
 
 function History({ detail, people }: { detail: PromptSlotDetail; people: People }) {
   return (
-    <details data-history className="rounded-sm border border-border">
-      <summary className="cursor-pointer px-3 py-2 text-sm font-medium">{t(`${P}.history.title`)}</summary>
-      <div className="border-t border-border p-3">
-        {detail.history.length ? (
-          <ul className="flex flex-col gap-1 text-sm">
-            {detail.history.map((h) => (
-              <li key={h.activation_id} data-activation-row>
-                <strong>{h.label ?? t(`${P}.baselineName`)}</strong> · {people(h.activated_by)} · {when(h.activated_at)}
-                {h.reason ? <span className="text-ink-muted"> — {h.reason}</span> : null}
-              </li>
-            ))}
-          </ul>
-        ) : <p className="text-sm text-ink-muted">{t(`${P}.history.none`)}</p>}
-      </div>
-    </details>
+    <section data-history aria-labelledby="ph-h" className="flex flex-col gap-1">
+      <h4 id="ph-h" className="text-sm font-semibold">{t(`${P}.history.title`)}</h4>
+      {detail.history.length ? (
+        <ul className="flex flex-col gap-1 text-sm">
+          {detail.history.map((h) => (
+            <li key={h.activation_id} data-activation-row>
+              <strong>{h.label ? versionName(h.label) : t(`${P}.baselineName`)}</strong> · {people(h.activated_by)} · {when(h.activated_at)}
+              {h.reason ? <span className="text-ink-muted"> — {h.reason}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="text-sm text-ink-muted">{t(`${P}.history.none`)}</p>}
+    </section>
   );
 }
 
@@ -712,7 +784,7 @@ function TestRun({ detail, version, studies, clients, onClose }: {
   return (
     <section data-test-run aria-labelledby="pt-h" className="flex flex-col gap-3 rounded-sm border border-border p-4">
       <div className="flex items-center justify-between gap-2">
-        <h4 id="pt-h" className="text-sm font-semibold">{tv(`${P}.test.title`, { label: `e${version}` })}</h4>
+        <h4 id="pt-h" className="text-sm font-semibold">{tv(`${P}.test.title`, { label: versionAcc(`e${version}`) })}</h4>
         <Button small variant="quiet" onClick={onClose}>{t(`${P}.test.close`)}</Button>
       </div>
       <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.test.intro`)}</p>
