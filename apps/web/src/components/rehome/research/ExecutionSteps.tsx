@@ -22,9 +22,12 @@ import {
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
+  type PopulationVersion,
   type Study,
+  population,
   research,
 } from "@/lib/api";
+import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { saveBlob } from "@/lib/download";
@@ -367,6 +370,20 @@ export function RunStep() {
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // The client's materialized children a run may be started over (P4d4c); none read is LIVE.
+  const [children, setChildren] = useState<PopulationVersion[]>([]);
+  const [childId, setChildId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    population.registry().then(
+      (r) => live && setChildren(clientChildren(r, frame.clientId)),
+      () => live && setChildren([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.clientId]);
 
   useEffect(() => {
     let live = true;
@@ -430,12 +447,12 @@ export function RunStep() {
     setStartError(null);
     try {
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes);
+        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined);
       } catch (e) {
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling);
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined);
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -475,6 +492,7 @@ export function RunStep() {
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
+          {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
@@ -508,6 +526,48 @@ export function RunStep() {
         ) : null}
       </ActionDock>
     </div>
+  );
+}
+
+// Which population the run is computed over (P4d4c): LIVE, or one of this client's materialized
+// children with its target beside what it reached. Shown only when the client has a child.
+function PopulationChoice({
+  choices,
+  value,
+  onChange,
+  disabled,
+}: {
+  choices: PopulationVersion[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  disabled: boolean;
+}) {
+  const P = "research.exec.population";
+  return (
+    <Card title={t(`${P}.title`)}>
+      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
+        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
+        <label className="flex items-start gap-2">
+          <input type="radio" name="run-population" checked={value === null} onChange={() => onChange(null)} />
+          <span>{t(`${P}.live`)}</span>
+        </label>
+        {choices.map((v) => {
+          const m = v.materialized ?? null;
+          const verdict = targetVerdict(m);
+          return (
+            <label key={v.version_id} className="flex items-start gap-2">
+              <input type="radio" name="run-population" checked={value === v.version_id} onChange={() => onChange(v.version_id)} />
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{m?.dimension_id ?? v.label}</span>
+                {m ? <span className="text-ink-muted">{tv(`${P}.outcome`, { target: outcomeValue(m.kind, m.target), achieved: outcomeValue(m.kind, m.achieved) })}</span> : null}
+                <Chip tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</Chip>
+              </span>
+            </label>
+          );
+        })}
+      </fieldset>
+      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
+    </Card>
   );
 }
 

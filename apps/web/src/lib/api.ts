@@ -823,15 +823,16 @@ export const research = {
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
-  /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
-    request<ResearchRun>(
-      "POST",
-      `${studyPath(studyId)}/research/runs`,
-      confirmCostUsd === undefined
-        ? { design_revision_id: revisionId }
-        : { design_revision_id: revisionId, confirm_cost_usd: confirmCostUsd },
-    ),
+  /**
+   * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
+   * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
+   */
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
+      design_revision_id: revisionId,
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
+    }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
     request<Study>("PUT", `${studyPath(studyId)}/spend-confirm`, { limit_usd: limitUsd }),
