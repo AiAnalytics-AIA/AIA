@@ -721,6 +721,37 @@ class StudyDesignSourceRow(Base):
     )
 
 
+class HoldoutPreregistrationRow(Base):
+    """A validation Study's preregistration (panel-grounded-respondents 7a, 7e2). **Insert-once.**
+
+    One per Study, fixed before its confirmation run's first call: the record's canonical JSON
+    bytes, kept as written so the hash read back is the hash stored, beside the respondent
+    system it validates. Written and read only by ``HoldoutRepository``, through the Study.
+    """
+
+    __tablename__ = "holdout_preregistrations"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    respondent_system_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    population_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        Index(
+            "ix_holdout_preregistrations_system", "organization_id", "respondent_system_fingerprint"
+        ),
+    )
+
+
 # Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
 # narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
 # client_id and is reached only through ClientKnowledgeRepository, which takes an
