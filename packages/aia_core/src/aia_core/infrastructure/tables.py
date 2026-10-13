@@ -752,6 +752,42 @@ class HoldoutPreregistrationRow(Base):
     )
 
 
+class HoldoutConfirmationRow(Base):
+    """A validation Study's confirmation run, started (panel-grounded-respondents 7e3).
+    **Insert-once.**
+
+    A respondent system is confirmed once in an organization: the unique constraint refuses a
+    second Study's confirmation of the same fingerprint, so several preregistrations of one
+    system cannot each be run and the passing one kept. Written and read only by
+    ``HoldoutRepository``.
+    """
+
+    __tablename__ = "holdout_confirmations"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    respondent_system_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    preregistration_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["study_id"], ["holdout_preregistrations.study_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint(
+            "organization_id",
+            "respondent_system_fingerprint",
+            name="holdout_confirmation_once_per_system",
+        ),
+    )
+
+
 # Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
 # narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
 # client_id and is reached only through ClientKnowledgeRepository, which takes an

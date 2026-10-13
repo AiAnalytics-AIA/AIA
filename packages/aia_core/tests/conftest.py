@@ -1818,3 +1818,119 @@ def holdout_population() -> Any:
         return HoldoutPopulation(columns, weights or tuple(1.0 for _ in range(n)), rows)
 
     return build
+
+
+class HoldoutRecords:
+    """A small item bank and a preregistration over it, built by hand (7e2, 7e3).
+
+    Three confirmation items in two blocks: ``c1`` and ``c2`` (family), ``c3`` (work). The
+    preregistration is shaped as ``preregister`` writes one, so the storage and the run can be
+    tested without drawing a split; the split itself is ``test_holdout_preregistration``'s.
+    """
+
+    SYSTEM: dict[str, str] = {  # noqa: RUF012 - read-only by convention, copied on use
+        "respondent_prompt_sha256": "c" * 64,
+        "persona_builder": "panel-persona-1/profile-1",
+        "persona_mode": "calibrated->core (no active profile)",
+        "sampler_version": "sampler-1",
+        "population_version": "pv_live",
+        "model_binding": "bedrock/claude/bedrock-eu-primary",
+        "response_process_version": "behavior-1/facts-1",
+    }
+    BANK_SHA256 = "b" * 64
+
+    def bank(self, *, wording: dict[str, str] | None = None) -> Any:
+        from aia_core.domain.holdout.bank import HoldoutItem, ItemBank, Option, SourceDocument
+
+        words = {
+            "c1": "Do jaké míry souhlasíte: rodina je základ společnosti?",
+            "c2": "Jak často se vídáte se svými sourozenci?",
+            "c3": "Jak jste spokojen se svou prací?",
+            **(wording or {}),
+        }
+        domains = {"c1": "family", "c2": "family", "c3": "work"}
+        items = tuple(
+            HoldoutItem(
+                field=field,
+                survey="ISSP_2022_CZ",
+                domain=domains[field],
+                wording=words[field],
+                options=(Option("1", "Rozhodně ano"), Option("2", "Spíše ano"), Option("3", "Ne")),
+                measured_ages=None,
+                ordinal=True,
+                source=SourceDocument("https://example.org/q.pdf", "d" * 64, "3", field),
+            )
+            for field in ("c1", "c2", "c3")
+        )
+        return ItemBank(items=items, sha256=self.BANK_SHA256)
+
+    def preregistration(self, *, system: dict[str, str] | None = None, **overrides: Any) -> Any:
+        from aia_core.domain.evidence.validation import respondent_system_fingerprint
+        from aia_core.domain.holdout.preregistration import (
+            ARMS,
+            MODEL_ARMS,
+            PREREGISTRATION_VERSION,
+            THRESHOLDS,
+            Preregistration,
+        )
+        from aia_core.domain.holdout.scoring import SCORING_VERSION
+
+        components = {**self.SYSTEM, **(system or {})}
+        document: dict[str, Any] = {
+            "preregistration_version": PREREGISTRATION_VERSION,
+            "bank_sha256": self.BANK_SHA256,
+            "pool_sha256": "p" * 64,
+            "split": {
+                "seed": 20261013,
+                "development_share": 0.4,
+                "near_duplicate": 0.7,
+                "development": ["d1", "d2"],
+                "confirmation": ["c1", "c2", "c3"],
+                "duplicates": [],
+            },
+            "blocks": [
+                {
+                    "items": ["c1", "c2"],
+                    "excluded": [
+                        {"field": "c1", "item": "c1", "reason": "ITEM", "association": None},
+                        {"field": "c2", "item": "c2", "reason": "ITEM", "association": None},
+                        {
+                            "field": "persona_income",
+                            "item": "c1",
+                            "reason": "ASSOCIATED",
+                            "association": 0.41,
+                        },
+                    ],
+                    "signals": ["signal_family"],
+                },
+                {
+                    "items": ["c3"],
+                    "excluded": [
+                        {"field": "c3", "item": "c3", "reason": "ITEM", "association": None}
+                    ],
+                    "signals": [],
+                },
+            ],
+            "arms": list(ARMS),
+            "model_arms": list(MODEL_ARMS),
+            "n": 600,
+            "sample_seed": 1,
+            "replicate_seeds": [11, 12, 13],
+            "bootstrap": {"seed": 7, "resamples": 10_000},
+            "thresholds": dict(THRESHOLDS),
+            "scoring_version": SCORING_VERSION,
+            "population_version": components["population_version"],
+            "respondent_system": {
+                "components": components,
+                "fingerprint": respondent_system_fingerprint(components),
+            },
+            "cost_ceiling_usd": 500.0,
+        }
+        document.update(overrides)
+        return Preregistration(document=document)
+
+
+@pytest.fixture(scope="session")
+def holdout_records() -> HoldoutRecords:
+    """A hand-built item bank and preregistration (:class:`HoldoutRecords`); no state."""
+    return HoldoutRecords()
