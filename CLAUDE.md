@@ -66,7 +66,9 @@ the same three-hour debugging session was happening twice.
 apps/
   api/src/aia_api/          FastAPI. Validates, delegates, serialises.
     config.py               Typed settings + production guards
-    dependencies.py         Composition root: engine, sessions, identity, scope
+    dependencies.py         Composition root: engine, sessions, identity, scope; AudiencePopulation,
+                            the population the audience routes read (CZECH_AUDIENCE in every
+                            deployment; only the workbench installs another on app.state)
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, runs (runs + artifacts under a project),
@@ -772,7 +774,13 @@ tools/ui_workbench/         AIA on this machine, for UI work: the real API on SQ
                             screenshots every AIA screen, and the unit's when it runs;
                             fixture_project.py: fictional research projects; research_journey.mjs:
                             Run -> Results; workspace_journey.mjs: a study's content, file, import,
-                            audience, dimensions; both fail on a request to a path the unit served
+                            audience, dimensions; both fail on a request to a path the unit served;
+                            fictional_population.py: a population of the sampler's 3,000 fictional
+                            rows under a contract of its own, established through PopulationRuntime
+                            with its catalogue kept, installed as the stand-in's AudiencePopulation
+                            (runs still record the Czech LIVE; `--no-audience-population` skips it);
+                            audience_journey.mjs: the live audience step (catalogue filters, the
+                            preview, subpanels) saved and read back
 .planning/                  Progress, plans, open items
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
                             by AIA-reference/tools/extract_legacy.py. Frozen: regenerated,
@@ -979,6 +987,7 @@ ungated fixture.
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
 | **AIA with 18.6.6 absent** | `make ui-workbench` (no unit; its old paths are the web client's 404), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to a path the unit served |
+| **The live audience step, in a browser** | `make ui-audience` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): `audience_journey.mjs` on the workbench's fictional population: catalogue filters saved as chosen (an empty bound left out, OI-50) and read back after a reload, the preview's count and verdict, a subpanel saved as its filter and a refused one disabled; fails on a request to a path the unit served |
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
 | Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
