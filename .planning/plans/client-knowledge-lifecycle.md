@@ -5,7 +5,7 @@ chunks:
   - "[x] K1. Draft the client knowledge structure, intake and acceptance contracts for review"
   - "[ ] K2. Deliver document, dataset and web intake through one source-to-reviewed-knowledge journey"
   - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
-  - "[ ] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
+  - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[ ] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
   - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
@@ -319,11 +319,35 @@ generic historical records without inventing source spans or validated dimension
       `test_the_same_bytes_kept_by_another_request_first_is_one_source`,
       `test_a_source_is_not_knowledge_and_no_study_reads_it`;
     - `apps/api/tests/test_client_sources_api.py`, 5 tests.
-- **K2b. PPTX, ODT, DOC.**
-  - PPTX and ODT are read from their ZIP parts with the stdlib, under the existing ZIP bounds.
-  - DOC needs a new dependency: `olefile` (BSD, pure Python) for the compound file, then the
-    Word 97 piece table read by code.
-  - Each reader is pinned by fictional fixtures; a malformed file is `REFUSED` by name.
+- **K2b. PPTX, ODT, DOC.** *(Landed.)*
+  - **PPTX:** read slide by slide in `presentation.xml`'s own order, a paragraph a line.
+    An empty slide is left out and the others keep their numbers.
+  - **ODT:** headings and paragraphs numbered in body order, including inside lists and
+    sections; tables by row. `text:s`, tabs and line breaks are kept; footnotes and comments
+    are not part of a paragraph.
+  - **XML parts:** PPTX and ODT parts are read with the stdlib after
+    `document_text.check_zip_bounds`. A part over 50 MiB, or one that declares a DTD or
+    entity, is refused before it is parsed; neither format ever has one.
+  - **DOC:** `olefile` (BSD, pure Python, now in the `documents` extra) opens the compound
+    file. `piece_text`, AIA's own code, reads the main text from the FIB and the CLX piece
+    table ([MS-DOC] 2.5, 2.9.38): compressed pieces as cp1252, the rest as UTF-16LE, up to
+    `ccpText`.
+    - A field's code is dropped and its result kept.
+    - An encrypted file is `document_encrypted`, anything before Word 97 is
+      `document_too_old`, and anything out of bounds is `document_malformed`.
+    - **A DOC's table is read as Word counts it:** each cell and each row-end mark is a
+      paragraph. An empty cell and a row's end are the same `\x07`, told apart only by
+      paragraph properties, so no row number is guessed.
+  - **Fixtures:** `tools/source_fixtures.py write` has LibreOffice convert one fictional
+    OpenDocument text into DOC, ODT and DOCX, and one presentation into PPTX. The outputs
+    are pinned by SHA-256 in `fixtures/client_sources/index.json`, and `verify` checks them.
+  - **Tests:** `test_source_readers.py`, 14 tests, on SQLite and PostgreSQL. Among them:
+    - `test_an_odt_reads_as_its_docx_does`;
+    - `test_a_doc_reads_its_cells_as_the_paragraphs_word_counts`;
+    - `test_compressed_and_unicode_pieces_are_read_in_order_up_to_the_main_text`
+      (a synthetic piece table, since LibreOffice writes only UTF-16 pieces);
+    - `test_a_part_declaring_a_dtd_is_refused_before_it_is_parsed`;
+    - `test_a_zip_that_inflates_far_past_its_size_is_refused`.
 - **K2c. Datasets.**
   - CSV and XLSX use the existing readers (`document_text.py:384-463` @ 362f90e0). XLS uses
     `xlrd` (BSD, pure Python, .xls only). ODS is stdlib ZIP and XML.
