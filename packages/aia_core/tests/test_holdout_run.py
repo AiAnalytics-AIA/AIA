@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
+from aia_core.domain.holdout.bank import Option
 from aia_core.domain.holdout.preregistration import HoldoutRefused
 from aia_core.domain.holdout.run import (
     ARM_KIND,
     SAMPLE_KIND,
     SCORE_KIND,
     arm_node_key,
+    arm_record,
     preregistered_blocks,
+    read_arm_record,
+    sample_sha256,
     system_mismatch,
     validation_cost_ceiling,
     validation_requests,
@@ -20,6 +25,7 @@ from aia_core.domain.holdout.run import (
     validation_steps,
 )
 from aia_core.domain.panel_source import pinned_components
+from aia_core.domain.population.sampling import draw_panel_sample
 from aia_core.domain.workflow import validate_dag
 
 
@@ -86,3 +92,69 @@ def test_a_component_or_population_that_moved_is_named_and_the_binding_is_left_t
     assert system_mismatch(prereg, current) == ()
     assert system_mismatch(prereg, pinned_components("pv_moved")) == ("population_version",)
     assert system_mismatch(prereg, {**current, "persona_mode": "other"}) == ("persona_mode",)
+
+
+def test_an_answer_is_recorded_as_its_code_beside_the_probabilities_it_was_drawn_from(
+    holdout_records: Any,
+) -> None:
+    spec = validation_specification(holdout_records.bank(), holdout_records.preregistration())
+    codes = {q.id: ["1", "2", "3"] for q in spec.questions}
+    probs = {"probabilities": [0.6, 0.3, 0.1]}
+    rows = [
+        ("R1", {"c1": "Spíše ano", "c2": "Ne", "c3": "Rozhodně ano"}),
+        ("R2", {"c1": "Ne", "c2": "Ne", "c3": "Spíše ano"}),
+    ]
+    details = [dict.fromkeys(("c1", "c2", "c3"), probs)] * 2
+    record = arm_record(spec, codes, rows, details)
+    assert record["answers"]["c1"] == {"R1": "2", "R2": "3"}
+    assert record["probabilities"]["c3"]["R2"] == [0.6, 0.3, 0.1]
+    run = read_arm_record("D", 2, record)
+    assert (run.arm, run.replicate) == ("D", 2)
+    assert run.answers[("c2", "R1")] == "3"
+    assert run.probabilities[("c1", "R1")] == (0.6, 0.3, 0.1)
+
+
+@pytest.mark.parametrize(
+    "broken",
+    [
+        lambda rows, details: ([(rows[0][0], {**rows[0][1], "c1": None})], details[:1]),
+        lambda rows, details: ([(rows[0][0], {**rows[0][1], "c1": "Snad"})], details[:1]),
+        lambda rows, details: (rows[:1], [{**details[0], "c2": {}}]),
+        lambda rows, details: (rows[:1], [{**details[0], "c2": {"probabilities": [1.0]}}]),
+        lambda rows, details: (rows, details[:1]),
+    ],
+)
+def test_a_missing_answer_or_draw_is_refused_never_scored_as_an_answer(
+    holdout_records: Any, broken: Any
+) -> None:
+    spec = validation_specification(holdout_records.bank(), holdout_records.preregistration())
+    codes = {q.id: ["1", "2", "3"] for q in spec.questions}
+    probs = {"probabilities": [0.6, 0.3, 0.1]}
+    rows = [
+        ("R1", {"c1": "Ne", "c2": "Ne", "c3": "Ne"}),
+        ("R2", {"c1": "Ne", "c2": "Ne", "c3": "Ne"}),
+    ]
+    details = [dict.fromkeys(("c1", "c2", "c3"), probs)] * 2
+    with pytest.raises(HoldoutRefused) as refused:
+        arm_record(spec, codes, *broken(rows, details))
+    assert refused.value.reason == "holdout_answer_missing"
+
+
+def test_repeated_option_labels_are_refused_because_an_answer_could_not_name_its_code(
+    holdout_records: Any,
+) -> None:
+    bank = holdout_records.bank()
+    repeated = replace(bank.items[0], options=(Option("1", "Ano"), Option("2", "Ano")))
+    bank = replace(bank, items=(repeated, *bank.items[1:]))
+    with pytest.raises(HoldoutRefused) as refused:
+        validation_specification(bank, holdout_records.preregistration())
+    assert refused.value.reason == "holdout_option_labels_repeat"
+
+
+def test_the_samples_identity_is_who_was_drawn_and_moves_only_with_the_draw(
+    sampled_population: Any,
+) -> None:
+    population = sampled_population().population
+    first = draw_panel_sample(population, None, 200, 5)
+    assert sample_sha256(first) == sample_sha256(draw_panel_sample(population, None, 200, 5))
+    assert sample_sha256(first) != sample_sha256(draw_panel_sample(population, None, 200, 6))

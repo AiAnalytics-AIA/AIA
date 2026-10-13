@@ -323,6 +323,22 @@ forbid "among the executors, only the workbench composition builds fictional fie
 forbid "no deployment runs the workbench composition" \
   'aia_executors\.workbench|aia_executors/workbench' \
   deploy
+# A validation's persona arms (panel-grounded-respondents 7c, 7e4) show a respondent another
+# person's profile, or none at all. Only the validation's own executor builds them, so no
+# client research run can carry an arm or an exclusion.
+forbid "nothing in the core builds a validation arm but the holdout package" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$CORE"
+forbid "the API never builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$API"
+forbid "the worker never builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$WORKER"
+forbid "among the executors, only the validation executor builds a validation arm" \
+  '^\s*(from|import)\s+\S*holdout\.arms' \
+  "$EXECUTORS" \
+  validation.py
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the

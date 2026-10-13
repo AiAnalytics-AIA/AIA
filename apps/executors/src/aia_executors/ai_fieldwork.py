@@ -160,6 +160,8 @@ class Answered:
     calls: list[dict[str, Any]]
     #: The preflight's resolution; ``None`` when no plan had a block (every answer a fact).
     resolution: Any
+    #: Per respondent, in ``rows``' order: what each item's draw recorded (its probabilities).
+    details: list[dict[str, dict[str, Any]]]
 
 
 def fieldwork_seed(spec: ResearchSpecification) -> int:
@@ -185,6 +187,12 @@ class AIFieldwork:
         self._caller_factory = caller_factory
         self._population = population
 
+    @property
+    def population(self) -> PopulationLoader | None:
+        """The loader of a run's recorded population; ``None`` when this composition reads none
+        (``AIA_AI_POPULATION_PERSONAS_ENABLED`` off)."""
+        return self._population
+
     def answer_plans(
         self,
         plans: Sequence[RespondentPlan],
@@ -195,6 +203,7 @@ class AIFieldwork:
         response: ResponseProcessSpec,
         data_class: DataClass,
         lineage: DataLineage,
+        require_binding: str | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -202,6 +211,10 @@ class AIFieldwork:
         with a block, one request per respondent block, the draw, the call ledger and the
         progress. It depends only on its arguments, so a caller with plans of its own (the
         validation's arms, panel-grounded-respondents 7e) answers them exactly as a run does.
+
+        ``require_binding`` is the provider, model and route the answers must come from (a
+        validation's preregistered binding): the preflight's resolution is compared with it
+        before the first request, and a different one fails by name, nothing sent.
         """
         cfg = self._config
         items = {i.item_id: i for i in plan_items(spec)}
@@ -243,17 +256,35 @@ class AIFieldwork:
                         "source": "ai_runtime",
                     },
                 )
+            resolved = self.binding(resolution)
+            if require_binding is not None and resolved != require_binding:
+                # The respondent system is not the one asked for: a different system's answers
+                # would be scored as this one's. Permanent, never retried, nothing sent.
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={
+                        "message": (
+                            f"Model {resolved} není model {require_binding}, pro který byl běh "
+                            "zaregistrován. Nic nebylo odesláno."
+                        ),
+                        "reason": "model_binding_changed",
+                        "expected": require_binding,
+                        "resolved": resolved,
+                    },
+                )
 
         calls: list[dict[str, Any]] = []
         rows: list[tuple[Any, dict[str, Answer]]] = []
+        details: list[dict[str, dict[str, Any]]] = []
         for index, plan in enumerate(plans):
             context.checkpoint()
             answers: dict[str, Answer] = dict(plan.facts)
+            detail: dict[str, dict[str, Any]] = {}
             for block in plan.blocks:
                 result = caller.invoke(request_for(index, block.index, answers))
                 assert result.output is not None  # a structured agent's result has one
                 try:
-                    drawn, _ = interpret_block(
+                    drawn, meta = interpret_block(
                         block, result.output, plan.persona, seed=seed, response=response
                     )
                 except RespondentOutputInvalid as exc:
@@ -267,6 +298,7 @@ class AIFieldwork:
                         },
                     )
                 answers.update(drawn)
+                detail.update(meta)
                 calls.append(
                     {
                         "respondent_id": plan.persona.persona_id,
@@ -283,11 +315,21 @@ class AIFieldwork:
                     }
                 )
             rows.append((plan.persona, answers))
+            details.append(detail)
             done = index + 1
             if done % max(1, cfg.progress_every) == 0 or done == len(plans):
                 context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
 
-        return Answered(rows=rows, calls=calls, resolution=resolution)
+        return Answered(rows=rows, calls=calls, resolution=resolution, details=details)
+
+    def binding(self, resolution: Any) -> str:
+        """The provider, model and route a preflight resolved, as a respondent system names it."""
+        return f"{self._config.provider.value}/{resolution.model}/{resolution.route_id}"
+
+    def material(self, value: Any) -> Any:
+        """``value``'s classification under the operator's content-bound approvals; unknown is
+        ``None``, never a class (``ai_material.classify_material``)."""
+        return classify_input(value, self._config.material_approvals)
 
     def produce(
         self, spec: ResearchSpecification, step: StepInput, context: StepContext
@@ -448,6 +490,6 @@ class AIFieldwork:
         if population is not None and resolution is not None:
             system = respondent_system(
                 population,
-                model_binding=f"{cfg.provider.value}/{resolution.model}/{resolution.route_id}",
+                model_binding=self.binding(resolution),
             )
         return ProducedDataset(dataset=dataset, provenance=provenance, respondent_system=system)

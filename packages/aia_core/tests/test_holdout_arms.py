@@ -134,3 +134,66 @@ def test_the_shuffled_arm_needs_its_seed(world: Any) -> None:
     with pytest.raises(ArmRefused) as refused:
         arm_plans(personas, spec, Arm.S, exclusions={})
     assert refused.value.reason == "arm_seed_missing"
+
+
+def test_the_preregistered_blocks_are_asked_not_the_questionnaires_own_split(world: Any) -> None:
+    personas, spec = world
+    # The questionnaire's own split asks both items in one request; preregistered, two.
+    assert [len(b.items) for b in arm_plans(personas, spec, Arm.D, exclusions={})[0].blocks] == [2]
+    plans = arm_plans(
+        personas,
+        spec,
+        Arm.B,
+        exclusions={"rodina_q1": frozenset({"vzdelani"})},
+        blocks=[["rodina_q2"], ["rodina_q1"]],
+    )
+    for plan in plans:
+        assert [[i.item_id for i in b.items] for b in plan.blocks] == [["rodina_q2"], ["rodina_q1"]]
+        assert [b.index for b in plan.blocks] == [0, 1]
+    # Each block's own exclusion: education is left out where rodina_q1 is asked, not elsewhere.
+    shown = [personas.rows[p.persona.persona_id].get("vzdelani") for p in plans]
+    assert any(v is not None for v in shown)
+    for plan, education in zip(plans, shown, strict=True):
+        if education is not None:
+            assert str(education).lower() in plan.profiles[0].lower()
+            assert str(education).lower() not in plan.profiles[1].lower()
+
+
+@pytest.mark.parametrize(
+    "blocks", [[["rodina_q1"]], [["rodina_q1", "rodina_q2"], ["rodina_q2"]], [["rodina_q9"]]]
+)
+def test_blocks_that_are_not_exactly_the_questionnaire_are_refused(
+    world: Any, blocks: list[list[str]]
+) -> None:
+    personas, spec = world
+    with pytest.raises(ArmRefused) as refused:
+        arm_plans(personas, spec, Arm.D, exclusions={}, blocks=blocks)
+    assert refused.value.reason == "arm_blocks_mismatch"
+
+
+def test_an_item_code_answers_as_a_fact_is_refused_when_blocks_are_preregistered(
+    world: Any,
+) -> None:
+    personas, _ = world
+    spec, problems = compile_design(
+        {
+            **DESIGN,
+            "sections": [
+                {
+                    "type": "questions",
+                    "questions": [
+                        {
+                            "id": "pohlavi_q",
+                            "text": "Jaké je vaše pohlaví?",
+                            "typ": "vyber",
+                            "kategorie": ["Muž", "Žena"],
+                        }
+                    ],
+                }
+            ],
+        }
+    )
+    assert spec is not None, problems
+    with pytest.raises(ArmRefused) as refused:
+        arm_plans(personas, spec, Arm.D, exclusions={}, blocks=[["pohlavi_q"]])
+    assert refused.value.reason == "arm_item_is_a_fact"

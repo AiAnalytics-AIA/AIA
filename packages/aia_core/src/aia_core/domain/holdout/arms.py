@@ -20,6 +20,11 @@ and does not change between arms. ``S`` therefore isolates the profile text: the
 process with somebody else's description.
 
 ``D`` with no exclusion is today's ``PanelPersonas.plan``, byte for byte; a test holds it so.
+
+A confirmation run asks the preregistered blocks (``blocks``), not the questionnaire's own split:
+``split_blocks`` fills each request to eight items, so two short domain blocks would become one
+request whose exclusion is neither block's. A plan whose items code would answer as facts is
+refused here too, since a held-out item answered by code would score the code.
 Nothing on a client run's path takes an arm or an exclusion: ``panel_plans`` is untouched, and
 only a validation run builds plans here.
 
@@ -112,6 +117,21 @@ def _profile(
     return persona_text(row, topics, grounded_text(row, topics, catalog, personas.labels))
 
 
+def _reblocked(base: RespondentPlan, blocks: Sequence[Sequence[str]]) -> tuple[Block, ...]:
+    if base.facts:
+        raise ArmRefused(
+            f"code answers {sorted(base.facts)} as facts; a held-out item is the respondent's",
+            reason="arm_item_is_a_fact",
+        )
+    items = {item.item_id: item for block in base.blocks for item in block.items}
+    wanted = [item for block in blocks for item in block]
+    if sorted(wanted) != sorted(items) or len(set(wanted)) != len(wanted):
+        raise ArmRefused(
+            "the blocks are not exactly the questionnaire's items", reason="arm_blocks_mismatch"
+        )
+    return tuple(Block(index, tuple(items[i] for i in block)) for index, block in enumerate(blocks))
+
+
 def arm_plans(
     personas: PanelPersonas,
     spec: ResearchSpecification,
@@ -119,9 +139,11 @@ def arm_plans(
     *,
     exclusions: Mapping[str, frozenset[str]],
     shuffle_seed: int | None = None,
+    blocks: Sequence[Sequence[str]] | None = None,
 ) -> tuple[RespondentPlan, ...]:
     """Every respondent's plan under ``arm``. ``exclusions`` maps an item id to the fields its
-    respondents are not given (a block's is the union over its items); ``S`` needs a seed."""
+    respondents are not given (a block's is the union over its items); ``S`` needs a seed.
+    ``blocks``, when given, are the requests asked, each a list of item ids, in order."""
     if arm is Arm.S and shuffle_seed is None:
         raise ArmRefused("the shuffled arm needs its seed", reason="arm_seed_missing")
     shown = (
@@ -132,16 +154,17 @@ def arm_plans(
     plans = []
     for persona in personas.personas:
         base = plan_respondent(spec, persona)
+        asked = base.blocks if blocks is None else _reblocked(base, blocks)
         source = shown[persona.persona_id] if shown is not None else persona.persona_id
         profile_arm = Arm.D if arm is Arm.S else arm
         plans.append(
             RespondentPlan(
                 persona=persona,
                 facts=base.facts,
-                blocks=base.blocks,
+                blocks=asked,
                 profiles=tuple(
                     _profile(personas, source, profile_arm, block, _excluded(block, exclusions))
-                    for block in base.blocks
+                    for block in asked
                 ),
             )
         )
