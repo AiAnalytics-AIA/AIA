@@ -20,7 +20,12 @@ function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
 }
 
-export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false) {
+/**
+ * `adviceInWorkspace`: advice opens in the workspace's AI panel. `proposalsInWorkspace`:
+ * a design proposal is reviewed inline at the top of the stage (ProposalReview)
+ * instead of the modal dialog; the decision and what it does are the same.
+ */
+export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false) {
   const [recent, setRecent] = useState<ResearchAgentJob[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -153,5 +158,6 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
 
   return { run, recent, notice, busy, activeAction, open, refresh, continueAdvice,
     adviceReview: adviceInWorkspace && review?.advice ? review : null,
-    dialog: review && !(adviceInWorkspace && review.advice) ? <AgentProposalDialog result={review.result} advice={review.advice} onDecision={review.decide} /> : null };
+    proposalReview: proposalsInWorkspace && review && !review.advice ? review : null,
+    dialog: review && !(adviceInWorkspace && review.advice) && !(proposalsInWorkspace && !review.advice) ? <AgentProposalDialog result={review.result} advice={review.advice} onDecision={review.decide} /> : null };
 }

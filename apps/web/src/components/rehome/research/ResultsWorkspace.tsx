@@ -8,9 +8,11 @@ import { phaseLabel } from "@/lib/research-execution";
 export type ResultPanel = { id: string; label: string; description: string; content: ReactNode };
 
 /** Views of the same frozen run. Hidden panels stay mounted so map cameras and review selections survive. */
-export function ResultsWorkspace({ run, panels, progressHref, notice }: {
+export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
   /** The run's progress page; null where the page has none to link to (project memory). */
   run: ResearchRun; panels: ResultPanel[]; progressHref: string | null; notice: ReactNode;
+  /** What the study ends in, above everything else (the complete report). */
+  lead?: ReactNode;
 }) {
   const [active, setActive] = useState("overview");
   const prefix = useId();
@@ -44,6 +46,8 @@ export function ResultsWorkspace({ run, panels, progressHref, notice }: {
     document.getElementById(`${prefix}-tab-${keys[next]}`)?.focus();
   };
   return <div className="flex min-w-0 max-w-6xl flex-col gap-5">
+    {notice}
+    {lead}
     <section aria-label="Vybraný běh výzkumu" className="rounded-md border border-border bg-surface-raised p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-xs font-semibold uppercase tracking-wide text-signal">Výsledky studie</p>
@@ -69,7 +73,6 @@ export function ResultsWorkspace({ run, panels, progressHref, notice }: {
       ) : null}
       <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace a původ běhu</summary><p className="mt-2 break-all">{run.run_id} · {run.design_revision_id}</p></details>
     </section>
-    {notice}
     <div role="tablist" aria-label="Oddíly výsledků" className="flex gap-1 overflow-x-auto border-b border-border pb-1">
       {[{ id: "overview", label: "Přehled" }, ...panels].map((panel, index) => <button key={panel.id} type="button"
         id={`${prefix}-tab-${panel.id}`} role="tab" aria-selected={active === panel.id} aria-controls={`${prefix}-panel-${panel.id}`}

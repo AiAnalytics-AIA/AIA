@@ -64,14 +64,12 @@ describe("ResearchScreen", () => {
     expect(await screen.findByText(t("research.notInAia"))).toBeTruthy();
     expect(screen.queryByRole("link", { name: /klasick/i })).toBeNull();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("8. Ověření & kontext");
-    // The compact stage header is one row: where you are and the save state; the title opens the work.
-    const header = document.querySelector("[data-compact-header]")!;
-    expect(header.querySelector("h1")).toBeNull();
-    expect(within(header as HTMLElement).getByRole("navigation", { name: "Kde jste" })).toBeTruthy();
+    expect(screen.getByText(t("aia.kind.RESEARCH"))).toBeTruthy(); // not a rail step: no step counter
     const rail = screen.getByRole("navigation", { name: "Fáze výzkumu" });
     const steps = within(rail).getAllByRole("link");
+    // Průběh is a stage of its own on the track (research-lane-redesign).
     expect(steps.map((a) => a.getAttribute("href"))).toEqual(
-      (["brief", "plan", "questionnaire", "audience", "persona", "run", "results"] as const).map((s) => stagePath(s)),
+      (["brief", "plan", "questionnaire", "audience", "persona", "run", "progress", "results"] as const).map((s) => stagePath(s)),
     );
     expect(steps[4].getAttribute("href")).toBe("/app/clients/CLI-1/research/STU-1/dimensions");
     expect(steps.some((a) => a.getAttribute("aria-current") === "step")).toBe(false);
@@ -146,7 +144,7 @@ describe("ResearchScreen", () => {
     await screen.findByText("Uloženo");
     await screen.findByRole("list", { name: t("research.exec.steps.preflight") });
     rerender(page("results"));
-    expect(await screen.findByRole("heading", { name: "7. Výsledky" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 1, name: "Výsledky" })).toBeTruthy();
     expect(loads()).toHaveLength(1);
   });
 
@@ -158,13 +156,11 @@ describe("ResearchScreen", () => {
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Výzkum A", "Dotazník"]);
     expect(within(crumbs[1]).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-1");
     expect(within(crumbs[3]).getByRole("link").getAttribute("href")).toBe(stagePath("brief"));
-    // The stage rail is the study's own; the global navigation stays the four AIA destinations,
-    // under the client the study belongs to (Studio v3's sidebar card).
-    const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.textContent);
-    expect(global).toEqual(["AI AnalyticsResearch Studio", "Změnit klienta ›", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
-    expect(screen.getByText("Klient A", { selector: "nav span" })).toBeTruthy();
-    // The way back to the client is its breadcrumb; the header repeats it nowhere else.
-    expect(screen.queryByRole("link", { name: /Zpět na klienta/ })).toBeNull();
+    // Inside a study the global navigation is icons only: the four AIA destinations, each named
+    // for assistive technology (research-lane-redesign); the client is in the breadcrumbs.
+    const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.getAttribute("aria-label"));
+    expect(global).toEqual(["AI Analytics", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
+    expect(screen.getByRole("link", { name: /Zpět na klienta/ }).getAttribute("href")).toBe("/app/clients/CLI-1");
   });
 
   it("saves a new study's first change as revision one, and the next one from it", async () => {
@@ -222,16 +218,20 @@ describe("AI pomoc (Studio v3)", () => {
     expect(offered("verify")).toEqual(["answer_memory"]);
   });
 
-  it("keeps the header compact and opens stage-specific help without starting an AI job", async () => {
+  it("places the same AI actions in the column beside the stage, with a prefill-only suggestion", async () => {
     api(() => content());
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await screen.findByText("Uloženo");
     const bar = screen.getByRole("region", { name: t("research.aiHelpLabel") });
-    expect(bar.closest("header")).not.toBeNull();
-    expect(within(bar).getAllByRole("button")).toHaveLength(1);
-    expect(within(bar).queryByRole("button", { name: t("research.aiCritique") })).toBeNull();
-    fireEvent.click(within(bar).getByRole("button", { name: t("research.aiHelp") }));
-    fireEvent.click(screen.getByRole("button", { name: /Začít otázkou: Které výzkumné otázky/ }));
+    // Beside the work, in the inspector, not in the page header (research-lane-redesign).
+    expect(bar.closest("[data-inspector]")).not.toBeNull();
+    const buttons = within(bar).getAllByRole("button").filter((b) => b.hasAttribute("data-ai-action"));
+    expect(buttons.map((b) => b.textContent)).toEqual([t("research.aiCritique"), t("research.aiCopilot"), t("research.aiMemory")]);
+    for (const b of buttons) {
+      expect(b.getAttribute("data-ai-action")).toBe("true");
+      expect(b.getAttribute("title")).toBe(t("research.aiActionTitle"));
+    }
+    fireEvent.click(within(bar).getByRole("button", { name: /Které výzkumné otázky/ }));
     expect((screen.getByRole("textbox", { name: "Co chcete zjistit?" }) as HTMLTextAreaElement).value).toBe("Které výzkumné otázky potřebují zpřesnit, aby podpořily rozhodnutí?");
     expect(screen.getByRole("complementary", { name: "Pomoc s návrhem" })).toBeTruthy();
   });

@@ -65,14 +65,16 @@ import { withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
+import { useFrame } from "./frame-hook";
+import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
-import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
 import { StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
+import { CompleteReport } from "./CompleteReport";
 
 const POLL_MS = 2000;
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -150,18 +152,6 @@ function PopulationNote({ run }: { run: ResearchRun }) {
   ) : null;
 }
 
-/**
- * The study these views are in: the research session's frame on a stage, the frame alone where
- * there is no session (project memory's read-only page, plans/project-memory-reuse.md M2a). The
- * result views below read nothing else, so they draw a run outside a study's working content.
- */
-function useFrame(): StudyFrame {
-  const session = useContext(ResearchContext);
-  const own = useStudyFrame();
-  const frame = session?.frame ?? own;
-  if (!frame) throw new Error("a research view outside a study frame");
-  return frame;
-}
 
 // ---------------------------------------------------------------- Run --------
 
@@ -357,6 +347,9 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
   );
 }
 
+/** Failures first, then warnings: what stops the run is read before what passed. */
+const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
+
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
   const frame = useFrame();
@@ -474,10 +467,10 @@ export function RunStep() {
       {prepared.kind === "none" ? <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card> : null}
       {prepared.kind === "ready" ? (
         <>
-          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
+          {/* What stops the run first, then what runs (research-lane-redesign). */}
           <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
-              {prepared.readiness.checks.map((c) => (
+              {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
                   <Chip tone={c.status === "FAIL" ? "fault" : c.status === "WARN" ? "you" : "done"}>{c.status}</Chip>
                   <span className="flex-1">{c.message}</span>
@@ -491,6 +484,7 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
@@ -702,88 +696,19 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
-export function ProgressStep() {
+/** The run's state and what a person can do with it, in the inspector beside its steps. */
+function ProgressActions({ run, act, busy, refresh, actionError }: {
+  run: ResearchRun; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean; refresh: () => void; actionError: string | null;
+}) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
-  const [run, refresh, setRun, error] = useRun();
-  const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
-  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
-  const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
-  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
-
-  const act = useCallback(
-    async (fn: () => Promise<ResearchRun>) => {
-      setBusy(true);
-      setActionError(null);
-      try {
-        setRun(await fn());
-      } catch (e) {
-        setActionError(message(e));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [setRun],
-  );
-
-  if (run === undefined && error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
-  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
-  if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
-  const parked = parkedForRuntime(run);
-  const failed = run.steps.find((s) => s.status === "FAILED");
   return (
-    <div className="flex max-w-3xl flex-col gap-4">
-      <OriginBanners run={run} />
-      <PopulationNote run={run} />
-      <Card>
-        <div className="flex flex-wrap items-center gap-3">
-          <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
-          <span className="text-sm">{tv("research.exec.revision", { revision: run.design_revision })}</span>
-          <span className="text-sm text-ink-muted">{tv("research.exec.startedAt", { when: when(run.created_at) })}</span>
-          {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
-          {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
-        </div>
-        {parked ? (
-          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
-            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
-          </p>
-        ) : null}
-        {failed ? (
-          <p role="alert" className="mt-3 text-sm text-status-fault">
-            {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
-          </p>
-        ) : null}
-        {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
-      </Card>
-      <Card title={t("aia.stages.progress")}>
-        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {[...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
-            <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
-                <span className="font-medium">{stepLabel(s.node_key)}</span>
-                {stepOriginKind(s) ? (
-                  <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
-                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
-                  </span>
-                ) : null}
-              </div>
-              <span className="text-xs text-ink-muted">
-                {s.started_at ? tv("research.exec.startedAt", { when: when(s.started_at) }) : null}
-                {s.finished_at ? ` · ${tv("research.exec.finishedAt", { when: when(s.finished_at) })}` : null}
-                {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
-              </span>
-              {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
-              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
-              {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
-                <BudgetLift run={run} step={s} act={act} busy={busy} />
-              ) : null}
-            </li>
-          ))}
-        </ol>
-      </Card>
-      <div className="flex flex-wrap items-center gap-3">
+    <section aria-labelledby="run-actions" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
+      <h2 id="run-actions" className="text-sm font-semibold">{tv("research.exec.revision", { revision: run.design_revision })}</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+        <dt className="text-ink-muted">{t("research.exec.runCost")}</dt><dd className="font-mono">{run.actual_cost_usd == null ? t("research.exec.runCostUnknown") : `${run.actual_cost_usd.toFixed(2)} USD`}</dd>
+      </dl>
+      <div className="flex flex-wrap items-center gap-2">
         {run.phase === "COMPLETED" ? (
           <a className="text-sm underline" href={`${stepHref("results")}?run=${encodeURIComponent(run.run_id)}`}>{t("research.exec.toResults")}</a>
         ) : null}
@@ -822,6 +747,103 @@ export function ProgressStep() {
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
       </div>
       {actionError ? <p role="alert" className="text-sm text-status-fault">{actionError}</p> : null}
+    </section>
+  );
+}
+
+export function ProgressStep() {
+  const frame = useFrame();
+  const [run, refresh, setRun, error] = useRun();
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
+
+  const act = useCallback(
+    async (fn: () => Promise<ResearchRun>) => {
+      setBusy(true);
+      setActionError(null);
+      try {
+        setRun(await fn());
+      } catch (e) {
+        setActionError(message(e));
+      } finally {
+        setBusy(false);
+      }
+    },
+    [setRun],
+  );
+
+  if (run === undefined && error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
+  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
+  if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
+  const parked = parkedForRuntime(run);
+  const failed = run.steps.find((s) => s.status === "FAILED");
+  const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  const finished = listed.filter((s) => s.status === "SUCCEEDED" || s.status === "SKIPPED").length;
+  return (
+    <div className="flex max-w-[82.5rem] flex-col gap-4">
+      <InspectorSlot>
+        <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} />
+      </InspectorSlot>
+      <OriginBanners run={run} />
+      <PopulationNote run={run} />
+      <Card>
+        <div className="flex flex-wrap items-center gap-3">
+          <Chip tone={phaseTone(run.phase)}>{phaseLabel(run.phase)}</Chip>
+          <span className="text-sm">{tv("research.exec.revision", { revision: run.design_revision })}</span>
+          <span className="text-sm text-ink-muted">{tv("research.exec.startedAt", { when: when(run.created_at) })}</span>
+          {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
+          {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
+        </div>
+        {listed.length ? (
+          <div className="mt-3 flex items-center gap-3">
+            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
+              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
+            </span>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
+          </div>
+        ) : null}
+        {parked ? (
+          <p role="status" className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+            {parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}
+          </p>
+        ) : null}
+        {failed ? (
+          <p role="alert" className="mt-3 text-sm text-status-fault">
+            {tv("research.exec.failed", { step: stepLabel(failed.node_key) })} {failed.error_message ?? ""}
+          </p>
+        ) : null}
+        {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
+      </Card>
+      <Card title={t("aia.stages.progress")}>
+        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
+          {listed.map((s) => (
+            <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
+                <span className="font-medium">{stepLabel(s.node_key)}</span>
+                {stepOriginKind(s) ? (
+                  <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
+                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
+                  </span>
+                ) : null}
+              </div>
+              <span className="text-xs text-ink-muted">
+                {s.started_at ? tv("research.exec.startedAt", { when: when(s.started_at) }) : null}
+                {s.finished_at ? ` · ${tv("research.exec.finishedAt", { when: when(s.finished_at) })}` : null}
+                {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
+              </span>
+              {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
+              {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
+                <BudgetLift run={run} step={s} act={act} busy={busy} />
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </Card>
     </div>
   );
 }
@@ -933,7 +955,8 @@ export function ResultsStep() {
  */
 export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
   const frame = useFrame();
-  const assistance = useContext(ResearchContext)?.askAssistance;
+  const session = useContext(ResearchContext);
+  const assistance = session?.askAssistance;
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -961,6 +984,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   </section>;
   return <ResultsWorkspace run={run} progressHref={progressHref}
     notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
+    lead={session ? <CompleteReport run={run} /> : null}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>

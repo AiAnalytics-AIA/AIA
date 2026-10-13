@@ -16,13 +16,15 @@ import { type ReactNode, createContext, useCallback, useContext, useEffect, useM
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
 import type { Template } from "@/research/model";
-import { RAIL_STEPS, type StepKey, stepEyebrow } from "@/research/steps";
-import { ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
+import { RAIL_STEPS, type StepKey } from "@/research/steps";
+import { type ResearchState, ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
 import { type Ask, AskDialog, Button, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
-import { ResearchRail } from "./ResearchRail";
+import { StageTrack, TRACK_STEPS } from "./StageTrack";
+import { Blockers, InspectorProvider } from "./Inspector";
+import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
@@ -98,9 +100,13 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-/** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its rail. */
-function StageChrome({ frame, step, status, help, children }: { frame: StudyFrame; step: StepKey; status?: ReactNode; help?: ReactNode; children: ReactNode }) {
-  const eyebrow = stepEyebrow(step);
+/** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
+function StageChrome({ frame, step, state, status, help, children }: {
+  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode; children: ReactNode;
+}) {
+  const onTrack = TRACK_STEPS.includes(step);
+  // The track carries the order: a stage on it is named without its number.
+  const title = t(`research.steps.${step}.0`);
   return (
     <AppShell
       crumbs={[
@@ -110,29 +116,14 @@ function StageChrome({ frame, step, status, help, children }: { frame: StudyFram
         { label: frame.studyName, href: frame.stepHref("brief") },
         { label: t(`aia.stages.${step}`) },
       ]}
-      title={t(`research.steps.${step}.0`)}
+      title={onTrack ? title.replace(/^\d+\.\s*/, "") : title}
       sub={t(`research.steps.${step}.1`)}
       client={{ id: frame.clientId, name: frame.clientName }}
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
-      eyebrow={
-        eyebrow.total ? (
-          <>
-            {eyebrow.text}
-            <span aria-hidden="true" className="inline-flex gap-0.5">
-              {Array.from({ length: eyebrow.total }, (_, i) => (
-                <i key={i} className={`block h-0.5 w-4 ${i < eyebrow.done ? "bg-signal" : "bg-border"}`} />
-              ))}
-            </span>
-          </>
-        ) : (
-          t("aia.kind.RESEARCH")
-        )
-      }
+      eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
       action={help}
-      alignActionStart
-      compact
-      aside={<ResearchRail stepHref={frame.stepHref} current={step} studyName={frame.studyName} />}
+      track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
@@ -208,7 +199,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const agents = useResearchAgents(frame.studyId, store, setJob, true);
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -252,10 +243,22 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   return (
     <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, askAssistance }}>
-      <StageChrome frame={frame} step={step} help={card} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
         <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
         {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
-        <div data-research-workspace className={expanded ? "grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]" : "min-w-0"}><div className="min-w-0 [&_button]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11">{Screen ? <Screen /> : <StepPlaceholder step={step} />}</div>{panel}</div>
+        <InspectorProvider>{(column) => (
+          <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+            <div className="flex min-w-0 flex-col gap-4">
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} /> : null}
+              {Screen ? <Screen /> : <StepPlaceholder step={step} />}
+            </div>
+            {column(<>
+              {expanded ? panel : card}
+              {TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results" ? <Blockers state={state} stepHref={stepHref} /> : null}
+            </>)}
+            {expanded ? null : panel}
+          </div>
+        )}</InspectorProvider>
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
       {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
         <div className="flex flex-wrap gap-2">

@@ -14,51 +14,52 @@ import { Icon } from "./icons";
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 /**
- * One numbered section of a step: a card whose body lines up with its title.
- * Required sections number in the signal; optional ones say so and stay quiet;
- * `done` marks a section already answered.
+ * One section of a step: a card whose header carries the title, its help under it,
+ * and anything the section acts with on the right (a count, its own AI action).
+ * Optional sections say so; `done` marks a section already answered. The track
+ * above the page carries the order, so sections are not numbered
+ * (research-lane-redesign); `n` stays for callers and is not drawn.
  */
 export function StepSection({
-  id, n, title, hint, optional = false, done = false, lead = false, plain = false, aside, children,
+  id, title, hint, optional = false, done = false, lead = false, aside, children,
 }: {
   id?: string;
-  n: number;
+  n?: number;
   title: string;
   hint?: ReactNode;
   optional?: boolean;
   done?: boolean;
   /** The step's lead question: a larger title. */
   lead?: boolean;
-  /** A section of a page that is already one surface: no card of its own. */
-  plain?: boolean;
   /** Something at the right of the header (a count, an action). */
   aside?: ReactNode;
   children?: ReactNode;
 }) {
   const headingId = useId();
-  const mark = done ? "bg-status-done/14 text-status-done" : optional ? "bg-surface-sunken text-ink-muted" : "bg-signal-wash text-signal";
   return (
-    <section id={id} aria-labelledby={headingId} className={plain ? "scroll-mt-20 py-5" : "scroll-mt-20 rounded-card border border-border bg-surface-raised p-5"}>
-      <div className="flex flex-wrap items-start gap-3">
-        <span aria-hidden="true" className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold ${mark}`}>
-          {done ? <Icon name="done" size={12} /> : n}
-        </span>
-        <div className="min-w-0 flex-1 basis-40">
-          <h2 id={headingId} className={`font-semibold ${lead ? "text-lg leading-[26px]" : "text-base leading-6"}`}>
+    <section id={id} aria-labelledby={headingId} className="scroll-mt-40 rounded-card border border-border bg-surface-raised">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 ${children ? "border-b border-border" : ""}`}>
+        {done ? (
+          <span aria-hidden="true" className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full bg-status-done text-surface-raised">
+            <Icon name="done" size={10} />
+          </span>
+        ) : null}
+        <div className="min-w-0 flex-1 basis-48">
+          <h2 id={headingId} className={`font-semibold ${lead ? "text-base leading-6" : "text-[15px] leading-[22px]"}`}>
             {title}
-            {optional ? <span className="text-[13px] font-normal text-ink-faint"> · {t("research.step.optional")}</span> : null}
+            {optional ? <span className="text-xs font-normal text-ink-faint"> · {t("research.step.optional")}</span> : null}
           </h2>
-          {hint ? <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{hint}</p> : null}
+          {hint ? <p className="text-xs leading-4 text-ink-muted">{hint}</p> : null}
         </div>
         {aside ? <div className="max-w-full">{aside}</div> : null}
       </div>
-      {children ? <div className="mt-3.5 sm:pl-9">{children}</div> : null}
+      {children ? <div className="px-4 pb-4 pt-3.5">{children}</div> : null}
     </section>
   );
 }
 
 /**
- * The step's action dock: the way back on the left, why the step is or is not
+ * The step's dock, in the page's flow (never over an input): the way back on the left, why the step is or is not
  * ready in the middle, the one primary action on the right. It replaces each
  * step's bottom row; the action keeps the conditions it had there.
  */
@@ -70,7 +71,7 @@ export function ActionDock({ back, note, ready = true, children }: {
   children: ReactNode;
 }) {
   return (
-    <div className="sticky bottom-4 z-[6] flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5 shadow-[var(--shadow-overlay)] lg:static lg:mt-6 lg:shadow-none">
+    <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
       {back ? (
         <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${FOCUS}`}>
           <Icon name="back" size={14} />
