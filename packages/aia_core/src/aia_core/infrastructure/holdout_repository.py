@@ -15,6 +15,10 @@ It also keeps the Study's **confirmation**: the run that confirms the preregiste
 recorded once when it starts (7e3). A respondent system is confirmed once in an organization,
 and a database constraint holds that, so two Studies racing to confirm one system cannot both
 start.
+
+And it keeps the Study's **validation** (7f): the verdict its confirmation run computed, as a
+person recorded it, once. A recorded ``PASS`` is the respondent system's ``HOLDOUT_VALIDATED``
+state for the organization, read by :meth:`HoldoutRepository.current_validation`.
 """
 
 from __future__ import annotations
@@ -27,13 +31,58 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..domain.evidence.validation import ValidationState, ValidationStatus, ValidationTruth
 from ..domain.holdout.bank import canonical_json
 from ..domain.holdout.preregistration import HoldoutRefused, Preregistration, read_preregistration
 from ..domain.holdout.scoring import SCORING_VERSION
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
-from .tables import HoldoutConfirmationRow, HoldoutPreregistrationRow, StudyRow, as_utc
+from .tables import (
+    HoldoutConfirmationRow,
+    HoldoutPreregistrationRow,
+    RespondentValidationRow,
+    StudyRow,
+    as_utc,
+)
 
-__all__ = ["HoldoutRepository", "StoredConfirmation", "StoredPreregistration"]
+__all__ = [
+    "HoldoutRepository",
+    "StoredConfirmation",
+    "StoredPreregistration",
+    "StoredValidation",
+]
+
+_STATUS_OF: dict[str, ValidationStatus] = {
+    "PASS": ValidationStatus.HOLDOUT_VALIDATED,
+    "FAIL": ValidationStatus.NOT_VALIDATED,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class StoredValidation:
+    """A Study's recorded validation: the verdict copied from its run, who recorded it, when."""
+
+    study_id: str
+    run_id: str
+    respondent_system_fingerprint: str
+    verdict: str
+    truth: ValidationTruth
+    preregistration_sha256: str
+    verdict_artifact_id: str
+    verdict_sha256: str
+    recorded_by: str
+    recorded_at: datetime
+
+    @property
+    def state(self) -> ValidationState:
+        """The system's validation state this record is: its status, system and evidence."""
+        return ValidationState(
+            status=_STATUS_OF[self.verdict],
+            system_fingerprint=self.respondent_system_fingerprint,
+            validated_at=self.recorded_at,
+            truth=self.truth,
+            preregistration_sha256=self.preregistration_sha256,
+            verdict_sha256=self.verdict_sha256,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -216,6 +265,92 @@ class HoldoutRepository:
             ) from None
         return _confirmation(row)
 
+    # -- the validation ---------------------------------------------------------
+
+    def validation(self) -> StoredValidation | None:
+        """The Study's recorded validation, or ``None`` before a person records it."""
+        self._scope.require(Permission.VIEW_STUDY)
+        s = self._scope
+        row = self._session.scalar(
+            select(RespondentValidationRow).where(
+                RespondentValidationRow.study_id == s.study_id,
+                RespondentValidationRow.client_id == s.client_id,
+                RespondentValidationRow.organization_id == s.organization_id,
+            )
+        )
+        return _validation(row) if row is not None else None
+
+    def record_validation(
+        self,
+        *,
+        verdict: str,
+        truth: ValidationTruth,
+        verdict_artifact_id: str,
+        verdict_sha256: str,
+    ) -> StoredValidation:
+        """Record, once, the verdict the Study's confirmation run computed.
+
+        The caller (:meth:`~aia_core.application.validation.ValidationRuns.record`) has read
+        ``verdict`` from the run's verdict artifact; nothing here chooses it. The run, the
+        system and the preregistration are the Study's confirmation's. Needs ``APPROVE_GATE``
+        on an open Study. A second record is refused (``holdout_validation_recorded``). The
+        caller commits.
+        """
+        s = self._scope
+        s.require(Permission.APPROVE_GATE)
+        s.require_open_study()
+        if verdict not in _STATUS_OF:
+            raise ValueError(f"a verdict is PASS or FAIL, not {verdict!r}")
+        confirmation = self.confirmation()
+        if confirmation is None:
+            raise HoldoutRefused(
+                "the Study has no confirmation run to record", reason="holdout_not_confirmed"
+            )
+        if self.validation() is not None:
+            raise HoldoutRefused(
+                "the Study's validation is already recorded", reason="holdout_validation_recorded"
+            )
+        row = RespondentValidationRow(
+            study_id=s.study_id,
+            organization_id=s.organization_id,
+            client_id=s.client_id,
+            run_id=confirmation.run_id,
+            respondent_system_fingerprint=confirmation.respondent_system_fingerprint,
+            verdict=verdict,
+            status=_STATUS_OF[verdict].value,
+            truth=truth.value,
+            preregistration_sha256=confirmation.preregistration_sha256,
+            verdict_artifact_id=verdict_artifact_id,
+            verdict_sha256=verdict_sha256,
+            recorded_by=s.actor_id,
+        )
+        try:
+            with self._session.begin_nested():
+                self._session.add(row)
+                self._session.flush()
+        except IntegrityError:
+            raise HoldoutRefused(
+                "the Study's validation is already recorded", reason="holdout_validation_recorded"
+            ) from None
+        return _validation(row)
+
+    def current_validation(self, respondent_system_fingerprint: str) -> ValidationState | None:
+        """The organization's recorded validation of this respondent system, or ``None``.
+
+        A system is confirmed once in an organization, so at most one Study holds it. Read by
+        any member: what it says is the system's state, not the validation Study's content.
+        """
+        s = self._scope
+        s.require(Permission.VIEW_STUDY)
+        row = self._session.scalar(
+            select(RespondentValidationRow).where(
+                RespondentValidationRow.organization_id == s.organization_id,
+                RespondentValidationRow.respondent_system_fingerprint
+                == respondent_system_fingerprint,
+            )
+        )
+        return _validation(row).state if row is not None else None
+
     @staticmethod
     def _to_domain(row: HoldoutPreregistrationRow) -> StoredPreregistration:
         content = bytes(row.content)
@@ -253,4 +388,19 @@ def _confirmation(row: HoldoutConfirmationRow) -> StoredConfirmation:
         preregistration_sha256=row.preregistration_sha256,
         started_by=row.started_by,
         started_at=as_utc(row.started_at),
+    )
+
+
+def _validation(row: RespondentValidationRow) -> StoredValidation:
+    return StoredValidation(
+        study_id=row.study_id,
+        run_id=row.run_id,
+        respondent_system_fingerprint=row.respondent_system_fingerprint,
+        verdict=row.verdict,
+        truth=ValidationTruth(row.truth),
+        preregistration_sha256=row.preregistration_sha256,
+        verdict_artifact_id=row.verdict_artifact_id,
+        verdict_sha256=row.verdict_sha256,
+        recorded_by=row.recorded_by,
+        recorded_at=as_utc(row.recorded_at),
     )

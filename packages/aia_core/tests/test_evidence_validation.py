@@ -53,6 +53,34 @@ def test_state_must_name_a_fingerprint() -> None:
         ValidationState(ValidationStatus.HOLDOUT_VALIDATED, "")
 
 
+def test_a_recorded_state_names_its_date_truth_and_both_hashes_or_none_of_them() -> None:
+    from datetime import UTC, datetime
+
+    from aia_core.domain.evidence.validation import ValidationTruth
+
+    when = datetime(2026, 10, 13, tzinfo=UTC)
+    evidence = {
+        "validated_at": when,
+        "truth": ValidationTruth.PANEL_HELD_OUT,
+        "preregistration_sha256": "a" * 64,
+        "verdict_sha256": "b" * 64,
+    }
+    recorded = ValidationState(ValidationStatus.HOLDOUT_VALIDATED, NOW, **evidence)
+    assert recorded.validated_at == when
+    with pytest.raises(ValueError, match="names its date"):
+        ValidationState(ValidationStatus.HOLDOUT_VALIDATED, NOW, validated_at=when)
+    with pytest.raises(ValueError, match="verdict_sha256"):
+        ValidationState(
+            ValidationStatus.HOLDOUT_VALIDATED, NOW, **{**evidence, "verdict_sha256": "x"}
+        )
+    with pytest.raises(ValueError, match="timezone-aware"):
+        ValidationState(
+            ValidationStatus.HOLDOUT_VALIDATED,
+            NOW,
+            **{**evidence, "validated_at": datetime(2026, 10, 13)},
+        )
+
+
 def test_status_holds_only_on_the_system_it_was_earned_on() -> None:
     state = ValidationState(ValidationStatus.HOLDOUT_VALIDATED, NOW)
     assert effective_validation_status(state, NOW) is ValidationStatus.HOLDOUT_VALIDATED

@@ -26,6 +26,15 @@ step that would pass it waits for a person (``AWAITING_BUDGET``), never cut part
 
 There is no retry of a confirmation run. Its steps retry on their own, and every request is
 journaled, so a retry never pays twice. A run that ends, pass or fail, is the result.
+
+:meth:`ValidationRuns.record` is the person's record of that result (7f1). It reads the verdict
+from the run's verdict artifact, hash-verified, and copies it: there is no verdict to choose and
+no override. It refuses a record without the person's attestation that they had not seen the
+confirmation items' results before the preregistration was fixed
+(``holdout_attestation_missing``), a Study with no confirmation run (``holdout_not_confirmed``),
+a run that has not completed (``holdout_run_not_complete``), and a verdict artifact that is not
+this run's, this preregistration's and this system's (``holdout_verdict_mismatch``). The record
+is kept once, beside its entry in the approval ledger.
 """
 
 from __future__ import annotations
@@ -36,9 +45,11 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from ..domain.evidence.validation import ValidationTruth
 from ..domain.holdout.bank import ItemBank, item_payload
 from ..domain.holdout.preregistration import HoldoutRefused, Preregistration
 from ..domain.holdout.run import (
+    SCORE_ARTIFACT,
     VALIDATION_PROJECT_OWNER,
     VALIDATION_WORKFLOW,
     arm_node_key,
@@ -55,8 +66,9 @@ from ..domain.pipeline import ProjectType
 from ..domain.population import CZ_LIVE, PopulationImportContract
 from ..domain.population.czech import CZ_SYNTHETIC_V17
 from ..domain.scope import Permission, StudyContext
+from ..domain.workflow import WorkflowRunStatus
 from ..infrastructure.artifact_repository import ArtifactRepository
-from ..infrastructure.holdout_repository import HoldoutRepository
+from ..infrastructure.holdout_repository import HoldoutRepository, StoredValidation
 from ..infrastructure.repositories import ProjectRepository
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
@@ -292,3 +304,78 @@ class ValidationRuns:
         if confirmation is None:
             return None
         return WorkflowRepository(self.session, self.scope).get_run(confirmation.run_id)
+
+    def record(self, *, store: ArtifactStore, attest_confirmation_unseen: bool) -> StoredValidation:
+        """Record the verdict the Study's confirmation run computed, once.
+
+        Needs ``APPROVE_GATE`` on an open Study. Asking again answers the stored record and
+        writes nothing. The caller commits.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        self.scope.require_open_study()
+        holdout = self._holdout()
+        recorded = holdout.validation()
+        if recorded is not None:
+            return recorded
+        if not attest_confirmation_unseen:
+            raise _refused(
+                "the person recording attests they had not seen the confirmation items' "
+                "results before the preregistration was fixed",
+                "holdout_attestation_missing",
+            )
+        confirmation = holdout.confirmation()
+        if confirmation is None:
+            raise _refused("the Study has no confirmation run", "holdout_not_confirmed")
+        workflows = WorkflowRepository(self.session, self.scope)
+        run = workflows.get_run(confirmation.run_id)
+        if run["status"] is not WorkflowRunStatus.COMPLETED:
+            raise _refused(
+                f"the confirmation run is {run['status']}, not completed",
+                "holdout_run_not_complete",
+            )
+        mismatch = _refused(
+            "the verdict is not this confirmation run's", "holdout_verdict_mismatch"
+        )
+        output = workflows.step_output(confirmation.run_id, "score") or {}
+        artifact_id = output.get("artifact_id")
+        if not isinstance(artifact_id, str):
+            raise mismatch
+        artifacts = validation_artifacts(self.session, self.scope, store)
+        artifact = artifacts.get(artifact_id)
+        if (
+            artifact.artifact_type != SCORE_ARTIFACT
+            or artifact.metadata.get("run_id") != confirmation.run_id
+        ):
+            raise mismatch
+        payload = artifacts.read_json(artifact_id)  # verified against the recorded hash
+        stored = holdout.preregistration()
+        document = payload.get("verdict") if isinstance(payload, dict) else None
+        if (
+            stored is None
+            or not isinstance(document, dict)
+            or payload.get("kind") != SCORE_ARTIFACT
+            or payload.get("preregistration_sha256") != confirmation.preregistration_sha256
+            or payload.get("respondent_system_fingerprint")
+            != confirmation.respondent_system_fingerprint
+            or document.get("scoring_version")
+            != stored.preregistration.document.get("scoring_version")
+            or document.get("verdict") not in ("PASS", "FAIL")
+            or document.get("verdict") != output.get("verdict")
+        ):
+            raise mismatch
+        verdict = str(document["verdict"])
+        validation = holdout.record_validation(
+            verdict=verdict,
+            truth=ValidationTruth.PANEL_HELD_OUT,
+            verdict_artifact_id=artifact_id,
+            verdict_sha256=artifact.sha256,
+        )
+        workflows.record_validation_verdict(
+            confirmation.run_id,
+            verdict=verdict,
+            artifact_id=artifact_id,
+            verdict_sha256=artifact.sha256,
+            preregistration_sha256=confirmation.preregistration_sha256,
+            respondent_system_fingerprint=confirmation.respondent_system_fingerprint,
+        )
+        return validation
