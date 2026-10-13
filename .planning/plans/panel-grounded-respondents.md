@@ -36,7 +36,7 @@ chunks:
   - "[x] 7a. Validation contract (plan before code): the claim, held-out truth, leakage, arms, metrics, P1-P8, money, recording"
   - "[x] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
   - "[x] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
-  - "[ ] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
+  - "[x] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
@@ -1442,8 +1442,8 @@ preregistration. They cannot change after it is pinned.
 | P1 | Mean `TVD_i` over items | <= 10 pp, **and** its 95 % bootstrap upper bound <= 12 pp | 18.6.6's 7.5 pp was MAE per category. For a typical 4-option item, MAE = TVD / 2, so 7.5 pp MAE is about 15 pp TVD. In general MAE = 2 TVD / k, so 7.5 pp MAE allows 3.75 k pp TVD: 10 pp TVD is stricter than 18.6.6 for every item of 3 or more options and looser only for a 2-option item (7.5). The upper bound stops a lucky mean from passing |
 | P2 | Worst domain's mean `TVD_i` | <= 15 pp | One domain the system cannot model must not hide in the average |
 | P3 | Share of items with `TVD_i` > 20 pp | <= 10 % | A client asks one question, not the average |
-| P4 | D beats **A** and D beats **S** on mean `TVD_i` | paired-bootstrap improvement > 0 at Holm-corrected α = 0.05 (one family, the two comparisons) | Without this, a pass could be recall (A) or no person-specific signal (S). Beating them is what "AI respondents drawn from the population" means |
-| P5 | D's mean Brier score vs **S** on core items | lower, Holm-corrected as in P4 (same family) | The person drives the answer, not just the aggregate |
+| P4 | D beats **A** on mean `TVD_i` | paired-bootstrap improvement > 0, Holm-corrected at family-wise α = 0.05 over the three comparisons of P4 and P5 | Without this, a pass could be recall: a model that knows the published marginal with no person at all |
+| P5 | D beats **S** on mean subgroup TVD **and** on the mean Brier score (core items) | lower for both, Holm-corrected as in P4 (same family) | The right person drives the answer. S is not compared on the whole-sample TVD: it shows a permutation of the same sample's personas, so its whole-sample marginal is D's but for the weights (7d finding) |
 | P6 | Mean subgroup TVD | <= 12.5 pp | Needed before any breakdown reaches a client |
 | P7 | Mean entropy gap | >= −0.25 bits | No mode collapse |
 | P8 | Replicate SD of mean TVD | <= 1.5 pp | Otherwise the run's own noise is the size of the effect |
@@ -1709,6 +1709,50 @@ Tests (`test_holdout_arms.py`, on `conftest.sampled_population`, 200 respondents
 The fixture's rows carry no catalog-signal columns, so D and C coincide there. That D adds the
 signals is held by the equality with `PanelPersonas.plan`, whose signal content 3d's EXACT
 fixtures pin.
+
+**7d landed.** The scoring code is in `domain/holdout/`, pure.
+
+- **`scoring.py`.** `item_metrics(truths, runs, respondents)` computes each item's metrics for
+  one arm, averaged over its replicates: `tvd`, `subgroup_tvd`, `brier` and `entropy_gap`.
+  - A replicate missing an answer is refused, never scored.
+  - `subgroup_tvd` counts only cells with at least 50 donors.
+  - `brier` is computed on person-level (core) items only.
+- **`verdict`.** It applies P1-P8 to D:
+  - P1's upper bound is the 95th percentile of the bootstrap mean.
+  - P4 and P5 are one Holm family of three one-sided paired-bootstrap tests:
+    `D_beats_A_tvd`, `D_beats_S_subgroup_tvd` and `D_beats_S_brier`.
+  - A criterion that cannot be evaluated fails.
+  - The B/C/D ladder is recorded (`signals_earn_place`) and decides nothing.
+  - `Verdict.document()` is what 7e stores.
+- **`baselines.py`.**
+  - `l0_predictions` predicts the item's weighted population marginal.
+  - `l1_predictions` predicts the respondent's sex x age group x education x region cell, with
+    every row of the respondent's own donor left out. A cell with fewer than 30 other donors
+    backs off through region, education, age group and sex to the whole population.
+  - `baseline_metrics` scores a baseline from its expected marginal.
+
+**Finding (7d, fixed here in the contract).** P4 as 7a wrote it compared D with S on the
+whole-sample TVD. S shows a permutation of the same sample's personas, so its whole-sample
+marginal equals the truth's but for the weights each respondent keeps. On the test world that is
+under 5 pp against a subgroup TVD more than three times larger. The comparison would have failed
+a perfect system, or passed a broken one, by noise.
+
+The fix: P4 compares D with A on TVD, and P5 compares D with S on subgroup TVD and the Brier
+score. The same Holm family now holds three tests at α 0.05. Nothing was preregistered yet, so
+nothing is moved after the fact.
+
+Tests:
+- `test_holdout_scoring.py`:
+  - `test_a_system_that_answers_as_the_people_did_passes_every_criterion`
+  - `test_a_system_that_knows_the_marginal_but_not_the_person_fails_p4`
+  - `test_a_system_that_always_gives_the_modal_answer_fails_p7`
+  - `test_a_criterion_that_cannot_be_evaluated_fails`
+  - `test_the_wrong_persons_answers_match_the_marginal_so_s_is_compared_on_people`
+  - `test_a_replicate_missing_an_answer_is_refused_never_scored`
+  - `test_holm_rejects_step_down_and_stops_at_the_first_failure`
+- `test_holdout_baselines.py`:
+  - `test_l1_predicts_the_cell_and_never_the_respondent_themselves`
+  - `test_a_small_cell_backs_off_to_a_coarser_one`
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
