@@ -682,15 +682,25 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
 
 function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; members: Part<Member[]> }) {
   const [query, setQuery] = useState("");
+  const [actor, setActor] = useState("");
+  const [event, setEvent] = useState("");
   if (audit === null) return <p className="text-sm text-ink-muted">{t(`${P}.audit.adminOnly`)}</p>;
   if (!audit.ok) return <Unavailable what={t(`${P}.groups.audit.title`)} message={audit.message} />;
   if (!audit.data.length) return <Empty>{t(`${P}.audit.none`)}</Empty>;
   const who = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   const person = (id: string | null) => (id ? (who.get(id) ?? id) : "—");
   const names: Record<string, string> = { MEMBER_ADDED: "Přidání nebo úprava člena", USER_DEACTIVATED: "Deaktivace uživatele", CLIENT_CREATED: "Založení klienta", CLIENT_STATUS_CHANGED: "Změna stavu klienta", STUDY_CREATED: "Založení studie", STUDY_STATUS_CHANGED: "Změna stavu studie", STUDY_BUDGET_CHANGED: "Změna rozpočtu studie", STUDY_SPEND_CONFIRM_CHANGED: "Změna potvrzení útraty", SELF_APPROVAL_CONFIGURED: "Nastavení samoschválení", AIA_SESSION: "Přihlášení do AIA", PROMPT_ACTIVATED: "Aktivace systémového promptu", PROMPT_VERSION_CREATED: "Nová verze promptu", DR_TEST_POLICY_APPROVED: "Schválení testovacích pravidel rešerše", DR_TEST_POLICY_PROPOSED: "Návrh testovacích pravidel rešerše", CLIENT_GRANT: "Záznam přístupu ke klientovi", SELF_APPROVAL_CHANGED: "Změna samoschválení" };
-  const visible = audit.data.filter((e) => `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  const actors = [...new Set(audit.data.map((entry) => entry.actor_id).filter((id): id is string => !!id))].sort((left, right) => person(left).localeCompare(person(right), "cs"));
+  const events = [...new Set(audit.data.map((entry) => entry.action))].sort((left, right) => (names[left] ?? left).localeCompare(names[right] ?? right, "cs"));
+  const visible = audit.data.filter((e) => (!actor || e.actor_id === actor) && (!event || e.action === event) && `${names[e.action] ?? e.action} ${person(e.actor_id)} ${person(e.subject_user_id)} ${e.study_id ?? e.client_id ?? ""} ${e.reason ?? ""}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
   return <div className="flex min-w-0 flex-col gap-3">
-    <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+    <p className="text-sm leading-6 text-ink-muted">Vyhledejte změnu podle osoby, typu události nebo důvodu. Záznamy jsou pouze ke čtení.</p>
+    <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_minmax(8rem,14rem)]">
+      <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+      <Select aria-label="Osoba v historii" value={actor} onChange={(e) => setActor(e.target.value)}><option value="">Všechny osoby</option>{actors.map((id) => <option key={id} value={id}>{person(id)}</option>)}</Select>
+      <Select aria-label="Typ události v historii" value={event} onChange={(e) => setEvent(e.target.value)}><option value="">Všechny události</option>{events.map((action) => <option key={action} value={action}>{names[action] ?? action.replaceAll("_", " ").toLocaleLowerCase("cs")}</option>)}</Select>
+    </div>
+    <p role="status" className="text-xs text-ink-muted">Zobrazeno {visible.length} z {audit.data.length} záznamů</p>
     {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.noSearchResults`)}</p> : null}
     <ol className="flex flex-col gap-2">{visible.map((e) => <li key={e.event_id} className="rounded-md border border-border bg-surface p-3 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-2"><strong>{names[e.action] ?? e.action.replaceAll("_", " ").toLocaleLowerCase("cs")}</strong><time dateTime={e.created_at ?? undefined} className="text-xs text-ink-muted">{e.created_at ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(e.created_at)) : "—"}</time></div>
@@ -708,8 +718,23 @@ function AuditPanel({ audit, members }: { audit: Part<AuditEntry[]> | null; memb
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "reference"] as const;
+export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "reference"] as const;
 export type TabId = (typeof TABS)[number];
+const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
+  { title: "Nastavení výzkumu", tabs: ["methodology", "prompts", "deep_research", "ai"] },
+  { title: "Tým a útrata", tabs: ["access", "studies"] },
+  { title: "Provoz", tabs: ["audit", "reference"] },
+];
+const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
+  methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
+  prompts: { scope: "Budoucí AI úlohy", owner: "Uložení nové instrukce a její aktivace jsou samostatné kroky" },
+  deep_research: { scope: "Celá organizace", owner: "Navržené hodnoty se uplatní až po schválení" },
+  ai: { scope: "Toto nasazení", owner: "Modely a připojení spravuje nasazení" },
+  access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
+  studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
+  audit: { scope: "Historie organizace", owner: "Záznamy jsou jen ke čtení" },
+  reference: { scope: "Toto nasazení a kód", owner: "Technické hodnoty a pevná pravidla zde nelze upravit" },
+};
 
 // Tabs that read their own route and are drawn on the first visit only.
 const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
@@ -820,7 +845,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
     );
   };
   return (
-    <div className="flex flex-col gap-4">
+    <div data-settings-workspace className="flex flex-col gap-4 [&_button]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
       <div className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">{t(`${P}.title`)}</h2>
         <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.intro`)}</p>
@@ -831,8 +856,10 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
         </ul></details>
       </div>
       <div className="grid min-w-0 gap-5 xl:grid-cols-[15rem_minmax(0,1fr)]">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="grid h-fit grid-cols-2 gap-1 rounded-md border border-border bg-surface-raised p-2 sm:grid-cols-4 xl:sticky xl:top-6 xl:grid-cols-1">
-        {TABS.map((tab) => (
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto rounded-md border border-border bg-surface-raised p-2 xl:sticky xl:top-6 xl:flex-col xl:overflow-visible">
+        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
+          <p className="hidden px-3 pt-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint xl:block">{group.title}</p>
+          {group.tabs.map((tab) => (
           <button
             key={tab}
             id={`tab-${tab}`}
@@ -843,15 +870,21 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`rounded-sm border px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`min-w-28 rounded-sm border px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
             <span className="block">{t(`${P}.tabs.${tab}`)}</span><span aria-hidden="true" className="mt-1 hidden text-xs font-normal leading-5 text-ink-muted xl:block">{TAB_GUIDE[tab].purpose}</span>
           </button>
-        ))}
+          ))}
+        </div>)}
       </div>
       <div className="min-w-0">{TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          <div className="rounded-md border border-signal-edge bg-signal-wash px-4 py-3"><p className="text-sm font-semibold">{TAB_GUIDE[tab].purpose}</p><p className="mt-1 text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p></div>
+          <header className="rounded-md border border-border bg-surface-raised px-4 py-4">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint">{TAB_GROUPS.find((group) => group.tabs.includes(tab))?.title}</p>
+            <h3 className="mt-1 text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h3>
+            <p className="mt-1 text-sm font-medium">{TAB_GUIDE[tab].purpose}</p><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p>
+            <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-3 text-xs"><div><dt className="font-semibold text-ink-muted">Rozsah</dt><dd>{TAB_FACTS[tab].scope}</dd></div><div><dt className="font-semibold text-ink-muted">Správa změn</dt><dd>{TAB_FACTS[tab].owner}</dd></div></dl>
+          </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
       ))}</div></div>

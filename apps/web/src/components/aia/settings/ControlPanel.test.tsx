@@ -449,13 +449,16 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("splits the page by what a person came to do, with AI first", async () => {
+  it("groups all eight settings tabs by purpose while retaining the AI landing panel", async () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
     expect(screen.getAllByRole("tab").map((t) => t.getAttribute("aria-label"))).toEqual([
-      "AI běh", "Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
+      "Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference",
     ]);
+    expect(screen.getByRole("group", { name: "Nastavení výzkumu" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Tým a útrata" })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Provoz" })).toBeTruthy();
     expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
     expect(panelOf("AI běh").hidden).toBe(false);
     for (const other of ["Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
@@ -508,14 +511,14 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await screen.findByRole("tablist");
     fireEvent.keyDown(tab("AI běh"), { key: "ArrowRight" });
-    expect(tab("Systémové prompty").getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tab("Systémové prompty"), { key: "ArrowLeft" });
+    expect(tab("Přístup a schvalování").getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(tab("Přístup a schvalování"), { key: "ArrowLeft" });
     fireEvent.keyDown(tab("AI běh"), { key: "ArrowLeft" });
-    expect(tab("Reference").getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tab("Reference"), { key: "Home" });
-    expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
+    expect(tab("Deep Research").getAttribute("aria-selected")).toBe("true");
+    fireEvent.keyDown(tab("Deep Research"), { key: "Home" });
+    expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
     // Only the selected tab is in the tab order.
-    expect(tab("AI běh").tabIndex).toBe(0);
+    expect(tab("Metodika").tabIndex).toBe(0);
     expect(tab("Audit").tabIndex).toBe(-1);
   });
 
@@ -603,7 +606,9 @@ describe("usable settings controls", () => {
     expect(budget.value).toBe("600");
     expect(study.hidden).toBe(false);
     fireEvent.click(screen.getByRole("tab", { name: "Audit" }));
-    expect(screen.getByText("Záznam přístupu ke klientovi")).toBeTruthy();
+    expect(within(panelOf("Audit")).getByText("Záznam přístupu ke klientovi", { selector: "strong" })).toBeTruthy();
+    fireEvent.change(screen.getByRole("combobox", { name: "Typ události v historii" }), { target: { value: "CLIENT_GRANT" } });
+    expect(within(panelOf("Audit")).getByText("Zobrazeno 1 z 1 záznamů")).toBeTruthy();
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat v historii" }), { target: { value: "no-such-event" } });
     expect(screen.getByText("Žádný záznam neodpovídá hledání.")).toBeTruthy();
     expect(called("PUT", "/api/v1/studies/STU-1/budget")).toEqual([]);

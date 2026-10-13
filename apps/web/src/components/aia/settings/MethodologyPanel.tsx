@@ -31,6 +31,11 @@ async function loadList(): Promise<MethodModuleSummary[]> {
 }
 
 const anyone: People = (id) => id ?? "—";
+const PURPOSE_GROUPS = [
+  { title: "Mapy objektů", ids: ["sociomap", "sociomap_reference", "sociomapping"] },
+  { title: "Čísla ve výsledcích", ids: ["aggregation", "support"] },
+  { title: "Respondenti a váhy", ids: ["response", "weighting"] },
+] as const;
 
 export function MethodologyPanel({ people = anyone }: { people?: People }) {
   const [res, retry] = useResource(loadList, []);
@@ -42,19 +47,35 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(true);
   const current = modules.find((m) => m.id === active) ?? null;
   const visible = modules.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
+  const groups: { title: string; modules: MethodModuleSummary[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is MethodModuleSummary => module !== undefined) }));
+  const additional = visible.filter((module) => !PURPOSE_GROUPS.some((group) => (group.ids as readonly string[]).includes(module.id)));
+  if (additional.length) groups.push({ title: "Další výpočty", modules: additional });
   return <div className="flex min-w-0 flex-col gap-4">
-    <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-    <nav aria-label={t(`${M}.modules`)} className="flex flex-wrap gap-2">
-      {visible.map((m) => <Button key={m.id} className="max-w-full !whitespace-normal text-left" aria-pressed={m.id === active} variant={m.id === active ? "primary" : "quiet"} onClick={() => {
-        if (m.id === active) return;
-        if (editing) setPending(m.id); else setActive(m.id);
-      }}>{m.title_cs}</Button>)}
-    </nav>
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface-sunken p-3">
+      <div><p className="text-sm font-semibold">1. Oblast výpočtu</p><p className="text-xs leading-5 text-ink-muted">Vyberte, co chcete porozumět nebo změnit. Upravit lze jen oblasti povolené serverem.</p></div>
+      <Button aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>{chooserOpen ? "Skrýt výběr" : "Změnit oblast"}</Button>
+    </div>
+    {chooserOpen ? <div id="methodology-module-chooser" className="flex flex-col gap-3">
+      <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+      <nav aria-label={t(`${M}.modules`)} className="grid min-w-0 gap-3 md:grid-cols-2">
+        {groups.filter((group) => group.modules.length).map((group) => <div key={group.title} role="group" aria-label={group.title} className="rounded-md border border-border bg-surface-raised p-3">
+          <h3 className="mb-2 font-mono text-xs font-semibold uppercase tracking-wide text-ink-muted">{group.title}</h3>
+          <div className="flex flex-col gap-2">{group.modules.map((m) => <button key={m.id} type="button" aria-label={m.title_cs} aria-pressed={m.id === active} onClick={() => {
+            if (m.id === active) { setChooserOpen(false); return; }
+            if (editing) setPending(m.id); else { setActive(m.id); setChooserOpen(false); }
+          }} className={`min-h-11 w-full rounded-md border p-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${m.id === active ? "border-signal-edge bg-signal-wash" : "border-border bg-surface hover:border-border-strong"}`}>
+            <span className="flex flex-wrap items-center justify-between gap-2"><strong>{m.title_cs}</strong><Tag>{m.editable ? "Upravitelné" : "Jen ke čtení"}</Tag></span>
+            {m.note_cs ? <span className="mt-1 block line-clamp-2 text-xs leading-5 text-ink-muted">{m.note_cs}</span> : null}
+          </button>)}</div>
+        </div>)}
+      </nav>
+    </div> : null}
     {!visible.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noMatch`)}</p> : null}
-    {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => setPending(null)} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); }} /> : null}
-    {current ? <ModuleView key={current.id} summary={current} people={people} onEditing={setEditing} /> : null}
+    {pending ? <InlineConfirm message={t(`${M}.leaveEditor`)} action={t(`${M}.discardEditor`)} onCancel={() => { setPending(null); setChooserOpen(false); }} onConfirm={() => { setActive(pending); setPending(null); setEditing(false); setChooserOpen(false); }} /> : null}
+    {current ? <ModuleView key={current.id} summary={current} people={people} onEditing={(value) => { setEditing(value); if (value) setChooserOpen(false); }} /> : null}
   </div>;
 }
 
@@ -66,6 +87,7 @@ function ModuleView({ summary, people, onEditing }: { summary: MethodModuleSumma
     <header className="rounded-md border border-border bg-surface-sunken p-4">
       <h3 className="text-base font-semibold">{summary.title_cs}</h3>
       <p className="mt-1 text-sm leading-6 text-ink-muted">{summary.editable ? t(`${M}.editableModule`) : t(`${M}.readOnlyModule`)}</p>
+      <p className="mt-2 text-xs text-ink-muted">{summary.editable ? "Můžete prohlížet a jako oprávněný správce vytvořit novou verzi. Uložení a uvedení v platnost jsou různé kroky." : "Tato oblast se zobrazuje pro vysvětlení výpočtu; její hodnoty zde nelze měnit."}</p>
       {summary.note_cs ? <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">{t(`${M}.methodNote`)}</summary><p className="mt-2 leading-5">{summary.note_cs}</p></details> : null}
     </header>
     {summary.editable ? <MethodologyVersions summary={summary} people={people} onEditing={(value) => { setEditing(value); onEditing(value); }} /> : null}

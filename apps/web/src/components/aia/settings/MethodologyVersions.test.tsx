@@ -360,9 +360,13 @@ describe("guided methodology editing", () => {
     fakeApi(); render(<MethodologyPanel />);
     fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
     await editor();
+    expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
     expect(await screen.findByRole("heading", { name: "Sociomapa: referenční mapa (18.6.6)" })).toBeTruthy();

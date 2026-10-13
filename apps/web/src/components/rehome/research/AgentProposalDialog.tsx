@@ -15,7 +15,6 @@ function TextList({ title, values }: { title: string; values: unknown }) {
 export function AgentProposalDialog({ result, onDecision, advice = false }: {
   result: ResearchAgentResult; onDecision: (apply: boolean) => void; advice?: boolean;
 }) {
-  const p = result.result.proposal;
   const ref = useRef<HTMLDialogElement>(null);
   useLayoutEffect(() => {
     const dialog = ref.current;
@@ -28,6 +27,16 @@ export function AgentProposalDialog({ result, onDecision, advice = false }: {
     className="m-auto max-h-[85vh] w-[min(48rem,calc(100vw-2rem))] overflow-auto rounded-md border border-border-strong bg-surface-overlay p-6 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40">
       <h2 id="agent-proposal-title" className="mb-2 text-xl font-semibold">{advice ? "Odpověď AI" : "Zkontrolujte návrh AI"}</h2>
       <p className="mb-5 text-sm text-ink-muted">{advice ? "Odpověď vychází z uloženého kontextu. Nenahrazuje schválení evidence." : "Změny se uloží až po vašem potvrzení. Nové dimenze jsou návrhy; filtry a proveditelnost audience zkontrolujte samostatně."}</p>
+      <AgentProposalContent result={result} />
+      <div className="mt-6 flex gap-3"><Button variant="primary" onClick={() => onDecision(true)} autoFocus>{advice ? "Zavřít" : "Použít návrh"}</Button>
+        {!advice ? <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button> : null}</div>
+  </dialog>;
+}
+
+/** Structured stored content; shared by proposal review and contextual advice. */
+export function AgentProposalContent({ result }: { result: ResearchAgentResult }) {
+  const p = result.result.proposal;
+  return <div data-agent-content>
       {["title", "problem_summary", "decision_use", "message", "description", "answer", "method_reason"].map((k) => typeof p[k] === "string" && p[k] ? <p key={k} className="mb-3 whitespace-pre-line text-sm">{String(p[k])}</p> : null)}
       <TextList title="Cíle" values={p.objectives} /><TextList title="Výzkumné otázky" values={p.research_questions} />
       <TextList title="Hypotézy" values={p.hypotheses} /><TextList title="Koho zahrnout" values={p.inclusion_criteria} />
@@ -46,7 +55,5 @@ export function AgentProposalDialog({ result, onDecision, advice = false }: {
       {objects(p.new_dimension_suggestions).map((d, i) => <section key={i} className="mb-4"><h3 className="font-semibold">{String(d.label)}</h3><p className="text-sm">{String(d.why)}</p><TextList title="Potřebná evidence" values={d.evidence_needed} /><TextList title="Navržené prediktory" values={d.suggested_predictors} /><p className="text-sm">{String(d.source_strategy || "")}</p></section>)}
       <TextList title="Doplňující otázky" values={p.questions_for_user || p.followup_questions} />
       <TextList title="Omezení" values={p.limitations || p.warnings} /><TextList title="Zdroje" values={p.source_ids} />
-      <div className="mt-6 flex gap-3"><Button variant="primary" onClick={() => onDecision(true)} autoFocus>{advice ? "Zavřít" : "Použít návrh"}</Button>
-        {!advice ? <Button onClick={() => onDecision(false)}>Ponechat současný návrh</Button> : null}</div>
-  </dialog>;
+  </div>;
 }

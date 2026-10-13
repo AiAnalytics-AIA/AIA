@@ -8,7 +8,7 @@
 // Storing makes a new immutable version; it is in force only once put, and then only for runs
 // started afterwards. The API refuses a non-administrator whatever this page shows.
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { InlineConfirm } from "../../rehome/step";
@@ -23,6 +23,7 @@ import {
   methodology,
 } from "@/lib/api";
 import { relative } from "@/lib/format";
+import { groupSteps } from "@/lib/methodology";
 import {
   changedPaths,
   editableSteps,
@@ -30,7 +31,6 @@ import {
   problemsFor,
   readPath,
   toInput,
-  unplacedProblems,
   withPath,
 } from "@/lib/methodology-edit";
 import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
@@ -63,6 +63,9 @@ function Body({ summary, data, people, reload, onEditing }: { summary: MethodMod
     setStart(next); setDirty(false); onEditing?.(next !== null);
   };
   const inForce = data.in_force;
+  const currentSpec = inForce.origin === "stored"
+    ? data.versions.find((version) => version.version_number === inForce.version_number)?.spec
+    : data.presets[inForce.preset ?? summary.in_force ?? ""];
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
   const versionStart = (v: MethodVersion): Start => ({ base: v.base_preset, spec: v.spec, formulas: v.formulas, from: v.name });
   return (
@@ -77,6 +80,20 @@ function Body({ summary, data, people, reload, onEditing }: { summary: MethodMod
       {pending ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setStart(pending.next); onEditing?.(pending.next !== null); setDirty(false); setPending(null); }} /> : null}
       {data.may_administer ? null : <p className="text-xs text-ink-muted">{t(`${V}.adminNote`)}</p>}
       {done ? <p role="status" className="text-sm text-status-done">{done}</p> : null}
+      {data.may_administer && start ? (
+        <Editor
+          key={`${start.from}`}
+          summary={summary}
+          start={start}
+          currentSpec={currentSpec}
+          currentName={inForce.name}
+          presets={Object.keys(data.presets)}
+          onBase={(name) => changeStart(presetStart(name))}
+          onDirty={setDirty}
+          onCancel={() => changeStart(null)}
+          onSaved={(saved) => { setStart(null); setDirty(false); onEditing?.(false); setDone(tv(`${V}.saved`, { name: saved.name })); reload(); }}
+        />
+      ) : null}
 
       <div>
         <h4 className="text-sm font-semibold">{t(`${V}.list`)}</h4>
@@ -127,26 +144,7 @@ function Body({ summary, data, people, reload, onEditing }: { summary: MethodMod
         />
       ) : null}
 
-      {data.may_administer ? (
-        start ? (
-          <Editor
-            key={`${start.from}`}
-            summary={summary}
-            start={start}
-            presets={Object.keys(data.presets)}
-            onBase={(name) => changeStart(presetStart(name))}
-            onDirty={setDirty}
-            onCancel={() => changeStart(null)}
-            onSaved={(saved) => { setStart(null); setDirty(false); onEditing?.(false); setDone(tv(`${V}.saved`, { name: saved.name })); reload(); }}
-          />
-        ) : (
-          <div>
-            <Button variant="primary" small onClick={() => { setDone(null); changeStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.presets[0] ?? summary.in_force ?? "")); }}>
-              {t(`${V}.edit`)}
-            </Button>
-          </div>
-        )
-      ) : null}
+      {data.may_administer && !start ? <div><Button variant="primary" small onClick={() => { setDone(null); changeStart(inForce.origin === "stored" ? versionStart(data.versions.find((v) => v.version_number === inForce.version_number) as MethodVersion) : presetStart(summary.presets[0] ?? summary.in_force ?? "")); }}>{t(`${V}.edit`)}</Button></div> : null}
 
       <details>
         <summary className="cursor-pointer text-sm font-semibold">{t(`${V}.history`)}</summary>
@@ -199,7 +197,7 @@ function Activate({ moduleId, version, name, onCancel, onDone }: { moduleId: str
 }
 
 function Editor(props: {
-  summary: MethodModuleSummary; start: Start; presets: string[];
+  summary: MethodModuleSummary; start: Start; presets: string[]; currentSpec?: Record<string, unknown>; currentName: string;
   onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   // The labels and slots of the preset the edit is based on; the values come from `start`.
@@ -207,8 +205,8 @@ function Editor(props: {
   return <Loaded res={res} retry={retry}>{(detail) => <EditorForm {...props} detail={detail} />}</Loaded>;
 }
 
-function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel, onSaved }: {
-  summary: MethodModuleSummary; start: Start; presets: string[]; detail: MethodModuleDetail;
+function EditorForm({ summary, start, presets, detail, currentSpec, currentName, onBase, onDirty, onCancel, onSaved }: {
+  summary: MethodModuleSummary; start: Start; presets: string[]; detail: MethodModuleDetail; currentSpec?: Record<string, unknown>; currentName: string;
   onBase: (name: string) => void; onDirty: (value: boolean) => void; onCancel: () => void; onSaved: (v: MethodVersion) => void;
 }) {
   const steps = useMemo(() => editableSteps(detail), [detail]);
@@ -222,11 +220,22 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
   const [note, setNote] = useState("");
   const [check, setCheck] = useState<MethodCheck | null>(null);
   const [comparison, setComparison] = useState<MethodCompare | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState<"check" | "compare" | "store" | null>(null);
+  const busy = operation !== null;
   const [error, setError] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    // Starting an edit moves the person to the focused block, especially on a
+    // phone where the methodology summary is taller than one viewport.
+    headingRef.current?.scrollIntoView?.({ block: "start" });
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const router = useRouter();
   const [selectedStep, setSelectedStep] = useState(steps[0]?.step.id ?? "");
+  const grouped = useMemo(() => groupSteps(detail).map(({ group, steps: groupItems }) => ({ group, items: groupItems.map((item) => steps.find(({ step }) => step.id === item.id)).filter((item): item is (typeof steps)[number] => item !== undefined) })).filter(({ items }) => items.length), [detail, steps]);
+  const selectedIndex = steps.findIndex(({ step }) => step.id === selectedStep);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const changedCount = Object.keys(raw).filter((r) => raw[r] !== toInput(readPath(start.spec, r))).length + [...builtin.keys()].filter((slot) => exprs[slot] !== (start.formulas[slot] ?? builtin.get(slot))).length;
   const dirty = changedCount > 0 || !!note.trim();
@@ -270,7 +279,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
       setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} }); showFirstProblem(built.local);
       return;
     }
-    setBusy(true);
+    setOperation(store ? "store" : "check");
     try {
       const checked = await methodology.check(summary.id, built.edit);
       setCheck(checked); showFirstProblem(checked.problems);
@@ -278,7 +287,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
     } catch (e) {
       setError(describeError(e));
     } finally {
-      setBusy(false);
+      setOperation(null);
     }
   };
   // The edit beside what is in force on fictional panels; a refused edit shows its problems.
@@ -290,7 +299,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
       setCheck({ valid: false, problems: built.local, not_computed: [], formulas_latex: {} }); showFirstProblem(built.local);
       return;
     }
-    setBusy(true);
+    setOperation("compare");
     try {
       const result = await methodology.compare(summary.id, built.edit);
       if (result.valid) setComparison(result);
@@ -298,7 +307,7 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
     } catch (e) {
       setError(describeError(e));
     } finally {
-      setBusy(false);
+      setOperation(null);
     }
   };
   const submit = (e: FormEvent) => {
@@ -307,13 +316,15 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
   };
 
   const problems = check?.problems ?? {};
-  const placed = [...Object.keys(raw).map((r) => `spec.${r}`), ...[...builtin.keys()].map((s) => `formula.${s}`)];
-  const elsewhere = unplacedProblems(problems, placed);
+  const problemLinks = Object.entries(problems).map(([path, message]) => {
+    const owner = steps.find(({ step, fields }) => fields.some((field) => path === `spec.${field.reference}` || path.startsWith(`spec.${field.reference}.`)) || step.formulas.some((formula) => path === `formula.${formula.slot_id}` || path.startsWith(`formula.${formula.slot_id}.`)));
+    return { path, message, owner };
+  });
   return (
-    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit} className="flex min-w-0 flex-col gap-4 rounded-md border border-signal-edge bg-surface p-4">
+    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit} className="flex min-w-0 max-w-full flex-col gap-4 rounded-md border border-signal-edge bg-surface p-4">
       {leaveHref ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
       <div className="flex flex-col gap-1">
-        <h4 className="text-sm font-semibold">{tv(`${V}.editorTitle`, { from: start.from })}</h4>
+        <h4 ref={headingRef} tabIndex={-1} className="scroll-mt-24 text-sm font-semibold">{tv(`${V}.editorTitle`, { from: start.from })}</h4>
         <p className="max-w-3xl text-xs text-ink-muted">{t(`${V}.editorHelp`)}</p>
       </div>
       {presets.length > 1 ? (
@@ -324,18 +335,28 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
           </Select>
         </Field>
       ) : null}
-      {elsewhere.length ? (
-        <ul role="alert" className="flex flex-col gap-1 text-sm text-status-fault">
-          {elsewhere.map(([k, m]) => <li key={k}><span className="font-mono">{k}</span>: {m}</li>)}
-        </ul>
-      ) : null}
       <div className="rounded-sm border border-border bg-surface-sunken p-3">
-        <Field label={t(`${V}.chooseSection`)}><Select aria-label={t(`${V}.chooseSection`)} disabled={busy} value={selectedStep} onChange={(e) => setSelectedStep(e.target.value)}>{steps.map(({ step }) => <option key={step.id} value={step.id}>{step.title_cs}</option>)}</Select></Field>
-        <p className="mt-2 text-xs text-ink-muted">{tv(`${V}.changeCount`, { count: changedCount })}</p>
+        <p className="mb-2 text-sm font-semibold">2. Logický blok a jeho hodnoty</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <Field label={t(`${V}.chooseSection`)} className="min-w-0 flex-1 basis-64"><Select aria-label={t(`${V}.chooseSection`)} disabled={busy} value={selectedStep} onChange={(e) => setSelectedStep(e.target.value)}>{grouped.map(({ group, items }) => <optgroup key={group?.id ?? "other"} label={group?.title_cs ?? "Další kroky"}>{items.map(({ step, fields }) => {
+            const changes = fields.filter((field) => raw[field.reference] !== toInput(readPath(start.spec, field.reference))).length + step.formulas.filter((formula) => exprs[formula.slot_id] !== (start.formulas[formula.slot_id] ?? builtin.get(formula.slot_id))).length;
+            const errors = fields.filter((field) => problemsFor(problems, `spec.${field.reference}`).length).length + step.formulas.filter((formula) => problemsFor(problems, `formula.${formula.slot_id}`).length).length;
+            return <option key={step.id} value={step.id}>{step.title_cs}{changes ? ` · ${changes} změn` : ""}{errors ? ` · ${errors} problémů` : ""}</option>;
+          })}</optgroup>)}</Select></Field>
+          <Button className="min-w-11 justify-center" aria-label="Předchozí blok" disabled={busy || selectedIndex <= 0} onClick={() => setSelectedStep(steps[selectedIndex - 1].step.id)}>←</Button>
+          <Button className="min-w-11 justify-center" aria-label="Další blok" disabled={busy || selectedIndex < 0 || selectedIndex === steps.length - 1} onClick={() => setSelectedStep(steps[selectedIndex + 1].step.id)}>→</Button>
+        </div>
+        <p role="status" className="mt-2 text-xs text-ink-muted">{selectedIndex + 1} z {steps.length} bloků · {tv(`${V}.changeCount`, { count: changedCount })}</p>
       </div>
+      {check && !check.valid ? <div role="alert" className="rounded-md border border-status-fault bg-status-fault-wash p-3 text-sm text-status-fault"><strong>{tv(`${V}.checkFailed`, { count: Object.keys(check.problems).length })}</strong><ul className="mt-2 space-y-1">{problemLinks.map(({ path, message, owner }) => <li key={path}>{owner ? <button type="button" className="min-h-11 text-left underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-focus-ring" onClick={() => {
+          setSelectedStep(owner.step.id);
+          requestAnimationFrame(() => { const target = [...document.querySelectorAll<HTMLElement>("[data-field], [data-edit-slot] textarea")].find((node) => path.includes(node.getAttribute("data-field") ?? node.closest("[data-edit-slot]")?.getAttribute("data-edit-slot") ?? "____")); target?.focus(); });
+        }}>{owner.step.title_cs}: {message}</button> : <span>{path}: {message}</span>}</li>)}</ul></div> : null}
       {steps.map(({ step, fields }) => (
-        <fieldset key={step.id} hidden={selectedStep !== step.id} disabled={busy} data-edit-step={step.id} className="flex flex-col gap-2 border-t border-border pt-3">
-          <legend className="text-sm font-semibold">{step.title_cs}</legend>{step.note_cs ? <p className="mb-2 text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
+        <fieldset key={step.id} hidden={selectedStep !== step.id} disabled={busy} data-edit-step={step.id} className="flex min-w-0 max-w-full flex-col gap-2 border-t border-border pt-3">
+          <legend className="text-base font-semibold">{step.title_cs}</legend>
+          {step.formula_latex ? <div className="min-w-0 max-w-full overflow-x-auto rounded-md border border-border bg-surface-sunken p-3"><p className="mb-2 font-mono text-xs font-semibold uppercase tracking-wide text-ink-muted">Výpočet</p><Formula latex={step.formula_latex} /></div> : null}
+          {step.note_cs ? <p className="mb-2 max-w-3xl text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
           {fields.map((f) => {
             const own = problemsFor(problems, `spec.${f.reference}`);
             const changed = raw[f.reference] !== toInput(readPath(start.spec, f.reference));
@@ -351,12 +372,12 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
                     onChange={(e) => { setRaw((r) => ({ ...r, [f.reference]: e.target.value })); clearPreview(); }}
                   />
                 </Field>
-                <p className="text-xs text-ink-muted">{t(`${V}.originalValue`)}: <span className="font-mono break-all">{toInput(readPath(start.spec, f.reference))}</span>{changed ? ` · ${t(`${V}.changed`)}` : ""}</p><details className="text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${V}.fieldReference`)}</summary><code className="break-all">{f.reference}</code></details>
+                <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted"><div><dt className="inline">{t(`${V}.originalValue`)}: </dt><dd className="inline break-all font-mono">{toInput(readPath(start.spec, f.reference))}</dd></div><div><dt className="inline">V platnosti ({currentName}): </dt><dd className="inline break-all font-mono">{currentSpec ? (readPath(currentSpec, f.reference) === undefined ? "v této verzi neuvedeno" : toInput(readPath(currentSpec, f.reference))) : "hodnota není dostupná"}</dd></div>{changed ? <div><dt className="sr-only">Stav návrhu</dt><dd className="font-semibold text-signal">{t(`${V}.changed`)}</dd></div> : null}</dl><details className="text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${V}.fieldReference`)}</summary><code className="break-all">{f.reference}</code></details>
                 {own.map((m) => <span key={m} role="alert" className="text-xs text-status-fault">{m}</span>)}
               </div>
             );
           })}
-          <details className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">{t(`${V}.advancedFormulas`)} ({step.formulas.length})</summary><p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${V}.advancedHelp`)}</p><div className="mt-3 flex min-w-0 flex-col gap-4">
+          <details className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Pro experty: vzorce, testy a původ ({step.formulas.length})</summary><p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${V}.advancedHelp`)}</p><div className="mt-3 flex min-w-0 flex-col gap-4">
           {step.formulas.map((f) => {
             const own = problemsFor(problems, `formula.${f.slot_id}`);
             const replaced = (exprs[f.slot_id] ?? "").trim() !== f.expression;
@@ -382,21 +403,21 @@ function EditorForm({ summary, start, presets, detail, onBase, onDirty, onCancel
                 {own.map((m) => <span key={m} role="alert" className="text-xs text-status-fault">{m}</span>)}
               </div>
             );
-          })}</div></details>
+          })}<details className="text-xs text-ink-muted"><summary className="cursor-pointer">Implementace a ověřovací testy</summary><p className="mt-2 break-all">{step.implements} · SHA-256 {step.source_sha256}</p>{step.tests.length ? <ul className="mt-1 list-disc pl-5">{step.tests.map((test) => <li key={test}>{test}</li>)}</ul> : null}{step.evidence.length ? <ul className="mt-1 list-disc pl-5">{step.evidence.map((item) => <li key={`${item.kind}:${item.ref}`}>{item.kind}: {item.ref}</li>)}</ul> : null}</details></div></details>
         </fieldset>
       ))}
       <Field label={t(`${V}.note`)}>
         <TextInput disabled={busy} value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
       </Field>
       {check?.valid ? <p role="status" className="text-sm text-status-done">{t(`${V}.checkOk`)}</p> : null}
-      {check && !check.valid ? <p role="alert" className="text-sm text-status-fault">{tv(`${V}.checkFailed`, { count: Object.keys(check.problems).length })}</p> : null}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
       {comparison ? <MethodologyComparison result={comparison} /> : null}
-      <div className="sticky bottom-3 z-10 flex flex-wrap gap-2 rounded-md border border-border bg-surface-raised p-3 shadow-sm">
-        <Button disabled={busy} onClick={() => void run(false)}>{t(`${V}.check`)}</Button>
-        <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
-        <Button type="submit" variant="primary" disabled={busy}>{t(`${V}.store`)}</Button>
-        <Button disabled={busy} onClick={onCancel}>{t(`${V}.cancel`)}</Button>
+      <div className="sticky bottom-3 z-10 grid grid-cols-2 gap-2 rounded-md border border-border bg-surface-raised p-3 shadow-sm sm:flex sm:flex-wrap">
+        <Button className="w-full !whitespace-normal sm:w-auto" disabled={busy} onClick={() => void run(false)}>{t(`${V}.check`)}</Button>
+        <Button className="w-full !whitespace-normal sm:w-auto" disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
+        <Button className="w-full !whitespace-normal sm:w-auto" type="submit" variant="primary" disabled={busy}>{t(`${V}.store`)}</Button>
+        <Button className="w-full !whitespace-normal sm:w-auto" disabled={busy} onClick={onCancel}>{t(`${V}.cancel`)}</Button>
+        {operation ? <span role="status" className="col-span-2 self-center text-xs text-ink-muted">{operation === "check" ? "Kontroluji na serveru…" : operation === "compare" ? "Porovnávám metodiky…" : "Kontroluji a ukládám novou verzi…"}</span> : null}
       </div>
     </form>
   );

@@ -19,7 +19,7 @@ import { activityOf } from "@/lib/step-activity";
 import { ActivityLog } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 
-export function JobPanel({ job, onCancel, studyId }: { job: JobUpdate; onCancel: (jobId: string) => void; studyId?: string }) {
+export function JobPanel({ job, onCancel, studyId, embedded = false }: { job: JobUpdate; onCancel: (jobId: string) => void; studyId?: string; embedded?: boolean }) {
   const [armed, setArmed] = useState(false);
   // What the job's step reported, read live while the model works on it (lib/step-activity.ts).
   const feed = useStepActivity(studyId && job.jobId ? job.jobId : null, (since) => researchAgents.events(studyId!, job.jobId!, since), !!job.orb);
@@ -42,8 +42,8 @@ export function JobPanel({ job, onCancel, studyId }: { job: JobUpdate; onCancel:
     : [];
 
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby="job-title" className="fixed inset-0 z-40 flex items-center justify-center bg-surface-inverse/40 p-4">
-      <div className="w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]">
+    <div role={embedded ? "region" : "dialog"} aria-modal={embedded ? undefined : true} aria-labelledby="job-title" className={embedded ? "min-w-0" : "fixed inset-0 z-40 flex items-center justify-center bg-surface-inverse/40 p-4"}>
+      <div className={embedded ? "min-w-0 rounded-md border border-ai-edge bg-ai-wash p-4 text-ink" : "w-[min(34rem,100%)] rounded-md border border-border-strong bg-surface-overlay p-5 text-ink shadow-[var(--shadow-overlay)]"}>
         <div className="flex items-start gap-3">
           {job.orb ? <ActivityOrb orb={job.orb} size={64} /> : <Icon name="running" className="mt-0.5 text-status-running motion-safe:animate-spin" />}
           <div className="min-w-0 flex-1">
@@ -69,7 +69,7 @@ export function JobPanel({ job, onCancel, studyId }: { job: JobUpdate; onCancel:
         ) : null}
         <div className="mt-4 flex items-center justify-end gap-3">
           {!armed ? <span className="text-xs text-ink-faint">{t("research.jobCancelArming")}</span> : null}
-          <Button variant="secondary" small disabled={!armed || !job.jobId} onClick={() => job.jobId && onCancel(job.jobId)}>
+          <Button variant="secondary" small={!embedded} className={embedded ? "!min-h-11" : ""} disabled={!armed || !job.jobId} onClick={() => job.jobId && onCancel(job.jobId)}>
             {t("research.jobCancel")}
           </Button>
         </div>

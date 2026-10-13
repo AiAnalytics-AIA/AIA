@@ -167,6 +167,7 @@ export function AppShell({
   sub,
   eyebrow,
   action,
+  alignActionStart = false,
   status,
   tabs,
   client,
@@ -181,6 +182,8 @@ export function AppShell({
   eyebrow?: ReactNode;
   /** The page's one dominant action. */
   action?: ReactNode;
+  /** Context cards align with the title rather than pushing it to their bottom. */
+  alignActionStart?: boolean;
   /** A state the page is in (the save state of a study), right of the title. */
   status?: ReactNode;
   /** The areas of a client, under the header. */
@@ -215,7 +218,7 @@ export function AppShell({
               </Link>
             ) : null}
             <Breadcrumbs crumbs={crumbs} />
-            <div className="flex flex-wrap items-end justify-between gap-4 pb-5 pt-2">
+            <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-4 pb-5 pt-2`}>
               <div className="min-w-0 max-w-3xl">
                 {eyebrow ? (
                   <div className="mb-2 inline-flex items-center gap-2.5 whitespace-nowrap rounded-pill bg-signal-wash px-2.5 py-[3px] font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-signal">
