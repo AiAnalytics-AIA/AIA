@@ -64,6 +64,19 @@ async function requestBlob(path: string): Promise<Blob> {
   return response.blob();
 }
 
+/** A stored report's bytes and the artifact they are (X-AIA-Artifact-Id), for its approval. */
+export type StoredDownload = { blob: Blob; artifactId: string | null; reviewState: string | null };
+
+async function requestStored(path: string): Promise<StoredDownload> {
+  const response = await send("GET", path);
+  if (!response.ok) throw await refusal(response);
+  return {
+    blob: await response.blob(),
+    artifactId: response.headers.get("X-AIA-Artifact-Id"),
+    reviewState: response.headers.get("X-AIA-Review-State"),
+  };
+}
+
 export type Health = {
   status: string;
   service: string;
@@ -950,7 +963,7 @@ export const research = {
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
   /** The client report of a modelled run (complete-study-report B5c); 409 names why a run has none. */
   downloadClientReport: (studyId: string, runId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
@@ -993,7 +1006,7 @@ export const deepResearch = {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
     }),
   downloadContextReport: (studyId: string, runId: string, deepRunId: string) =>
-    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/context/download${query({ deep_research_run_id: deepRunId })}`),
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),

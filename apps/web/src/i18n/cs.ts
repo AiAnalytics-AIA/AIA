@@ -2183,6 +2183,7 @@ export const cs = {
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproving: "Schvaluji…",
+        reportActionsAbove: "Zprávu stáhnete a schválíte v kartě Kompletní zpráva studie nahoře.",
         reportApproveHint: "Schválením potvrzujete, že jste zprávu přečetli. Klientovi tím neodchází.",
         reportApproveIndependent: "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil.",
         reportWaiting: "Report čeká na dokončení AI analýzy.",

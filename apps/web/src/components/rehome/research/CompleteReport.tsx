@@ -1,13 +1,11 @@
 "use client";
 
-// The study's end (research-lane-redesign chunk 8): one card at the top of Výsledky
-// that says what the downloadable report holds, part by part, and hands it over.
-// It reads the run as it is: a part is "ve zprávě" only when the internal report
-// AIA composes today carries it (application/report.py compose_internal_report),
-// and a part AIA does not compose yet says so rather than pretending. The client
-// version and PDF are drawn and refused with their reason: AIA does not compose the
-// client version yet (research-lane-redesign B5; the owner admitted modelled data to
-// it on 2026-10-13, each number labelled), and it renders DOCX only.
+// The study's end (research-lane-redesign chunk 8, complete-study-report B1-B5): one card at
+// the top of Výsledky that says what the downloadable report holds, part by part, hands it
+// over and approves it. It reads the run as it is: a part is "ve zprávě" only when the report
+// step composed it, and the client version is offered only for a run whose respondents were
+// modelled from the population (the API refuses any other, by name). This card is the one
+// place a report is downloaded and approved; the report panel below shows its provenance.
 
 import { useEffect, useState } from "react";
 
@@ -19,6 +17,8 @@ import { Icon } from "../icons";
 import { useFrame } from "./frame-hook";
 
 type Part = { label: string; detail: string; state: "in" | "pending" | "later" };
+type Version = "internal" | "client";
+type Format = "docx" | "pdf";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -34,12 +34,12 @@ export function reportParts(run: { steps: readonly { kind?: string | null; node_
   return [
     fromReport("Shrnutí a dopady pro rozhodnutí", "Z AI analýzy, každé číslo z ověřené evidence"),
     fromReport("Výzkumné otázky, objekty, segmenty, hypotézy", "Osm modulů analýzy"),
-    fromReport("Metodika", "Populace, AI respondenti, verze výpočtů"),
-    { label: "Sociomapy", detail: "Mapy z uloženého výpočtu, s verzí metodiky", state: !map ? "later" : composed && map.status === "SUCCEEDED" ? "in" : "pending" },
+    fromReport("Respondenti a výpočet", "Kdo odpovídal, populace běhu, verze metod"),
+    { label: "Sociomapy", detail: "Mapy z uloženého výpočtu, se stavem metodiky", state: !map ? "later" : composed && map.status === "SUCCEEDED" ? "in" : "pending" },
     { label: "Literatura (Deep Research)", detail: "S vybranou rešerší níže, citace ze zachycených zdrojů", state: "pending" },
+    fromReport("Tabulky všech otázek", "Podíly, průměry a intervaly ke každé otázce"),
+    fromReport("Návrh studie a dotazník v příloze", "Revize návrhu, podle které běh proběhl"),
     fromReport("Omezení, původ dat a příloha evidence", "Modelovaná data, otisky artefaktů"),
-    { label: "Tabulky všech otázek", detail: "Průměry a intervaly ke každé otázce", state: "later" },
-    { label: "Zadání, návrh a dotazník v příloze", detail: "Revize návrhu, podle které běh proběhl", state: "later" },
   ];
 }
 
@@ -48,11 +48,43 @@ const MARK: Record<Part["state"], string> = {
   pending: "border-[1.5px] border-border-strong",
   later: "border-[1.5px] border-dashed border-border-strong",
 };
-const WORD: Record<Part["state"], string> = { in: "ve zprávě", pending: "čeká na běh nebo výběr", later: "AIA zatím neskládá" };
+const WORD: Record<Part["state"], string> = { in: "ve zprávě", pending: "čeká na běh nebo výběr", later: "běh ji nevytvořil" };
+
+function Segment<T extends string>({ label, value, options, onChange }: {
+  label: string;
+  value: T;
+  options: readonly { id: T; text: string; disabled: string | null }[];
+  onChange: (next: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="inline-flex w-fit rounded-control border border-border bg-surface-sunken p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="radio"
+          aria-checked={value === o.id}
+          aria-disabled={o.disabled ? true : undefined}
+          title={o.disabled ?? undefined}
+          onClick={() => { if (!o.disabled) onChange(o.id); }}
+          className={value === o.id
+            ? "min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]"
+            : `min-h-8 rounded-[4px] px-2.5 text-xs font-medium ${o.disabled ? "cursor-not-allowed text-ink-faint" : "text-ink-muted"}`}
+        >
+          {o.text}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function CompleteReport({ run }: { run: ResearchRun }) {
   const frame = useFrame();
   const [status, setStatus] = useState<ResearchReport | null | "hidden">(null);
+  const [version, setVersion] = useState<Version>("internal");
+  const [format, setFormat] = useState<Format>("docx");
+  // The client draft the last download was: its artifact and whether it is approved.
+  const [client, setClient] = useState<{ artifactId: string; approved: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reportStep = run.steps.find((s) => s.kind === "research_report");
@@ -66,19 +98,60 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
     return () => { live = false; };
   }, [frame.studyId, run.run_id, reportStep?.status, reportStep?.artifact_id, reportStep]);
   if (status === "hidden") return null;
-  const ready = status !== null && status.state === "READY";
+  const report = status !== null && status.state === "READY" ? status : null;
+  const modelled = report?.data_origin_kind === "MODELLED";
+  const pdfReady = report?.pdf?.state === "READY";
   const parts = reportParts(run);
-  const download = async () => {
+
+  const clientWhy = modelled ? null : "Klientská zpráva vzniká jen z běhu s AI respondenty z populace.";
+  const pdfWhy = version === "client"
+    ? "Klientská zpráva je zatím jen DOCX."
+    : report?.pdf && report.pdf.state !== "READY"
+      ? "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX."
+      : pdfReady ? null : "Tento běh PDF nevytvořil.";
+  const chosenFormat: Format = pdfWhy ? "docx" : format;
+  const approved = version === "client" ? client?.approved === true : report?.review_state === "APPROVED_INTERNAL";
+  const approvable = version === "client" ? client !== null : Boolean(report?.artifact_id);
+
+  const run_ = async (work: () => Promise<void>) => {
     setBusy(true);
     setError(null);
     try {
-      saveBlob(await research.downloadReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-zprava.docx`);
+      await work();
     } catch (e) {
-      setError(message(e));
+      setError(e instanceof ApiError && e.code === "separation_of_duties"
+        ? t("research.exec.results.reportApproveIndependent") : message(e));
     } finally {
       setBusy(false);
     }
   };
+  const download = () => run_(async () => {
+    if (version === "client") {
+      const got = await research.downloadClientReport(frame.studyId, run.run_id);
+      saveBlob(got.blob, `AIA-${frame.studyId}-klient.docx`);
+      setClient(got.artifactId ? { artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+    } else if (chosenFormat === "pdf") {
+      saveBlob(await research.downloadReportPdf(frame.studyId, run.run_id), `AIA-${frame.studyId}-zprava.pdf`);
+    } else {
+      saveBlob(await research.downloadReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-zprava.docx`);
+    }
+  });
+  const approve = () => run_(async () => {
+    if (version === "client" && client) {
+      await research.approveReport(frame.studyId, run.run_id, client.artifactId);
+      setClient({ ...client, approved: true });
+    } else if (report?.artifact_id) {
+      const done = await research.approveReport(frame.studyId, run.run_id, report.artifact_id);
+      setStatus({ ...report, review_state: done.review_state });
+    }
+  });
+
+  const stateLine = !report
+    ? reportStep ? "Stav: zpráva se ještě skládá" : "Tento běh zprávu nevytváří"
+    : version === "client" && !client
+      ? "Stav: klientská zpráva se složí při stažení; schvalujete právě tu, kterou stáhnete"
+      : approved ? "Stav: schváleno" : "Stav: koncept, zatím neschválený";
+
   return (
     <section aria-labelledby="complete-report-title" data-complete-report className="overflow-hidden rounded-card border border-ink bg-surface-raised">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_18rem]">
@@ -99,33 +172,47 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
                 </span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-medium leading-[18px]">{p.label}<span className="sr-only"> · {WORD[p.state]}</span></span>
-                  <span className={`block text-xs leading-4 ${p.state === "later" ? "text-ink-faint" : "text-ink-muted"}`}>{p.state === "later" ? `${p.detail} · AIA zatím neskládá` : p.detail}</span>
+                  <span className={`block text-xs leading-4 ${p.state === "later" ? "text-ink-faint" : "text-ink-muted"}`}>{p.state === "later" ? `${p.detail} · ${WORD.later}` : p.detail}</span>
                 </span>
               </li>
             ))}
           </ul>
+          {version === "client" ? (
+            <p className="text-xs leading-4 text-ink-muted">{t("research.exec.results.reportClientHint")}</p>
+          ) : null}
         </div>
         <div className="flex flex-col gap-2.5 border-t border-border bg-surface p-4 lg:border-l lg:border-t-0">
           <span className="text-xs font-medium text-ink-muted">Verze</span>
-          <div role="radiogroup" aria-label="Verze zprávy" className="inline-flex w-fit rounded-control border border-border bg-surface-sunken p-0.5">
-            <button type="button" role="radio" aria-checked="true" className="min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]">Interní</button>
-            <button type="button" role="radio" aria-checked="false" aria-disabled="true" aria-describedby="report-client-why" className="min-h-8 cursor-not-allowed rounded-[4px] px-2.5 text-xs font-medium text-ink-faint">Pro klienta</button>
-          </div>
-          <p id="report-client-why" className="text-xs leading-4 text-ink-muted">Pro klienta: klientskou verzi (s modelovanými daty označenými „modelováno“) AIA zatím neskládá.</p>
+          <Segment<Version>
+            label="Verze zprávy"
+            value={version}
+            onChange={(v) => { setVersion(v); setError(null); }}
+            options={[
+              { id: "internal", text: "Interní", disabled: null },
+              { id: "client", text: "Pro klienta", disabled: clientWhy },
+            ]}
+          />
+          {clientWhy ? <p className="text-xs leading-4 text-ink-muted">Pro klienta: {clientWhy}</p> : null}
           <span className="text-xs font-medium text-ink-muted">Formát</span>
-          <div role="radiogroup" aria-label="Formát zprávy" className="inline-flex w-fit rounded-control border border-border bg-surface-sunken p-0.5">
-            <button type="button" role="radio" aria-checked="true" className="min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]">DOCX</button>
-            <button type="button" role="radio" aria-checked="false" aria-disabled="true" title="PDF AIA zatím nevytváří" className="min-h-8 cursor-not-allowed rounded-[4px] px-2.5 text-xs font-medium text-ink-faint">PDF</button>
-          </div>
-          <p className="text-xs leading-4 text-ink-muted">
-            {ready
-              ? status.review_state === "APPROVED_INTERNAL" ? "Stav: schváleno pro interní použití" : "Stav: koncept, zatím neschválený"
-              : reportStep ? "Stav: zpráva se ještě skládá" : "Tento běh zprávu nevytváří"}
-          </p>
-          <Button variant="primary" className="!min-h-11 justify-center" disabled={!ready || busy || !frame.canEdit} onClick={() => void download()}>
+          <Segment<Format>
+            label="Formát zprávy"
+            value={chosenFormat}
+            onChange={setFormat}
+            options={[
+              { id: "docx", text: "DOCX", disabled: null },
+              { id: "pdf", text: "PDF", disabled: pdfWhy },
+            ]}
+          />
+          <p className="text-xs leading-4 text-ink-muted">{stateLine}</p>
+          <Button variant="primary" className="!min-h-11 justify-center" disabled={!report || busy || !frame.canEdit} onClick={() => void download()}>
             <Icon name="download" size={16} />
-            {busy ? t("research.exec.results.reportDownloading") : "Stáhnout zprávu"}
+            {busy ? t("research.exec.results.reportDownloading") : version === "client" ? t("research.exec.results.reportDownloadClient") : "Stáhnout zprávu"}
           </Button>
+          {report && approvable && !approved && frame.canEdit ? (
+            <Button className="!min-h-11 justify-center" disabled={busy} onClick={() => void approve()}>
+              {t("research.exec.results.reportApprove")}
+            </Button>
+          ) : null}
           <a href="#report" className="text-xs">Zpráva s literární rešerší</a>
           {error ? <p role="alert" className="text-xs text-status-fault">{error}</p> : null}
         </div>

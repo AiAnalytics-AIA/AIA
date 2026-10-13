@@ -194,6 +194,23 @@ number labelled (B5); stages before backend (done in PR #382).
   (.github/workflows/deploy-develop.yml) and `AIA_REPORT_PDF_ENABLED` defaulting to true in
   the develop worker's Compose environment (deploy/develop/docker-compose.yml, env.example).
 
+- One place to download and approve (2026-10-13, after #385 and the docs PR #390): the
+  "Kompletní zpráva studie" card on Výsledky (CompleteReport.tsx) is where a report is
+  downloaded and approved: Verze Interní / Pro klienta (the client option disabled, with
+  why, unless the run's data_origin_kind is MODELLED), Formát DOCX / PDF (PDF disabled for
+  the client version, for a failed rendering and for a run that made none), "Stáhnout
+  zprávu", and "Schválit pro interní použití" for exactly the document downloaded: the
+  internal report by its status's artifact_id, the client report by the X-AIA-Artifact-Id
+  its download named (lib/api.ts `requestStored`). Its part list now claims respondents,
+  per-question tables and the design appendix once the report step succeeded (B1a-B1c);
+  literature stays pending, since it joins only through a chosen review. The report panel
+  below shows provenance only and points up to the card; the report with literature
+  (InterpretationResearch.tsx) gains its approve button after its download. Tests:
+  ExecutionSteps.test.tsx "Internal report" (card downloads, client refused then downloaded
+  and approved, PDF and a failed PDF, separation of duties, read-only has neither),
+  "Interpretation research" (the downloaded context report approved by its artifact id),
+  CompleteReport.test.tsx (parts), MemoryStudy.test.tsx (project memory offers neither).
+
 ## Findings
 
 - **F1 (hypothesis until the governance call is made). Fictional data prints the grade
@@ -265,3 +282,12 @@ number labelled (B5); stages before backend (done in PR #382).
 - ADR 0024 §4 amendment (docs PR): the owner's 2026-10-13 lift for the client report, ahead
   of the holdout; client-facing analysis still waits for the holdout.
 - open-items.md: F1 to be numbered there.
+
+Applied by the docs PR #390, except what follows (the report buttons, after it):
+
+- CLAUDE.md § 2 map, apps/web: `src/lib/api.ts` (or the rehome/research line): a stored
+  report's download reads `X-AIA-Artifact-Id` / `X-AIA-Review-State` (`requestStored`), so
+  the document approved is the one downloaded; rehome/research: "CompleteReport, the one
+  place a run's report is downloaded (internal / client, DOCX / PDF) and approved;
+  InternalReport shows its provenance; InterpretationResearch approves the report with
+  literature it downloaded".
