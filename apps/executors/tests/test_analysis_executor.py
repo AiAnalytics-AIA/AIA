@@ -15,10 +15,12 @@ depending on ``aggregate`` alone); the template itself is not edited by this job
 
 from __future__ import annotations
 
+import io
 import json
 import threading
 import time
 import uuid
+import zipfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -557,6 +559,11 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     }
     assert document.startswith(b"PK")
     assert lint_docx(document) == []
+    # Every question's numbers are in the report, after the methodology (complete-study-report B1a).
+    body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
+    assert "Výsledky jednotlivých otázek" in body
+    assert body.index("Metodika a způsob interpretace") < body.index("Výsledky jednotlivých otázek")
+    assert report.metadata["report_contract"] == "aia-internal-report-5"
 
 
 @pytest.mark.parametrize(

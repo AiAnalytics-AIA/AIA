@@ -10,12 +10,15 @@ from aia_core.application.report import (
     compose_internal_report,
 )
 from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
+from aia_core.domain.analysis.native import native_items
 from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import ReportInvalid
+from aia_core.domain.research_design import ResearchSpecification
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import REPORT_STEP_KIND
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -28,7 +31,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import SOCIOMAP, upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-4"
+REPORT_CONTRACT_VERSION = "aia-internal-report-5"
 
 
 class ReportExecutor:
@@ -75,19 +78,37 @@ class ReportExecutor:
                 map_dependencies = repo.dependencies(map_id)
                 if not any(d.sha256 == dataset_sha for d in map_dependencies):
                     raise ReportCompositionRefused("the map is not derived from this run's dataset")
-                if not any(
-                    d.artifact_type == "research_specification"
-                    and repo.read_json(d.artifact_id).get("specification_fingerprint")
-                    == first.record.sources.specification_fingerprint
-                    for d in map_dependencies
-                ):
+                specification = next(
+                    (
+                        payload
+                        for d in map_dependencies
+                        if d.artifact_type == "research_specification"
+                        and (payload := repo.read_json(d.artifact_id)).get(
+                            "specification_fingerprint"
+                        )
+                        == first.record.sources.specification_fingerprint
+                    ),
+                    None,
+                )
+                if specification is None:
                     raise ReportCompositionRefused("the map is not derived from this specification")
+                # Every question's numbers, in the questionnaire's order and words (B1a).
+                questions = compose_question_tables(
+                    analysis,
+                    native_items(
+                        ResearchSpecification.model_validate(specification["specification"])
+                    ),
+                    source=f"Zmrazený výsledek běhu {step.run_id}; evidence "
+                    f"{first.inputs.table.fingerprint()[:12]}",
+                )
                 sections = compose_map_sections(
                     map_body,
                     object_map_snapshots(map_body),
                     source=f"Zmrazený výsledek běhu {step.run_id}; SHA-256 {map_source.sha256}",
                 )
-                document = compose_internal_report(analysis, meta, map_sections=sections)
+                document = compose_internal_report(
+                    analysis, meta, map_sections=sections, question_tables=questions
+                )
             except (
                 ReconstructionRefused,
                 ReportCompositionRefused,

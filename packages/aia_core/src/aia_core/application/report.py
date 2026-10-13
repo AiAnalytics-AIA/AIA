@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report_tables import QuestionTables
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
@@ -120,10 +121,13 @@ def compose_internal_report(
     *,
     map_sections: tuple[Section, ...] = (),
     context_sections: tuple[Section, ...] = (),
+    question_tables: QuestionTables | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
     Caller supplies the Study-scoped ``reconstruct_run`` outcome and metadata.
+    ``question_tables`` (``compose_question_tables``) follow the methodology chapter; their
+    claims must be over this run's evidence table, admitted for the internal surface.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -262,6 +266,17 @@ def compose_internal_report(
                     id="methodology",
                 )
             )
+            if question_tables is not None:
+                for claim in question_tables.claims:
+                    if (
+                        claim.surface is not ClaimSurface.INTERNAL
+                        or reference.table.rows.get(claim.row.evidence_ref) != claim.row
+                    ):
+                        raise ReportCompositionRefused(
+                            f"question table cites {claim.row.evidence_ref!r} outside run evidence"
+                        )
+                claims.extend(question_tables.claims)
+                sections.extend(question_tables.sections)
         module = run.modules[spec.module_id]
         result = module.result
         if result is None or result.module_id is not spec.module_id:
