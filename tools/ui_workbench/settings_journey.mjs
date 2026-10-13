@@ -33,7 +33,7 @@ const screenshot = async (name) => { await page.evaluate(() => scrollTo({ top: 0
 const chooseField = async (reference) => {
   const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor({ state: "attached" });
   const step = await field.locator("xpath=ancestor::fieldset").getAttribute("data-edit-step");
-  await page.getByLabel("Část metodiky k úpravě", { exact: true }).selectOption(step);
+  await page.locator(`[data-edit-step-link="${step}"]`).click();
   await field.waitFor(); return field;
 };
 try {
@@ -43,7 +43,7 @@ try {
     const panel = await tab(id); await panel.locator("h2").first().waitFor();
     if (id === "prompts") await page.getByLabel("Instrukce", { exact: true }).waitFor();
     if (id === "deep_research") await page.locator("[data-dr-setting]").first().waitFor({ state: "attached" });
-    if (id === "methodology") await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).waitFor();
+    if (id === "methodology") await page.locator("[data-methodology-editor]").waitFor(); // an administrator opens on the editor
     await widths(`tab ${id}`); await screenshot(id);
   }
   checks.push("All eight settings tabs load and fit desktop/tablet/phone without page overflow");
@@ -97,7 +97,27 @@ try {
   await row.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await row.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   checks.push("Policy purpose search, draft protection across close/tab changes and separate propose/approve work through real APIs");
   await tab("methodology");
+  // An administrator opens on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).
+  const methodEditor = page.locator("[data-methodology-editor]"); await methodEditor.waitFor();
+  for (const [width, height] of [[1440, 900], [1710, 1000], [1920, 1080]]) {
+    await page.setViewportSize({ width, height }); await page.evaluate(() => scrollTo(0, 0));
+    const flow = await page.locator("[data-methodology-flow]").boundingBox(); assert(flow && flow.y + flow.height <= height, `${width}: the change sequence is below the fold (${flow?.y})`);
+    await measure(`methodology editor ${width}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // Visible feedback inside the Doherty threshold: a step opens, a typed value shows in the draft.
+  const doherty = async (name, act, done) => { const t0 = Date.now(); await act(); await done(); const ms = Date.now() - t0; assert(ms < 400, `${name}: ${ms} ms`); return ms; };
+  const stepLink = methodEditor.locator("[data-edit-step-link]").nth(3); const stepId = await stepLink.getAttribute("data-edit-step-link");
+  const openMs = await doherty("open a step", () => stepLink.click(), () => methodEditor.locator(`[data-edit-step="${stepId}"]`).waitFor({ state: "visible" }));
+  const sigmaField = await chooseField("terrain.sigma");
+  const typeMs = await doherty("a typed value reaches the draft", () => sigmaField.fill("0,29"), () => methodEditor.getByRole("complementary", { name: "Dopad a rozhodnutí" }).getByText("0,29").waitFor());
+  checks.push(`Metodika opens on the editor with its sequence above the fold at 1440/1710/1920; a step opens in ${openMs} ms and a typed value reaches the draft in ${typeMs} ms (< 400 ms)`);
+  // The read-only explanation is the editor's other side: close it, and the catalogue is there.
+  await methodEditor.getByRole("button", { name: "Zrušit", exact: true }).click();
+  if (await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).count()) await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();
+  await methodEditor.waitFor({ state: "detached" });
   await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).waitFor();
+
   const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 4500, `Methodology default height ${defaultHeight}`);
   await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).fill("Kish"); assert(await page.locator("#panel-methodology article").count());
   for (const disclosure of await page.locator("#panel-methodology article details").all()) { if (!await disclosure.evaluate((e) => e.open)) await disclosure.locator("summary").first().click(); }
