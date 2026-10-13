@@ -84,11 +84,40 @@ describe("Zadání", () => {
     for (const [, label] of PROBLEM_TYPES) expect(within(types).getByRole("button", { name: new RegExp(label.replace(/[/()]/g, ".")) })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^Podklady/ })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^Kontext, který zpřesní návrh/ })).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("0 %");
+    // Readiness says what is done and what to do next, never a bare score.
+    const readiness = screen.getByRole("complementary", { name: "Připravenost zadání" });
+    expect(readiness.textContent).toContain("0 ze 4");
+    expect(readiness.textContent).toContain("Doplňte: Cíl vlastními slovy");
+    expect(readiness.textContent).not.toContain("%");
+    // A row leads to its field: the caret lands in the goal.
+    fireEvent.click(within(readiness).getByRole("button", { name: /^Cíl vlastními slovy/ }));
+    expect(document.activeElement).toBe(screen.getByLabelText("Cíl výzkumu"));
     // The empty project's title shows as an empty field, as in the classic screen.
     expect((screen.getByPlaceholderText("Např. Nové balení produktu") as HTMLInputElement).value).toBe("");
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Napište cíl, nebo co přesně zkoumáme")).toBeTruthy();
+  });
+
+  it("on a wide desktop the start action sits beside the checklist, and the form keeps no dock over it", async () => {
+    unitStub({ goal: "Chceme zjistit, jak lidé vnímají novou kampaň banky. Výsledek použijeme." });
+    // Only the wide-desktop query matches; the assistance panel's narrow query does not.
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(min-width: 1280px)", addEventListener: () => {}, removeEventListener: () => {} }));
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const readiness = await screen.findByRole("complementary", { name: "Připravenost zadání" });
+    const start = within(readiness).getByRole("button", { name: NEXT }) as HTMLButtonElement;
+    expect(start.disabled).toBe(false);
+    expect(readiness.textContent).toContain("platí se z rozpočtu studie");
+    // One start action on the page, and no back-to-client dock under the form.
+    expect(screen.getAllByRole("button", { name: NEXT })).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: /Zpět na klienta/ })).toBeNull();
+  });
+
+  it("asks AI about the client's knowledge from beside the goal, opening help without sending anything", async () => {
+    unitStub({});
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Zeptat se AI na podklady klienta" }));
+    expect(await screen.findByRole("heading", { name: "Klientské znalosti" })).toBeTruthy();
+    expect(posted(AGENTS_PATH)).toEqual([]);
   });
 
   it("a problem type is a toggle that fills an empty goal with its default", async () => {
@@ -254,7 +283,8 @@ describe("Zadání", () => {
     expect(await screen.findAllByText("72 znaků")).toHaveLength(2); // the counter and the readiness row
     fireEvent.click(screen.getByRole("button", { name: "Navrhnout z cíle" }));
     expect(await screen.findByDisplayValue("Lidé vnímají novou kampaň banky")).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("25 %");
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("1 ze 4");
+    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("Povinné je hotové");
   });
 
   it("opens a context field from its chip, and × empties it and closes it", async () => {

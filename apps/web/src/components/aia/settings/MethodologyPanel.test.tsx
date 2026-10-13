@@ -55,6 +55,7 @@ describe("the Metodika tab", () => {
   it("lists every module and opens the object map in force, in the audit's order", async () => {
     fakeApi();
     render(<MethodologyPanel />);
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
     expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
       "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
@@ -118,7 +119,8 @@ describe("the Metodika tab", () => {
   it("opens the reference map with its own steps", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     await screen.findByRole("heading", { name: "Matice vztahů objektů (stupnice 1-10)" });
     expect(calls).toContain("/api/v1/methodology/sociomap_reference?preset=aia-sociomap-1");
   });
@@ -126,7 +128,8 @@ describe("the Metodika tab", () => {
   it("opens the experimental H-Model with its search parameters, shown and not offered for editing", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sociomapping: experimentální H-Model (kandidát AIA)" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sociomapping: experimentální H-Model (kandidát AIA)" }));
     await screen.findByRole("heading", { name: "Rozložení (H-Model, kandidát AIA)" });
     expect(calls).toContain("/api/v1/methodology/sociomapping?preset=aia_hmodel_candidate_v1");
     expect(screen.getAllByText(/EXPERIMENTAL_AIA/).length).toBeGreaterThan(0);
@@ -136,7 +139,8 @@ describe("the Metodika tab", () => {
   it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
@@ -146,7 +150,8 @@ describe("the Metodika tab", () => {
   it("opens aggregation with its declared bootstrap and the findings on their steps", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
     await screen.findByRole("heading", { name: "Interval: bootstrap dárců" });
     expect(screen.getByRole("heading", { name: "Věrohodnost otázky" })).toBeTruthy();
     expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
@@ -163,7 +168,8 @@ describe("the Metodika tab", () => {
   it("opens weighting read-only: the schemes, the sample's raking, the dataset's refusal and D1", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vážení: která váha patří respondentovi a co s neplatnou" }));
     await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
     expect(screen.getByText("vaha_strukturalni_2025")).toBeTruthy();
@@ -186,7 +192,8 @@ describe("the Metodika tab", () => {
   it("opens the response process: the unit's coefficients, the draw by code, D6, and editable", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Odpověď respondenta: od pravděpodobností modelu k odpovědi" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Odpověď respondenta: od pravděpodobností modelu k odpovědi" }));
     await screen.findByRole("heading", { name: "Mechanismy odpovědi" });
     expect(screen.getAllByText(/aia-response-1/).length).toBeGreaterThan(0);
     expect(screen.getByText("Losování odpovědi kódem")).toBeTruthy();

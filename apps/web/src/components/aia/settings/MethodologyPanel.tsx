@@ -47,16 +47,16 @@ function Modules({ modules, people }: { modules: MethodModuleSummary[]; people: 
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
-  const [chooserOpen, setChooserOpen] = useState(true);
+  const [chooserOpen, setChooserOpen] = useState(false);
   const current = modules.find((m) => m.id === active) ?? null;
   const visible = modules.filter((m) => `${m.title_cs} ${m.note_cs}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs")));
   const groups: { title: string; modules: MethodModuleSummary[] }[] = PURPOSE_GROUPS.map((group) => ({ title: group.title, modules: group.ids.map((id) => visible.find((module) => module.id === id)).filter((module): module is MethodModuleSummary => module !== undefined) }));
   const additional = visible.filter((module) => !PURPOSE_GROUPS.some((group) => (group.ids as readonly string[]).includes(module.id)));
   if (additional.length) groups.push({ title: "Další výpočty", modules: additional });
   return <div className="flex min-w-0 flex-col gap-4">
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-surface-sunken p-3">
-      <div><p className="text-sm font-semibold">1. Oblast výpočtu</p><p className="text-xs leading-5 text-ink-muted">Vyberte, co chcete porozumět nebo změnit. Upravit lze jen oblasti povolené serverem.</p></div>
-      <Button aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>{chooserOpen ? "Skrýt výběr" : "Změnit oblast"}</Button>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+      <div><p className="text-xs font-medium text-ink-muted">Oblast výpočtu</p><h3 className="mt-1 text-base font-semibold">{current?.title_cs ?? "Metodika"}</h3>{current?.note_cs ? <p className="mt-1 max-w-3xl text-sm leading-5 text-ink-muted">{current.note_cs}</p> : null}{current ? <details className="mt-1 text-xs text-ink-muted"><summary className="cursor-pointer">{current.editable ? "Jak změnit metodiku" : "Proč jen ke čtení"}</summary><p className="mt-1">{t(current.editable ? `${M}.editableModule` : `${M}.readOnlyModule`)}</p></details> : null}</div>
+      <Button aria-expanded={chooserOpen} aria-controls="methodology-module-chooser" onClick={() => setChooserOpen((value) => !value)}>{chooserOpen ? "Zavřít výběr" : "Změnit oblast"}</Button>
     </div>
     {chooserOpen ? <div id="methodology-module-chooser" className="flex flex-col gap-3">
       <TextInput type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -84,12 +84,6 @@ function ModuleView({ summary, people, onEditing }: { summary: MethodModuleSumma
   const [editing, setEditing] = useState(false);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
   return <div className="flex min-w-0 flex-col gap-4">
-    <header className="rounded-md border border-border bg-surface-sunken p-4">
-      <h3 className="text-base font-semibold">{summary.title_cs}</h3>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{summary.editable ? t(`${M}.editableModule`) : t(`${M}.readOnlyModule`)}</p>
-      <p className="mt-2 text-xs text-ink-muted">{summary.editable ? "Můžete prohlížet a jako oprávněný správce vytvořit novou verzi. Uložení a uvedení v platnost jsou různé kroky." : "Tato oblast se zobrazuje pro vysvětlení výpočtu; její hodnoty zde nelze měnit."}</p>
-      {summary.note_cs ? <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">{t(`${M}.methodNote`)}</summary><p className="mt-2 leading-5">{summary.note_cs}</p></details> : null}
-    </header>
     {summary.editable ? <MethodologyVersions summary={summary} people={people} onEditing={(value) => { setEditing(value); onEditing(value); }} /> : null}
     <div hidden={editing} className="flex min-w-0 flex-col gap-4">
       <div className="rounded-md border border-border p-3">
