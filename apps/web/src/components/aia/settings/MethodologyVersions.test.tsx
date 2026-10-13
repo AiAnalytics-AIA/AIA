@@ -84,20 +84,31 @@ const found = (selector: string, root: ParentNode = document) =>
     const element = root.querySelector(selector);
     if (!element) throw new Error(`nothing at ${selector}`);
     const group = element.closest("fieldset");
-    if (group?.hidden) fireEvent.change(screen.getByLabelText("Část metodiky k úpravě"), { target: { value: group.getAttribute("data-edit-step") } });
+    if (group?.hidden) fireEvent.click(document.querySelector(`[data-edit-step-link="${group.getAttribute("data-edit-step")}"]`)!);
     const disclosure = element.closest("details");
     if (disclosure && !disclosure.open) fireEvent.click(disclosure.querySelector("summary")!);
     return element as HTMLElement;
   });
 const editor = () => found("[data-methodology-editor]");
+/** An administrator opens on the editor; after a save or a cancel it is one click away. */
+async function openEditor() {
+  await versionsSection();
+  if (!document.querySelector("[data-methodology-editor]")) await openEditor();
+}
 const field = (form: HTMLElement, reference: string) =>
   waitFor(() => {
     const input = form.querySelector(`[data-field="${reference}"]`);
-    if (!input) throw new Error(`no field ${reference}`);
+    if (!input) throw new Error(`no field ${reference} among ${[...form.querySelectorAll("[data-field]")].map((n) => n.getAttribute("data-field")).join(",")} in ${form.isConnected}`);
     const group = input.closest("fieldset")!;
-    if (group.hidden) fireEvent.change(within(form).getByLabelText("Část metodiky k úpravě"), { target: { value: group.getAttribute("data-edit-step") } });
+    if (group.hidden) fireEvent.click(form.querySelector(`[data-edit-step-link="${group.getAttribute("data-edit-step")}"]`)!);
     return input as HTMLInputElement;
   });
+
+/** The area chooser is closed by default (the editor opens first): open it, then pick an area. */
+async function openModule(name: string) {
+  if (!screen.queryByRole("navigation", { name: "Oblasti metodiky" })) fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+  fireEvent.click(await screen.findByRole("button", { name }));
+}
 
 beforeEach(() => {
   resetConfigCache();
@@ -113,11 +124,10 @@ describe("the support rules' versions (plan G1d)", () => {
   it("edit a line both ways, a line not checked included, and store the whole specification", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
-    const section = await versionsSection();
-    fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
+    await versionsSection();
+    await openEditor();
     const form = await editor();
     const unchecked = await field(form, "results.n_guard");
     expect(unchecked.value).toBe("null"); // the unit's rule does not check it, and says so
@@ -141,10 +151,9 @@ describe("the aggregation's versions (plan G3b)", () => {
   it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
-    const section = await versionsSection();
-    fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
+    await openModule("Agregace: z odpovědí odhad s intervalem");
+    await versionsSection();
+    await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "top_box"), { target: { value: "3" } });
     const quantiles = await field(form, "bootstrap.quantiles");
@@ -180,7 +189,7 @@ describe("the methodology's versions", () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
     const section = await versionsSection();
-    fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     fireEvent.change(await field(form, "layout.stress_bands"), { target: { value: "[0.05, 0.1, 0.25]" } });
@@ -222,7 +231,7 @@ describe("the methodology's versions", () => {
       }),
     });
     render(<MethodologyPanel />);
-    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "2" } });
     const slot = await found('[data-edit-slot="f12.kernel"]', form);
@@ -242,7 +251,7 @@ describe("the methodology's versions", () => {
   it("catch a word where a number was before anything is sent", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     const sigma = await field(form, "terrain.sigma");
     fireEvent.change(sigma, { target: { value: "široký" } });
@@ -255,7 +264,7 @@ describe("the methodology's versions", () => {
   it("say a replaced formula can be stored but not yet put in force, and draw it", async () => {
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: ["f12.kernel"], formulas_latex: { "f12.kernel": "h \\exp\\left(-\\frac{d_2}{2\\sigma^{2}}\\right)" } }) });
     render(<MethodologyPanel />);
-    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     const slot = await found('[data-edit-slot="f12.kernel"]', form);
     fireEvent.change(within(slot).getByRole("textbox"), { target: { value: "h * exp(-d2 / (2 * sigma ** 2))" } });
@@ -277,8 +286,7 @@ describe("the methodology's versions", () => {
     fakeApi();
     render(<MethodologyPanel />);
     await versionsSection();
-    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
-    fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    await openModule("Sociomapa: referenční mapa (18.6.6)");
     await screen.findByRole("heading", { name: "Váhy respondentů" });
     expect(screen.queryByRole("heading", { name: "Verze metodiky" })).toBeNull();
   });
@@ -310,7 +318,7 @@ describe("the comparison with what is in force", () => {
       },
     });
     render(<MethodologyPanel />);
-    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
@@ -330,7 +338,7 @@ describe("the comparison with what is in force", () => {
   it("shows a refused edit's problems at its fields instead of a comparison", async () => {
     fakeApi({ compare: { valid: false, problems: { "spec.relation.n_min": "must be at least 4" }, in_force: "", panels: [] } });
     render(<MethodologyPanel />);
-    fireEvent.click(within(await versionsSection()).getByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
     await waitFor(() => expect(within(form).getByText("must be at least 4")).toBeTruthy());
@@ -341,7 +349,7 @@ describe("the comparison with what is in force", () => {
 describe("guided methodology editing", () => {
   it("preserves changes across sections, guards preset replacement and cancellation, and warns before leaving", async () => {
     fakeApi(); render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
@@ -359,10 +367,11 @@ describe("guided methodology editing", () => {
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
   });
 
-  it("requires confirmation before changing modules while the editor is open", async () => {
+  it("switches areas at once from an untouched editor, and asks first when it holds changes", async () => {
     fakeApi(); render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
-    await editor();
+    await openEditor();
+    const form = await editor();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
@@ -378,12 +387,61 @@ describe("guided methodology editing", () => {
 
   it("invalidates a previous successful check when the parameter changes", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Upravit metodiku" }));
+    await openEditor();
     const form = await editor();
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
     expect(await screen.findByText("Kontrola prošla.")).toBeTruthy();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     expect(screen.queryByText("Kontrola prošla.")).toBeNull();
     expect(sent.filter((c) => c.url.endsWith("/versions") && c.method === "POST")).toEqual([]);
+  });
+});
+
+describe("the editor a methodologist opens on (product owner, 2026-10-13)", () => {
+  it("opens on the editor, with no extra click", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    const form = await editor();
+    expect(within(form).getByRole("heading", { name: /^Úprava metodiky \(výchozí: aia-sociomap-/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
+    // The outline is the calculation in order, every editable step one click away.
+    const outline = within(form).getByRole("navigation", { name: "Kroky výpočtu" });
+    expect(within(outline).getAllByRole("button").length).toBeGreaterThan(3);
+  });
+
+  it("shows the change's place in the safe sequence, and what the draft changes in words", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    const form = await editor();
+    const flow = within(form).getByRole("list", { name: "Postup změny" });
+    const state = (key: string) => flow.querySelector(`[data-flow-step="${key}"]`)?.getAttribute("data-state");
+    expect(state("edit")).toBe("now");
+    expect(state("check")).toBe("todo");
+    const decision = within(form).getByRole("complementary", { name: "Dopad a rozhodnutí" });
+    expect(within(decision).getByText("Zatím beze změny.")).toBeTruthy();
+
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
+    expect(within(flow).getByText("· 1 změn")).toBeTruthy();
+    expect(within(decision).getByText("0,35")).toBeTruthy();
+    // The step that holds the change is marked in the outline.
+    const link = form.querySelector('[data-edit-step-link] [aria-label="1 změn"]');
+    expect(link).not.toBeNull();
+
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
+    await waitFor(() => expect(state("check")).toBe("done"));
+    expect(within(flow).getByText("· prošla")).toBeTruthy();
+    expect(state("compare")).toBe("now");
+  });
+
+  it("offers to put a just-saved version in force, with a reason, without hunting for it", async () => {
+    const { sent } = fakeApi(); render(<MethodologyPanel />);
+    const form = await editor();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    const section = await versionsSection();
+    const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }, { timeout: 5000 });
+    fireEvent.click(offer);
+    const confirm = await found("[data-methodology-activate]", section);
+    fireEvent.change(within(confirm).getByLabelText("Důvod (zapíše se do historie)"), { target: { value: "širší kopec" } });
+    fireEvent.click(within(confirm).getByRole("button", { name: "Potvrdit" }));
+    await waitFor(() => expect(sent.some((s) => s.url.endsWith("/activation") && (s.body?.version_number as number) === 1)).toBe(true));
   });
 });

@@ -104,3 +104,36 @@ Asked and answered in the session that took over this handoff; they bind the rem
   closes the form. AI next to the goal opens the help panel and sends nothing. Tests:
   `BriefStep.test.tsx` "draws the classic blocks…", "on a wide desktop the start action…", "asks AI
   about the client's knowledge…".
+
+## Chunk 4, first slice: the Metodika editor (stacked on the Zadání PR)
+
+Mocked first on the canvas (artboard "Nastavení · Metodika · editor"), then built over the same
+API calls, guards and server checks; nothing about what a version may be moved.
+
+- An administrator opens on the editor (from the stored version in force, else the code's first
+  preset, as before). A one-row sequence shows where the change stands: upravit → zkontrolovat →
+  porovnat → uložit verzi → aktivovat, each with its result. Tests:
+  `MethodologyVersions.test.tsx` "opens on the editor, with no extra click", "shows the change's
+  place in the safe sequence…".
+- The step `<select>` and arrows are replaced by an outline of the calculation in order (group,
+  then its steps; a dot marks a changed step, "problém" a refused one). A step shows its formula
+  first, each formula slot's expression with "Vrátit původní", its variables and the conditions the
+  server checks, then its parameters with the value in force; no disclosure hides any of it.
+- What the draft changes is listed in words (old → new); check, compare, note and save sit beside
+  the step from 1536 px and under the sequence below that. A saved version offers its activation at
+  once (reason required); activating another version waits only on unsaved changes. Test: "offers to
+  put a just-saved version in force…".
+- Switching areas asks only when the open editor holds changes (was: whenever it was open). Test:
+  "switches areas at once from an untouched editor, and asks first when it holds changes".
+- Measured: re-typesetting every step's MathML on each keystroke made the guided-editing test
+  3.7 s → 5.4 s; typesetting is now cached by its LaTeX (`formulaMathML`), `Formula` is memoised and
+  a hidden step renders only its inputs: 3.4 s. In the browser (`settings_journey.mjs`, local
+  workbench, Chromium): a step opens in 118–123 ms and a typed value reaches the draft list in
+  111–215 ms; the sequence is above the fold at 1440 × 900, 1710 × 1000 and 1920 × 1080.
+
+### Findings
+
+- Hypothesis, not reproduced as a defect: with the code's preset in force the editor starts from the
+  first preset (`aia-sociomap-4`), not the one in force (`aia-sociomap-3`)
+  (`MethodologyVersions.tsx` `editStart`). Kept as it was; whether an edit should start from what is
+  in force is the product owner's call.

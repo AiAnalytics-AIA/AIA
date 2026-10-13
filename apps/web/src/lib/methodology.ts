@@ -53,9 +53,20 @@ export function groupSteps(detail: MethodModuleDetail): GroupedSteps {
 
 /** A formula as MathML, or null when Temml cannot read it (the page then shows the LaTeX). */
 export function formulaMathML(latex: string, display = true): string | null {
+  // Typesetting is pure in its input, and the editor redraws every step's formulas on each
+  // keystroke: the same LaTeX is typeset once. Bounded: the catalogue has a few hundred.
+  const key = `${display ? "D" : "I"}${latex}`;
+  const cached = TYPESET.get(key);
+  if (cached !== undefined) return cached;
+  let mathml: string | null;
   try {
-    return temml.renderToString(latex, { displayMode: display, throwOnError: true, trust: false, strict: false });
+    mathml = temml.renderToString(latex, { displayMode: display, throwOnError: true, trust: false, strict: false });
   } catch {
-    return null;
+    mathml = null;
   }
+  if (TYPESET.size >= TYPESET_LIMIT) TYPESET.clear();
+  TYPESET.set(key, mathml);
+  return mathml;
 }
+const TYPESET = new Map<string, string | null>();
+const TYPESET_LIMIT = 2000;
