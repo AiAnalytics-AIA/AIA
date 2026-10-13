@@ -209,6 +209,24 @@ forbid "executors never touch the client contacts table" \
   'ClientContactRow' \
   "$EXECUTORS"
 
+# A client's sources are the material a person adds (lifecycle K2a). Their rows are read
+# and written only by their repository, under an issued ClientContext, which keeps the
+# bytes under the client's prefix and reads them back against the kept hash. A source is
+# not knowledge: nothing that builds a study context may reach the table.
+forbid "client sources are touched only by their repository" \
+  'ClientSource(Occurrence)?Row' \
+  "$CORE" \
+  tables.py client_source_repository.py
+forbid "the API never touches the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
+  "$API"
+forbid "the worker never touches the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
+  "$WORKER"
+forbid "executors never touch the client sources tables" \
+  'ClientSource(Occurrence)?Row' \
+  "$EXECUTORS"
+
 # System prompts are data an administrator edits (ADR 0020). Their rows are written and
 # read only through the prompt repository, which refuses anyone who may not administer
 # the organization, keeps versions immutable, and audits every change. A table used

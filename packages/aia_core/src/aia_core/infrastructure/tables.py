@@ -872,6 +872,65 @@ class ClientContactRow(Base):
     )
 
 
+class ClientSourceRow(Base):
+    """A client's stored original (lifecycle K2a): one per client and SHA-256.
+
+    The bytes and the reading are objects in the artifact store under the client's
+    prefix (``storage_key``, ``reading_key``); this row is what AIA knows of them. A
+    source is not knowledge: no study context reads it.
+    """
+
+    __tablename__ = "client_sources"
+
+    source_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    media_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    family: Mapped[str] = mapped_column(String(16), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    reading_key: Mapped[str | None] = mapped_column(String(512))
+    reading_sha256: Mapped[str | None] = mapped_column(String(64))
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(64))
+    reader: Mapped[str | None] = mapped_column(String(32))
+    characters: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    segment_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint("client_id", "sha256", name="client_source_sha_unique"),
+    )
+
+
+class ClientSourceOccurrenceRow(Base):
+    """One time someone added a client's source: the name it came under, who, when."""
+
+    __tablename__ = "client_source_occurrences"
+
+    occurrence_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    source_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    filename: Mapped[str] = mapped_column(String(160), nullable=False)
+    origin: Mapped[str] = mapped_column(String(16), nullable=False)
+    added_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    added_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["source_id"], ["client_sources.source_id"], ondelete="CASCADE"),
+        Index("ix_client_source_occurrences_source", "source_id"),
+        Index("ix_client_source_occurrences_client", "client_id", "added_at"),
+    )
+
+
 class ClientKnowledgeFolderRow(Base):
     """A folder of one client's knowledge (client-workspace C3): organization, not knowledge."""
 
