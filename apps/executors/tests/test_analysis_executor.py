@@ -35,7 +35,7 @@ from aia_core.application.analysis_results import (
     SourcesRefused,
     reconstruct_run,
 )
-from aia_core.application.contextual_report import contextual_report
+from aia_core.application.contextual_report import contextual_report, stored_contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.research import ResearchRuns, research_artifacts
@@ -865,6 +865,25 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                     s.id for s in combined.sections
                 }
                 assert DocxRenderer().render(combined).startswith(b"PK")
+                # Stored once as an unapproved draft; the next download reads that artifact.
+                stored, data = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                again, same = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert data.startswith(b"PK") and same == data
+                assert again.artifact_id == stored.artifact_id and not stored.is_approved
+                assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+                assert stored.metadata["deep_research_run_id"] == interpreted.run_id
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
                 record_property(

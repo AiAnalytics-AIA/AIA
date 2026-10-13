@@ -4,7 +4,7 @@ chunks:
   - "[x] B1a. Per-question tables in the internal report: every question's numbers (option shares, scale mean, top-2-box) as NumberCells over claims admitted question by question through admit_numeric_claims; a question the gate refuses says why instead of blocking the report; suppressed cells removed and counted by the table"
   - "[x] B1b. The design in the report: the Design Revision's goal, research questions and comparable sets as a chapter, and the questionnaire (blocks, questions, options, scales) as an appendix -- words from the run's own specification, no numbers"
   - "[x] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
-  - "[ ] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
+  - "[x] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
   - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
   - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
   - "[ ] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
@@ -89,6 +89,15 @@ number labelled (B5); stages before backend (done in PR #382).
   literature now carries the design, method, question and questionnaire sections too
   (it had only the maps). Contract `aia-contextual-report-3`. Test: the interpretation
   journey in test_analysis_executor.py asserts the four section ids on the combined report.
+- B1d (second part): `contextual_report.stored_contextual_report` composes the report with
+  literature from its verified sources, fingerprints them (contract, both run ids, the eight
+  analysis artifacts' SHA-256, the map's, the bundle's, the printed names and date) and
+  renders and stores it only when no valid artifact has that fingerprint
+  (`research_internal_docx_with_research`, stage REPORT, on the Study's design project,
+  `review_state` DRAFT_UNAPPROVED, depending on the analysis and map artifacts). The
+  download route serves the stored bytes and names the artifact
+  (`X-AIA-Artifact-Id`, `X-AIA-Review-State`), so B2 can approve the document a person
+  read. Test: the interpretation journey downloads twice and gets the same artifact.
 
 ## Findings
 
@@ -120,4 +129,7 @@ number labelled (B5); stages before backend (done in PR #382).
   design and method chapters from the run's verified sources; the worker's report and the
   report with literature both take them from here`; contextual_report.py's line gains "the
   same chapters as the internal report (report_chapters)".
+- CLAUDE.md § 2 map, contextual_report.py: "stored once per exact source set as
+  research_internal_docx_with_research (DRAFT_UNAPPROVED; stored_contextual_report); the
+  download serves that artifact and names it in X-AIA-Artifact-Id / X-AIA-Review-State".
 - open-items.md: F1 to be numbered there.

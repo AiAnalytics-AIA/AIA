@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
-from aia_core.application.contextual_report import contextual_report
+from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
     DeepResearchRunNotFound,
@@ -1243,14 +1243,17 @@ def download_contextual_report(
     scope: StudyScopeDep,
     session: SessionDep,
     store: ArtifactStoreDep,
+    settings: SettingsDep,
 ) -> Response:
-    from aia_core.infrastructure.report_docx.renderer import DocxRenderer
-
     try:
-        document = contextual_report(
-            session, scope, store, run_id=run_id, deep_research_run_id=deep_research_run_id
+        artifact, data = stored_contextual_report(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            deep_research_run_id=deep_research_run_id,
+            build=settings.build.sha or "",
         )
-        data = DocxRenderer().render(document)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     except (ResearchRunNotFound, DeepResearchRunNotFound) as exc:
@@ -1279,6 +1282,11 @@ def download_contextual_report(
                 f'attachment; filename="AIA-{scope.study_id}-with-research.docx"'
             ),
             "Cache-Control": "no-store",
+            # The stored draft these bytes are, for its review and approval (B2).
+            "X-AIA-Artifact-Id": artifact.artifact_id,
+            "X-AIA-Review-State": "APPROVED_INTERNAL"
+            if artifact.is_approved
+            else "DRAFT_UNAPPROVED",
         },
     )
 
