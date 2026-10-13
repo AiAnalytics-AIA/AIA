@@ -66,3 +66,41 @@ Organize all eight current tabs around questions a person asks, with a predictab
 6. **Release only the complete, reviewed work.** Merge after full CI and review; then verify the deployed exact SHA, live read-only journeys and screenshots at the target desktop viewport. Do not claim success from a passing unit suite or a local design preview. Keep the existing live research runs and settings untouched during acceptance.
 
 The outcome to seek is not merely fewer pixels. A researcher should be able to finish a brief, refine a proposal, understand the method behind a map, and locate the resulting report without wondering whether they are editing a draft, reading a generated suggestion or looking at an active rule.
+
+## Decisions with the product owner (2026-10-13)
+
+Asked and answered in the session that took over this handoff; they bind the remaining chunks.
+
+- **Review loop:** each screen is mocked on the Claude Design canvas first, built from the app's
+  current look (`apps/web/src/design/tokens.json`, Studio v3 shell and components), then implemented
+  and tested. Canvas: <https://claude.ai/artifact/AxP51RbkDroRQpDx4uqFzb>.
+- **Ship order:** small PRs. This PR lands the compact stage header and Zadání; Návrh and Metodika
+  follow as their own PRs. Settings: Metodika first, the other seven tabs later on the same pattern.
+- **Contextual AI:** one AI entry per stage, beside the stage's main work, plus the nonmodal side
+  panel on desktop (history, cost, what AI sees). Not a trigger beside every number. What a job sees
+  is unchanged: approved client knowledge, the saved design and the typed question; result and map
+  values are sent only when the researcher types them.
+- **Peak-end:** the moment that must feel finished is the downloaded report: which run, which
+  method, the file ready, where to find it again.
+- **Metodika:** used by one or two methodologists; it opens on the editor. Safety stays draft →
+  check → compare → save → activate, shown as one sequence with each result kept and activation a
+  separate confirmed action with a reason. Formula first, with the named parameters and the formula
+  editor combined into one clear editor (today's hierarchy is the problem).
+- **Measured in Playwright:** visible feedback to every interaction within 400 ms (pressed state,
+  panel open, "Ukládám…"); server work may take longer and says so honestly. Must-pass viewports:
+  1440 × 900, 1710 × 1000, 1920 × 1080.
+- **Remove across the app:** disclosure arrows that hide text, boxes inside boxes, small grey
+  explanatory text everywhere, technical ids and hashes shown to researchers, inconsistent buttons.
+
+## Chunk 3, first slice: the stage header and Zadání (this PR)
+
+- One-row stage header (`AppShell` `compact`): breadcrumbs, save state, AI help; the title opens the
+  work. The duplicate "Zpět na klienta" link and the step pill are gone (the breadcrumb and the rail
+  carry them). Tests: `ResearchScreen.test.tsx` "draws the step in the shell…", "says in the
+  breadcrumbs…".
+- Zadání is one surface: required (goal, problem type) first, then "Volitelné · zpřesní návrh"
+  (files, context). Readiness counts what is done, names the next gap, and a row puts the caret in
+  its field. At ≥ 1280 px the start action and its cost sit beside the checklist; below, the dock
+  closes the form. AI next to the goal opens the help panel and sends nothing. Tests:
+  `BriefStep.test.tsx` "draws the classic blocks…", "on a wide desktop the start action…", "asks AI
+  about the client's knowledge…".
