@@ -5,7 +5,7 @@ chunks:
   - "[x] C1. Client shell: Profil tab, counts on tabs, status in the bar, Přidat znalost beside Nový výzkum"
   - "[x] C2. Výzkumy as a table: status filters, where each study is, what it brought into knowledge; one search with project memory"
   - "[x] C3. Folders and labels: per-client folders, labels, an item in one folder with any labels (migration, repository, routes)"
-  - "[ ] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
+  - "[x] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
   - "[ ] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
@@ -195,18 +195,72 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   - These run on SQLite and on PostgreSQL 16.
   - API, `test_client_api.py`: filing end to end, and across clients with all-or-nothing.
 
-### C4. Knowledge library
-- **What it does** (`KnowledgeArea.tsx` rebuilt to the design):
-  - views: Vše, Ke schválení, Bez složky, Starší než rok;
-  - folder tree, label chips and kind chips;
-  - the list as a table;
-  - the open item beside the list;
-  - bulk move and label.
-- **Edits:** an edit goes through the existing proposal route with `item_id` (`workspace.py:885`),
-  so a person's edit is a new revision under ADR 0019. History reads `workspace.revisions`.
-- **Starší než rok:** compares `modified_at` with today, and is labelled exactly so.
-- **Tests:** the filters as pure functions; the open item's revision list; keyboard order;
-  every control labelled.
+### C4. Knowledge library (landed)
+
+**The page.** `KnowledgeArea` is now the library.
+
+- **The side panel** (`Pohledy, složky a štítky`) holds the views, the folders and the labels:
+  - **Views:** *Všechny znalosti*; *Ke schválení*, with the client's pending count; *Bez složky*;
+    *Starší než rok*.
+  - **Folders,** each with its count.
+  - **Labels** as toggles, each with its count.
+  - Creation: *Nová složka* opens a prompt; *Nový štítek* opens an inline name-and-colour form.
+  - A note says AI and studies never see folders or labels, and that filing writes no revision.
+- **The main column:**
+  - the view's heading, with *Přejmenovat* and *Smazat složku* on a folder;
+  - the active label, with its colour, *Přejmenovat*, *Smazat štítek* and *Zrušit filtr*;
+  - kind chips (*Vše*, *Zdroje a dokumenty*, *Fakta, zjištění, pojmy*, *Dimenze*, *Audience*,
+    *Data*), which replace the old section tabs;
+  - search;
+  - the items as a table: tick box, the item, kind, folder and labels, revision, change.
+
+`KnowledgeLibrary` holds the table, the bulk bar and the open item.
+
+- **Bulk bar:** acts on the ticked items that are still shown, so nothing hidden moves unseen.
+  It can move them to a folder or to *Bez složky*, and add or remove a label. Every action is
+  one `PUT …/placement`.
+- **The open item,** beside the list and wrapping below it on narrow screens:
+  - **Edits:** name and summary are edited into a new revision through the existing proposal
+    route with `item_id` (ADR 0019). Where the client turned self-approval off, the panel says
+    the edit waits for someone else.
+  - **Filing:** a folder select, label chips that can be removed, and a select to add a label.
+  - **History:** from `GET …/items/{id}/revisions`, newest first, each revision with its origin
+    in words: from a study, written by a person, or a decided proposal.
+  - **Reading only:** without `PROPOSE_CLIENT_KNOWLEDGE` the page offers nothing that would
+    write (no tick boxes, new folder, add or edit), and the folder select is disabled.
+
+**Logic in `lib/knowledge-library.ts`, pure and tested:**
+- what each view asks the API for;
+- *Starší než rok* means more than 365 days since the last change. An item with no date is not
+  called old, because that would be a guess. "Now" is fixed when the library opens.
+- `atCap`: a full page of 200 says *Zobrazeno prvních 200 …* rather than looking complete;
+- the selection helpers;
+- `LABEL_DOT`, which maps each label colour to its hue token.
+
+**Changed from the design:**
+- *Předchozí studie* left Znalosti. Výzkumy's *Předané* filter (C2) shows the same studies, with
+  more.
+- Folder and label management lives in the side panel and the view's heading, not a separate
+  settings page.
+
+**Found on the way, fixed:**
+- I first removed strings that Přehled still reads (`aia.knowledge.sections.*`). `t()` falls back
+  to the key silently, so nothing failed. The strings are restored, and `ClientFirst.test.tsx`
+  now asserts the four section names on Přehled.
+- C3's `Result.tuples()` is deprecated since SQLAlchemy 2.1; fixed in its own commit.
+
+**Tests:**
+- `lib/knowledge-library.test.ts`: views, the year rule, the cap, selection.
+- `clients/KnowledgeLibrary.test.tsx`, eight rendering tests:
+  - filed rows and counts;
+  - the API asked by folder, by *Bez složky* and by label;
+  - the old view;
+  - bulk move, label and un-file, each checked by its request body;
+  - the open item: history, an edit as a new revision, re-filing, removing a label;
+  - an edit waiting under independent review;
+  - creating a folder, and the Czech message when its name is taken;
+  - a reader without the right to propose.
+- `ClientFirst.test.tsx`: updated for the new controls.
 
 ### C5. Profile
 - **Depends on:** D5 being confirmed first.

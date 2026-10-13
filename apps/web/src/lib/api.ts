@@ -248,7 +248,19 @@ export type KnowledgeItem = {
   content: Record<string, unknown>;
   revision: number;
   modified_at: string | null;
+  /** Where people filed it: organization, not knowledge (no model sees it). */
+  folder_id?: string | null;
+  label_ids?: string[];
 };
+
+export type LabelColour = "BLUE" | "TEAL" | "GREEN" | "ORANGE" | "VIOLET" | "SLATE";
+export const LABEL_COLOURS: readonly LabelColour[] = ["BLUE", "TEAL", "GREEN", "ORANGE", "VIOLET", "SLATE"];
+export type KnowledgeFolder = { folder_id: string; name: string; item_count: number };
+export type KnowledgeLabel = { label_id: string; name: string; colour: LabelColour; item_count: number };
+/** Which items to show: a folder ("unfiled": in none) and a label, beside section and search. */
+export type KnowledgeFiling = { folder?: string; label?: string };
+/** `folder_id` left out keeps each item's folder; null takes the items out of any. */
+export type Placement = { item_ids: string[]; folder_id?: string | null; add_labels?: string[]; remove_labels?: string[] };
 
 export type KnowledgeRevision = {
   revision: number;
@@ -512,13 +524,30 @@ export const workspace = {
     request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
-  knowledge: (clientId: string, section?: KnowledgeSection, q?: string) =>
-    request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q })}`),
+  knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
+    request<KnowledgeItem[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge${query({ section, q, folder: filing.folder, label: filing.label })}`),
+  folders: (clientId: string) => request<KnowledgeFolder[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/folders`),
+  createFolder: (clientId: string, name: string) =>
+    request<KnowledgeFolder>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/folders`, { name }),
+  renameFolder: (clientId: string, folderId: string, name: string) =>
+    request<KnowledgeFolder>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/folders/${enc(folderId)}`, { name }),
+  deleteFolder: (clientId: string, folderId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/knowledge/folders/${enc(folderId)}`),
+  labels: (clientId: string) => request<KnowledgeLabel[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/labels`),
+  createLabel: (clientId: string, name: string, colour: LabelColour) =>
+    request<KnowledgeLabel>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/labels`, { name, colour }),
+  changeLabel: (clientId: string, labelId: string, change: { name?: string; colour?: LabelColour }) =>
+    request<KnowledgeLabel>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/labels/${enc(labelId)}`, change),
+  deleteLabel: (clientId: string, labelId: string) =>
+    request<void>("DELETE", `/api/v1/clients/${enc(clientId)}/knowledge/labels/${enc(labelId)}`),
+  place: (clientId: string, placement: Placement) =>
+    request<KnowledgeItem[]>("PUT", `/api/v1/clients/${enc(clientId)}/knowledge/placement`, placement),
   revisions: (clientId: string, itemId: string) =>
     request<KnowledgeRevision[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/items/${enc(itemId)}/revisions`),
   proposals: (clientId: string, status?: Proposal["status"]) =>
     request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
-  propose: (clientId: string, body: { kind: string; title: string; summary?: string }) =>
+  /** Add knowledge, or (with `item_id`) edit an item: a new revision, or a proposal where self-approval is off. */
+  propose: (clientId: string, body: { kind: string; title: string; summary?: string; item_id?: string }) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
   decide: (clientId: string, proposalId: string, approve: boolean, note = "") =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {

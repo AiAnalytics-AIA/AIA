@@ -73,7 +73,10 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
           return kind ? STUDIES.filter((s) => s.kind === kind) : STUDIES;
         },
         "POST /api/v1/clients/CLI-a/studies": (b) => study("STU-9", String((b as { name: string }).name), (b as { kind: "RESEARCH" }).kind),
-        "GET /api/v1/clients/CLI-a/knowledge": () => [{ item_id: "KNW-1", kind: "SOURCE", title: "Výroční zpráva", summary: "", content: {}, revision: 1, modified_at: null }],
+        "GET /api/v1/clients/CLI-a/knowledge": () => [{ item_id: "KNW-1", kind: "SOURCE", title: "Výroční zpráva", summary: "", content: {}, revision: 1, modified_at: null, folder_id: null, label_ids: [] }],
+        "GET /api/v1/clients/CLI-a/knowledge/folders": () => [],
+        "GET /api/v1/clients/CLI-a/knowledge/labels": () => [],
+        "GET /api/v1/clients/CLI-a/knowledge/items/KNW-1/revisions": () => [],
         "GET /api/v1/clients/CLI-a/knowledge/proposals": () => PROPOSALS,
         "POST /api/v1/clients/CLI-a/knowledge/proposals/KNP-1/decision": () => ({ ...PROPOSALS[0], status: "APPROVED" }),
         "POST /api/v1/clients/CLI-a/knowledge/proposals": (b) => ({ ...PROPOSALS[1], ...(b as { kind: string; title: string }), status: "APPROVED", revision: 1 }),
@@ -190,6 +193,8 @@ describe("a client's workspace", () => {
     expect(within(research).getByText("Výzkum · Dotazník")).toBeTruthy();
     expect(screen.getByText("Cenové scénáře").closest("a")!.getAttribute("href")).toBe("/app/clients/CLI-a/simulations/STU-2");
     expect(screen.getByText("Revize znalostí 7", { exact: false })).toBeTruthy();
+    // The context counts by section, each named in words (a missing string would show its key).
+    for (const name of ["Zdroje", "Znalosti", "Dimenze", "Audience"]) expect(screen.getByText(name, { selector: "dt" })).toBeTruthy();
     expect(screen.getByText("Značka působí spolehlivě")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nový výzkum" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Nová simulace" })).toBeTruthy();
@@ -327,7 +332,7 @@ describe("a client's workspace", () => {
     expect(await screen.findByText("Výroční zpráva")).toBeTruthy();
     // Studio v3: the "Odkud znalosti pocházejí" strip is gone; the subtitle says where knowledge comes from.
     expect(screen.queryByRole("region", { name: "Odkud znalosti pocházejí" })).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "Čekající aktualizace" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ke schválení" }));
     const theirs = (await screen.findByText("Značka působí spolehlivě")).closest("li")!;
     const mine = screen.getByText("Můj pojem").closest("li")!;
     // ADR 0019: no approval between people, so the proposer may accept their own. The API
@@ -348,8 +353,8 @@ describe("a client's workspace", () => {
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
     fireEvent.click(within(form).getByRole("button", { name: "Přidat znalost" }));
     await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")[0].body).toMatchObject({ kind: "SOURCE", title: "Starbucks výroční zpráva" }));
-    // It lands on Zdroje, not in the queue of things waiting for someone.
-    await waitFor(() => expect(screen.getByRole("tab", { name: "Zdroje" }).getAttribute("aria-selected")).toBe("true"));
+    // It lands among the sources, not in the queue of things waiting for someone.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Zdroje a dokumenty" }).getAttribute("aria-pressed")).toBe("true"));
     expect(screen.queryByRole("button", { name: "Schválit" })).toBeNull();
   });
 });

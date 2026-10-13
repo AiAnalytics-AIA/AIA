@@ -1,88 +1,46 @@
 "use client";
 
 // Znalosti: this client's own context (ADR 0015 decision 7) -- never a global
-// knowledge base. (Studio v3 removed the "Odkud znalosti pocházejí" strip of the
-// three layers: the page's subtitle already says it.) What a person adds takes effect at once (ADR 0019);
-// what a study or an AI offers waits as a proposal a person accepts -- the one who
-// offered it may accept it, unless the client turned that off and the API says so.
+// knowledge base -- as a library (client-workspace C4). Views (everything, waiting on a
+// person, in no folder, unchanged for a year), the client's folders and labels, the kinds;
+// the items as a table with the open item beside it. What a person adds or edits takes
+// effect at once (ADR 0019); what a study or an AI offers waits as a proposal a person
+// accepts -- the one who offered it may accept it, unless the client turned that off and
+// the API says so. Folders and labels are organization, never knowledge (D4).
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type KnowledgeItem, type KnowledgeSection, type Proposal, workspace } from "@/lib/api";
+import {
+  type KnowledgeFolder,
+  type KnowledgeLabel,
+  type KnowledgeSection,
+  LABEL_COLOURS,
+  type LabelColour,
+  type Proposal,
+  workspace,
+} from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
-import { Button, Chip, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { LABEL_DOT, type LibraryView, folderOf, folderView } from "@/lib/knowledge-library";
+import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { ClientPage, useClient } from "./ClientContext";
-import { studyHref } from "./ClientOverview";
-import Link from "next/link";
+import { KnowledgeLibrary, said } from "./KnowledgeLibrary";
 
-type Section = KnowledgeSection | "previous" | "pending";
-const SECTIONS: Section[] = ["sources", "knowledge", "previous", "dimensions", "audiences", "pending"];
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
-// Where an added item shows up (domain KNOWLEDGE_SECTIONS); a DATASET lives under Data, not here.
-const SECTION_OF: Record<string, Section> = { SOURCE: "sources", DOCUMENT: "sources", DIMENSION: "dimensions", AUDIENCE: "audiences" };
-
-function Items({ clientId, section }: { clientId: string; section: KnowledgeSection }) {
-  const [q, setQ] = useState("");
-  const [res, retry] = useResource(() => workspace.knowledge(clientId, section, q || undefined), [clientId, section, q]);
-  return (
-    <>
-      <Field label={t("aia.knowledge.search")} className="mb-3 max-w-md">
-        <TextInput type="search" value={q} onChange={(e) => setQ(e.target.value)} />
-      </Field>
-      <Loaded res={res} retry={retry}>
-        {(items: KnowledgeItem[]) =>
-          items.length ? (
-            <ul className="grid gap-3 md:grid-cols-2">
-              {items.map((i) => (
-                <li key={i.item_id} className={CARD}>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-medium">{i.title}</span>
-                    <Tag>{t(`aia.knowledge.kinds.${i.kind}`)}</Tag>
-                  </div>
-                  {i.summary ? <p className="mt-1 text-sm text-ink-muted">{i.summary}</p> : null}
-                  <p className="mt-2 text-xs text-ink-faint">
-                    {tv("aia.knowledge.revision", { n: i.revision })} · {relative(i.modified_at)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Empty>{t(`aia.knowledge.empty.${section}`)}</Empty>
-          )
-        }
-      </Loaded>
-    </>
-  );
-}
-
-function Previous({ clientId }: { clientId: string }) {
-  const [res, retry] = useResource(() => workspace.studies(clientId), [clientId]);
-  return (
-    <Loaded res={res} retry={retry}>
-      {(studies) => {
-        const done = studies.filter((s) => s.status === "DELIVERED" || s.status === "ARCHIVED");
-        return done.length ? (
-          <ul className="flex flex-col gap-2">
-            {done.map((s) => (
-              <li key={s.study_id} className={`${CARD} flex items-center gap-3 py-3`}>
-                <Link href={studyHref(clientId, s)} className="flex-1 font-medium text-ink underline-offset-2 hover:underline">{s.name}</Link>
-                <Tag>{t(`aia.kind.${s.kind}`)}</Tag>
-                <Chip tone="done">{t(`aia.status.${s.status}`)}</Chip>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty>{t("aia.knowledge.empty.previous")}</Empty>
-        );
-      }}
-    </Loaded>
-  );
-}
+const KINDS: (KnowledgeSection | "all")[] = ["all", "sources", "knowledge", "dimensions", "audiences", "data"];
+// Where an added item shows up (domain KNOWLEDGE_SECTIONS).
+const SECTION_OF: Record<string, KnowledgeSection> = {
+  SOURCE: "sources",
+  DOCUMENT: "sources",
+  DIMENSION: "dimensions",
+  AUDIENCE: "audiences",
+  DATASET: "data",
+};
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApprove: boolean; onDecided: () => void }) {
   const [res, retry] = useResource(() => workspace.proposals(clientId, "PROPOSED"), [clientId]);
@@ -173,22 +131,170 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
 
 const addRequested = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add") === "1";
 
+function NavButton({ on, onClick, children, count, attention = false }: { on: boolean; onClick: () => void; children: ReactNode; count?: number | null; attention?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={`flex min-h-9 w-full items-center gap-2 rounded-control px-2 text-left text-[13px] ${FOCUS} ${on ? "bg-signal-wash font-semibold text-signal" : "text-ink hover:bg-surface-sunken"}`}
+    >
+      <span className="min-w-0 flex-1 truncate">{children}</span>{" "}
+      {count != null && count > 0 ? (
+        <span className={`rounded-pill px-1.5 font-mono text-[11px] ${attention ? "bg-status-you text-ink" : "text-ink-faint"}`}>{count}</span>
+      ) : null}
+    </button>
+  );
+}
+
+const SECTION_HEAD = "mx-2 mb-1 mt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+
+function NewLabel({ onCreate }: { onCreate: (name: string, colour: LabelColour) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [colour, setColour] = useState<LabelColour>("BLUE");
+  if (!open) {
+    return (
+      <Button small variant="quiet" icon="plus" onClick={() => setOpen(true)}>
+        {t("aia.library.newLabel")}
+      </Button>
+    );
+  }
+  return (
+    <form
+      className="flex flex-col gap-2 rounded-sm border border-border p-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!name.trim()) return;
+        void onCreate(name, colour).then((ok) => {
+          if (!ok) return;
+          setName("");
+          setOpen(false);
+        });
+      }}
+    >
+      <Field label={t("aia.library.labelName")}>
+        <TextInput value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+      </Field>
+      <Field label={t("aia.library.labelColour")}>
+        <Select value={colour} onChange={(e) => setColour(e.target.value as LabelColour)}>
+          {LABEL_COLOURS.map((c) => (
+            <option key={c} value={c}>{t(`aia.library.colours.${c}`)}</option>
+          ))}
+        </Select>
+      </Field>
+      <div className="flex gap-2">
+        <Button small variant="primary" type="submit" disabled={!name.trim()}>{t("aia.library.create")}</Button>
+        <Button small variant="quiet" onClick={() => setOpen(false)}>{t("aia.cancel")}</Button>
+      </div>
+    </form>
+  );
+}
+
 export function KnowledgeArea() {
   // `reload` re-reads the client, so the tabs' counts follow an addition or a decision.
   const { client, reload } = useClient();
   const router = useRouter();
+  const clientId = client.client_id;
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
   const mayPropose = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
   const mayApprove = client.permissions.includes("APPROVE_CLIENT_KNOWLEDGE");
-  const [section, setSection] = useState<Section>("sources");
+  const [view, setView] = useState<LibraryView>("all");
+  const [label, setLabel] = useState<string | null>(null);
+  const [section, setSection] = useState<KnowledgeSection | "all">("all");
   // "Přidat znalost" on any other area of the client lands here with ?add=1: the form opens.
   // The client is resolved in the browser before this renders, so `window` is there.
   const [proposing, setProposing] = useState(() => mayPropose && mayView && addRequested());
   const [version, setVersion] = useState(0);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [folders, retryFolders] = useResource(() => (mayView ? workspace.folders(clientId) : Promise.resolve([])), [clientId, mayView, version]);
+  const [labels, retryLabels] = useResource(() => (mayView ? workspace.labels(clientId) : Promise.resolve([])), [clientId, mayView, version]);
   // Once read, the request leaves the URL, so a reload or a shared link does not reopen the form.
   useEffect(() => {
-    if (addRequested()) router.replace(appRoutes.area(client.client_id, "knowledge"));
-  }, [client.client_id, router]);
+    if (addRequested()) router.replace(appRoutes.area(clientId, "knowledge"));
+  }, [clientId, router]);
+
+  const changed = () => {
+    setVersion((v) => v + 1);
+    reload();
+  };
+  const attempt = (work: Promise<unknown>, after?: () => void) =>
+    work.then(
+      () => {
+        setError(null);
+        after?.();
+        changed();
+        return true;
+      },
+      (e: unknown) => {
+        setError(said(e));
+        return false;
+      },
+    );
+  const folderList: KnowledgeFolder[] = folders.state === "ready" ? folders.data : [];
+  const labelList: KnowledgeLabel[] = labels.state === "ready" ? labels.data : [];
+  const folderId = folderOf(view);
+  const folder = folderList.find((f) => f.folder_id === folderId) ?? null;
+  const activeLabel = labelList.find((l) => l.label_id === label) ?? null;
+  const pick = (v: LibraryView) => {
+    setView(v);
+    if (v === "review") setLabel(null);
+  };
+
+  const newFolder = () =>
+    setAsk({
+      kind: "prompt",
+      message: t("aia.library.newFolderAsk"),
+      initial: "",
+      resolve: (name) => {
+        if (name?.trim()) void attempt(workspace.createFolder(clientId, name));
+      },
+    });
+  const renameFolder = (f: KnowledgeFolder) =>
+    setAsk({
+      kind: "prompt",
+      message: t("aia.library.renameFolderAsk"),
+      initial: f.name,
+      resolve: (name) => {
+        if (name?.trim() && name.trim() !== f.name) void attempt(workspace.renameFolder(clientId, f.folder_id, name));
+      },
+    });
+  const deleteFolder = (f: KnowledgeFolder) =>
+    setAsk({
+      kind: "confirm",
+      message: tv("aia.library.deleteFolderAsk", { name: f.name, n: f.item_count }),
+      resolve: (ok) => {
+        if (ok) void attempt(workspace.deleteFolder(clientId, f.folder_id), () => setView("all"));
+      },
+    });
+  const renameLabel = (l: KnowledgeLabel) =>
+    setAsk({
+      kind: "prompt",
+      message: t("aia.library.renameLabelAsk"),
+      initial: l.name,
+      resolve: (name) => {
+        if (name?.trim() && name.trim() !== l.name) void attempt(workspace.changeLabel(clientId, l.label_id, { name }));
+      },
+    });
+  const deleteLabel = (l: KnowledgeLabel) =>
+    setAsk({
+      kind: "confirm",
+      message: tv("aia.library.deleteLabelAsk", { name: l.name, n: l.item_count }),
+      resolve: (ok) => {
+        if (ok) void attempt(workspace.deleteLabel(clientId, l.label_id), () => setLabel(null));
+      },
+    });
+
+  const heading =
+    view === "review"
+      ? t("aia.library.views.review")
+      : folder
+        ? folder.name
+        : view.startsWith("folder:")
+          ? t("aia.library.views.all")
+          : t(`aia.library.views.${view as "all" | "unfiled" | "old"}`);
+
   return (
     <ClientPage
       sub={t("aia.knowledge.sub")}
@@ -200,39 +306,160 @@ export function KnowledgeArea() {
         <>
           {proposing ? (
             <AddForm
-              clientId={client.client_id}
+              clientId={clientId}
               onDone={(added) => {
                 setProposing(false);
-                // Added knowledge is listed where it belongs; only a held-back one (the client asked for independent review) is in Pending.
-                if (added) setSection(added.status === "PROPOSED" ? "pending" : (SECTION_OF[added.kind] ?? "knowledge"));
-                setVersion((v) => v + 1);
-                if (added) reload();
+                if (added) {
+                  // Added knowledge is listed where it belongs; only a held-back one (the client asked
+                  // for independent review) waits under Ke schválení.
+                  if (added.status === "PROPOSED") pick("review");
+                  else {
+                    setView("all");
+                    setLabel(null);
+                    setSection(SECTION_OF[added.kind] ?? "knowledge");
+                  }
+                  changed();
+                }
               }}
             />
           ) : null}
-          <div role="tablist" aria-label={t("aia.knowledge.sectionsLabel")} className="mb-4 flex flex-wrap gap-1">
-            {SECTIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={section === s}
-                onClick={() => setSection(s)}
-                className={`rounded-sm border px-3 py-1.5 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${section === s ? "border-signal bg-signal-wash font-semibold text-ink" : "border-border bg-surface-raised text-ink-muted hover:text-ink"}`}
-              >
-                {t(`aia.knowledge.sections.${s}`)}
-              </button>
-            ))}
+          {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+          <div className="flex flex-wrap items-start gap-5">
+            <nav aria-label={t("aia.library.navLabel")} className="min-w-[13rem] flex-[1_1_13rem] rounded-md border border-border bg-surface-raised p-2 lg:max-w-[16rem]">
+              <p className={`${SECTION_HEAD} mt-1`}>{t("aia.library.viewsTitle")}</p>
+              <NavButton on={view === "all"} onClick={() => pick("all")}>{t("aia.library.views.all")}</NavButton>
+              <NavButton on={view === "review"} onClick={() => pick("review")} count={client.counts?.pending_proposals} attention>
+                {t("aia.library.views.review")}
+              </NavButton>
+              <NavButton on={view === "unfiled"} onClick={() => pick("unfiled")}>{t("aia.library.views.unfiled")}</NavButton>
+              <NavButton on={view === "old"} onClick={() => pick("old")}>{t("aia.library.views.old")}</NavButton>
+
+              <p className={SECTION_HEAD}>{t("aia.library.foldersTitle")}</p>
+              <Loaded res={folders} retry={retryFolders}>
+                {(list) =>
+                  list.length ? (
+                    <>
+                      {list.map((f) => (
+                        <NavButton key={f.folder_id} on={view === folderView(f.folder_id)} onClick={() => pick(folderView(f.folder_id))} count={f.item_count}>
+                          {f.name}
+                        </NavButton>
+                      ))}
+                    </>
+                  ) : (
+                    <p className="mx-2 text-xs text-ink-faint">{t("aia.library.noFolders")}</p>
+                  )
+                }
+              </Loaded>
+              {mayPropose ? (
+                <Button small variant="quiet" icon="plus" onClick={newFolder}>
+                  {t("aia.library.newFolder")}
+                </Button>
+              ) : null}
+
+              <p className={SECTION_HEAD}>{t("aia.library.labelsTitle")}</p>
+              <Loaded res={labels} retry={retryLabels}>
+                {(list) =>
+                  list.length ? (
+                    <div role="group" aria-label={t("aia.library.labelsTitle")} className="flex flex-wrap gap-1.5 px-2 pb-1">
+                      {list.map((l) => (
+                        <button
+                          key={l.label_id}
+                          type="button"
+                          aria-pressed={label === l.label_id}
+                          disabled={view === "review"}
+                          onClick={() => setLabel(label === l.label_id ? null : l.label_id)}
+                          className={`inline-flex min-h-7 items-center gap-1.5 rounded-pill border px-2.5 text-xs disabled:opacity-50 ${FOCUS} ${label === l.label_id ? "border-signal bg-signal-wash font-medium text-signal" : "border-border bg-surface-raised text-ink hover:border-border-strong"}`}
+                        >
+                          <span aria-hidden="true" className={`size-[7px] rounded-full ${LABEL_DOT[l.colour]}`} />
+                          {l.name}{" "}
+                          {l.item_count ? <span className="font-mono text-[10px] text-ink-faint">{l.item_count}</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mx-2 text-xs text-ink-faint">{t("aia.library.noLabels")}</p>
+                  )
+                }
+              </Loaded>
+              {mayPropose ? (
+                <div className="px-1 pt-1">
+                  <NewLabel onCreate={(name, colour) => attempt(workspace.createLabel(clientId, name, colour))} />
+                </div>
+              ) : null}
+              <p className="mx-2 mt-3 border-t border-border pt-2 text-[11px] leading-4 text-ink-faint">{t("aia.library.filingNote")}</p>
+            </nav>
+
+            <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="min-w-0 flex-1 text-lg font-semibold">{heading}</h2>
+                {mayPropose && folder ? (
+                  <>
+                    <Button small onClick={() => renameFolder(folder)}>{t("aia.library.rename")}</Button>
+                    <Button small onClick={() => deleteFolder(folder)}>{t("aia.library.deleteFolder")}</Button>
+                  </>
+                ) : null}
+              </div>
+              {activeLabel && view !== "review" ? (
+                <div className="flex flex-wrap items-center gap-2 text-[13px]">
+                  <span className="text-ink-muted">{t("aia.library.labelFilter")}</span>
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <span aria-hidden="true" className={`size-[7px] rounded-full ${LABEL_DOT[activeLabel.colour]}`} />
+                    {activeLabel.name}
+                  </span>
+                  {mayPropose ? (
+                    <>
+                      <label className="flex items-center gap-1">
+                        <span className="sr-only">{t("aia.library.labelColour")}</span>
+                        <Select
+                          value={activeLabel.colour}
+                          className="w-auto min-h-8"
+                          onChange={(e) => void attempt(workspace.changeLabel(clientId, activeLabel.label_id, { colour: e.target.value as LabelColour }))}
+                        >
+                          {LABEL_COLOURS.map((c) => (
+                            <option key={c} value={c}>{t(`aia.library.colours.${c}`)}</option>
+                          ))}
+                        </Select>
+                      </label>
+                      <Button small onClick={() => renameLabel(activeLabel)}>{t("aia.library.rename")}</Button>
+                      <Button small onClick={() => deleteLabel(activeLabel)}>{t("aia.library.deleteLabel")}</Button>
+                    </>
+                  ) : null}
+                  <Button small variant="quiet" onClick={() => setLabel(null)}>{t("aia.library.clearLabel")}</Button>
+                </div>
+              ) : null}
+              {view === "review" ? (
+                <Pending clientId={clientId} mayApprove={mayApprove} onDecided={changed} />
+              ) : (
+                <>
+                  <div role="group" aria-label={t("aia.library.kindsLabel")} className="flex flex-wrap gap-1.5">
+                    {KINDS.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        aria-pressed={section === k}
+                        onClick={() => setSection(k)}
+                        className={`inline-flex min-h-8 items-center rounded-pill border px-3 text-[13px] ${FOCUS} ${section === k ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface-raised text-ink hover:border-border-strong"}`}
+                      >
+                        {t(`aia.library.kinds.${k}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <KnowledgeLibrary
+                    clientId={clientId}
+                    view={view}
+                    label={label}
+                    section={section}
+                    folders={folderList}
+                    labels={labelList}
+                    mayPropose={mayPropose}
+                    version={version}
+                    onChanged={changed}
+                  />
+                </>
+              )}
+            </div>
           </div>
-          <div role="tabpanel" key={`${section}-${version}`}>
-            {section === "previous" ? (
-              <Previous clientId={client.client_id} />
-            ) : section === "pending" ? (
-              <Pending clientId={client.client_id} mayApprove={mayApprove} onDecided={reload} />
-            ) : (
-              <Items clientId={client.client_id} section={section} />
-            )}
-          </div>
+          <AskDialog ask={ask} onDone={() => setAsk(null)} />
         </>
       )}
     </ClientPage>
