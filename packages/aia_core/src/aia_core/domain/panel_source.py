@@ -40,6 +40,7 @@ __all__ = [
     "PANEL_SOURCE",
     "PanelPlans",
     "panel_plans",
+    "pinned_components",
     "respondent_system",
 ]
 
@@ -101,11 +102,20 @@ def respondent_system(population: RuntimePopulation, *, model_binding: str) -> d
     request; everything else is a version this code pins.
     """
     return {
+        **pinned_components(population.binding.version_id),
+        "model_binding": model_binding,
+    }
+
+
+def pinned_components(population_version: str) -> dict[str, str]:
+    """Every respondent system component but the model binding: what this code pins, over
+    ``population_version``. A validation's start compares these with its preregistration,
+    before the gateway has resolved a binding (panel-grounded-respondents 7e3)."""
+    return {
         "respondent_prompt_sha256": PROMPT_SHA256,
         "persona_builder": f"{PANEL_PERSONA_VERSION}/{PROFILE_VERSION}",
         "persona_mode": PERSONA_MODE,
         "sampler_version": SAMPLER_VERSION,
-        "population_version": population.binding.version_id,
-        "model_binding": model_binding,
+        "population_version": population_version,
         "response_process_version": f"{BEHAVIOR_VERSION}/{FACT_LAYER_VERSION}",
     }

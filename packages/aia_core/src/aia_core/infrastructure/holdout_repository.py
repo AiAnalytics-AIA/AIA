@@ -10,6 +10,11 @@ behind AIA's back is refused rather than scored.
 Recording the same record again answers the stored one; a different record for a Study that
 has one is refused: a preregistration that could be replaced after a look at anything would
 pin nothing.
+
+It also keeps the Study's **confirmation**: the run that confirms the preregistered system,
+recorded once when it starts (7e3). A respondent system is confirmed once in an organization,
+and a database constraint holds that, so two Studies racing to confirm one system cannot both
+start.
 """
 
 from __future__ import annotations
@@ -19,15 +24,28 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..domain.holdout.bank import canonical_json
 from ..domain.holdout.preregistration import HoldoutRefused, Preregistration, read_preregistration
 from ..domain.holdout.scoring import SCORING_VERSION
 from ..domain.scope import Permission, ScopeDenied, StudyContext, StudyKind
-from .tables import HoldoutPreregistrationRow, StudyRow, as_utc
+from .tables import HoldoutConfirmationRow, HoldoutPreregistrationRow, StudyRow, as_utc
 
-__all__ = ["HoldoutRepository", "StoredPreregistration"]
+__all__ = ["HoldoutRepository", "StoredConfirmation", "StoredPreregistration"]
+
+
+@dataclass(frozen=True, slots=True)
+class StoredConfirmation:
+    """A Study's confirmation run, as recorded when it started."""
+
+    study_id: str
+    run_id: str
+    respondent_system_fingerprint: str
+    preregistration_sha256: str
+    started_by: str
+    started_at: datetime
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,6 +146,76 @@ class HoldoutRepository:
         row = self._row()
         return self._to_domain(row) if row is not None else None
 
+    # -- the confirmation -------------------------------------------------------
+
+    def confirmation(self) -> StoredConfirmation | None:
+        """The Study's confirmation run, or ``None`` before it starts."""
+        self._scope.require(Permission.VIEW_STUDY)
+        s = self._scope
+        row = self._session.scalar(
+            select(HoldoutConfirmationRow).where(
+                HoldoutConfirmationRow.study_id == s.study_id,
+                HoldoutConfirmationRow.client_id == s.client_id,
+                HoldoutConfirmationRow.organization_id == s.organization_id,
+            )
+        )
+        return _confirmation(row) if row is not None else None
+
+    def system_confirmed_elsewhere(self, respondent_system_fingerprint: str) -> bool:
+        """Whether another Study of the organization has started confirming this system.
+
+        Says yes or no and nothing else: the other Study is outside this scope.
+        """
+        s = self._scope
+        found = self._session.scalar(
+            select(HoldoutConfirmationRow.study_id).where(
+                HoldoutConfirmationRow.organization_id == s.organization_id,
+                HoldoutConfirmationRow.respondent_system_fingerprint
+                == respondent_system_fingerprint,
+                HoldoutConfirmationRow.study_id != s.study_id,
+            )
+        )
+        return found is not None
+
+    def record_confirmation(
+        self, *, run_id: str, preregistration_sha256: str
+    ) -> StoredConfirmation:
+        """Record, once, that the Study's confirmation run has started.
+
+        ``preregistration_sha256`` must be the Study's stored preregistration's. A second
+        record for the Study, or a confirmation of a system another Study of the organization
+        has started confirming, is refused (``holdout_system_confirmation_started``). The
+        caller commits, or rolls back the run it created.
+        """
+        s = self._scope
+        s.require(Permission.RUN_WORKFLOW)
+        s.require_open_study()
+        stored = self.preregistration()
+        if stored is None or stored.sha256 != preregistration_sha256:
+            raise HoldoutRefused(
+                "a confirmation runs the Study's own preregistration",
+                reason="holdout_preregistration_missing",
+            )
+        row = HoldoutConfirmationRow(
+            study_id=s.study_id,
+            organization_id=s.organization_id,
+            client_id=s.client_id,
+            respondent_system_fingerprint=stored.respondent_system_fingerprint,
+            preregistration_sha256=stored.sha256,
+            run_id=run_id,
+            started_by=s.actor_id,
+        )
+        try:
+            with self._session.begin_nested():
+                self._session.add(row)
+                self._session.flush()
+        except IntegrityError:
+            raise HoldoutRefused(
+                "this respondent system's confirmation has already started",
+                reason="holdout_system_confirmation_started",
+            ) from None
+        return _confirmation(row)
+
     @staticmethod
     def _to_domain(row: HoldoutPreregistrationRow) -> StoredPreregistration:
         content = bytes(row.content)
@@ -155,3 +243,14 @@ class HoldoutRepository:
             created_by=row.created_by,
             created_at=as_utc(row.created_at),
         )
+
+
+def _confirmation(row: HoldoutConfirmationRow) -> StoredConfirmation:
+    return StoredConfirmation(
+        study_id=row.study_id,
+        run_id=row.run_id,
+        respondent_system_fingerprint=row.respondent_system_fingerprint,
+        preregistration_sha256=row.preregistration_sha256,
+        started_by=row.started_by,
+        started_at=as_utc(row.started_at),
+    )
