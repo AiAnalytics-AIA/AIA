@@ -53,11 +53,14 @@ export function toInput(value: unknown): string {
 export type Parsed = { ok: true; value: unknown } | { ok: false; reason: "number" | "boolean" | "json" };
 
 /** A typed value read back with the type the base value has. A number accepts a Czech decimal
- *  comma; nothing is coerced across types, so "30" never becomes a text where a number was. */
+ *  comma; nothing is coerced across types, so "30" never becomes a text where a number was.
+ *  A number may also be cleared to `null` (a line no longer checked, plan G1d): whether the
+ *  specification allows that is the domain's to say, as for every other value. */
 export function fromInput(original: unknown, raw: string): Parsed {
   if (typeof original === "string") return { ok: true, value: raw };
   const text = raw.trim();
   if (typeof original === "number") {
+    if (text === "null") return { ok: true, value: null };
     const n = text === "" ? Number.NaN : Number(text.replace(",", "."));
     return Number.isFinite(n) ? { ok: true, value: n } : { ok: false, reason: "number" };
   }

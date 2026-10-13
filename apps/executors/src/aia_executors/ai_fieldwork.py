@@ -1,4 +1,4 @@
-"""The ``ai_runtime`` fieldwork source: AI respondents on the fictional roster.
+"""The ``ai_runtime`` fieldwork source: AI respondents, fictional or drawn from the population.
 
 The executor half of :mod:`aia_core.domain.ai_respondent`. For one research run's
 fieldwork attempt it builds the roster, classifies the material, asks the gateway
@@ -7,19 +7,26 @@ block through :class:`~aia_executors.ai_step.StepModelCaller` and draws the answ
 code. It returns the same validated ``FieldworkDataset`` every other source returns,
 so Aggregate and the Sociomap read it unchanged.
 
-What it never does: call a provider except through ``GovernedModelGateway``, pick a
-persona source it was not given (there is one, the fictional roster), let a model set
-an answer, id, weight, donor or fact, or retry anything on its own.
+Who the respondents are is the run's pin (``persona_source``, plan
+``panel-grounded-respondents`` 5c): the fictional roster, or -- where the composition gives it a
+population loader (5d) -- respondents sampled from the population the run recorded
+(:func:`~aia_core.domain.panel_source.panel_plans`), whose dataset is ``MODELLED_AI_PANEL`` and
+names its respondent system.
+
+What it never does: call a provider except through ``GovernedModelGateway``, answer a run with a
+persona source other than the one it pinned, let a model set an answer, id, weight, donor or
+fact, or retry anything on its own.
 """
 
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 from aia_core.application.model_gateway import GovernedModelGateway
+from aia_core.application.population import PopulationRuntime
 from aia_core.domain.ai_contracts import ModelCallFailed
 from aia_core.domain.ai_material import (
     MaterialApproval,
@@ -38,6 +45,7 @@ from aia_core.domain.ai_respondent import (
     PROMPT_VERSION,
     ROSTER_VERSION,
     RespondentOutputInvalid,
+    RespondentPlan,
     UnsupportedFact,
     assemble_dataset,
     build_request,
@@ -47,24 +55,75 @@ from aia_core.domain.ai_respondent import (
     plan_items,
     plan_respondent,
 )
-from aia_core.domain.fieldwork import Answer
+from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
+from aia_core.domain.licence import DataLineage
+from aia_core.domain.methodology.pins import is_units_process, read_response_pin
+from aia_core.domain.panel_persona import PersonaRefused
+from aia_core.domain.panel_source import PanelPlans, panel_plans, respondent_system
+from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
+from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
+from aia_core.domain.population.errors import PopulationError
+from aia_core.domain.population.runtime import RuntimePopulation
+from aia_core.domain.population.sampling import SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
-from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
+from aia_core.domain.residency import DataClass
+from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION, ResponseProcessSpec
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
+from aia_core.infrastructure.population_source import PopulationAssetSource
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput
+from sqlalchemy.orm import Session
 
 from .ai_step import StepModelCaller
 
-__all__ = ["AIFieldwork", "AIFieldworkConfig", "ProducedDataset", "fieldwork_seed"]
+__all__ = [
+    "AIFieldwork",
+    "AIFieldworkConfig",
+    "PopulationLoader",
+    "ProducedDataset",
+    "fieldwork_seed",
+    "population_loader",
+]
+
+#: Loads the population a run recorded, inside the step's transaction.
+PopulationLoader = Callable[[Session, WorkflowRepository, str], RuntimePopulation]
+
+
+def population_loader(source: PopulationAssetSource) -> PopulationLoader:
+    """The worker's loader: the run's recorded binding, as the ANALYSIS view with its enricher."""
+
+    def load(session: Session, workflow: WorkflowRepository, run_id: str) -> RuntimePopulation:
+        runtime = PopulationRuntime(
+            session,
+            contract=CZ_SYNTHETIC_V17,
+            source=source,
+            enricher=AudienceDimensionsEnricher(),
+        )
+        return runtime.load_for_run(workflow, run_id)
+
+    return load
+
 
 #: Why a refused preflight parks the run: the gate's refusal is policy, not a defect.
 _PARK_MESSAGE = (
     "AI respondenti nejsou pro tento výzkum povoleni: {why}. Běh čeká u sběru dat; nic "
     "nebylo odesláno ani vymyšleno. Po schválení trasy nebo licence spusťte běh znovu."
+)
+
+
+#: Why a run whose respondents come from its population waits on a worker without that path.
+_POPULATION_UNAVAILABLE = (
+    "Populaci, ze které má tento běh respondenty, se nepodařilo načíst: {why}. Běh čeká u sběru "
+    "dat; nic nebylo odesláno ani vymyšleno."
+)
+_PANEL_UNAVAILABLE = (
+    "Tento běh má respondenty z populace, ale pracovník je neumí sestavit. Běh čeká u sběru "
+    "dat; nic nebylo odesláno ani vymyšleno."
 )
 
 
@@ -88,6 +147,19 @@ class ProducedDataset:
 
     dataset: Any
     provenance: dict[str, Any]
+    #: A modelled dataset's respondent system (ADR 0024 §4), for the artifact's metadata;
+    #: ``None`` for a fictional one, which is never validated.
+    respondent_system: dict[str, str] | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class Answered:
+    """Every plan answered: each respondent's answers, the call ledger, the route preflighted."""
+
+    rows: list[tuple[Any, dict[str, Answer]]]
+    calls: list[dict[str, Any]]
+    #: The preflight's resolution; ``None`` when no plan had a block (every answer a fact).
+    resolution: Any
 
 
 def fieldwork_seed(spec: ResearchSpecification) -> int:
@@ -105,49 +177,33 @@ class AIFieldwork:
         config: AIFieldworkConfig,
         build: BuildIdentity,
         caller_factory: Callable[..., StepModelCaller] = StepModelCaller,
+        population: PopulationLoader | None = None,
     ) -> None:
         self._gateway = gateway
         self._config = config
         self._build = build
         self._caller_factory = caller_factory
+        self._population = population
 
-    def produce(
-        self, spec: ResearchSpecification, step: StepInput, context: StepContext
-    ) -> ProducedDataset | Failed:
+    def answer_plans(
+        self,
+        plans: Sequence[RespondentPlan],
+        spec: ResearchSpecification,
+        context: StepContext,
+        *,
+        seed: int,
+        response: ResponseProcessSpec,
+        data_class: DataClass,
+        lineage: DataLineage,
+    ) -> Answered | Failed:
+        """Ask the model every block of every plan and draw the answers by code.
+
+        Everything fieldwork does after the plans are chosen: the preflight on the first plan
+        with a block, one request per respondent block, the draw, the call ledger and the
+        progress. It depends only on its arguments, so a caller with plans of its own (the
+        validation's arms, panel-grounded-respondents 7e) answers them exactly as a run does.
+        """
         cfg = self._config
-        if spec.n is None or spec.n < 1:
-            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
-        seed = fieldwork_seed(spec)
-        personas = fictional_roster(spec.n, seed=seed)
-        data_class, lineage = classify_material(
-            personas,
-            client_declared_fictional=True,  # the roster's actual fictional provenance, below
-        )
-        with context.transaction() as (session, workflow):
-            run = workflow.get_run(step.run_id)
-            revision_id = str(run["metadata"]["design_revision_id"])
-            design = StudyDesignRepository(session, context.scope).content(revision_id)
-        decision = classify_input(design, cfg.material_approvals)
-        classified = most_restrictive_material([data_class, decision.data_class])
-        if classified is None:
-            return Failed(
-                FailureClass.RUNTIME_UNAVAILABLE,
-                error={
-                    "reason": "egress_unclassified_material",
-                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
-                },
-            )
-        data_class = classified
-        try:
-            plans = [plan_respondent(spec, p) for p in personas]
-        except UnsupportedFact as exc:
-            return Failed(
-                FailureClass.SCHEMA_VIOLATION,
-                error={
-                    "message": f"Otázka se ptá na fakt, který respondent nemá: {exc}",
-                    "reason": "respondent_fact_unsupported",
-                },
-            )
         items = {i.item_id: i for i in plan_items(spec)}
         caller = self._caller_factory(
             gateway=self._gateway,
@@ -168,6 +224,7 @@ class AIFieldwork:
                 data_class=data_class,
                 lineage=lineage,
                 max_output_tokens=cfg.max_output_tokens,
+                response=response,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -196,7 +253,9 @@ class AIFieldwork:
                 result = caller.invoke(request_for(index, block.index, answers))
                 assert result.output is not None  # a structured agent's result has one
                 try:
-                    drawn, _ = interpret_block(block, result.output, plan.persona, seed=seed)
+                    drawn, _ = interpret_block(
+                        block, result.output, plan.persona, seed=seed, response=response
+                    )
                 except RespondentOutputInvalid as exc:
                     return Failed(
                         FailureClass.SCHEMA_VIOLATION,
@@ -228,6 +287,134 @@ class AIFieldwork:
             if done % max(1, cfg.progress_every) == 0 or done == len(plans):
                 context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
 
+        return Answered(rows=rows, calls=calls, resolution=resolution)
+
+    def produce(
+        self, spec: ResearchSpecification, step: StepInput, context: StepContext
+    ) -> ProducedDataset | Failed:
+        cfg = self._config
+        try:
+            persona_source = persona_source_of(step.payload)
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"message": str(exc), "reason": "persona_source_unknown"},
+            )
+        if persona_source is PersonaSource.PANEL and self._population is None:
+            # The run pinned respondents drawn from its population; this worker composes no
+            # panel path. It waits, and never answers with the fictional roster instead.
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "message": _PANEL_UNAVAILABLE,
+                    "reason": "panel_personas_unavailable",
+                    "source": "ai_runtime",
+                },
+            )
+        if spec.n is None or spec.n < 1:
+            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": "no sample size"})
+        seed = fieldwork_seed(spec)
+        try:
+            response = read_response_pin(step.payload.get("response"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "response_pin_invalid", "message": str(exc)},
+            )
+        population: RuntimePopulation | None = None
+        built: PanelPlans | None = None
+        if persona_source is PersonaSource.PANEL:
+            assert self._population is not None  # parked above otherwise
+            try:
+                with context.transaction() as (session, workflow):
+                    population = self._population(session, workflow, step.run_id)
+                built = panel_plans(population, spec, seed=seed, response=response)
+            except (SamplingRefused, PersonaRefused) as refused:
+                # The design asks for a sample or a persona this population cannot give: no
+                # smaller sample, no narrower persona, and nothing sent.
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={"message": str(refused), "reason": refused.reason},
+                )
+            except UnsupportedFact as exc:
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={
+                        "message": f"Otázka se ptá na fakt, který respondent nemá: {exc}",
+                        "reason": "respondent_fact_unsupported",
+                    },
+                )
+            except PopulationError as exc:
+                return Failed(
+                    FailureClass.RUNTIME_UNAVAILABLE,
+                    error={
+                        "message": _POPULATION_UNAVAILABLE.format(why=str(exc)),
+                        "reason": "population_unavailable",
+                        "source": "ai_runtime",
+                    },
+                )
+            personas = tuple(plan.persona for plan in built.plans)
+        else:
+            personas = fictional_roster(spec.n, seed=seed, response=response)
+        if built is None and not all(p.fictional for p in personas):
+            # Population-built personas come only through the run's pinned panel source; a
+            # roster that is not fictional is a defect. Fail here, before a call is paid for.
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "message": (
+                        "Fiktivní respondenti nejsou fiktivní; respondenti z populace patří jen "
+                        "běhu, který je má připnuté. Nic nebylo odesláno."
+                    ),
+                    "reason": "persona_source_unsupported",
+                },
+            )
+        data_class, lineage = classify_material(
+            personas,
+            client_declared_fictional=True,  # the roster's actual fictional provenance, below
+        )
+        with context.transaction() as (session, workflow):
+            run = workflow.get_run(step.run_id)
+            revision_id = str(run["metadata"]["design_revision_id"])
+            design = StudyDesignRepository(session, context.scope).content(revision_id)
+        decision = classify_input(design, cfg.material_approvals)
+        classified = most_restrictive_material([data_class, decision.data_class])
+        if classified is None:
+            return Failed(
+                FailureClass.RUNTIME_UNAVAILABLE,
+                error={
+                    "reason": "egress_unclassified_material",
+                    "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
+                },
+            )
+        data_class = classified
+        try:
+            plans = (
+                list(built.plans)
+                if built is not None
+                else [plan_respondent(spec, p) for p in personas]
+            )
+        except UnsupportedFact as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "message": f"Otázka se ptá na fakt, který respondent nemá: {exc}",
+                    "reason": "respondent_fact_unsupported",
+                },
+            )
+        answered = self.answer_plans(
+            plans,
+            spec,
+            context,
+            seed=seed,
+            response=response,
+            data_class=data_class,
+            lineage=lineage,
+        )
+        if isinstance(answered, Failed):
+            return answered
+        rows, calls, resolution = answered.rows, answered.calls, answered.resolution
+
         dataset = assemble_dataset(spec, rows, seed=seed)
         provenance = {
             "agent": {"id": AGENT_ID, "version": AGENT_VERSION},
@@ -235,8 +422,17 @@ class AIFieldwork:
             "contract_version": CONTRACT_VERSION,
             "generator": GENERATOR,
             "behavior_version": BEHAVIOR_VERSION,
+            "response_process": {
+                "name": response.methodology_version,
+                "sha256": fingerprint(response.model_dump(mode="json")),
+                "unit": is_units_process(response),
+            },
             "fact_layer_version": FACT_LAYER_VERSION,
-            "persona_source": {"roster": ROSTER_VERSION, "fictional": True, "seed": seed},
+            "persona_source": (
+                built.provenance(population)
+                if built is not None and population is not None
+                else {"roster": ROSTER_VERSION, "fictional": True, "seed": seed}
+            ),
             "data_class": data_class.value,
             "material_classification": decision.model_dump(mode="json"),
             "lineage": sorted(lineage.datasets),
@@ -248,4 +444,10 @@ class AIFieldwork:
             "calls": calls,
             "total_cost_usd": sum(c["cost_usd"] for c in calls),
         }
-        return ProducedDataset(dataset=dataset, provenance=provenance)
+        system: dict[str, str] | None = None
+        if population is not None and resolution is not None:
+            system = respondent_system(
+                population,
+                model_binding=f"{cfg.provider.value}/{resolution.model}/{resolution.route_id}",
+            )
+        return ProducedDataset(dataset=dataset, provenance=provenance, respondent_system=system)

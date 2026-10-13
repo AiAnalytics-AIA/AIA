@@ -220,5 +220,5 @@ exclude internally gated Sociomaps. Structural and paragraph coverage lives in
 Run QC (`qc.kontrola`), the `donor_qc` review gate, external verification, reality
 alignment and the challenger pass are absent; the plan's reference mapping says which
 and why. Decisions owed: ANL-1 (the instrument policy for internal use, and any client
-use), ANL-2 (should thin support pause for a person), ANL-3 (the QC thresholds), ANL-4
+use; for panel-grounded respondents, proposed in ADR 0024), ANL-2 (should thin support pause for a person), ANL-3 (the QC thresholds), ANL-4
 (must every finding cite evidence).

@@ -101,12 +101,18 @@ def _service(name: str) -> str:
     return match.group(1)
 
 
-def test_the_worker_alone_gets_the_operators_and_the_read_only_population() -> None:
+def test_the_worker_alone_gets_the_operators_and_the_api_only_the_read_only_population() -> None:
+    """The API reads the population for the audience preview (panel-grounded-respondents 6c,
+    the owner's choice): read-only, and never the operators -- nobody operates it from there."""
     worker = _service("worker")
     assert "AIA_POPULATION_OPERATORS: ${AIA_POPULATION_OPERATORS:-}" in worker
     assert "AIA_POPULATION_ASSET_ROOT: /srv/population/v17" in worker
     assert "- ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro" in worker
-    for other in ("api", "web", "caddy", "postgres"):
+    api = _service("api")
+    assert "AIA_POPULATION_OPERATORS" not in api
+    assert "AIA_POPULATION_ASSET_ROOT: ${AIA_API_POPULATION_ASSET_ROOT-/srv/population/v17}" in api
+    assert "- ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro" in api
+    for other in ("web", "caddy", "postgres"):
         assert "AIA_POPULATION" not in _service(other), other
 
 
@@ -257,3 +263,15 @@ def test_the_deploy_keeps_each_versions_dictionary_without_failing_on_a_refusal(
     step = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-dictionary')
     assert deploy.index('log "replacing services"') < step < deploy.index('log "smoke tests"')
     assert 'if ! "$DEPLOY_DIR/bin/population.sh" record-dictionary; then' in deploy
+
+
+def test_the_deploy_keeps_each_populations_catalogue_after_its_dictionary() -> None:
+    deploy = (DEVELOP / "bin" / "deploy.sh").read_text(encoding="utf-8")
+    dictionary = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-dictionary')
+    step = deploy.index('"$DEPLOY_DIR/bin/population.sh" record-catalogue')
+    assert dictionary < step < deploy.index('log "smoke tests"')
+    assert (
+        'timeout --kill-after=30 300 "$DEPLOY_DIR/bin/population.sh" record-catalogue'
+        " || catalogue_status=$?"
+    ) in deploy
+    assert "124|137)" in deploy[step:]

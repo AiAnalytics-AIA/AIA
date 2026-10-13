@@ -3,6 +3,8 @@
 #
 #   bin/deploy.sh <git-sha> [--no-migrate]
 #
+#   disk preflight       retain protected releases, remove old unused AIA images,
+#                        then require disk headroom before downloading anything
 #   pull images          immutable <sha> tags from ECR, with the instance role
 #   check Caddy          the Caddyfile loaded with this host's .env; a failure stops
 #                        here and the running services are untouched
@@ -34,9 +36,22 @@ require_sha "$SHA"
 require_env_file
 cd "$DEPLOY_DIR" || exit 1
 
+# The CI workflow serializes its deployments; this also protects against an
+# operator deploying simultaneously, including the successful-release history.
+exec 9>"$DEPLOY_DIR/.deploy.lock"
+flock -n 9 || die "another deployment holds $DEPLOY_DIR/.deploy.lock; retry after it finishes"
+
 export AIA_IMAGE_TAG="$SHA"
 previous="$(deployed_sha)"
 log "deploying $SHA (currently running: ${previous:-nothing})"
+
+release_history="$DEPLOY_DIR/.deploy-state/successful-releases.json"
+protected=(--protect "$SHA")
+[ -z "$previous" ] || protected+=(--protect "$previous")
+log "protected image retention and disk preflight"
+python3 "$DEPLOY_DIR/bin/image_retention.py" preflight \
+  --registry "$AIA_IMAGE_REGISTRY" --state-file "$release_history" \
+  --deploy-dir "$DEPLOY_DIR" "${protected[@]}" --apply
 
 log "logging in to ECR and pulling images"
 ecr_login
@@ -105,9 +120,26 @@ if ! "$DEPLOY_DIR/bin/population.sh" record-dictionary; then
   log "WARNING: a population dictionary could not be kept (above); the deploy goes on"
 fi
 
-log "pruning images older than the previous deployment"
-docker image prune -f --filter "until=168h" >/dev/null || true
+# Each established population's audience factor catalogue, computed once from its current
+# version's ANALYSIS view and kept with it (panel-grounded-respondents 6b), so the audience
+# step's factor editor is served without reading a row. Acts as no one and decides nothing;
+# with every catalogue kept it changes nothing. A refusal (the population will not load) is
+# said and does not undo a deploy that is otherwise healthy: the step then says the
+# catalogue is not kept. Bounded: a catalogue is seconds of work (3.6 s to load v17's
+# 18,766 rows, measured), so five minutes means the host is stuck, and a stuck optional
+# step must not hold the deploy or its lock (2026-10-13: it held both for an hour).
+log "keeping each population's audience catalogue"
+catalogue_status=0
+timeout --kill-after=30 300 "$DEPLOY_DIR/bin/population.sh" record-catalogue || catalogue_status=$?
+case "$catalogue_status" in
+  0) ;;
+  124|137) log "WARNING: record-catalogue did not finish in 5 minutes and was stopped; no catalogue was kept; the deploy goes on" ;;
+  *) log "WARNING: an audience catalogue could not be kept (above); the deploy goes on" ;;
+esac
+
 
 log "smoke tests"
 "$DEPLOY_DIR/bin/smoke.sh" "$SHA"
+python3 "$DEPLOY_DIR/bin/image_retention.py" record \
+  --state-file "$release_history" --sha "$SHA" --previous "$previous"
 log "deployed $SHA"

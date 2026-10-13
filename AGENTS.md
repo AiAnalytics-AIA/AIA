@@ -570,6 +570,20 @@ reports eighteen `import-untyped` errors; run together with
 therefore pass all three trees to a single `mypy` invocation. Splitting that
 command "for speed" silently changes what is checked.
 
+**An incremental run can report false errors after an edit to a file using
+`pydantic.create_model`.** With a warm `.mypy_cache`, appending a comment to
+`domain/ai_respondent.py` made the full four-tree invocation report three
+`create_model` `arg-type` errors on unchanged lines; `rm -rf .mypy_cache` and the
+same invocation passed (reproduced twice, PR #315 and chunk 4b). CI starts from an
+empty cache, so it never sees them.
+
+```bash
+# WRONG: trust a warm-cache failure on create_model and "fix" working code
+make typecheck            # 3 errors in ai_respondent.py after an unrelated edit
+# RIGHT: confirm on a clean cache before acting on it
+rm -rf .mypy_cache && make typecheck
+```
+
 Where a whole library has no stubs and pulling them in is not worth the
 dependency, add a narrow `[[tool.mypy.overrides]]` in the root `pyproject.toml`
 **with a comment saying why** — as `boto3` has. An unexplained override is
@@ -1185,7 +1199,9 @@ skin, which ADR 0018 removed), so it names the self-hosted families directly and
 treated the monorepo as the workspace, and emitted
 `.next/standalone/apps/web/server.js` — while an image built from `apps/web`
 alone emits `.next/standalone/server.js`. The same Dockerfile then works in one
-place and not the other. Pin the trace root to the package:
+place and not the other. (That root lockfile was the retired Fastify stub's,
+removed in #307; the pin stays, so a lockfile added above `apps/web` cannot move
+the output again.) Pin the trace root to the package:
 
 ```ts
 // WRONG — layout depends on what is above apps/web
@@ -1956,3 +1972,19 @@ separate indicator from partial metadata. Anchors:
 `application/contextual_report.py:62 @ b3f1a881`;
 `test_citation_valid_inapplicability_inference_is_not_published` and
 `test_partial_measure_period_does_not_replace_the_source_claims_full_range`.
+
+
+## Docker release cleanup must protect tags and run before downloads
+
+The develop disk filled because `docker image prune` without `--all` removed
+only dangling images; the SHA-tagged releases remained, and cleanup ran after
+the image pull that failed. A broad `--all` prune would discard local rollback
+releases. Use the deployment's explicit retention policy instead: prove image
+ownership/age, protect every container reference and recorded successful release,
+and remove immutable IDs without force or parent pruning, before checking space
+and downloading. Unknown/shared images stay. Docker removal by a tag can only
+untag a shared image; removal by immutable ID without force refuses a newly
+shared/referenced image. Never add force to overcome that refusal. See
+`deploy/develop/bin/image_retention.py`,
+`test_develop_image_retention.py::test_actual_deploy_stops_before_download_migration_or_replacement`
+and the [Docker command reference](https://docs.docker.com/reference/cli/docker/image/rm/).

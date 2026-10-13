@@ -16,7 +16,7 @@ import pytest
 
 from aia_core.application.population import PopulationRuntime, live_binding
 from aia_core.application.research import ResearchRuns
-from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.fieldwork import FieldworkSource, PersonaSource, persona_source_of
 from aia_core.domain.pipeline import ProjectType
 from aia_core.domain.population import (
     PopulationBindingMissing,
@@ -192,3 +192,59 @@ def test_live_binding_is_none_until_live_exists_and_reads_no_panel(
     population.establish()
     binding = live_binding(session, contract=population.contract, population_id=LIVE)
     assert binding is not None and binding.version_label == "v1_4"
+
+
+# --- the persona source a run pins (plan panel-grounded-respondents 5c) --------------------
+
+PANEL = PersonaSource.PANEL
+ROSTER = PersonaSource.FICTIONAL_ROSTER
+
+
+def test_a_run_pins_its_persona_source_and_a_run_before_the_pin_reads_as_the_roster(
+    runs: Any, revision: str, population: Any
+) -> None:
+    population.establish()
+    roster = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    run = runs().get(roster.run_id)
+    assert run["metadata"]["persona_source"] == "fictional_roster"
+    assert run["metadata"]["population"]["read_by_fieldwork"] is False
+    assert persona_source_of({}) is ROSTER  # stored before 5c
+    with pytest.raises(ValueError, match="unknown persona source"):
+        persona_source_of({"persona_source": "imported_csv"})
+
+
+def test_a_panel_run_is_its_own_run_reads_its_population_and_needs_one(
+    runs: Any, revision: str, population: Any
+) -> None:
+    from aia_core.application.research import PanelPopulationMissing
+
+    with pytest.raises(PanelPopulationMissing):
+        runs().start(design_revision_id=revision, fieldwork_source=AI, persona_source=PANEL)
+    population.establish()
+    roster = runs().start(design_revision_id=revision, fieldwork_source=AI)
+    panel = runs().start(design_revision_id=revision, fieldwork_source=AI, persona_source=PANEL)
+    assert panel.created and panel.run_id != roster.run_id  # never the fictional run returned
+    again = runs().start(design_revision_id=revision, fieldwork_source=AI, persona_source=PANEL)
+    assert again.run_id == panel.run_id and not again.created
+    meta = runs().get(panel.run_id)["metadata"]
+    assert meta["persona_source"] == "panel"
+    assert meta["population"]["read_by_fieldwork"] is True
+    with pytest.raises(ValueError, match="ai_runtime"):
+        runs().start(
+            design_revision_id=revision,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            persona_source=PANEL,
+        )
+
+
+@pytest.mark.parametrize("original", [PANEL, ROSTER])
+def test_a_retry_keeps_the_persona_source_its_original_pinned(
+    runs: Any, revision: str, population: Any, original: PersonaSource
+) -> None:
+    """Whatever the deployment now says: the retry is not asked for a source at all."""
+    population.establish()
+    first = runs().start(design_revision_id=revision, fieldwork_source=AI, persona_source=original)
+    runs().cancel(first.run_id)
+    retry = runs().retry(first.run_id, fieldwork_source=AI)
+    assert retry.created
+    assert runs().get(retry.run_id)["metadata"]["persona_source"] == original.value

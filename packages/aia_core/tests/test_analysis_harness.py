@@ -147,9 +147,32 @@ def test_labels_say_what_every_reader_is_looking_at() -> None:
         "surface": "INTERNAL",
         "data_origin": "SYNTHETIC_AI_FICTIONAL",
         "simulated_respondents": True,
+        "modelled_respondents": False,
         "internal_only": True,
     }
     assert "CLIENT_FACING" in harness_frame(origin=FICTIONAL, surface=ClaimSurface.CLIENT_FACING)
+
+
+def test_a_modelled_origin_is_framed_as_modelled_never_fictional_or_measured() -> None:
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    labels = harness_labels(origin=modelled, surface=ClaimSurface.INTERNAL)
+    assert labels["modelled_respondents"] is True
+    assert labels["simulated_respondents"] is False
+    frame = harness_frame(origin=modelled, surface=ClaimSurface.INTERNAL)
+    assert "modelováno: AI respondenti z populace" in frame
+    assert "fictional" not in frame and "MODELLED_AI_PANEL" in frame
+    assert "fictional personas" in harness_frame(origin=FICTIONAL, surface=ClaimSurface.INTERNAL)
+
+
+def test_modelled_respondents_are_client_material_never_class_c() -> None:
+    assert (
+        classify_analysis_material(
+            client_declared_fictional=True,
+            origin=DataOrigin.MODELLED_AI_PANEL,
+            respondents_fictional=True,
+        )
+        is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    )
 
 
 def test_the_harness_has_its_own_identity_beside_the_domain_prompt() -> None:

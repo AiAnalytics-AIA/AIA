@@ -60,6 +60,8 @@ class ViolationCode(StrEnum):
 
     # Data origin (ADR 0016 D1): fictional data is never a client-facing claim
     SYNTHETIC_DATA_ORIGIN = "SYNTHETIC_DATA_ORIGIN"
+    # ADR 0024 §2: an origin outside CLIENT_ADMISSIBLE_ORIGINS, or none at all
+    ORIGIN_NOT_ADMISSIBLE = "ORIGIN_NOT_ADMISSIBLE"
 
     # Support and suppression
     SUPPORT_SUPPRESSED = "SUPPORT_SUPPRESSED"

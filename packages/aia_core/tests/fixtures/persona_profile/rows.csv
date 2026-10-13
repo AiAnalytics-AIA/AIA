@@ -1,0 +1,87 @@
+panel_row_id,core_source,pohlavi,vek,vzdelani,kraj,trida_spolecenska,prijem_osobni_mesicni,prijem_definice,prijem_pozice_0_1,prijem_decile,zamestnani_status,is_student,occupation_major,velikost_domacnosti,pocet_deti_celkem,has_partner,partner_cohabiting,zdravi_sebehodnoceni,kraj_kvalita_zivota_poradi,brand_specific_background_ready,F_rodinny_stav,F_bydleni,F_auto,F_deti,F_sam
+FIC-ROW-0001,,muž,70,základní,Karlovarský kraj,nižší střední,,,0.905,2,employed,0,1,3,3,0,1,,14,1,druh_druzka,,,0,1
+FIC-ROW-0002,core_v17,žena,59,základní,Hlavní město Praha,,0,personal_net_income,,6,inactive,1,,4,,,,4,4,0,,,1,0,0
+FIC-ROW-0003,core_v17,Muž,,střední bez maturity,,,0,personal_net_income,,3,retired,0,6,,1,1,1,2,4,1,rozvedeny,,,0,0
+FIC-ROW-0004,core_v17,žena,92,střední s maturitou,Karlovarský kraj,vyšší střední,83879,personal_net_income,,2,unemployed,1,2,,0,1,0,4,2,0,,v rodinném domě,1,1,0
+FIC-ROW-0005,,žena,82,základní,Hlavní město Praha,,0,work_earnings_net,0.538,10,inactive,0,8,1,0,1,0,3,14,0,svobodny,v nájemním bytě,1,1,1
+FIC-ROW-0006,core_v17,muž,32,základní,Jihomoravský kraj,,62248,work_earnings_net,0.808,8,inactive_other,1,7,4,1,0,1,3,3,0,vdovec_vdova,v bytě v osobním vlastnictví,1,0,0
+FIC-ROW-0007,core_v17,muž,78,střední bez maturity,Hlavní město Praha,,,personal_net_income,0.660,3,unemployed,0,4,6,1,0,0,3,10,1,druh_druzka,,0,0,1
+FIC-ROW-0008,core_v17,muž,67,střední s maturitou,Jihomoravský kraj,,0,,,8,employed,0,4,2,,,,5,1,1,druh_druzka,,0,1,0
+FIC-ROW-0009,,žena,47,střední bez maturity,Hlavní město Praha,,,personal_net_income,0.711,10,employed,0,4,,,0,1,1,6,0,rozvedeny,,,0,0
+FIC-ROW-0010,core_v17,žena,46,střední s maturitou,Zlínský kraj,vyšší střední,0,,,4,unemployed,1,3,1,3,0,0,5,13,0,svobodny,v bytě v osobním vlastnictví,1,0,0
+FIC-ROW-0011,core_v17,Muž,71,VOŠ/VŠ,Jihomoravský kraj,nižší střední,,work_earnings_net,0.230,1,unknown,0,5,3,0,,,2,2,1,rozvedeny,v bytě v osobním vlastnictví,1,1,0
+FIC-ROW-0012,core_v17,muž,79,,Jihomoravský kraj,nižší střední,0,work_earnings_net,,7,inactive_other,1,8,3,4,1,0,4,13,1,vdovec_vdova,,1,1,0
+FIC-ROW-0013,,žena,51,střední s maturitou,Karlovarský kraj,nižší střední,0,work_earnings_net,,7,unknown,1,6,5,4,0,0,1,6,1,vdovec_vdova,v bytě v osobním vlastnictví,,1,0
+FIC-ROW-0014,core_v17,muž,89,střední s maturitou,Jihomoravský kraj,nižší střední,21658,work_earnings_net,0.256,2,inactive,1,2,1,4,,,2,5,1,rozvedeny,v nájemním bytě,0,1,0
+FIC-ROW-0015,core_v17,muž,48,základní,Jihomoravský kraj,nižší střední,0,work_earnings_net,0.569,3,unemployed,0,0,1,0,1,1,4,5,1,,v rodinném domě,1,1,0
+FIC-ROW-0016,core_v17,žena,61,střední s maturitou,Hlavní město Praha,nižší střední,0,,0.350,8,retired,1,8,,4,0,0,2,13,0,,v nájemním bytě,0,0,0
+FIC-ROW-0017,,žena,41,střední bez maturity,Karlovarský kraj,,,work_earnings_net,0.593,6,inactive_other,1,1,5,3,1,1,5,3,0,zenaty_vdana,v rodinném domě,1,1,0
+FIC-ROW-0018,core_v17,žena,23,střední s maturitou,Hlavní město Praha,nižší střední,0,,0.440,6,inactive_other,0,0,4,1,1,1,1,5,0,vdovec_vdova,v rodinném domě,1,1,1
+FIC-ROW-0019,core_v17,Muž,72,střední bez maturity,Hlavní město Praha,nižší střední,0,personal_net_income,,9,unemployed,0,,5,,0,1,2,8,0,zenaty_vdana,v rodinném domě,0,1,0
+FIC-ROW-0020,core_v17,žena,76,střední s maturitou,Jihomoravský kraj,,0,personal_net_income,,3,employed,1,9,6,4,0,0,1,6,0,,,,1,1
+FIC-ROW-0021,,muž,54,střední s maturitou,Jihomoravský kraj,vyšší střední,0,work_earnings_net,,8,unemployed,0,6,3,2,1,0,1,4,1,rozvedeny,v bytě v osobním vlastnictví,0,0,1
+FIC-ROW-0022,core_v17,Muž,81,VOŠ/VŠ,Jihomoravský kraj,nižší střední,,personal_net_income,,3,inactive_other,1,7,4,,,,3,10,0,,,0,0,0
+FIC-ROW-0023,core_v17,muž,65,VOŠ/VŠ,Zlínský kraj,nižší střední,51918,personal_net_income,0.512,10,employed,1,3,3,1,1,1,2,12,1,zenaty_vdana,,0,1,0
+FIC-ROW-0024,core_v17,žena,38,základní,,vyšší střední,8099,,0.434,8,unemployed,1,9,,4,0,1,4,2,0,vdovec_vdova,v nájemním bytě,1,1,0
+FIC-ROW-0025,,Muž,50,střední bez maturity,Hlavní město Praha,,0,work_earnings_net,,5,inactive,0,,5,1,0,0,3,9,1,druh_druzka,v rodinném domě,0,0,1
+FIC-ROW-0026,core_v17,žena,73,střední bez maturity,Zlínský kraj,vyšší střední,0,,,8,unemployed,1,6,,,,,4,2,0,vdovec_vdova,v bytě v osobním vlastnictví,1,0,1
+FIC-ROW-0027,core_v17,Muž,92,střední bez maturity,Karlovarský kraj,vyšší střední,55546,,,4,retired,0,4,1,2,,,3,9,0,,v rodinném domě,0,1,1
+FIC-ROW-0028,core_v17,žena,34,VOŠ/VŠ,Zlínský kraj,,60607,personal_net_income,,2,unknown,0,8,4,4,0,0,2,12,1,druh_druzka,v rodinném domě,1,1,1
+FIC-ROW-0029,,žena,60,střední bez maturity,Jihomoravský kraj,,79533,work_earnings_net,,4,unemployed,0,9,1,,,,,1,0,druh_druzka,v nájemním bytě,1,1,0
+FIC-ROW-0030,core_v17,muž,78,základní,Jihomoravský kraj,nižší střední,47941,work_earnings_net,0.693,4,inactive_other,0,0,4,,,,,6,1,vdovec_vdova,v nájemním bytě,1,1,0
+FIC-ROW-0031,core_v17,žena,81,základní,Hlavní město Praha,nižší střední,,personal_net_income,,10,employed,1,,5,3,1,0,2,9,1,,v rodinném domě,1,1,0
+FIC-ROW-0032,core_v17,Muž,62,VOŠ/VŠ,Hlavní město Praha,nižší střední,23701,,,5,inactive_other,1,,1,2,1,1,,14,1,svobodny,v nájemním bytě,0,1,0
+FIC-ROW-0033,,žena,70,základní,,vyšší střední,35154,,0.105,10,inactive,0,9,1,3,1,1,,5,1,,v rodinném domě,0,0,0
+FIC-ROW-0034,core_v17,Muž,68,střední bez maturity,Zlínský kraj,,50822,,0.447,9,employed,0,6,,1,,,2,8,1,vdovec_vdova,v bytě v osobním vlastnictví,1,1,1
+FIC-ROW-0035,core_v17,Muž,35,základní,Karlovarský kraj,nižší střední,0,,,6,employed,0,7,3,1,0,1,3,2,1,,v rodinném domě,0,1,1
+FIC-ROW-0036,core_v17,žena,87,střední s maturitou,Zlínský kraj,nižší střední,0,personal_net_income,,3,inactive_other,1,4,1,4,,,4,14,1,druh_druzka,v bytě v osobním vlastnictví,0,0,1
+FIC-ROW-0037,,žena,53,střední s maturitou,Jihomoravský kraj,nižší střední,17468,work_earnings_net,0.730,7,retired,0,7,6,2,0,1,3,5,1,zenaty_vdana,v nájemním bytě,,0,0
+FIC-ROW-0038,core_v17,Muž,74,střední s maturitou,Jihomoravský kraj,,0,personal_net_income,0.985,3,retired,1,1,5,3,,,2,8,1,vdovec_vdova,v nájemním bytě,,0,1
+FIC-ROW-0039,core_v17,žena,36,střední bez maturity,Zlínský kraj,nižší střední,60803,,0.721,8,employed,0,9,3,3,1,0,1,6,1,vdovec_vdova,v nájemním bytě,0,0,1
+FIC-ROW-0040,core_v17,Muž,74,základní,Jihomoravský kraj,nižší střední,,,,5,retired,0,4,3,2,1,0,5,2,1,,,0,0,1
+FIC-ROW-0041,,žena,47,střední s maturitou,Zlínský kraj,,0,personal_net_income,0.009,9,inactive_other,1,,4,0,0,1,2,10,1,rozvedeny,,,1,0
+FIC-ROW-0042,core_v17,žena,63,střední s maturitou,Jihomoravský kraj,vyšší střední,0,work_earnings_net,0.245,2,inactive,0,5,6,4,1,1,2,5,0,vdovec_vdova,v rodinném domě,0,0,0
+FIC-ROW-0043,core_v17,žena,55,základní,Jihomoravský kraj,,0,personal_net_income,0.289,8,unemployed,0,8,4,3,0,0,,14,1,,v bytě v osobním vlastnictví,1,1,0
+FIC-ROW-0044,core_v17,žena,31,střední bez maturity,Hlavní město Praha,nižší střední,0,work_earnings_net,0.449,4,employed,0,6,1,1,0,0,2,3,0,,,0,1,0
+FIC-ROW-0045,,Muž,36,,Zlínský kraj,,0,,0.755,7,employed,1,,5,0,1,0,1,8,0,druh_druzka,v nájemním bytě,1,1,0
+FIC-ROW-0046,core_v17,Muž,67,VOŠ/VŠ,Karlovarský kraj,,0,,0.200,4,unknown,1,,,,0,1,2,9,0,svobodny,,0,1,1
+FIC-ROW-0047,core_v17,žena,78,,Hlavní město Praha,vyšší střední,0,,,5,employed,1,8,1,0,1,0,1,8,0,rozvedeny,v nájemním bytě,0,1,0
+FIC-ROW-0048,core_v17,muž,81,VOŠ/VŠ,Karlovarský kraj,nižší střední,58881,personal_net_income,,1,inactive,1,7,,2,,,,14,1,svobodny,v rodinném domě,0,1,0
+FIC-ROW-0049,,muž,67,VOŠ/VŠ,Jihomoravský kraj,vyšší střední,0,personal_net_income,0.021,2,unemployed,0,7,3,3,,,2,3,0,,v nájemním bytě,1,0,0
+FIC-ROW-0050,core_v17,žena,35,střední bez maturity,Jihomoravský kraj,vyšší střední,0,,0.635,8,unemployed,0,9,1,3,0,0,4,9,1,druh_druzka,,1,0,1
+FIC-ROW-0051,core_v17,žena,62,střední bez maturity,Jihomoravský kraj,vyšší střední,0,,0.837,1,employed,1,5,4,1,1,1,,8,0,rozvedeny,v nájemním bytě,1,1,0
+FIC-ROW-0052,core_v17,žena,89,střední bez maturity,Karlovarský kraj,nižší střední,0,work_earnings_net,0.025,4,unknown,1,4,1,,,,1,4,1,vdovec_vdova,,0,0,0
+FIC-ROW-0053,,žena,82,základní,Zlínský kraj,nižší střední,69026,work_earnings_net,,10,retired,0,3,4,,1,0,5,14,0,rozvedeny,v rodinném domě,,1,1
+FIC-ROW-0054,core_v17,žena,52,VOŠ/VŠ,Zlínský kraj,nižší střední,0,,0.837,1,inactive_other,1,6,5,1,,,1,8,0,zenaty_vdana,v bytě v osobním vlastnictví,0,1,1
+FIC-ROW-0055,core_v17,Muž,38,základní,Jihomoravský kraj,vyšší střední,0,,,2,employed,0,,6,0,0,1,1,8,0,rozvedeny,,,1,0
+FIC-ROW-0056,core_v17,žena,80,VOŠ/VŠ,Zlínský kraj,vyšší střední,0,,0.862,2,unknown,0,8,6,1,1,0,1,3,1,druh_druzka,v bytě v osobním vlastnictví,0,0,1
+FIC-ROW-0057,,muž,67,základní,Karlovarský kraj,,76782,work_earnings_net,0.122,2,retired,0,2,1,3,1,1,3,9,1,,v rodinném domě,0,0,0
+FIC-ROW-0058,core_v17,Muž,59,střední bez maturity,Hlavní město Praha,,0,work_earnings_net,0.094,2,unknown,0,,6,1,,,4,10,0,vdovec_vdova,v rodinném domě,0,1,1
+FIC-ROW-0059,core_v17,žena,62,VOŠ/VŠ,Jihomoravský kraj,,42082,personal_net_income,,4,unknown,1,,3,4,1,0,,13,0,svobodny,v nájemním bytě,0,0,1
+FIC-ROW-0060,core_v17,žena,27,základní,Karlovarský kraj,nižší střední,40302,personal_net_income,,4,retired,0,3,1,3,,,3,5,0,vdovec_vdova,v rodinném domě,1,0,0
+FIC-ROW-0061,,muž,44,střední bez maturity,Hlavní město Praha,nižší střední,17941,work_earnings_net,0.182,9,inactive,1,,5,,,,4,7,0,rozvedeny,v rodinném domě,,1,1
+FIC-ROW-0062,core_v17,Muž,71,střední bez maturity,Zlínský kraj,vyšší střední,0,,0.711,8,retired,0,,4,2,,,1,11,1,svobodny,v bytě v osobním vlastnictví,0,1,1
+FIC-ROW-0063,core_v17,muž,59,střední s maturitou,Hlavní město Praha,vyšší střední,,personal_net_income,,7,employed,1,5,5,0,0,0,4,5,1,svobodny,v bytě v osobním vlastnictví,1,0,0
+FIC-ROW-0064,core_v17,Muž,26,VOŠ/VŠ,Zlínský kraj,,0,work_earnings_net,0.112,7,retired,0,8,,,1,0,2,8,1,druh_druzka,v rodinném domě,1,0,0
+FIC-ROW-0065,,žena,64,střední bez maturity,Zlínský kraj,nižší střední,0,personal_net_income,0.125,6,unknown,0,,1,1,,,2,6,1,,,0,1,0
+FIC-ROW-0066,core_v17,žena,73,střední bez maturity,Zlínský kraj,,86835,work_earnings_net,0.991,10,unknown,0,5,,1,,,4,13,1,rozvedeny,v rodinném domě,0,0,0
+FIC-ROW-0067,core_v17,žena,,základní,Karlovarský kraj,nižší střední,0,personal_net_income,0.427,4,inactive,0,,6,4,1,0,5,12,1,zenaty_vdana,v nájemním bytě,0,0,1
+FIC-ROW-0068,core_v17,Muž,87,základní,Jihomoravský kraj,,0,personal_net_income,0.436,5,inactive_other,1,0,1,0,1,1,1,6,1,rozvedeny,v nájemním bytě,1,0,0
+FIC-ROW-0069,,žena,42,střední s maturitou,Hlavní město Praha,vyšší střední,0,work_earnings_net,0.448,4,inactive_other,0,9,4,2,,,,5,1,,v bytě v osobním vlastnictví,1,0,0
+FIC-ROW-0070,core_v17,žena,21,střední s maturitou,Karlovarský kraj,,21734,personal_net_income,,2,unknown,0,8,6,3,1,1,3,2,0,rozvedeny,v nájemním bytě,,0,0
+FIC-ROW-0071,core_v17,žena,27,střední s maturitou,Karlovarský kraj,nižší střední,,personal_net_income,,9,retired,0,3,6,0,,,,1,0,druh_druzka,v nájemním bytě,0,1,1
+FIC-ROW-0072,core_v17,muž,89,střední s maturitou,Karlovarský kraj,nižší střední,61808,work_earnings_net,0.898,7,unemployed,0,2,5,2,0,1,4,3,1,,,0,0,1
+FIC-ROW-0073,,žena,73,VOŠ/VŠ,Hlavní město Praha,,0,personal_net_income,,10,inactive_other,1,5,2,3,,,,11,1,zenaty_vdana,v bytě v osobním vlastnictví,0,1,0
+FIC-ROW-0074,core_v17,muž,69,VOŠ/VŠ,Karlovarský kraj,nižší střední,,personal_net_income,0.676,2,inactive,0,1,2,2,0,0,2,7,1,svobodny,,0,1,1
+FIC-ROW-0075,core_v17,žena,88,střední bez maturity,Hlavní město Praha,,,,0.024,8,unknown,0,3,6,,,,2,10,0,zenaty_vdana,v bytě v osobním vlastnictví,0,0,0
+FIC-ROW-0076,core_v17,muž,76,střední bez maturity,Jihomoravský kraj,,78293,personal_net_income,0.381,6,inactive_other,0,3,3,4,,,2,6,1,druh_druzka,,1,0,1
+FIC-ROW-0077,,žena,66,střední s maturitou,Karlovarský kraj,nižší střední,0,,,6,unknown,1,4,1,4,0,1,1,7,1,druh_druzka,v rodinném domě,,1,1
+FIC-ROW-0078,core_v17,muž,,VOŠ/VŠ,Karlovarský kraj,,36041,,0.173,4,unemployed,1,,1,4,1,0,5,7,0,svobodny,v rodinném domě,0,1,1
+FIC-ROW-0079,core_v17,Muž,54,základní,Karlovarský kraj,nižší střední,0,,0.513,7,inactive,0,1,4,2,1,1,,9,1,rozvedeny,v bytě v osobním vlastnictví,0,0,0
+FIC-ROW-0080,core_v17,žena,88,VOŠ/VŠ,Hlavní město Praha,nižší střední,,personal_net_income,0.684,6,inactive,1,4,6,4,0,0,4,12,0,vdovec_vdova,v bytě v osobním vlastnictví,1,0,0
+FIC-ROW-EDGE-1,,muž,70,základní,Karlovarský kraj,nižší střední,20000,,0.905,2,employed,0,1,3,3,0,1,,14,1,druh_druzka,,,0,1
+FIC-ROW-EDGE-2,core_v17,žena,59,základní,Hlavní město Praha,,30000,personal_net_income,,6,inactive,1,,4,,,,4,4,0,,,1,0,0
+FIC-ROW-EDGE-3,core_v17,Muž,,střední bez maturity,,,45000,personal_net_income,,3,retired,0,6,,1,1,1,2,4,1,rozvedeny,,,0,0
+FIC-ROW-EDGE-4,core_v17,žena,92,střední s maturitou,Karlovarský kraj,vyšší střední,60000,personal_net_income,,2,unemployed,1,2,,0,1,0,4,2,0,,v rodinném domě,1,1,0
+FIC-ROW-EDGE-5,,žena,82,základní,Hlavní město Praha,,19999.5,work_earnings_net,0.538,10,inactive,0,8,1,0,1,0,3,14,0,svobodny,v nájemním bytě,1,1,1
+FIC-ROW-EDGE-6,core_v17,muž,32,základní,Jihomoravský kraj,,1,work_earnings_net,0.808,8,inactive_other,1,7,4,1,0,1,3,3,0,vdovec_vdova,v bytě v osobním vlastnictví,1,0,0

@@ -9,7 +9,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -22,21 +22,30 @@ import {
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
+  type PopulationVersion,
   type Study,
+  population,
   research,
 } from "@/lib/api";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
+import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { researchStepOrb } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
 import { saveBlob } from "@/lib/download";
 import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
+  hasUnknownOrigin,
+  isModelled,
   isSynthetic,
   parkedForRuntime,
+  resultOriginKind,
+  stepOriginKind,
+  type OriginKind,
   waitingDetail,
   phaseLabel,
   phaseTone,
+  aggregateDeviation,
   resultTable,
   shouldPoll,
   sociomapObjects,
@@ -46,6 +55,8 @@ import {
   stepStatusLabel,
   stepTone,
   supportNote,
+  topBoxWidth,
+  type AggregateDeviation,
   type ResultTable,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -54,8 +65,11 @@ import { withApproval } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, Switch } from "../step";
 import { AiButton, Button, Chip, Field, TextArea, TextInput } from "../ui";
-import { useResearch } from "./context";
+import { ResearchContext, useResearch } from "./context";
+import { type StudyFrame, useStudyFrame } from "./frame";
 import { SociomappingView } from "./SociomappingView";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { InterpretationResearch } from "./InterpretationResearch";
 import { ResultsWorkspace } from "./ResultsWorkspace";
@@ -87,11 +101,42 @@ function Card({ id, title, children, tone, region }: { id?: string; title?: stri
   );
 }
 
+/** What a report and an analysis say about their data, by origin kind (ADR 0024 §7). */
+const REPORT_ORIGIN: Record<OriginKind, string> = {
+  SIMULATED: "research.exec.results.reportSynthetic",
+  MODELLED: "research.exec.results.reportModelled",
+  UNKNOWN: "research.exec.results.reportUnknownOrigin",
+};
+const ANALYSIS_ORIGIN: Record<OriginKind, string> = {
+  SIMULATED: "research.exec.results.analysisSynthetic",
+  MODELLED: "research.exec.results.analysisModelled",
+  UNKNOWN: "research.exec.results.analysisUnknownOrigin",
+};
+
 function SyntheticBanner() {
   return (
     <p role="note" data-origin="synthetic" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm font-semibold text-status-fault">
       {t("research.exec.syntheticNotice")}
     </p>
+  );
+}
+
+/** Every origin kind a run's data is, each said once: fictional, modelled, or unknown -- never fieldwork. */
+function OriginBanners({ run }: { run: ResearchRun }) {
+  return (
+    <>
+      {isSynthetic(run) ? <SyntheticBanner /> : null}
+      {isModelled(run) ? (
+        <p role="note" data-origin="modelled" className="rounded-sm border border-ink/30 bg-status-world-wash p-3 text-sm font-semibold text-ink">
+          {t("research.exec.modelledNotice")}
+        </p>
+      ) : null}
+      {hasUnknownOrigin(run) ? (
+        <p role="note" data-origin="unknown" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm font-semibold text-status-fault">
+          {t("research.exec.unknownOriginNotice")}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -105,8 +150,17 @@ function PopulationNote({ run }: { run: ResearchRun }) {
   ) : null;
 }
 
-function useFrame() {
-  return useResearch().frame;
+/**
+ * The study these views are in: the research session's frame on a stage, the frame alone where
+ * there is no session (project memory's read-only page, plans/project-memory-reuse.md M2a). The
+ * result views below read nothing else, so they draw a run outside a study's working content.
+ */
+function useFrame(): StudyFrame {
+  const session = useContext(ResearchContext);
+  const own = useStudyFrame();
+  const frame = session?.frame ?? own;
+  if (!frame) throw new Error("a research view outside a study frame");
+  return frame;
 }
 
 // ---------------------------------------------------------------- Run --------
@@ -316,6 +370,20 @@ export function RunStep() {
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // The client's materialized children a run may be started over (P4d4c); none read is LIVE.
+  const [children, setChildren] = useState<PopulationVersion[]>([]);
+  const [childId, setChildId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    population.registry().then(
+      (r) => live && setChildren(clientChildren(r, frame.clientId)),
+      () => live && setChildren([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.clientId]);
 
   useEffect(() => {
     let live = true;
@@ -379,12 +447,12 @@ export function RunStep() {
     setStartError(null);
     try {
       try {
-        await research.start(frame.studyId, readiness.design_revision_id, yes);
+        await research.start(frame.studyId, readiness.design_revision_id, yes, childId ?? undefined);
       } catch (e) {
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
         if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
-        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling);
+        await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined);
       }
       router.push(stepHref("progress"));
     } catch (e) {
@@ -424,6 +492,7 @@ export function RunStep() {
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
+          {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
@@ -460,6 +529,48 @@ export function RunStep() {
   );
 }
 
+// Which population the run is computed over (P4d4c): LIVE, or one of this client's materialized
+// children with its target beside what it reached. Shown only when the client has a child.
+function PopulationChoice({
+  choices,
+  value,
+  onChange,
+  disabled,
+}: {
+  choices: PopulationVersion[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  disabled: boolean;
+}) {
+  const P = "research.exec.population";
+  return (
+    <Card title={t(`${P}.title`)}>
+      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
+        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
+        <label className="flex items-start gap-2">
+          <input type="radio" name="run-population" checked={value === null} onChange={() => onChange(null)} />
+          <span>{t(`${P}.live`)}</span>
+        </label>
+        {choices.map((v) => {
+          const m = v.materialized ?? null;
+          const verdict = targetVerdict(m);
+          return (
+            <label key={v.version_id} className="flex items-start gap-2">
+              <input type="radio" name="run-population" checked={value === v.version_id} onChange={() => onChange(v.version_id)} />
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">{m?.dimension_id ?? v.label}</span>
+                {m ? <span className="text-ink-muted">{tv(`${P}.outcome`, { target: outcomeValue(m.kind, m.target), achieved: outcomeValue(m.kind, m.achieved) })}</span> : null}
+                <Chip tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</Chip>
+              </span>
+            </label>
+          );
+        })}
+      </fieldset>
+      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
+    </Card>
+  );
+}
+
 function RunList({ runs }: { runs: ResearchRunSummary[] }) {
   const { stepHref } = useResearch();
   return (
@@ -474,6 +585,8 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
               <span>{tv("research.exec.revision", { revision: r.design_revision })}</span>
               <span className="text-ink-muted">{tv("research.exec.startedAt", { when: when(r.created_at) })}</span>
               {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
+              {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
+              {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
               <a className="underline" href={`${stepHref(r.phase === "COMPLETED" ? "results" : "progress")}?run=${encodeURIComponent(r.run_id)}`}>
                 {r.phase === "COMPLETED" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
@@ -589,18 +702,15 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
-/** An orb beside a step while it runs (lib/activity-orb.ts), else nothing. */
-function StepOrb({ run, step }: { run: ResearchRun; step: ResearchStep }) {
-  const orb = researchStepOrb(run, step);
-  return orb ? <ActivityOrb orb={orb} /> : null;
-}
-
 export function ProgressStep() {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
+  const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -624,7 +734,7 @@ export function ProgressStep() {
   const failed = run.steps.find((s) => s.status === "FAILED");
   return (
     <div className="flex max-w-3xl flex-col gap-4">
-      {isSynthetic(run) ? <SyntheticBanner /> : null}
+      <OriginBanners run={run} />
       <PopulationNote run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
@@ -652,9 +762,12 @@ export function ProgressStep() {
             <li key={s.node_key} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <Chip tone={stepTone(s)}>{stepStatusLabel(s)}</Chip>
-                <StepOrb run={run} step={s} />
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
-                {s.data_origin ? <Chip tone="fault">{s.data_origin}</Chip> : null}
+                {stepOriginKind(s) ? (
+                  <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
+                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
+                  </span>
+                ) : null}
               </div>
               <span className="text-xs text-ink-muted">
                 {s.started_at ? tv("research.exec.startedAt", { when: when(s.started_at) }) : null}
@@ -662,6 +775,7 @@ export function ProgressStep() {
                 {s.attempts_recorded ? ` · ${tv("research.exec.attempts", { n: s.attempts_recorded, max: s.max_attempts })}` : null}
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
+              <StepActivityPanel orb={researchStepOrb(run, s)} activity={activityOf(activity, s.step_id)} startedAt={s.started_at} label={stepLabel(s.node_key)} />
               {frame.canEdit && s.status === "AWAITING_BUDGET" && !run.is_terminal ? (
                 <BudgetLift run={run} step={s} act={act} busy={busy} />
               ) : null}
@@ -807,6 +921,19 @@ function IntervalBar({ bar }: { bar: NonNullable<ResultTable["rows"][number]["ba
 export function ResultsStep() {
   const [run, refresh, , error] = useRun();
   const frame = useFrame();
+  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
+  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
+  return <RunResults key={run?.run_id ?? "none"} run={run} progressHref={run ? `${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}` : null} />;
+}
+
+/**
+ * One run's results, every label with them: the Results stage's body for the run it is given.
+ * Read-only where the frame says so (`canEdit: false`): no download, and no Interpretation
+ * Research, which starts work.
+ */
+export function RunResults({ run, progressHref }: { run: ResearchRun | null; progressHref: string | null }) {
+  const frame = useFrame();
+  const assistance = useContext(ResearchContext)?.askAssistance;
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
@@ -814,8 +941,6 @@ export function ResultsStep() {
     ? <InternalReport key={run.run_id} run={run} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
-  if (error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
-  if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
     return (
       <div className="flex max-w-3xl flex-col gap-4">
@@ -829,8 +954,13 @@ export function ResultsStep() {
   const showMap = Boolean(sociomap && sociomap.state !== "hidden");
   const showMapping = Boolean(sociomapping && sociomapping.state !== "hidden");
   const showAnalysis = run.steps.some((step) => step.kind === "research_analysis");
-  return <ResultsWorkspace run={run} progressHref={`${frame.stepHref("progress")}?run=${encodeURIComponent(run.run_id)}`}
-    notice={<>{isSynthetic(run) ? <SyntheticBanner /> : null}<PopulationNote run={run} /></>}
+  const knowledgeContext = <section aria-label="Kontext klienta a literatura" className="rounded-md border border-border bg-surface-raised p-4">
+    <h3 className="text-sm font-semibold">Doplňte souvislosti k interpretaci</h3>
+    <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
+    <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
+  </section>;
+  return <ResultsWorkspace run={run} progressHref={progressHref}
+    notice={<><OriginBanners run={run} /><PopulationNote run={run} /></>}
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
@@ -840,6 +970,7 @@ export function ResultsStep() {
       </Card>
       </> },
       ...(showMap || showMapping ? [{ id: "maps", label: "Sociomapy", description: "Prostorové vztahy a 3D pohledy nad uloženými výsledky. Výška, vzdálenost a barva mají odlišný význam; metodická omezení jsou uvedena u každé mapy.", content: <>
+      <details className="rounded-md border border-border bg-surface-raised p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">Jak používat mapu a AI pomoc</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Začněte legendou a metodikou uloženou u konkrétní mapy. Polohu, výšku a barvu čtěte odděleně. Potlačené a chybějící hodnoty nenahrazujte nulou. AI pomoc pracuje s návrhem a schválenými znalostmi; číselné hodnoty z mapy se do otázky neposílají automaticky.</p></details>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
           <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
@@ -858,10 +989,11 @@ export function ResultsStep() {
         </Card>
       ) : null}
       </> }] : []),
-      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <>{knowledgeContext}<div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div></> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
+        {knowledgeContext}
         <div id="res-report">{report}</div>
-        {showAnalysis ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
       </> },
     ]} />;
 }
@@ -887,6 +1019,7 @@ function InternalReport({ run }: { run: ResearchRun }) {
 
   if (loaded.state === "hidden") return null;
   const status = loaded.state === "ready" ? loaded.value : null;
+  const reportKind = status ? resultOriginKind(status) ?? "UNKNOWN" : "UNKNOWN";
   const download = async () => {
     setDownloading(true);
     setDownloadError(null);
@@ -908,7 +1041,10 @@ function InternalReport({ run }: { run: ResearchRun }) {
           <p className="text-sm">{status.review_state === "APPROVED_INTERNAL"
             ? t("research.exec.results.reportApprovedInternal")
             : t("research.exec.results.reportDraft")}</p>
-          {status.synthetic ? <p className="mt-2 text-sm text-status-fault">{t("research.exec.results.reportSynthetic")}</p> : null}
+          {/* A ready report rests on data, so a kind it does not state is unknown, never neutral. */}
+          <p data-origin-kind={reportKind} className={reportKind === "MODELLED" ? "mt-2 text-sm" : "mt-2 text-sm text-status-fault"}>
+            {t(REPORT_ORIGIN[reportKind])}
+          </p>
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
@@ -951,12 +1087,15 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && loaded.value.synthetic
-          ? t("research.exec.results.analysisSynthetic")
+        {loaded.state === "ready" && resultOriginKind(loaded.value)
+          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" ? <p role="alert">{loaded.message}</p> : null}
       {loaded.state === "loading" ? <p>{t("research.loading")}</p> : null}
+      {loaded.state === "ready" && loaded.value.aggregation_deviation ? (
+        <div className="mb-3"><Deviation deviation={aggregateDeviation({ deviation: loaded.value.aggregation_deviation }) as AggregateDeviation} /></div>
+      ) : null}
       {loaded.state === "ready" ? (
         <div className="flex flex-col gap-4">
           {ANALYSIS_ORDER.map((id) => {
@@ -988,6 +1127,7 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
 
 type AggregatePayload = {
   aggregate: {
+    deviation?: unknown;
     questions: Record<string, Parameters<typeof resultTable>[1]>;
     batteries: Record<string, { title: string; objects: Record<string, Parameters<typeof resultTable>[1] & { label: string }> }>;
   };
@@ -997,12 +1137,15 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
   const payload = artifact.payload as AggregatePayload | null;
   if (!payload) return null;
   const { questions, batteries } = payload.aggregate;
+  const deviation = aggregateDeviation(payload.aggregate);
+  const box = topBoxWidth(deviation);
   return (
     <div className="flex flex-col gap-5">
+      {deviation ? <Deviation deviation={deviation} /> : null}
       {Object.entries(questions).map(([id, result]) => (
         <section key={id} aria-label={id}>
           <h3 className="text-sm font-semibold">{id}</h3>
-          <Table table={resultTable(id, result)} />
+          <Table table={resultTable(id, result, box)} />
         </section>
       ))}
       {Object.entries(batteries).map(([id, battery]) => (
@@ -1011,12 +1154,31 @@ function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun
           {Object.entries(battery.objects).map(([oid, result]) => (
             <div key={oid} className="mt-2">
               <p className="text-sm">{result.label}</p>
-              <Table table={resultTable(oid, result)} />
+              <Table table={resultTable(oid, result, box)} />
             </div>
           ))}
         </section>
       ))}
       <Provenance artifact={artifact} run={run} />
+    </div>
+  );
+}
+
+/** The aggregate is no longer 18.6.6's port: said above its numbers, with what changed. */
+function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
+  const D = "research.exec.results.deviation";
+  const shown = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
+  const named = d.changed.length + d.formulas.length;
+  return (
+    <div role="note" data-aggregate-deviation className="flex flex-col gap-1 rounded-sm border border-status-fault p-3 text-sm">
+      <div><Chip tone="fault">{t(`${D}.chip`)}</Chip></div>
+      <p>{tv(`${D}.text`, { version: d.version ?? t(`${D}.unknownVersion`) })}</p>
+      {named ? (
+        <ul className="list-disc pl-5 text-xs">
+          {d.changed.map((c) => <li key={c.path}>{tv(`${D}.changed`, { path: c.path, unit: shown(c.unit), used: shown(c.used) })}</li>)}
+          {d.formulas.map((f) => <li key={f}>{tv(`${D}.formula`, { slot: f })}</li>)}
+        </ul>
+      ) : <p className="text-xs text-ink-muted">{t(`${D}.unreadable`)}</p>}
     </div>
   );
 }

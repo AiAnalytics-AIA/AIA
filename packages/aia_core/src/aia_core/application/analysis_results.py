@@ -82,15 +82,24 @@ from ..domain.analysis.native import (
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.evidence import (
-    INSTRUMENT_POLICY_VERSION,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
+    instrument_policy_version,
     method_status,
+    respondent_system_fingerprint,
 )
-from ..domain.fieldwork import DataOrigin, FieldworkSource
+from ..domain.evidence.support import SupportSpec
+from ..domain.fieldwork import (
+    RESPONDENT_SYSTEM_METADATA,
+    DataOrigin,
+    FieldworkSource,
+    OriginKind,
+    origin_kind,
+)
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from ..domain.methodology.pins import read_support_pin
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
@@ -169,6 +178,12 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
+    #: gates every number this run's analysis admits.
+    support: SupportSpec
+    #: A modelled dataset's respondent system (ADR 0024 §4), fingerprinted from what the dataset
+    #: recorded; ``None`` for every other origin, or when it recorded none.
+    respondent_system: str | None = None
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -327,11 +342,18 @@ def native_sources(
     if not isinstance(aggregate, Mapping):
         raise SourcesRefused("aggregate_shape", "the aggregate artifact holds no aggregate")
 
+    try:
+        support = read_support_pin((run.get("metadata") or {}).get("support"))
+    except ValueError as exc:
+        raise SourcesRefused("support_pin", f"the run's support pin does not read: {exc}") from None
+
     raw_origin = dataset_row.metadata.get("data_origin")
     try:
         origin = DataOrigin(raw_origin) if raw_origin is not None else None
     except ValueError:
         raise SourcesRefused("dataset_origin", f"unknown data origin {raw_origin!r}") from None
+
+    respondent_system = _respondent_system(origin, dataset_row.metadata)
 
     return NativeSources(
         run_id=str(run["run_id"]),
@@ -347,7 +369,33 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        support=support,
+        respondent_system=respondent_system,
     )
+
+
+def _respondent_system(origin: DataOrigin | None, metadata: Mapping[str, Any]) -> str | None:
+    """The respondent system a modelled dataset recorded, fingerprinted; else ``None``.
+
+    Read for a modelled origin only: a simulated one is never validated. A record that does not
+    fingerprint (a missing or blank component, a name it does not bind) is refused, never read
+    as no system.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(RESPONDENT_SYSTEM_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
+    ):
+        raise SourcesRefused(
+            "respondent_system", "the dataset's respondent system is not a record of names"
+        )
+    try:
+        return respondent_system_fingerprint(raw)
+    except ValueError as exc:
+        raise SourcesRefused("respondent_system", str(exc)) from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -456,6 +504,11 @@ def prepare_module(
         sources.aggregate,
         dataset_sha256=sources.refs.dataset.sha256,
         origin=sources.dataset_origin,
+        support=sources.support.analysis,
+        respondent_system=sources.respondent_system,
+        # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
+        # modelled run's evidence stays internal.
+        validation=None,
     )
     inputs = AnalysisInputs(
         table=evidence.table,
@@ -526,7 +579,7 @@ def module_artifact(
             data_origin=evidence.origin,
         ),
         authority=AuthoritySummary(
-            field_policy_version=INSTRUMENT_POLICY_VERSION,
+            field_policy_version=instrument_policy_version(evidence.origin),
             field_policy_sha256=evidence.book.source_sha256,
             joint_status_fingerprint=joint.fingerprint(),
             joint_degradation=joint.degradation.value if joint.degradation else None,
@@ -569,6 +622,9 @@ class RunAnalysis:
     modules: Mapping[AnalysisModuleId, ReconstructedModule]
     #: Modules with no stored outcome, and the status of their step.
     pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+    #: How the aggregate every module read departs from 18.6.6's port (plan
+    #: ``methodology-tab`` G3c); ``None`` when it is the port, or nothing was read yet.
+    aggregation_deviation: Mapping[str, Any] | None = None
 
     @property
     def complete(self) -> bool:
@@ -756,11 +812,16 @@ def reconstruct_run(
         else:
             outcomes[module] = artifact_id
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
+    deviation: Mapping[str, Any] | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
+        raw = sources.aggregate.get("deviation")
+        deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
             if module in outcomes:
                 modules[module] = _reconstruct(
                     session, scope, store, sources, module, outcomes[module]
                 )
-    return RunAnalysis(run_id=run_id, modules=modules, pending=pending)
+    return RunAnalysis(
+        run_id=run_id, modules=modules, pending=pending, aggregation_deviation=deviation
+    )

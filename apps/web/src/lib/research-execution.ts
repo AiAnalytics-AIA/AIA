@@ -83,19 +83,78 @@ export function waitingDetail(step: ResearchStep): string | null {
 
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
 export const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
+/** Origins of modelled evidence: AI respondents built from the run's own population (ADR 0024). */
+export const MODELLED_ORIGINS: ReadonlySet<string> = new Set(["MODELLED_AI_PANEL"]);
+/** What every modelled number says beside it (ADR 0024 §7); never "respondents said" or "measured". */
+export const MODELLED_DISCLOSURE = "modelováno: AI respondenti z populace";
+
+/**
+ * How a label reads an origin, the same three ways as `domain/fieldwork.py` `origin_kind`:
+ * fictional (SIMULATED), modelled from the population (MODELLED), or anything else (UNKNOWN).
+ * There is no measured kind: an origin this page has no word for is unknown, never fieldwork.
+ */
+export type OriginKind = "SIMULATED" | "MODELLED" | "UNKNOWN";
+const KINDS: ReadonlySet<string> = new Set(["SIMULATED", "MODELLED", "UNKNOWN"]);
+
+export function originKind(origin: string | null | undefined): OriginKind {
+  if (!origin) return "UNKNOWN";
+  if (SYNTHETIC_ORIGINS.has(origin)) return "SIMULATED";
+  if (MODELLED_ORIGINS.has(origin)) return "MODELLED";
+  return "UNKNOWN";
+}
+
+/** The kind the API states, when it is one of the three; otherwise read from the origin. */
+const statedKind = (stated: string | null | undefined, origin: string | null | undefined): OriginKind =>
+  stated && KINDS.has(stated) ? (stated as OriginKind) : originKind(origin);
+
+/** A step's kind; `null` when it stamped no origin (it made no respondent data). */
+export const stepOriginKind = (step: ResearchStep): OriginKind | null =>
+  step.data_origin === null ? null : statedKind(step.data_origin_kind, step.data_origin);
+
+/**
+ * Every kind a run's data is: the fictional fixture source is SIMULATED; each step that stamped an
+ * origin adds its kind. Empty: nothing is known yet (a summary carries no steps).
+ */
+export function runOriginKinds(run: ResearchRun | ResearchRunSummary): ReadonlySet<OriginKind> {
+  const kinds = new Set<OriginKind>();
+  if (run.fieldwork_source === SYNTHETIC_SOURCE) kinds.add("SIMULATED");
+  if ("steps" in run) {
+    for (const step of run.steps) {
+      const kind = stepOriginKind(step);
+      if (kind) kinds.add(kind);
+    }
+  }
+  return kinds;
+}
 
 /**
  * A run is synthetic when its source is the fictional fixture, or when any step says its data is
  * synthetic -- an `ai_runtime` run on the fictional roster is labelled like the fixture, every time.
  * A summary carries no steps; it is labelled once the run is read in full.
  */
-export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean =>
-  run.fieldwork_source === SYNTHETIC_SOURCE ||
-  ("steps" in run && run.steps.some((s) => s.data_origin !== null && SYNTHETIC_ORIGINS.has(s.data_origin)));
+export const isSynthetic = (run: ResearchRun | ResearchRunSummary): boolean => runOriginKinds(run).has("SIMULATED");
+/** Some step's data is modelled from the population: said every time, never as fieldwork. */
+export const isModelled = (run: ResearchRun | ResearchRunSummary): boolean => runOriginKinds(run).has("MODELLED");
+/** Some step stamped an origin this page has no word for: said as unknown, never as real. */
+export const hasUnknownOrigin = (run: ResearchRun | ResearchRunSummary): boolean => runOriginKinds(run).has("UNKNOWN");
 
 /**
- * What a run says about its population: the version it recorded, and -- while fieldwork
- * reads none (OI-61) -- that the respondents did not come from it. Null: it recorded none.
+ * The kind of an analysis or a report the API returned: its stated `data_origin_kind`; `null` when
+ * the API states none because nothing with an origin exists yet (an analysis whose modules have not
+ * stored an outcome). An API from before the field: SIMULATED when it said `synthetic`, else
+ * UNKNOWN -- never read as real.
+ */
+export function resultOriginKind(result: { synthetic?: boolean; data_origin_kind?: string | null }): OriginKind | null {
+  const stated = result.data_origin_kind;
+  if (stated && KINDS.has(stated)) return stated as OriginKind;
+  if (stated === null && !result.synthetic) return null;
+  return result.synthetic ? "SIMULATED" : "UNKNOWN";
+}
+
+/**
+ * What a run says about its population: the version it recorded, and whether its respondents
+ * were drawn from it (the run's pinned persona source, `read_by_fieldwork`). Null: it recorded
+ * none.
  */
 export function populationNote(run: Pick<ResearchRun, "population">): string | null {
   const p = run.population;
@@ -142,8 +201,39 @@ type QuestionResult = Record<string, unknown> & {
 const num = (x: number, decimals: number) => x.toLocaleString("cs-CZ", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 const range = (i: Interval, decimals: number) => (i ? `${num(i.low, decimals)}–${num(i.high, decimals)}` : null);
 
-/** One question's aggregate as rows. A suppressed cell has rows but no values. */
-export function resultTable(id: string, result: QuestionResult): ResultTable {
+/**
+ * How an aggregate departs from 18.6.6's port (plan methodology-tab G2c): every value the
+ * methodology in use changed, with the unit's and the one used, and every replaced formula.
+ * Null: the aggregate is the unit's port. A deviation the page cannot read is still a
+ * deviation -- it says so with nothing named, never passes as the port.
+ */
+export type AggregateDeviation = {
+  version: string | null;
+  changed: { path: string; unit: unknown; used: unknown }[];
+  formulas: string[];
+};
+
+export function aggregateDeviation(aggregate: Record<string, unknown> | null | undefined): AggregateDeviation | null {
+  if (!aggregate || !("deviation" in aggregate)) return null;
+  const raw = aggregate.deviation;
+  if (typeof raw !== "object" || raw === null) return { version: null, changed: [], formulas: [] };
+  const d = raw as Record<string, unknown>;
+  const changed = Array.isArray(d.changed)
+    ? d.changed.filter((c): c is { path: string; unit: unknown; used: unknown } => typeof c === "object" && c !== null && typeof (c as { path?: unknown }).path === "string")
+    : [];
+  const formulas = Array.isArray(d.replaced_formulas) ? d.replaced_formulas.filter((f): f is string => typeof f === "string") : [];
+  return { version: typeof d.methodology_version === "string" ? d.methodology_version : null, changed, formulas };
+}
+
+/** How many top points the aggregate's top box holds: the unit's two, unless a version changed it. */
+export function topBoxWidth(deviation: AggregateDeviation | null): number {
+  const used = deviation?.changed.find((c) => c.path === "top_box")?.used;
+  return typeof used === "number" && Number.isInteger(used) && used >= 1 ? used : 2;
+}
+
+/** One question's aggregate as rows. A suppressed cell has rows but no values. `topBox` is how
+ *  many top points its top box holds (2 unless the aggregate's methodology changed it). */
+export function resultTable(id: string, result: QuestionResult, topBox = 2): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);
   const rows: ResultRow[] = [];
@@ -169,7 +259,7 @@ export function resultTable(id: string, result: QuestionResult): ResultTable {
     const top = result.top2box_pct as number | null;
     const topIv = result.top2box_interval_95 as Interval;
     rows.push({
-      label: t("research.exec.results.top2"),
+      label: topBox === 2 ? t("research.exec.results.top2") : tv("research.exec.results.topN", { n: topBox }),
       value: hide(top === null || top === undefined ? null : `${num(top, 1)} %`),
       interval: hide(range(topIv, 1)),
       ...(suppressed || typeof top !== "number" ? {} : { bar: { value: top, low: topIv?.low ?? null, high: topIv?.high ?? null } }),

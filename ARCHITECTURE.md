@@ -53,7 +53,6 @@ point; nothing outside it touches its internals.
 | 4b | **Executors** | `apps/executors/src/aia_executors/` | What a step of each kind *does*, under the scope the lease issued and through the worker's `StepContext`. Registered by kind; the worker loads them from `AIA_WORKER_EXECUTORS`. Also the operator commands (seed, smoke) that act as a user would through the application layer. | 1, 2, 3 and `aia_worker.executor` — never 5 |
 | 5 | **Transport** | `apps/api/src/aia_api/` | HTTP. Validates, delegates, serialises. **No business rules.** | 1, 2, 3 — through `dependencies.py` only |
 | 6 | **Presentation** | `apps/web/` | Next.js client. Renders server-computed state. **No business rules.** | 5, over HTTP |
-| — | **Legacy stub** | `src/server.js` | Frozen and unused: nothing in the Makefile, CI, Compose or a Dockerfile runs it, and sign-in is Cognito through `apps/web`. Deleting it is PROGRESS *Next* 8. | Nothing. Receives no new features. |
 | — | **Legacy unit** | `legacy/npc-panel-18.6.6/` | The NPC Panel 18.6.6 product, extracted byte-for-byte from the audited archive ([ADR 0011](docs/architecture/adr/0011-vendor-legacy-product-unit.md)). The rebuild's behavioural baseline and parity oracle. **Frozen: regenerated, never edited** (one exception to date: `runtime/hydrate_data.py`, hand-edited by PR #57, OI-68). Outside every code-quality gate by construction. Not part of the product deployment (ADR 0018 decision 5): it runs, when a comparison needs it, from `deploy/reference/` beside the develop host's product, behind a basic-auth gate on the host's loopback. | Nothing. Neither the back end nor the web client calls it (ADR 0018); parity tests reach it over HTTP. |
 
 Settings shows AI from two sources and calls neither a connection. The settings
@@ -272,11 +271,21 @@ can grant approval or supply deployment prices.
   The model returns only one respondent's probabilities, selections or short text
   under a strict per-block contract; facts the persona has are answered by code
   (`respondent_facts`), the response process and a seeded draw decide the answer
-  (`respondent_behavior`). Personas are the fictional roster only: its datasets
-  carry `data_origin = SYNTHETIC_AI_FICTIONAL`, and the fixture's
+  (`respondent_behavior`). Who the personas are is the run's pin, set at start and kept by a
+  retry (`PersonaSource`): the fictional roster, whose datasets carry
+  `data_origin = SYNTHETIC_AI_FICTIONAL`, or -- behind `AIA_AI_POPULATION_PERSONAS_ENABLED` --
+  respondents drawn from the population the run recorded (`panel_source.panel_plans`), Class A,
+  `MODELLED_AI_PANEL`, the dataset naming its respondent system; a worker without that path
+  parks such a run, and a sample or persona the population cannot give is refused by name
+  before any call. The fixture's
   `SYNTHETIC_FIXTURE` (in `aia_executors.workbench`, refused unless `AIA_ENV` is
-  `local`/`test`); the evidence gate refuses every origin in `NON_EVIDENCE_ORIGINS`
-  as a client-facing claim.
+  `local`/`test`). The client-facing origin gate is an allowlist,
+  `CLIENT_ADMISSIBLE_ORIGINS` (ADR 0024 §2): a synthetic origin is refused as
+  `SYNTHETIC_DATA_ORIGIN`, and a missing origin or any origin not on the list as
+  `ORIGIN_NOT_ADMISSIBLE`, so an origin added later is refused until it is decided.
+  Labels read an origin only through `origin_kind` (SIMULATED / MODELLED / UNKNOWN);
+  no surface tests origin-set membership itself, and an unknown origin is labelled
+  unknown, never read as real fieldwork.
 - **A model call from a step goes through `StepModelCaller`, and nowhere else.**
   One reservation per logical request (PROGRESS D11, resolved), checked by the
   gateway on every call and settled once with their sum; dispatch is
@@ -292,7 +301,8 @@ can grant approval or supply deployment prices.
   (where the data may go) and licence eligibility (whether its source's licence
   permits that route) are separate refusals; `ModelRequest.data_lineage` has no
   default, and `GovernedModelGateway` runs both before any adapter. Every panel
-  source is `UNDETERMINED` until OI-61 records a determination.
+  source is `APPROVED` for `bedrock-eu-primary` alone (OI-61, data owner,
+  2026-10-12); any other route refuses it.
 - **Integrated is not exposed.** The research Sociomap is computed from the
   unit's own relation matrix by AIA's engine and marked `INTERNAL_ONLY` while
   PROGRESS D6 is open; every client-facing surface, export or report calls
@@ -313,9 +323,19 @@ can grant approval or supply deployment prices.
 - **A native run's analysis is internal, and an outcome is re-admitted whenever it is
   read** ([analysis.md](docs/architecture/analysis.md)). The Study's own questionnaire
   items become evidence fields only from what the run recorded
-  (`domain/evidence/instrument.py`): modelled, aggregate only, `INTERNAL_ONLY`, which the
-  claim gate refuses client-facing whatever the certificate or origin says. A run with no
-  panel has no certificate, and says so (`MISSING`). A stored module outcome holds the
+  (`domain/evidence/instrument.py`), under the policy their answers' origin selects --
+  never a caller: `aia-instrument-evidence-1` for simulated answers, `-2` for
+  `MODELLED_AI_PANEL` (ADR 0024 §3); any other origin is refused. Both are modelled,
+  aggregate only, never one person's and never a measured fact. `-1` is `INTERNAL_ONLY`,
+  which the claim gate refuses client-facing whatever the certificate or origin says. `-2`
+  also needs a scope and the modelled-value disclosure on every client-facing claim
+  (`MODELED_DISCLOSURE_ALWAYS`; it and `INTERNAL_ONLY` are AIA-only rules, never extracted
+  from dictionary prose), and is `INTERNAL_ONLY` unless a `HOLDOUT_VALIDATED` validation was
+  earned on the run's current respondent system (`validation.lifts_internal_only` over
+  `respondent_system_fingerprint`: prompt, persona builder and mode, sampler, population
+  version, model binding, response process). Native preflight and the gate both read the
+  book, so a lift is honoured by both. A run with no panel has no certificate, and says so
+  (`MISSING`). A stored module outcome holds the
   accepted draft, never claims: `application/analysis_results.py` rebuilds the evidence
   from the run's own artifacts, requires every fingerprint to match and puts the draft
   through the gate again, so a file cannot mint an `AdmittedClaim`. The executor
@@ -595,6 +615,20 @@ its `README.md` is the runbook; `infra/develop/` is the Terraform. The running
 revision is always visible: `/api/v1/health` reports `build.sha`, the web
 client's `/version` reports the same, and every artifact records it as its
 `runtime_version`. Production compute remains undecided.
+
+The host deployment lock serializes both CI and operator deploys. Before ECR
+login or downloads, `bin/image_retention.py` removes only unused, singly tagged
+product images older than 48 hours in this deployment's registry, preserving
+all container references, incoming/current SHAs, recent images and four recorded
+successful releases (current plus three rollback releases). Unknown/shared/unit
+images, registry copies, volumes, backups and research files are outside that
+authority. History is written atomically only after smoke passes; until four
+releases are recorded, all images are kept. Corrupt history/inventory or less
+than 8 GiB available / more than 85% used on any relevant filesystem refuses
+deployment before pull, migration or replacement. The existing CloudWatch disk
+alarm remains enabled. Policy, dry-run, bootstrap and recovery are in the
+[runbook](deploy/develop/README.md#disk-retention); executable ordering and
+refusal proofs are in `test_develop_image_retention.py`.
 
 **The product hostname is AIA, client-first
 ([ADR 0015](docs/architecture/adr/0015-client-first-product-interface.md)).**

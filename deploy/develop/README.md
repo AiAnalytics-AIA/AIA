@@ -111,7 +111,12 @@ Merge a pull request into `develop`. Then:
 3. On the host, `bin/deploy.sh <sha>`: pull → backup → `alembic upgrade head`
    → write `AIA_IMAGE_TAG` → `compose up --wait` → `bin/smoke.sh`.
 4. The workflow waits for the command, prints its output, and fails if any step
-   or smoke check failed.
+   or smoke check failed. It waits 20 minutes (a deploy takes about two). A host
+   still running then is reported `InProgress`, and the command's execution timeout
+   stops it at 25 minutes, which releases `bin/deploy.sh`'s lock: until it does, a
+   rerun is refused with `another deployment holds .deploy.lock`. The stopped
+   command's output stays in Systems Manager → Run Command history, and
+   `/var/log/aia-deploy.log` on the host has every line (§ Logs).
 
 Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
@@ -336,6 +341,18 @@ and anything derived from the population panel parks with `licence_undetermined`
 (`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
 prompt hash, class, lineage, every call).
 
+### Model requests in a step's activity
+
+`aia_ai_step_events` (`true`; off when unset) makes each research-agent and analysis model
+request write `ai_request_sent` and `ai_request_answered` to its run's feed: counts, cost and
+latency, never text. A running step's activity panel shows them. Two database writes per request
+(~1.3 ms measured). It changes nothing unless `aia_ai_research_agents_enabled` or
+`aia_ai_analysis_enabled` is also on, since only those two callers announce. Only the worker
+reads it: after creating or changing the parameter, run `bin/write-env.sh` and
+`docker compose up -d worker`, then `docker compose exec worker printenv AIA_AI_STEP_EVENTS`
+prints `true`. Requests made before the restart are not in the feed. On develop since
+2026-10-13.
+
 ### Deep Research on Brave search
 
 Brave's search is a priced, live route outside the EU, Class C only
@@ -407,9 +424,51 @@ versions of the panel (18,766 rows × 400 fields each), the 400-field dictionary
 companions, every one pinned by SHA256 in the Czech import contract
 (`packages/aia_core/src/aia_core/domain/population/czech.py`). Once it is imported, with
 STATIC on `v17_1_2` and LIVE on `v17_4_0`, every new research run records the LIVE version
-it would be computed over, while fieldwork keeps answering with fictional respondents and
-says so (owner's decision of 2026-10-10, `.planning/plans/population-operations.md` P3,
-P6). No model sees the panel: OI-61 still bars panel-derived material from every provider.
+it would be computed over (owner's decision of 2026-10-10, `.planning/plans/population-operations.md`
+P3, P6). Fieldwork answers from it only for a run that pinned the panel persona source at start,
+which needs `AIA_AI_POPULATION_PERSONAS_ENABLED=true` (off by default; see below). Panel-derived
+material may reach `bedrock-eu-primary` and no other route (OI-61, the data owner's determination
+of 2026-10-12).
+
+### Respondents drawn from the population
+
+`AIA_AI_POPULATION_PERSONAS_ENABLED` is read by both the API (a new `ai_runtime` run pins
+`persona_source = panel`) and the worker (it serves such a run from `AIA_POPULATION_ASSET_ROOT`,
+which Compose sets to the read-only `/srv/population/v17`). Before turning it on:
+
+1. LIVE is established (`bin/population.sh status`); without it a start is refused, 409
+   `population_not_established`, and nothing is created.
+2. The AI runtime is on and its route is approved for `CLASS_A_CLIENT_CONFIDENTIAL`: a panel
+   persona is Class A, never internal.
+3. The study's design asks for an `n` the sampler can represent; a small one is refused as
+   `sampling_unrepresentative` until OI-99 is decided.
+
+Turning it off again does not change a run that already pinned the panel: a worker without the
+path parks it (`panel_personas_unavailable`) rather than answering with fictional respondents.
+
+### Materialized children (the population store)
+
+A client's materialized dimension is written once, as an owned child version, to its own bucket,
+`aia-develop-population-<account>` (Terraform `aws_s3_bucket.population`; no `force_destroy`), under
+`materialized/`. Its name and region are the SSM parameters `/aia/develop/aia_population_store_bucket`
+and `/aia/develop/aia_population_store_region`, which the deploy hands the worker as
+`AIA_POPULATION_STORE_BUCKET` / `AIA_POPULATION_STORE_REGION` (both or neither: neither means no
+store, nothing written or read). The instance role may get and put objects under `materialized/`
+and list the bucket, nothing else.
+
+The worker builds one store and gives it to both the `population_materialize` step, which writes a
+child, and the panel loader, which reads a selected child back. Without a store, a materialize run
+parks (`population_store_unconfigured`), and a panel run over a child parks at fieldwork; neither
+writes or substitutes anything.
+
+### The audience preview
+
+The audience step's feasibility preview is counted by the API, which mounts the same
+directory read-only and loads LIVE once per process and version (measured on fictional rows
+of v17's shape: ~97 MB held, 360 MB peak while parsing, 3.6 s; the real panel holds more).
+The first preview after a deploy or a promotion pays the load; later ones only the count. The
+API never receives `AIA_POPULATION_OPERATORS`. Set `AIA_API_POPULATION_ASSET_ROOT=` (empty) in
+`.env` to turn the preview off; the step then says it is not available here.
 
 The panels are licence-bound (PIAAC 2023 CZ / ISSP 2022 CZ, open decision D3). They stay
 in the EU ops bucket and on this host's disk, never in Git or an image. Fifteen of the
@@ -500,6 +559,18 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    version's verified field dictionary in the database for the characteristics section
    on Společenská inteligence. It acts as no one and needs no sign-in. A refusal is logged
    as a warning and does not fail the deploy.
+
+   It then runs `bin/population.sh record-catalogue`, which keeps the audience factor
+   catalogue of each population's current version, computed once from its ANALYSIS view,
+   for the audience step's factor editor and subpanels. `establish` and `promote` keep the
+   catalogue of the version they move to as well, so a promotion between deploys does not
+   leave the step without one; a version no population has stood on has none. Either is
+   said in the command's answer, and a refusal does not undo the change or fail the deploy.
+   The deploy gives the command five minutes (a catalogue is seconds of work: 3.6 s to load
+   v17's 18,766 rows, measured) and stops it after that, logging `record-catalogue did not
+   finish in 5 minutes`; no catalogue is kept then, the step says so, and the deploy goes on.
+   On 2026-10-13 the unbounded command held the deploy, and its lock, for the hour SSM
+   allows a command by default.
 
 **Exit codes.** `2` means refused before anything was written: a person the
 configuration does not name, a malformed argument. `3` means the population itself
@@ -702,6 +773,67 @@ on 2026-09-28 (§ The cutover) found three things.
 After reopening, a rollback discards everything saved in AIA since that dump, so it
 needs its own decision and an export first. The rehearsal covered the database, the
 migration and both code revisions; it did not cover the Compose or SSM steps.
+
+## Disk retention
+
+Every deployment acquires the host's `.deploy.lock`, then runs image retention
+and checks disk headroom **before ECR login, downloads, backup, migration or
+service replacement**. This includes manual `bin/deploy.sh` calls. The
+CloudWatch `aia-develop-disk-85-percent` alarm and its existing notifications
+remain unchanged; cleanup runs with deployments, not with every alarm.
+
+Only local `aia-api`, `aia-worker` and `aia-web` images in this deployment's
+registry, tagged by a full git SHA and older than 48 hours, can be removed.
+Retention keeps:
+
+- Every image used by any running **or stopped** container.
+- The incoming SHA, the currently responding release, and all images less than
+  48 hours old.
+- The latest four distinct successful releases: current plus three rollback
+  releases, even when older than 48 hours.
+- Untagged, shared/floating-tag, other-registry and reference-unit images.
+
+The successful list is written atomically to
+`.deploy-state/successful-releases.json` **after smoke passes**, never after a
+failed pull, migration or smoke test. On the first deployment with this policy,
+the list is initialized from the incoming successful release and the previously
+running SHA; the 48-hour window and container references also protect recent
+images. Until four distinct releases are recorded, automatic retention keeps
+**all** images: older pre-policy rollback images cannot be inferred from image
+creation dates. An operator may seed the ledger from four verified successful
+deployment receipts (oldest first, using the `record --sha` command); do not
+substitute arbitrary local image tags. Corrupt history or an unreadable Docker
+inventory stops the deployment.
+Do not delete the history file to work around that refusal: repair it from
+successful deploy receipts. Abbreviated operator SHAs protect all matching
+full-SHA tags conservatively.
+
+No force removal, broad Docker prune, container deletion or volume deletion is
+used. Backups, PostgreSQL, research files and ECR images are untouched. A
+concurrent container referencing an eligible image makes Docker refuse removal;
+the deploy then stops before downloads.
+
+After retention, root, Docker storage, containerd storage and deployment
+filesystems must each have at least **8 GiB available** and be at or below
+**85% used**. Each distinct filesystem is checked once; reserved filesystem
+blocks do not count as available. A refusal prints available space and the
+thresholds, while the running services remain in place. Cleanup cannot solve
+growth in retained images, logs, volumes or backups: investigate those, or use
+the Resize procedure below. It never broadens its deletion rules to clear a gate.
+
+To inspect without deleting anything, on the host:
+
+```bash
+python3 bin/image_retention.py preflight \
+  --registry "$AIA_IMAGE_REGISTRY" \
+  --state-file /opt/aia/develop/.deploy-state/successful-releases.json \
+  --protect <current-full-sha> --protect <incoming-full-sha>
+```
+
+Use the registry from the host's deployment configuration, without printing the
+rest of `.env`. Standalone preflight is a dry run by default; `--apply` opts into
+the same authorized policy as deploy. Full deployment provides the host lock;
+do not run standalone `--apply` concurrently with a deployment.
 
 ## Resize
 

@@ -13,7 +13,11 @@ from sqlalchemy.orm import Session
 
 from aia_core.application.analysis_results import reconstruct_run
 from aia_core.application.deep_research import DeepResearchRuns
-from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report import (
+    RESEARCH_SUBTITLE,
+    ReportCompositionRefused,
+    compose_internal_report,
+)
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import AnalysisModuleId
@@ -21,6 +25,7 @@ from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import EvidenceOrigin
 from aia_core.domain.deep_research.gaps import AcquisitionReason
 from aia_core.domain.deep_research.integration import DeepResearchPurpose, InterpretationLineage
+from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.report.model import (
     Block,
     Classification,
@@ -331,7 +336,7 @@ def contextual_report(
     meta = ReportMeta(
         kind=ReportKind.INTERNAL,
         title="Výzkumná zpráva s literární rešerší",
-        subtitle="Syntetický výzkum" if first.record.labels.simulated_respondents else "Výzkum",
+        subtitle=RESEARCH_SUBTITLE[origin_kind(first.record.labels.data_origin)],
         client_name=names.client_of_study(scope).name,
         study_name=names.get_study(scope).name,
         study_id=scope.study_id,

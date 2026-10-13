@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, MODELLED_DISCLOSURE, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -48,6 +48,37 @@ describe("research execution", () => {
     expect(isSynthetic(run({ steps: [step("SYNTHETIC_AI_FICTIONAL")] }))).toBe(true);
     expect(isSynthetic(run({ steps: [step(null)] }))).toBe(false);
     expect(isSynthetic(run({ steps: [step("SOMETHING_ELSE")] }))).toBe(false);
+  });
+
+  it("reads every origin as simulated, modelled or unknown, the API's way (plan chunk 4d)", () => {
+    expect(originKind("SYNTHETIC_FIXTURE")).toBe("SIMULATED");
+    expect(originKind("SYNTHETIC_AI_FICTIONAL")).toBe("SIMULATED");
+    expect(originKind("MODELLED_AI_PANEL")).toBe("MODELLED");
+    for (const odd of [null, undefined, "", "PANEL", "SYNTHETIC_SOMETHING"]) expect(originKind(odd)).toBe("UNKNOWN");
+    expect(MODELLED_DISCLOSURE).toBe("modelováno: AI respondenti z populace");
+  });
+
+  it("says a modelled run and an unknown origin, and never reads either as fieldwork", () => {
+    const step = (origin: string | null, kind?: string) => ({ node_key: "run", data_origin: origin, data_origin_kind: kind }) as ResearchRun["steps"][number];
+    const modelled = run({ fieldwork_source: "ai_runtime", steps: [step("MODELLED_AI_PANEL")] });
+    expect([isModelled(modelled), isSynthetic(modelled), hasUnknownOrigin(modelled)]).toEqual([true, false, false]);
+    const odd = run({ fieldwork_source: "ai_runtime", steps: [step("PANEL")] });
+    expect([isModelled(odd), isSynthetic(odd), hasUnknownOrigin(odd)]).toEqual([false, false, true]);
+    expect(stepOriginKind(step(null))).toBeNull();
+    // The API's stated kind wins over the page's own reading: an origin added later is not unknown.
+    expect(stepOriginKind(step("MODELLED_AI_PANEL_V2", "MODELLED"))).toBe("MODELLED");
+    expect(stepOriginKind(step("PANEL", "MEASURED"))).toBe("UNKNOWN");
+  });
+
+  it("reads an analysis or a report by its stated kind, an older API by its synthetic flag", () => {
+    expect(resultOriginKind({ synthetic: false, data_origin_kind: "MODELLED" })).toBe("MODELLED");
+    expect(resultOriginKind({ synthetic: true })).toBe("SIMULATED");
+    expect(resultOriginKind({ synthetic: false })).toBe("UNKNOWN");
+    expect(resultOriginKind({})).toBe("UNKNOWN");
+    // The API states no kind while nothing with an origin exists (analysis pending): neutral.
+    expect(resultOriginKind({ synthetic: false, data_origin_kind: null })).toBeNull();
+    expect(resultOriginKind({ synthetic: true, data_origin_kind: null })).toBe("SIMULATED");
+    expect(resultOriginKind({ data_origin_kind: "MEASURED" })).toBe("UNKNOWN");
   });
 });
 
@@ -95,3 +126,29 @@ describe("populationNote (population-operations P3)", () => {
   });
 });
 
+
+describe("aggregateDeviation (methodology-tab G2c)", () => {
+  it("is null for 18.6.6's port and reads what a deviation names", () => {
+    expect(aggregateDeviation({ questions: {} })).toBeNull();
+    expect(aggregateDeviation(null)).toBeNull();
+    const d = aggregateDeviation({
+      deviation: { methodology_version: "aia-aggregate-1+e1", changed: [{ path: "top_box", unit: 2, used: 1 }], replaced_formulas: ["agg.share"] },
+    });
+    expect(d).toEqual({ version: "aia-aggregate-1+e1", changed: [{ path: "top_box", unit: 2, used: 1 }], formulas: ["agg.share"] });
+    expect(topBoxWidth(d)).toBe(1);
+    expect(topBoxWidth(null)).toBe(2);
+  });
+
+  it("never passes an unreadable deviation as the port", () => {
+    expect(aggregateDeviation({ deviation: "garbled" })).toEqual({ version: null, changed: [], formulas: [] });
+    expect(aggregateDeviation({ deviation: { changed: [{ nope: 1 }, "x"], replaced_formulas: [3] } })).toEqual({ version: null, changed: [], formulas: [] });
+    expect(topBoxWidth({ version: null, changed: [{ path: "top_box", unit: 2, used: "three" }], formulas: [] })).toBe(2);
+  });
+
+  it("names the top box by its width", () => {
+    const base = { support_status: "REPORTABLE" as const, n_platnych: 100, n_unique_layer_donors: 60, effective_n: 50 };
+    const scale = { typ: "skala", ...base, prumer: 3.1, top2box_pct: 40 };
+    expect(resultTable("t", scale).rows[1].label).toBe("Horní dva body");
+    expect(resultTable("t", scale, 3).rows[1].label).toBe("Horní body (3)");
+  });
+});

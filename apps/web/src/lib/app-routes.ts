@@ -23,5 +23,7 @@ export const appRoutes = {
     `/app/clients/${e(clientId)}/research/${e(studyId)}/${stepSlug(step)}`,
   intelligence: () => "/app/intelligence",
   memory: () => "/app/memory",
+  /** A past research of a client, read-only (project memory M2). */
+  memoryStudy: (clientId: string, studyId: string) => `/app/clients/${e(clientId)}/memory/${e(studyId)}`,
   settings: () => "/app/settings",
 };

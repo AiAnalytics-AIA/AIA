@@ -151,7 +151,7 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   - `OrganizerNameTaken` is raised for a name the client already uses.
   - `KnowledgeItem` gains `folder_id` and `label_ids`.
   - Folders are flat: no nesting until a client needs it.
-- **Migration** `e8a0c2e4f6b8`: `client_knowledge_folders` and `client_knowledge_labels`, each
+- **Migration** `f2a4c6e8b0d9`: `client_knowledge_folders` and `client_knowledge_labels`, each
   unique on (client, name key); `client_knowledge_item_folders`; `client_knowledge_item_labels`.
   - **Changed from the plan:** an item's folder is its own table, not a column on
     `client_knowledge_items`. That row's `modified_at` has `onupdate`, so filing an item would

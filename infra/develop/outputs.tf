@@ -30,6 +30,11 @@ output "ops_bucket" {
   value       = aws_s3_bucket.ops.bucket
 }
 
+output "population_bucket" {
+  description = "Materialized population children (P4d1); SSM aia_population_store_bucket."
+  value       = aws_s3_bucket.population.bucket
+}
+
 output "github_deploy_role_arn" {
   description = "GitHub variable AIA_DEPLOY_ROLE_ARN."
   value       = aws_iam_role.github_deploy.arn

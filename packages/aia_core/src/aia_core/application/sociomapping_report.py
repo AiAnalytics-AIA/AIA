@@ -18,6 +18,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 from aia_core.domain.evidence import ClaimSurface
+from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     AuditBlock,
@@ -44,6 +45,7 @@ from aia_core.domain.report.validation import require_valid
 __all__ = [
     "SOCIOMAPPING_REPORT_ARTIFACT_TYPE",
     "SOCIOMAPPING_REPORT_CONTRACT",
+    "SOCIOMAPPING_SUBTITLE",
     "SociomappingReportRefused",
     "compose_sociomapping_report",
     "limitation_text",
@@ -54,6 +56,31 @@ SOCIOMAPPING_REPORT_CONTRACT: Final = "aia-sociomapping-report-3"
 
 #: The limitation codes the artifact carries -> what the report prints. A code without
 #: wording prints its stored English detail, never nothing.
+#: The report's subtitle, by the origin's kind.
+SOCIOMAPPING_SUBTITLE: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: "Interní pracovní koncept · fiktivní data",
+    OriginKind.MODELLED: "Interní pracovní koncept · modelovaná data",
+    OriginKind.UNKNOWN: "Interní pracovní koncept · neznámý původ dat",
+}
+#: The note every report carries on where its data came from; an unknown origin is said.
+_ORIGIN_TITLE: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: "Fiktivní data",
+    OriginKind.MODELLED: "Modelovaná data",
+    OriginKind.UNKNOWN: "Neznámý původ dat",
+}
+_ORIGIN_NOTE: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: (
+        "Data jsou fiktivní ({origin}): nejde o pozorované odpovědi skutečných lidí "
+        "a z výsledků nelze vyvozovat zjištění."
+    ),
+    OriginKind.MODELLED: (
+        f"Data jsou {MODELLED_DISCLOSURE} ({{origin}}): odpovědi vytvořil model za respondenty "
+        "sestavené z populace běhu. Nejde o měření ani o výpovědi skutečných respondentů."
+    ),
+    OriginKind.UNKNOWN: (
+        "Původ dat není znám ({origin}): výsledky nelze číst jako měření skutečných lidí."
+    ),
+}
 _LIMITATIONS: Final[dict[str, str]] = {
     "EXPERIMENTAL_METHOD": (
         "Rozmístění počítá experimentální H-Model AIA (aia_hmodel_candidate_v1). Cílová "
@@ -344,17 +371,18 @@ def compose_sociomapping_report(
             )
         ),
     ]
-    if result.get("synthetic_data"):
-        about.append(
-            Callout(
-                CalloutKind.NOTE,
-                text(
-                    f"Data jsou fiktivní ({origin}): nejde o pozorované odpovědi skutečných lidí "
-                    "a z výsledků nelze vyvozovat zjištění."
-                ),
-                title="Fiktivní data",
-            )
+    kind = origin_kind(result.get("data_origin"))
+    if result.get("synthetic_data") and kind is not OriginKind.SIMULATED:
+        raise SociomappingReportRefused(
+            "the stored result's origin and its synthetic flag disagree"
         )
+    about.append(
+        Callout(
+            CalloutKind.NOTE,
+            text(_ORIGIN_NOTE[kind].format(origin=origin)),
+            title=_ORIGIN_TITLE[kind],
+        )
+    )
     about.append(
         Paragraph(
             text(

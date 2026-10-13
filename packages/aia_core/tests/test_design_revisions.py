@@ -191,3 +191,62 @@ def test_a_revision_row_is_never_updated(session: Any, designs: Any) -> None:
     with pytest.raises(RuntimeError, match="immutable"):
         session.flush()
     session.rollback()
+
+
+# -- a reused design's citation (project memory M3b) ---------------------------
+
+
+def _labels() -> Any:
+    from aia_core.domain.design_reuse import SourceRun, derive_source_labels
+
+    return derive_source_labels([SourceRun(run_id="RUN-1", fieldwork_source="synthetic_fixture")])
+
+
+def test_a_studys_design_source_is_recorded_once_and_read_through_the_study(
+    scoped: Any, designs: Any
+) -> None:
+    repo = designs(study="sibling")
+    assert repo.source() is None
+    revision, _ = repo.submit(content=DESIGN, source_stage="memory")
+    source_study = scoped.studies["primary"].study_id
+    cited = repo.record_source(
+        revision_id=revision.revision_id,
+        source_study_id=source_study,
+        source_revision_id="REV-source",
+        source_revision=3,
+        source_content_sha256="a" * 64,
+        labels=_labels(),
+    )
+    assert repo.source() == cited
+    assert (cited.source_study_id, cited.source_revision, cited.labels.synthetic) == (
+        source_study,
+        3,
+        True,
+    )
+    assert cited.labels.run_ids == ("RUN-1",) and cited.created_by == scoped.users["lead"]
+    with pytest.raises(DesignRejected) as again:
+        repo.record_source(
+            revision_id=revision.revision_id,
+            source_study_id=source_study,
+            source_revision_id="REV-other",
+            source_revision=4,
+            source_content_sha256="b" * 64,
+            labels=_labels(),
+        )
+    assert again.value.reason == "source_already_recorded"
+    # Another Study sees nothing of it.
+    assert designs().source() is None
+
+
+def test_a_source_cites_only_a_revision_of_the_study_itself(scoped: Any, designs: Any) -> None:
+    mine, _ = designs().submit(content=DESIGN, source_stage="run")
+    theirs = designs(study="sibling")
+    with pytest.raises(DesignRevisionNotFound):
+        theirs.record_source(
+            revision_id=mine.revision_id,
+            source_study_id=scoped.studies["primary"].study_id,
+            source_revision_id=mine.revision_id,
+            source_revision=1,
+            source_content_sha256=mine.content_sha256,
+            labels=_labels(),
+        )

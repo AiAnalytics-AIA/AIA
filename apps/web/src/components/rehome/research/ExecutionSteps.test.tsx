@@ -8,7 +8,10 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t } from "@/i18n/t";
+import type { ResearchRun } from "@/lib/api";
 import { CONFLICT_MESSAGE } from "@/research/store";
+import { RunResults } from "./ExecutionSteps";
+import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
 import { CONTENT_PATH, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -28,7 +31,7 @@ const READY = {
   ],
 };
 const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
-  node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+  step_id: `STEP-${node}`, node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
   started_at: "2026-09-25T08:00:00Z", finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra,
 });
 const run = (extra: Record<string, unknown> = {}) => ({
@@ -334,6 +337,41 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", confirm_cost_usd: 225 });
   });
 
+  it("offers the client's materialized children, and a run started over one names it", async () => {
+    const child = (id: string, client: string, achieved: number) => ({
+      version_id: id, label: `v_5+${id}`, content_sha256: "c".repeat(64), row_count: 6, column_count: 5,
+      parent_version_id: "DSV-v_5", status: "REGISTERED", runtime_eligible: false, companions_attached: false,
+      imported_at: "2026-10-12T09:00:00Z", imported_by: "USR-1", provenance: "materialized", owner_client_id: client,
+      extension_sha256: "e".repeat(64),
+      materialized: { dimension_id: id, kind: "scale_1_10", definition_sha256: "d".repeat(64), method: "m@1", target: 2.0, achieved, target_met: Math.abs(achieved - 2.0) <= 0.01, usable_predictors: ["vek"] },
+    });
+    api({
+      "GET /api/v1/population": () => ({ dataset_id: "d", contract_id: "c", populations: [], history: [],
+        versions: [child("ochota", "CLI-1", 2.68), child("cizi", "CLI-other", 2.0)] }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const choice = await screen.findByRole("group", { name: t("research.exec.population.text") });
+    // Only this client's child is offered, with its unmet target said so; LIVE is the default.
+    expect(within(choice).queryByText("cizi")).toBeNull();
+    expect(within(choice).getByText("cíl 2,00, dosaženo 2,68")).toBeTruthy();
+    expect(within(choice).getByText(t("aia.intelligence.population.children.verdict.unmet"))).toBeTruthy();
+    expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(within(choice).getAllByRole("radio")[1]);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
+  });
+
+  it("offers no choice when the client has no child, and a run names no population", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1" });
+    expect(screen.queryByRole("group", { name: t("research.exec.population.text") })).toBeNull();
+  });
+
   it("does not offer to start when a limit is set and the ceiling is unknown, and says why", async () => {
     const blocked = { ...PRICED, cost_ceiling_usd: null, cost_ceiling_unknown: "fieldwork_reservation_missing", spend_confirm_usd: 100 };
     api({ "GET /api/v1/studies/STU-1/research/readiness": () => blocked, "GET /api/v1/studies/STU-1": () => STUDY });
@@ -444,6 +482,33 @@ describe("Progress", () => {
     expect(screen.queryByRole("note")).toBeNull(); // not fictional: no fiction banner
   });
 
+  it("says a modelled run is modelled on its banner and its steps, never fictional or fieldwork (ADR 0024 §7)", async () => {
+    const modelled = run({
+      status: "RUNNING", phase: "RUNNING",
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "MODELLED_AI_PANEL", data_origin_kind: "MODELLED" }),
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "MODELLED_AI_PANEL" }),
+      ],
+    });
+    api(listed(modelled));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const banner = await screen.findByText(/^Modelováno: AI respondenti z populace\. Odpovědi vytvořil model/);
+    expect(banner.getAttribute("data-origin")).toBe("modelled");
+    expect(screen.queryByText(t("research.exec.syntheticNotice"))).toBeNull();
+    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const kinds = steps.flatMap((li) => [...li.querySelectorAll("[data-origin-kind]")].map((e) => e.getAttribute("data-origin-kind")));
+    expect(kinds).toEqual(["MODELLED", "MODELLED"]);
+    expect(within(steps[1]).getByText("Modelovaná data")).toBeTruthy();
+    expect(within(steps[1]).queryByText("MODELLED_AI_PANEL")).toBeNull(); // the raw value is a title, not a fault chip
+  });
+
+  it("says an origin it has no word for is unknown, never real", async () => {
+    api(listed(run({ status: "RUNNING", phase: "RUNNING", steps: [step("run", "SUCCEEDED", { artifact_id: "ART-3", data_origin: "PANEL" })] })));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect((await screen.findByText(t("research.exec.unknownOriginNotice"))).getAttribute("data-origin")).toBe("unknown");
+  });
+
   it("shows an orb beside every running step, as AI where a model thinks and as work where code runs", async () => {
     api(listed(run({
       steps: [
@@ -463,6 +528,49 @@ describe("Progress", () => {
     // Preflight is code at work; AI fieldwork thinks; a queued or blocked step shows nothing.
     expect(orbs).toEqual([["compile", null], ["preflight", "solving/running"], ["run", "listening/ai"], ["aggregate", null], ["analysis_executive", null]]);
     for (const orb of list.querySelectorAll("[data-orb]")) expect(orb.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("opens a running step's space with a large orb and what its events said, and no other", async () => {
+    const running = run({
+      steps: [
+        step("compile", "SUCCEEDED", { artifact_id: "ART-1" }),
+        step("run", "RUNNING", { started_at: new Date(Date.now() - 65_000).toISOString() }),
+        step("aggregate", "BLOCKED", { attempts_recorded: 0, started_at: null }),
+      ],
+    });
+    const feed = (id: number, step_id: string | null, event_type: string, message: string, payload: Record<string, unknown> = {}) => ({
+      event_id: id, step_id, attempt_id: "ATT-1", event_type, level: "INFO", message, payload, created_at: "2026-09-25T08:01:00Z",
+    });
+    api({
+      ...listed(running),
+      [`GET /api/v1/studies/STU-1/research/runs/${running.run_id}/events`]: () => [
+        feed(1, null, "RUN_CREATED", "created"),
+        feed(2, "STEP-compile", "STEP_SUCCEEDED", "compile completed"),
+        feed(3, "STEP-run", "ATTEMPT_CLAIMED", "run claimed by worker-1"),
+        feed(4, "STEP-run", "STEP_PROGRESS", "AI respondenti odpověděli", { respondents: 40, of: 300 }),
+        feed(5, "STEP-run", "STEP_PROGRESS", "ai_request_answered", { input_tokens: 1200, output_tokens: 380, cost_usd: 0.004, latency_ms: 3200 }),
+      ],
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
+    // The finished and the waiting step keep their row; only the running one opens.
+    expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
+    expect(li("aggregate").querySelector("[data-step-activity]")).toBeNull();
+    const panel = li("run").querySelector<HTMLElement>("[data-step-activity]")!;
+    expect(panel.dataset.stepActivity).toBe("open");
+    expect(panel.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
+    const log = await within(panel).findByRole("log");
+    expect(within(log).getAllByRole("listitem").map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
+      "Worker krok převzal",
+      "AI respondenti odpověděli · 40 z 300 respondentů",
+      "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
+    ]);
+    // Its counts as the step reported them, and how long it has run: never a percentage.
+    expect(panel.textContent).toContain("40 z 300 respondentů");
+    expect(panel.textContent).toContain("1 odpovědí modelu · 1580 tokenů · $0.004");
+    expect(panel.textContent).toMatch(/Běží 1 min 0[56] s/);
+    expect(panel.textContent).not.toMatch(/%/);
   });
 
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
@@ -633,6 +741,28 @@ describe("Results", () => {
     expect(screen.queryByText("Výsledky se nepodařilo načíst.")).toBeNull();
   });
 
+  it("keeps the neutral analysis note while no module has stored an outcome, never 'unknown origin'", async () => {
+    const pending = run({
+      status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "ai_runtime",
+      steps: [
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "MODELLED_AI_PANEL" }),
+        step("analysis_executive", "WAITING_PROVIDER", { kind: "research_analysis" }),
+      ],
+    });
+    api({
+      ...listed(pending),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({
+        run_id: "RUN-1", complete: false, internal_only: true, synthetic: false, modelled: false,
+        data_origin_kind: null, pending: { executive: "WAITING_PROVIDER" }, modules: {},
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    expect(await screen.findByText(t("research.exec.results.analysisInternal"))).toBeTruthy();
+    expect(screen.queryByText(t("research.exec.results.analysisUnknownOrigin"))).toBeNull();
+  });
+
   it("shows evidence-checked internal analysis while another module waits", async () => {
     const partial = run({
       status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
@@ -660,6 +790,41 @@ describe("Results", () => {
     expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
     expect(screen.getByText(/Čeká: WAITING_PROVIDER/)).toBeTruthy();
+    expect(document.querySelector("[data-aggregate-deviation]")).toBeNull(); // the unit's port
+  });
+
+  it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
+    const partial = run({
+      status: "WAITING_PROVIDER", phase: "WAITING", fieldwork_source: "synthetic_fixture",
+      steps: [
+        step("aggregate", "SUCCEEDED", { artifact_id: "ART-4", data_origin: "SYNTHETIC_FIXTURE" }),
+        step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6" }),
+      ],
+    });
+    api({
+      ...listed(partial),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({
+        run_id: "RUN-1", complete: false, internal_only: true, synthetic: true, pending: {},
+        aggregation_deviation: {
+          from: "aia-aggregate-1", methodology_version: "aia-aggregate-1+e1",
+          changed: [{ path: "top_box", unit: 2, used: 1 }], replaced_formulas: ["agg.kish"], note_cs: "…",
+        },
+        modules: { executive: { outcome: "COMPLETED", artifact_id: "ART-6",
+          summary: "Ověřené shrnutí.", research_question_answers: [], key_findings: [], claims: [], violations: [] } },
+      }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    await screen.findByText("Ověřené shrnutí.");
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-aggregate-deviation]");
+      if (!found) throw new Error("the deviation note is not shown yet");
+      return found as HTMLElement;
+    });
+    expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
+    expect(within(note).getByText("top_box: 2 v 18.6.6, zde 1")).toBeTruthy();
+    expect(within(note).getByText("Nahrazený vzorec: agg.kish")).toBeTruthy();
   });
 
   it("shows a fictional run's aggregates labelled as fiction, hides a suppressed cell, keeps the Sociomap internal", async () => {
@@ -689,6 +854,50 @@ describe("Results", () => {
     // No hand-off to 18.6.6: the report AIA does not have yet is said, not linked (ADR 0018).
     expect(screen.queryByRole("link", { name: /18\.6\.6/ })).toBeNull();
     expect(screen.getByText(t("research.exec.results.reportNotInAia"))).toBeTruthy();
+    // 18.6.6's own aggregation: no deviation is claimed.
+    expect(document.querySelector("[data-aggregate-deviation]")).toBeNull();
+  });
+
+  it("says above the numbers when the aggregate is no longer 18.6.6's port, and what changed", async () => {
+    const deviating = {
+      ...AGGREGATE,
+      payload: {
+        aggregate: {
+          ...AGGREGATE.payload.aggregate,
+          questions: {
+            t2: { typ: "skala", ...support("REPORTABLE", 140), prumer: 3.9, prumer_interval_95: { low: 3.5, high: 4.2 }, top2box_pct: 41.0, top2box_interval_95: { low: 35, high: 47 } },
+          },
+          deviation: {
+            from: "aia-aggregate-1",
+            methodology_version: "aia-aggregate-1+e2",
+            changed: [{ path: "top_box", unit: 2, used: 3 }],
+            replaced_formulas: ["agg.mean"],
+            note_cs: "…",
+          },
+        },
+      },
+    };
+    api({
+      ...listed(COMPLETED),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => deviating,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    // Wait until the aggregate has loaded: querySelector's null does not throw, so it is thrown.
+    const note = await waitFor(() => {
+      const found = document.querySelector("[data-aggregate-deviation]");
+      if (!found) throw new Error("the deviation note is not shown yet");
+      return found as HTMLElement;
+    });
+    expect(within(note).getByText("Odchylka od 18.6.6")).toBeTruthy();
+    expect(within(note).getByText(/upravené metodiky aia-aggregate-1\+e2/)).toBeTruthy();
+    expect(within(note).getByText("top_box: 2 v 18.6.6, zde 3")).toBeTruthy();
+    expect(within(note).getByText("Nahrazený vzorec: agg.mean")).toBeTruthy();
+    // The top box is named by the width this aggregate used, not the unit's two.
+    const t2 = screen.getByRole("region", { name: "t2" });
+    expect(within(t2).getByText("Horní body (3)")).toBeTruthy();
+    expect(within(t2).queryByText("Horní dva body")).toBeNull();
   });
 
   it("says there are no results while the run waits at fieldwork", async () => {
@@ -776,6 +985,39 @@ describe("Results", () => {
   });
 });
 
+
+describe("A run's results outside a study session (project memory M2a)", () => {
+  it("draws a run from the frame alone, read-only: every label, no download, no interpretation research, only reads", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps,
+        step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", stage_type: "ANALYSIS", artifact_id: "ART-a" }),
+        step("report", "SUCCEEDED", { kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report" })],
+    });
+    api({
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ run_id: "RUN-1", internal_only: true, synthetic: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+    });
+    render(
+      <StudyFrameProvider frame={{ ...TEST_FRAME, canEdit: false }}>
+        <RunResults run={reportRun as unknown as ResearchRun} progressHref={null} />
+      </StudyFrameProvider>,
+    );
+    expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    expect(screen.queryByRole("link", { name: /Průběh tohoto běhu/ })).toBeNull();
+    expect(called("GET", "/api/v1/studies/STU-1/deep-research")).toHaveLength(0);
+    expect(calls.filter((c) => c.method !== "GET")).toEqual([]);
+  });
+});
 
 describe("Interpretation research", () => {
   it("requires confirmation before cancelling an active interpretation review", async () => {

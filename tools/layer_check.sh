@@ -274,6 +274,15 @@ forbid "the study design table is touched only by its repository" \
 forbid "the API, worker and executors never touch the study design table" \
   'StudyDesignRow' \
   apps
+# A reused design's citation is written once, by the only writer of a Study's design
+# (project memory M3); read through the Study, never queried by its source.
+forbid "the design source table is touched only by the design repository" \
+  'StudyDesignSourceRow|study_design_sources' \
+  "$CORE" \
+  tables.py study_design_repository.py
+forbid "the API, worker and executors never touch the design source table" \
+  'StudyDesignSourceRow|study_design_sources' \
+  apps
 # A Study's design project is owned (projects.owner): a repository that does not
 # name the owner cannot see it. Naming it anywhere else would reopen the path by
 # which content that skipped validate_design became a Design Revision (ADR 0016).
@@ -564,6 +573,33 @@ forbid "population panels are parsed only by the canonical loader" \
 forbid "the API never parses a population panel" \
   '^[^#]*\bparse_panel\(' \
   "$API"
+
+# A population version may belong to one organization (a materialized child,
+# population-operations P4c, M5). Which versions a person sees is decided in one
+# place: PopulationRegistryRepository returns the shared versions plus only the
+# asking organization's own. A table used anywhere else is a query that could
+# forget the owner and show one organization's child to every other; and the API
+# reads a version only as an organization sees it (visible_version, versions with
+# its organization), never by the unfiltered id lookups the loader and operator use.
+forbid "population version and extension tables are touched only by their repository" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$CORE" \
+  tables.py population_repository.py __init__.py
+forbid "the API never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$API"
+forbid "the worker never touches the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$WORKER"
+forbid "executors never touch the population version tables" \
+  'Population(DatasetVersion|ContractExtension)Row' \
+  "$EXECUTORS"
+forbid "the API reads a population version only as an organization sees it" \
+  '\.(get_version|version_by_sha|version_by_label)\(' \
+  "$API"
+forbid "a person's characteristics read is scoped to their organization" \
+  '^[^#]*\bregistry\.get_version\(' \
+  "$CORE/application/population_characteristics.py"
 
 # Establishing and promoting a population is platform administration. The
 # operator grant is issued only by PopulationAuthority from trusted configuration

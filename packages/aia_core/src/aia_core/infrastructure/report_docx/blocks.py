@@ -8,10 +8,13 @@ indent. How a block looks is the style sheet's (``styles.py``).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 from docx.enum.text import WD_BREAK
 from docx.shared import Emu
 from docx.text.paragraph import Paragraph as DocxParagraph
 
+from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
 from aia_core.domain.report import numbers
 from aia_core.domain.report.copy import method_status_text, t
 from aia_core.domain.report.evidence import PrintGrade
@@ -114,6 +117,7 @@ def write_value(ctx: RenderContext, p: DocxParagraph, ref: str, *, with_interval
     p.add_run(value_text(ctx, ref, with_interval=with_interval), style=S.NUMERAL)
     p.add_run(numbers.NBSP)
     write_mark(ctx, p, ref)
+    write_disclosure(ctx, p, (ref,))
     if ctx.ledger.is_indicative(ref):
         p.add_run(f" ({t('indicative')})", style=S.GRADE)
 
@@ -122,10 +126,18 @@ def write_mark(ctx: RenderContext, p: DocxParagraph, ref: str) -> None:
     ctx.marks.add(p, ctx.ledger.grade(ref))
 
 
+def write_disclosure(ctx: RenderContext, p: DocxParagraph, refs: Iterable[str]) -> None:
+    """ "(modelováno: AI respondenti z populace)" beside numbers that rest on AI respondents
+    built from the population (ADR 0024 §7): beside the number, never in a footnote."""
+    if ctx.ledger.modelled_panel(refs):
+        p.add_run(f" ({MODELLED_DISCLOSURE})", style=S.GRADE)
+
+
 def write_marks(ctx: RenderContext, p: DocxParagraph, refs: tuple[str, ...]) -> None:
     for ref in refs:
         p.add_run(numbers.NBSP)
         write_mark(ctx, p, ref)
+    write_disclosure(ctx, p, refs)
 
 
 # ---------------------------------------------------------------------- headings
@@ -169,6 +181,7 @@ def render_paragraph(ctx: RenderContext, container: Container, block: Paragraph)
     for grade in grades:
         paragraph.add_run(numbers.NBSP)
         ctx.marks.add(paragraph, grade)
+    write_disclosure(ctx, paragraph, block.refs)
 
 
 def render_page_break(ctx: RenderContext, container: Container, block: PageBreak) -> None:
@@ -275,6 +288,7 @@ def render_kpi_row(ctx: RenderContext, container: Container, block: KpiRow) -> N
         value.add_run(numbers.with_unit(row.value, row.decimals, row.unit))
         value.add_run(numbers.NBSP)
         write_mark(ctx, value, kpi.ref)
+        write_disclosure(ctx, value, (kpi.ref,))
         cell.add_paragraph(kpi.label, style=S.KPI_LABEL)
         base = base_text(ctx, kpi.ref)
         if row.interval is not None:  # the tile's interval sits under it, never dropped

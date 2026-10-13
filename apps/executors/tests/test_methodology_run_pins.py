@@ -13,8 +13,12 @@ from typing import Any
 
 import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN, RunMethod, run_methods
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_sociomap import default_methods
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.models_v3 import SociomapArtifactV3, read_artifact
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
@@ -278,3 +282,298 @@ def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
     # The tables beside the map read the same n_min as the warning did (S2b).
     (battery,) = _body(world, store, under_edit)["batteries"]
     assert battery["side_tables"]["n_min"] == battery["relation"]["n_min"] == 45
+
+
+# ------------------------------------------------ G1c: the support rules a run pins --
+
+
+def _start_with(world: Any, support: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            support=support,
+        )
+        session.commit()
+        return started.run_id
+
+
+def _aggregate(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[str, Any]:
+    run = _run(world, run_id)
+    step = next(s for s in run["steps"] if s["node_key"] == "aggregate")
+    assert step["status"] is StepRunStatus.SUCCEEDED, step
+    with world.sessions() as session:
+        research = research_artifacts(session, world.lead_scope(session), store)
+        aggregate: dict[str, Any] = research.read_json(step["output"]["artifact_id"])["aggregate"]
+    return aggregate
+
+
+def test_with_nothing_stored_a_run_pins_both_support_rules_as_today(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    run_id = _start(world)
+    run = _run(world, run_id)
+    assert run["metadata"]["support"] == AIA_SUPPORT_V1.model_dump(mode="json")
+    assert "support_methodology" not in run["metadata"]
+    _drain(worker)
+    cell = next(iter(_aggregate(world, store, run_id)["batteries"].values()))["objects"]
+    assert {o["n_guard_threshold"] for o in cell.values()} == {25.0}
+
+
+def test_a_run_aggregates_under_the_support_rules_it_pinned(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    strict = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "results": AIA_SUPPORT_V1.results.model_copy(
+                update={"min_layer_donors": 900, "indicative_layer_donors": 950}
+            ),
+        }
+    )
+    today, edited = _start(world), _start_with(world, strict)
+    assert today != edited  # another rule set is another run of the same revision
+    _drain(worker)
+    objects = next(iter(_aggregate(world, store, edited)["batteries"].values()))["objects"]
+    assert {o["support_status"] for o in objects.values()} == {"SUPPRESS"}
+    assert {o["n_guard_threshold"] for o in objects.values()} == {900.0}
+
+
+def test_a_retry_keeps_the_support_rules_its_run_pinned(world: Any) -> None:
+    strict = AIA_SUPPORT_V1.model_copy(
+        update={
+            "methodology_version": "aia-support-1+e1",
+            "results": AIA_SUPPORT_V1.results.model_copy(
+                update={"min_layer_donors": 900, "indicative_layer_donors": 950}
+            ),
+        }
+    )
+    run_id = _start_with(world, strict)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    run = _run(world, retried.run_id)
+    assert run["metadata"]["support"] == strict.model_dump(mode="json")
+
+
+# ------------------------------------------------ R1b: the response process a run pins --
+
+
+def test_with_nothing_stored_a_run_pins_the_units_response_process(world: Any) -> None:
+    run = _run(world, _start(world))
+    assert run["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
+    assert "response_methodology" not in run["metadata"]
+
+
+def test_a_retry_keeps_the_response_process_its_run_pinned(world: Any) -> None:
+    edited = AIA_RESPONSE_V1.model_copy(
+        update={"methodology_version": "aia-response-1+e1", "extremity": 0.5}
+    )
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        runs = ResearchRuns(session, scope)
+        run_id = runs.start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            response=edited,
+        ).run_id
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    run = _run(world, retried.run_id)
+    assert run["metadata"]["response"] == edited.model_dump(mode="json")
+    assert _run(world, run_id)["metadata"]["response"] == edited.model_dump(mode="json")
+
+
+def test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units(
+    world: Any,
+) -> None:
+    """Stored and put in force as the Metodika tab does (R1c); a run started afterwards pins
+    it under its own name and is a new run of the revision; one started before keeps the unit's."""
+    before = _start(world)
+    spec = AIA_RESPONSE_V1.model_dump(mode="json")
+    spec["extremity"] = 0.5
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "response", base_preset="aia-response-1", spec=spec, formulas={}, note="test"
+        )
+        repo.activate("response", version.version_number, reason="test")
+        session.commit()
+    after = _start(world)
+    assert after != before
+    pinned = _run(world, after)["metadata"]
+    assert pinned["response"]["extremity"] == 0.5
+    assert pinned["response"]["methodology_version"] == "aia-response-1+e1"
+    assert pinned["response_methodology"]["name"] == "aia-response-1+e1"
+    assert _run(world, before)["metadata"]["response"] == AIA_RESPONSE_V1.model_dump(mode="json")
+
+
+# ------------------------------------------------ G3a: the aggregation a run pins --
+
+
+def _start_aggregation(world: Any, aggregation: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            aggregation=aggregation,
+        )
+        session.commit()
+        return started.run_id
+
+
+def _wider_top_box() -> dict[str, Any]:
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    spec["methodology_version"] = "aia-aggregate-1+e1"
+    spec["top_box"] = 3
+    return {"spec": spec, "formulas": {"agg.mean": "max(x)"}}
+
+
+def test_with_nothing_stored_a_run_pins_the_units_aggregation_and_claims_no_deviation(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    run_id = _start(world)
+    run = _run(world, run_id)
+    assert run["metadata"]["aggregation"] == UNIT_AGGREGATION_PIN
+    assert "aggregation_methodology" not in run["metadata"]
+    _drain(worker)
+    assert "deviation" not in _aggregate(world, store, run_id)
+
+
+def test_a_run_aggregates_under_the_aggregation_it_pinned_and_says_so(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    today, edited = _start(world), _start_aggregation(world, _wider_top_box())
+    assert today != edited  # another aggregation is another run of the same revision
+    _drain(worker)
+    unit, ours = _aggregate(world, store, today), _aggregate(world, store, edited)
+    assert ours["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 3}]
+    assert ours["deviation"]["replaced_formulas"] == ["agg.mean"]
+    unit_objects = next(iter(unit["batteries"].values()))["objects"]
+    our_objects = next(iter(ours["batteries"].values()))["objects"]
+    for oid, cell in our_objects.items():
+        if cell["prumer"] is not None:
+            # max(x) as the mean: each object's mean is its largest answer
+            assert cell["prumer"] == round(max(float(k) for k in cell["rozlozeni"]), 2), oid
+            assert cell["prumer"] >= unit_objects[oid]["prumer"], oid
+
+
+def test_a_retry_keeps_the_aggregation_its_run_pinned(world: Any) -> None:
+    pin = _wider_top_box()
+    run_id = _start_aggregation(world, pin)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    assert _run(world, retried.run_id)["metadata"]["aggregation"] == pin
+
+
+def test_an_aggregation_pin_that_cannot_be_computed_is_refused_before_any_run(
+    world: Any,
+) -> None:
+    bad = _wider_top_box()
+    bad["formulas"] = {"agg.mean": "open('x')"}
+    with pytest.raises(ValueError):
+        _start_aggregation(world, bad)
+    unknown = _wider_top_box()
+    unknown["formulas"] = {"f6.distance": "1"}
+    with pytest.raises(ValueError, match=r"no formula f6\.distance"):
+        _start_aggregation(world, unknown)
+
+
+# ------------------------------------------- G3b: an aggregation version put in force --
+
+
+def test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so(
+    world: Any, worker: Worker, store: InMemoryArtifactStore
+) -> None:
+    """Stored and put in force as the Metodika tab does; a run started afterwards pins it,
+    computes under it and labels its aggregate; a run started before keeps the unit's."""
+    before = _start(world)
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    spec["top_box"] = 1
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        version = repo.propose(
+            "aggregation",
+            base_preset="aia-aggregate-1",
+            spec=spec,
+            formulas={"agg.kish": "count(w)"},
+            note="test",
+        )
+        repo.activate("aggregation", version.version_number, reason="test")
+        session.commit()
+    after = _start(world)
+    assert after != before  # a stored version is new identity
+    run = _run(world, after)
+    assert run["metadata"]["aggregation"]["spec"]["methodology_version"] == "aia-aggregate-1+e1"
+    assert run["metadata"]["aggregation"]["formulas"] == {"agg.kish": "count(w)"}
+    assert run["metadata"]["aggregation_methodology"]["name"] == "aia-aggregate-1+e1"
+    _drain(worker)
+    edited, unit = _aggregate(world, store, after), _aggregate(world, store, before)
+    assert edited["deviation"]["changed"] == [{"path": "top_box", "unit": 2, "used": 1}]
+    assert edited["deviation"]["replaced_formulas"] == ["agg.kish"]
+    assert "deviation" not in unit
+    with world.sessions() as session:
+        MethodologyRepository(session, world.admin_context(session)).activate("aggregation", None)
+        session.commit()
+
+
+# ------------------------------------------------ Z1a: a retry keeps where its pins came from --
+
+
+def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> None:
+    """A retry pins its original's methods explicitly; it must still say they were stored
+    versions, not the code's (plan methodology-tab Z1a)."""
+    _edit(world, sigma=0.25, n_min=45)
+    support = AIA_SUPPORT_V1.model_dump(mode="json")
+    support["results"]["min_layer_donors"] = 20
+    aggregation = AIA_AGGREGATE_V1.model_dump(mode="json")
+    aggregation["top_box"] = 1
+    response = AIA_RESPONSE_V1.model_dump(mode="json")
+    response["extremity"] = 0.5
+    with world.sessions() as session:
+        repo = MethodologyRepository(session, world.admin_context(session))
+        for module, base, spec in (
+            ("support", "aia-support-1", support),
+            ("aggregation", "aia-aggregate-1", aggregation),
+            ("response", "aia-response-1", response),
+        ):
+            version = repo.propose(module, base_preset=base, spec=spec, formulas={}, note="test")
+            repo.activate(module, version.version_number, reason="test")
+        session.commit()
+    run_id = _start(world)
+    with world.sessions() as session:
+        runs = ResearchRuns(session, world.lead_scope(session))
+        runs.cancel(run_id)
+        retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
+        session.commit()
+    original, retry = _run(world, run_id)["metadata"], _run(world, retried.run_id)["metadata"]
+    for key in (
+        "methodology",
+        "support_methodology",
+        "aggregation_methodology",
+        "response_methodology",
+    ):
+        assert retry[key] == original[key], key
+    assert run_methods(retry) == {
+        "sociomap": RunMethod("aia-sociomap-3+e1", stored=True),
+        "support": RunMethod("aia-support-1+e1", stored=True),
+        "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
+        "response": RunMethod("aia-response-1+e1", stored=True),
+    }

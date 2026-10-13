@@ -66,18 +66,23 @@ the same three-hour debugging session was happening twice.
 apps/
   api/src/aia_api/          FastAPI. Validates, delegates, serialises.
     config.py               Typed settings + production guards
-    dependencies.py         Composition root: engine, sessions, identity, scope
+    dependencies.py         Composition root: engine, sessions, identity, scope; AudiencePopulation,
+                            the population the audience routes read (CZECH_AUDIENCE in every
+                            deployment; only the workbench installs another on app.state)
     identity/               IdentityProvider protocol: cognito, testing, development
     observability.py        Structured logging, request correlation, secret redaction
     routers/                health, projects, scope, runs (runs + artifacts under a project),
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018;
-                            GET /clients/{id}/memory/search: project memory, one client's studies),
+                            GET /clients/{id}/memory/search: project memory, one client's studies;
+                            POST /clients/{id}/memory/reuse: a new or empty study from a past design),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
                             readiness with the run's cost ceiling and the study's spend limit, and native
-                            agent-jobs beneath each Study), deep research (a Study's Deep Research
+                            agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
+                            since=; a step names the step_id its events carry); GET …/design/source: where a reused design
+                            came from), deep research (a Study's Deep Research
                             runs; Interpretation Research's start, POST …/deep-research/runs/
                             interpretation, over a result of the Study's own run), scope
                             (PUT /studies/{id}/spend-confirm sets the limit; any member creates a
@@ -91,34 +96,56 @@ apps/
                             activation (an organization OWNER or ADMIN)),
                             population (GET /population: the registry, read-only, any member;
                             status derived, never stored; GET /population/versions/{id}/
-                            characteristics: a version's weights, blocks, fields and subpanels)
+                            characteristics: a version's weights, blocks, fields and subpanels;
+                            GET /population/audience-catalogue: LIVE's kept factor catalogue and the
+                            18 subpanels as filters, reading no row; POST /population/audience-preview:
+                            what filters select in LIVE and whether n can be drawn, counts only,
+                            503 without AIA_POPULATION_ASSET_ROOT, the API's one population read;
+                            an owned child listed and readable only within its organization, with its
+                            materialized outcome: target beside achieved, target_met never presumed),
+                            materialize (POST/GET /studies/{id}/population/materializations: a
+                            client's dimension materialized from a study, refused by name (422), an
+                            unresolvable LIVE 409; the study's runs and each child's outcome)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
                             18.6.6: no hand-off, no skin, no call to the unit (ADR 0018)
     src/app/app/            AIA behind AIA's own gate (no switch): /app/clients (home),
                             clients/<client>/{research,simulations,knowledge,data},
-                            clients/<client>/research/<study>/<stage>, intelligence, memory, settings
+                            clients/<client>/research/<study>/<stage>, clients/<client>/memory/<study>
+                            (a past research, read-only), intelligence, memory, settings
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs), the client workspace and its areas, ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
-                            settings/ControlPanel (every control from GET /settings, how each is set;
+                            settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
+                            optional technical details and protected policy drafts; settings-guide.ts
+                            explains each setting and its scope; every control from GET /settings, how each is set;
                             live forms over the admin routes with the signed-in token, lib/api.ts `admin`;
                             the one AI section: ai_runtime beside /config's switches, never "connected"),
-                            settings/MethodologyPanel (the Metodika tab: each module's steps, formulas
+                            settings/MethodologyPanel (the Metodika tab: searchable modules and grouped steps, formulas
                             as MathML via Temml, every value with its origin), MethodologyVersions (in
                             force, stored versions and what each changes, activation with a reason,
-                            history; for an administrator the editor: the whole spec and each formula
+                            history; for an administrator the editor: one section at a time with original values,
+                            draft replacement guards, fresh check/compare results and optional expert formula
                             slot, the domain's check at the field) and MethodologyComparison (an edit
-                            beside what is in force on fictional panels); lib/methodology-edit.ts is
+                            beside what is in force on fictional panels or support cells); lib/methodology-edit.ts is
                             the editor's pure part,
-                            FrontDoor (the branded frame of /login, /logout, /auth/callback)
+                            FrontDoor (the Graphite frame of /login, /logout, /auth/callback; the
+                            identity's cyan, `brand-apex`, is the signal there)
     src/components/brand/   Wordmark and LatticeField: the identity inline, in currentColor + --signal;
                             ActivityOrb: the thinking-orbs package (MIT, plain canvas), shown only while
                             the API reports a step RUNNING, tinted --ai-ink when a model works on it and
-                            --status-running when code does; aria-hidden beside the status it decorates
+                            --status-running when code does; aria-hidden beside the status it decorates.
+                            64 px in a running step's panel and the job dialog, 32 px by default.
+                            DotField: the front door's 144-dot field (lib/dot-field.ts, pure) on a
+                            full-viewport canvas; on a sign-in the person started (lib/liftoff.ts)
+                            25 primes fly into the mark at the launch film's frame-0 geometry
+                            (lattice, checked by tools/film_frame0.py) and `aia:mark-formed` fires;
+                            LaunchFilm then plays public/skin/brand/aia-liftoff.{webm,mp4}
+                            full-screen on `brand-stage`, takes over on its first frame, and its
+                            end is the way in
     src/components/rehome/  Primitives (token utilities only) and the research stages, re-homed
                             under the shell above
     src/research/           The research flow's logic ported from ui_app.html (parity-tested under
@@ -133,25 +160,50 @@ apps/
                             save state, job panel, the shared brief analysis (useAnalysis), one
                             screen per stage; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
-                            questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016).
+                            questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
+                            RunResults, one run's results from the StudyFrame alone (read-only when
+                            canEdit is false). DesignSourceNote: on every stage of a reused study, its
+                            source study and revision and the labels it carries.
                             ResultsWorkspace.tsx: accessible views of one frozen research run;
                             switching data, maps, analysis and report retains the camera/review choice,
                             changes no result and starts no additional run.
-                            What 18.6.6 computed from its panel (audience filters, preview, subpanels,
-                            own audiences, panel factors) says "V AIA zatím není" where it is met
+                            The audience step's factor editor, feasibility preview and built-in
+                            subpanels come from AIA's population (the two /population audience
+                            routes; without them the step says why); special panels, own audiences
+                            and panel factors say "V AIA zatím není" where they are met.
+                            The Run stage offers the study's client's materialized children
+                            ("Populace běhu"; LIVE by default) and sends the one chosen
     src/lib/research-agent-jobs.ts  Native Study jobs: enqueue/follow; proposal review and reload
                             live in useResearchAgents.tsx. No classic provider probe.
     src/lib/research-execution.ts  How a run's state and results read: suppression hides numbers,
-                            fictional data is labelled every time, the park is explained
+                            fictional data is labelled every time, the park is explained;
+                            originKind / resultOriginKind: the API's three-way reading of an
+                            origin (fictional, modelled, unknown -- never fieldwork), the one
+                            every screen's label uses
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
-                            labelOf, shortSha); read-only. components/aia/PopulationCharacteristics.tsx:
+                            labelOf, shortSha); read-only. children / clientChildren / sharedVersions /
+                            targetVerdict / outcomeValue: an organization's materialized children,
+                            listed on their own with target beside achieved, unknown never met.
+                            components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
-                            components/aia/MemorySearch.tsx: one client's search, on Projektová
-                            paměť (a client chosen first) and on the client's Výzkumy
+                            runLabels (a past run's data, report, reach: unknown never good),
+                            designSummary (what a past design says, as the search reads it),
+                            sourceLabelWords. components/aia/MemorySearch.tsx: one client's search, on
+                            Projektová paměť (a client chosen first) and on the client's Výzkumy;
+                            components/aia/MemoryStudy.tsx: a past research read-only (revisions, the
+                            chosen one's design, its runs with their labels, a run's results under a
+                            frame that may not edit) and "Použít tento design"
     src/lib/activity-orb.ts  Which running step shows which orb, and whether it is AI (the steps
                             that hold a model caller): agent jobs, run steps, Deep Research steps; a
                             queued, waiting or finished step shows none
+    src/lib/step-activity.ts  A run's events folded into words per step: only what an event says
+                            (counts as reported, never a percentage; tokens a provider did not report
+                            are unknown, never zero). components/rehome/research/useStepActivity.ts
+                            reads the feed after its cursor every 1.5 s while a step runs, once more
+                            when it stops; StepActivityPanel.tsx opens under a RUNNING step (64 px orb,
+                            latest report, counts, elapsed, a polite live log) on Progress, the job
+                            dialog, Deep Research and Interpretation Research
     src/lib/ai-runtime.ts   How Settings reads an AI activity: on in configuration, off and by which
                             switch, invalid (the worker will not start), unknown -- never verified
     src/lib/public-config.ts  Public config type, runtime switch vocabulary and class parser;
@@ -183,7 +235,9 @@ apps/
     testing.py              Scripted executor for the tests (and the multi-process suite)
   executors/src/aia_executors/  Step implementations the worker runs, registered by kind
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
-    registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
+    registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build;
+                            population_store: the one store the materialize step and the panel
+                            loader share
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project;
                             the sociomap step computes the run's pinned methods (none: legacy;
@@ -191,15 +245,35 @@ apps/
                             only under the same engine version and pins
     research_agents.py     Native proposal executor: frozen design/context, StepModelCaller,
                             provenance artifact; no automatic write or retry
-    ai_fieldwork.py         The ai_runtime source: fictional roster, class + lineage, gateway preflight
-                            (a refusal parks), one request per respondent block, answers drawn by code
+    ai_fieldwork.py         The ai_runtime source: AI respondents, fictional or drawn from the run's
+                            population as the run pinned (persona_source); class + lineage, gateway
+                            preflight (a refusal parks), one request per respondent block, answers
+                            drawn by code. population_loader: the run's recorded binding, v17 contract,
+                            the ANALYSIS enricher, over the shared directory and, when configured,
+                            the population store (a selected child; ai_runtime.panel_population_source);
+                            a panel run on a worker without it parks
+                            (panel_personas_unavailable); a sample or persona refusal fails by name;
+                            answer_plans: the request, draw and ledger loop over given plans, which
+                            produce and the validation's arms share
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
-                            twice), AnalysisConfig.from_settings; registered by no composition yet
+                            twice), AnalysisConfig.from_settings; in the default registry: without
+                            AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured); the
+                            model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
+                            and a valid provider configuration), else it parks too (registry.py)
+    report.py               research_report: the internal draft from the eight analysis modules and
+                            the run's object maps (report_maps, object_map_figure); never approved here
+    sociomapping_report.py  The experimental Sociomapping's internal DOCX draft; always registered.
+                            AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED decides only whether a newly started
+                            run includes its step; turning it off does not stop a run that already has it
     ai_step.py              StepContext -> ExecutionContext: StepModelCaller (one reservation per
                             request, settled once) + StepCallJournal (fenced dispatch, unfenced ledger)
     ai_runtime.py           AIA_AI_* / AIA_BEDROCK_* settings (off by default, fail closed when on) and
-                            the one gateway over ADR 0010's route; the only builder of the adapter
+                            the one gateway over ADR 0010's route; the only builder of the adapter.
+                            AIA_AI_STEP_EVENTS (off by default): a research agent's and an analysis
+                            module's model requests write ai_request_sent / ai_request_answered to
+                            the run's feed (StepModelCaller(announce=): counts, cost, latency, never
+                            text; two writes per request, ~1.3 ms measured)
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check)
     deep_research/          The six Deep Research steps (in the default registry; a run parks
@@ -233,6 +307,9 @@ apps/
                             flight across every worker on the route
     deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless
                             AIA_ENV is local/test, and no deployment may name it (layer_check)
+    materialize.py          population_materialize: a client's dimension made into its owned child
+                            (PopulationRuntime.materialize_child); parks without a population store or
+                            AIA_POPULATION_ASSET_ROOT (population_store_unconfigured)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
     legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
                             of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
@@ -241,7 +318,9 @@ apps/
                             -> permissions; unset: nobody); bundles under AIA_POPULATION_ASSET_ROOT;
                             --all-companions reads each companion the contract declares by its id;
                             record-dictionary (acts as no one; run by the develop deploy) keeps a
-                            version's verified dictionary with it
+                            version's verified dictionary with it; record-catalogue (the same) keeps
+                            each population's current version's audience catalogue, which establish
+                            and promote also keep for the version they move to
 
 packages/aia_core/src/aia_core/
   domain/                   Pure. No I/O. stdlib + Pydantic only.
@@ -290,13 +369,29 @@ packages/aia_core/src/aia_core/
       steps.py              what each step stores; reusable (by content) vs this run's own;
                             tally: what a run bought, a reused unit costing nothing
     ai_respondent.py        The AI respondent: agent aia.research.respondent, prompt v1, per-block strict
-                            contract, fictional roster, facts by code, interpretation, the dataset
+                            contract, fictional roster, facts by code, interpretation, the dataset;
+                            dataset_origin: the origin derived from the personas (a mixed roster refused)
     respondent_behavior.py  18.6.6 behavior.py + styly.py: response process, styles, the seeded draw
     respondent_facts.py     18.6.6 factual_layer.py: facts answered by code, unsupported facts refused
+    persona_profile.py      A panel respondent's profile: 18.6.6's generate_persona_text in the mode it
+                            ran (calibrated -> core, adaptive), first-person prose cut at 185 words (EXACT)
+    persona_topics.py       A question's topics: odvod_temata and a block's union (EXACT)
+    persona_signals.py      The persona signal catalog's topic-matched signals: grounded_profile_text
+                            (EXACT; a NaN-priority signal ranks last)
+    panel_persona.py        A run's sample as personas: every column through
+                            decide(PERSONA_CONSTRUCTION), the joint gate per dictionary block (core
+                            jointly, each matched donor block within itself), styles over the whole
+                            population, a profile per request block; refusals by name
+    panel_source.py         A run's panel respondents: panel_plans (the sample under the design's
+                            audience filters, the personas, a plan per respondent, in that order);
+                            respondent_system (ADR 0024 §4's components); PanelPlans.provenance
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
-    licence_determinations.py  The determinations as data: panel sources UNDETERMINED (OI-61)
+    licence_determinations.py  The determinations as data: panel sources APPROVED for
+                            bedrock-eu-primary alone (OI-61, data owner 2026-10-12)
     design.py               A Study's Design Revision: immutable content, provenance, the owner tag
+    design_reuse.py         A reused design's labels (derive_source_labels: the union over every run of
+                            the source revision, never chosen) and its citation (DesignSource)
     research_design.py      A revision -> ResearchSpecification (compile) + AIA's readiness rules;
                             the Sociomap's declarations (sociomap_rating on a scale question,
                             context_objects on a battery: SECONDARY), SpecSelection (the dimensions
@@ -304,7 +399,13 @@ packages/aia_core/src/aia_core/
                             below n_min 30); a declaration not made is out of the fingerprint
     run_cost.py             The most a run can cost: its model requests x the reservation per request
                             (fieldwork, analysis with its repairs); an upper bound; unknown, never zero
-    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; data_origin
+    fieldwork.py            FieldworkSource, FieldworkDataset, validate_dataset; DataOrigin (two
+                            synthetic origins and MODELLED_AI_PANEL, ADR 0024), NON_EVIDENCE_ORIGINS,
+                            CLIENT_ADMISSIBLE_ORIGINS (the allowlist every client-facing gate reads),
+                            origin_kind (SIMULATED / MODELLED / UNKNOWN: the one reading every label
+                            uses), MODELLED_DISCLOSURE and RESPONDENT_SYSTEM_METADATA (the dataset's
+                            record of its respondent system); PersonaSource (fictional_roster | panel)
+                            and persona_source_of (a run before the pin: the roster)
     synthetic_fieldwork.py  Fictional respondents from random.Random(seed), workbench and tests only
     research_aggregate.py   agreguj_otazku's reportable core + uncertainty.py, ported from the unit
                             (EXACT; bootstrap bounds from AIA's generator, OI-62, parity D5)
@@ -319,6 +420,34 @@ packages/aia_core/src/aia_core/
                             stored methodology version replaces, compiled on read (slots()), absent
                             from the stored form when empty
     research.py             A run's phase in words (queued … cancelled), from the engine's state
+    holdout/                The respondent system's holdout validation (panel-grounded-respondents 7),
+                            pure: bank.py (the item bank: each held-out question's Czech wording and
+                            options as fielded, the panel code of each option and the public document
+                            and page it was read from; pinned by its canonical SHA-256; one of the
+                            seven surveys the panel is built from), eligibility.py (which items a
+                            population can hold out: measured, every value an option, 80 % coverage,
+                            300 effective donors over the donor behind the answer, nothing the
+                            respondent is told; a core item scored only in the ages its survey asked),
+                            leakage.py (what a block's respondents are not given, computed: the item,
+                            its matched block, every persona field at |r| or Cramér's V >= 0.30, an
+                            association that cannot be computed, signals on those or the item's
+                            concept), preregistration.py (the seeded split: near-duplicates >= 0.70
+                            dropped, 40 % of each domain to development; the hashed record of
+                            everything that decides the verdict, P1-P8 included; a confirmation set
+                            under 40 items / 5 domains of 4 refused; read_preregistration: a stored
+                            record checked as written -- canonical bytes, the code's thresholds, the
+                            system's fingerprint and population version, the blocks exactly the
+                            confirmation set), arms.py (the model arms: A none,
+                            B demographics, C core without catalog signals, D the production persona,
+                            S D's profiles deranged; the block's exclusion applied in every arm, each
+                            respondent keeping their own facts and styles; D unexcluded is today's
+                            PanelPersonas.plan), scoring.py (per item TVD, subgroup TVD, Brier on
+                            core items, entropy gap; the P1-P8 verdict: P4 D beats A on TVD, P5 D
+                            beats S on subgroups and Brier, one Holm family; a criterion that cannot
+                            be evaluated fails), baselines.py (L0 the population marginal, L1 the
+                            demographic cell without the respondent's own donor, backing off below
+                            30 donors; neither decides the verdict). Tests: conftest.holdout_population,
+                            a session-scoped fictional factory
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
@@ -326,8 +455,36 @@ packages/aia_core/src/aia_core/
       policy.py             Field policy as code: what each field may be used for
       companions.py         Companion assets + the fail-closed joint certificate gate
       authority.py          Population-operator capability (establish / promote)
+      runtime.py            RuntimePopulation, issued only by the loader; companion(asset_id): a
+                            companion's bytes as the loader verified them at load
       subpanels.py          The 18 built-in subpanels adopted from 18.6.6 (pinned to
                             BUILTIN_SUBPANELS_v17.json), check_subpanel; the counts are 18.6.6's
+      audience.py           The audience filter: 18.6.6's sanitize_filters + _mask (EXACT), the kind
+                            from the column as pandas types it; subpanel_filters; select_audience over
+                            a run's population, refusing where the unit dropped a filter
+      audience_catalogue.py The factor catalogue: 18.6.6's catalog (EXACT, fixture catalogue.json),
+                            each factor's AUDIENCE_FILTERING answer (catalogue_of), the research-only
+                            factors not sent to the screen (for_the_screen)
+      audience_preview.py   The audience step's preview: select_audience's counts and
+                            draw_panel_sample's verdict at PREVIEW_SEED; counts only
+      enrichment.py         The ANALYSIS view's seven runtime dimensions: 18.6.6's attach_derived
+                            (EXACT); AudienceDimensionsEnricher, the view's Enricher (composed by
+                            the worker's population_loader)
+      sampling.py           A run's sample: the audience (audience.py), 18.6.6's largest-remainder
+                            quotas over sex x age group x region (+ education from n 700), weighted
+                            draw without replacement, raking and the audit; refusals by name;
+                            PanelSample.provenance() is what a run records
+      materialized.py       A materialized dimension (P4): the hash-pinned contract extension, the M3
+                            field policy (modelled; never measured, never weighting),
+                            check_child_version; a child is owned by one organization and never a
+                            shared population's version (OwnedVersionNotShared); target_met within
+                            TARGET_TOLERANCE (binary 0.005, scale 0.01), never presumed
+      derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
+                            refuses a dimension no predictor varies for (no_varying_predictor)
+      definition.py         DimensionDefinition: the K5 contract as a type (kind, target with its
+                            evidence anchor, predictors, missingness, range), hash-identified
+      versions.py           owned_version_id: an owned child's id, its content qualified by an
+                            owner digest
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -391,13 +548,17 @@ packages/aia_core/src/aia_core/
                             cell no hill reaches is null; nothing outside the engine computes one)
       engine.py, models.py  the pipeline and the v2 artifact
       engine_v2.py, models_v3.py  compute_object_map -> SociomapArtifactV3 (MAPPED / NOT_MAPPABLE,
-                            support); read_artifact reads either contract, refuses any other
+                            support); read_artifact reads either contract, refuses any other;
+                            read_object_maps: the one reader of a battery's stored maps (contract 3,
+                            each map's method equal to its key), for the report and its figures
       view.py               drag overrides, view terrain, scenarios (never write) F9;
                             align_to_reference (a view), stress_quality (the audit's label)
     report/                 The report as data: document model, components, templates (DOCX output)
       print_tokens.py       GENERATED from tokens.json: print colours, type scale in pt, page
       model.py              The document: metadata, sections, every block — numbers only as refs
-      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades
+      evidence.py           EvidenceLedger (built from AdmittedClaims only) and print grades;
+                            modelled_panel: the refs that print "modelováno: AI respondenti z
+                            populace" beside them (ADR 0024 §7)
       validation.py         Every rule a report must keep before it renders; fails closed
       numbers.py            Czech print formatting; never re-rounds; effective n rounds down
       copy.py               The report's own Czech vocabulary
@@ -411,7 +572,11 @@ packages/aia_core/src/aia_core/
       claims.py             Permissible-claim policy: measured vs modelled, disclosures
       support.py            Kish effective n, SUPPRESS by default, intervals required
       metrics.py            The allowed analysis metrics, one unit each
-      validation.py         Validation bound to system fingerprint; tier gate
+      validation.py         Validation bound to system fingerprint; tier gate;
+                            respondent_system_fingerprint (ADR 0024 §4) and lifts_internal_only (a
+                            current holdout on it, nothing else)
+      instrument.py         A Study's own items as evidence fields: -1 (simulated) and -2
+                            (MODELLED_AI_PANEL), chosen by origin; -2 internal until lifted
       factual.py            Factual layer: panel facts are read, never invented
       admission.py          AdmittedClaim — the ONLY way a number enters a result
     analysis/               The eight analysis modules, drafts, prompts, results
@@ -427,14 +592,32 @@ packages/aia_core/src/aia_core/
                             (ADR 0019), and an archived client's studies are not listed
     population.py           PopulationRuntime — the ONLY loader of population data; live_binding:
                             the binding a new run records (None until the population is
-                            established; reads no panel)
+                            established; reads no panel); materialize_child: a client's dimension
+                            derived over a shared base, written once to the population store and
+                            registered as its owned child, never promoted; resolve_child: an owned
+                            child, pinned, verified against its base at load; child_binding: a
+                            selected child, the study's own client's only
+    materialize.py          prepare_materialization: a dimension request checked from a study against
+                            LIVE's kept policy (owner from the scope, base, definition);
+                            start_materialization: a population_materialize run under the study's
+                            population project (owner study_population); child_key, and the run's
+                            key within the study; materialization_run / materialization_runs, found
+                            only through the study; child_outcome: a child's dimension and what it
+                            reached, from its stored extension and registration record
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
                             dictionary, re-hashed; reads no row
+    audience_catalogue.py   LIVE's kept audience catalogue and the 18 subpanels as filters; reads
+                            no row (PopulationRuntime.record_audience_catalogue keeps it)
+    audience_preview.py     AudiencePreviewer: LIVE loaded once per process and version through
+                            PopulationRuntime, then the domain preview
     project_memory.py       search_client_studies: one client's studies through ScopeResolver,
                             each under its own study context; latest Design Revision, else the
                             working draft, else the name
+    design_reuse.py         reuse_design: a new or empty research study of the same client from a past
+                            Design Revision (working content, first revision, citation, one transaction);
+                            source_runs
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles
@@ -455,9 +638,11 @@ packages/aia_core/src/aia_core/
                             version as aia-sociomap-3+e<n>, its digest in the run's identity) -- and
                             a retry keeps the original's; ResearchAgentJobs.accept: a
                             person applies an agent's proposal (APPROVE_GATE), recorded (gate 1);
-                            start records the LIVE population binding when it creates a run (a
-                            found run keeps what it recorded, a retry the original's); no step
-                            reads it while fieldwork is fictional
+                            start records the LIVE population binding, or the study's own client's
+                            selected child (population_version_id, pinned), when it creates a run (a
+                            found run keeps what it recorded, a retry the original's), and pins
+                            its persona source (a panel run is its own identity and needs an
+                            established population: PanelPopulationMissing); a retry keeps it
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
@@ -511,7 +696,11 @@ packages/aia_core/src/aia_core/
                             set_study_spend_confirm (the study's spend limit, audited); any member
                             creates a client (ADR 0019); the grant tables are dropped (chunk 6)
     study_design_repository.py  A Study's design project (owned: projects.owner) and its
-                            Design Revisions; the ONLY writer of a Study's design (ADR 0016)
+                            Design Revisions; the ONLY writer of a Study's design (ADR 0016); a reused
+                            design's citation (study_design_sources, insert-once: record_source, source)
+    holdout_repository.py   A validation Study's preregistration (holdout_preregistrations): kept once
+                            as its canonical bytes, re-hashed and re-checked on every read; found only
+                            through the Study
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
                             (a stale one refused), history; the brief's attachments as artifacts of
@@ -550,15 +739,26 @@ packages/aia_core/src/aia_core/
                             rows) and SharedHostPacer (per-host politeness shared by every worker)
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
     population_repository.py  Population registry: versions, populations, history; each version's
-                            dictionary bytes (population_version_dictionaries), insert-once
-    population_parser.py    Text-preserving panel + dictionary parser (stdlib)
+                            dictionary bytes (population_version_dictionaries) and audience
+                            catalogue (population_version_audience_catalogues), insert-once; an
+                            owned child (P4c): versions(…, organization_id=) and visible_version
+                            return shared versions plus only that organization's own, the import's
+                            lookups see shared alone; extensions insert-once, re-hashed on read
+                            (population_contract_extensions)
+    population_store.py     Materialized children in EU S3: put_once (a conditional put; the same
+                            bytes answer as written, other bytes refused), RoutingPopulationSource
+                            (s3:// from the store, else the shared copy), AIA_POPULATION_STORE_BUCKET /
+                            _REGION, both or neither
+    population_parser.py    Text-preserving panel + dictionary parser (stdlib); write_panel, its
+                            deterministic inverse
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
     ai_call_journal.py      CallJournal over the workflow attempt + ledger
     model_adapters/         Anthropic / OpenAI / Claude Code / Bedrock adapters, transports, recorded
                             doubles; live_transport.py (urllib3, no retries), aws_signing.py (SigV4,
                             instance or container role only)
-    storage.py              ArtifactStore: S3 / filesystem / memory
+    storage.py              ArtifactStore: S3 / filesystem / memory; s3_client(), the one AWS SDK
+                            import site
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
     web_retrieval.py        WebFetcher (every hop and address checked, caps, HTML to a content-
                             addressed snapshot); search/fetch protocols; recorded doubles (they say
@@ -572,6 +772,9 @@ deploy/develop/             The develop host: Compose, Caddyfile, deploy/backup/
                             AIA only: no unit image, service, volume, hostname, credential, data sync
                             or health check (ADR 0018 decision 5); the first deploy without the unit
                             stops its old container and keeps its volume (bin/lib.sh).
+                            bin/image_retention.py: protected old release-image cleanup and disk
+                            headroom before downloads; a host lock serializes deploys; successful
+                            rollback history is recorded only after smoke. Runbook: Disk retention.
                             bin/sync-population.sh (by hand) puts the population's 19 files, listed
                             and pinned in population/v17.files, read-only under AIA_POPULATION_DIR;
                             bin/population.sh runs population_ops in a one-off worker container.
@@ -600,6 +803,8 @@ docs/archive/original-mvp/  Superseded. NOT requirements.
 tools/layer_check.sh        Layering enforcement
 tools/exposure_check.sh     Reference-exposure enforcement (private-repo hygiene)
 tools/sociomap_golden.py    Regenerates the Sociomap engine's own golden fixture
+tools/film_frame0.py        Checks the launch film's frame 0 is the mark the handoff forms (stdlib
+                            over ffmpeg; fails above 0.5 px)
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML
@@ -607,6 +812,19 @@ tools/progress.py           Every plan's status from its front-matter; `--check`
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
+tools/audience_capture.py  Audience-filter fixtures: fictional rows and cases (`inputs`), the unit's
+                            own sanitize_filters / _mask / factor_map and catalog on them (`capture`,
+                            with pandas)
+tools/enrichment_capture.py  Enrichment fixtures: fictional rows (`inputs`), the unit's own
+                            enrich_panel on them (`capture`, with pandas)
+tools/sampling_capture.py   Sample fixtures: fictional rows and cases (`inputs`), the unit's own
+                            draw_representative with the MILP made to fail, and _rake (`capture`)
+tools/materialize_capture.py  Materialization fixtures: fictional rows and cases (`inputs`), the
+                            unit's own materialize_evidence_dimension (`capture`, pandas + NumPy)
+tools/persona_capture.py    Persona fixtures: fictional rows, questions, a fictional signal catalog
+                            (`inputs`); the unit's own generate_persona_text, odvod_temata,
+                            grounded_profile_text, _render and _compact_anchor (`capture`, with pandas
+                            and SciPy)
 tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own behavior.py / styly.py
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
@@ -633,9 +851,14 @@ tools/ui_workbench/         AIA on this machine, for UI work: the real API on SQ
                             screenshots every AIA screen, and the unit's when it runs;
                             fixture_project.py: fictional research projects; research_journey.mjs:
                             Run -> Results; workspace_journey.mjs: a study's content, file, import,
-                            audience, dimensions; both fail on a request to a path the unit served
+                            audience, dimensions; both fail on a request to a path the unit served;
+                            fictional_population.py: a population of the sampler's 3,000 fictional
+                            rows under a contract of its own, established through PopulationRuntime
+                            with its catalogue kept, installed as the stand-in's AudiencePopulation
+                            (runs still record the Czech LIVE; `--no-audience-population` skips it);
+                            audience_journey.mjs: the live audience step (catalogue filters, the
+                            preview, subpanels) saved and read back
 .planning/                  Progress, plans, open items
-src/server.js               Legacy Fastify login stub. Frozen. No new features.
 legacy/npc-panel-18.6.6/    The NPC Panel 18.6.6 product, extracted from the audited archive
                             by AIA-reference/tools/extract_legacy.py. Frozen: regenerated,
                             never edited. The baseline and parity oracle (ADR 0011).
@@ -721,9 +944,14 @@ runtime is configured and the gateway's gates pass; otherwise it **parks**
 its datasets say so (`SYNTHETIC_AI_FICTIONAL`); the fixture's invented respondents
 exist only in `aia_executors.workbench` and tests (`SYNTHETIC_FIXTURE`). The model
 returns one respondent's probabilities; code answers facts and draws the answer.
-Panel-derived data reaches no model provider until OI-61 records a licence
-determination -- a gate of its own beside residency. The Sociomap is computed but
-`INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
+Panel-derived data may reach only `bedrock-eu-primary` (OI-61, determined by the data
+owner 2026-10-12, `licence_determinations.py`); the licence gate stays beside residency
+and refuses it on any other route. A run pins its persona source at start
+(`AIA_AI_POPULATION_PERSONAS_ENABLED`, off by default, in the API and the worker): a panel run's
+respondents are drawn from the population it recorded and its dataset is `MODELLED_AI_PANEL`; a
+worker without the path parks it, never answering with the roster instead
+([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
+The Sociomap is computed but `INTERNAL_ONLY` while D6 is open. A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
 (ADR 0019 gate 2).
 
@@ -734,8 +962,9 @@ default weight and no fallback version; `make layer_check` enforces the loader.
 Before using a field, a consumer asks `RuntimePopulation.decide(field, use)` and,
 before combining fields, `decide_joint(...)` — never the dictionary directly. The
 contract is [docs/architecture/population.md](docs/architecture/population.md).
-A research run records the LIVE binding at creation (owner, 2026-10-10); no research
-step reads it yet, and the run says its respondents did not come from it. On develop,
+A research run records the LIVE binding at creation (owner, 2026-10-10); only a run that
+pinned the panel persona source reads it (fieldwork), and the run says whether its respondents
+came from it (`read_by_fieldwork`). On develop,
 STATIC is `v17_1_2` and LIVE is `v17_4_0`, imported from 18.6.6 on 2026-10-11.
 
 **Sociomapping golden fixtures are.** F1–F9 are synthetic inputs with the
@@ -810,13 +1039,14 @@ ungated fixture.
 | Run everything | `make dev` |
 | Run one worker | `make dev-worker` (needs `DATABASE_URL`; the real executors, over `AIA_STORAGE_*`) |
 | Seed the synthetic develop world | `make seed-develop` (needs `DATABASE_URL`, `AIA_SEED_OWNER_EMAIL`; idempotent) |
-| Operate the population | `python -m aia_executors.population_ops <status\|import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`) |
+| Operate the population | `python -m aia_executors.population_ops <import\|attach\|establish\|promote> --as <email> …` (needs `DATABASE_URL`, `AIA_POPULATION_ASSET_ROOT`, `AIA_POPULATION_OPERATORS`); `status`, `record-dictionary` and `record-catalogue [--version]` act as no one and take no `--as` (no `AIA_POPULATION_OPERATORS`) |
 | **The population on develop** | `bin/sync-population.sh`, then `bin/population.sh import … --all-companions` / `establish` (`deploy/develop/README.md` § The population) |
 | **Migrate 18.6.6 content** | `python -m aia_executors.legacy_workspace --store <copy> --attachments <copy> --as <email> [--apply] [--recover-missing]` (needs `DATABASE_URL`, `AIA_STORAGE_*`; dry run by default; runbook `deploy/develop/README.md` § Migrating 18.6.6 content) |
 | Tests | `make test` (core + API + worker + executors) |
 | Worker tests | `make test-worker` (the multi-process suite needs a PostgreSQL `DATABASE_URL`) |
 | Executor tests | `make test-executors` (the snapshot step under the real worker loop; seed; smoke module) |
 | Deploy `develop` | Merge to `develop`; [`deploy/develop/README.md`](deploy/develop/README.md) is the runbook. Live at <https://aia-develop.art-chain.io/> |
+| **Deployment disk / image dry-run** | On the host, `python3 bin/image_retention.py preflight --registry <deployment-registry> --state-file /opt/aia/develop/.deploy-state/successful-releases.json --protect <current-sha> --protect <incoming-sha>`: no deletion unless `--apply`; the full deploy applies retention under its host lock before pulling. See [`Disk retention`](deploy/develop/README.md#disk-retention) for safeguards, initialization and refusal recovery. |
 | Parity vs prototype | `make test-parity` (needs `AIA_LEGACY_REFERENCE`; population parity needs `AIA_REFERENCE_REPO`) |
 | Golden-fixture pins and F10/F11 | `make test-golden` (needs the reference repository) |
 | **Parity vs the running unit** | `make test-oracle` (needs `AIA_LEGACY_REFERENCE_URL` + `_USER` / `_PASSWORD`; skips cleanly without) |
@@ -834,13 +1064,17 @@ ungated fixture.
 | Workbench research fixtures | `make ui-fixtures` (workbench running): fictional projects, prints their `/app` links |
 | **A research run, end to end** | `make ui-research` (workbench + fixtures): Run → Progress → Results in a browser, on fictional fieldwork |
 | **AIA with 18.6.6 absent** | `make ui-workbench` (no unit; its old paths are the web client's 404), `make ui-fixtures`, `make ui-research`, `make ui-workspace` (brief file, template import, audience, dimensions); both journeys fail on a request to a path the unit served |
+| **The live audience step, in a browser** | `make ui-audience` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): `audience_journey.mjs` on the workbench's fictional population: catalogue filters saved as chosen (an empty bound left out, OI-50) and read back after a reload, the preview's count and verdict, a subpanel saved as its filter and a refused one disabled; fails on a request to a path the unit served |
 | **The 18.6.6 reference unit** | On the develop host, by hand: `deploy/reference/bin/up.sh <sha>`, `down.sh`, `backup-state.sh <sha> <label>` ([`deploy/reference/README.md`](deploy/reference/README.md)); the oracle through an SSM port forward to `127.0.0.1:8765` |
 | Research fixtures from the unit | `python tools/aggregate_capture.py cases` / `self` (repo env), `capture` (the unit's venv) |
+| Audience-filter fixtures from the unit | `python tools/audience_capture.py inputs` (repo env), `capture` (a venv with pandas) |
+| Enrichment, sample, persona and materialization fixtures from the unit | `python tools/enrichment_capture.py inputs` / `sampling_capture.py inputs` / `persona_capture.py inputs` / `materialize_capture.py inputs` (repo env), `capture` (a venv with pandas and NumPy; persona also SciPy); a re-capture must be byte-identical |
 | Deep Research leakage fixtures | `python tools/deep_research_capture.py capture` / `verify` (repo env: the unit module needs only the stdlib) |
 | **Deep Research, end to end (recorded)** | `pytest apps/executors/tests/test_deep_research_journey.py` — the real worker, gateway and gate over recorded exchanges: two passes, measured counts, every failure mode; nothing leaves the process |
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |

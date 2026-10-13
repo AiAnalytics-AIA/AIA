@@ -9,7 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any
@@ -33,6 +33,7 @@ from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
     DesignNotReady,
+    PanelPopulationMissing,
     ResearchAgentJobs,
     ResearchRunNotFound,
     ResearchRunNotRetryable,
@@ -44,6 +45,16 @@ from aia_core.application.research import (
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.design import DesignRejected, DesignRevision
+from aia_core.domain.design_reuse import DesignSource
+from aia_core.domain.fieldwork import (
+    FieldworkSource,
+    OriginKind,
+    PersonaSource,
+    origin_kind,
+    persona_source_of,
+)
+from aia_core.domain.methodology.pins import response_deviates, run_methods
+from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
@@ -134,6 +145,37 @@ class DesignRevisionResponse(BaseModel):
     content: dict[str, Any] | None = None
 
 
+class DesignSourceLabels(BaseModel):
+    """What a reused design carries from its source, and what that was derived from."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    synthetic: bool
+    draft: bool
+    never_run: bool
+    unlabelled_data: bool
+    run_ids: list[str]
+    report_artifact_ids: list[str]
+    #: Some run answered AI respondents built from its population (ADR 0024).
+    modelled: bool = False
+
+
+class DesignSourceResponse(BaseModel):
+    """Where the Study's design came from: a past study's Design Revision (project memory M3)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    study_id: str
+    revision_id: str
+    source_study_id: str
+    source_revision_id: str
+    source_revision: int
+    source_content_sha256: str
+    labels: DesignSourceLabels
+    created_by: str
+    created_at: datetime
+
+
 class DesignRevisionList(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -149,6 +191,8 @@ class RunStart(BaseModel):
     #: What the person confirms a run can cost at most. Only read when the study has a limit
     #: the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
+    #: A materialized child of this study's client to run over instead of LIVE (P4e2).
+    population_version_id: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class RunRetry(BaseModel):
@@ -164,6 +208,8 @@ class ResearchStepResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    #: The id the run's events name (``RunEventResponse.step_id``): which step reported what.
+    step_id: str
     node_key: str
     kind: str
     stage_type: str
@@ -178,13 +224,16 @@ class ResearchStepResponse(BaseModel):
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
+    #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
+    #: when the step stamped no origin.
+    data_origin_kind: OriginKind | None = None
 
 
 class ResearchRunPopulation(BaseModel):
     """The population a run recorded (population-operations P3), and whether anything read it.
 
-    ``read_by_fieldwork`` is ``False`` for every run today: fieldwork answers with
-    fictional respondents (OI-61), so the recorded population is a record, not a source.
+    ``read_by_fieldwork`` is whether the run pinned the panel persona source: only then is the
+    recorded population where its respondents come from; otherwise it is a record.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -193,6 +242,31 @@ class ResearchRunPopulation(BaseModel):
     version_id: str
     version_label: str
     read_by_fieldwork: bool
+
+
+class ResearchRunMethod(BaseModel):
+    """One method a run pinned when it started (plan ``methodology-tab`` Z1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: ``None``: the run recorded a pin that cannot be read as a name; never a guess.
+    name: str | None
+    #: ``True``: a version stored on the Metodika tab; ``False``: the code's preset.
+    stored: bool
+
+
+class ResearchRunMethodology(BaseModel):
+    """The methods a run computed under, by name: what Results says the numbers came from."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    sociomap: ResearchRunMethod
+    support: ResearchRunMethod
+    aggregation: ResearchRunMethod
+    #: How AI respondents' answers were drawn (plan ``methodology-tab`` R1d).
+    response: ResearchRunMethod
+    #: ``True``: the response process is not 18.6.6's; ``None``: its pin cannot be read.
+    response_deviates: bool | None
 
 
 class ResearchRunResponse(BaseModel):
@@ -222,6 +296,10 @@ class ResearchRunResponse(BaseModel):
     actual_cost_usd: float | None = None
     #: The population the run recorded; ``None``: it recorded none (no LIVE when it started).
     population: ResearchRunPopulation | None = None
+    #: The Sociomap, support and aggregation methods the run pinned when it started.
+    methodology: ResearchRunMethodology
+    #: Who its AI respondents are, as the run pinned it: ``fictional_roster`` or ``panel``.
+    persona_source: str = PersonaSource.FICTIONAL_ROSTER.value
 
 
 class ResearchRunList(BaseModel):
@@ -327,6 +405,18 @@ def _not_found(what: str) -> HTTPException:
     )
 
 
+def _population_refused(exc: PopulationError) -> HTTPException:
+    """409: the selected child exists but its population cannot be resolved now."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_unavailable",
+            "message": "The selected population cannot be used for a run now.",
+            "details": {"reason": exc.reason},
+        },
+    )
+
+
 def _refused(exc: ScopeDenied) -> HTTPException:
     """A permission or lifecycle refusal inside a Study the caller can see: 403."""
     code = "study_closed" if exc.reason == "study_closed" else "insufficient_role"
@@ -339,6 +429,53 @@ def _refused(exc: ScopeDenied) -> HTTPException:
         status_code=status.HTTP_403_FORBIDDEN,
         detail={"code": code, "message": message, "details": {"reason": exc.reason}},
     )
+
+
+def _artifact_origin_kind(metadata: Mapping[str, Any]) -> OriginKind:
+    """A report artifact's origin kind; one written before it recorded ``data_origin`` was
+    labelled only ``synthetic``, so anything else it says is unknown."""
+    if metadata.get("data_origin"):
+        return origin_kind(str(metadata["data_origin"]))
+    return OriginKind.SIMULATED if metadata.get("synthetic") else OriginKind.UNKNOWN
+
+
+def _origin_flags(kinds: set[OriginKind]) -> dict[str, Any]:
+    """``modelled`` and the one ``data_origin_kind`` of what was read (``None``: nothing; mixed
+    kinds read as ``UNKNOWN``)."""
+    kind = next(iter(kinds)) if len(kinds) == 1 else (OriginKind.UNKNOWN if kinds else None)
+    return {
+        "modelled": OriginKind.MODELLED in kinds,
+        "data_origin_kind": kind.value if kind is not None else None,
+    }
+
+
+def design_source_response(source: DesignSource) -> DesignSourceResponse:
+    """The citation as the API returns it."""
+    labels = source.labels
+    return DesignSourceResponse(
+        study_id=source.study_id,
+        revision_id=source.revision_id,
+        source_study_id=source.source_study_id,
+        source_revision_id=source.source_revision_id,
+        source_revision=source.source_revision,
+        source_content_sha256=source.source_content_sha256,
+        labels=DesignSourceLabels(
+            synthetic=labels.synthetic,
+            draft=labels.draft,
+            never_run=labels.never_run,
+            unlabelled_data=labels.unlabelled_data,
+            run_ids=list(labels.run_ids),
+            report_artifact_ids=list(labels.report_artifact_ids),
+            modelled=labels.modelled,
+        ),
+        created_by=source.created_by,
+        created_at=source.created_at,
+    )
+
+
+def design_revision_response(r: DesignRevision) -> DesignRevisionResponse:
+    """A Design Revision as the API returns it, without its content."""
+    return _revision(r)
 
 
 def _revision(
@@ -422,6 +559,20 @@ def get_design(
         raise _not_found("design_revision") from exc
 
 
+@router.get(
+    "/design/source",
+    response_model=DesignSourceResponse,
+    summary="Where the Study's design came from, when it was reused",
+    responses={404: {"model": ErrorResponse, "description": "The design was not reused"}},
+)
+def design_source(scope: StudyScopeDep, session: SessionDep) -> DesignSourceResponse:
+    """The past study and Design Revision this Study's design was reused from, with its labels."""
+    source = StudyDesignRepository(session, scope).source()
+    if source is None:
+        raise _not_found("design_source")
+    return design_source_response(source)
+
+
 # --------------------------------------------------------------------------- #
 # Research runs
 # --------------------------------------------------------------------------- #
@@ -438,6 +589,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
     error = (last or {}).get("error") or {}
     output = s.get("output") or {}
     return ResearchStepResponse(
+        step_id=s["step_id"],
         node_key=s["node_key"],
         kind=s["kind"],
         stage_type=s["stage_type"],
@@ -451,6 +603,17 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         error_message=str(error.get("message")) if error.get("message") else None,
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
+        data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
+    )
+
+
+def _methodology(meta: Mapping[str, Any]) -> ResearchRunMethodology:
+    methods = run_methods(meta)
+    return ResearchRunMethodology(
+        **{
+            module: ResearchRunMethod(name=m.name, stored=m.stored) for module, m in methods.items()
+        },
+        response_deviates=response_deviates(meta),
     )
 
 
@@ -491,6 +654,34 @@ def _run(
             if isinstance(meta.get("population"), dict)
             else None
         ),
+        methodology=_methodology(meta),
+        persona_source=persona_source_of(meta).value,
+    )
+
+
+def _persona_source(request: Request) -> PersonaSource:
+    """The deployment's choice for a new run: the panel only with the switch on and the AI
+    runtime as the source; the run pins it, and a retry keeps the original's instead."""
+    settings = request.app.state.settings
+    if (
+        settings.ai_population_personas_enabled
+        and _fieldwork_source(request) is FieldworkSource.AI_RUNTIME
+    ):
+        return PersonaSource.PANEL
+    return PersonaSource.FICTIONAL_ROSTER
+
+
+def _no_population(exc: PanelPopulationMissing) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "population_not_established",
+            "message": (
+                "Respondenti se berou z populace, ale žádná populace není založená. "
+                "Nic nebylo spuštěno."
+            ),
+            "details": {"reason": str(exc)},
+        },
     )
 
 
@@ -521,7 +712,7 @@ def readiness(
     """
     runs = ResearchRuns(session, scope)
     try:
-        spec, result = runs.readiness(design_revision_id)
+        spec, result = runs.readiness(design_revision_id, persona_source=_persona_source(request))
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
     settings = request.app.state.settings
@@ -592,6 +783,8 @@ def start_run(
             sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
             reservations=_reservations(request),
             confirm_cost_usd=body.confirm_cost_usd,
+            population_version_id=body.population_version_id,
+            persona_source=_persona_source(request),
         )
     except ScopeDenied as exc:
         raise _refused(exc) from exc
@@ -601,6 +794,13 @@ def start_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
+    except UnknownDatasetVersion as exc:
+        # Another client's or organization's child reads as not there, like any scope miss.
+        raise _not_found("population_version") from exc
+    except PopulationError as exc:
+        raise _population_refused(exc) from exc
     return _started(runs, started, response)
 
 
@@ -638,19 +838,20 @@ def run_events(
         events = ResearchRuns(session, scope).events(run_id, since=since, limit=limit)
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
-    return [
-        RunEventResponse(
-            event_id=e["event_id"],
-            step_id=e["step_id"],
-            attempt_id=e["attempt_id"],
-            event_type=e["event_type"],
-            level=e["level"],
-            message=e["message"],
-            payload=e["payload"],
-            created_at=e["created_at"],
-        )
-        for e in events
-    ]
+    return [_event(e) for e in events]
+
+
+def _event(e: dict[str, Any]) -> RunEventResponse:
+    return RunEventResponse(
+        event_id=e["event_id"],
+        step_id=e["step_id"],
+        attempt_id=e["attempt_id"],
+        event_type=e["event_type"],
+        level=e["level"],
+        message=e["message"],
+        payload=e["payload"],
+        created_at=e["created_at"],
+    )
 
 
 @router.post(
@@ -772,6 +973,8 @@ def retry_run(
         raise _not_ready(exc.readiness) from exc
     except (CostConfirmationRequired, CostCeilingUnknown) as exc:
         raise _cost_refused(exc) from exc
+    except PanelPopulationMissing as exc:
+        raise _no_population(exc) from exc
     except ResearchRunNotRetryable as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -860,6 +1063,15 @@ def run_analysis(
         "complete": analysis.complete,
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
+        **_origin_flags(
+            {origin_kind(o.record.labels.data_origin) for o in analysis.modules.values()}
+        ),
+        # The aggregate every module read is no longer 18.6.6's port (methodology-tab G3c).
+        "aggregation_deviation": (
+            dict(analysis.aggregation_deviation)
+            if analysis.aggregation_deviation is not None
+            else None
+        ),
         "pending": {module.value: state for module, state in analysis.pending.items()},
         "modules": {
             module.value: {
@@ -983,6 +1195,7 @@ def run_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 
@@ -1113,6 +1326,7 @@ def run_sociomapping_report(
         "sha256": artifact.sha256,
         "size_bytes": artifact.size_bytes,
         "synthetic": bool(artifact.metadata.get("synthetic")),
+        **_origin_flags({_artifact_origin_kind(artifact.metadata)}),
     }
 
 
@@ -1265,6 +1479,20 @@ def read_agent_job(
 ) -> AgentJobResponse:
     with _agent_errors(session):
         return _agent_response(ResearchAgentJobs(session, scope).get(run_id), scope)
+
+
+@router.get("/research/agent-jobs/{run_id}/events", response_model=list[RunEventResponse])
+def agent_job_events(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    since: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=2000)] = 500,
+) -> list[RunEventResponse]:
+    """The job's events after a cursor: what its step reported while it ran."""
+    with _agent_errors(session):
+        events = ResearchAgentJobs(session, scope).events(run_id, since=since, limit=limit)
+    return [_event(e) for e in events]
 
 
 @router.post("/research/agent-jobs/{run_id}/cancel", response_model=AgentJobResponse)

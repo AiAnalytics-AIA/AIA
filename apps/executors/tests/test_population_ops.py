@@ -27,11 +27,16 @@ from aia_core.domain.population import (
     content_sha256,
     field_names_fingerprint,
 )
+from aia_core.domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION
 from aia_core.infrastructure.population_repository import PopulationRegistryRepository
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
-from aia_core.infrastructure.tables import PopulationVersionDictionaryRow
+from aia_core.infrastructure.tables import (
+    PopulationVersionAudienceCatalogueRow,
+    PopulationVersionDictionaryRow,
+)
 from aia_executors.population_ops import (
     ASSET_ROOT_KEY,
+    CATALOGUE_RECORDED_BY,
     OPERATORS_KEY,
     RECORDED_BY_COMMAND,
     OperatorConfigError,
@@ -130,6 +135,15 @@ def bundle(tmp_path: Path) -> tuple[PopulationImportContract, FilesystemPopulati
     return contract, FilesystemPopulationSource(tmp_path)
 
 
+class _NoEnrichment:
+    """The fictional contract declares no enrichment field."""
+
+    enricher_id = "test-no-enrichment/v1"
+
+    def derive(self, panel: Any) -> dict[str, tuple[str | None, ...]]:
+        return {}
+
+
 class Ops:
     """Runs the command as the tests' operator configuration names."""
 
@@ -146,6 +160,7 @@ class Ops:
             config=self.config,
             source=self.source,
             contract=self.contract,
+            enricher=_NoEnrichment(),
             out=out,
             err=err,
         )
@@ -287,6 +302,60 @@ def test_a_promotion_naming_a_stale_version_is_refused_and_live_does_not_move(
     assert ops.live_version() == ids["f1_4"]
 
 
+def test_a_clients_materialized_child_is_never_promoted_and_live_does_not_move(
+    world: Any, bundle: Any
+) -> None:
+    """P5: promotion moves a shared population to a shared version, never to a client's child."""
+    from aia_core.domain.population import (
+        MaterializedField,
+        MaterializedKind,
+        PopulationContractExtension,
+        VersionOwner,
+        owned_version_id,
+    )
+
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    with world.sessions() as session:
+        registry = PopulationRegistryRepository(session)
+        base = registry.get_version(ids["f1_4"])
+        assert base is not None
+        extension = PopulationContractExtension(
+            base_contract_id=base.contract_id,
+            base_field_names_sha256=base.field_names_sha256,
+            base_dictionary_sha256=base.dictionary_sha256,
+            fields=(
+                MaterializedField("pije_kavu_rano", MaterializedKind.BINARY, "d" * 64, "m", "1"),
+            ),
+        )
+        registry.insert_extension(extension, recorded_at=base.imported_at, recorded_by="test")
+        owner = VersionOwner(world.organization_id, world.client_id)
+        child = replace(
+            base,
+            version_id=owned_version_id(base.dataset_id, "c" * 64, owner),
+            label=f"{base.label}+pije_kavu_rano",
+            content_sha256="c" * 64,
+            column_count=base.column_count + 1,
+            parent_version_id=base.version_id,
+            storage_location="s3://pop-bucket/materialized/child.csv.gz",
+            owner=owner,
+            extension_sha256=extension.sha256,
+        )
+        registry.insert_version(child, validation={})
+        history_before = registry.promotions(base.dataset_id)
+        session.commit()
+
+    code, _, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", child.version_id,
+        "--expected", ids["f1_4"], "--reason", "a client's dimension is not the population",
+    )  # fmt: skip
+    assert code == 3 and err.startswith("OwnedVersionNotShared"), err
+    assert ops.live_version() == ids["f1_4"]
+    with world.sessions() as session:
+        assert PopulationRegistryRepository(session).promotions(base.dataset_id) == history_before
+
+
 def test_a_bundle_the_contract_refuses_registers_nothing(world: Any, bundle: Any) -> None:
     ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
     code, _, err = ops(
@@ -424,6 +493,96 @@ def test_record_dictionary_refuses_bytes_that_are_not_the_versions(
     assert code == 3 and "VersionIntegrityError" in err
     with world.sessions() as session:
         assert session.get(PopulationVersionDictionaryRow, ids["f1_1"]) is None
+
+
+def test_record_catalogue_acts_as_no_one_and_keeps_each_populations_version_once(
+    world: Any, bundle: Any
+) -> None:
+    ops = Ops(world, bundle, {})  # nobody is an operator: the command needs no one
+    assert ops("record-catalogue")[1] == {"recorded": [], "already_kept": []}  # no population
+
+    operator = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = operator.import_all(OWNER)
+    operator.establish(OWNER, ids)  # each establish keeps its version's catalogue
+    with world.sessions() as session:
+        session.execute(delete(PopulationVersionAudienceCatalogueRow))
+        session.commit()
+    code, result, err = ops("record-catalogue")
+    assert code == 0, err
+    assert result == {"recorded": sorted([ids["f1_1"], ids["f1_4"]]), "already_kept": []}
+    code, result, err = ops("record-catalogue")
+    assert result == {"recorded": [], "already_kept": sorted([ids["f1_1"], ids["f1_4"]])}
+    # A candidate no population has been on cannot be loaded, so it has no catalogue yet:
+    # the deploy after its promotion records it.
+    code, _, err = ops("record-catalogue", "--version", ids["f1_5"])
+    assert code == 3 and "VersionNotRuntimeEligible" in err
+
+    with world.sessions() as session:
+        row = session.get(
+            PopulationVersionAudienceCatalogueRow, (ids["f1_4"], AUDIENCE_CATALOGUE_VERSION)
+        )
+        assert row is not None and row.recorded_by == CATALOGUE_RECORDED_BY
+        catalogue = json.loads(row.content)
+    # The fictional bundle has one curated column; its blank age is not counted.
+    assert [f["id"] for f in catalogue["factors"]] == ["vek"]
+    vek = catalogue["factors"][0]
+    assert (vek["kind"], vek["non_null"], vek["min"], vek["max"]) == ("numeric", 5, 18.0, 100.0)
+    assert vek["policy_allowed"] is True
+
+
+def test_a_promotion_keeps_the_new_versions_catalogue_at_once(world: Any, bundle: Any) -> None:
+    """The audience step reads LIVE's catalogue; a promotion between deploys must not leave
+    it without one until the next deploy (Codex on #345)."""
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    code, promoted, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", ids["f1_5"],
+        "--expected", ids["f1_4"], "--reason", "the newer version",
+    )  # fmt: skip
+    assert code == 0, err
+    assert promoted["audience_catalogue"] == {
+        "version_id": ids["f1_5"],
+        "kept": True,
+        "recorded": True,
+    }
+    with world.sessions() as session:
+        row = session.get(
+            PopulationVersionAudienceCatalogueRow, (ids["f1_5"], AUDIENCE_CATALOGUE_VERSION)
+        )
+        assert row is not None and row.recorded_by == CATALOGUE_RECORDED_BY
+
+
+def test_a_catalogue_that_cannot_be_kept_does_not_undo_the_promotion(
+    world: Any, bundle: Any, tmp_path: Path
+) -> None:
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    # The candidate's panel on disk is no longer the one it was imported with: it will not load.
+    (tmp_path / "panels" / "f1_5.csv.gz").write_bytes(b"not the panel")
+    code, promoted, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", ids["f1_5"],
+        "--expected", ids["f1_4"], "--reason", "the newer version",
+    )  # fmt: skip
+    assert code == 0, err
+    assert promoted["current_version_id"] == ids["f1_5"] and ops.live_version() == ids["f1_5"]
+    said = promoted["audience_catalogue"]
+    assert said["version_id"] == ids["f1_5"] and said["kept"] is False and said["error"]
+    with world.sessions() as session:
+        assert (
+            session.get(
+                PopulationVersionAudienceCatalogueRow, (ids["f1_5"], AUDIENCE_CATALOGUE_VERSION)
+            )
+            is None
+        )
+
+
+def test_record_catalogue_of_an_unknown_version_writes_nothing(world: Any, bundle: Any) -> None:
+    code, _, err = Ops(world, bundle, {})("record-catalogue", "--version", "nope")
+    assert code == 3 and "UnknownDatasetVersion" in err
+    with world.sessions() as session:
+        assert session.query(PopulationVersionAudienceCatalogueRow).count() == 0
 
 
 # ------------------------------------------------------------------ the key

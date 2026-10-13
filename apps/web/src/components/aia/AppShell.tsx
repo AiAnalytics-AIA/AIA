@@ -172,11 +172,13 @@ export function AppShell({
   sub,
   eyebrow,
   action,
+  alignActionStart = false,
   status,
   tabs,
   client,
   back,
   aside,
+  compact = false,
   children,
 }: {
   crumbs?: Crumb[];
@@ -186,6 +188,8 @@ export function AppShell({
   eyebrow?: ReactNode;
   /** The page's one dominant action. */
   action?: ReactNode;
+  /** Context cards align with the title rather than pushing it to their bottom. */
+  alignActionStart?: boolean;
   /** A state the page is in (the save state of a study), right of the title. */
   status?: ReactNode;
   /** The areas of a client, under the header. */
@@ -196,6 +200,12 @@ export function AppShell({
   back?: { href: string; label: string };
   /** The rail of the open study: its stages. Never global navigation. */
   aside?: ReactNode;
+  /**
+   * A working surface (a study's stage): the header is one row -- where you are,
+   * the save state, the utility action -- and the title opens the work below it,
+   * so the first field is on screen without scrolling (desktop UX overhaul).
+   */
+  compact?: boolean;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -207,28 +217,40 @@ export function AppShell({
       <Sidebar path={path} client={client} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {compact ? (
+          <header data-compact-header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+            <div aria-hidden="true" className={`-mx-4 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
+            <div className="flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-1 py-1.5">
+              <div className="min-w-0 flex-1"><Breadcrumbs crumbs={crumbs} /></div>
+              <div className="flex flex-wrap items-center gap-3">
+                {status}
+                {action}
+              </div>
+            </div>
+          </header>
+        ) : (
         <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
-          <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
+          <div aria-hidden="true" className={`-mx-4 mb-2 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (
               <Link
                 href={back.href}
-                className={`mb-2.5 inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-control border border-border bg-surface pl-1.5 pr-2.5 text-[13px] font-medium leading-[18px] text-ink no-underline hover:border-border-strong hover:bg-surface-sunken ${FOCUS}`}
+                className={`mb-1.5 inline-flex min-h-7 items-center gap-1.5 whitespace-nowrap rounded-control border border-border bg-surface pl-1.5 pr-2.5 text-[13px] font-medium leading-[18px] text-ink no-underline hover:border-border-strong hover:bg-surface-sunken ${FOCUS}`}
               >
                 <Icon name="back" size={14} />
                 {back.label}
               </Link>
             ) : null}
             <Breadcrumbs crumbs={crumbs} />
-            <div className="flex flex-wrap items-end justify-between gap-4 pb-5 pt-2">
+            <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-3 pb-3 pt-1.5`}>
               <div className="min-w-0 max-w-3xl">
                 {eyebrow ? (
-                  <div className="mb-2 inline-flex items-center gap-2.5 whitespace-nowrap rounded-pill bg-signal-wash px-2.5 py-[3px] font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-signal">
+                  <div className="mb-1 inline-flex items-center gap-2.5 whitespace-nowrap rounded-pill bg-signal-wash px-2.5 py-[2px] font-mono text-[11px] uppercase leading-4 tracking-[0.08em] text-signal">
                     {eyebrow}
                   </div>
                 ) : null}
-                <h1 className="text-[28px] font-semibold leading-9 tracking-[-0.02em]">{title}</h1>
-                {sub ? <p className="mt-1 text-sm leading-6 text-ink-muted">{sub}</p> : null}
+                <h1 className="text-[24px] font-semibold leading-8 tracking-[-0.02em]">{title}</h1>
+                {sub ? <p className="text-sm leading-5 text-ink-muted">{sub}</p> : null}
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {status}
@@ -268,12 +290,21 @@ export function AppShell({
             ) : null}
           </div>
         </header>
+        )}
         <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           {aside ? (
             <aside className="shrink-0 border-b border-border bg-surface-raised xl:w-56 xl:border-b-0 xl:border-r">{aside}</aside>
           ) : null}
-          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 lg:px-6 xl:px-8">
-            <div className="mx-auto max-w-[88rem]">{children}</div>
+          <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-8 pt-4 lg:px-6 xl:px-8">
+            <div className="mx-auto max-w-[88rem]">
+              {compact ? (
+                <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  <h1 className="text-xl font-semibold leading-7 tracking-[-0.01em]">{title}</h1>
+                  {sub ? <p className="text-sm leading-5 text-ink-muted">{sub}</p> : null}
+                </div>
+              ) : null}
+              {children}
+            </div>
           </main>
         </div>
       </div>

@@ -21,6 +21,7 @@ from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import (
@@ -270,6 +271,11 @@ def test_a_run_starts_once_per_design_revision_and_is_read_by_its_study(
     assert [r["run_id"] for r in listed] == [run["run_id"]]
     events = viewer.get(f"{_runs(world)}/{run['run_id']}/events").json()
     assert events[0]["event_type"] == "RUN_CREATED"
+    # Each step names the id its events carry, so a reader can tell which step said what.
+    step_ids = {s["step_id"] for s in run["steps"]}
+    assert len(step_ids) == len(run["steps"])
+    named = {e["step_id"] for e in events if e["step_id"]}
+    assert named <= step_ids
 
 
 def test_analysis_results_are_study_scoped_and_internal(
@@ -293,6 +299,8 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert internal.json()["internal_only"] is True
     assert len(internal.json()["pending"]) == 8
     assert internal.json()["modules"] == {}
+    # No module has read an aggregate yet, so none is said to depart from 18.6.6 (G3c).
+    assert internal.json()["aggregation_deviation"] is None
     # ADR 0019: the "viewer" label holds the Researcher role and reads it too.
     assert viewer.get(url).status_code == 200
     # So do a member with no grant and another client's lead (ADR 0019); what bounds it is the
@@ -361,6 +369,9 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     assert listed.json()["artifact_id"] == report_id
     assert listed.json()["review_state"] == "DRAFT_UNAPPROVED"
     assert listed.json()["synthetic"] is True
+    # Written before reports recorded data_origin: synthetic alone reads as simulated.
+    assert listed.json()["data_origin_kind"] == "SIMULATED"
+    assert listed.json()["modelled"] is False
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
@@ -508,6 +519,20 @@ def test_starting_needs_a_revision_of_this_study_not_a_grant(
     assert start(other_client_lead, world, revision_id, study="other_client").status_code == 404
     # Through Acme's own study they may run Acme's revision (ADR 0019); the same run, so 200.
     assert start(other_client_lead, world, revision_id).status_code in (200, 201)
+
+
+def test_a_selected_population_that_is_not_the_clients_child_is_404_and_nothing_starts(
+    researcher: TestClient, world: Any
+) -> None:
+    """P4e2: a run may name its client's child; any other id reads as not there."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    refused = researcher.post(
+        _runs(world),
+        json={"design_revision_id": revision_id, "population_version_id": "no-such-version"},
+    )
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "population_version_not_found"
+    assert researcher.get(_runs(world)).json()["items"] == []
 
 
 def test_a_run_never_crosses_studies(
@@ -721,6 +746,7 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     run = researcher.get(f"{_runs(world)}/{run_id}").json()
     steps = {s["node_key"]: s for s in run["steps"]}
     assert steps["run"]["data_origin"] == "SYNTHETIC_FIXTURE"
+    assert steps["run"]["data_origin_kind"] == "SIMULATED"
     spec_id, dataset_id = steps["compile"]["artifact_id"], steps["run"]["artifact_id"]
 
     spec = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{spec_id}")
@@ -900,3 +926,144 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
     assert read["population"] == note
+
+
+def test_a_run_names_the_methods_it_computed_under(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Methodology-tab Z1, R1d: Results say which Sociomap, support, aggregation and response
+    process a run pinned, and whether its response process is 18.6.6's."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+
+    def version(module: str, name: str) -> dict[str, Any]:
+        return {"module": module, "version": 1, "name": name, "payload_sha256": "0" * 64}
+
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {
+            **row.metadata_json,
+            "methodology": version("sociomap", "aia-sociomap-3+e1"),
+            "support_methodology": version("support", "aia-support-1+e2"),
+            "aggregation_methodology": version("aggregation", "aia-aggregate-1+e1"),
+            "response": {
+                **AIA_RESPONSE_V1.model_dump(mode="json"),
+                "methodology_version": "aia-response-1+e1",
+                "extremity": 0.5,
+            },
+            "response_methodology": version("response", "aia-response-1+e1"),
+        }
+        session.commit()
+    read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert read["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3+e1", "stored": True},
+        "support": {"name": "aia-support-1+e2", "stored": True},
+        "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
+        "response": {"name": "aia-response-1+e1", "stored": True},
+        "response_deviates": True,
+    }
+    listed = researcher.get(_runs(world)).json()["items"]
+    assert listed[0]["methodology"] == read["methodology"]
+
+
+def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under() -> None:
+    from aia_api.routers.research import _methodology
+
+    assert _methodology({}).model_dump() == {
+        "sociomap": {"name": "aia-sociomap-1", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+    unreadable = _methodology({"response": {"extremity": "much"}}).model_dump()
+    assert unreadable["response"] == {"name": None, "stored": False}
+    assert unreadable["response_deviates"] is None  # never a guess
+
+
+def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real() -> None:
+    from aia_core.domain.fieldwork import OriginKind
+
+    from aia_api.routers.research import _artifact_origin_kind, _origin_flags
+
+    assert _artifact_origin_kind({"data_origin": "MODELLED_AI_PANEL"}) is OriginKind.MODELLED
+    assert _artifact_origin_kind({"synthetic": True}) is OriginKind.SIMULATED
+    assert _artifact_origin_kind({"synthetic": False}) is OriginKind.UNKNOWN
+    assert _artifact_origin_kind({"data_origin": "PANEL"}) is OriginKind.UNKNOWN
+    assert _origin_flags({OriginKind.MODELLED}) == {
+        "modelled": True,
+        "data_origin_kind": "MODELLED",
+    }
+    assert _origin_flags({OriginKind.MODELLED, OriginKind.SIMULATED})["data_origin_kind"] == (
+        "UNKNOWN"
+    )
+    assert _origin_flags(set()) == {"modelled": False, "data_origin_kind": None}
+
+
+def test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 5c: the switch decides what a new run pins; with it on
+    and no population established, nothing starts -- never a fictional run instead."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    roster = start(researcher, world, revision_id).json()
+    assert roster["persona_source"] == "fictional_roster"
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    refused = researcher.post(f"{_runs(world)}", json={"design_revision_id": revision_id})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "population_not_established"
+    # The fictional run is untouched and still reads as what it pinned.
+    read = researcher.get(f"{_runs(world)}/{roster['run_id']}").json()
+    assert read["persona_source"] == "fictional_roster"
+
+
+def test_readiness_says_the_filters_apply_only_where_a_new_run_would_draw_from_the_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 6d: readiness reads the pin a start would make now."""
+    filtered = {
+        **DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def audience() -> dict[str, Any]:
+        body = researcher.get(url, params={"design_revision_id": revision_id}).json()
+        return next(c for c in body["checks"] if c["id"] == "audience")
+
+    assert audience()["status"] == "WARN"
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    assert audience() == {
+        "id": "audience",
+        "status": "PASS",
+        "message": "Filtry se uplatní při výběru respondentů z populace.",
+    }
+
+
+def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "persona_source"}
+        session.commit()
+    assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["persona_source"] == (
+        "fictional_roster"
+    )

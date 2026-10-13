@@ -18,7 +18,7 @@ import type { Orb, OrbInk } from "@/lib/activity-orb";
 
 const INK_PROPERTY: Record<OrbInk, string> = { ai: "--ai-ink", running: "--status-running" };
 
-export function ActivityOrb({ orb, size = 20, className = "" }: { orb: Orb; size?: OrbSize; className?: string }) {
+export function ActivityOrb({ orb, size = 32, className = "" }: { orb: Orb; size?: OrbSize; className?: string }) {
   const host = useRef<HTMLSpanElement>(null);
   const [ink, setInk] = useState<string | null>(null);
   const property = INK_PROPERTY[orb.ink];

@@ -35,9 +35,19 @@ describe("ObjectMapView", () => {
     render(<ObjectMapView battery={battery} dataOrigin="SYNTHETIC_FIXTURE" />);
     expect(screen.getByText("Mapa objektů (aia-sociomap-3)")).toBeTruthy();
     expect(screen.getByText("Interní · nesmí ke klientovi")).toBeTruthy();
-    expect(screen.getByTestId("object-map-synthetic").textContent).toContain("Fiktivní data");
+    expect(screen.getByTestId("object-map-origin").textContent).toContain("Fiktivní data");
+    expect(screen.getByTestId("object-map-origin").getAttribute("data-origin-kind")).toBe("SIMULATED");
     expect(screen.getByText(/σ = 0,25/)).toBeTruthy();
     expect(screen.getByTestId("object-map-support").textContent).toContain("Fiktivní data (SYNTHETIC_FIXTURE)");
+  });
+
+  it("says modelled data is modelled, never fictional and never measured (ADR 0024 §7)", () => {
+    render(<ObjectMapView battery={battery} dataOrigin="MODELLED_AI_PANEL" />);
+    const chip = screen.getByTestId("object-map-origin");
+    expect(chip.getAttribute("data-origin-kind")).toBe("MODELLED");
+    expect(chip.textContent).toContain("Modelováno: AI respondenti z populace");
+    expect(chip.textContent).not.toContain("Fiktivní");
+    expect(screen.getByTestId("object-map-support").textContent).toContain("Modelováno: AI respondenti z populace (MODELLED_AI_PANEL)");
   });
 
   it("opens from above, the 3D renderer not mounted", () => {
@@ -59,7 +69,8 @@ describe("ObjectMapView", () => {
     const negative = [...screen.getByTestId("object-map-links").children].filter((l) => l.getAttribute("stroke-dasharray"));
     expect(negative).toHaveLength(mapLinks(map).filter((l) => (l.a === "altair" || l.b === "altair") && l.sign === "negative").length);
     for (const id of map.object_ids) expect(screen.getByTestId(`object-map-point-${id}`)).toBeTruthy();
-    expect(screen.queryByTestId("object-map-synthetic")).toBeNull();
+    // No origin recorded: said as unknown, never read as fieldwork.
+    expect(screen.getByTestId("object-map-origin").getAttribute("data-origin-kind")).toBe("UNKNOWN");
     fireEvent.click(screen.getByTestId("object-map-point-deneb"));
     expect(drawnPairs("object-map-links")).toEqual(linksOf("deneb"));
   });

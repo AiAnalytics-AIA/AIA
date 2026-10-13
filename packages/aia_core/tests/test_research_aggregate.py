@@ -26,6 +26,7 @@ from typing import Any
 
 import pytest
 
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, UNIT_DONOR_THRESHOLDS
 from aia_core.domain.fieldwork import FieldworkDataset
 from aia_core.domain.research_aggregate import (
     BOOTSTRAP_GENERATOR,
@@ -60,7 +61,7 @@ def _load(case_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
 def _aggregate(case: dict[str, Any]) -> dict[str, Any]:
     spec = ResearchSpecification.model_validate(case["spec"])
     dataset = FieldworkDataset.model_validate(case["dataset"])
-    return aggregate_dataset(spec, dataset)
+    return aggregate_dataset(spec, dataset, support=AIA_SUPPORT_V1)
 
 
 def _at(tree: dict[str, Any], path: str) -> Any:
@@ -161,17 +162,24 @@ def test_kish_and_donor_support_follow_the_units_thresholds() -> None:
         (50, "REPORTABLE"),
     ):
         ids = [f"d{i}" for i in range(donors)]
-        support = donor_support(ids, [1.0] * donors)
+        support = donor_support(ids, [1.0] * donors, rule=UNIT_DONOR_THRESHOLDS)
         assert support["support_status"] == status and support["n_unique_layer_donors"] == donors
-    repeated = donor_support(["a", "a", "a", "b"], [1.0] * 4)
+    repeated = donor_support(["a", "a", "a", "b"], [1.0] * 4, rule=UNIT_DONOR_THRESHOLDS)
     assert repeated["max_donor_share"] == 0.75
     assert repeated["effective_n_combined"] == 2.0  # kish 4 x (2 donors / 4 rows)
 
 
 def test_a_single_donor_has_no_interval_to_draw_and_says_so() -> None:
-    result = bootstrap_weighted_mean([1.0, 2.0, 3.0], [1.0] * 3, reps=10, seed=1, donors=["a"] * 3)
+    result = bootstrap_weighted_mean(
+        [1.0, 2.0, 3.0], [1.0] * 3, reps=10, seed=1, donors=["a"] * 3, quantiles=(0.025, 0.975)
+    )
     assert result == {"estimate": 2.0, "low": 2.0, "high": 2.0, "reps": 0}
-    assert bootstrap_weighted_mean([1.0], [1.0], reps=10, seed=1, donors=None) is None
+    assert (
+        bootstrap_weighted_mean(
+            [1.0], [1.0], reps=10, seed=1, donors=None, quantiles=(0.025, 0.975)
+        )
+        is None
+    )
 
 
 def test_the_weighted_median_interpolates_like_numpy() -> None:

@@ -10,7 +10,7 @@
 // person types into; nothing here calls a model but the analysis.
 
 import { useRouter } from "next/navigation";
-import { type DragEvent, useRef, useState } from "react";
+import { type DragEvent, type ReactNode, useRef, useState, useSyncExternalStore } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
@@ -32,7 +32,7 @@ import {
   toggleProblemType,
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
-import { Icon, type IconName } from "../icons";
+import { Icon, type IconName, Sparkle } from "../icons";
 import { ActionDock, StepSection } from "../step";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
@@ -74,10 +74,28 @@ export function titleFromGoal(goal: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+/** A readiness row leads to its section and puts the caret in its first control. */
+const jumpTo = (id: string) => {
+  const section = document.getElementById(id);
+  section?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  // A field first; a section with none (problem types) takes its first choice.
+  const target = section?.querySelector<HTMLElement>("textarea, input:not([type=file])") ?? section?.querySelector<HTMLElement>("[role=group] button, button");
+  target?.focus({ preventScroll: true });
+};
+
+// A wide desktop keeps the start action beside the checklist, where it stays in view
+// without covering a field; below it the action closes the form (ActionDock).
+const WIDE = "(min-width: 1280px)";
+const subscribeWide = (change: () => void) => {
+  const query = typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WIDE) : null;
+  query?.addEventListener("change", change);
+  return () => query?.removeEventListener("change", change);
+};
+const wideSnapshot = () => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia(WIDE).matches : false);
 
 export function BriefStep() {
-  const { store, state, frame, stepHref } = useResearch();
+  const { store, state, frame, stepHref, askAssistance } = useResearch();
+  const wide = useSyncExternalStore(subscribeWide, wideSnapshot, () => false);
   const router = useRouter();
   const p = state.project;
   const { analyse: runAnalysis, failure, busy } = useAnalysis();
@@ -97,13 +115,26 @@ export function BriefStep() {
   const attachments = p.briefing.attachments || [];
   const filled = CONTEXT.filter((c) => contextValue(p, c.field).trim()).length;
   const ready = canAnalyse(p);
-  const score = [goalLength >= GOAL_SENTENCE, selected.size > 0, attachments.length > 0, filled > 0].filter(Boolean).length * 25;
+
+  const note = ready ? (goalLength < GOAL_SENTENCE && !selected.size ? t("research.brief.dockShort") : t("research.brief.dockReady")) : t("research.brief.dockMissing");
+  const start = (
+    <AiButton variant="primary" onClick={analyse} disabled={busy || !ready}>
+      {t("research.brief.next")}
+      <Icon name="next" size={14} />
+    </AiButton>
+  );
 
   return (
     <div className="flex max-w-[82.5rem] flex-wrap items-start gap-6">
       <Readiness
-        score={score}
         ready={ready}
+        action={wide ? (
+          <div className="flex flex-col gap-2 border-t border-border pt-3" data-brief-start>
+            <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
+            {start}
+            {ready ? <p className="text-xs leading-[18px] text-ink-faint">{t("research.brief.dockCost")}</p> : null}
+          </div>
+        ) : null}
         rows={[
           { id: "brief-goal", label: "research.brief.readyGoal", need: true, ok: goalLength >= GOAL_SENTENCE,
             detail: goalLength ? tv("research.brief.chars", { n: goalLength }) + (goalLength < GOAL_SENTENCE ? t("research.brief.readyGoalShort") : "") : t("research.brief.readyGoalEmpty") },
@@ -119,92 +150,124 @@ export function BriefStep() {
       <div className="order-1 flex min-w-0 flex-[999_1_520px] flex-col gap-4">
         {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} /> : null}
 
-        <StepSection id="brief-goal" n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}>
-          <textarea
-            aria-label={t("research.brief.goalLabel")}
-            placeholder={t("research.brief.goalPlaceholder")}
-            value={goal}
-            onChange={(e) => edit("goal", e.target.value)}
-            className={`block min-h-[120px] w-full resize-y bg-surface px-3.5 py-3 text-[15px] leading-[26px] ${INPUT}`}
-          />
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-ink-muted">{t("research.brief.startWith")}</span>
-            {[0, 1, 2].map((i) => {
-              const starter = t(`research.brief.starters.${i}`);
-              return (
+        {/* One surface: what is needed first, then what sharpens the proposal. */}
+        <div data-brief-document className="rounded-card border border-border bg-surface-raised px-5 sm:px-6">
+          <div className="divide-y divide-border">
+            <StepSection
+              id="brief-goal" n={1} lead plain title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}
+              aside={askAssistance && frame.canEdit ? (
                 <button
-                  key={i}
                   type="button"
-                  onClick={() => edit("goal", goal.trim() ? `${goal.trim()} ${starter}` : starter)}
-                  className={`rounded-pill border border-dashed border-border-strong px-2.5 text-xs leading-5 text-ink-muted hover:border-solid hover:text-ink ${FOCUS}`}
+                  onClick={() => askAssistance("answer_memory")}
+                  className={`inline-flex min-h-9 items-center gap-1.5 rounded-control px-2 text-[13px] font-medium text-ai-ink hover:bg-ai-wash ${FOCUS}`}
                 >
-                  {starter.trim()}…
+                  <Sparkle size={14} />
+                  {t("research.brief.askKnowledge")}
                 </button>
-              );
-            })}
-            {goalLength ? (
-              <span className={`ml-auto font-mono text-[11px] ${goalLength < GOAL_SENTENCE ? "text-status-you-ink" : "text-ink-faint"}`}>
-                {tv("research.brief.chars", { n: goalLength })}
-              </span>
-            ) : null}
+              ) : null}
+            >
+              <textarea
+                aria-label={t("research.brief.goalLabel")}
+                placeholder={t("research.brief.goalPlaceholder")}
+                value={goal}
+                onChange={(e) => edit("goal", e.target.value)}
+                className={`block min-h-[120px] w-full resize-y bg-surface px-3.5 py-3 text-[15px] leading-[26px] ${INPUT}`}
+              />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-xs text-ink-muted">{t("research.brief.startWith")}</span>
+                {[0, 1, 2].map((i) => {
+                  const starter = t(`research.brief.starters.${i}`);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => edit("goal", goal.trim() ? `${goal.trim()} ${starter}` : starter)}
+                      className={`rounded-pill border border-dashed border-border-strong px-2.5 text-xs leading-5 text-ink-muted hover:border-solid hover:text-ink ${FOCUS}`}
+                    >
+                      {starter.trim()}…
+                    </button>
+                  );
+                })}
+                {goalLength ? (
+                  <span className={`ml-auto font-mono text-[11px] ${goalLength < GOAL_SENTENCE ? "text-status-you-ink" : "text-ink-faint"}`}>
+                    {tv("research.brief.chars", { n: goalLength })}
+                  </span>
+                ) : null}
+              </div>
+              <div className="mt-4 flex flex-wrap items-end gap-2">
+                <label className="flex min-w-60 flex-1 flex-col gap-1">
+                  <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
+                  <TextInput className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
+                </label>
+                <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
+                  {t("research.brief.suggestTitle")}
+                </Button>
+              </div>
+            </StepSection>
+
+            <StepSection id="brief-type" n={2} plain title={t("research.brief.typesTitle")} hint={t("research.brief.typesHelp")}>
+              <ProblemTypes selected={selected} toggle={(key) => store.update(({ project }) => ({ project: toggleProblemType(project, key) }), { reason: "problem_types_1789" })} />
+            </StepSection>
           </div>
-          <div className="mt-4 flex flex-wrap items-end gap-2">
-            <label className="flex min-w-60 flex-1 flex-col gap-1">
-              <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
-              <TextInput className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
-            </label>
-            <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
-              {t("research.brief.suggestTitle")}
-            </Button>
+
+          <div className="border-t-2 border-border">
+            <p className="pt-4 text-xs font-semibold text-ink-faint">{t("research.brief.optionalGroup")}</p>
+            <div className="divide-y divide-border">
+              <Attachments />
+              <ContextFields edit={edit} p={p} />
+            </div>
           </div>
-        </StepSection>
+        </div>
 
-        <StepSection id="brief-type" n={2} title={t("research.brief.typesTitle")} hint={t("research.brief.typesHelp")}>
-          <div role="group" aria-label={t("research.brief.typesGroup")} className="flex flex-wrap gap-2">
-            {PROBLEM_TYPES.map(([key, label, sub]) => {
-              const on = selected.has(key);
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={on}
-                  title={sub}
-                  onClick={() => store.update(({ project }) => ({ project: toggleProblemType(project, key) }), { reason: "problem_types_1789" })}
-                  className={`inline-flex items-center gap-1.5 rounded-pill border px-3.5 py-1.5 text-[13px] leading-5 hover:border-signal ${FOCUS} ${
-                    on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border-strong bg-surface text-ink"
-                  }`}
-                >
-                  {on ? <Icon name="done" size={12} /> : null}
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          {selected.size ? (
-            <p className="mt-2.5 text-xs leading-[18px] text-ink-muted">
-              {tv("research.brief.selected", {
-                list: PROBLEM_TYPES.filter(([k]) => selected.has(k)).map(([, label, sub]) => `${label} (${sub.toLowerCase()})`).join(" · "),
-              })}
-            </p>
-          ) : null}
-        </StepSection>
-
-        <Attachments />
-
-        <ContextFields edit={edit} p={p} />
-
-        <ActionDock
-          back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
-          ready={ready}
-          note={ready ? (goalLength < GOAL_SENTENCE && !selected.size ? t("research.brief.dockShort") : t("research.brief.dockReady")) : t("research.brief.dockMissing")}
-        >
-          <AiButton variant="primary" onClick={analyse} disabled={busy || !ready}>
-            {t("research.brief.next")}
-            <Icon name="next" size={14} />
-          </AiButton>
-        </ActionDock>
+        {wide ? null : (
+          <ActionDock back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }} ready={ready}
+            note={<>
+              <span className="block">{note}</span>
+              {ready ? <span className="block text-xs text-ink-faint">{t("research.brief.dockCost")}</span> : null}
+            </>}
+          >
+            {start}
+          </ActionDock>
+        )}
       </div>
     </div>
+  );
+}
+
+/** "O jaký typ problému jde?": each type a toggle that says what it covers. */
+function ProblemTypes({ selected, toggle }: { selected: ReadonlySet<string>; toggle: (key: string) => void }) {
+  return (
+    <>
+      <div role="group" aria-label={t("research.brief.typesGroup")} className="grid grid-cols-2 gap-2 md:grid-cols-3 2xl:grid-cols-5">
+        {PROBLEM_TYPES.map(([key, label, sub]) => {
+          const on = selected.has(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={on}
+              onClick={() => toggle(key)}
+              className={`flex min-h-14 flex-col items-start justify-center rounded-control px-3 py-2 text-left hover:border-signal ${FOCUS} ${
+                on ? "border-2 border-signal bg-signal-wash px-[11px]" : "border border-border-strong bg-surface"
+              }`}
+            >
+              <span className={`flex items-center gap-1.5 text-[13px] font-semibold leading-[18px] ${on ? "text-signal" : "text-ink"}`}>
+                {on ? <Icon name="done" size={12} /> : null}
+                {label}
+              </span>
+              <span className="text-xs leading-4 text-ink-muted">{sub}</span>
+            </button>
+          );
+        })}
+      </div>
+      {selected.size ? (
+        <p className="mt-2.5 text-xs leading-[18px] text-ink-muted">
+          {tv("research.brief.selected", {
+            list: PROBLEM_TYPES.filter(([k]) => selected.has(k)).map(([, label, sub]) => `${label} (${sub.toLowerCase()})`).join(" · "),
+          })}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -215,22 +278,21 @@ const ROW_LOOK = {
 } as const satisfies Record<string, { glyph: IconName; look: string }>;
 
 /** "Připravenost zadání": what the brief has, each row a way to the section that gives it. */
-function Readiness({ score, ready, rows }: {
-  score: number;
+function Readiness({ ready, rows, action }: {
   ready: boolean;
+  /** On a wide desktop, the start action with its cost, beside the checklist. */
+  action?: ReactNode;
   rows: { id: string; label: string; need: boolean; ok: boolean; detail: string }[];
 }) {
   return (
-    <aside aria-label={t("research.brief.readyTitle")} className="sticky top-60 order-2 flex flex-[1_1_260px] flex-col gap-3.5 rounded-card border border-border bg-surface-raised p-4">
-      <div>
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold">{t("research.brief.readyTitle")}</h2>
-          <span className="font-mono text-xs text-ink-muted">{score} %</span>
-        </div>
-        <div aria-hidden="true" className="mt-2 h-1 rounded-sm bg-surface-sunken">
-          <div className={`h-1 rounded-sm ${ready ? "bg-signal" : "bg-status-you-ink"}`} style={{ width: `${score}%` }} />
-        </div>
+    <aside aria-label={t("research.brief.readyTitle")} className="order-2 flex flex-[1_1_260px] flex-col gap-3 rounded-card border border-border bg-surface-raised p-4 lg:sticky lg:top-[72px]">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold">{t("research.brief.readyTitle")}</h2>
+        <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyCount", { n: rows.filter((r) => r.ok).length, of: rows.length })}</span>
       </div>
+      <p className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>
+        {ready ? t("research.brief.readyCanStart") : tv("research.brief.readyNext", { item: t(rows.find((r) => r.need && !r.ok)?.label ?? rows[0]!.label) })}
+      </p>
       <ul className="flex flex-col gap-1">
         {rows.map((r) => {
           const look = ROW_LOOK[r.ok ? "ok" : r.need ? "need" : "optional"];
@@ -257,6 +319,7 @@ function Readiness({ score, ready, rows }: {
         })}
       </ul>
       <p className="border-t border-border pt-3 text-xs leading-[18px] text-ink-muted">{t("research.brief.readyNote")}</p>
+      {action}
     </aside>
   );
 }
@@ -271,7 +334,7 @@ function ContextFields({ p, edit }: { p: ResearchProject; edit: (field: TopField
   const open = CONTEXT.filter((c) => opened.has(c.field) || contextValue(p, c.field));
   const closed = CONTEXT.filter((c) => !open.includes(c));
   return (
-    <StepSection id="brief-context" n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
+    <StepSection id="brief-context" n={4} optional plain title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
       <div className="flex flex-col gap-3">
         {open.map((c) => (
           <div key={c.field} className="flex flex-col gap-1">
@@ -388,7 +451,7 @@ function Attachments() {
   };
 
   return (
-    <StepSection id="brief-files" n={3} optional title={t("research.brief.filesTitle")} hint={t("research.brief.attachHelp")}>
+    <StepSection id="brief-files" n={3} optional plain title={t("research.brief.filesTitle")} hint={t("research.brief.attachHelp")}>
       <input
         ref={files}
         type="file"

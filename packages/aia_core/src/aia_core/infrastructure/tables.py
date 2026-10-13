@@ -35,6 +35,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     event,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -680,6 +681,110 @@ class StudyDesignRow(Base):
         # RESTRICT: the design a run executed may not vanish from under the run.
         ForeignKeyConstraint(["project_id"], ["projects.project_id"], ondelete="RESTRICT"),
         UniqueConstraint("project_id", name="study_design_project_unique"),
+    )
+
+
+class StudyDesignSourceRow(Base):
+    """Where a research Study's design came from, when it was reused. **Insert-once.**
+
+    Project memory M3 (plans/project-memory-reuse.md): a past study's design may start a new
+    or empty research Study of the same client. The citation belongs to the Study, not to one
+    revision -- every later revision descends from the reused one -- and is found only
+    through the Study (all three scope columns). ``labels`` are derived by one rule from every
+    run of the source revision (``aia_core.domain.design_reuse``) and keep the run and report
+    artifact ids they were read from. The source columns are a record, not a reference: no
+    foreign key, so the citation stays what it was whatever later happens to the source.
+    Written only by ``StudyDesignRepository``.
+    """
+
+    __tablename__ = "study_design_sources"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: The target's first Design Revision: the reused design itself.
+    revision_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_revision_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    labels: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint("source_study_id <> study_id", name="study_design_source_not_itself"),
+    )
+
+
+class HoldoutPreregistrationRow(Base):
+    """A validation Study's preregistration (panel-grounded-respondents 7a, 7e2). **Insert-once.**
+
+    One per Study, fixed before its confirmation run's first call: the record's canonical JSON
+    bytes, kept as written so the hash read back is the hash stored, beside the respondent
+    system it validates. Written and read only by ``HoldoutRepository``, through the Study.
+    """
+
+    __tablename__ = "holdout_preregistrations"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    respondent_system_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    population_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        Index(
+            "ix_holdout_preregistrations_system", "organization_id", "respondent_system_fingerprint"
+        ),
+    )
+
+
+class HoldoutConfirmationRow(Base):
+    """A validation Study's confirmation run, started (panel-grounded-respondents 7e3).
+    **Insert-once.**
+
+    A respondent system is confirmed once in an organization: the unique constraint refuses a
+    second Study's confirmation of the same fingerprint, so several preregistrations of one
+    system cannot each be run and the passing one kept. Written and read only by
+    ``HoldoutRepository``.
+    """
+
+    __tablename__ = "holdout_confirmations"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    respondent_system_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    preregistration_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["study_id"], ["holdout_preregistrations.study_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        UniqueConstraint(
+            "organization_id",
+            "respondent_system_fingerprint",
+            name="holdout_confirmation_once_per_system",
+        ),
     )
 
 
@@ -1402,22 +1507,49 @@ class AIUsageEventRow(Base):
 # --------------------------------------------------------------------------- #
 # Population registry
 #
-# Platform reference data, not client data: these rows carry no organization,
-# client or study, because the population is shared by every study. What *is*
-# study-scoped is which population a run used -- ``run_population_bindings`` hangs
-# off ``workflow_runs`` and inherits its scope.
+# Platform reference data, not client data: a shared version carries no
+# organization, client or study, because it is shared by every study. The one
+# exception is a materialized child (population-operations P4c): it names the
+# organization and client it belongs to and the contract extension that declares
+# its added fields, and only that organization reads it. What *is* study-scoped is
+# which population a run used -- ``run_population_bindings`` hangs off
+# ``workflow_runs`` and inherits its scope.
 #
 # Semantics live in ``aia_core.domain.population``; these tables only hold them.
 # --------------------------------------------------------------------------- #
+
+
+class PopulationContractExtensionRow(Base):
+    """The fields a materialized child adds to its base, by hash. **Insert-once.**
+
+    ``payload`` is the extension's canonical stored form
+    (``domain.population.materialized.PopulationContractExtension.payload``) and
+    ``extension_sha256`` the SHA256 of its canonical JSON; the repository re-hashes it
+    on every read and refuses a payload that no longer matches its key. One extension
+    may be named by several children (the same added fields over the same base).
+    """
+
+    __tablename__ = "population_contract_extensions"
+
+    extension_sha256: Mapped[str] = mapped_column(String(64), primary_key=True)
+    contract: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class PopulationDatasetVersionRow(Base):
     """One immutable, content-addressed dataset version.
 
     **Insert-only.** The repository has no update path for this table: a corrected
-    dataset is a new version whose parent is this one. ``content_sha256`` is unique
-    so the same bytes can never be registered twice, and ``(dataset_id, label)`` is
-    unique so a label can never name two different byte sequences.
+    dataset is a new version whose parent is this one. Within the shared versions, and
+    within one owner's, the same bytes can never be registered twice and a label can
+    never name two byte sequences (partial unique indexes below). A shared version's id
+    is its content; an owned child's is its content qualified by its owner
+    (``owned_version_id``), so two clients' identical children are two versions.
+
+    The owner columns and ``extension_sha256`` are all set or all NULL, and an owned
+    version always has a parent.
     """
 
     __tablename__ = "population_dataset_versions"
@@ -1425,7 +1557,7 @@ class PopulationDatasetVersionRow(Base):
     version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
     dataset_id: Mapped[str] = mapped_column(String(64), nullable=False)
     label: Mapped[str] = mapped_column(String(64), nullable=False)
-    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
     row_count: Mapped[int] = mapped_column(Integer, nullable=False)
     column_count: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -1440,13 +1572,62 @@ class PopulationDatasetVersionRow(Base):
     validation_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     imported_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    # Set only on a materialized child (P4c): who it belongs to, and what it adds.
+    owner_organization_id: Mapped[str | None] = mapped_column(String(64))
+    owner_client_id: Mapped[str | None] = mapped_column(String(64))
+    extension_sha256: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         # No cascade: a version with descendants cannot be deleted out from under
         # them. The default NO ACTION (checked at statement end) rather than
         # RESTRICT, so one statement may still remove a whole lineage in tests.
         ForeignKeyConstraint(["parent_version_id"], ["population_dataset_versions.version_id"]),
-        UniqueConstraint("dataset_id", "label", name="population_version_label"),
+        # No cascade either: a run may have been computed over an owned child.
+        ForeignKeyConstraint(["owner_organization_id"], ["organizations.organization_id"]),
+        ForeignKeyConstraint(["owner_client_id"], ["clients.client_id"]),
+        ForeignKeyConstraint(
+            ["extension_sha256"], ["population_contract_extensions.extension_sha256"]
+        ),
+        CheckConstraint(
+            "(owner_organization_id IS NULL AND owner_client_id IS NULL"
+            " AND extension_sha256 IS NULL)"
+            " OR (owner_organization_id IS NOT NULL AND owner_client_id IS NOT NULL"
+            " AND extension_sha256 IS NOT NULL AND parent_version_id IS NOT NULL)",
+            name="population_version_owned_child",
+        ),
+        Index(
+            "uq_population_version_shared_content",
+            "content_sha256",
+            unique=True,
+            postgresql_where=text("owner_client_id IS NULL"),
+            sqlite_where=text("owner_client_id IS NULL"),
+        ),
+        Index(
+            "uq_population_version_owned_content",
+            "owner_client_id",
+            "content_sha256",
+            unique=True,
+            postgresql_where=text("owner_client_id IS NOT NULL"),
+            sqlite_where=text("owner_client_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_population_version_shared_label",
+            "dataset_id",
+            "label",
+            unique=True,
+            postgresql_where=text("owner_client_id IS NULL"),
+            sqlite_where=text("owner_client_id IS NULL"),
+        ),
+        Index(
+            "uq_population_version_owned_label",
+            "owner_client_id",
+            "dataset_id",
+            "label",
+            unique=True,
+            postgresql_where=text("owner_client_id IS NOT NULL"),
+            sqlite_where=text("owner_client_id IS NOT NULL"),
+        ),
+        Index("ix_population_versions_owner", "owner_organization_id", "dataset_id"),
         CheckConstraint("byte_size > 0", name="population_version_bytes_positive"),
         CheckConstraint("row_count > 0", name="population_version_rows_positive"),
         CheckConstraint("column_count > 0", name="population_version_columns_positive"),
@@ -1578,6 +1759,29 @@ class PopulationVersionDictionaryRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
         CheckConstraint("byte_size > 0", name="population_dictionary_bytes_positive"),
+    )
+
+
+class PopulationVersionAudienceCatalogueRow(Base):
+    """The audience factor catalogue computed from one dataset version. **Insert-once.**
+
+    Computed once from the version's ANALYSIS view (``population_ops record-catalogue``,
+    ``domain.population.audience_catalogue``) and kept as canonical JSON with its hash, so
+    the API serves it without loading a respondent row. A new catalogue version is a new
+    row beside the old, never an update.
+    """
+
+    __tablename__ = "population_version_audience_catalogues"
+
+    version_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    catalogue_version: Mapped[str] = mapped_column(String(128), primary_key=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(["version_id"], ["population_dataset_versions.version_id"]),
     )
 
 

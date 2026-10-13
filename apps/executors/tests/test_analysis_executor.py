@@ -548,6 +548,7 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     assert report.artifact_type == REPORT_ARTIFACT_TYPE
     assert report.metadata["review_state"] == "DRAFT_UNAPPROVED"
     assert report.metadata["synthetic"] is True
+    assert report.metadata["data_origin"] == "SYNTHETIC_FIXTURE"
     assert report.is_approved is False
     assert len(dependencies) == 9
     assert {d.artifact_type for d in dependencies} == {
@@ -1384,6 +1385,17 @@ def test_cancellation_between_turns_keeps_the_answered_turn_and_sends_no_other(
 # --------------------------------------------------------------------------- #
 # configuration
 # --------------------------------------------------------------------------- #
+
+
+def test_the_step_events_switch_reaches_the_analysis_configuration(world: Any) -> None:
+    """AIA_AI_STEP_EVENTS: each module turn's model request writes its sent and answered."""
+    off = AnalysisConfig.from_settings(
+        _settings(world), max_output_tokens=4096, reservation_usd=1.0
+    )
+    on = AnalysisConfig.from_settings(
+        _settings(world, AIA_AI_STEP_EVENTS="true"), max_output_tokens=4096, reservation_usd=1.0
+    )
+    assert (off.step_events, on.step_events) == (False, True)
 
 
 def test_the_configuration_refuses_what_would_fail_at_run_time(

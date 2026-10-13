@@ -384,6 +384,24 @@ export type PopulationVersion = {
   imported_at: string;
   imported_by: string;
   provenance: string;
+  /** null on a shared version; on an owned child, the client it was materialized for. */
+  owner_client_id: string | null;
+  /** null on a shared version; on an owned child, the hash of the fields it adds. */
+  extension_sha256: string | null;
+  /** null on a shared version (or a child whose record carries none); on an owned child, its outcome. */
+  materialized?: PopulationMaterialized | null;
+};
+/** What an owned child adds and what its derivation reached (P4d4): target beside achieved. */
+export type PopulationMaterialized = {
+  dimension_id: string;
+  kind: "binary" | "scale_1_10";
+  definition_sha256: string;
+  method: string;
+  target: number;
+  achieved: number;
+  /** Within the kind's tolerance; never presumed. */
+  target_met: boolean;
+  usable_predictors: string[];
 };
 export type PopulationRecord = {
   population_id: string;
@@ -454,6 +472,8 @@ export type PopulationField = {
   is_weight: boolean;
   derived: boolean;
   uses: PopulationUseAnswer[];
+  /** A field an owned child adds: modelled values, its uses fixed. */
+  materialized: boolean;
 };
 export type PopulationWeight = {
   role: string;
@@ -494,7 +514,39 @@ export type PopulationCharacteristics = {
   subpanels_measured_on: string;
   subpanels_measured_under_weight: string;
   subpanel_note: string;
+  owner_client_id: string | null;
+  extension_sha256: string | null;
 };
+
+// GET /api/v1/studies/{id}/design/source, POST /api/v1/clients/{id}/memory/reuse (project memory M3).
+export type DesignSourceLabels = {
+  synthetic: boolean;
+  draft: boolean;
+  never_run: boolean;
+  unlabelled_data: boolean;
+  run_ids: string[];
+  report_artifact_ids: string[];
+  /** Some run answered AI respondents built from its population (ADR 0024); absent from an older API. */
+  modelled?: boolean;
+};
+export type DesignSource = {
+  study_id: string;
+  revision_id: string;
+  source_study_id: string;
+  source_revision_id: string;
+  source_revision: number;
+  source_content_sha256: string;
+  labels: DesignSourceLabels;
+  created_by: string;
+  created_at: string;
+};
+export type MemoryReuse = {
+  source_study_id: string;
+  source_revision_id: string;
+  target_study_id?: string;
+  new_study_name?: string;
+};
+export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
 export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean };
 
@@ -505,10 +557,88 @@ const query = (q: Record<string, string | undefined>) => {
   return s ? `?${s}` : "";
 };
 
+// GET /api/v1/population/audience-catalogue (panel-grounded-respondents 6b): what a study's
+// audience may be filtered by -- LIVE's kept factor catalogue (the research-only factors not
+// sent) and the 18 built-in subpanels as filters. Counts are rows, unweighted, as 18.6.6 counted.
+export type AudienceCatalogueFactor = {
+  id: string;
+  column: string;
+  label: string;
+  category: string;
+  category_label: string;
+  kind: "numeric" | "binary" | "category";
+  status: string;
+  filterable: boolean;
+  sensitive: boolean;
+  source: string;
+  non_null: number;
+  min?: number | null;
+  max?: number | null;
+  p10?: number | null;
+  p90?: number | null;
+  scale_hint?: string | null;
+  values?: { value: string; count: number }[] | null;
+  /** The version's field policy for audience filtering; a refused factor is not a filter. */
+  policy_allowed: boolean;
+  policy_reason: string;
+};
+export type AudienceCatalogueSubpanel = {
+  key: string;
+  name: string;
+  description: string;
+  filters: Record<string, unknown>;
+  status: string;
+  support_tier: string;
+  measured_by_18_6_6: { rows: number; weighted_population: number; unique_core_donors: number; effective_core_donors: number; max_core_reuse: number };
+  /** null while the version's dictionary is not kept: unknown, never usable. */
+  usable: boolean | null;
+  reason: string | null;
+};
+export type AudienceCatalogue = {
+  version_id: string;
+  version_label: string;
+  catalogue_version: string;
+  categories: { id: string; label: string; description: string; count: number; filterable_count: number }[];
+  factors: AudienceCatalogueFactor[];
+  filterable_count: number;
+  factor_count: number;
+  logic: string;
+  subpanels: AudienceCatalogueSubpanel[];
+  subpanels_measured_on: string;
+  subpanel_note: string;
+};
+
+// POST /api/v1/population/audience-preview (6c): counted by the API over LIVE through the
+// run's own functions; counts and the sampler's verdict, never a row.
+export type AudiencePreviewVerdict = {
+  ok: boolean;
+  reason?: string | null;
+  message?: string | null;
+  reasons?: string[] | null;
+  status?: string | null;
+  sample_donors?: number | null;
+  effective_n?: number | null;
+};
+export type AudiencePreview = {
+  version_id: string;
+  version_label: string;
+  population_rows: number;
+  selected_rows: number | null;
+  selected_donors: number | null;
+  filters_applied: Record<string, unknown> | null;
+  audience: AudiencePreviewVerdict;
+  n: number | null;
+  sample: AudiencePreviewVerdict | null;
+  seed: number;
+};
+
 export const population = {
   registry: () => request<PopulationRegistry>("GET", "/api/v1/population"),
   characteristics: (versionId: string) =>
     request<PopulationCharacteristics>("GET", `/api/v1/population/versions/${enc(versionId)}/characteristics`),
+  audienceCatalogue: () => request<AudienceCatalogue>("GET", "/api/v1/population/audience-catalogue"),
+  audiencePreview: (filters: Record<string, unknown>, n: number | null) =>
+    request<AudiencePreview>("POST", "/api/v1/population/audience-preview", { filters, n }),
 };
 
 export const workspace = {
@@ -522,6 +652,9 @@ export const workspace = {
   /** Project memory M1: this client's past studies whose name or design holds every word of q. */
   memorySearch: (clientId: string, q: string) =>
     request<MemoryHit[]>("GET", `/api/v1/clients/${enc(clientId)}/memory/search${query({ q })}`),
+  /** Project memory M3: start a new or empty research study of this client from a past design. */
+  memoryReuse: (clientId: string, body: MemoryReuse) =>
+    request<MemoryReused>("POST", `/api/v1/clients/${enc(clientId)}/memory/reuse`, body),
   startStudy: (clientId: string, name: string, kind: StudyKind) =>
     request<WorkspaceStudy>("POST", `/api/v1/clients/${enc(clientId)}/studies`, { name, kind }),
   knowledge: (clientId: string, section?: KnowledgeSection, q?: string, filing: KnowledgeFiling = {}) =>
@@ -617,7 +750,21 @@ export type Readiness = {
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";
+/** One entry of a run's event feed, read after a cursor (lib/step-activity.ts folds them). */
+export type RunEvent = {
+  event_id: number;
+  step_id: string | null;
+  attempt_id: string | null;
+  event_type: string;
+  level: string;
+  message: string;
+  payload: Record<string, unknown>;
+  created_at: string | null;
+};
+const eventsQuery = (since: number) => `?since=${encodeURIComponent(String(since))}`;
 export type ResearchStep = {
+  /** The id the run's events name. */
+  step_id: string;
   node_key: "compile" | "preflight" | "run" | "aggregate" | "sociomap" | string;
   kind: string;
   stage_type: string;
@@ -631,6 +778,8 @@ export type ResearchStep = {
   error_message: string | null;
   artifact_id: string | null;
   data_origin: string | null;
+  /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
+  data_origin_kind?: string | null;
 };
 export type ResearchRun = {
   run_id: string;
@@ -654,6 +803,18 @@ export type ResearchRun = {
   actual_cost_usd: number | null;
   /** The population the run recorded (population-operations P3); absent or null: none. */
   population?: ResearchRunPopulation | null;
+  /** The methods the run pinned when it started (methodology-tab Z1); absent from an older API. */
+  methodology?: ResearchRunMethodology;
+};
+/** One pinned method: its name, and whether it is a version stored on the Metodika tab. */
+/** `name: null`: the run recorded a pin that cannot be read as a name; never a guess. */
+export type ResearchRunMethod = { name: string | null; stored: boolean };
+export type ResearchRunMethodology = {
+  sociomap: ResearchRunMethod; support: ResearchRunMethod; aggregation: ResearchRunMethod;
+  /** How AI respondents' answers were drawn (methodology-tab R1d); absent from an older API. */
+  response?: ResearchRunMethod;
+  /** `true`: not 18.6.6's response process; `null`: its pin cannot be read, never guessed. */
+  response_deviates?: boolean | null;
 };
 /** What a run recorded about its population, and whether fieldwork read it (never, today). */
 export type ResearchRunPopulation = {
@@ -670,6 +831,11 @@ export type ResearchAnalysis = {
   complete: boolean;
   internal_only: true;
   synthetic: boolean;
+  modelled?: boolean;
+  data_origin_kind?: string | null;
+  /** The aggregate the modules read is no longer 18.6.6's port (methodology-tab G3c);
+   *  `null` (or absent, from an API before it) when it is the port. */
+  aggregation_deviation?: Record<string, unknown> | null;
   pending: Record<string, string>;
   modules: Record<string, {
     outcome: "COMPLETED" | "BLOCKED";
@@ -692,6 +858,8 @@ export type ResearchReport = {
   sha256?: string;
   size_bytes?: number;
   synthetic?: boolean;
+  modelled?: boolean;
+  data_origin_kind?: string | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -701,23 +869,31 @@ export const research = {
     request<DesignRevision>("POST", `${studyPath(studyId)}/design/revisions`, { content, source_stage: sourceStage }),
   revisions: (studyId: string) =>
     request<{ items: DesignRevision[] }>("GET", `${studyPath(studyId)}/design/revisions`).then((r) => r.items),
+  /** Where the study's design came from, when it was reused (404: it was not). */
+  designSource: (studyId: string) => request<DesignSource>("GET", `${studyPath(studyId)}/design/source`),
+  /** One Design Revision with its content (project memory M2c reads a past study's). */
+  revision: (studyId: string, revisionId: string) =>
+    request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
-  /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
-    request<ResearchRun>(
-      "POST",
-      `${studyPath(studyId)}/research/runs`,
-      confirmCostUsd === undefined
-        ? { design_revision_id: revisionId }
-        : { design_revision_id: revisionId, confirm_cost_usd: confirmCostUsd },
-    ),
+  /**
+   * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
+   * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
+   */
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
+      design_revision_id: revisionId,
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
+    }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
     request<Study>("PUT", `${studyPath(studyId)}/spend-confirm`, { limit_usd: limitUsd }),
   runs: (studyId: string) =>
     request<{ items: ResearchRunSummary[] }>("GET", `${studyPath(studyId)}/research/runs`).then((r) => r.items),
   run: (studyId: string, runId: string) => request<ResearchRun>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, runId: string) =>
     request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) =>
@@ -751,7 +927,7 @@ export type DeepResearchRun = {
   run_id: string; design_revision_id: string; preset: string; channels: string[];
   status: string; phase: ResearchPhase; is_terminal: boolean; needs_attention: boolean;
   retryable: boolean; created_at: string | null;
-  steps: { node_key: string; status: string; waiting_reason: string | null; error_message: string | null }[];
+  steps: { step_id: string; node_key: string; status: string; waiting_reason: string | null; error_message: string | null; started_at?: string | null }[];
   actual_cost_usd: number | null;
   purpose?: string | null;
   target?: { kind: string; research_run_id?: string } | null;
@@ -779,7 +955,8 @@ export const deepResearch = {
   start: (studyId: string, revisionId: string) =>
     request<DeepResearchRun>("POST", deepPath(studyId), { design_revision_id: revisionId, preset_name: "QUICK", channels: ["WEB"] }),
   runs: (studyId: string) => request<DeepResearchRun[]>("GET", deepPath(studyId)),
-  run: (studyId: string, runId: string) => request<DeepResearchRun>("GET", `${deepPath(studyId)}/${enc(runId)}`),
+  events: (studyId: string, runId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${deepPath(studyId)}/${enc(runId)}/events${eventsQuery(since)}`),
   bundle: (studyId: string, runId: string) => request<DeepResearchBundle>("GET", `${deepPath(studyId)}/${enc(runId)}/bundle`),
   cancel: (studyId: string, runId: string) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/cancel`),
   retry: (studyId: string, runId: string, confirmCostUsd?: number) => request<DeepResearchRun>("POST", `${deepPath(studyId)}/${enc(runId)}/retry`, confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd }),
@@ -814,6 +991,8 @@ export const researchAgents = {
     return jobs as ResearchAgentJob[];
   },
   job: (studyId: string, jobId: string) => request<ResearchAgentJob>("GET", `${agentsPath(studyId)}/${enc(jobId)}`),
+  events: (studyId: string, jobId: string, since = 0) =>
+    request<RunEvent[]>("GET", `${agentsPath(studyId)}/${enc(jobId)}/events${eventsQuery(since)}`),
   cancel: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/cancel`),
   resume: (studyId: string, jobId: string) => request<ResearchAgentJob>("POST", `${agentsPath(studyId)}/${enc(jobId)}/resume`),
   result: (studyId: string, jobId: string) => request<ResearchAgentResult>("GET", `${agentsPath(studyId)}/${enc(jobId)}/result`),
@@ -1071,7 +1250,48 @@ export type MethodPanel = {
   heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
-export type MethodCompare = { valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[] };
+/** One fixed fictional cell of the support draft check (plan G1d). Statuses are
+ *  `[in force, draft]`; `changes` names each surface whose status moved. */
+export type MethodSupportCell = {
+  cell: string; label_cs: string; n: number; effective_n: number; donors: number;
+  results: [string, string]; analysis: [string, string];
+  changes: Partial<Record<"results" | "analysis", "reported" | "suppressed" | "changed">>;
+};
+export type MethodSupportCompare = {
+  draft: string; cells: MethodSupportCell[];
+  newly_reported: [string, "results" | "analysis"][]; newly_suppressed: [string, "results" | "analysis"][];
+};
+/** One estimate of the aggregation draft check (plan G3b): `[value, low, high]` in force
+ *  and in the draft, `null` where the aggregate reports none. */
+export type MethodEstimate = {
+  question: string; measure: string; moved: boolean;
+  in_force: [number | null, number | null, number | null]; draft: [number | null, number | null, number | null];
+};
+export type MethodAggregationPanel = {
+  panel: string; label_cs: string; respondents: number; rows: MethodEstimate[];
+  status_changes: { question: string; in_force: string; draft: string }[];
+  effective_n: Record<string, [number, number]>;
+};
+export type MethodAggregationCompare = { draft: string; panels: MethodAggregationPanel[] };
+/** One fictional question of the response-process draft check (plan R1c): each option's share
+ *  in percent under the model's vector, the process in force and the draft. */
+export type MethodResponseQuestion = {
+  question: string; label_cs: string; labels: string[];
+  model: number[]; in_force: number[]; draft: number[];
+  moved_pp: number; shift_in_force: number; shift_draft: number;
+};
+export type MethodResponseCompare = {
+  draft: string; respondents: number; questions: MethodResponseQuestion[];
+  described_in_force: number; described_draft: number;
+};
+/** Panels for an object map; `support` for the support rules, `aggregation` for the
+ *  aggregation (then `panels` is empty). */
+export type MethodCompare = {
+  valid: boolean; problems: Record<string, string>; in_force: string; panels: MethodPanel[];
+  support?: MethodSupportCompare | null;
+  aggregation?: MethodAggregationCompare | null;
+  response?: MethodResponseCompare | null;
+};
 
 const METHODOLOGY = "/api/v1/methodology";
 

@@ -247,7 +247,7 @@ needs the parity suite run against `AIA_LEGACY_REFERENCE`.
 
 ---
 
-## OI-7 · Finding, archive-blocked · The seven enrichment derivations are not recoverable
+## OI-7 · Finding, unblocked · The seven enrichment derivations are not recoverable
 
 **Claim.** The ANALYSIS population view needs `audience_dimensions.enrich_panel`'s
 seven `*_derived` fields, and their derivation logic exists only in the withheld
@@ -269,9 +269,29 @@ EXACT) and why no safe reconstruction exists are in
 `docs/migration/population-enrichment-archive-dependency.md`. This is now a
 data/archive acquisition task, not an engineering one.
 
-**Status.** Open, blocked on `REF-WITHHELD-REFERENCE-ARCHIVE`. The eight runtime
-fields also need a data-owner classification:
-`docs/migration/population-derived-fields-decision.md`.
+**Correction (2026-10-12).** Not archive-blocked. Both files this item pins are vendored in the
+extracted unit (ADR 0011), byte-identical: `legacy/npc-panel-18.6.6/app/audience_dimensions.py`
+SHA256 `6ae1d1f8…c754bf` (`attach_derived`, `audience_dimensions.py:137-182`) and its specification
+`legacy/npc-panel-18.6.6/app/tests/test_audience_dimensions_1793.py` SHA256 `36efe988…a2d602`.
+Reproduction: `sha256sum` of either file @ `a099e5e`. The derivation is an engineering task: an
+`Enricher` ported from `attach_derived`, EXACT against fixtures from the unit's own function,
+[`plans/panel-grounded-respondents.md`](plans/panel-grounded-respondents.md) chunk 2d (found while
+porting the audience filter, PR #298). The test that would have caught it: a check that every
+archive dependency pinned by hash under `docs/migration/` is absent from `legacy/` before it is
+called blocked.
+
+**Derivation landed (2026-10-12).** `domain/population/enrichment.py`
+(`AudienceDimensionsEnricher`, `attach_derived` ported) @ `53205e8`, PR #305: EXACT cell by cell
+against the unit's own `enrich_panel` on 122 fictional rows
+(`tests/test_population_enrichment.py`; `tools/enrichment_capture.py`). A missing flag column
+refuses with `EnrichmentInputMissing` where the unit raised an `AttributeError`.
+
+**Status.** Open: derivation landed, not composed. It closes when a step builds
+`PopulationRuntime(..., enricher=AudienceDimensionsEnricher())`
+(`plans/panel-grounded-respondents.md` chunk 5). The eight runtime fields still need a data-owner
+classification (`docs/migration/population-derived-fields-decision.md`): until then the field policy
+refuses them for every use, audience filtering included (`policy.py:387`,
+`test_population_audience.py::test_an_unclassified_derived_dimension_is_refused_by_the_field_policy`).
 
 ---
 
@@ -1648,7 +1668,7 @@ handler's first guard can pass on some screen.
 
 **Status.** Open in the classic interface; **decision for the data owner** (PR B).
 
-## OI-50 · Finding · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
+## OI-50 · Finding, closed · An empty bound in the audience range filter becomes 0, and the unit then targets the wrong people
 
 **Claim.** `setAudienceRange1793` reads both inputs with `Number(...)`, and
 `Number('')` is `0`, so a range with one bound left empty is stored with the
@@ -1677,8 +1697,14 @@ methodology decision.
 **Test that would have caught it.** The characterization test above, asserting
 `null` instead of `0`.
 
-**Status.** Open; ported as the classic behaves; **decision for the data owner**
-before PR B merges.
+**Status.** Closed (below). Ported as the classic behaves, a **decision for the data owner**
+before PR B merges. **Update 2026-10-12 (#345, panel-grounded-respondents 6e):** AIA's
+live range editor leaves an empty bound out, so the population's own bound stands
+(`apps/web/src/research/audience.ts` `setRange`; `audience.live.test.ts` › *leaves an
+empty bound out, where the classic stored 0*). The classic `setAudienceRange` stays,
+characterised, as the parity port only; no product code calls it
+(`AudienceStep.tsx:369 @ b0ec403e` commits through `setRange`). **Closed** 2026-10-12 by
+#345 (merged as `b0ec403e`).
 
 ## OI-51 · Finding · Picking a special-audience preset keeps the previous subpanel and its filters
 
@@ -2051,7 +2077,7 @@ denials) was unusable; nobody noticed because no API test exercised the scope ro
 
 **Status.** Fixed, merged in PR #51 (`develop` @ `4ad5f66`).
 
-## OI-61 · Decision owed (legal) · May panel-derived microdata be sent to a model provider?
+## OI-61 · Decision, closed · May panel-derived microdata be sent to a model provider?
 
 **Claim.** Whether PIAAC, ISSP and the Czech population panel built from them — or anything computed
 from their rows, such as a synthetic respondent's grounded profile — may be transmitted to any model
@@ -2139,6 +2165,19 @@ PCG64 port justified, and it would need its own named exception to §2.
 
 **Status.** Decided for research aggregation, and implemented: `packages/aia_core/src/aia_core/domain/research_aggregate.py`, `test_research_aggregate.py` (EXACT fields, bounds within the unit's seed spread, AIA's bounds pinned), parity-matrix deviation D5.
 
+**Resolution (2026-10-12).** The data owner determined that the PIAAC, ISSP and Czech panel
+licences permit transmission to a model provider, approved for AIA's EU Bedrock route alone.
+Recorded as policy data: `packages/aia_core/src/aia_core/domain/licence_determinations.py`
+(`PANEL_APPROVED_ROUTE = "bedrock-eu-primary"`) @ `a7616ef`, PR #289; each determination names
+the decider, the date and the basis. Any other route refuses panel lineage as
+`licence_not_approved_for_route`
+(`test_licence_gate.py::test_each_panel_derived_dataset_reaches_the_eu_bedrock_route_and_no_other`).
+Residency is unchanged. **Not recorded:** legal's confirmation, which this item asked for beside
+the data owner's; the basis is the owner's determination alone. Grounding respondents in the panel
+is [`plans/panel-grounded-respondents.md`](plans/panel-grounded-respondents.md); until its chunk 5
+lands no persona source reads the panel (OI-97).
+
+**Status.** Closed by PR #289 (`a7616ef`).
 ---
 
 ## OI-63 · Direction recorded, engineering open · A fictional-client flag is not production data authority
@@ -2206,7 +2245,8 @@ is on the fieldwork dataset's provenance (`provenance.lineage`), not on the ledg
 (`packages/aia_core/src/aia_core/infrastructure/ai_usage_repository.py` `_row` @ `dec2fd1`).
 
 **Consequence.** Auditing which datasets reached a provider needs the artifact as well as
-the ledger. Nothing panel-derived can be sent today (OI-61), so nothing is missing yet.
+the ledger. Panel lineage may now reach `bedrock-eu-primary` (OI-61, closed), but no persona
+source reads the panel until `plans/panel-grounded-respondents.md` chunk 5, which needs this first.
 
 **Smallest fix.** `AIUsageEvent.data_lineage` + a column + migration, written by the
 gateway from the request. **Status.** Open; plan follow-up 6.
@@ -3261,3 +3301,225 @@ anything in the account, and the session that holds them can too.
 under `/aia/develop/`, in `infra/develop`, named in the runbook's step 1.
 
 **Test.** A Terraform plan test that the role's policy names only those actions and resources.
+
+---
+
+## OI-97 · Finding, closed · Opening the licence gate let a non-fictional persona cost money before failing
+
+**Claim.** With the panel approved for the EU route and no guard, a non-fictional persona passed
+preflight, every respondent's blocks were sent and paid for, and only then did `assemble_dataset`
+refuse the dataset, ending the attempt `UNKNOWN`.
+
+**Anchor.** The late refusal: `packages/aia_core/src/aia_core/domain/ai_respondent.py:682 @ 5d545eb`.
+The guard: `apps/executors/src/aia_executors/ai_fieldwork.py` `AIFieldwork.produce` @ `a7616ef`.
+
+**Reproduction.** Remove the guard and run `pytest apps/executors/tests/test_ai_fieldwork.py -k panel`:
+it fails with `FailureClass.UNKNOWN` after calls reached the adapter.
+
+**Consequence.** None in production: `fictional_roster` is the only persona source. A future source
+built without the guard would have paid for a whole run's fieldwork and kept nothing.
+
+**Fix.** Landed in PR #289: the fieldwork step fails `persona_source_unsupported` before anything is
+reserved or sent. `plans/panel-grounded-respondents.md` chunk 5 replaces it with the panel source.
+
+**Status.** Closed by PR #289 (`a7616ef`). The test that catches it:
+`test_ai_fieldwork.py::test_panel_derived_personas_fail_before_any_call_while_no_panel_source_exists`.
+
+---
+
+## OI-98 · Finding, closed · 18.6.6's fallback quotas can give a full cell a seat, and the sample then fails
+
+**Claim.** When capped cells pass their seats on, `_quota_vector_fallback` adds its tie-break noise to
+every cell, full ones included, so a full cell can win a seat it has no row for, and the draw raises
+"Buňka … nemá dost respondentů".
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/representative_sampling.py:124` (the noise), `:153` (the
+refusal). AIA's rule: `packages/aia_core/src/aia_core/domain/population/sampling.py` `quotas` @ `a1fcc60`.
+
+**Reproduction.** `pytest packages/aia_core/tests/test_population_sampling.py -k overfilled`: fixtures
+D15 (663 of a 663-row audience) and D16 (640 of 663), both refused by the unit's own function.
+
+**Consequence.** In 18.6.6, only where the MILP was unavailable: a sample near its audience's size
+failed though it could be drawn.
+
+**Fix.** A full cell takes no seat (PR #308); wherever the unit produced a sample the quotas are
+identical.
+
+**Status.** Closed by PR #308 (`a1fcc60`). The test that catches it:
+`test_population_sampling.py::test_where_the_unit_overfilled_a_cell_aia_keeps_every_quota_within_its_rows`.
+
+---
+
+## OI-99 · Decision, open · Small samples are refused as unrepresentative on the stdlib quota path
+
+**Claim.** AIA's sampler (18.6.6's fallback, chosen 2026-10-12 because the domain is stdlib only)
+balances only the joint cells of `pohlavi x vek_skupina x kraj`; a sample holding none of an
+education or employment category cannot be raked to its target, and the weighted deviation passes
+`max(0.25, 100/n)`, so the sample is refused (`sampling_unrepresentative`, the unit's own rule).
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/representative_sampling.py:142-144,165-166`;
+`packages/aia_core/src/aia_core/domain/population/sampling.py` `judge` @ `a1fcc60`. The unit's
+`attempts=40` is never read (`representative_sampling.py:131-173`), though `pipeline.py:288-292`
+says it draws repeatedly and keeps the best.
+
+**Reproduction.** `representative_draw` + `judge` over the fixture's whole audience
+(`tests/fixtures/representative_draw/`, 3,000 fictional rows, 60 joint cells), seeds 0-39:
+n = 5-40 refused 40/40; 50 12/40; 60 9/40; 75 1/40; 100 2/40; 150 1/40; 200, 300, 500 0/40. The
+unit's own fallback refuses n = 8, 20 and 30 in the fixture (D08, D03, D12).
+
+**Consequence.** Once chunk 5 draws panel personas, a small study is refused before fieldwork, and
+stays refused (the seed is fixed per run, `fieldwork_seed(spec)`) until its n or audience changes.
+v17 has 14 regions, which raises the floor.
+
+**Options (owner).** (a) accept it and state the minimum n where the study is set; (b) a stdlib
+integer calibration of all five margins, parity then by property only; (c) the attempts the
+unit's comment describes: redraw under derived seeds and keep the first that passes, recorded in
+the sample.
+
+**Status.** Open; needed before `plans/panel-grounded-respondents.md` chunk 5.
+
+---
+
+## OI-100 · Finding · 18.6.6 sampled and styled only rows aged 18 or more; AIA's sampler takes every row
+
+**Claim.** `Panel(df, min_vek=18)` drops rows whose `vek` is missing or under 18 before anything
+else; `draw_panel_sample` has no such step.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/pipeline.py:147-152`;
+`packages/aia_core/src/aia_core/domain/population/sampling.py` `draw_panel_sample` @ `a1fcc60`.
+
+**Reproduction.** Hypothesis for v17: no row is affected (its core donors are PIAAC 18-65 and
+ISSP 66+, `CORE_JOINT_STATUS.json` `core_sources`); not verified, no panel rows in the repository.
+The guard's own tests: `test_panel_persona.py::test_a_persona_that_cannot_be_built_as_18_6_6_built_it_is_refused[minor]`,
+`[no_age]`.
+
+**Consequence.** If wrong, AIA could sample a row 18.6.6 never could, and a column's type (hence a
+filter's keys) could differ from the unit's.
+
+**Fix taken.** `panel_personas` refuses a population with any such row
+(`persona_age_out_of_scope`, `domain/panel_persona.py` @ `09c93f0`, PR #315), so a run fails closed
+before fieldwork.
+
+**Status.** Open until the first panel run on develop reports the count on `v17_4_0`. Chunk 5
+(PR #332) composes the refusal into fieldwork: a panel run on such a population fails
+`persona_age_out_of_scope` before any call.
+
+---
+
+## OI-101 · Finding, closed · 18.6.6 ranked an empty-priority persona signal by Python version
+
+**Claim.** An empty `priority` in the persona signal catalog reads NaN, and the unit sorts the
+candidate signals on `(-score, column)`, so a NaN score lands wherever the sort leaves it: the
+unit's own persona text for such a row differs between Python versions.
+
+**Anchor.** `legacy/npc-panel-18.6.6/app/persona_grounded.py:290`; AIA's rule
+`packages/aia_core/src/aia_core/domain/persona_signals.py` `grounded_text` @ `341ea3b`.
+
+**Reproduction.** PR #315's first CI run (38250340111):
+`test_persona_profile.py::test_the_grounded_signals_are_the_units[3]` failed on CI's Python with a
+fixture captured on 3.13; `test_a_signal_with_an_unknown_priority_ranks_last` pins AIA's rule.
+
+**Consequence.** None known in production: whether v17's catalog has an empty priority is not
+checked here. A persona's signal order, and so its text, would depend on the interpreter.
+
+**Fix.** AIA ranks a NaN score last (unknown is never ranked as good); every other order stays
+EXACT.
+
+**Status.** Closed by PR #315 (`341ea3b`).
+
+---
+
+## OI-102 · Hypothesis · A superseded Sociomap method can still be put in force as an edited version
+
+**Claim.** `aia-sociomap-2` remains a registered base preset, so an administrator can store and
+activate `aia-sociomap-2+e<n>`, and new runs would then pin a method that no unedited new run pins
+any more (new runs pin `aia-sociomap-1` + `-3`, `research_sociomap.py` `default_methods`).
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/methodology/sociomap.py:623`,
+`apps/web/src/components/aia/settings/MethodologyVersions.tsx:319-323`,
+`apps/api/src/aia_api/routers/methodology.py:620, 665, 708`,
+`packages/aia_core/src/aia_core/domain/methodology/pins.py:60-71` @ `cd6da1e1`
+(`mvp-workflow-assurance.md` F3, #307).
+
+**Reproduction.** Not yet run: a `POST …/methodology/…/versions` with `base_preset =
+"aia-sociomap-2"`, its activation, then a run start, and read the run's pinned methods. Until it
+runs, this is a hypothesis.
+
+**Consequence.** A new run could compute a method the in-force default (-3) replaced, without
+anyone choosing -2 for new work on purpose.
+
+**Smallest fix.** If the owner confirms -2 is historical only, refuse it as a base for a new
+version while keeping it readable for stored runs and versions.
+
+**Test.** An API test that the version POST refuses a superseded base, and that a stored -2 run
+still reads and retries.
+
+**Status.** Open; reproduce or delete.
+
+---
+
+## OI-103 · Finding · A client-facing number can print "měřeno" beside "modelováno: AI respondenti z populace"
+
+**Claim.** The print grade follows the claim's basis and the composer's `field_grades`, never
+the row's origin, and since ADR 0024 §2 the only client-admissible origin is
+`MODELLED_AI_PANEL`; so a measured-basis claim on a population field graded `MEASURED` prints the
+measured mark beside the modelled disclosure.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/report/evidence.py:58-65` (`grade_of`) @
+`5f204ce1`; the disclosure, `report_docx/tables.py` caption @ `88fbacef` (PR #329).
+
+**Reproduction.** `pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers`:
+the caption reads "n = 480; měřeno; modelováno: AI respondenti z populace".
+
+**Consequence.** Once a client report exists, a reader sees two contradictory words on one
+number. No production composer passes `field_grades` today (OI-9), so no report prints it yet.
+
+**Smallest fix.** With OI-9: a `MODELLED_AI_PANEL` row grades `MODELLED` whatever its basis, or
+such a row cannot back a measured claim at admission.
+
+**Test.** A ledger test asserting a modelled-panel row never grades `MEASURED`.
+
+**Status.** Open; analysis-governance's call, with OI-9.
+
+## OI-104 · Finding, closed · A panel start with no population asked to confirm its cost first
+
+**Claim.** `ResearchRuns.start` applied the spend-confirmation gate before the panel
+persona source's population check, so a panel start with no LIVE population, in a study
+whose limit the run reaches, raised `CostConfirmationRequired` (or `CostCeilingUnknown`)
+instead of `PanelPopulationMissing`.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research.py:373-393 @ abd3ce88`
+(the cost gate, then `_population_for`).
+
+**Reproduction.**
+`test_research_runs.py::test_a_panel_start_with_no_population_is_refused_as_that_before_any_cost_is_asked`
+fails on the old order with `CostConfirmationRequired`.
+
+**Consequence.** A person is asked to confirm the cost of a run that can never start; a yes
+only leads to the refusal.
+
+**Smallest fix / status.** Resolve and check the population before the cost gate. Found by
+Codex on #332 after it merged; fixed in #345 (panel-grounded-respondents).
+
+
+## OI-105 · Finding, closed · A panel run over a selected child could not read the child
+
+**Claim.** The worker's panel loader read only the shared population's directory, so a panel
+run over a client's materialized child (selected at start since #343) could not load the
+child, which lives in the population store.
+
+**Anchor.** `apps/executors/src/aia_executors/ai_runtime.py:529 @ a7ef6acc` (the panel loader
+over `FilesystemPopulationSource` alone) and `apps/executors/src/aia_executors/registry.py:163
+@ a7ef6acc` (no store handed to it).
+
+**Reproduction.**
+`apps/executors/tests/test_ai_fieldwork.py::test_without_the_store_a_panel_run_over_a_child_parks_and_sends_nothing`:
+the fieldwork step waits `RUNTIME_UNAVAILABLE`, with no request and no ledger row.
+
+**Consequence.** Selecting a child for a panel run did nothing: the run parked at fieldwork.
+Nothing was sent, drawn or substituted.
+
+**Smallest fix / status.** Give the panel loader the population store as the materialize step
+has it (`ai_runtime.panel_population_source`, one store built in `registry.population_store`).
+Found in #343 (population-operations P4e2) as a hypothesis, reproduced and fixed in #351;
+`test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store` covers it.

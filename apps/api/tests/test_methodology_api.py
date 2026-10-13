@@ -11,7 +11,10 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.methodology import MODULES
+from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.view import STRESS_QUALITY_BANDS
 from fastapi.testclient import TestClient
@@ -296,7 +299,7 @@ def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(
     assert "spec.relation.n_min" in body["problems"]
 
 
-def test_compare_is_for_the_object_map(owner: TestClient) -> None:
+def test_compare_is_for_the_object_map_and_support(owner: TestClient) -> None:
     edit = {"base_preset": "aia-sociomap-1", "spec": {}, "formulas": {}}
     reference = owner.post(f"{METHODOLOGY}/sociomap_reference/compare", json=edit)
     assert reference.status_code == 422 and reference.json()["code"] == "no_comparison"
@@ -311,3 +314,177 @@ def test_compare_reads_the_stored_version_in_force(owner: TestClient) -> None:
     body = owner.post(f"{SOCIOMAP}/compare", json=_edit()).json()
     assert body["in_force"] == "aia-sociomap-3+e1"
     assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # 0.3 in force, 0.25 drafted
+
+
+# --------------------------------------------------------------------------- support (G1d)
+
+SUPPORT = f"{METHODOLOGY}/support"
+
+
+def _support_edit(**lines: Any) -> dict[str, Any]:
+    """``aia-support-1`` with lines changed: ``results__min_layer_donors=10``."""
+    spec = AIA_SUPPORT_V1.model_dump(mode="json")
+    for path, value in lines.items():
+        rule, line = path.split("__")
+        spec[rule][line] = value
+    return {"base_preset": "aia-support-1", "spec": spec, "formulas": {}}
+
+
+def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None:
+    presets = owner.get(f"{SUPPORT}/versions").json()["presets"]
+    assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
+    looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
+    stricter = owner.post(
+        f"{SUPPORT}/versions",
+        json=_support_edit(results__min_cell=80, analysis__min_cell=80, analysis__n_guard=None),
+    )
+    assert (looser.status_code, stricter.status_code) == (201, 201)
+    assert stricter.json()["spec"]["results"]["min_cell"] == 80
+    assert stricter.json()["spec"]["analysis"]["n_guard"] is None
+    put = owner.put(f"{SUPPORT}/activation", json={"version_number": 2, "reason": "přísněji"})
+    assert put.json()["name"] == "aia-support-1+e2"
+
+
+def test_a_support_rule_that_suppresses_nothing_is_refused(owner: TestClient) -> None:
+    edit = _support_edit(results__min_layer_donors=None)
+    checked = owner.post(f"{SUPPORT}/check", json=edit).json()
+    assert checked["valid"] is False and set(checked["problems"]) == {"spec.results"}
+    refused = owner.post(f"{SUPPORT}/versions", json=edit)
+    assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
+    backwards = owner.post(f"{SUPPORT}/check", json=_support_edit(analysis__indicative=10.0)).json()
+    assert backwards["valid"] is False and "spec.analysis" in backwards["problems"]
+
+
+def test_the_support_draft_check_lists_every_cell_newly_reported_or_suppressed(
+    as_user: Any,
+) -> None:
+    member: TestClient = as_user("researcher")
+    same = member.post(f"{SUPPORT}/compare", json=_support_edit()).json()
+    assert (same["valid"], same["in_force"], same["panels"]) == (True, "aia-support-1", [])
+    assert len(same["support"]["cells"]) == 16
+    assert same["support"]["newly_reported"] == same["support"]["newly_suppressed"] == []
+    assert all(c["changes"] == {} for c in same["support"]["cells"])
+
+    looser = member.post(
+        f"{SUPPORT}/compare",
+        json=_support_edit(results__min_layer_donors=10, results__indicative_layer_donors=20),
+    ).json()["support"]
+    assert looser["draft"] == "aia-support-1+e1"
+    assert ["maly.q1", "results"] in looser["newly_reported"]
+    assert ["maly.q1", "analysis"] not in looser["newly_reported"]  # the gate still says no
+    assert looser["newly_suppressed"] == []
+
+    stricter = member.post(f"{SUPPORT}/compare", json=_support_edit(analysis__min_cell=200)).json()[
+        "support"
+    ]
+    assert ["stredni.q2", "analysis"] in stricter["newly_suppressed"]
+    assert all(surface == "analysis" for _, surface in stricter["newly_suppressed"])
+
+
+# ----------------------------------------------------------------------- aggregation (G3b)
+
+AGGREGATION = f"{METHODOLOGY}/aggregation"
+
+
+def _aggregation_edit(formulas: dict[str, str] | None = None, **values: Any) -> dict[str, Any]:
+    """``aia-aggregate-1`` with values changed (``bootstrap__reps=200``) and formulas replaced."""
+    spec = AIA_AGGREGATE_V1.model_dump(mode="json")
+    for path, value in values.items():
+        node = spec
+        *parents, leaf = path.split("__")
+        for p in parents:
+            node = node[p]
+        node[leaf] = value
+    return {"base_preset": "aia-aggregate-1", "spec": spec, "formulas": formulas or {}}
+
+
+def test_aggregation_is_edited_and_put_in_force_with_its_formulas(owner: TestClient) -> None:
+    presets = owner.get(f"{AGGREGATION}/versions").json()["presets"]
+    assert presets == {"aia-aggregate-1": AIA_AGGREGATE_V1.model_dump(mode="json")}
+    edit = _aggregation_edit({"agg.top_box": "x >= top"}, top_box=1)
+    checked = owner.post(f"{AGGREGATION}/check", json=edit).json()
+    assert (checked["valid"], checked["not_computed"]) == (True, [])
+    assert set(checked["formulas_latex"]) == {"agg.top_box"}
+    stored = owner.post(f"{AGGREGATION}/versions", json=edit)
+    assert stored.status_code == 201 and stored.json()["name"] == "aia-aggregate-1+e1"
+    put = owner.put(f"{AGGREGATION}/activation", json={"version_number": 1, "reason": "test"})
+    assert put.status_code == 200 and put.json()["origin"] == "stored"
+
+
+def test_an_aggregation_formula_that_breaks_its_slot_is_refused(owner: TestClient) -> None:
+    edit = _aggregation_edit({"agg.share": "200 * sum(w * hit) / sum(w)"})
+    checked = owner.post(f"{AGGREGATION}/check", json=edit).json()
+    assert checked["valid"] is False
+    assert any(k.startswith("formula.agg.share") for k in checked["problems"])
+    assert owner.post(f"{AGGREGATION}/versions", json=edit).status_code == 422
+
+
+def test_the_aggregation_draft_check_names_every_estimate_it_moves(as_user: Any) -> None:
+    member: TestClient = as_user("researcher")
+    body = member.post(f"{AGGREGATION}/compare", json=_aggregation_edit(top_box=1)).json()
+    assert (body["valid"], body["in_force"], body["panels"]) == (True, "aia-aggregate-1", [])
+    check = body["aggregation"]
+    assert check["draft"] == "aia-aggregate-1+e1"
+    assert [p["panel"] for p in check["panels"]] == ["maly", "vazeny", "velky"]
+    for panel in check["panels"]:
+        moved = {(r["question"], r["measure"]) for r in panel["rows"] if r["moved"]}
+        assert moved == {("spokojenost", "top2box"), ("doporuceni", "top2box")}
+        assert panel["status_changes"] == []  # a top box decides no status
+        assert set(panel["effective_n"]) == {"spokojenost", "doporuceni", "volba", "kanaly"}
+
+
+# ------------------------------------------------------------------- response process (R1c)
+
+RESPONSE = f"{METHODOLOGY}/response"
+
+
+def _response_edit(**values: Any) -> dict[str, Any]:
+    """``aia-response-1`` with values changed (``satisficing__cap=0.2``)."""
+    spec = AIA_RESPONSE_V1.model_dump(mode="json")
+    for path, value in values.items():
+        node = spec
+        *parents, leaf = path.split("__")
+        for p in parents:
+            node = node[p]
+        node[leaf] = value
+    return {"base_preset": "aia-response-1", "spec": spec, "formulas": {}}
+
+
+def test_the_response_process_is_edited_and_put_in_force(owner: TestClient) -> None:
+    presets = owner.get(f"{RESPONSE}/versions").json()["presets"]
+    assert presets == {"aia-response-1": AIA_RESPONSE_V1.model_dump(mode="json")}
+    edit = _response_edit(extremity=0.5, style_links__sdilnost__education=0.4)
+    assert owner.post(f"{RESPONSE}/check", json=edit).json()["valid"] is True
+    stored = owner.post(f"{RESPONSE}/versions", json=edit)
+    assert stored.status_code == 201 and stored.json()["name"] == "aia-response-1+e1"
+    put = owner.put(f"{RESPONSE}/activation", json={"version_number": 1, "reason": "test"})
+    assert put.status_code == 200 and put.json()["origin"] == "stored"
+
+
+def test_a_response_process_that_cannot_be_read_is_refused_with_its_problem(
+    owner: TestClient,
+) -> None:
+    body = owner.post(f"{RESPONSE}/check", json=_response_edit(satisficing__cap=1.5)).json()
+    assert body["valid"] is False and "spec.satisficing.cap" in body["problems"]
+    refused = owner.post(f"{RESPONSE}/versions", json=_response_edit(style_noise_floor=0.0))
+    assert refused.status_code == 422
+
+
+def test_the_response_draft_check_answers_fixed_questions_under_both_processes(
+    as_user: Any,
+) -> None:
+    member: TestClient = as_user("researcher")
+    same = member.post(f"{RESPONSE}/compare", json=_response_edit()).json()
+    assert (same["valid"], same["in_force"], same["panels"]) == (True, "aia-response-1", [])
+    check = same["response"]
+    assert check["respondents"] == 80 and len(check["questions"]) == 4
+    assert all(q["in_force"] == q["draft"] and q["moved_pp"] == 0 for q in check["questions"])
+    assert check["described_in_force"] == check["described_draft"]
+
+    sharper = member.post(
+        f"{RESPONSE}/compare", json=_response_edit(extremity=1.0, describe_threshold=1.5)
+    ).json()["response"]
+    assert sharper["draft"] == "aia-response-1+e1"
+    scale = {q["question"]: q for q in sharper["questions"]}["skala7"]
+    assert scale["shift_draft"] > scale["shift_in_force"]  # each respondent moves further
+    assert sharper["described_draft"] < sharper["described_in_force"]

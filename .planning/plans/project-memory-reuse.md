@@ -1,14 +1,21 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] M0. Decide the reuse unit, its eligibility and its reach (owner, 2026-10-10)"
   - "[x] M1a. The match, pure: dimension titles in the core, accent-folded words, the fields that matched"
   - "[x] M1b. The search, scoped to one client: latest Design Revision, else the working draft, else the name"
   - "[x] M1c. The route: GET /clients/{client_id}/memory/search"
   - "[x] M1d. The pages: Projektová paměť asks for a client first; the client's Výzkumy list searches too"
-  - "[ ] M2. Inspect: a past study's design, method, results and their labels, read-only"
-  - "[ ] M3. Reuse a past study's design in a new one: a person accepts, the revision cites its source, labels carried"
-  - "[ ] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
+  - "[x] M2a. The run's results read from the study frame alone, not the working-content store"
+  - "[x] M2b. A run's labels, pure: synthetic, report draft, internal only, suppressed results"
+  - "[x] M2c. The page: /app/clients/<client>/memory/<study>, its revisions, their runs, results and labels, read-only"
+  - "[x] M2d. Proof: the page sends only reads; a study of another client, or a simulation, is not here"
+  - "[x] M3a. The source's labels, pure: one conservative rule over every run of the source revision"
+  - "[x] M3b. The citation, stored: study_design_sources, one per study, insert-once, written by the design repository"
+  - "[x] M3c. Reuse, scoped: into a new research study or an empty one of the same client; working content, first revision, citation in one transaction"
+  - "[x] M3d. The routes: POST /clients/{id}/memory/reuse, GET /studies/{id}/design/source"
+  - "[x] M3e. The pages: use a design from the past-research page; the reused study says where its design came from, with its labels"
+  - "[x] M4. Proof: the source unchanged, labels carried, another client and another organization refused"
 ---
 # Project memory: a past study's design reused in a new one, with its citation
 
@@ -148,3 +155,126 @@ PostgreSQL. A client with hundreds of studies would want one client-wide read in
 `study_design_repository.py`; not built until that is measured.
 
 **Not in M1:** reuse (M3), the inspection page (M2), result search (after the MVP).
+
+## M2, the design (2026-10-12)
+
+**What the code has** (`develop @ bbe6730`). Every read M2 needs exists, found through the
+Study: the revisions (`GET …/design/revisions`, `routers/research.py:397-406`, no content in
+the list) and one revision with its content (`:409-422`); the runs (`:607-612`, summaries
+without steps) and one run in full (`:615-622`); a run's artifacts (`:787-835`, through
+`research_artifacts`), analysis (`:838-910`) and internal report (`:957-986`, with
+`review_state` and `synthetic`). No API change and no new reader is needed. The Results
+stage already draws every label a result carries: the fictional-data banner, suppression
+(`research-execution.ts` `resultTable`), the Sociomap's `INTERNAL_ONLY` note, the report's
+draft state. But its views read `useResearch().frame` (`ExecutionSteps.tsx:108-110`), which
+exists only inside a study's working-content session, and the hit of M1 links into that
+editable session (`MemorySearch.tsx:82-83`). Since ADR 0019 every member holds EDIT_STUDY,
+so "read-only" is the page's own: it is built with `canEdit: false`, which disables every
+action those views carry (download, cancel, retry, budget, Interpretation Research).
+
+**Chunks.**
+
+- **M2a. Results from the frame alone.** `ExecutionSteps.tsx`'s result views read the
+  `StudyFrame` (`frame.tsx`, already provided around every research screen), and
+  `RunResults({ run })` is exported: the Results stage's body for a run it is given.
+  Interpretation Research, which starts work and needs the session's dialog, is left out
+  when `canEdit` is false (on a stage too: a reader could start none of it anyway); the
+  progress link is given by the caller, null where there is none. The Results stage is
+  otherwise unchanged (`ExecutionSteps.test.tsx`, 37 tests as before).
+- **M2b. The labels, pure.** `lib/memory.ts` `runLabels(run, report?)`: synthetic (a
+  fictional source or step origin), the report's review state (draft unless approved), and
+  internal only (any Sociomap, analysis or report is). Never a guess: a report not read is
+  "unknown", not "approved".
+- **M2c. The page.** `/app/clients/<client>/memory/<study>` (Klienti → client → Projektová
+  paměť → study), under the client's layout so the client is resolved once, as everywhere.
+  The study through `workspace.study` (404 outside scope; another client in the URL and a
+  simulation are "not here"). Its revisions newest first; the chosen one's content drawn
+  read-only (title, goal, decision use, research questions, objectives, questionnaire
+  sections, dimensions by title). Without a revision, the working draft, labelled a working
+  draft and never a design. The runs of the chosen revision, each with its labels; the
+  chosen run's results through `RunResults` under a frame with `canEdit: false`. A memory
+  hit for a research links here; a simulation hit still opens the study.
+- **M2d. Proof.** A test renders the page over a fictional study with a synthetic, draft
+  run: every request it sends is a GET, the labels are shown, no download or action is
+  enabled; a study of another client in the URL and a simulation render "not here".
+
+**Landed (2026-10-12).** `RunResults` (`ExecutionSteps.tsx`), `runLabels` and
+`designSummary` (`lib/memory.ts`), `MemoryStudy.tsx`, `research.revision` (`lib/api.ts`),
+`appRoutes.memoryStudy`. A research hit opens the page; a simulation hit still opens the
+study. Tests: `MemoryStudy.test.tsx` (3: the newest revision's design, its run's labels and
+results, only reads and no read of working content; a draft-only study labelled a draft; another
+client's study and a simulation not here), `memory.test.ts` (+4), `ExecutionSteps.test.tsx`
+(+1: a run read-only from the frame alone), `MemorySearch.test.tsx` (the hit's link).
+
+**Not in M2:** reuse (M3); a run-level label on the server (M3 derives the source's labels
+on the server by its own rule, recorded with the revision).
+
+## M3, the design (2026-10-12)
+
+**Decisions (owner, 2026-10-12).** (a) A past design is reused only into a **new** research
+study of the same client, or into an existing one that is **empty** (no working content, no
+Design Revision): nothing anyone has written is replaced. (b) The **whole design** is reused;
+reusing one part (questionnaire, dimensions) into an existing design is left for later, since a
+merge raises its own conflicts.
+
+**What the code has** (`feature/project-memory-inspect @ 01f03a5`). The stages edit the Study's
+working content (`study_workspace_repository.py:209`, `save`); a Design Revision is made only
+when a stage submits it (`ExecutionSteps.tsx:347`, from Run). So a reused design must land in the
+target's working content, or nobody can edit it, and its citation must belong to the target study
+and outlive the first revision: every later revision descends from the reused one. A revision's
+provenance today is only `source_stage`, kept in `project_revisions.reason`
+(`study_design_repository.py:36`); nothing records a source.
+
+**Chunks.**
+
+- **M3a. The labels, pure.** `domain/design_reuse.py`: `SourceRun` (run id, its fieldwork source,
+  the data origins its steps stamped, its report artifact and whether that is approved) and
+  `derive_source_labels(runs) -> SourceLabels`: `synthetic` (any fictional source or origin),
+  `draft` (any report not approved), `never_run` (no run), with the run ids and report artifact
+  ids it was derived from, so a later run of the source cannot change what was cited. Never a
+  guess: a run whose fieldwork produced data with no origin is not "measured" -- it makes
+  `unlabelled_data` true.
+- **M3b. The citation, stored.** Table `study_design_sources` (target study PK and its scope,
+  source study, source Design Revision id and content SHA-256, the labels, who and when);
+  insert-once, written only by `StudyDesignRepository` (the only writer of a Study's design), read
+  through the Study.
+- **M3c. Reuse, scoped.** `application/design_reuse.py` `reuse_design`: the source through
+  `study_context` (a source revision not of that study is not found), the target through
+  `client_context` + `create_study_in_client` (new) or `study_context` (existing); both of the
+  same client, else not found. The target must be a research study with no working content and
+  no Design Revision (`target_not_empty`). In one transaction: the source content (its SHA-256
+  checked) as the target's working content (`reason = reuse`), as its first Design Revision
+  (`source_stage = memory`), and the citation with the labels derived from every run of the
+  source revision. Nothing of the source is written; its data is never copied.
+- **M3d. The routes.** `POST /api/v1/clients/{client_id}/memory/reuse` (`source_study_id`,
+  `source_revision_id`, and `target_study_id` or `new_study_name`): 201 with the target study and
+  its citation; 404 for anything outside the client; 409 `target_not_empty`. `GET
+  /api/v1/studies/{id}/design/source`: the citation, or 404 for a study with none.
+- **M3e. The pages.** On the past-research page, "Použít tento design" on the chosen revision: a
+  new study's name, or one of the client's empty research studies; then the target opens. Every
+  stage of a reused study says, in the frame's notice, which past study and revision its design
+  came from and the labels it carries (fictional data, draft report, never run).
+
+**Landed (2026-10-12).** `domain/design_reuse.py` (`derive_source_labels`, `DesignSource`),
+`study_design_sources` (migration `e8a0c2e4f6b8`; `StudyDesignRepository.record_source` /
+`source`, kept there by `layer_check`), `application/design_reuse.py` (`reuse_design`,
+`source_runs`), `POST /clients/{id}/memory/reuse` and `GET /studies/{id}/design/source`; on the
+web, `ReuseDesign` on the past-research page and `DesignSourceNote` on every stage. Tests:
+`test_design_reuse_labels.py` (4), `test_design_revisions.py` (+2), `test_design_reuse.py` (6),
+`test_project_memory_reuse_api.py` (4), `MemoryStudy.test.tsx` (+2), `DesignSourceNote.test.tsx`
+(2), `memory.test.ts` (+1).
+
+**Not in M3:** reusing a part; a reused design's data counted as evidence (nothing of the data is
+copied); the connected proof (M4).
+
+## M4, landed (2026-10-12)
+
+`apps/executors/tests/test_project_memory_proof.py`
+(`test_a_fictional_source_reused_stays_untouched_cites_its_labels_and_never_crosses_a_boundary`):
+through the real worker, a study runs its design on the fictional fixture to completion; a new
+study of the same client starts from that design. The source's revisions, their content, its run
+and every artifact's bytes are compared before and after (byte-identical); the new study's working
+content and first revision are the design and its citation is `synthetic`, naming the run it read.
+A sibling client of the same organization and another organization are each refused on their own,
+and neither refusal writes a study. Checked by mutation: removing `reuse_design`'s client check
+makes the sibling-client assertion fail (`DID NOT RAISE`).

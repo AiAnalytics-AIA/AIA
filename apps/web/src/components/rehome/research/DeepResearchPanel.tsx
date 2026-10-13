@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { deepResearch, research, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
-import { deepResearchRunOrb } from "@/lib/activity-orb";
+import { deepResearchRunningStep } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { AiButton, Button } from "../ui";
 import { useResearch } from "./context";
 
@@ -37,7 +39,9 @@ export function DeepResearchPanel() {
   }, [frame.studyId]);
 
   const current = runs.find((job) => job.run_id === selected) ?? null;
-  const running = current ? deepResearchRunOrb(current.steps) : null;
+  const running = current ? deepResearchRunningStep(current.steps) : null;
+  // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const feed = useStepActivity(current?.run_id ?? null, (since) => deepResearch.events(frame.studyId, current!.run_id, since), !!running);
   useEffect(() => {
     if (!current || current.is_terminal) return;
     const id = setInterval(() => { void refresh().catch((e: unknown) => setError(message(e))); }, POLL_MS);
@@ -80,10 +84,8 @@ export function DeepResearchPanel() {
       ) : <p className="mt-3 text-sm text-ink-muted">Zatím bez běhů.</p>}
       {current ? (
         <div className="mt-4 space-y-2 text-sm">
-          <p role="status" className="flex items-center gap-2">
-            {running ? <ActivityOrb orb={running} /> : null}
-            Stav: {current.phase} · {current.status}
-          </p>
+          <p role="status">Stav: {current.phase} · {current.status}</p>
+          <StepActivityPanel orb={running?.orb ?? null} activity={activityOf(feed, running?.step.step_id)} startedAt={running?.step.started_at} label={running?.step.node_key ?? "Veřejný hloubkový výzkum"} />
           {current.steps.filter((step) => step.waiting_reason || step.error_message).map((step) => <p key={step.node_key} className="text-status-fault">{step.node_key}: {step.waiting_reason ?? step.error_message}</p>)}
           {current.retryable && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.retry(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Opakovat běh</Button> : null}
           {!current.is_terminal && frame.canEdit ? <Button small variant="quiet" onClick={() => void deepResearch.cancel(frame.studyId, current.run_id).then(refresh).catch((e: unknown) => setError(message(e)))}>Zrušit běh</Button> : null}
