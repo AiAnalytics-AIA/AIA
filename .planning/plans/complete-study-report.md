@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] B1a. Per-question tables in the internal report: every question's numbers (option shares, scale mean, top-2-box) as NumberCells over claims admitted question by question through admit_numeric_claims; a question the gate refuses says why instead of blocking the report; suppressed cells removed and counted by the table"
-  - "[ ] B1b. The design in the report: the Design Revision's goal, research questions and comparable sets as a chapter, and the questionnaire (blocks, questions, options, scales) as an appendix -- words from the run's own specification, no numbers"
+  - "[x] B1b. The design in the report: the Design Revision's goal, research questions and comparable sets as a chapter, and the questionnaire (blocks, questions, options, scales) as an appendix -- words from the run's own specification, no numbers"
   - "[ ] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
   - "[ ] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
   - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
@@ -61,6 +61,17 @@ number labelled (B5); stages before backend (done in PR #382).
   (test_analysis_results.py); the stored DOCX carries the chapter after the methodology
   (test_analysis_executor.py, the end-to-end report test).
 
+- B1b: `application/report_design.py` `compose_design_sections(spec, research_questions)`:
+  the chapter "Návrh studie" right after the introduction (research questions, each
+  comparable set with its objects, question and scale, the sample the design asked for,
+  the audience strategy and filters as stated) and the appendix "Dotazník" before the
+  evidence appendix (every question with its type, options or scale; each set). From
+  the run's own specification only; a design that states no sample or audience says
+  so. Whether a run applied the filters belongs to the method chapter (B1c). Contract
+  `aia-internal-report-6`. Tests: test_report_design.py (3), and
+  `test_the_report_states_the_design_it_ran_and_appends_its_questionnaire`; the stored
+  DOCX orders design < methodology and the questionnaire after the question tables.
+
 ## Findings
 
 - **F1 (hypothesis until the governance call is made). Fictional data prints the grade
@@ -81,4 +92,7 @@ number labelled (B5); stages before backend (done in PR #382).
   question's numbers as tables, each cell an admitted claim (per question; a refused
   question is named)`; report.py's line gains "per-question tables after the
   methodology".
+- CLAUDE.md § 2 map, application/: `report_design.py  compose_design_sections: the design
+  the run executed (questions, sets, sample, audience as stated) and its questionnaire as
+  an appendix, from the run's specification`.
 - open-items.md: F1 to be numbered there.

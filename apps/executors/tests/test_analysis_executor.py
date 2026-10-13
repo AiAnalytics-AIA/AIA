@@ -563,7 +563,10 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
     assert "Výsledky jednotlivých otázek" in body
     assert body.index("Metodika a způsob interpretace") < body.index("Výsledky jednotlivých otázek")
-    assert report.metadata["report_contract"] == "aia-internal-report-5"
+    # The design it ran, and its questionnaire as an appendix (B1b).
+    assert body.index("Návrh studie") < body.index("Metodika a způsob interpretace")
+    assert body.index("Výsledky jednotlivých otázek") < body.rindex("Dotazník")
+    assert report.metadata["report_contract"] == "aia-internal-report-6"
 
 
 @pytest.mark.parametrize(

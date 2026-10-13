@@ -32,6 +32,7 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -1264,3 +1265,46 @@ def test_a_question_the_gate_refuses_is_named_and_the_others_keep_their_tables(
     )
     assert not any(c.row.question_id == items[0].question_id for c in tables.claims)
     assert {t.title for t in chapter.blocks if isinstance(t, Table)} >= {items[1].text}
+
+
+def _all_text(blocks: Any) -> str:
+    """Paragraphs, callouts and every list item's words."""
+    items = [
+        "".join(i.text for i in item.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, BulletList)
+        for item in b.items
+    ]
+    return "\n".join([_text(blocks), *items])
+
+
+def test_the_report_states_the_design_it_ran_and_appends_its_questionnaire(
+    world: World, tmp_path: Path
+) -> None:
+    """complete-study-report B1b: the design and questionnaire, from the run's specification."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    design = compose_design_sections(spec, first.inputs.research_questions)
+    chapter = _all_text(design.chapter.blocks)
+    for q in first.inputs.research_questions:
+        assert q in chapter
+    for battery in spec.batteries:
+        assert battery.title in chapter
+        assert all(o.label in chapter for o in battery.objects)
+    appendix = _all_text(design.appendix.blocks)
+    assert design.appendix.appendix
+    # Every question as it was asked, with its options or its scale.
+    for q in spec.questions:
+        assert q.text in appendix
+        assert all(option in appendix for option in q.options)
+
+    doc = compose_internal_report(run, report_meta(first.result.method_status), design=design)
+    ids = [s.id for s in doc.sections]
+    assert ids[:2] == ["intro", "ch-design"]
+    assert ids.index("app-questionnaire") + 1 == ids.index("app-evidence")
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report-with-design.docx").write_bytes(rendered)

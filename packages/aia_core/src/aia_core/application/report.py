@@ -12,6 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report_design import DesignSections
 from aia_core.application.report_tables import QuestionTables
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
@@ -122,12 +123,15 @@ def compose_internal_report(
     map_sections: tuple[Section, ...] = (),
     context_sections: tuple[Section, ...] = (),
     question_tables: QuestionTables | None = None,
+    design: DesignSections | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
     Caller supplies the Study-scoped ``reconstruct_run`` outcome and metadata.
     ``question_tables`` (``compose_question_tables``) follow the methodology chapter; their
     claims must be over this run's evidence table, admitted for the internal surface.
+    ``design`` (``compose_design_sections``): its chapter follows the introduction and the
+    questionnaire is an appendix before the evidence appendix.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -201,6 +205,8 @@ def compose_internal_report(
             )
         )
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
+    if design is not None:
+        sections.append(design.chapter)
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
     if deviation is not None:
         audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
@@ -352,6 +358,8 @@ def compose_internal_report(
     ledger = EvidenceLedger.from_claims(
         claims, surface=ClaimSurface.INTERNAL, table=reference.table
     )
+    if design is not None:
+        sections.append(design.appendix)
     sections.append(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )

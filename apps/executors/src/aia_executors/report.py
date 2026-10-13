@@ -9,6 +9,7 @@ from aia_core.application.report import (
     ReportCompositionRefused,
     compose_internal_report,
 )
+from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
@@ -31,7 +32,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import SOCIOMAP, upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-5"
+REPORT_CONTRACT_VERSION = "aia-internal-report-6"
 
 
 class ReportExecutor:
@@ -92,12 +93,11 @@ class ReportExecutor:
                 )
                 if specification is None:
                     raise ReportCompositionRefused("the map is not derived from this specification")
+                spec = ResearchSpecification.model_validate(specification["specification"])
                 # Every question's numbers, in the questionnaire's order and words (B1a).
                 questions = compose_question_tables(
                     analysis,
-                    native_items(
-                        ResearchSpecification.model_validate(specification["specification"])
-                    ),
+                    native_items(spec),
                     source=f"Zmrazený výsledek běhu {step.run_id}; evidence "
                     f"{first.inputs.table.fingerprint()[:12]}",
                 )
@@ -106,8 +106,14 @@ class ReportExecutor:
                     object_map_snapshots(map_body),
                     source=f"Zmrazený výsledek běhu {step.run_id}; SHA-256 {map_source.sha256}",
                 )
+                # The design the run executed, and its questionnaire (B1b).
+                design = compose_design_sections(spec, first.inputs.research_questions)
                 document = compose_internal_report(
-                    analysis, meta, map_sections=sections, question_tables=questions
+                    analysis,
+                    meta,
+                    map_sections=sections,
+                    question_tables=questions,
+                    design=design,
                 )
             except (
                 ReconstructionRefused,
