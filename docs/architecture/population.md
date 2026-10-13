@@ -224,6 +224,16 @@ store: the worker gives the panel loader the same store as the materialize step
 (`ai_runtime.panel_population_source`); without a store the run parks
 (`test_a_panel_run_over_the_clients_child_reads_it_from_the_population_store`).
 
+**Asked for and read in AIA (P4d4).** `POST /studies/{study_id}/population/materializations
+{definition}` starts a materialization from a study (422 `materialization_refused` with the
+domain's reason; 409 `population_unavailable` for a LIVE that exists but cannot be resolved), and
+`GET …/materializations[/{run_id}]` reads the study's runs. The registry gives each owned child
+its outcome: the target beside what was achieved and `target_met`, within the kind's
+`TARGET_TOLERANCE` (binary 0.005, scale 0.01) and never presumed; P4b's M04 (2.0 asked, 2.68
+achieved) reads not met. Společenská inteligence lists the organization's children on their own
+with that outcome ("neznámo" when a child's record carries none), and the Run stage offers the
+study's client's children beside LIVE.
+
 ## Not yet available to consumers
 
 | Missing | Blocks | Tracked |
@@ -232,4 +242,4 @@ store: the worker gives the panel loader the same store as the materialize step
 | Classification of the 8 derived fields | any use of them | [decision checklist](../migration/population-derived-fields-decision.md) |
 | An S3 asset source read directly by the loader (today: the host's synced copy) | a deployment without a host disk | `.planning/overview.md` Next |
 | Typed / columnar views (numbers, the M07 age floor) | numeric work without re-parsing text | `.planning/overview.md` Next |
-| A route and a screen to ask for a dimension (today: the service and the step only) | a researcher materializing without code | `plans/population-operations.md` P4d4 |
+| A form to compose a dimension's definition from accepted Client Knowledge (today the route takes a whole definition) | a researcher materializing without writing the definition | `plans/client-knowledge-lifecycle.md` K5 |
