@@ -252,7 +252,9 @@ apps/
                             the ANALYSIS enricher, over the shared directory and, when configured,
                             the population store (a selected child; ai_runtime.panel_population_source);
                             a panel run on a worker without it parks
-                            (panel_personas_unavailable); a sample or persona refusal fails by name
+                            (panel_personas_unavailable); a sample or persona refusal fails by name;
+                            answer_plans: the request, draw and ledger loop over given plans, which
+                            produce and the validation's arms share
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
