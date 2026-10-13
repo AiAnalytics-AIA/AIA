@@ -302,6 +302,60 @@ def test_a_promotion_naming_a_stale_version_is_refused_and_live_does_not_move(
     assert ops.live_version() == ids["f1_4"]
 
 
+def test_a_clients_materialized_child_is_never_promoted_and_live_does_not_move(
+    world: Any, bundle: Any
+) -> None:
+    """P5: promotion moves a shared population to a shared version, never to a client's child."""
+    from aia_core.domain.population import (
+        MaterializedField,
+        MaterializedKind,
+        PopulationContractExtension,
+        VersionOwner,
+        owned_version_id,
+    )
+
+    ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
+    ids = ops.import_all(OWNER)
+    ops.establish(OWNER, ids)
+    with world.sessions() as session:
+        registry = PopulationRegistryRepository(session)
+        base = registry.get_version(ids["f1_4"])
+        assert base is not None
+        extension = PopulationContractExtension(
+            base_contract_id=base.contract_id,
+            base_field_names_sha256=base.field_names_sha256,
+            base_dictionary_sha256=base.dictionary_sha256,
+            fields=(
+                MaterializedField("pije_kavu_rano", MaterializedKind.BINARY, "d" * 64, "m", "1"),
+            ),
+        )
+        registry.insert_extension(extension, recorded_at=base.imported_at, recorded_by="test")
+        owner = VersionOwner(world.organization_id, world.client_id)
+        child = replace(
+            base,
+            version_id=owned_version_id(base.dataset_id, "c" * 64, owner),
+            label=f"{base.label}+pije_kavu_rano",
+            content_sha256="c" * 64,
+            column_count=base.column_count + 1,
+            parent_version_id=base.version_id,
+            storage_location="s3://pop-bucket/materialized/child.csv.gz",
+            owner=owner,
+            extension_sha256=extension.sha256,
+        )
+        registry.insert_version(child, validation={})
+        history_before = registry.promotions(base.dataset_id)
+        session.commit()
+
+    code, _, err = ops(
+        "promote", "--as", OWNER, "--population", "FIC_LIVE", "--to", child.version_id,
+        "--expected", ids["f1_4"], "--reason", "a client's dimension is not the population",
+    )  # fmt: skip
+    assert code == 3 and err.startswith("OwnedVersionNotShared"), err
+    assert ops.live_version() == ids["f1_4"]
+    with world.sessions() as session:
+        assert PopulationRegistryRepository(session).promotions(base.dataset_id) == history_before
+
+
 def test_a_bundle_the_contract_refuses_registers_nothing(world: Any, bundle: Any) -> None:
     ops = Ops(world, bundle, {world.owner_id: list(BOTH)})
     code, _, err = ops(

@@ -261,3 +261,28 @@ def test_another_organizations_child_is_unknown(
             version_id=theirs,
             owner=VersionOwner(organization_id=scoped.organization_id, client_id="CLI-theirs"),
         )
+
+
+def test_materializing_and_selecting_a_child_leaves_live_where_it_was(
+    session: Any, scoped: Any, world: dict[str, Any]
+) -> None:
+    """P5: a dimension made and run over never moves a shared population or writes its history."""
+    from aia_core.infrastructure.population_repository import PopulationRegistryRepository
+
+    registry = PopulationRegistryRepository(session)
+    dataset = world["pop"].contract.dataset_id
+    live = registry.population(LIVE)
+    assert live is not None
+    before = (live.current_version_id, registry.promotions(dataset))
+
+    scope = scoped.scope()
+    child = world["child_of"](scope)
+    _runs(session, scope, world).start(
+        design_revision_id=_revision(session, scope),
+        fieldwork_source=AI,
+        population_version_id=child,
+    )
+    after = registry.population(LIVE)
+    assert after is not None
+    assert (after.current_version_id, registry.promotions(dataset)) == before
+    assert after.current_version_id == world["base"].version_id != child
