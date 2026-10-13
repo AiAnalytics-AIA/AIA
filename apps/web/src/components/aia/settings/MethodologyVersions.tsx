@@ -151,7 +151,8 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
                     ) : tv(`${V}.noChanges`, { base: v.base_preset })}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {data.may_administer && inForce.version_number !== v.version_number ? (
+                    {/* A version just saved is activated from its confirmation above: one button, never two. */}
+                    {data.may_administer && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                       <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
                     ) : null}
                     {data.may_administer ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}

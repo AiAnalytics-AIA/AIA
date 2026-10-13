@@ -47,6 +47,19 @@ try {
     await widths(`tab ${id}`); await screenshot(id);
   }
   checks.push("All eight settings tabs load and fit desktop/tablet/phone without page overflow");
+  // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
+  for (const id of ["ai", "access", "studies", "audit", "reference"]) {
+    const panel = await tab(id);
+    assert.equal(await panel.locator("details, summary").count(), 0, `${id}: a disclosure is back`);
+    assert.match(await panel.locator("[data-tab-facts]").innerText(), /^Platí pro: .+ · Mění: .+/);
+    for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
+    await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
+  }
+  const techPanel = await tab("reference"); const techSwitch = techPanel.getByRole("switch", { name: "Technické údaje", exact: true });
+  const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0;
+  assert(techMs < 400, `technical details: ${techMs} ms`); await widths("reference with technical details"); await screenshot("reference-technical");
+  await techSwitch.click(); assert.equal(await techPanel.locator("[data-technical]").count(), 0);
+  checks.push(`Settings tabs carry no disclosures; one switch shows every technical detail in ${techMs} ms (< 400 ms)`);
   await tab("reference"); await page.getByRole("searchbox", { name: "Hledat technickou hodnotu" }).fill("databáze");
   assert.equal(await page.locator('[data-setting="database_backend"]').count(), 1);
   assert(await page.getByText("Typ databáze, ve které AIA ukládá pracovní obsah a historii.").isVisible());
@@ -57,17 +70,19 @@ try {
   assert.equal(await add.getByRole("combobox", { name: "Role", exact: true }).inputValue(), "MEMBER");
   await add.getByLabel("E-mail", { exact: true }).fill(email); await add.getByLabel("Jméno", { exact: true }).fill("Fictional UX reader"); await add.getByRole("button", { name: "Přidat člena", exact: true }).click();
   const member = page.locator("[data-member]").filter({ has: page.getByText(email, { exact: true }) }); await member.waitFor();
-  await member.getByText("Upravit jméno a roli", { exact: true }).click();
-  await member.getByLabel("Jméno", { exact: true }).fill("Fictional UX administrator");
-  await member.getByRole("combobox", { name: `Role: ${email}`, exact: true }).selectOption("ADMIN");
-  await member.getByRole("button", { name: "Uložit", exact: true }).click();
+  await member.getByRole("button", { name: "Upravit", exact: true }).click();
+  const memberEdit = page.locator(`[data-member-edit="${await member.getAttribute("data-member")}"]`);
+  await memberEdit.getByLabel("Jméno", { exact: true }).fill("Fictional UX administrator");
+  await memberEdit.getByRole("combobox", { name: `Role: ${email}`, exact: true }).selectOption("ADMIN");
+  await memberEdit.getByRole("button", { name: "Uložit", exact: true }).click();
   await member.getByText("Fictional UX administrator", { exact: false }).waitFor();
   const savedMember = (await get("/api/v1/members")).find((m) => m.email === email);
   assert.equal(savedMember.organization_role, "ADMIN"); assert.equal(savedMember.display_name, "Fictional UX administrator");
   await widths("access member editing"); checks.push("New member defaults to researcher; existing name/role edits persist through the audited API");
   await tab("studies");
   const studies = await get("/api/v1/studies"); const study = studies[0]; const original = await get(`/api/v1/studies/${study.study_id}`);
-  const card = page.locator(`[data-study="${study.study_id}"]`); await card.locator("summary").click();
+  await page.locator(`[data-study="${study.study_id}"]`).getByRole("button", { name: "Upravit", exact: true }).click();
+  const card = page.locator(`[data-study-edit="${study.study_id}"]`);
   const budget = card.getByLabel("Strop rozpočtu", { exact: true }); await budget.fill("20");
   await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill("no-such-study"); assert(!await card.isVisible());
   await page.getByRole("searchbox", { name: "Hledat studii nebo klienta" }).fill(""); assert.equal(await budget.inputValue(), "20");
@@ -146,6 +161,7 @@ try {
   await methodForm.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click();
   await methodForm.waitFor({ state: "detached" }); await page.unroute("**/api/v1/methodology/sociomap/versions");
   let versions = await get("/api/v1/methodology/sociomap/versions"); const created = versions.versions.find((v) => v.spec.terrain.sigma === 0.3 && v.spec.relation.n_min === 34 && !beforeVersions.versions.some((old) => old.version_number === v.version_number)); assert(created); assert.equal(versions.in_force.origin, "code");
+  // Right after a save its confirmation offers the activation, the one button for that version.
   await page.getByRole("button", { name: `Uvést ${created.name} v platnost`, exact: true }).click();
   await page.locator("[data-methodology-activate]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor(); await page.reload();
