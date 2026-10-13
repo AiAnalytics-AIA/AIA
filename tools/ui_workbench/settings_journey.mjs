@@ -96,20 +96,20 @@ try {
   checks.push("Readable audit entries filter by person, event and reason");
   await tab("deep_research"); const policyKey = "retention.snapshots";
   await page.getByRole("searchbox", { name: "Hledat pravidlo rešerše" }).fill("zachycené");
-  const row = page.locator(`[data-dr-setting="${policyKey}"]`); await row.getByRole("button", { name: "Detail", exact: true }).click();
-  const policyForm = row.locator("[data-dr-propose]"); await policyForm.getByLabel("Hodnota", { exact: true }).fill("365");
+  const row = page.locator(`[data-dr-setting="${policyKey}"]`); await row.getByRole("button", { name: "Upravit", exact: true }).click();
+  const ruleDetail = page.locator(`[data-dr-detail="${policyKey}"]`); const policyForm = ruleDetail.locator("[data-dr-propose]"); await policyForm.getByLabel("Hodnota", { exact: true }).fill("365");
   await row.getByRole("button", { name: "Zavřít", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await policyForm.getByLabel("Hodnota", { exact: true }).inputValue(), "365");
   await tab("prompts"); await tab("deep_research"); assert.equal(await policyForm.getByLabel("Hodnota", { exact: true }).inputValue(), "365");
   await widths("research policy editor");
   await policyForm.getByRole("button", { name: "Uložit návrh", exact: true }).click();
-  await row.locator("[data-dr-version]").last().waitFor();
+  await ruleDetail.locator("[data-dr-version]").last().waitFor();
   let policy = await get(`/api/v1/deep-research/settings/${policyKey}`); const policyVersion = policy.versions.find((v) => v.value === 365);
   assert(policyVersion); assert.equal(policy.origin, "proposed_default");
-  await row.getByRole("button", { name: `Schválit e${policyVersion.version_number}`, exact: true }).click();
-  await row.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: `Schválit verzi ${policyVersion.version_number}`, exact: true }).click();
+  await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   await row.locator('[data-origin="approved"]').waitFor(); policy = await get(`/api/v1/deep-research/settings/${policyKey}`); assert.equal(policy.value, 365);
-  await row.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await row.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
+  await ruleDetail.getByRole("button", { name: "Vrátit na výchozí", exact: true }).click(); await ruleDetail.locator("[data-dr-approve]").getByRole("button", { name: "Potvrdit", exact: true }).click();
   checks.push("Policy purpose search, draft protection across close/tab changes and separate propose/approve work through real APIs");
   await tab("methodology");
   // An administrator opens on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).

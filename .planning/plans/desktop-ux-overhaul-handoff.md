@@ -157,7 +157,8 @@ disclosures.
 - [x] S5. Studie a rozpočty as a table with "Upravit" per row; audit events named in Czech (the
       audit stays a list of entries: each has a reason line a table cell would truncate).
 - [x] S6. Reference: headed groups with a jump list, searchable, nothing collapsed.
-- [ ] S7 (next PR). Deep Research and Systémové prompty on the same pattern.
+- [x] S7. Deep Research and Systémové prompty on the same pattern, built from the canvas
+      artboards "Nastavení · Deep Research" and "Nastavení · Systémové prompty" (owner, 2026-10-13).
 
 Landed (S1-S6), measured with `tools/ui_workbench/settings_journey.mjs` on the local workbench
 (next dev, fictional data): three consecutive PASS runs; no `details`/`summary` in AI běh, Přístup,
@@ -172,3 +173,32 @@ Fixed here (from #379): after a Metodika save, its confirmation and the version 
 "Uvést … v platnost" for the same version. The owner chose to drop the list's: while the
 confirmation offers a version, the list does not (test: "offers to put a just-saved version in
 force"). The list keeps the button for every other version, which is how an older one is put back.
+
+S7 landed (Deep Research, Systémové prompty), measured on the local workbench (next dev, fictional
+data): `settings_journey.mjs` and `proposal_prompt_journey.mjs` PASS; no horizontal overflow at
+1440x900, 1710x1000, 1920x1080.
+
+- Deep Research: the groups on the left say how many rules each still needs approved; the chosen
+  group's rules are a table (value, origin, flags in words; catalogue keys only with technical
+  details); "Upravit" opens the rule beneath its row with the order Navrhnout → Schválit → Platí
+  pro nové běhy. Live readiness is one line whose button shows exactly those rules (the closed
+  list of names is gone). Every group stays mounted and hidden, so a draft survives a change of
+  group (test: "opens on one group and switches groups without losing an unsaved proposal").
+- Systémové prompty: the instruction is the page, in a reading font; the code frame is one plain
+  line, its text only with technical details; Upravit → Uložit verzi → Vyzkoušet (nepovinné) →
+  Zapnout; the diff against the starting text shows while typing. Beside it (2xl) or below it:
+  what runs, the next step after a save, versions, the data-class declarations and the history,
+  none of them behind a disclosure. API labels "e3" read "verze 3".
+- One button per action: after a save the next-step card offers "Zapnout verzi N" and the
+  version's row does not (the Metodika rule).
+
+Finding (this slice, fixed): the next-step card was first derived from the save message, so
+"Vrátit neuložené změny" after a save cleared it and the row's button came back. The offer is now
+its own state (test: "walks the change in order", the revert step). Caught by
+`proposal_prompt_journey.mjs`, not by the unit tests.
+
+Finding (not this slice, hypothesis-grade until reproduced on develop):
+`ResearchScreen.test.tsx` "keeps one study session while each step's page mounts afresh" failed
+once in the full web suite (`Unable to find role="list" and name "Kontrola připravenosti"`, the
+file took 17 s) and passed twice alone. Likely a default 1 s `findBy` under load; the research
+lane is `research-lane-redesign.md`'s, so it is left there.
