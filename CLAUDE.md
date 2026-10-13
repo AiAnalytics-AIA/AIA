@@ -252,7 +252,9 @@ apps/
                             the ANALYSIS enricher, over the shared directory and, when configured,
                             the population store (a selected child; ai_runtime.panel_population_source);
                             a panel run on a worker without it parks
-                            (panel_personas_unavailable); a sample or persona refusal fails by name
+                            (panel_personas_unavailable); a sample or persona refusal fails by name;
+                            answer_plans: the request, draw and ledger loop over given plans, which
+                            produce and the validation's arms share
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
@@ -432,7 +434,16 @@ packages/aia_core/src/aia_core/
                             concept), preregistration.py (the seeded split: near-duplicates >= 0.70
                             dropped, 40 % of each domain to development; the hashed record of
                             everything that decides the verdict, P1-P8 included; a confirmation set
-                            under 40 items / 5 domains of 4 refused). Tests: conftest.holdout_population,
+                            under 40 items / 5 domains of 4 refused), arms.py (the model arms: A none,
+                            B demographics, C core without catalog signals, D the production persona,
+                            S D's profiles deranged; the block's exclusion applied in every arm, each
+                            respondent keeping their own facts and styles; D unexcluded is today's
+                            PanelPersonas.plan), scoring.py (per item TVD, subgroup TVD, Brier on
+                            core items, entropy gap; the P1-P8 verdict: P4 D beats A on TVD, P5 D
+                            beats S on subgroups and Brier, one Holm family; a criterion that cannot
+                            be evaluated fails), baselines.py (L0 the population marginal, L1 the
+                            demographic cell without the respondent's own donor, backing off below
+                            30 donors; neither decides the verdict). Tests: conftest.holdout_population,
                             a session-scoped fictional factory
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
