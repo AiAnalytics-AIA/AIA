@@ -21,7 +21,7 @@ fact, or retry anything on its own.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -45,6 +45,7 @@ from aia_core.domain.ai_respondent import (
     PROMPT_VERSION,
     ROSTER_VERSION,
     RespondentOutputInvalid,
+    RespondentPlan,
     UnsupportedFact,
     assemble_dataset,
     build_request,
@@ -55,6 +56,7 @@ from aia_core.domain.ai_respondent import (
     plan_respondent,
 )
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
+from aia_core.domain.licence import DataLineage
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
 from aia_core.domain.panel_persona import PersonaRefused
 from aia_core.domain.panel_source import PanelPlans, panel_plans, respondent_system
@@ -66,7 +68,8 @@ from aia_core.domain.population.runtime import RuntimePopulation
 from aia_core.domain.population.sampling import SamplingRefused
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_design import ResearchSpecification
-from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION
+from aia_core.domain.residency import DataClass
+from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION, ResponseProcessSpec
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -149,6 +152,16 @@ class ProducedDataset:
     respondent_system: dict[str, str] | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class Answered:
+    """Every plan answered: each respondent's answers, the call ledger, the route preflighted."""
+
+    rows: list[tuple[Any, dict[str, Answer]]]
+    calls: list[dict[str, Any]]
+    #: The preflight's resolution; ``None`` when no plan had a block (every answer a fact).
+    resolution: Any
+
+
 def fieldwork_seed(spec: ResearchSpecification) -> int:
     """The run's roster and draw seed: from the specification, so a rerun is the same."""
     return int(hashlib.sha256(spec.fingerprint().encode()).hexdigest()[:12], 16)
@@ -171,6 +184,110 @@ class AIFieldwork:
         self._build = build
         self._caller_factory = caller_factory
         self._population = population
+
+    def answer_plans(
+        self,
+        plans: Sequence[RespondentPlan],
+        spec: ResearchSpecification,
+        context: StepContext,
+        *,
+        seed: int,
+        response: ResponseProcessSpec,
+        data_class: DataClass,
+        lineage: DataLineage,
+    ) -> Answered | Failed:
+        """Ask the model every block of every plan and draw the answers by code.
+
+        Everything fieldwork does after the plans are chosen: the preflight on the first plan
+        with a block, one request per respondent block, the draw, the call ledger and the
+        progress. It depends only on its arguments, so a caller with plans of its own (the
+        validation's arms, panel-grounded-respondents 7e) answers them exactly as a run does.
+        """
+        cfg = self._config
+        items = {i.item_id: i for i in plan_items(spec)}
+        caller = self._caller_factory(
+            gateway=self._gateway,
+            context=context,
+            runtime_version=self._build.sha or "",
+            provider=cfg.provider,
+            reservation_usd=cfg.reservation_usd,
+        )
+
+        def request_for(index: int, block_index: int, answers: dict[str, Answer]) -> Any:
+            plan = plans[index]
+            return build_request(
+                plan,
+                plan.blocks[block_index],
+                answers,
+                items_by_id=items,
+                policy_version=cfg.policy_version,
+                data_class=data_class,
+                lineage=lineage,
+                max_output_tokens=cfg.max_output_tokens,
+                response=response,
+            )
+
+        first = next((i for i, p in enumerate(plans) if p.blocks), None)
+        resolution = None
+        if first is not None:
+            try:
+                resolution = caller.preflight(request_for(first, 0, dict(plans[first].facts)))
+            except ModelCallFailed as refused:
+                return Failed(
+                    FailureClass.RUNTIME_UNAVAILABLE,
+                    error={
+                        "message": _PARK_MESSAGE.format(why=str(refused)),
+                        "reason": refused.reason,
+                        "data_class": data_class.value,
+                        "lineage": sorted(lineage.datasets),
+                        "source": "ai_runtime",
+                    },
+                )
+
+        calls: list[dict[str, Any]] = []
+        rows: list[tuple[Any, dict[str, Answer]]] = []
+        for index, plan in enumerate(plans):
+            context.checkpoint()
+            answers: dict[str, Answer] = dict(plan.facts)
+            for block in plan.blocks:
+                result = caller.invoke(request_for(index, block.index, answers))
+                assert result.output is not None  # a structured agent's result has one
+                try:
+                    drawn, _ = interpret_block(
+                        block, result.output, plan.persona, seed=seed, response=response
+                    )
+                except RespondentOutputInvalid as exc:
+                    return Failed(
+                        FailureClass.SCHEMA_VIOLATION,
+                        error={
+                            "message": f"Odpověď respondenta neprošla kontrolou: {exc}",
+                            "reason": "respondent_output_invalid",
+                            "call_id": result.call_id,
+                            "provider_request_id": result.provider_request_id,
+                        },
+                    )
+                answers.update(drawn)
+                calls.append(
+                    {
+                        "respondent_id": plan.persona.persona_id,
+                        "block": block.index,
+                        "call_id": result.call_id,
+                        "provider_request_id": result.provider_request_id,
+                        "model": result.resolved_model,
+                        "route_id": result.provenance.route_id,
+                        "policy_version": result.provenance.policy_version,
+                        "schema_fingerprint": result.provenance.schema_fingerprint,
+                        "cost_usd": result.total_cost_usd,
+                        "cost_basis": result.cost_basis.value,
+                        "calls": len({e.call_id for e in result.usage_events}),
+                    }
+                )
+            rows.append((plan.persona, answers))
+            done = index + 1
+            if done % max(1, cfg.progress_every) == 0 or done == len(plans):
+                context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
+
+        return Answered(rows=rows, calls=calls, resolution=resolution)
 
     def produce(
         self, spec: ResearchSpecification, step: StepInput, context: StepContext
@@ -285,88 +402,18 @@ class AIFieldwork:
                     "reason": "respondent_fact_unsupported",
                 },
             )
-        items = {i.item_id: i for i in plan_items(spec)}
-        caller = self._caller_factory(
-            gateway=self._gateway,
-            context=context,
-            runtime_version=self._build.sha or "",
-            provider=cfg.provider,
-            reservation_usd=cfg.reservation_usd,
+        answered = self.answer_plans(
+            plans,
+            spec,
+            context,
+            seed=seed,
+            response=response,
+            data_class=data_class,
+            lineage=lineage,
         )
-
-        def request_for(index: int, block_index: int, answers: dict[str, Answer]) -> Any:
-            plan = plans[index]
-            return build_request(
-                plan,
-                plan.blocks[block_index],
-                answers,
-                items_by_id=items,
-                policy_version=cfg.policy_version,
-                data_class=data_class,
-                lineage=lineage,
-                max_output_tokens=cfg.max_output_tokens,
-                response=response,
-            )
-
-        first = next((i for i, p in enumerate(plans) if p.blocks), None)
-        resolution = None
-        if first is not None:
-            try:
-                resolution = caller.preflight(request_for(first, 0, dict(plans[first].facts)))
-            except ModelCallFailed as refused:
-                return Failed(
-                    FailureClass.RUNTIME_UNAVAILABLE,
-                    error={
-                        "message": _PARK_MESSAGE.format(why=str(refused)),
-                        "reason": refused.reason,
-                        "data_class": data_class.value,
-                        "lineage": sorted(lineage.datasets),
-                        "source": "ai_runtime",
-                    },
-                )
-
-        calls: list[dict[str, Any]] = []
-        rows: list[tuple[Any, dict[str, Answer]]] = []
-        for index, plan in enumerate(plans):
-            context.checkpoint()
-            answers: dict[str, Answer] = dict(plan.facts)
-            for block in plan.blocks:
-                result = caller.invoke(request_for(index, block.index, answers))
-                assert result.output is not None  # a structured agent's result has one
-                try:
-                    drawn, _ = interpret_block(
-                        block, result.output, plan.persona, seed=seed, response=response
-                    )
-                except RespondentOutputInvalid as exc:
-                    return Failed(
-                        FailureClass.SCHEMA_VIOLATION,
-                        error={
-                            "message": f"Odpověď respondenta neprošla kontrolou: {exc}",
-                            "reason": "respondent_output_invalid",
-                            "call_id": result.call_id,
-                            "provider_request_id": result.provider_request_id,
-                        },
-                    )
-                answers.update(drawn)
-                calls.append(
-                    {
-                        "respondent_id": plan.persona.persona_id,
-                        "block": block.index,
-                        "call_id": result.call_id,
-                        "provider_request_id": result.provider_request_id,
-                        "model": result.resolved_model,
-                        "route_id": result.provenance.route_id,
-                        "policy_version": result.provenance.policy_version,
-                        "schema_fingerprint": result.provenance.schema_fingerprint,
-                        "cost_usd": result.total_cost_usd,
-                        "cost_basis": result.cost_basis.value,
-                        "calls": len({e.call_id for e in result.usage_events}),
-                    }
-                )
-            rows.append((plan.persona, answers))
-            done = index + 1
-            if done % max(1, cfg.progress_every) == 0 or done == len(plans):
-                context.progress("AI respondenti odpověděli", respondents=done, of=len(plans))
+        if isinstance(answered, Failed):
+            return answered
+        rows, calls, resolution = answered.rows, answered.calls, answered.resolution
 
         dataset = assemble_dataset(spec, rows, seed=seed)
         provenance = {
