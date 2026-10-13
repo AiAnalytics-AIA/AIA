@@ -409,6 +409,22 @@ packages/aia_core/src/aia_core/
                             stored methodology version replaces, compiled on read (slots()), absent
                             from the stored form when empty
     research.py             A run's phase in words (queued … cancelled), from the engine's state
+    holdout/                The respondent system's holdout validation (panel-grounded-respondents 7),
+                            pure: bank.py (the item bank: each held-out question's Czech wording and
+                            options as fielded, the panel code of each option and the public document
+                            and page it was read from; pinned by its canonical SHA-256; one of the
+                            seven surveys the panel is built from), eligibility.py (which items a
+                            population can hold out: measured, every value an option, 80 % coverage,
+                            300 effective donors over the donor behind the answer, nothing the
+                            respondent is told; a core item scored only in the ages its survey asked),
+                            leakage.py (what a block's respondents are not given, computed: the item,
+                            its matched block, every persona field at |r| or Cramér's V >= 0.30, an
+                            association that cannot be computed, signals on those or the item's
+                            concept), preregistration.py (the seeded split: near-duplicates >= 0.70
+                            dropped, 40 % of each domain to development; the hashed record of
+                            everything that decides the verdict, P1-P8 included; a confirmation set
+                            under 40 items / 5 domains of 4 refused). Tests: conftest.holdout_population,
+                            a session-scoped fictional factory
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
