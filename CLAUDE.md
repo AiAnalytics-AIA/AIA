@@ -100,7 +100,8 @@ apps/
                             GET /population/audience-catalogue: LIVE's kept factor catalogue and the
                             18 subpanels as filters, reading no row; POST /population/audience-preview:
                             what filters select in LIVE and whether n can be drawn, counts only,
-                            503 without AIA_POPULATION_ASSET_ROOT, the API's one population read)
+                            503 without AIA_POPULATION_ASSET_ROOT, the API's one population read;
+                            an owned child listed and readable only within its organization)
     schemas/                Request/response models + the one error contract
   web/                      Next.js 16 / React 19 / Tailwind 4. /login + /logout, the live /studies
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
@@ -225,7 +226,9 @@ apps/
     testing.py              Scripted executor for the tests (and the multi-process suite)
   executors/src/aia_executors/  Step implementations the worker runs, registered by kind
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
-    registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build
+    registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build;
+                            population_store: the one store the materialize step and the panel
+                            loader share
     research.py             The research steps: compile, preflight, fieldwork (parks without a
                             source), aggregate, sociomap; every artifact on the owned design project;
                             the sociomap step computes the run's pinned methods (none: legacy;
@@ -237,7 +240,9 @@ apps/
                             population as the run pinned (persona_source); class + lineage, gateway
                             preflight (a refusal parks), one request per respondent block, answers
                             drawn by code. population_loader: the run's recorded binding, v17 contract,
-                            the ANALYSIS enricher; a panel run on a worker without it parks
+                            the ANALYSIS enricher, over the shared directory and, when configured,
+                            the population store (a selected child; ai_runtime.panel_population_source);
+                            a panel run on a worker without it parks
                             (panel_personas_unavailable); a sample or persona refusal fails by name
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
@@ -291,6 +296,9 @@ apps/
                             flight across every worker on the route
     deep_research_recorded.py  The ONLY composition with recorded web retrieval; refuses unless
                             AIA_ENV is local/test, and no deployment may name it (layer_check)
+    materialize.py          population_materialize: a client's dimension made into its owned child
+                            (PopulationRuntime.materialize_child); parks without a population store or
+                            AIA_POPULATION_ASSET_ROOT (population_store_unconfigured)
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
     legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
                             of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
@@ -433,6 +441,10 @@ packages/aia_core/src/aia_core/
                             shared population's version (OwnedVersionNotShared)
       derivation.py         18.6.6's evidence derivation EXACT (npc-18.6.6-evidence-overlay v1);
                             refuses a dimension no predictor varies for (no_varying_predictor)
+      definition.py         DimensionDefinition: the K5 contract as a type (kind, target with its
+                            evidence anchor, predictors, missingness, range), hash-identified
+      versions.py           owned_version_id: an owned child's id, its content qualified by an
+                            owner digest
     project.py              Project, revisions, stage state
     providers.py            Provider policy, model roles, budget and error semantics; NATIVE_PROVIDERS
                             (Bedrock) -- the prototype's providers and policies are read from records only
@@ -540,7 +552,16 @@ packages/aia_core/src/aia_core/
                             (ADR 0019), and an archived client's studies are not listed
     population.py           PopulationRuntime — the ONLY loader of population data; live_binding:
                             the binding a new run records (None until the population is
-                            established; reads no panel)
+                            established; reads no panel); materialize_child: a client's dimension
+                            derived over a shared base, written once to the population store and
+                            registered as its owned child, never promoted; resolve_child: an owned
+                            child, pinned, verified against its base at load; child_binding: a
+                            selected child, the study's own client's only
+    materialize.py          prepare_materialization: a dimension request checked from a study against
+                            LIVE's kept policy (owner from the scope, base, definition);
+                            start_materialization: a population_materialize run under the study's
+                            population project (owner study_population); child_key, and the run's
+                            key within the study
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
@@ -575,7 +596,8 @@ packages/aia_core/src/aia_core/
                             version as aia-sociomap-3+e<n>, its digest in the run's identity) -- and
                             a retry keeps the original's; ResearchAgentJobs.accept: a
                             person applies an agent's proposal (APPROVE_GATE), recorded (gate 1);
-                            start records the LIVE population binding when it creates a run (a
+                            start records the LIVE population binding, or the study's own client's
+                            selected child (population_version_id, pinned), when it creates a run (a
                             found run keeps what it recorded, a retry the original's), and pins
                             its persona source (a panel run is its own identity and needs an
                             established population: PanelPopulationMissing); a retry keeps it
@@ -673,15 +695,25 @@ packages/aia_core/src/aia_core/
     host_pacing.py          PacedTransport: every fetch waits its host's turn (local or shared pacer)
     population_repository.py  Population registry: versions, populations, history; each version's
                             dictionary bytes (population_version_dictionaries) and audience
-                            catalogue (population_version_audience_catalogues), insert-once
-    population_parser.py    Text-preserving panel + dictionary parser (stdlib)
+                            catalogue (population_version_audience_catalogues), insert-once; an
+                            owned child (P4c): versions(…, organization_id=) and visible_version
+                            return shared versions plus only that organization's own, the import's
+                            lookups see shared alone; extensions insert-once, re-hashed on read
+                            (population_contract_extensions)
+    population_store.py     Materialized children in EU S3: put_once (a conditional put; the same
+                            bytes answer as written, other bytes refused), RoutingPopulationSource
+                            (s3:// from the store, else the shared copy), AIA_POPULATION_STORE_BUCKET /
+                            _REGION, both or neither
+    population_parser.py    Text-preserving panel + dictionary parser (stdlib); write_panel, its
+                            deterministic inverse
     population_source.py    PopulationAssetSource: filesystem / memory (EU store later)
     ai_usage_repository.py  Append-only AI usage ledger; uncertain-call resolution
     ai_call_journal.py      CallJournal over the workflow attempt + ledger
     model_adapters/         Anthropic / OpenAI / Claude Code / Bedrock adapters, transports, recorded
                             doubles; live_transport.py (urllib3, no retries), aws_signing.py (SigV4,
                             instance or container role only)
-    storage.py              ArtifactStore: S3 / filesystem / memory
+    storage.py              ArtifactStore: S3 / filesystem / memory; s3_client(), the one AWS SDK
+                            import site
     storage_settings.py     AIA_STORAGE_*: one typed definition for every composition root
     web_retrieval.py        WebFetcher (every hop and address checked, caps, HTML to a content-
                             addressed snapshot); search/fetch protocols; recorded doubles (they say
