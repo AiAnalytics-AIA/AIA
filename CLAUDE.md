@@ -254,7 +254,9 @@ apps/
                             a panel run on a worker without it parks
                             (panel_personas_unavailable); a sample or persona refusal fails by name;
                             answer_plans: the request, draw and ledger loop over given plans, which
-                            produce and the validation's arms share
+                            produce and the validation's arms share; require_binding= fails a
+                            different resolved binding before any request; Answered.details: each
+                            draw's record
     analysis.py             research_analysis: one module per step over StepModelCaller; preflight
                             BLOCKED stored with 0 calls, turn checkpoints (a retry replays, never pays
                             twice), AnalysisConfig.from_settings; in the default registry: without
@@ -310,6 +312,12 @@ apps/
     materialize.py          population_materialize: a client's dimension made into its owned child
                             (PopulationRuntime.materialize_child); parks without a population store or
                             AIA_POPULATION_ASSET_ROOT (population_store_unconfigured)
+    validation.py           holdout_sample (the confirmation's respondents, drawn once and recorded)
+                            and holdout_arm (one model arm's replicate: the same sample drawn again,
+                            the preregistered blocks with each block's exclusion, answered through
+                            answer_plans with the preregistered model binding required, codes stored
+                            beside their probabilities); both park without the AI runtime or the
+                            panel path
     seed.py, smoke.py       Operator commands: idempotent develop seed; deployment proof
     legacy_workspace.py     Operator command: the one-off migration of Studies' content from a copy
                             of the 18.6.6 store (dry run unless --apply; ADR 0018 decision 2)
@@ -425,7 +433,8 @@ packages/aia_core/src/aia_core/
                             pure: bank.py (the item bank: each held-out question's Czech wording and
                             options as fielded, the panel code of each option and the public document
                             and page it was read from; pinned by its canonical SHA-256; one of the
-                            seven surveys the panel is built from), eligibility.py (which items a
+                            seven surveys the panel is built from; item_payload / read_item; repeated
+                            option labels refused), eligibility.py (which items a
                             population can hold out: measured, every value an option, 80 % coverage,
                             300 effective donors over the donor behind the answer, nothing the
                             respondent is told; a core item scored only in the ages its survey asked),
@@ -442,7 +451,7 @@ packages/aia_core/src/aia_core/
                             B demographics, C core without catalog signals, D the production persona,
                             S D's profiles deranged; the block's exclusion applied in every arm, each
                             respondent keeping their own facts and styles; D unexcluded is today's
-                            PanelPersonas.plan), scoring.py (per item TVD, subgroup TVD, Brier on
+                            PanelPersonas.plan; blocks= asks the preregistered blocks), scoring.py (per item TVD, subgroup TVD, Brier on
                             core items, entropy gap; the P1-P8 verdict: P4 D beats A on TVD, P5 D
                             beats S on subgroups and Brier, one Holm family; a criterion that cannot
                             be evaluated fails), baselines.py (L0 the population marginal, L1 the
@@ -450,7 +459,8 @@ packages/aia_core/src/aia_core/
                             30 donors; neither decides the verdict), run.py (a confirmation run from
                             its preregistration: sample, arm x replicate, score; the items as fielded
                             in the preregistered blocks, a fact item refused; requests n x blocks x 5
-                            x 3; the system checked but for the gateway's binding). Tests:
+                            x 3; the system checked but for the gateway's binding; sample_sha256,
+                            arm_record / read_arm_record). Tests:
                             conftest.holdout_population, a session-scoped fictional factory, and
                             conftest.holdout_records, a hand-built bank and preregistration
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
@@ -612,7 +622,8 @@ packages/aia_core/src/aia_core/
     validation.py           ValidationRuns.start: a confirmation run from the Study's stored
                             preregistration and its pinned bank; refuses a stale system, an unknown
                             or larger ceiling than preregistered, an unconfirmed spend, and a system
-                            another Study has started confirming
+                            another Study has started confirming; validation_artifacts: the Study's
+                            owned validation project
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
