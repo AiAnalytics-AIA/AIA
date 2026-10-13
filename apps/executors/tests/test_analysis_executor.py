@@ -781,6 +781,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
         steps["sociomap"]["output"]["artifact_id"],
     }
     assert document.startswith(b"PK") and lint_docx(document) == []
+    # The map of aia-sociomap-3 prints the register's approval, never "awaiting" (B4).
+    body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
+    assert "schválil k použití ve zprávách" in body
+    assert "Mapa metodou aia-sociomap-3 je interním výstupem" not in body
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])

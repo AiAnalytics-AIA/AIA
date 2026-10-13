@@ -843,7 +843,7 @@ describe("Results", () => {
     expect(within(t1).getByText(/Potlačeno: jen 19 unikátních dárců/)).toBeTruthy();
     expect(within(t1).queryByText("3,73")).toBeNull();
     expect(within(t1).queryByText(/3,25/)).toBeNull();
-    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    expect(await screen.findByText(t("research.exec.results.mapsByMethod"))).toBeTruthy();
     // What 18.6.6's map tool did and AIA does not is said where the map is.
     expect(screen.getByText(t("research.exec.results.mapToolNotInAia"))).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Sociomapy" }));
@@ -1057,7 +1057,7 @@ describe("Results", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByRole("region", { name: "q2" })).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5")).toHaveLength(1));
-    expect(screen.queryByText(/Interní: metodika Sociomapy/)).toBeNull();
+    expect(screen.queryByText(t("research.exec.results.mapsByMethod"))).toBeNull();
   });
 });
 
@@ -1086,7 +1086,7 @@ describe("A run's results outside a study session (project memory M2a)", () => {
     );
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
     expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
-    expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
+    expect(await screen.findByText(t("research.exec.results.mapsByMethod"))).toBeTruthy();
     const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
     expect(download.disabled).toBe(true);
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportApprove"), hidden: true })).toBeNull();

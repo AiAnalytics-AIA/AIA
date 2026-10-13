@@ -22,6 +22,7 @@ from aia_core.domain.report.model import (
 from aia_core.domain.report.numbers import number
 from aia_core.domain.sociomap import read_object_maps
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
+from aia_core.domain.sociomap_register import MethodologyStatus, recorded_statuses
 
 QUALITY = {
     "good": "dobrá",
@@ -34,18 +35,22 @@ QUALITY = {
 def compose_map_sections(
     result: Mapping[str, Any], images: Mapping[tuple[str, str, str], bytes], *, source: str
 ) -> tuple[Section, ...]:
-    """Explain each stored corrected map, with labelled snapshots and no new claims."""
-    if result.get("methodology_status") != "INTERNAL_ONLY":
-        raise ValueError("native map report requires an internal methodology status")
+    """Explain each stored corrected map, with labelled snapshots and no new claims.
+
+    Each map's status is the Sociomap register's for the method, at the exact specification,
+    the run recorded beside its maps (complete-study-report B4): an approved map prints the
+    approval's note, any other is internal and says its methodology awaits approval.
+    """
+    approvals = recorded_statuses(result)
     sections: list[Section] = []
     for index, battery in enumerate(result.get("batteries", []), start=1):
         blocks: list[Block] = [
             Callout(
                 CalloutKind.LIMITATION,
                 text(
-                    "Mapy jsou interním výstupem metody AIA, která dosud čeká na metodické "
-                    "schválení. Polohy a povrch popisují uložený výpočet; neprokazují příčinu "
-                    "vztahů ani chování skutečné populace."
+                    "Polohy a povrch map popisují uložený výpočet; neprokazují příčinu "
+                    "vztahů ani chování skutečné populace. U každé mapy je uvedeno, zda "
+                    "metodiku, kterou byla spočtena, AIA schválila k použití ve zprávách."
                 ),
                 title="Rámec interpretace map",
             ),
@@ -73,6 +78,21 @@ def compose_map_sections(
                 continue
             layout = artifact.layout
             support = artifact.support
+            approval = approvals.get(method)
+            map_status = (
+                approval.status if approval is not None else MethodologyStatus.INTERNAL_ONLY
+            )
+            blocks.append(
+                Callout(CalloutKind.METHOD, text(approval.reader_note))
+                if approval is not None and map_status is MethodologyStatus.CLIENT_FACING
+                else Callout(
+                    CalloutKind.LIMITATION,
+                    text(
+                        f"Mapa metodou {method} je interním výstupem: metodika dosud čeká "
+                        "na schválení a mapa nesmí do klientské zprávy."
+                    ),
+                )
+            )
             blocks.append(
                 Paragraph(
                     text(
@@ -100,7 +120,7 @@ def compose_map_sections(
                         id=f"fig-native-map-{index}-{ordinal}-{view}",
                         title=f"{battery['title']} · {view_title} · {method}",
                         image_png=images[key],
-                        methodology_status="INTERNAL_ONLY",
+                        methodology_status=map_status.value,
                         stress_1=layout.stress_1,
                         source=source,
                         alt=f"{view_title} uložené mapy {battery['title']}. Číslované objekty "

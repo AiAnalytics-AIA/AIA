@@ -65,6 +65,7 @@ from aia_core.domain.scope import (
     SeparationOfDutiesViolation,
     StudyContext,
 )
+from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER
 from aia_core.domain.workflow import StepRunStatus
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
@@ -815,6 +816,21 @@ def start_run(
     except PopulationError as exc:
         raise _population_refused(exc) from exc
     return _started(runs, started, response)
+
+
+@router.get(
+    "/research/sociomap-register",
+    response_model=dict[str, Any],
+    summary="Which Sociomap methods are approved, at which exact specification",
+)
+def sociomap_register(scope: StudyScopeDep) -> dict[str, Any]:
+    """The register a map's status is read from (complete-study-report B4): a map is approved
+    only when its run recorded exactly an entry's method id and spec fingerprint."""
+    try:
+        scope.require(Permission.VIEW_RESULTS)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return {"entries": [entry.model_dump(mode="json") for entry in SOCIOMAP_REGISTER]}
 
 
 @router.get("/research/runs", response_model=ResearchRunList, summary="The Study's research runs")

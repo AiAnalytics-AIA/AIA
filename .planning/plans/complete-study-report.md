@@ -7,7 +7,7 @@ chunks:
   - "[x] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
   - "[x] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
   - "[x] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
-  - "[ ] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
+  - "[x] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
   - "[ ] B5. Client report composer: client_report recipe over a CLIENT_FACING ledger admitting MODELLED_AI_PANEL under the owner's 2026-10-13 decision, every modelled number labelled"
   - "[ ] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
 ---
@@ -126,6 +126,25 @@ number labelled (B5); stages before backend (done in PR #382).
   Docker build could not reach Debian's mirror. Tests: test_report_pdf.py (a stand-in
   soffice), the three PDF tests in test_analysis_executor.py, the two in
   test_research_api.py, ExecutionSteps "offers the report's PDF…".
+- B4: `domain/sociomap_register.py` replaces PROGRESS D6's global `D6_OPEN`: a
+  `MethodApproval` names a method id **and** its spec fingerprint, so an edited version,
+  a changed preset or a version with replaced formulas is never approved by an entry
+  written for another; a method absent from the register is INTERNAL_ONLY. First and only
+  entry: aia-sociomap-3 at `e16dc0d0…f241` (the code preset's fingerprint, pinned by
+  `test_the_owners_decision_approves_aia_sociomap_3_exactly_as_the_code_computes_it`),
+  CLIENT_FACING, the owner's 2026-10-13 decision, with a printed note that the
+  methodology is provisional. Status is read from the register whenever a map is read,
+  from the method id and fingerprint the run recorded beside its maps (`methods`), so it
+  applies to every run that computed exactly the approved method. The drawn contract-2
+  map (aia-sociomap-1) stays INTERNAL_ONLY (not in the register), so the stored
+  `methodology_status` of every run is unchanged. `compose_map_sections` prints each map's
+  status (the approval's note or "interní, čeká na schválení") and sets the figure's
+  status; a client render still refuses any figure that is not CLIENT_FACING.
+  `GET …/research/sociomap-register` serves the register; Výsledky' object map shows
+  "Metodika schválena pro zprávy" with the note for an approved map, the internal chip
+  otherwise (`mapApproval` in lib/object-map-view.ts: an unread register is internal).
+  Tests: test_sociomap_register.py (6), the populated-map executor test (the stored report
+  prints the approval), the register route test, `mapApproval` and ObjectMapView tests.
 - PDFs on for develop (owner, 2026-10-13): `AIA_WORKER_PDF=true` in the worker image build
   (.github/workflows/deploy-develop.yml) and `AIA_REPORT_PDF_ENABLED` defaulting to true in
   the develop worker's Compose environment (deploy/develop/docker-compose.yml, env.example).
@@ -173,4 +192,15 @@ number labelled (B5); stages before backend (done in PR #382).
   (research_internal_pdf)"; deploy/docker: "worker build arg AIA_WORKER_PDF installs
   LibreOffice Writer".
 - CLAUDE.md § 3 commands or deploy/develop README: how to turn PDFs on (both switches).
+- CLAUDE.md § 2 map, domain/: `sociomap_register.py  SOCIOMAP_REGISTER: which Sociomap method,
+  at which exact spec fingerprint, is approved (MethodologyStatus); absent is INTERNAL_ONLY;
+  aia-sociomap-3 approved by the owner 2026-10-13`; research_sociomap.py's line: "INTERNAL_ONLY
+  while D6 is open" becomes "a map's status is the Sociomap register's for its method";
+  CLAUDE.md § 2 prose "The Sociomap is computed but INTERNAL_ONLY while D6 is open" becomes
+  "A Sociomap's status is the register's for the exact method that computed it
+  (aia-sociomap-3 approved 2026-10-13; aia-sociomap-1 internal)"; report_maps.py: "each map
+  with the register's status"; routers/research: "GET …/research/sociomap-register";
+  web lib/object-map-view.ts: "mapApproval".
+- overview.md PROGRESS D6: the global switch is replaced by the register; D6 stays open for
+  aia-sociomap-1's four declarations; OI-17 (the register) is closed by B4.
 - open-items.md: F1 to be numbered there.

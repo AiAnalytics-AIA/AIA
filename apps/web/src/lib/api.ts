@@ -4,6 +4,7 @@
 // API's Pydantic models (apps/api/src/aia_api/schemas); the client renders what
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
+import type { RegisterEntry } from "@/lib/object-map-view";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 
 export class ApiError extends Error {
@@ -865,6 +866,9 @@ export const research = {
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
   downloadReport: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
+  sociomapRegister: (studyId: string) =>
+    request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */

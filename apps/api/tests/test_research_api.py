@@ -462,6 +462,13 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
     assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
 
 
+def test_the_sociomap_register_is_read_through_a_study(researcher: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/research/sociomap-register"
+    (entry,) = researcher.get(url).json()["entries"]
+    assert entry["method_id"] == "aia-sociomap-3" and entry["status"] == "CLIENT_FACING"
+    assert entry["decided_on"] == "2026-10-13" and len(entry["spec_fingerprint"]) == 64
+
+
 def test_a_person_approves_a_runs_stored_report_once_and_only_that(
     app: FastAPI,
     owner: TestClient,

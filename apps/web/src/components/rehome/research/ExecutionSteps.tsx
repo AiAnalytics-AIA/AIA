@@ -31,7 +31,7 @@ import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { researchStepOrb } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { saveBlob } from "@/lib/download";
-import { type BatteryWithMaps, readObjectMap } from "@/lib/object-map-view";
+import { type BatteryWithMaps, mapApproval, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import {
   STEP_ORDER,
   ANALYSIS_ORDER,
@@ -973,7 +973,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       <details className="rounded-md border border-border bg-surface-raised p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">Jak používat mapu a AI pomoc</summary><p className="mt-2 text-sm leading-6 text-ink-muted">Začněte legendou a metodikou uloženou u konkrétní mapy. Polohu, výšku a barvu čtěte odděleně. Potlačené a chybějící hodnoty nenahrazujte nulou. AI pomoc pracuje s návrhem a schválenými znalostmi; číselné hodnoty z mapy se do otázky neposílají automaticky.</p></details>
       {sociomap && sociomap.state !== "hidden" ? (
         <Card id="res-sociomap" title={t("research.exec.results.sociomap")} tone="notice">
-          <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.internal")}</p>
+          <p role="note" className="mb-3 text-sm font-semibold">{t("research.exec.results.mapsByMethod")}</p>
           <p className="mb-3 text-sm text-ink-muted">{t("research.exec.results.mapToolNotInAia")}</p>
           {sociomap.state === "ready" ? <SociomapView artifact={sociomap.value} run={run} /> : null}
           {sociomap.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{sociomap.message}</p> : null}
@@ -1230,10 +1230,26 @@ function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
 }
 
 function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {
+  const frame = useFrame();
+  // The register a map's approval is read from (B4); not read, every map stays internal.
+  const [register, setRegister] = useState<RegisterEntry[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    research.sociomapRegister(frame.studyId).then(
+      (value) => live && setRegister(value.entries ?? null),
+      () => live && setRegister(null),
+    );
+    return () => { live = false; };
+  }, [frame.studyId]);
   const payload = artifact.payload as {
-    sociomap: { data_origin?: string | null; batteries: (Parameters<typeof sociomapObjects>[0] & BatteryWithMaps)[] };
+    sociomap: {
+      data_origin?: string | null;
+      methods?: RecordedMethod[];
+      batteries: (Parameters<typeof sociomapObjects>[0] & BatteryWithMaps)[];
+    };
   } | null;
   if (!payload) return null;
+  const approvalOf = (methodId: string) => mapApproval(payload.sociomap.methods, register, methodId);
   return (
     <div className="flex flex-col gap-4">
       {payload.sociomap.batteries.map((b) => {
@@ -1265,7 +1281,7 @@ function SociomapView({ artifact, run }: { artifact: Artifact; run: ResearchRun 
           <section key={b.battery_id} aria-label={b.title} className="flex flex-col gap-2">
             {objectMap.ok || objectMap.reason === "contract" ? (
               <>
-                <ObjectMapView battery={b} dataOrigin={payload.sociomap.data_origin ?? null} />
+                <ObjectMapView battery={b} dataOrigin={payload.sociomap.data_origin ?? null} approvalOf={approvalOf} />
                 <details className="text-sm">
                   <summary className="cursor-pointer font-semibold">{t("research.exec.objectMap.comparison")}</summary>
                   {table}
