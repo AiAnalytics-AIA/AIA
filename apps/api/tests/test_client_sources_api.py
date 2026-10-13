@@ -15,6 +15,7 @@ from urllib.parse import quote
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
+SOURCES = Path(__file__).resolve().parents[3] / "packages/aia_core/tests/fixtures/client_sources"
 FIXTURES = (
     Path(__file__).resolve().parents[3] / "packages/aia_core/tests/fixtures/attachment_text/inputs"
 )
@@ -107,11 +108,46 @@ def test_what_cannot_be_kept_or_read_says_so_by_name(lead: TestClient, world: An
 
     image = upload(lead, client, "logo.png", (FIXTURES / "obrazek.png").read_bytes()).json()
     assert (image["outcome"], image["reason"]) == ("UNREADABLE", "not_text_media")
-    pending = upload(lead, client, "data.xlsx", (FIXTURES / "tabulka.xlsx").read_bytes()).json()
-    assert (pending["outcome"], pending["reason"]) == ("UNSUPPORTED", "reader_pending")
+    sheet = upload(lead, client, "data.xlsx", (FIXTURES / "tabulka.xlsx").read_bytes()).json()
+    assert (sheet["outcome"], sheet["reader"]) == ("READ", "xlsx/1")
 
 
 def test_an_unknown_source_id_is_404(lead: TestClient, world: Any) -> None:
     client = world.client_id("primary")
     assert lead.get(f"{API}/clients/{client}/sources/SRC-0000000000000000").status_code == 404
     assert lead.get(f"{API}/clients/{client}/sources/not-an-id").status_code == 422
+
+
+def test_a_dataset_answers_its_columns_and_masks_what_is_personal(
+    lead: TestClient, world: Any
+) -> None:
+    client = world.client_id("primary")
+    csv = SOURCES / "utrata.csv"
+    kept = upload(lead, client, "útrata.csv", csv.read_bytes()).json()
+    detail = lead.get(f"{API}/clients/{client}/sources/{kept['source_id']}").json()
+    [sheet] = detail["reading"]["dataset"]["sheets"]
+    assert (sheet["header_row"], sheet["rows"]) == (1, 3)
+    phone = sheet["columns"][4]
+    assert (phone["header"], phone["personal"], set(phone["sample"])) == (
+        "Telefon",
+        "PHONE",
+        {"•••"},
+    )
+    # A document has no dataset.
+    text = upload(lead, client, "a.md", b"# Fakt").json()
+    assert (
+        lead.get(f"{API}/clients/{client}/sources/{text['source_id']}").json()["reading"]["dataset"]
+        is None
+    )
+
+
+def test_reading_a_source_again_answers_it_as_read_now(lead: TestClient, world: Any) -> None:
+    client = world.client_id("primary")
+    kept = upload(lead, client, "a.csv", b"a;b\n1;2\n").json()
+    again = lead.post(f"{API}/clients/{client}/sources/{kept['source_id']}/reading")
+    assert again.status_code == 200
+    assert (again.json()["reader"], again.json()["reading"]["outcome"]) == ("csv/1", "READ")
+    other = world.client_id("other")
+    assert (
+        lead.post(f"{API}/clients/{other}/sources/{kept['source_id']}/reading").status_code == 404
+    )

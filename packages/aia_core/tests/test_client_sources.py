@@ -177,7 +177,6 @@ def test_text_is_read_by_paragraph_with_its_first_line() -> None:
         ("poskozeny.pdf", ReadingOutcome.REFUSED, "document_malformed"),
         ("poskozeny.docx", ReadingOutcome.REFUSED, "document_malformed"),
         ("neplatne.txt", ReadingOutcome.PARTIAL, "not_utf8"),
-        ("tabulka.xlsx", ReadingOutcome.UNSUPPORTED, "reader_pending"),
     ],
 )
 def test_what_cannot_be_read_says_so_by_name(
@@ -187,14 +186,16 @@ def test_what_cannot_be_read_says_so_by_name(
     assert (reading.outcome, reading.reason) == (outcome, reason)
 
 
-def test_a_reader_still_to_come_reads_as_unsupported_never_as_read() -> None:
-    for name in ("a.csv", "a.xlsx", "a.xls", "a.ods"):
-        reading = read_source(b"anything", name)
-        assert (reading.outcome, reading.reason, reading.segments) == (
-            ReadingOutcome.UNSUPPORTED,
-            "reader_pending",
-            (),
-        ), name
+def test_every_format_on_the_owners_list_has_a_reader() -> None:
+    # The owner's list of 2026-10-13, as the families name it: nothing on it is left
+    # "reader pending" once K2c lands.
+    from aia_core.domain.client_sources import _FAMILIES
+    from aia_core.infrastructure.source_reading import READERS
+
+    readable = {
+        s for s, f in _FAMILIES.items() if f in (SourceFamily.DOCUMENT, SourceFamily.DATASET)
+    }
+    assert readable == set(READERS)
 
 
 # ------------------------------------------------------------------ the repository

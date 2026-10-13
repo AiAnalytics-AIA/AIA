@@ -7,8 +7,10 @@ reading it produced comes back at once: ``READ``, ``PARTIAL``, ``UNREADABLE``,
 
 ``GET /clients/{client_id}/sources`` -- the client's sources, the most recently added
 first. ``GET …/{source_id}`` -- one source with its reading, every segment with where it
-stands in the original. ``GET …/{source_id}/original`` -- the bytes, as
-``application/octet-stream``, never rendered in AIA's origin.
+stands in the original, and a dataset's columns. ``GET …/{source_id}/original`` -- the
+bytes, as ``application/octet-stream``, never rendered in AIA's origin.
+``POST …/{source_id}/reading`` -- read a source again with its format's current reader,
+when a newer one has come (OI-110).
 
 A source is not knowledge: adding one accepts nothing, and no study reads it. Found only
 within its client; another client's source is a 404.
@@ -115,12 +117,40 @@ class NoteResponse(_Model):
     count: int | None = None
 
 
+class ColumnResponse(_Model):
+    index: int
+    letter: str
+    header: str | None
+    kind: str
+    filled: int
+    distinct: int
+    distinct_capped: bool
+    #: Why the column is treated as personal data; its samples are then masked.
+    personal: str | None
+    sample: list[str]
+
+
+class SheetResponse(_Model):
+    name: str | None
+    header_row: int | None
+    rows: int
+    columns: list[ColumnResponse]
+    truncated: bool
+
+
+class DatasetResponse(_Model):
+    sheets: list[SheetResponse]
+    more_sheets: bool
+
+
 class ReadingResponse(_Model):
     outcome: str
     reader: str | None
     reason: str | None
     segments: list[SegmentResponse]
     notes: list[NoteResponse]
+    #: A dataset's columns as read (a CSV, XLSX, XLS or ODS); null for anything else.
+    dataset: DatasetResponse | None = None
 
 
 class SourceDetailResponse(SourceResponse):
@@ -314,3 +344,32 @@ def download_source(
             "Cache-Control": "private, no-store",
         },
     )
+
+
+@router.post(
+    "/{source_id}/reading",
+    response_model=SourceDetailResponse,
+    summary="Read a source again with its format's current reader",
+    responses={409: {"model": ErrorResponse, "description": "The stored bytes are altered"}},
+)
+def reread_source(
+    client_id: ClientIdPath,
+    source_id: SourceIdPath,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> SourceDetailResponse:
+    """Needs ``PROPOSE_CLIENT_KNOWLEDGE``. The original never changes; a source already
+    read by its format's current reader is answered as it is (OI-110)."""
+    scope = _scope(principal, resolver, client_id)
+    repo = ClientSourceRepository(session, store)
+    try:
+        repo.reread(scope, source_id)
+        record = repo.source(scope, source_id)
+        reading = repo.reading(scope, source_id)
+    except ScopeDenied as exc:
+        raise _denied(exc) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise _corrupt() from exc
+    return SourceDetailResponse(**_source(record), reading=_reading(reading))

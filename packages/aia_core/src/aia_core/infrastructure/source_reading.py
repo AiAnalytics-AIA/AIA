@@ -27,6 +27,7 @@ import zipfile
 from typing import Final
 
 from ..domain.attachments import extension_of
+from ..domain.client_datasets import DatasetPreview, preview_sheet
 from ..domain.client_sources import (
     Locator,
     ReadingNote,
@@ -37,8 +38,9 @@ from ..domain.client_sources import (
     family_of,
     reading_of_segments,
 )
-from ..domain.deep_research.documents import DocumentRefused
-from .document_text import check_zip_bounds, read_pdf
+from ..domain.deep_research import documents as grid_bounds
+from ..domain.deep_research.documents import DocumentRefused, GridContent
+from .document_text import check_zip_bounds, grid_from_rows, read_csv, read_pdf, read_xlsx
 
 __all__ = ["READERS", "XML_PART_MAX_BYTES", "piece_text", "read_source"]
 
@@ -52,6 +54,10 @@ READERS: Final[dict[str, str]] = {
     ".pptx": "pptx/1",
     ".txt": "text/1",
     ".md": "text/1",
+    ".csv": "csv/1",
+    ".xlsx": "xlsx/1",
+    ".xls": "xls/1",
+    ".ods": "ods/1",
 }
 
 #: The most one XML part of an Office or OpenDocument file may hold once inflated.
@@ -400,6 +406,184 @@ def _doc(data: bytes) -> tuple[list[Segment], list[ReadingNote]]:
     return segments, []
 
 
+# --------------------------------------------------------------------------- #
+# Datasets: CSV, XLSX, XLS, ODS (K2c)
+# --------------------------------------------------------------------------- #
+
+_TABLE_NS = "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}"
+
+
+def _xls(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
+    """A Word-era workbook's sheets, through xlrd, as the other readers' grids."""
+    import xlrd
+
+    try:
+        book = xlrd.open_workbook(file_contents=data, on_demand=True)
+    except xlrd.biffh.XLRDError as exc:
+        if "encrypted" in str(exc).lower():
+            raise DocumentRefused("the XLS is encrypted", reason="document_encrypted") from exc
+        raise DocumentRefused(
+            f"the XLS cannot be read ({exc})", reason="document_malformed"
+        ) from exc
+    try:
+        budget = [grid_bounds.MAX_GRID_CELLS]
+        grids: list[GridContent] = []
+        names = book.sheet_names()
+        for index in range(min(len(names), grid_bounds.MAX_GRID_SHEETS)):
+            sheet = book.sheet_by_index(index)
+            cut = (
+                sheet.nrows > grid_bounds.MAX_GRID_ROWS
+                or sheet.ncols > grid_bounds.MAX_GRID_COLUMNS
+            )
+            rows_wanted = min(sheet.nrows, grid_bounds.MAX_GRID_ROWS)
+            cols_wanted = min(sheet.ncols, grid_bounds.MAX_GRID_COLUMNS)
+
+            def values(
+                r: int, sheet: object = sheet, cols: int = cols_wanted
+            ) -> tuple[object, ...]:
+                out: list[object] = []
+                for c in range(cols):
+                    cell = sheet.cell(r, c)  # type: ignore[attr-defined]
+                    if cell.ctype == xlrd.XL_CELL_DATE:
+                        out.append(xlrd.xldate.xldate_as_datetime(cell.value, book.datemode))
+                    elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+                        out.append(bool(cell.value))
+                    elif cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK, xlrd.XL_CELL_ERROR):
+                        out.append(None)
+                    else:
+                        out.append(cell.value)
+                return tuple(out)
+
+            grids.append(
+                grid_from_rows(names[index], (values(r) for r in range(rows_wanted)), budget, cut)
+            )
+            book.unload_sheet(index)
+            if budget[0] <= 0:
+                break
+        return tuple(grids), len(names) > len(grids)
+    finally:
+        book.release_resources()
+
+
+def _ods_cell(cell: ET.Element) -> object:
+    kind = cell.get("{urn:oasis:names:tc:opendocument:xmlns:office:1.0}value-type")
+    office = "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}"
+    if kind in ("float", "percentage", "currency"):
+        raw = cell.get(f"{office}value")
+        try:
+            return float(raw) if raw is not None else None
+        except ValueError:
+            return raw
+    if kind == "date":
+        return cell.get(f"{office}date-value")
+    if kind == "time":
+        return cell.get(f"{office}time-value")
+    if kind == "boolean":
+        return cell.get(f"{office}boolean-value") == "true"
+    text = "\n".join(_odf_text(p) for p in cell.iter(f"{_TEXT}p"))
+    return text or None
+
+
+def _ods(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
+    """An OpenDocument spreadsheet's sheets, repeats expanded only up to the bounds.
+
+    A row or cell repeated a million times (how a spreadsheet stores the empty rest of a
+    sheet) is never materialized past the bounds: an empty repeat only moves the count.
+    """
+    check_zip_bounds(data, "ODS")
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        root = _part(archive, "content.xml", "ODS")
+    body = root.find(f"{_OFFICE}body/{_OFFICE}spreadsheet")
+    if body is None:
+        raise DocumentRefused("the ODS has no spreadsheet body", reason="document_malformed")
+    tables = body.findall(f"{_TABLE_NS}table")
+    budget = [grid_bounds.MAX_GRID_CELLS]
+    grids: list[GridContent] = []
+    for table in tables[: grid_bounds.MAX_GRID_SHEETS]:
+        cut = False
+
+        def rows(table: ET.Element = table) -> list[tuple[object, ...]]:
+            nonlocal cut
+            out: list[tuple[object, ...]] = []
+            for row in table.iter(f"{_TABLE_NS}table-row"):
+                values: list[object] = []
+                for cell in row:
+                    if cell.tag not in (f"{_TABLE_NS}table-cell", f"{_TABLE_NS}covered-table-cell"):
+                        continue
+                    repeat = int(cell.get(f"{_TABLE_NS}number-columns-repeated", "1") or 1)
+                    value = _ods_cell(cell)
+                    room = grid_bounds.MAX_GRID_COLUMNS + 1 - len(values)
+                    if value is None and repeat > room:
+                        repeat = 0  # the empty rest of the row: nothing to keep
+                    if repeat > room:
+                        cut = True
+                    values.extend([value] * max(0, min(repeat, room)))
+                while values and values[-1] is None:
+                    values.pop()
+                repeat_rows = int(row.get(f"{_TABLE_NS}number-rows-repeated", "1") or 1)
+                if not values:
+                    # Empty rows only move the numbering, however many.
+                    out.extend([()] * min(repeat_rows, grid_bounds.MAX_GRID_ROWS + 1 - len(out)))
+                else:
+                    room = grid_bounds.MAX_GRID_ROWS + 1 - len(out)
+                    if repeat_rows > room:
+                        cut = True
+                    out.extend([tuple(values)] * max(0, min(repeat_rows, room)))
+                if len(out) > grid_bounds.MAX_GRID_ROWS:
+                    cut = True
+                    break
+            return out
+
+        read_rows = rows()
+        name = table.get(f"{_TABLE_NS}name", "") or ""
+        grids.append(grid_from_rows(name, read_rows, budget, cut))
+        if budget[0] <= 0:
+            break
+    return tuple(grids), len(tables) > len(grids)
+
+
+def _xlsx(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
+    _, grids, more = read_xlsx(data)
+    return grids, more
+
+
+def _csv(data: bytes) -> tuple[tuple[GridContent, ...], bool]:
+    return (read_csv(data),), False
+
+
+def _trimmed(values: tuple[str, ...]) -> tuple[str, ...]:
+    end = len(values)
+    while end and not values[end - 1].strip():
+        end -= 1
+    return values[:end]
+
+
+_DATASETS = {".csv": _csv, ".xlsx": _xlsx, ".xls": _xls, ".ods": _ods}
+
+
+def _dataset_reading(reader: str, grids: tuple[GridContent, ...], more: bool) -> SourceReading:
+    """A dataset's rows as segments (sheet and row) and its preview, from its grids."""
+    segments: list[Segment] = []
+    notes: list[ReadingNote] = []
+    sheets = []
+    for grid in grids:
+        name = grid.name or None
+        # A sheet that declares more columns than it fills pads every row with empties:
+        # a row ends at its last filled cell.
+        rows = [(row.number, _trimmed(row.values)) for row in grid.rows]
+        sheets.append(preview_sheet(name, rows, truncated=grid.truncated))
+        segments.extend(
+            Segment(locator=Locator(sheet=name, row=number), text=_cells(list(values)))
+            for number, values in rows
+        )
+        if grid.truncated:
+            notes.append(ReadingNote(code="rows_bound", at=Locator(sheet=name) if name else None))
+    if more:
+        notes.append(ReadingNote(code="sheets_bound", count=len(grids)))
+    preview = DatasetPreview(sheets=tuple(sheets), more_sheets=more) if segments else None
+    return reading_of_segments(reader, segments, notes=notes, dataset=preview)
+
+
 _READ = {
     ".pdf": _pdf,
     ".docx": _docx,
@@ -422,9 +606,14 @@ def read_source(data: bytes, filename: str) -> SourceReading:
     if family in (SourceFamily.IMAGE, SourceFamily.VIDEO):
         return SourceReading(outcome=ReadingOutcome.UNREADABLE, reason="not_text_media")
     read = _READ.get(suffix)
-    if read is None:
+    dataset = _DATASETS.get(suffix)
+    if read is None and dataset is None:
         return SourceReading(outcome=ReadingOutcome.UNSUPPORTED, reason="reader_pending")
     try:
+        if dataset is not None:
+            grids, more = dataset(data)
+            return _dataset_reading(READERS[suffix], grids, more)
+        assert read is not None
         segments, notes = read(data)
     except ImportError:
         raise
