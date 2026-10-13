@@ -1,0 +1,141 @@
+"""Every chapter a run's report is built from, from the run's verified sources (B1d).
+
+The internal report the worker stores and the report with literature a person downloads
+are the same study's report: they must carry the same chapters. Each used to verify the
+run's map on its own and only one gained the design, method and question chapters. This
+is the one place both get them from:
+
+* the map: the run's frozen sociomap, checked to be derived from this run's dataset and
+  specification, drawn as chapters (``compose_map_sections``);
+* the specification: the one the map was derived from, whose fingerprint the analysis
+  recorded -- the design chapter and the questionnaire come from it, and the question
+  tables take its order and words;
+* who answered and how: the run's own metadata and its dataset's origin.
+
+A source that does not belong to the run's analysis refuses the report; nothing is
+substituted.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import Any
+
+from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report import ReportCompositionRefused
+from aia_core.application.report_design import DesignSections, compose_design_sections
+from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_tables import QuestionTables, compose_question_tables
+from aia_core.domain.analysis import AnalysisModuleId
+from aia_core.domain.analysis.native import native_items
+from aia_core.domain.report.model import Section
+from aia_core.domain.research_design import ResearchSpecification
+from aia_core.infrastructure.artifact_repository import ArtifactRepository, ArtifactStatus
+
+SOCIOMAP_ARTIFACT = "research_sociomap"
+SPECIFICATION_ARTIFACT = "research_specification"
+
+
+@dataclass(frozen=True, slots=True)
+class ReportChapters:
+    """The run-derived chapters of one report, and the map they were drawn from."""
+
+    maps: tuple[Section, ...]
+    questions: QuestionTables
+    design: DesignSections
+    method: Section
+    map_artifact_id: str
+    map_sha256: str
+
+
+@dataclass(frozen=True, slots=True)
+class VerifiedMap:
+    """A run's frozen Sociomap, verified as derived from its dataset and specification."""
+
+    body: Mapping[str, Any]
+    artifact_id: str
+    sha256: str
+    specification: ResearchSpecification
+
+
+def verified_map(
+    repo: ArtifactRepository,
+    map_artifact_id: str | None,
+    *,
+    dataset_sha256: str,
+    specification_fingerprint: str,
+) -> VerifiedMap:
+    """The run's Sociomap and the specification it was derived from, each checked to belong to
+    the run's dataset and specification. Raises :class:`ReportCompositionRefused` otherwise."""
+    if not map_artifact_id:
+        raise ReportCompositionRefused("the run recorded no sociomap artifact")
+    map_source = repo.get(map_artifact_id)
+    if (
+        map_source.artifact_type != SOCIOMAP_ARTIFACT
+        or map_source.status is not ArtifactStatus.VALID
+    ):
+        raise ReportCompositionRefused("the map source is not a valid sociomap artifact")
+    dependencies = repo.dependencies(map_artifact_id)
+    if not any(d.sha256 == dataset_sha256 for d in dependencies):
+        raise ReportCompositionRefused("the map is not derived from this run's dataset")
+    specification = next(
+        (
+            payload
+            for d in dependencies
+            if d.artifact_type == SPECIFICATION_ARTIFACT
+            and (payload := repo.read_json(d.artifact_id)).get("specification_fingerprint")
+            == specification_fingerprint
+        ),
+        None,
+    )
+    if specification is None:
+        raise ReportCompositionRefused("the map is not derived from this specification")
+    return VerifiedMap(
+        body=repo.read_json(map_artifact_id)["sociomap"],
+        artifact_id=map_artifact_id,
+        sha256=map_source.sha256,
+        specification=ResearchSpecification.model_validate(specification["specification"]),
+    )
+
+
+def report_chapters(
+    repo: ArtifactRepository,
+    run: Mapping[str, Any],
+    analysis: RunAnalysis,
+    *,
+    map_artifact_id: str | None,
+    run_id: str,
+) -> ReportChapters:
+    """The map, question, design and method chapters of ``run``'s report, each from a source
+    verified to belong to ``analysis``. Raises :class:`ReportCompositionRefused` otherwise."""
+    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
+
+    first = analysis.modules.get(AnalysisModuleId.EXECUTIVE)
+    if first is None or first.result is None:
+        raise ReportCompositionRefused("executive analysis is incomplete")
+    mapped = verified_map(
+        repo,
+        map_artifact_id,
+        dataset_sha256=first.record.sources.dataset.sha256,
+        specification_fingerprint=first.record.sources.specification_fingerprint,
+    )
+    spec, body = mapped.specification, mapped.body
+    return ReportChapters(
+        maps=compose_map_sections(
+            body,
+            object_map_snapshots(body),
+            source=f"Zmrazený výsledek běhu {run_id}; SHA-256 {mapped.sha256}",
+        ),
+        questions=compose_question_tables(
+            analysis,
+            native_items(spec),
+            source=f"Zmrazený výsledek běhu {run_id}; evidence "
+            f"{first.inputs.table.fingerprint()[:12]}",
+        ),
+        design=compose_design_sections(spec, first.inputs.research_questions),
+        method=compose_method_section(run.get("metadata") or {}, first.record.labels.data_origin),
+        map_artifact_id=mapped.artifact_id,
+        map_sha256=mapped.sha256,
+    )

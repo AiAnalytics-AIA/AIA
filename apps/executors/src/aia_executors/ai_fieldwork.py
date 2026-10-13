@@ -59,7 +59,12 @@ from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.methodology.pins import is_units_process, read_response_pin
 from aia_core.domain.panel_persona import PersonaRefused
-from aia_core.domain.panel_source import PanelPlans, panel_plans, respondent_system
+from aia_core.domain.panel_source import (
+    PanelPlans,
+    joint_certificate_record,
+    panel_plans,
+    respondent_system,
+)
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.population.enrichment import AudienceDimensionsEnricher
@@ -150,6 +155,9 @@ class ProducedDataset:
     #: A modelled dataset's respondent system (ADR 0024 §4), for the artifact's metadata;
     #: ``None`` for a fictional one, which is never validated.
     respondent_system: dict[str, str] | None = None
+    #: A modelled dataset's population certificate (complete-study-report B5a); ``None`` for a
+    #: fictional one and for a population that carries none.
+    joint_certificate: dict[str, str] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -492,4 +500,13 @@ class AIFieldwork:
                 population,
                 model_binding=self.binding(resolution),
             )
-        return ProducedDataset(dataset=dataset, provenance=provenance, respondent_system=system)
+        return ProducedDataset(
+            dataset=dataset,
+            provenance=provenance,
+            respondent_system=system,
+            joint_certificate=(
+                joint_certificate_record(population)
+                if population is not None and system is not None
+                else None
+            ),
+        )

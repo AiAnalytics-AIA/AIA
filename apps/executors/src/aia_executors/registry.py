@@ -22,6 +22,7 @@ from typing import Final
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.population_store import PopulationStoreSettings, S3PopulationStore
+from aia_core.infrastructure.report_pdf import PdfConverter, report_pdf_from_env
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.storage_settings import StorageSettings, build_artifact_store
 from aia_worker.executor import StepExecutor
@@ -82,6 +83,7 @@ def registry_for(
     deep_research: DeepResearchRuntime | None = None,
     sociomap_connectedness_interval: bool = False,
     materialize: StepExecutor | None = None,
+    report_pdf: PdfConverter | None = None,
 ) -> dict[str, StepExecutor]:
     """Step kind -> executor, over explicit collaborators. Tests use this."""
     return {
@@ -95,7 +97,7 @@ def registry_for(
         ),
         **deep_research_registry(store=store, build=build, runtime=deep_research),
         SNAPSHOT_KIND: SnapshotExecutor(store=store, build=build),
-        **report_registry(store=store, build=build),
+        **report_registry(store=store, build=build, pdf=report_pdf),
         **sociomapping_report_registry(store=store, build=build),
         **research_registry(
             store=store,
@@ -185,4 +187,5 @@ def build_registry() -> dict[str, StepExecutor]:
             else None
         ),
         sociomap_connectedness_interval=connectedness_interval,
+        report_pdf=report_pdf_from_env(os.environ),
     )

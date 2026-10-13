@@ -159,6 +159,9 @@ def grounded_population(session: Session, *, omit: tuple[str, ...] = ()) -> Grou
             "status": "COHERENT_CORE_MATCHED_BLOCKS",
             "structure_status": "QC_PASSED",
             "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
+            # As the v17 certificate names it (legacy CORE_JOINT_STATUS.json); the evidence
+            # gate reads a certificate only with its production panel named.
+            "production_panel": "FICTIONAL_PANEL_v1_4.csv",
             "panel_sha256": content_sha256(panels["v1_4"]),
             "matched_blocks": [],
             "core_same_person_joint": True,

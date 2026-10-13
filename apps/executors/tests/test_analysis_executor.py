@@ -15,10 +15,13 @@ depending on ``aggregate`` alone); the template itself is not edited by this job
 
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import threading
 import time
 import uuid
+import zipfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -33,7 +36,7 @@ from aia_core.application.analysis_results import (
     SourcesRefused,
     reconstruct_run,
 )
-from aia_core.application.contextual_report import contextual_report
+from aia_core.application.contextual_report import contextual_report, stored_contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.report import ReportCompositionRefused
 from aia_core.application.research import ResearchRuns, research_artifacts
@@ -83,6 +86,7 @@ from aia_core.infrastructure.model_adapters.transport import (
 )
 from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+from aia_core.infrastructure.report_pdf import PdfConversionFailed, PdfConverter
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.tables import BudgetReservationRow, StudyRow
@@ -102,7 +106,7 @@ from aia_executors.analysis import (
 )
 from aia_executors.deep_research import DeepResearchRuntime
 from aia_executors.registry import registry_for
-from aia_executors.report import REPORT_ARTIFACT_TYPE
+from aia_executors.report import REPORT_ARTIFACT_TYPE, report_registry
 from aia_executors.workbench import workbench_registry_for
 from aia_worker.executor import StepExecutor
 from aia_worker.settings import WorkerSettings
@@ -411,6 +415,7 @@ def run_with(
         config: AnalysisConfig | None = None,
         ai_fieldwork: bool = False,
         deep_research: DeepResearchRuntime | None = None,
+        pdf: PdfConverter | None = None,
     ) -> Worker:
         settings = AIRuntimeSettings.from_env(env if env is not None else _env(world))
         assert settings is not None
@@ -445,6 +450,7 @@ def run_with(
                     gateway=gateway,
                     config=config if gateway is not None else None,
                 ),
+                **(report_registry(store=store, build=build, pdf=pdf) if pdf is not None else {}),
             },
             settings=WorkerSettings(
                 database_url=database_url,
@@ -557,6 +563,21 @@ def test_native_research_start_and_worker_complete_the_composed_analysis_graph(
     }
     assert document.startswith(b"PK")
     assert lint_docx(document) == []
+    # Every question's numbers are in the report, after the methodology (complete-study-report B1a).
+    body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
+    assert "Výsledky jednotlivých otázek" in body
+    assert body.index("Metodika a způsob interpretace") < body.index("Výsledky jednotlivých otázek")
+    # The design it ran, and its questionnaire as an appendix (B1b).
+    assert body.index("Návrh studie") < body.index("Metodika a způsob interpretace")
+    assert body.index("Výsledky jednotlivých otázek") < body.rindex("Dotazník")
+    # Who answered, and how the run computed, before the numbers (B1c).
+    assert (
+        body.index("Metodika a způsob interpretace")
+        < body.index("Respondenti a výpočet")
+        < body.index("Výsledky jednotlivých otázek")
+    )
+    assert "smyšlení respondenti" in body
+    assert report.metadata["report_contract"] == "aia-internal-report-7"
 
 
 @pytest.mark.parametrize(
@@ -760,6 +781,10 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
         steps["sociomap"]["output"]["artifact_id"],
     }
     assert document.startswith(b"PK") and lint_docx(document) == []
+    # The map of aia-sociomap-3 prints the register's approval, never "awaiting" (B4).
+    body = zipfile.ZipFile(io.BytesIO(document)).read("word/document.xml").decode()
+    assert "schválil k použití ve zprávách" in body
+    assert "Mapa metodou aia-sociomap-3 je interním výstupem" not in body
     record_property("report_artifact_id", report_id)
     record_property("report_sha256", report.sha256)
     record_property("report_review_state", report.metadata["review_state"])
@@ -843,7 +868,30 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
                 )
                 assert any(s.id == "literature" for s in combined.sections)
                 assert any((s.id or "").startswith("ch-native-map-") for s in combined.sections)
+                # The same study's report: the same design, method and question chapters.
+                assert {"ch-design", "ch-method", "ch-questions", "app-questionnaire"} <= {
+                    s.id for s in combined.sections
+                }
                 assert DocxRenderer().render(combined).startswith(b"PK")
+                # Stored once as an unapproved draft; the next download reads that artifact.
+                stored, data = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                again, same = stored_contextual_report(
+                    session,
+                    world.lead_scope(session),
+                    store,
+                    run_id=started.run_id,
+                    deep_research_run_id=interpreted.run_id,
+                )
+                assert data.startswith(b"PK") and same == data
+                assert again.artifact_id == stored.artifact_id and not stored.is_approved
+                assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+                assert stored.metadata["deep_research_run_id"] == interpreted.run_id
                 record_property(f"interpretation_{result_target.kind}_run_id", interpreted.run_id)
                 record_property(f"interpretation_{result_target.kind}_bundle_seal", evidence.sha256)
                 record_property(
@@ -862,6 +910,86 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
         assert len(agents.requests) > deep_calls
         assert len(models.requests) == fieldwork_analysis_calls
         assert worker.run_once() is None
+
+
+class _FakePdf:
+    """A converter that renders a PDF naming the DOCX it was given, or fails."""
+
+    version = "fake-pdf 1"
+
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+        self.calls = 0
+
+    def convert(self, docx: bytes) -> bytes:
+        self.calls += 1
+        if self.fail:
+            raise PdfConversionFailed("exited 1")
+        return b"%PDF-1.7 rendering of " + hashlib.sha256(docx).hexdigest().encode()
+
+
+def _start_report_run(world: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    return started.run_id
+
+
+def test_the_report_step_stores_its_docx_rendered_as_pdf_beside_it(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """Complete-study-report B3: the PDF is the stored DOCX's rendering, never a second
+    composition, and depends on it."""
+    run_id = _start_report_run(world)
+    pdf = _FakePdf()
+    assert _drain(run_with(ScriptedModels(), pdf=pdf)) == ["completed"] * 14
+    output = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")["output"]
+    assert output["pdf"]["state"] == "READY" and pdf.calls == 1
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        docx = repo.read(output["artifact_id"])
+        stored = repo.get(output["pdf"]["artifact_id"])
+        data = repo.read(stored.artifact_id)
+        dependencies = repo.dependencies(stored.artifact_id)
+    assert data == b"%PDF-1.7 rendering of " + hashlib.sha256(docx).hexdigest().encode()
+    assert stored.artifact_type == "research_internal_pdf"
+    assert stored.content_type == "application/pdf"
+    assert stored.metadata["rendering_of"] == output["artifact_id"]
+    assert stored.metadata["run_id"] == run_id
+    assert stored.metadata["converter"] == "fake-pdf 1"
+    assert [d.artifact_id for d in dependencies] == [output["artifact_id"]]
+
+
+def test_a_pdf_that_cannot_be_made_is_said_so_and_the_report_still_stands(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    run_id = _start_report_run(world)
+    assert _drain(run_with(ScriptedModels(), pdf=_FakePdf(fail=True))) == ["completed"] * 14
+    step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
+    assert step["status"] is StepRunStatus.SUCCEEDED
+    assert step["output"]["artifact_id"]
+    assert step["output"]["pdf"] == {
+        "state": "FAILED",
+        "reason": "pdf_conversion_failed",
+        "message": "exited 1",
+    }
+
+
+def test_without_the_switch_the_report_step_makes_no_pdf(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    run_id = _start_report_run(world)
+    assert _drain(run_with(ScriptedModels())) == ["completed"] * 14
+    step = next(s for s in _run(world, run_id)["steps"] if s["node_key"] == "report")
+    assert "pdf" not in step["output"]
 
 
 def test_report_step_finishes_with_a_reason_when_an_analysis_module_is_blocked(

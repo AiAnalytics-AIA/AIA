@@ -32,6 +32,9 @@ from aia_core.application.analysis_results import (
     reconstruct_run,
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
+from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_method import compose_method_section
+from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.analysis.artifact import (
@@ -40,7 +43,7 @@ from aia_core.domain.analysis.artifact import (
     ProducedBy,
     parse_module_artifact,
 )
-from aia_core.domain.analysis.native import NativeEvidenceRefused, native_evidence
+from aia_core.domain.analysis.native import NativeEvidenceRefused, native_evidence, native_items
 from aia_core.domain.analysis.steps import (
     ANALYSIS_STEP_KIND,
     analysis_step_definitions,
@@ -52,6 +55,7 @@ from aia_core.domain.evidence import (
     Violation,
     ViolationCode,
 )
+from aia_core.domain.evidence.instrument import instrument_policy_book
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
 from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
@@ -61,11 +65,14 @@ from aia_core.domain.report.model import (
     BulletList,
     Callout,
     Classification,
+    NumberCell,
     Paragraph,
     ParagraphRole,
     ReportKind,
     ReportMeta,
+    Table,
     Text,
+    TextCell,
 )
 from aia_core.domain.report.validation import cited_refs
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1, aggregate_dataset
@@ -1180,3 +1187,147 @@ def test_a_modelled_dataset_names_its_respondent_system_and_a_bad_record_is_refu
     for bad in ({**system, "persona_mode": ""}, {**system, "seed": "7"}, ["x"], {"a": 1}):
         with pytest.raises(SourcesRefused, match="respondent"):
             _respondent_system(modelled, {RESPONDENT_SYSTEM_METADATA: bad})
+
+
+def _question_tables_run(world: World) -> Any:
+    run_id = world.start()
+    world.upstream()
+    world.store_outcomes(run_id, completed)
+    return reconstruct_run(world.session, world.scope, world.store, run_id=run_id)
+
+
+def test_every_question_prints_its_numbers_through_admission_after_the_methodology(
+    world: World, tmp_path: Path
+) -> None:
+    """complete-study-report B1a: a table per question, each cell an admitted ref."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    items = native_items(spec)
+    tables = compose_question_tables(run, items, source="Zmrazený běh")
+    table = run.modules[AnalysisModuleId.EXECUTIVE].inputs.table
+    assert tables.refused == ()
+    # Every kept row of the run's evidence is admitted once, and nothing else is.
+    assert sorted(c.row.evidence_ref for c in tables.claims) == sorted(table.rows)
+    assert all(c.surface is ClaimSurface.INTERNAL for c in tables.claims)
+    (chapter,) = tables.sections
+    printed = [b for b in chapter.blocks if isinstance(b, Table)]
+    assert [t.title for t in printed] == [
+        i.text
+        for i in items
+        if any(r.startswith(f"{i.question_id}.") for r in (*table.rows, *table.suppressed))
+    ]
+    # Estimates first, then the counts behind them, the same in every table.
+    for t in printed:
+        labels = [r.cells[0].text for r in t.rows if isinstance(r.cells[0], TextCell)]
+        assert labels[-2:] == ["platné odpovědi", "efektivní n"]
+    for t in printed:
+        for row in t.rows:
+            (label, value) = row.cells
+            assert isinstance(label, TextCell) and label.text
+            # A number is a ref, never text: suppression and intervals stay the ledger's.
+            assert isinstance(value, NumberCell) and value.with_interval
+
+    first = run.modules[AnalysisModuleId.EXECUTIVE].result
+    assert first is not None
+    doc = compose_internal_report(run, report_meta(first.method_status), question_tables=tables)
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") + 1 == ids.index("ch-questions")
+    assert set(table.rows) <= set(doc.ledger.rows)
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report-with-questions.docx").write_bytes(rendered)
+
+
+def test_a_question_the_gate_refuses_is_named_and_the_others_keep_their_tables(
+    world: World,
+) -> None:
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    items = native_items(spec)
+    executive = run.modules[AnalysisModuleId.EXECUTIVE]
+    # A policy book that does not know the first question: its claims cannot be admitted.
+    origin = executive.record.labels.data_origin
+    narrower = instrument_policy_book(items[1:], origin=origin, source="test: without the first")
+    modules = dict(run.modules)
+    modules[AnalysisModuleId.EXECUTIVE] = dataclasses.replace(
+        executive, inputs=dataclasses.replace(executive.inputs, book=narrower)
+    )
+    tables = compose_question_tables(
+        dataclasses.replace(run, modules=modules), items, source="Zmrazený běh"
+    )
+    assert [qid for qid, _ in tables.refused] == [items[0].question_id]
+    (chapter,) = tables.sections
+    assert any(
+        isinstance(b, Callout)
+        and items[0].text in "".join(i.text for i in b.content if isinstance(i, Text))
+        for b in chapter.blocks
+    )
+    assert not any(c.row.question_id == items[0].question_id for c in tables.claims)
+    assert {t.title for t in chapter.blocks if isinstance(t, Table)} >= {items[1].text}
+
+
+def _all_text(blocks: Any) -> str:
+    """Paragraphs, callouts and every list item's words."""
+    items = [
+        "".join(i.text for i in item.content if isinstance(i, Text))
+        for b in blocks
+        if isinstance(b, BulletList)
+        for item in b.items
+    ]
+    return "\n".join([_text(blocks), *items])
+
+
+def test_the_report_states_the_design_it_ran_and_appends_its_questionnaire(
+    world: World, tmp_path: Path
+) -> None:
+    """complete-study-report B1b: the design and questionnaire, from the run's specification."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    design = compose_design_sections(spec, first.inputs.research_questions)
+    chapter = _all_text(design.chapter.blocks)
+    for q in first.inputs.research_questions:
+        assert q in chapter
+    for battery in spec.batteries:
+        assert battery.title in chapter
+        assert all(o.label in chapter for o in battery.objects)
+    appendix = _all_text(design.appendix.blocks)
+    assert design.appendix.appendix
+    # Every question as it was asked, with its options or its scale.
+    for q in spec.questions:
+        assert q.text in appendix
+        assert all(option in appendix for option in q.options)
+
+    doc = compose_internal_report(run, report_meta(first.result.method_status), design=design)
+    ids = [s.id for s in doc.sections]
+    assert ids[:2] == ["intro", "ch-design"]
+    assert ids.index("app-questionnaire") + 1 == ids.index("app-evidence")
+    rendered = DocxRenderer().render(doc)
+    assert not lint_docx(rendered)
+    (tmp_path / "internal-report-with-design.docx").write_bytes(rendered)
+
+
+def test_who_answered_comes_after_the_methodology_and_before_the_numbers(world: World) -> None:
+    """complete-study-report B1c."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    method = compose_method_section(
+        {"persona_source": "fictional_roster"}, first.record.labels.data_origin
+    )
+    doc = compose_internal_report(
+        run,
+        report_meta(first.result.method_status),
+        method=method,
+        question_tables=compose_question_tables(run, native_items(spec), source="Zmrazený běh"),
+    )
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") + 1 == ids.index("ch-method")
+    assert ids.index("ch-method") + 1 == ids.index("ch-questions")
+    assert not lint_docx(DocxRenderer().render(doc))

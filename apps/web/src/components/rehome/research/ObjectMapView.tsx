@@ -39,6 +39,7 @@ import {
   readObjectMap,
   relationsOf,
   resolveVars,
+  type RegisterEntry,
 } from "@/lib/object-map-view";
 import { num } from "@/lib/sociomapping-view";
 import { type OriginKind, originKind } from "@/lib/research-execution";
@@ -59,12 +60,18 @@ const prefersReducedMotion = () => typeof window !== "undefined" && window.match
 const canAnimate = () => typeof window !== "undefined" && typeof window.requestAnimationFrame === "function" && !prefersReducedMotion();
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
-export function ObjectMapView({ battery, dataOrigin }: { battery: BatteryWithMaps; dataOrigin: string | null }) {
+export function ObjectMapView({ battery, dataOrigin, approvalOf }: {
+  battery: BatteryWithMaps;
+  dataOrigin: string | null;
+  /** The register's approval of the map stored under a method id; absent or null is internal. */
+  approvalOf?: (methodId: string) => RegisterEntry | null;
+}) {
   const read = readObjectMap(battery);
   if (!read.ok) {
     return read.reason === "contract" ? <p role="alert" className="text-sm text-status-fault">{t("research.exec.objectMap.unreadable")}</p> : null;
   }
   const { map, methodId, fingerprint } = read;
+  const approval = approvalOf?.(methodId) ?? null;
   const kind = originKind(dataOrigin);
   const origin = ORIGIN_CHIP[kind];
   const originText = tv(origin.text, { origin: dataOrigin ?? "—" });
@@ -79,9 +86,15 @@ export function ObjectMapView({ battery, dataOrigin }: { battery: BatteryWithMap
         <p className="text-xs text-ink-muted">{t("research.exec.objectMap.hint")}</p>
       </header>
       <div className="flex flex-wrap gap-2 text-xs">
-        <span title={t("research.exec.results.internal")} className="inline-flex items-center gap-1.5 rounded-full bg-status-world-wash px-2.5 py-1 text-ink">
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink" />{t("research.exec.objectMap.internalChip")}
-        </span>
+        {approval ? (
+          <span title={approval.reader_note} data-testid="object-map-approval" className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-ink">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink" />{t("research.exec.objectMap.approvedChip")}
+          </span>
+        ) : (
+          <span title={t("research.exec.results.internal")} className="inline-flex items-center gap-1.5 rounded-full bg-status-world-wash px-2.5 py-1 text-ink">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ink" />{t("research.exec.objectMap.internalChip")}
+          </span>
+        )}
         <span title={originText} data-testid="object-map-origin" data-origin-kind={kind} className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${origin.className}`}>
           <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${origin.dot}`} />{t(origin.chip)}
         </span>

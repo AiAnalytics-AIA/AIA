@@ -68,6 +68,7 @@ from ..evidence import (
     instrument_policy_book,
     load_joint_status,
 )
+from ..evidence.report_lift import ModelledReportLift
 from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from ..research_aggregate import AGGREGATE_VERSION
@@ -449,6 +450,8 @@ def native_evidence(
     support: SupportThresholds,
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
+    joint_certificate: tuple[bytes, str] | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
 
@@ -483,6 +486,7 @@ def native_evidence(
         source=f"fieldwork dataset {dataset_sha256} ({origin.value if origin else '?'})",
         respondent_system=respondent_system,
         validation=validation,
+        report_lift=report_lift,
     )
     assert origin is not None  # the book refuses an unknown origin
     rows = _Rows(kept=[], removed={}, origin=origin)
@@ -492,7 +496,11 @@ def native_evidence(
     table = EvidenceTable(
         rows=built.rows, suppressed=MappingProxyType({**built.suppressed, **rows.removed})
     )
-    joint = load_joint_status(None, measured_panel_sha256=None)
+    # A modelled run is judged under the certificate of the population its respondents were
+    # drawn from, checked against the panel hash the loader measured (B5a); anything else has
+    # none, and its evidence is uncertified: nothing client-facing.
+    certificate, panel_sha256 = joint_certificate if joint_certificate is not None else (None, None)
+    joint = load_joint_status(certificate, measured_panel_sha256=panel_sha256)
     return NativeEvidence(
         table=table,
         book=book,

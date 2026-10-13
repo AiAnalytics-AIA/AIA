@@ -30,6 +30,7 @@ internal interpretation, as they see the internal Sociomap (ADR 0016 decision 6)
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Final
@@ -91,6 +92,7 @@ from ..domain.evidence import (
 )
 from ..domain.evidence.support import SupportSpec
 from ..domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
     RESPONDENT_SYSTEM_METADATA,
     DataOrigin,
     FieldworkSource,
@@ -184,6 +186,9 @@ class NativeSources:
     #: A modelled dataset's respondent system (ADR 0024 §4), fingerprinted from what the dataset
     #: recorded; ``None`` for every other origin, or when it recorded none.
     respondent_system: str | None = None
+    #: A modelled dataset's population certificate and the panel SHA-256 it was verified
+    #: against (complete-study-report B5a); ``None`` for every other origin or when none.
+    joint_certificate: tuple[bytes, str] | None = None
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -354,6 +359,7 @@ def native_sources(
         raise SourcesRefused("dataset_origin", f"unknown data origin {raw_origin!r}") from None
 
     respondent_system = _respondent_system(origin, dataset_row.metadata)
+    joint_certificate = _joint_certificate(origin, dataset_row.metadata)
 
     return NativeSources(
         run_id=str(run["run_id"]),
@@ -371,7 +377,33 @@ def native_sources(
         research_questions=research_questions_of(content),
         support=support,
         respondent_system=respondent_system,
+        joint_certificate=joint_certificate,
     )
+
+
+def _joint_certificate(
+    origin: DataOrigin | None, metadata: Mapping[str, Any]
+) -> tuple[bytes, str] | None:
+    """The population certificate a modelled dataset recorded, re-hashed; else ``None``.
+
+    Read for a modelled origin only. A record that does not hash to its recorded SHA-256 is
+    refused, never read as no certificate: the gate must not be judged on altered bytes.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(JOINT_CERTIFICATE_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(raw.get(k), str) for k in ("certificate", "sha256", "panel_sha256")
+    ):
+        raise SourcesRefused("joint_certificate", "the dataset's certificate is not a record")
+    data = str(raw["certificate"]).encode("utf-8")
+    if hashlib.sha256(data).hexdigest() != raw["sha256"]:
+        raise SourcesRefused(
+            "joint_certificate", "the dataset's certificate does not hash to its recorded SHA-256"
+        )
+    return data, str(raw["panel_sha256"])
 
 
 def _respondent_system(origin: DataOrigin | None, metadata: Mapping[str, Any]) -> str | None:
@@ -506,6 +538,7 @@ def prepare_module(
         origin=sources.dataset_origin,
         support=sources.support.analysis,
         respondent_system=sources.respondent_system,
+        joint_certificate=sources.joint_certificate,
         # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
         # modelled run's evidence stays internal.
         validation=None,
