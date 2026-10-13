@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] P1. The operator's composition root: PopulationOperatorConfig typed and wired, an operator command over fictional fixtures"
   - "[x] P2. A read-only population registry: versions, lineage, promotion history, on /app/intelligence"
@@ -16,7 +16,7 @@ chunks:
   - "[x] P4d4c. The Run stage offers the study's client's children: a run started over one records it"
   - "[x] P4e1. The loader resolves and loads an owned child: base by its contract, child by its extension, the base's companions"
   - "[x] P4e2. A study selects its organization's child; the run records that binding; another organization's run is refused"
-  - "[ ] P5. An explicit Promote action with a stale-pointer refusal"
+  - "[x] P5. An explicit Promote action with a stale-pointer refusal"
   - "[x] P6. The develop host can carry 18.6.6's v17 population: its files listed and pinned to the contract, a verified read-only sync, the worker's keys, the runbook"
   - "[x] P6b. The data owner imports it on develop: three versions with companions and dictionary, STATIC v17_1_2 and LIVE v17_4_0 (deploy/develop/README.md § The population)"
   - "[x] P7a. Keep each version's field dictionary with it (stored at import, hash-checked; a deploy step records it for versions imported before)"
@@ -910,4 +910,18 @@ P4e2's selection.
   chosen, through the cost confirmation's retry too.
 - Tests: `ExecutionSteps.test.tsx` (the client's child offered with its unmet target, another
   client's not, the start body naming it; no child, no choice and no field).
+
+**P5, 2026-10-13** (`feature/population-promote-p5`). The explicit Promote action has been the
+operator command since P1 (`population_ops promote --to … --expected …`, the core's
+compare-and-set); P5 adds what the plan asked to be shown, with no new production code.
+- A stale `--expected` is refused and LIVE stays
+  (`test_population_ops.py::test_a_promotion_naming_a_stale_version_is_refused_and_live_does_not_move`, P1).
+- A client's materialized child is never promoted: the command exits 3 with
+  `OwnedVersionNotShared` (the core's refusal since P4c), LIVE stays and the history gains
+  nothing (`test_population_ops.py::test_a_clients_materialized_child_is_never_promoted_and_live_does_not_move`).
+- Materializing a dimension and starting a run over it leaves LIVE's pointer and promotion
+  history exactly as they were
+  (`test_research_population_child.py::test_materializing_and_selecting_a_child_leaves_live_where_it_was`).
+
+Every chunk is done; the plan's status is `done`.
 
