@@ -797,6 +797,49 @@ class HoldoutConfirmationRow(Base):
     )
 
 
+class RespondentValidationRow(Base):
+    """A respondent system's validation, as a person recorded it (panel-grounded-respondents 7f).
+    **Insert-once.**
+
+    One per validation Study: the verdict its confirmation run computed, copied, never chosen.
+    A ``PASS`` is the system's ``HOLDOUT_VALIDATED`` state; a ``FAIL`` is kept as well and lifts
+    nothing. Written and read only by ``HoldoutRepository``; the person's act is also in the
+    approval ledger (``subject_type = 'validation'``).
+    """
+
+    __tablename__ = "respondent_validations"
+
+    study_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    run_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    respondent_system_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    verdict: Mapped[str] = mapped_column(String(8), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    truth: Mapped[str] = mapped_column(String(32), nullable=False)
+    preregistration_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    verdict_artifact_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    verdict_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["study_id"], ["holdout_confirmations.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
+        CheckConstraint("verdict in ('PASS','FAIL')", name="respondent_validation_verdict"),
+        CheckConstraint(
+            "(verdict = 'PASS' and status = 'HOLDOUT_VALIDATED') or "
+            "(verdict = 'FAIL' and status = 'NOT_VALIDATED')",
+            name="respondent_validation_status_is_the_verdict",
+        ),
+        Index(
+            "ix_respondent_validations_system", "organization_id", "respondent_system_fingerprint"
+        ),
+    )
+
+
 # Client Knowledge (ADR 0015 decision 7). Client-scoped, not study-scoped: the
 # narrow amendment to ADR 0004 rule 1. Every row carries organization_id and
 # client_id and is reached only through ClientKnowledgeRepository, which takes an
@@ -1389,7 +1432,8 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         CheckConstraint(
-            "subject_type in ('gate','artifact','budget','spend','ai_proposal','design_research')",
+            "subject_type in ('gate','artifact','budget','spend','ai_proposal','design_research',"
+            "'validation')",
             name="approval_subject_type_known",
         ),
         CheckConstraint(

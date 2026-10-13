@@ -36,6 +36,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
 from typing import Final
 
@@ -52,6 +53,7 @@ __all__ = [
     "TierUseCase",
     "ValidationState",
     "ValidationStatus",
+    "ValidationTruth",
     "effective_validation_status",
     "evaluate_predictive_validity_claim",
     "evaluate_tier",
@@ -66,6 +68,15 @@ class ValidationStatus(StrEnum):
     NOT_VALIDATED = "NOT_VALIDATED"
     SMOKE_VALIDATED = "SMOKE_VALIDATED"
     HOLDOUT_VALIDATED = "HOLDOUT_VALIDATED"
+
+
+class ValidationTruth(StrEnum):
+    """What a holdout validation was scored against (panel-grounded-respondents 7a)."""
+
+    #: The sampled people's own answers to fields held out of their persona.
+    PANEL_HELD_OUT = "PANEL_HELD_OUT"
+    #: A survey not used to build the population, scored against its marginals.
+    EXTERNAL = "EXTERNAL"
 
 
 # Stamped on every analysis payload by code, never by a model (M17).
@@ -138,14 +149,38 @@ def respondent_system_fingerprint(components: Mapping[str, str]) -> str:
 
 @dataclass(frozen=True, slots=True)
 class ValidationState:
-    """A validation status and the system fingerprint it was earned on."""
+    """A validation status, the system fingerprint it was earned on, and its evidence.
+
+    A recorded validation (panel-grounded-respondents 7f) also says when it was recorded, what it
+    was scored against, and the preregistration and verdict it rests on, so a report can print
+    them and a reader can find them. A state built for a rule's test may leave them out; one
+    that names any of them names all four.
+    """
 
     status: ValidationStatus
     system_fingerprint: str
+    validated_at: datetime | None = None
+    truth: ValidationTruth | None = None
+    preregistration_sha256: str | None = None
+    verdict_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not _SHA256.fullmatch(self.system_fingerprint):
             raise ValueError("a validation state must name the system fingerprint it was earned on")
+        evidence = (
+            self.validated_at,
+            self.truth,
+            self.preregistration_sha256,
+            self.verdict_sha256,
+        )
+        if any(e is not None for e in evidence) and any(e is None for e in evidence):
+            raise ValueError("a recorded validation names its date, truth and both hashes")
+        for name in ("preregistration_sha256", "verdict_sha256"):
+            value = getattr(self, name)
+            if value is not None and not _SHA256.fullmatch(value):
+                raise ValueError(f"{name} is not a SHA-256")
+        if self.validated_at is not None and self.validated_at.tzinfo is None:
+            raise ValueError("validated_at must be timezone-aware")
 
 
 def effective_validation_status(

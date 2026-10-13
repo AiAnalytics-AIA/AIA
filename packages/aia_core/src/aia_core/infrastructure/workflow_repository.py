@@ -2199,6 +2199,62 @@ class WorkflowRepository:
         self._session.flush()
         return True
 
+    def record_validation_verdict(
+        self,
+        run_id: str,
+        *,
+        verdict: str,
+        artifact_id: str,
+        verdict_sha256: str,
+        preregistration_sha256: str,
+        respondent_system_fingerprint: str,
+    ) -> None:
+        """Write a person's record of a confirmation run's verdict in the approval ledger.
+
+        Panel-grounded respondents 7f1. The verdict is computed by code and copied, never
+        chosen, so independence is observed, not enforced: who started the run (the producer)
+        and who recorded it are both kept. ``comment`` carries the verdict artifact and the
+        hashes the record rests on, and the person's attestation that they had not seen the
+        confirmation items' results before the preregistration was fixed. Needs
+        ``APPROVE_GATE``. The caller writes the validation row (insert-once) in the same
+        transaction, so this is written once.
+        """
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        self._session.add(
+            ApprovalDecisionRow(
+                organization_id=self.scope.organization_id,
+                client_id=self.scope.client_id,
+                study_id=self.scope.study_id,
+                subject_type="validation",
+                subject_id=run_id,
+                run_id=run_id,
+                project_id=run.project_id,
+                project_revision=run.project_revision,
+                artifact_type="holdout_verdict",
+                gate_type="validation",
+                decision=f"record_{verdict.lower()}",
+                comment=json.dumps(
+                    {
+                        "artifact_id": artifact_id,
+                        "verdict_sha256": verdict_sha256,
+                        "preregistration_sha256": preregistration_sha256,
+                        "respondent_system_fingerprint": respondent_system_fingerprint,
+                        "attested_confirmation_unseen": True,
+                    },
+                    sort_keys=True,
+                ),
+                request_id=self.scope.request_id,
+                **independence.audit_fields(),
+            )
+        )
+        self._session.flush()
+
     def record_design_research_acceptance(
         self,
         run_id: str,

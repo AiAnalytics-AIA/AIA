@@ -14,13 +14,24 @@ from sqlalchemy import select
 
 from aia_core.application.population import PopulationRuntime
 from aia_core.application.research import CostConfirmationRequired
-from aia_core.application.validation import ValidationRuns
+from aia_core.application.validation import ValidationRuns, validation_artifacts
+from aia_core.domain.evidence.validation import (
+    ValidationStatus,
+    ValidationTruth,
+    lifts_internal_only,
+)
 from aia_core.domain.holdout.preregistration import HoldoutRefused
-from aia_core.domain.holdout.run import VALIDATION_WORKFLOW, arm_node_key
+from aia_core.domain.holdout.run import SCORE_ARTIFACT, VALIDATION_WORKFLOW, arm_node_key
 from aia_core.domain.panel_source import pinned_components
 from aia_core.domain.population import PopulationKind
 from aia_core.infrastructure.holdout_repository import HoldoutRepository
-from aia_core.infrastructure.tables import ApprovalDecisionRow, StepRunRow, WorkflowRunRow
+from aia_core.infrastructure.storage import InMemoryArtifactStore
+from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
+    RespondentValidationRow,
+    StepRunRow,
+    WorkflowRunRow,
+)
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 LIVE = "SYN_LIVE"
@@ -229,3 +240,183 @@ def test_the_database_holds_the_rule_when_two_starts_race(
     assert refused.value.reason == "holdout_system_confirmation_started"
     # The first record stands, and the transaction is usable.
     assert HoldoutRepository(session, scoped.scope()).confirmation().run_id == "RUN-a"
+
+
+# -- recording the verdict (7f1) ------------------------------------------------------------
+
+
+@pytest.fixture
+def scored(session: Any, scoped: Any, prereg: Any, holdout_records: Any, validation: Any) -> Any:
+    """``scored(verdict=…, **payload)``: a started confirmation run, completed with a verdict.
+
+    The run's score step is given the verdict artifact the score executor would have written
+    (its own tests run it); ``payload`` overrides what the artifact says.
+    """
+    store = InMemoryArtifactStore()
+
+    def build(verdict: str = "PASS", status: str = "COMPLETED", **payload: Any) -> Any:
+        stored = _fix(session, scoped, prereg())
+        started = validation().start(bank=holdout_records.bank(), reservation_usd=0.01)
+        run = session.get(WorkflowRunRow, started.run_id)
+        artifact, _ = validation_artifacts(session, scoped.scope(), store).put_json(
+            payload={
+                "kind": SCORE_ARTIFACT,
+                "preregistration_sha256": stored.sha256,
+                "respondent_system_fingerprint": stored.respondent_system_fingerprint,
+                "verdict": {
+                    "scoring_version": stored.preregistration.document["scoring_version"],
+                    "verdict": verdict,
+                    "criteria": [],
+                },
+                **payload,
+            },
+            project_id=run.project_id,
+            revision=run.project_revision,
+            stage_type="ANALYSIS",
+            artifact_type=SCORE_ARTIFACT,
+            input_fingerprint="f" * 64,
+            metadata={"run_id": started.run_id},
+        )
+        score = session.scalar(
+            select(StepRunRow).where(
+                StepRunRow.run_id == started.run_id, StepRunRow.node_key == "score"
+            )
+        )
+        score.output_json = {"artifact_id": artifact.artifact_id, "verdict": verdict}
+        run.status = status
+        session.flush()
+        return store, stored, started, artifact
+
+    return build
+
+
+def test_a_recorded_pass_is_the_systems_holdout_validation_with_its_evidence(
+    session: Any, scoped: Any, validation: Any, scored: Any
+) -> None:
+    store, stored, started, artifact = scored()
+    recorded = validation(user="researcher").record(store=store, attest_confirmation_unseen=True)
+    assert (recorded.verdict, recorded.run_id) == ("PASS", started.run_id)
+    assert recorded.verdict_sha256 == artifact.sha256
+    state = recorded.state
+    assert state.status is ValidationStatus.HOLDOUT_VALIDATED
+    assert state.truth is ValidationTruth.PANEL_HELD_OUT
+    assert state.preregistration_sha256 == stored.sha256
+    assert state.validated_at is not None and state.validated_at.tzinfo is not None
+    # Any Study of the organization reads the system's state; it lifts that system alone.
+    fingerprint = stored.respondent_system_fingerprint
+    elsewhere = HoldoutRepository(session, scoped.scope(study="sibling"))
+    assert elsewhere.current_validation(fingerprint) == state
+    assert elsewhere.current_validation("0" * 64) is None
+    assert lifts_internal_only(state, fingerprint)
+    assert not lifts_internal_only(state, "0" * 64)
+    # The person's act is in the approval ledger, with what it rests on.
+    (entry,) = session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "validation")
+    ).all()
+    assert (entry.decision, entry.run_id, entry.approver_user_id) == (
+        "record_pass",
+        started.run_id,
+        scoped.users["researcher"],
+    )
+    # The run was started by another person (``lead``); both are kept.
+    assert entry.producer_user_id == scoped.users["lead"] and not entry.self_approved
+    assert '"attested_confirmation_unseen": true' in entry.comment
+    assert artifact.sha256 in entry.comment and stored.sha256 in entry.comment
+
+
+def test_a_fail_is_kept_and_lifts_nothing(
+    session: Any, scoped: Any, validation: Any, scored: Any
+) -> None:
+    store, stored, _, _ = scored(verdict="FAIL")
+    recorded = validation().record(store=store, attest_confirmation_unseen=True)
+    assert recorded.state.status is ValidationStatus.NOT_VALIDATED
+    current = HoldoutRepository(session, scoped.scope()).current_validation(
+        stored.respondent_system_fingerprint
+    )
+    assert current is not None and current.status is ValidationStatus.NOT_VALIDATED
+    assert not lifts_internal_only(current, stored.respondent_system_fingerprint)
+
+
+def test_the_verdict_is_recorded_once_and_asking_again_writes_nothing(
+    session: Any, scoped: Any, validation: Any, scored: Any
+) -> None:
+    store, *_ = scored()
+    first = validation().record(store=store, attest_confirmation_unseen=True)
+    again = validation(user="researcher").record(store=store, attest_confirmation_unseen=True)
+    assert again == first
+    assert len(session.scalars(select(RespondentValidationRow)).all()) == 1
+    assert (
+        len(
+            session.scalars(
+                select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "validation")
+            ).all()
+        )
+        == 1
+    )
+    with pytest.raises(HoldoutRefused) as refused:
+        HoldoutRepository(session, scoped.scope()).record_validation(
+            verdict="FAIL",
+            truth=ValidationTruth.PANEL_HELD_OUT,
+            verdict_artifact_id="a",
+            verdict_sha256="b" * 64,
+        )
+    assert refused.value.reason == "holdout_validation_recorded"
+
+
+def test_nothing_is_recorded_without_the_attestation_or_a_confirmation(
+    session: Any, scoped: Any, prereg: Any, validation: Any, scored: Any
+) -> None:
+    with pytest.raises(HoldoutRefused) as unconfirmed:
+        validation().record(store=InMemoryArtifactStore(), attest_confirmation_unseen=True)
+    assert unconfirmed.value.reason == "holdout_not_confirmed"
+    store, *_ = scored()
+    with pytest.raises(HoldoutRefused) as unattested:
+        validation().record(store=store, attest_confirmation_unseen=False)
+    assert unattested.value.reason == "holdout_attestation_missing"
+    assert session.scalars(select(RespondentValidationRow)).all() == []
+
+
+@pytest.mark.parametrize("status", ["RUNNING", "FAILED", "CANCELLED"])
+def test_a_run_that_has_not_completed_has_no_verdict_to_record(
+    validation: Any, scored: Any, status: str
+) -> None:
+    store, *_ = scored(status=status)
+    with pytest.raises(HoldoutRefused) as refused:
+        validation().record(store=store, attest_confirmation_unseen=True)
+    assert refused.value.reason == "holdout_run_not_complete"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"preregistration_sha256": "e" * 64},
+        {"respondent_system_fingerprint": "e" * 64},
+        {"kind": "holdout_sample"},
+        {"verdict": {"scoring_version": "other", "verdict": "PASS"}},
+        {"verdict": {"verdict": "PASS"}},
+    ],
+)
+def test_a_verdict_that_is_not_this_runs_is_refused_never_recorded(
+    session: Any, validation: Any, scored: Any, payload: dict[str, Any]
+) -> None:
+    store, *_ = scored(**payload)
+    with pytest.raises(HoldoutRefused) as refused:
+        validation().record(store=store, attest_confirmation_unseen=True)
+    assert refused.value.reason == "holdout_verdict_mismatch"
+    assert session.scalars(select(RespondentValidationRow)).all() == []
+
+
+def test_the_step_output_cannot_say_another_verdict_than_the_artifact(
+    session: Any, validation: Any, scored: Any
+) -> None:
+    store, _, started, _ = scored()
+    score = session.scalar(
+        select(StepRunRow).where(
+            StepRunRow.run_id == started.run_id, StepRunRow.node_key == "score"
+        )
+    )
+    score.output_json = {**score.output_json, "verdict": "FAIL"}
+    session.flush()
+    with pytest.raises(HoldoutRefused) as refused:
+        validation().record(store=store, attest_confirmation_unseen=True)
+    assert refused.value.reason == "holdout_verdict_mismatch"
