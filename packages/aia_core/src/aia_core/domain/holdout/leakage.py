@@ -40,6 +40,7 @@ __all__ = [
     "CatalogSignal",
     "ExcludedField",
     "ExclusionReason",
+    "ParsedColumns",
     "association",
     "block_exclusion",
 ]
@@ -108,14 +109,17 @@ def _number(cell: Cell) -> float | None:
 
 
 def _pearson(xs: Sequence[float], ys: Sequence[float], ws: Sequence[float]) -> float | None:
-    total = math.fsum(ws)
+    # Two passes over centred values; plain sums are exact enough for a 0.30 / 0.70 threshold.
+    total = sum(ws)
     if total <= 0:
         return None
-    mx = math.fsum(w * x for w, x in zip(ws, xs, strict=True)) / total
-    my = math.fsum(w * y for w, y in zip(ws, ys, strict=True)) / total
-    sxy = math.fsum(w * (x - mx) * (y - my) for w, x, y in zip(ws, xs, ys, strict=True))
-    sxx = math.fsum(w * (x - mx) ** 2 for w, x in zip(ws, xs, strict=True))
-    syy = math.fsum(w * (y - my) ** 2 for w, y in zip(ws, ys, strict=True))
+    mx = sum([w * x for w, x in zip(ws, xs, strict=True)]) / total
+    my = sum([w * y for w, y in zip(ws, ys, strict=True)]) / total
+    dx = [x - mx for x in xs]
+    dy = [y - my for y in ys]
+    sxy = sum([w * a * b for w, a, b in zip(ws, dx, dy, strict=True)])
+    sxx = sum([w * a * a for w, a in zip(ws, dx, strict=True)])
+    syy = sum([w * b * b for w, b in zip(ws, dy, strict=True)])
     if sxx <= 0 or syy <= 0:
         return None
     return abs(sxy / math.sqrt(sxx * syy))
@@ -145,25 +149,63 @@ def _cramers_v(xs: Sequence[str], ys: Sequence[str], ws: Sequence[float]) -> flo
     return math.sqrt(max(phi2, 0.0) / (k - 1))
 
 
+@dataclass(frozen=True, slots=True)
+class _Parsed:
+    #: The stripped answer, ``None`` where missing.
+    text: tuple[str | None, ...]
+    #: The answer as a finite number, ``None`` where missing or not a number.
+    number: tuple[float | None, ...]
+
+
+class ParsedColumns:
+    """Each column parsed once per computation: an association reads two columns, and a pool
+    of items against a persona's fields reads the same ones thousands of times."""
+
+    def __init__(self, population: HoldoutPopulation) -> None:
+        self._population = population
+        self._memo: dict[str, _Parsed] = {}
+
+    @property
+    def weights(self) -> tuple[float, ...]:
+        """The population's analysis weight."""
+        return self._population.analysis_weight
+
+    def get(self, name: str) -> _Parsed:
+        """``name``'s cells, parsed."""
+        parsed = self._memo.get(name)
+        if parsed is None:
+            cells = self._population.column(name)
+            text = tuple(None if _missing(c) else c.strip() for c in cells)  # type: ignore[union-attr]
+            parsed = _Parsed(text=text, number=tuple(_number(t) for t in text))
+            self._memo[name] = parsed
+        return parsed
+
+
 def association(
-    population: HoldoutPopulation, item: HoldoutItem, field: str, rows: Sequence[int]
+    population: HoldoutPopulation,
+    item: HoldoutItem,
+    field: str,
+    rows: Sequence[int],
+    *,
+    columns: ParsedColumns | None = None,
 ) -> float | None:
     """The weighted association between ``item`` and ``field`` on ``rows``, both answered:
     |r| when the item is ordinal and both are numeric there, Cramér's V otherwise. ``None``
-    when it cannot be computed."""
-    a = population.column(item.field)
-    b = population.column(field)
-    weights = population.analysis_weight
-    pairs = [i for i in rows if not _missing(a[i]) and not _missing(b[i])]
+    when it cannot be computed. ``columns`` shares parsing across calls."""
+    parsed = columns or ParsedColumns(population)
+    a = parsed.get(item.field)
+    b = parsed.get(field)
+    weights = parsed.weights
+    pairs = [i for i in rows if a.text[i] is not None and b.text[i] is not None]
     if not pairs:
         return None
     ws = [weights[i] for i in pairs]
     if item.ordinal:
-        xs = [_number(a[i]) for i in pairs]
-        ys = [_number(b[i]) for i in pairs]
-        if all(x is not None for x in xs) and all(y is not None for y in ys):
+        xs = [a.number[i] for i in pairs]
+        ys = [b.number[i] for i in pairs]
+        if None not in xs and None not in ys:
             return _pearson(xs, ys, ws)  # type: ignore[arg-type]
-    return _cramers_v([a[i].strip() for i in pairs], [b[i].strip() for i in pairs], ws)  # type: ignore[union-attr]
+    return _cramers_v([a.text[i] for i in pairs], [b.text[i] for i in pairs], ws)  # type: ignore[misc]
 
 
 def block_exclusion(
@@ -171,6 +213,8 @@ def block_exclusion(
     items: Sequence[HoldoutItem],
     persona_fields: Sequence[str],
     signals: Sequence[CatalogSignal] = (),
+    *,
+    columns: ParsedColumns | None = None,
 ) -> BlockExclusion:
     """Everything a block's respondents are not given.
 
@@ -178,6 +222,7 @@ def block_exclusion(
     signals'); a field the population lacks is skipped, as the persona builder skips it.
     """
     policy = population.field_policy
+    parsed = columns or ParsedColumns(population)
     item_names = {item.field for item in items}
     excluded: dict[str, ExcludedField] = {}
 
@@ -198,7 +243,7 @@ def block_exclusion(
             if block and block not in CORE_BLOCKS and other is not None and other.block == block:
                 leave_out(ExcludedField(name, item.field, ExclusionReason.MATCHED_BLOCK))
                 continue
-            value = association(population, item, name, rows)
+            value = association(population, item, name, rows, columns=parsed)
             if value is None:
                 leave_out(ExcludedField(name, item.field, ExclusionReason.ASSOCIATION_UNKNOWN))
             elif value >= ASSOCIATION_THRESHOLD:

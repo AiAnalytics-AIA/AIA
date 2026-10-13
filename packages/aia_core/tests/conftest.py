@@ -1776,7 +1776,13 @@ class HoldoutPopulation:
     def field_policy(self) -> Any:
         from aia_core.domain.population.policy import build_field_policy
 
-        return build_field_policy(self.policy_rows, dictionary_sha256="a" * 64, weight_columns=())
+        cached = self.__dict__.get("_policy")
+        if cached is None:
+            cached = build_field_policy(
+                self.policy_rows, dictionary_sha256="a" * 64, weight_columns=()
+            )
+            self.__dict__["_policy"] = cached
+        return cached
 
     @property
     def analysis_weight(self) -> tuple[float, ...]:
@@ -1786,10 +1792,10 @@ class HoldoutPopulation:
         return self.columns[name]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def holdout_population() -> Any:
-    """Build a :class:`HoldoutPopulation` from ``{field: (block, evidence_status, cells)}``
-    and the weights (default 1.0 each)."""
+    """Build a :class:`HoldoutPopulation` from ``{field: (block, evidence_status, cells)}`` and
+    the weights (default 1.0 each). A factory with no state, so any scope may use it."""
 
     def build(
         spec: dict[str, tuple[str, str, tuple[str | None, ...]]],
