@@ -111,7 +111,12 @@ Merge a pull request into `develop`. Then:
 3. On the host, `bin/deploy.sh <sha>`: pull → backup → `alembic upgrade head`
    → write `AIA_IMAGE_TAG` → `compose up --wait` → `bin/smoke.sh`.
 4. The workflow waits for the command, prints its output, and fails if any step
-   or smoke check failed.
+   or smoke check failed. It waits 20 minutes (a deploy takes about two). A host
+   still running then is reported `InProgress`, and the command's execution timeout
+   stops it at 25 minutes, which releases `bin/deploy.sh`'s lock: until it does, a
+   rerun is refused with `another deployment holds .deploy.lock`. The stopped
+   command's output stays in Systems Manager → Run Command history, and
+   `/var/log/aia-deploy.log` on the host has every line (§ Logs).
 
 Refresh `https://aia-develop.art-chain.io/` — the footer and `/version` show the SHA;
 `/api/v1/health` shows the same SHA under `build.sha`.
@@ -549,6 +554,11 @@ develop instance, and `ssm:PutParameter` / `ssm:GetParameter` under `/aia/develo
    catalogue of the version they move to as well, so a promotion between deploys does not
    leave the step without one; a version no population has stood on has none. Either is
    said in the command's answer, and a refusal does not undo the change or fail the deploy.
+   The deploy gives the command five minutes (a catalogue is seconds of work: 3.6 s to load
+   v17's 18,766 rows, measured) and stops it after that, logging `record-catalogue did not
+   finish in 5 minutes`; no catalogue is kept then, the step says so, and the deploy goes on.
+   On 2026-10-13 the unbounded command held the deploy, and its lock, for the hour SSM
+   allows a command by default.
 
 **Exit codes.** `2` means refused before anything was written: a person the
 configuration does not name, a malformed argument. `3` means the population itself
