@@ -138,7 +138,8 @@ const called = (method: string, path: string) => calls.filter((c) => c.method ==
 beforeEach(() => {
   resetConfigCache();
   // Each example opens Settings afresh; another example's selected hash is not its input.
-  window.history.replaceState(null, "", "/app/settings");
+  // Most control tests start on the AI tab; the actual Settings landing opens Methodology.
+  window.history.replaceState(null, "", "/app/settings#ai");
   replace.mockReset();
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
 });
@@ -275,6 +276,7 @@ describe("what powers AIA", () => {
     api({ "GET /api/v1/settings": () => doc, "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_ANALYSIS_ENABLED: false } }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("research_analysis")).toBeTruthy());
+    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
     const analysis = card("research_analysis");
     expect(within(analysis).getByRole("heading", { name: "Analýza výsledků výzkumu" })).toBeTruthy();
     expect(within(analysis).getByText(/Dokončená data a mapy zůstanou k dispozici/)).toBeTruthy();
@@ -285,6 +287,7 @@ describe("what powers AIA", () => {
     api();
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
     const ai = section("ai");
     expect(within(ai).getByText(/AIA volá jazykové modely přes Amazon Bedrock/)).toBeTruthy();
     expect(within(ai).getByText(/nepotřebuje předplatné Claude ani Claude Code/)).toBeTruthy();
@@ -372,6 +375,7 @@ describe("what powers AIA", () => {
     api({ "GET /config": () => ({ apiBase: "", build: { sha: null } }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("unknown"));
+    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
     const alert = within(section("ai")).getByRole("alert");
     expect(alert.textContent).toMatch(/\/config nevrátil přepínače AI\. Konfiguraci nasazení se nepodařilo načíst/);
     expect(alert.textContent?.match(/Konfiguraci nasazení se nepodařilo načíst/g)).toHaveLength(1);
@@ -424,10 +428,11 @@ describe("what powers AIA", () => {
   it("on the Settings page, AI is one section, and the separate Bedrock card is gone", async () => {
     api();
     render(<SettingsPage />);
+    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
     expect(await screen.findByRole("heading", { name: "AI v AIA" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Amazon Bedrock" })).toBeNull();
-    // The combined cutover keeps the account card and removes every classic hand-off.
-    expect(screen.getByRole("heading", { name: "Účet" })).toBeTruthy();
+    // Account details remain available without interrupting the settings task.
+    expect(screen.getByText("Účet").closest("summary")?.textContent).toBe("Účet · owner@example.test");
     expect(screen.queryByRole("heading", { name: "Klasické rozhraní 18.6.6" })).toBeNull();
     expect(document.querySelector('a[href^="/classic"], a[href*="classic-projects"]')).toBeNull();
     expect(screen.queryByRole("link", { name: "Claude Code" })).toBeNull();
@@ -449,7 +454,7 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("groups all eight settings tabs by purpose while retaining the AI landing panel", async () => {
+  it("groups all eight settings tabs by purpose and opens on methodology", async () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist", { name: "Oddíly nastavení" });
@@ -459,9 +464,9 @@ describe("the settings tabs", () => {
     expect(screen.getByRole("group", { name: "Nastavení výzkumu" })).toBeTruthy();
     expect(screen.getByRole("group", { name: "Tým a útrata" })).toBeTruthy();
     expect(screen.getByRole("group", { name: "Provoz" })).toBeTruthy();
-    expect(tab("AI běh").getAttribute("aria-selected")).toBe("true");
-    expect(panelOf("AI běh").hidden).toBe(false);
-    for (const other of ["Systémové prompty", "Deep Research", "Metodika", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
+    expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
+    expect(panelOf("Metodika").hidden).toBe(false);
+    for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Reference"]) {
       expect(panelOf(other).hidden).toBe(true);
       expect(tab(other).getAttribute("aria-selected")).toBe("false");
     }
@@ -510,6 +515,7 @@ describe("the settings tabs", () => {
     api();
     render(<ControlPanel />);
     await screen.findByRole("tablist");
+    fireEvent.click(tab("AI běh"));
     fireEvent.keyDown(tab("AI běh"), { key: "ArrowRight" });
     expect(tab("Přístup a schvalování").getAttribute("aria-selected")).toBe("true");
     fireEvent.keyDown(tab("Přístup a schvalování"), { key: "ArrowLeft" });

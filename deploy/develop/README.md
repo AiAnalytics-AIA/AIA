@@ -341,6 +341,18 @@ and anything derived from the population panel parks with `licence_undetermined`
 (`step_attempts.error_json`), and the dataset artifact's `provenance` (agent,
 prompt hash, class, lineage, every call).
 
+### Model requests in a step's activity
+
+`aia_ai_step_events` (`true`; off when unset) makes each research-agent and analysis model
+request write `ai_request_sent` and `ai_request_answered` to its run's feed: counts, cost and
+latency, never text. A running step's activity panel shows them. Two database writes per request
+(~1.3 ms measured). It changes nothing unless `aia_ai_research_agents_enabled` or
+`aia_ai_analysis_enabled` is also on, since only those two callers announce. Only the worker
+reads it: after creating or changing the parameter, run `bin/write-env.sh` and
+`docker compose up -d worker`, then `docker compose exec worker printenv AIA_AI_STEP_EVENTS`
+prints `true`. Requests made before the restart are not in the feed. On develop since
+2026-10-13.
+
 ### Deep Research on Brave search
 
 Brave's search is a priced, live route outside the EU, Class C only

@@ -38,8 +38,8 @@ chunks:
   - "[x] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
   - "[x] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[x] 7e1. Fieldwork's answering extracted (answer_plans): plans from any source answered exactly as a run answers them"
-  - "[ ] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
-  - "[ ] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
+  - "[x] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
+  - "[x] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
   - "[ ] 7e4. Its executors: an arm's replicate answered through answer_plans, the score step's verdict artifact; the layer rule on arms"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
@@ -1774,6 +1774,91 @@ seed.
 
 Test: `test_ai_fieldwork_answer_plans.py`, `test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code`
 (a scripted caller, no network).
+
+**7e2 landed.** A validation Study's preregistration is kept once, in `holdout_preregistrations`
+(migration `b4d6f8a0c2e5`). The row holds:
+- the record's canonical JSON bytes and their SHA-256;
+- the respondent system's fingerprint and its population version.
+
+How it is written and read:
+- **One way in and out.** `infrastructure/holdout_repository.py`'s `HoldoutRepository` is the
+  only reader and writer, and it is found through the Study (an issued `StudyContext`).
+- **Recording.** `record_preregistration` needs `EDIT_STUDY` on an open research Study. The
+  same record again answers the stored one; another is refused
+  (`holdout_preregistration_recorded`). A record naming another scoring version than the code's
+  is refused (`holdout_scoring_stale`).
+- **Reading.** `preregistration` re-hashes the bytes and checks them on every read. A row changed
+  behind AIA's back is refused (`holdout_preregistration_altered`), never scored.
+- **The check.** `domain/holdout/preregistration.py`'s `read_preregistration` refuses
+  (`holdout_preregistration_malformed`) bytes that are not the record's canonical JSON, another
+  version, other thresholds, a fingerprint its components do not compute, a population version
+  that is not the system's, and blocks that are not exactly the confirmation set or that overlap
+  the development set.
+
+**What 7e3 must add (decided here).** A confirmation run's start refuses:
+- a Study with no preregistration;
+- one whose fingerprint is not the current system's;
+- a second confirmation run for the same fingerprint in the organization, once one has started.
+
+Without that last rule, several Studies could each preregister the same system and the one
+that passes could be recorded: the forking path the preregistration exists to close.
+`ix_holdout_preregistrations_system` is the index that lookup reads.
+
+Tests:
+- `test_holdout_repository.py`, run on SQLite and PostgreSQL;
+- `test_holdout_preregistration.py`: `test_a_stored_preregistration_reads_back_as_written_and_hashes_the_same`
+  and `test_a_preregistration_altered_after_it_was_made_does_not_read`.
+
+**7e3 landed.** A confirmation run is made from the Study's stored preregistration and the
+item bank it pins, and nothing else that decides the verdict.
+
+- **The graph** (`domain/holdout/run.py`, `validation_steps`): `sample`, then
+  `arm_<X>_<k>` for each model arm and replicate (15), each depending on the sample alone, then
+  `score` over all of them. Every step reads the run's recorded population.
+  - The workflow is not a `workflow_templates` type. Its graph is the preregistration's, so
+    `ValidationRuns` creates the run directly, as Deep Research's service does.
+  - It sits under the Study's own project (`projects.owner = study_validation`).
+- **The questionnaire** (`validation_specification`): the confirmation items as fielded, each a
+  single choice with its options in the fielded order, in the preregistered block order.
+  - A bank that is not the preregistered one is refused (`holdout_bank_mismatch`).
+  - So is an item whose wording code would answer as a persona fact
+    (`holdout_item_is_a_fact`): code, not the model, would answer it from a given field.
+- **The start** (`application/validation.py`, `ValidationRuns.start`) refuses, before any write:
+  - no preregistration (`holdout_preregistration_missing`);
+  - a system component this code pins, or the LIVE version, not the preregistered one
+    (`holdout_system_stale`). `panel_source.pinned_components` is the one list, and
+    `respondent_system` is built from it;
+  - a system another Study has started confirming (`holdout_system_confirmation_started`);
+  - an unknown reservation (`holdout_cost_unknown`), or a ceiling above the preregistered one
+    (`holdout_cost_above_preregistration`);
+  - a ceiling at the Study's spend limit without the person's yes (`CostConfirmationRequired`,
+    recorded in the approval ledger as a research start's is).
+- **Once per system.** `holdout_confirmations` (migration `c6e8a0b2d4f7`) records the run when
+  it starts. Its unique constraint on (organization, fingerprint) holds the rule when two
+  starts race, and the losing start's transaction is rolled back by its caller.
+- **Each step's input carries what it needs from the preregistration:**
+  - an arm gets its seed, the S arm's derangement seed (its replicate's seed), the
+    questionnaire, the blocks, each item's block exclusion and the preregistered model binding;
+  - the score step gets the whole record.
+- **The ceiling** is n x blocks x 5 model arms x 3 replicates, each at the fieldwork reservation.
+
+**What 7e4 must do (decided here):**
+- **Each arm step refuses a different gateway binding.** It compares the binding the gateway
+  resolves with `model_binding` in its input, because the start cannot see the binding.
+- **The arms ask the preregistered blocks.** `split_blocks` would join two short domain
+  blocks into one request, so `arm_plans` takes the blocks.
+
+**No caller yet.** No route starts a run, so nothing can create steps no worker claims before
+7e4 registers the executors.
+
+Tests:
+- `test_holdout_run.py`: the graph, the questionnaire, the refusals, the ceiling and the
+  system check;
+- `test_validation_runs.py`, on SQLite and PostgreSQL: the run as made, each refusal before
+  any write, the spend confirmation, once per system, and
+  `test_the_database_holds_the_rule_when_two_starts_race`;
+- the hand-built bank and preregistration are a conftest fixture (`holdout_records`), shared
+  with `test_holdout_repository.py`.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);

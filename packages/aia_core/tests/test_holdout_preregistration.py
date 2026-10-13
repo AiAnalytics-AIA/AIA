@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from aia_core.domain.holdout.bank import BANK_VERSION, ItemBank, read_item_bank
+from aia_core.domain.holdout.bank import BANK_VERSION, ItemBank, canonical_json, read_item_bank
 from aia_core.domain.holdout.eligibility import assess_bank
 from aia_core.domain.holdout.leakage import block_exclusion
 from aia_core.domain.holdout.preregistration import (
@@ -20,6 +20,7 @@ from aia_core.domain.holdout.preregistration import (
     confirmation_blocks,
     draw_split,
     preregister,
+    read_preregistration,
 )
 
 N = 700
@@ -230,3 +231,61 @@ def test_no_eligible_item_and_a_seed_that_is_not_a_number_are_refused(world: Any
     assert refused.value.reason == "holdout_pool_empty"
     with pytest.raises(HoldoutRefused):
         draw_split(population, bank, assess_bank(population, bank), "1")  # type: ignore[arg-type]
+
+
+def test_a_stored_preregistration_reads_back_as_written_and_hashes_the_same(world: Any) -> None:
+    prereg = _prereg(world)
+    read = read_preregistration(canonical_json(prereg.document))
+    assert read.document == prereg.document and read.sha256 == prereg.sha256
+    assert read.respondent_system_fingerprint == prereg.respondent_system_fingerprint
+
+
+def _altered(document: dict[str, Any], path: tuple[str, ...], value: Any) -> dict[str, Any]:
+    out = json.loads(json.dumps(document))
+    target = out
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    return out
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("preregistration_version",), "aia-holdout-prereg-0"),
+        (("thresholds", "P1_mean_tvd_pp_max"), 20.0),
+        (("respondent_system", "fingerprint"), "0" * 64),
+        (("respondent_system", "components", "model_binding"), "another/model"),
+        (("population_version",), "pv_other"),
+        (("split", "confirmation"), []),
+        (("blocks",), []),
+    ],
+)
+def test_a_preregistration_altered_after_it_was_made_does_not_read(
+    world: Any, path: tuple[str, ...], value: Any
+) -> None:
+    document = _altered(dict(_prereg(world).document), path, value)
+    with pytest.raises(HoldoutRefused) as refused:
+        read_preregistration(canonical_json(document))
+    assert refused.value.reason == "holdout_preregistration_malformed"
+
+
+def test_bytes_that_are_not_the_records_canonical_json_do_not_read(world: Any) -> None:
+    document = _prereg(world).document
+    for raw in (
+        json.dumps(document, indent=2).encode(),
+        b"not json",
+        b"[]",
+        "\udcff".encode("utf-8", "surrogatepass"),
+    ):
+        with pytest.raises(HoldoutRefused) as refused:
+            read_preregistration(raw)
+        assert refused.value.reason == "holdout_preregistration_malformed"
+
+
+def test_an_item_moved_into_both_sets_does_not_read(world: Any) -> None:
+    document = json.loads(json.dumps(_prereg(world).document))
+    document["split"]["development"].append(document["split"]["confirmation"][0])
+    with pytest.raises(HoldoutRefused) as refused:
+        read_preregistration(canonical_json(document))
+    assert refused.value.reason == "holdout_preregistration_malformed"
