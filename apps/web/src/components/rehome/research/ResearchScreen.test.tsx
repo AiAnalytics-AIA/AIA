@@ -144,7 +144,9 @@ describe("ResearchScreen", () => {
     );
     const { rerender } = render(page("run"));
     await screen.findByText("Uloženo");
-    await screen.findByRole("list", { name: t("research.exec.steps.preflight") });
+    // The run step's first render waits on its own reads; under a full parallel suite that
+    // exceeds the 1 s default (AGENTS.md: size timing waits generously, assert the same thing).
+    await screen.findByRole("list", { name: t("research.exec.steps.preflight") }, { timeout: 5000 });
     rerender(page("results"));
     expect(await screen.findByRole("heading", { name: "7. Výsledky" })).toBeTruthy();
     expect(loads()).toHaveLength(1);
