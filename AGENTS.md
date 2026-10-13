@@ -472,6 +472,12 @@ A "harmless" stamp on a just-inserted row is still an UPDATE. Chunk 1 of PR C se
 the listener; the fix was for `create()` to take the reason, so the INSERT carries
 it. `test_design_revisions.py::test_a_revision_row_is_never_updated`.
 
+**The UI workbench builds its SQLite schema with `create_all`, which never alters an existing
+table.** After a migration that adds columns, the workbench's API fails with
+`no such column: clients.short_code` on a database from before it. Start it from an empty one:
+`python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
+(client-workspace C5, #380).
+
 ## Alembic
 
 Three checks, and each catches something the others do not:
@@ -805,6 +811,21 @@ because `audit_trail()` returns a `payload` key that `AuditEntryResponse`
 (`extra="forbid"`) did not declare; no API test had called the route with data
 in it. Fixed by declaring the field (`87da177`). Every route needs one API test
 that returns *data*, not only one that is refused.
+
+**A `Content-Disposition` header is Latin-1.** A Czech file name cannot go into
+`filename="…"` as it is: "Zadání.pdf" passes as raw Latin-1 bytes a browser may decode
+differently, and "Přehled č. 3.pdf" raises `UnicodeEncodeError` in Starlette (measured,
+starlette's `Response`). Give an ASCII fallback and the name as written (RFC 6266 / 5987,
+client sources, #392):
+
+```python
+# Wrong: raises for č, ř, ž; sends á, í as bytes a browser may misread
+headers = {"Content-Disposition": f'attachment; filename="{name}"'}
+# Right
+from urllib.parse import quote
+fallback = name.encode("ascii", "replace").decode().replace("?", "_").replace('"', "_")
+headers = {"Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"}
+```
 
 ## Pydantic strict mode
 
@@ -1521,6 +1542,24 @@ Read it on load *and* on `hashchange` (the 18.6.6 hand-off script did, until ADR
 Playwright's `page.goto` to the same path with a new fragment is the same trap in
 tests: go to `about:blank` first.
 
+**`t()` returns the key for a missing string, so removing a string fails no test.** A page
+that renders `aia.knowledge.sections.SOURCE` instead of *Zdroje* still passes every test that
+looks for a role or a heading. When removing strings from `cs.ts`, grep for template keys
+(`` `aia.x.${…}` ``) as well as literals, and assert the rendered words in a test.
+
+**After `router.push`, the target page's first render can still see the old
+`window.location`.** "Přidat znalost" on Přehled pushed `…/knowledge?add=1`, and Znalosti read
+the query from `window.location`: on that first render it was still Přehled's URL, so the form
+never opened. A unit test that sets the URL before rendering cannot catch it; only the in-app
+navigation does (client-workspace C10, #380).
+
+```tsx
+// Wrong: the URL of the page navigated from, on the first render after router.push
+const add = new URLSearchParams(window.location.search).get("add");
+// Right: Next.js's own reading of the target URL, inside a <Suspense> boundary
+const add = useSearchParams().get("add");
+```
+
 ## The 18.6.6 unit, run outside its container
 
 **It registers its population files at import, not at first request.**
@@ -1990,3 +2029,21 @@ shared/referenced image. Never add force to overcome that refusal. See
 `deploy/develop/bin/image_retention.py`,
 `test_develop_image_retention.py::test_actual_deploy_stops_before_download_migration_or_replacement`
 and the [Docker command reference](https://docs.docker.com/reference/cli/docker/image/rm/).
+
+## Office and OpenDocument files read with the stdlib
+
+**Refuse an XML part that declares a DTD before parsing it.** OOXML (DOCX, PPTX, XLSX) and
+OpenDocument (ODT, ODS) never carry a document type declaration, so a part with `<!DOCTYPE` or
+`<!ENTITY` in it is hostile or broken. Refusing it outright closes entity expansion whatever the
+expat version, instead of trusting the parser's amplification limits (client sources K2b, #395).
+Check the ZIP's declared sizes first (`document_text.check_zip_bounds`), then the part:
+
+```python
+# Wrong: parses whatever the part declares
+root = ET.fromstring(archive.read("content.xml"))
+# Right: bounded, and no DTD
+data = archive.read("content.xml")
+if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
+    raise DocumentRefused("the part declares a DTD", reason="document_malformed")
+root = ET.fromstring(data)
+```
