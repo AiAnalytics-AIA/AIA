@@ -384,7 +384,8 @@ packages/aia_core/src/aia_core/
                             population, a profile per request block; refusals by name
     panel_source.py         A run's panel respondents: panel_plans (the sample under the design's
                             audience filters, the personas, a plan per respondent, in that order);
-                            respondent_system (ADR 0024 §4's components); PanelPlans.provenance
+                            respondent_system (ADR 0024 §4's components); pinned_components: every
+                            component but the model binding; PanelPlans.provenance
     licence.py              Licence eligibility beside residency: DataLineage (no default),
                             LicencePolicy.authorise, LicenceDenied (ADR 0016 decision 5)
     licence_determinations.py  The determinations as data: panel sources APPROVED for
@@ -446,8 +447,12 @@ packages/aia_core/src/aia_core/
                             beats S on subgroups and Brier, one Holm family; a criterion that cannot
                             be evaluated fails), baselines.py (L0 the population marginal, L1 the
                             demographic cell without the respondent's own donor, backing off below
-                            30 donors; neither decides the verdict). Tests: conftest.holdout_population,
-                            a session-scoped fictional factory
+                            30 donors; neither decides the verdict), run.py (a confirmation run from
+                            its preregistration: sample, arm x replicate, score; the items as fielded
+                            in the preregistered blocks, a fact item refused; requests n x blocks x 5
+                            x 3; the system checked but for the gateway's binding). Tests:
+                            conftest.holdout_population, a session-scoped fictional factory, and
+                            conftest.holdout_records, a hand-built bank and preregistration
     pipeline.py             Stage order, fingerprints, impact/invalidation rule
     population/             Dataset versions, STATIC/LIVE, lineage, promotion, import
                             contract + validation, weights, bindings, RuntimePopulation
@@ -604,6 +609,10 @@ packages/aia_core/src/aia_core/
                             key within the study; materialization_run / materialization_runs, found
                             only through the study; child_outcome: a child's dimension and what it
                             reached, from its stored extension and registration record
+    validation.py           ValidationRuns.start: a confirmation run from the Study's stored
+                            preregistration and its pinned bank; refuses a stale system, an unknown
+                            or larger ceiling than preregistered, an unconfirmed spend, and a system
+                            another Study has started confirming
     population_authority.py PopulationAuthority — the ONLY issuer of an operator context
     population_characteristics.py  A version's weights, blocks, every field's dictionary facts and
                             per-use policy answers, the subpanels checked; from the kept
@@ -700,7 +709,8 @@ packages/aia_core/src/aia_core/
                             design's citation (study_design_sources, insert-once: record_source, source)
     holdout_repository.py   A validation Study's preregistration (holdout_preregistrations): kept once
                             as its canonical bytes, re-hashed and re-checked on every read; found only
-                            through the Study
+                            through the Study; the Study's confirmation (holdout_confirmations), once
+                            per respondent system in an organization, held by a unique constraint
     study_workspace_repository.py  A Study's working content in its owned working project
                             (projects.owner = study_workspace): load, save naming its base revision
                             (a stale one refused), history; the brief's attachments as artifacts of
