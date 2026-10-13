@@ -354,6 +354,20 @@ export type PopulationVersion = {
   owner_client_id: string | null;
   /** null on a shared version; on an owned child, the hash of the fields it adds. */
   extension_sha256: string | null;
+  /** null on a shared version (or a child whose record carries none); on an owned child, its outcome. */
+  materialized?: PopulationMaterialized | null;
+};
+/** What an owned child adds and what its derivation reached (P4d4): target beside achieved. */
+export type PopulationMaterialized = {
+  dimension_id: string;
+  kind: "binary" | "scale_1_10";
+  definition_sha256: string;
+  method: string;
+  target: number;
+  achieved: number;
+  /** Within the kind's tolerance; never presumed. */
+  target_met: boolean;
+  usable_predictors: string[];
 };
 export type PopulationRecord = {
   population_id: string;
@@ -809,15 +823,16 @@ export const research = {
     request<DesignRevision & { content: Record<string, unknown> }>("GET", `${studyPath(studyId)}/design/revisions/${enc(revisionId)}`),
   readiness: (studyId: string, revisionId: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId })}`),
-  /** `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one. */
-  start: (studyId: string, revisionId: string, confirmCostUsd?: number) =>
-    request<ResearchRun>(
-      "POST",
-      `${studyPath(studyId)}/research/runs`,
-      confirmCostUsd === undefined
-        ? { design_revision_id: revisionId }
-        : { design_revision_id: revisionId, confirm_cost_usd: confirmCostUsd },
-    ),
+  /**
+   * `confirmCostUsd` is the person's yes to the ceiling the server showed, when the study's limit asks for one.
+   * `populationVersionId` runs over one of the study's client's materialized children instead of LIVE (P4d4c).
+   */
+  start: (studyId: string, revisionId: string, confirmCostUsd?: number, populationVersionId?: string) =>
+    request<ResearchRun>("POST", `${studyPath(studyId)}/research/runs`, {
+      design_revision_id: revisionId,
+      ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
+      ...(populationVersionId === undefined ? {} : { population_version_id: populationVersionId }),
+    }),
   /** Set, or with `null` clear, the cost at which starting a run asks for confirmation. */
   setSpendConfirm: (studyId: string, limitUsd: number | null) =>
     request<Study>("PUT", `${studyPath(studyId)}/spend-confirm`, { limit_usd: limitUsd }),

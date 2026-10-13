@@ -337,6 +337,41 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", confirm_cost_usd: 225 });
   });
 
+  it("offers the client's materialized children, and a run started over one names it", async () => {
+    const child = (id: string, client: string, achieved: number) => ({
+      version_id: id, label: `v_5+${id}`, content_sha256: "c".repeat(64), row_count: 6, column_count: 5,
+      parent_version_id: "DSV-v_5", status: "REGISTERED", runtime_eligible: false, companions_attached: false,
+      imported_at: "2026-10-12T09:00:00Z", imported_by: "USR-1", provenance: "materialized", owner_client_id: client,
+      extension_sha256: "e".repeat(64),
+      materialized: { dimension_id: id, kind: "scale_1_10", definition_sha256: "d".repeat(64), method: "m@1", target: 2.0, achieved, target_met: Math.abs(achieved - 2.0) <= 0.01, usable_predictors: ["vek"] },
+    });
+    api({
+      "GET /api/v1/population": () => ({ dataset_id: "d", contract_id: "c", populations: [], history: [],
+        versions: [child("ochota", "CLI-1", 2.68), child("cizi", "CLI-other", 2.0)] }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const choice = await screen.findByRole("group", { name: t("research.exec.population.text") });
+    // Only this client's child is offered, with its unmet target said so; LIVE is the default.
+    expect(within(choice).queryByText("cizi")).toBeNull();
+    expect(within(choice).getByText("cíl 2,00, dosaženo 2,68")).toBeTruthy();
+    expect(within(choice).getByText(t("aia.intelligence.population.children.verdict.unmet"))).toBeTruthy();
+    expect((within(choice).getByRole("radio", { name: t("research.exec.population.live") }) as HTMLInputElement).checked).toBe(true);
+
+    fireEvent.click(within(choice).getAllByRole("radio")[1]);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", population_version_id: "ochota" });
+  });
+
+  it("offers no choice when the client has no child, and a run names no population", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1" });
+    expect(screen.queryByRole("group", { name: t("research.exec.population.text") })).toBeNull();
+  });
+
   it("does not offer to start when a limit is set and the ceiling is unknown, and says why", async () => {
     const blocked = { ...PRICED, cost_ceiling_usd: null, cost_ceiling_unknown: "fieldwork_reservation_missing", spend_confirm_usd: 100 };
     api({ "GET /api/v1/studies/STU-1/research/readiness": () => blocked, "GET /api/v1/studies/STU-1": () => STUDY });

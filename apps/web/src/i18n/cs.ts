@@ -184,6 +184,16 @@ export const cs = {
         rows: "{n} řádků",
         companionsMissing: "bez doprovodných souborů",
         moved: "{population}: {from} → {to}",
+        children: {
+          title: "Materializované dimenze",
+          text: "Dimenze klientů vaší organizace dopočtené nad sdílenou populací. Každá hodnota je modelovaná, nikdy měřená; vidí je jen vaše organizace.",
+          client: "klient {client}",
+          outcome: "cíl {target}, dosaženo {achieved}",
+          unmetNote: "cíl nebyl dosažen",
+          noOutcome: "Výsledek odvození není zaznamenaný.",
+          over: "nad verzí {base}",
+          verdict: { met: "cíl dosažen", unmet: "cíl nedosažen", unknown: "neznámo" },
+        },
         status: {
           REGISTERED: "Jen registrovaná",
           STATIC_REFERENCE: "Statická reference",
@@ -1756,6 +1766,13 @@ export const cs = {
       dockNote: "{d} dimenzí · N={n}",
     },
     exec: {
+      population: {
+        title: "Populace běhu",
+        text: "Nad jakou populací se běh počítá:",
+        live: "LIVE (sdílená populace)",
+        outcome: "cíl {target}, dosaženo {achieved}",
+        note: "Materializovaná dimenze je modelovaná, nikdy měřená. Volba je součástí běhu: tentýž návrh nad LIVE a nad dimenzí jsou dva běhy.",
+      },
       phase: {
         QUEUED: "Ve frontě",
         RUNNING: "Běží",
