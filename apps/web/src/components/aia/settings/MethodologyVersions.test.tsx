@@ -113,7 +113,8 @@ describe("the support rules' versions (plan G1d)", () => {
   it("edit a line both ways, a line not checked included, and store the whole specification", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     const section = await versionsSection();
     fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
@@ -140,7 +141,8 @@ describe("the aggregation's versions (plan G3b)", () => {
   it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+    fireEvent.click(screen.getByRole("button", { name: "Agregace: z odpovědí odhad s intervalem" }));
     const section = await versionsSection();
     fireEvent.click(within(section).getByRole("button", { name: "Upravit metodiku" }));
     const form = await editor();
@@ -275,6 +277,7 @@ describe("the methodology's versions", () => {
     fakeApi();
     render(<MethodologyPanel />);
     await versionsSection();
+    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
     await screen.findByRole("heading", { name: "Váhy respondentů" });
     expect(screen.queryByRole("heading", { name: "Verze metodiky" })).toBeNull();

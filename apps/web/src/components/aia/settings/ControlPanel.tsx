@@ -555,7 +555,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
       </div>
-      <details data-config className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">{t(`${P}.runtimeConfiguration`)}</summary>
+      <details data-config open={!config.ok} className="rounded-sm border border-border p-3"><summary className="cursor-pointer text-sm font-medium">{t(`${P}.runtimeConfiguration`)}</summary>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <Sub>{t(`${R}.config`)}</Sub>
           <span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span>
@@ -762,9 +762,9 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
-  const [active, setActive] = useState<TabId>("ai");
+  const [active, setActive] = useState<TabId>("methodology");
   const [referenceQuery, setReferenceQuery] = useState("");
-  const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["ai"]));
+  const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["methodology"]));
   const select = (tab: TabId) => {
     setActive(tab);
     setDrawn((d) => (d.has(tab) ? d : new Set(d).add(tab)));
@@ -846,17 +846,8 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   };
   return (
     <div data-settings-workspace className="flex flex-col gap-4 [&_button]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      <div className={`${CARD} flex flex-col gap-3`}>
-        <h2 className="text-base font-semibold">{t(`${P}.title`)}</h2>
-        <p className="max-w-3xl text-sm text-ink-muted">{t(`${P}.intro`)}</p>
-        <details><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.legendTitle`)}</summary><ul className="mt-3 flex flex-wrap gap-4 border-t border-border pt-3">
-          {(["API", "DEPLOYMENT", "CODE", "INVARIANT"] as const).map((c) => (
-            <li key={c} className="flex items-center gap-2 text-xs text-ink-muted"><ControlBadge control={c} />{t(`${P}.controlHelp.${c}`)}</li>
-          ))}
-        </ul></details>
-      </div>
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[15rem_minmax(0,1fr)]">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto rounded-md border border-border bg-surface-raised p-2 xl:sticky xl:top-6 xl:flex-col xl:overflow-visible">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[12rem_minmax(0,1fr)]">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
         {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
           <p className="hidden px-3 pt-2 font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
@@ -870,20 +861,19 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`min-w-28 rounded-sm border px-3 py-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`min-w-28 rounded-sm border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-signal-edge bg-signal-wash font-semibold text-signal" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            <span className="block">{t(`${P}.tabs.${tab}`)}</span><span aria-hidden="true" className="mt-1 hidden text-xs font-normal leading-5 text-ink-muted xl:block">{TAB_GUIDE[tab].purpose}</span>
+            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
           </button>
           ))}
         </div>)}
       </div>
       <div className="min-w-0">{TABS.map((tab) => (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          <header className="rounded-md border border-border bg-surface-raised px-4 py-4">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-ink-faint">{TAB_GROUPS.find((group) => group.tabs.includes(tab))?.title}</p>
-            <h3 className="mt-1 text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h3>
-            <p className="mt-1 text-sm font-medium">{TAB_GUIDE[tab].purpose}</p><p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p>
-            <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 border-t border-border pt-3 text-xs"><div><dt className="font-semibold text-ink-muted">Rozsah</dt><dd>{TAB_FACTS[tab].scope}</dd></div><div><dt className="font-semibold text-ink-muted">Správa změn</dt><dd>{TAB_FACTS[tab].owner}</dd></div></dl>
+          <header className="border-b border-border pb-3">
+            <h2 className="text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-5 text-ink-muted">{TAB_GUIDE[tab].purpose} {TAB_GUIDE[tab].action}</p>
+            <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Rozsah a správa změn</summary><p className="mt-2">{TAB_FACTS[tab].scope} · {TAB_FACTS[tab].owner}</p></details>
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
@@ -895,9 +885,9 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
 /** The prompts tab, drawn as a section like every other. Mounted on the first visit only. */
 function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPanel>) {
   return (
-    <Section id="prompts">
+    <section id="set-prompts" className="min-w-0">
       <SystemPromptsPanel {...props} />
-    </Section>
+    </section>
   );
 }
 
@@ -905,9 +895,9 @@ function SystemPromptsSection(props: React.ComponentProps<typeof SystemPromptsPa
 function MethodologySection({ members }: { members: Part<Member[]> }) {
   const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   return (
-    <Section id="methodology">
+    <section id="set-methodology" className="min-w-0">
       <MethodologyPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
-    </Section>
+    </section>
   );
 }
 
@@ -915,10 +905,10 @@ function MethodologySection({ members }: { members: Part<Member[]> }) {
 function DeepResearchSection({ items, members }: { items: SettingItem[]; members: Part<Member[]> }) {
   const emails = new Map(members.ok ? members.data.map((m) => [m.user_id, m.email]) : []);
   return (
-    <Section id="deep_research">
+    <section id="set-deep_research" className="min-w-0">
       <DeepResearchSettingsPanel people={(id) => (id ? (emails.get(id) ?? id) : "—")} />
       {items.length ? <details><summary className="cursor-pointer text-xs text-ink-muted">{t(`${P}.relatedSettings`)}</summary><div className="mt-2">{items.map((item) => <SettingRow key={item.key} item={item} />)}</div></details> : null}
-    </Section>
+    </section>
   );
 }
 
