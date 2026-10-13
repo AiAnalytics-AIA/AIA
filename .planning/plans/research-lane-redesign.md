@@ -7,9 +7,9 @@ chunks:
   - "[x] 4. Zadání: denser sections, AI actions on the card they change, drop files anywhere on the stage, per-file reading state; readiness moves to the inspector"
   - "[x] 5. Návrh: an AI proposal is reviewed inline as changes, accepted per item or all (AgentProposalDialog stays for jobs from other stages until 6-8)"
   - "[x] 6. Dotazník: one toolbar (add, Excel, AI), outline beside the editor, the invalid question marked where it is"
-  - "[ ] 7. Cílová skupina and Dimenze: one source/population/strategy card; dimensions as a checklist grid; sample beside them"
-  - "[ ] 8. Kontrola, Průběh, Výsledky: problems first with a fix link, the run's steps as one list, the complete-report card at the top of Výsledky"
-  - "[ ] 9. Browser pass on the workbench (ux_journey at 1440/1024/768/390), screenshots in the PR"
+  - "[x] 7. Cílová skupina and Dimenze: one source/population/strategy card; dimensions as a checklist grid; sample beside them"
+  - "[x] 8. Kontrola, Průběh, Výsledky: problems first with a fix link, the run's steps as one list, the complete-report card at the top of Výsledky"
+  - "[x] 9. Browser pass on the workbench (ux_journey at 1440/1024/768/390), screenshots in the PR"
   - "[ ] B1. Complete internal report: compose_internal_report gains the design summary, a method / AI-respondent provenance section, per-question aggregate tables and the questionnaire appendix; the Deep Research variant is stored as an artifact with a review_state"
   - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve and the button on Výsledky (APPROVED_INTERNAL)"
   - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report, its cost and time measured"
@@ -89,15 +89,22 @@ From the assessment of 2026-10-13 (anchors @ b05b698):
   inline (ProposalReview) with the changes listed (src/research/proposal-diff.ts).
 - Chunk 4: only AI actions that exist as jobs are drawn; the canvas's "Zpřesnit" and
   "Doplnit z podkladů" have no job and were not built.
-- Chunk 8, started: the complete-report card at the top of Výsledky (CompleteReport.tsx;
+- Chunk 8: the complete-report card at the top of Výsledky (CompleteReport.tsx;
   each part claimed only from the run's own steps), Kontrola's checks first with
-  failures on top. Průběh is unchanged.
+  failures on top.
 - Chunk 6: the toolbar holds the method, the edit/preview switch and "Optimalizovat s AI";
   the questionnaire's readiness is in the inspector; a question without wording is
   marked on its card (aria-invalid, the reason beside it). The three-path chooser stays
   as the empty questionnaire's screen: which screen draws is parity-tested
   (questionnaireView).
-- Chunk 7: only the shared section density (StepSection) has reached it so far.
+- Chunk 7: the audience summary and the chosen dimensions are in the inspector; the
+  sample is a card in the page (it is an input, not a summary); strategies and the
+  dimension catalogue are grids.
+- Chunk 8, finished: Průběh has the run's finished-step count and bar in its header,
+  and its actions (results, cancel, retry, refresh) with the actual cost in the
+  inspector.
+- Chunk 9: `ux_journey.mjs` passes (84 layout checks at 1440/1024/768/390, 4 interaction
+  checks) on the workbench after chunks 1-8; screenshots in the PR.
 
 ## Findings
 
