@@ -9,7 +9,7 @@ import pytest
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH_KINDS, INVESTIGATE_TRACK_KIND
-from aia_core.domain.holdout.run import ARM_KIND, SAMPLE_KIND
+from aia_core.domain.holdout.run import ARM_KIND, SAMPLE_KIND, SCORE_KIND
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import (
@@ -91,6 +91,7 @@ def test_the_registry_offers_the_snapshot_kind_and_loads_through_the_worker(
         *PRODUCTION_RESEARCH_KINDS,
         SAMPLE_KIND,
         ARM_KIND,
+        SCORE_KIND,
     }
     assert isinstance(build_registry()[KIND], SnapshotExecutor)
     assert isinstance(loaded[RESEARCH_AGENT], ResearchAgentExecutor)
@@ -224,4 +225,5 @@ def test_registry_for_is_keyed_by_kind(store: InMemoryArtifactStore, build: Buil
         *PRODUCTION_RESEARCH_KINDS,
         SAMPLE_KIND,
         ARM_KIND,
+        SCORE_KIND,
     ]

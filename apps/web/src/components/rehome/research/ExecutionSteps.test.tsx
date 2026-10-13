@@ -907,92 +907,22 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/artifacts")).toHaveLength(0);
   });
 
-  it("shows the internal draft from the completed report step and downloads it with authentication", async () => {
-    const reportRun = run({
-      ...COMPLETED,
-      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
-        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
-      })],
-    });
-    const documentBytes = new Blob(["docx bytes"], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+  // The report card at the top of Výsledky (CompleteReport) is the one place a report is
+  // downloaded and approved; the report panel below keeps its status and provenance.
+  const reportRun = () => run({
+    ...COMPLETED,
+    steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+      kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+    })],
+  });
+  const reportStatus = (extra: Record<string, unknown> = {}) => ({
+    run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+    artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true, ...extra,
+  });
+  const stubDownloads = () => {
     const createObjectURL = vi.fn(() => "blob:report");
-    const revokeObjectURL = vi.fn();
     const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
     URL.createObjectURL = createObjectURL;
-    URL.revokeObjectURL = revokeObjectURL;
-    const click = vi.fn();
-    HTMLAnchorElement.prototype.click = click;
-    onTestFinished(() => {
-      URL.createObjectURL = real.create;
-      URL.revokeObjectURL = real.revoke;
-      HTMLAnchorElement.prototype.click = real.click;
-    });
-    api({
-      ...listed(reportRun),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
-        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
-        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
-      }),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
-        new Response(documentBytes, { status: 200 }),
-    });
-    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
-    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
-    expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
-    expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
-    fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportDownload") }));
-    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
-    expect(click).toHaveBeenCalledOnce();
-    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
-  });
-
-  it("offers the client report only for modelled data, and says why when the API refuses it", async () => {
-    const reportRun = run({
-      ...COMPLETED,
-      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
-        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
-      })],
-    });
-    let kind = "MODELLED";
-    api({
-      ...listed(reportRun),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
-        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
-        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10,
-        synthetic: kind !== "MODELLED", modelled: kind === "MODELLED", data_origin_kind: kind,
-      }),
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/download": () =>
-        new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 }),
-    });
-    const { unmount } = render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
-    expect(await screen.findByText(/nesplnilo pravidla pro klienta/)).toBeTruthy();
-    expect(screen.getByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
-    unmount();
-
-    kind = "SIMULATED";
-    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
-    expect(await screen.findByRole("button", { name: t("research.exec.results.reportDownload") })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownloadClient") })).toBeNull();
-  });
-
-  it("offers the report's PDF when the run stored one, and says so when it could not", async () => {
-    const reportRun = run({
-      ...COMPLETED,
-      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
-        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
-      })],
-    });
-    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
-    URL.createObjectURL = vi.fn(() => "blob:pdf");
     URL.revokeObjectURL = vi.fn();
     HTMLAnchorElement.prototype.click = vi.fn();
     onTestFinished(() => {
@@ -1000,64 +930,118 @@ describe("Results", () => {
       URL.revokeObjectURL = real.revoke;
       HTMLAnchorElement.prototype.click = real.click;
     });
-    let pdf: unknown = { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 };
+    return createObjectURL;
+  };
+  const card = async () => {
+    await screen.findByRole("heading", { name: "Kompletní zpráva studie" });
+    return within(document.querySelector("[data-complete-report]") as HTMLElement);
+  };
+
+  it("shows the internal draft from the completed report step and downloads it from the report card", async () => {
+    const createObjectURL = stubDownloads();
     api({
-      ...listed(reportRun),
+      ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
-        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
-        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true, pdf,
-      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/download": () =>
+        new Response(new Blob(["docx bytes"]), { status: 200 }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
+    expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.results.reportSynthetic"))).toBeTruthy();
+    expect(screen.getByText(/Artefakt ART-report/)).toBeTruthy();
+    const report = await card();
+    expect(report.getByText("Stav: koncept, zatím neschválený")).toBeTruthy();
+    fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce());
+    expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
+    // Fictional data has no client version, and says why.
+    expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).toBe("true");
+    expect(report.getByText(/Klientská zpráva vzniká jen z běhu s AI respondenty z populace/)).toBeTruthy();
+  });
+
+  it("offers the client report only for modelled data, approves the draft it downloaded, and says why when refused", async () => {
+    stubDownloads();
+    let refuse = true;
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () =>
+        reportStatus({ synthetic: false, modelled: true, data_origin_kind: "MODELLED" }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/download": () => refuse
+        ? new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 })
+        : new Response(new Blob(["client docx"]), { status: 200, headers: { "X-AIA-Artifact-Id": "ART-client", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () =>
+        ({ run_id: "RUN-1", artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", internal_only: true }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    const report = await card();
+    fireEvent.click(await report.findByRole("radio", { name: "Pro klienta" }));
+    expect(report.getByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
+    // The client version is DOCX only.
+    expect(report.getByRole("radio", { name: "PDF" }).getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
+    expect(await report.findByText(/nesplnilo pravidla pro klienta/)).toBeTruthy();
+    refuse = false;
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
+    const approve = await report.findByRole("button", { name: t("research.exec.results.reportApprove") });
+    fireEvent.click(approve);
+    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
+    expect(posted).toHaveLength(1);
+    expect(posted[0].body).toEqual({ artifact_id: "ART-client", note: "" });
+  });
+
+  it("offers the report's PDF when the run stored one, and says why when it could not", async () => {
+    stubDownloads();
+    let pdf: unknown = { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 };
+    api({
+      ...listed(reportRun()),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus({ pdf }),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download": () =>
         new Response(new Blob(["%PDF-1.7"], { type: "application/pdf" }), { status: 200 }),
     });
     const { unmount } = render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
-    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.results.reportDownloadPdf") }));
+    let report = await card();
+    fireEvent.click(await report.findByRole("radio", { name: "PDF" }));
+    fireEvent.click(report.getByRole("button", { name: /Stáhnout zprávu/ }));
     await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(1));
-    expect(screen.queryByText(t("research.exec.results.reportPdfFailed"))).toBeNull();
     unmount();
 
     pdf = { state: "FAILED", reason: "pdf_conversion_failed" };
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
-    expect(await screen.findByText(t("research.exec.results.reportPdfFailed"))).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownloadPdf") })).toBeNull();
+    report = await card();
+    const option = await report.findByRole("radio", { name: "PDF" });
+    await waitFor(() => expect(option.getAttribute("title")).toBe(t("research.exec.results.reportPdfFailed")));
+    expect(option.getAttribute("aria-disabled")).toBe("true");
   });
 
-  it("approves the stored draft for internal use, and says so when its producer may not", async () => {
-    const reportRun = run({
-      ...COMPLETED,
-      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
-        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
-      })],
-    });
+  it("approves the stored internal draft, and says so when its producer may not", async () => {
     let refuse = true;
     api({
-      ...listed(reportRun),
+      ...listed(reportRun()),
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
-        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
-        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
-      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => reportStatus(),
       "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => refuse
         ? new Response('{"code":"separation_of_duties","message":"independent review required"}', { status: 403 })
         : { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true },
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
-    const approve = await screen.findByRole("button", { name: t("research.exec.results.reportApprove") });
-    fireEvent.click(approve);
-    expect(await screen.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
-    expect(screen.getByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    const report = await card();
+    fireEvent.click(await report.findByRole("button", { name: t("research.exec.results.reportApprove") }));
+    expect(await report.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     refuse = false;
-    fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportApprove") }));
-    expect(await screen.findByText(t("research.exec.results.reportApprovedInternal"))).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
-    const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
-    expect(posted).toHaveLength(2);
+    fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    expect(await report.findByText("Stav: schváleno")).toBeTruthy();
+    expect(report.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[1].body)
+      .toEqual({ artifact_id: "ART-report", note: "" });
   });
 
   it("explains why a report could not be made when analysis was refused", async () => {
@@ -1121,8 +1105,9 @@ describe("A run's results outside a study session (project memory M2a)", () => {
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
     expect(await screen.findByText(t("research.exec.results.reportDraft"))).toBeTruthy();
     expect(await screen.findByText(t("research.exec.results.mapsByMethod"))).toBeTruthy();
-    const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
-    expect(download.disabled).toBe(true);
+    // Read-only: no report card, and the report panel offers no download or approval.
+    expect(document.querySelector("[data-complete-report]")).toBeNull();
+    expect(screen.queryByRole("button", { name: /Stáhnout/, hidden: true })).toBeNull();
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportApprove"), hidden: true })).toBeNull();
     expect(screen.queryByRole("link", { name: /Průběh tohoto běhu/ })).toBeNull();
     expect(called("GET", "/api/v1/studies/STU-1/deep-research")).toHaveLength(0);
@@ -1195,7 +1180,9 @@ describe("Interpretation research", () => {
       "GET /api/v1/studies/STU-1/deep-research/runs": () => started ? [review] : [{ ...review, run_id: "RUN-other", target: { research_run_id: "RUN-other" } }],
       "POST /api/v1/studies/STU-1/deep-research/runs/interpretation": () => { started = true; return review; },
       "GET /api/v1/studies/STU-1/deep-research/runs/RUN-deep/bundle": () => bundle,
-      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context/download": () => new Response("document bytes"),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/context/download": () => new Response("document bytes",
+        { headers: { "X-AIA-Artifact-Id": "ART-context", "X-AIA-Review-State": "DRAFT_UNAPPROVED" } }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => ({ artifact_id: "ART-context", review_state: "APPROVED_INTERNAL" }),
     });
     const createUrl = vi.fn(() => "blob:test-report");
     const revokeUrl = vi.fn();
@@ -1218,5 +1205,11 @@ describe("Interpretation research", () => {
     await waitFor(() => expect(createUrl).toHaveBeenCalled());
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/context/download")[0].url).toContain("deep_research_run_id=RUN-deep");
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
+    // The downloaded draft is the one approved: its artifact id, from the download's header.
+    expect(await screen.findByText("Stažený dokument je koncept: schvalujete právě ten, který jste stáhli.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Schválit pro interní použití" }));
+    expect(await screen.findByText("Stažený dokument je schválen pro interní použití.")).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve")[0].body).toEqual({ artifact_id: "ART-context", note: "" });
+    expect(screen.queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
   });
 });

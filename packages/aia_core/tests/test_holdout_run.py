@@ -7,17 +7,19 @@ from typing import Any
 
 import pytest
 
-from aia_core.domain.holdout.bank import Option
+from aia_core.domain.holdout.bank import HoldoutItem, Option, SourceDocument
 from aia_core.domain.holdout.preregistration import HoldoutRefused
 from aia_core.domain.holdout.run import (
     ARM_KIND,
     SAMPLE_KIND,
     SCORE_KIND,
+    SampledPerson,
     arm_node_key,
     arm_record,
     preregistered_blocks,
     read_arm_record,
     sample_sha256,
+    scoring_inputs,
     system_mismatch,
     validation_cost_ceiling,
     validation_requests,
@@ -158,3 +160,78 @@ def test_the_samples_identity_is_who_was_drawn_and_moves_only_with_the_draw(
     first = draw_panel_sample(population, None, 200, 5)
     assert sample_sha256(first) == sample_sha256(draw_panel_sample(population, None, 200, 5))
     assert sample_sha256(first) != sample_sha256(draw_panel_sample(population, None, 200, 6))
+
+
+def _scored_item(field: str, *, ages: tuple[int, int] | None = None) -> HoldoutItem:
+    return HoldoutItem(
+        field=field,
+        survey="ISSP_2022_CZ",
+        domain="family",
+        wording="Jak moc souhlasíte?",
+        options=(Option("1", "Ano"), Option("2", "Spíše ano"), Option("3", "Ne")),
+        measured_ages=ages,
+        ordinal=True,
+        source=SourceDocument("https://example.org/q.pdf", "d" * 64, "3", field),
+    )
+
+
+@pytest.fixture
+def scored_population(holdout_population: Any) -> Any:
+    """Six people: a core item answered by all but one, a matched-block item, and their cells."""
+    return holdout_population(
+        {
+            "vek": ("core", "POPULATION_ANCHOR", ("25", "40", "70", "33", "52", None)),
+            "pohlavi": ("core", "POPULATION_ANCHOR", ("muž", "žena", "muž", "žena", "muž", "žena")),
+            "vek_skupina": (
+                "core",
+                "POPULATION_ANCHOR",
+                ("18-29", "30-44", "60-74", "30-44", "45-59", None),
+            ),
+            "core_item": ("core", "POPULATION_ANCHOR", ("1", "2", "3", None, "1", "2")),
+            "block_item": ("family_health", "MATCHED_WHOLE_BLOCK", ("3", "3", "2", "1", "1", "2")),
+        }
+    )
+
+
+def _people() -> list[SampledPerson]:
+    return [SampledPerson(f"R{i}", i, f"D{i}", 1.0 + i) for i in range(6)]
+
+
+def test_each_person_is_scored_on_their_own_answer_where_it_is_real(
+    scored_population: Any,
+) -> None:
+    truths, respondents, rows = scoring_inputs(
+        scored_population,
+        [_scored_item("core_item", ages=(18, 65)), _scored_item("block_item")],
+        _people(),
+    )
+    core, block = truths
+    # Ages outside the survey's (R2 is 70) and an unknown age (R5) are not scored; a missing
+    # answer (R3) is not scored as any answer.
+    assert core.answers == {"R0": "1", "R1": "2", "R4": "1"}
+    assert core.person_level is True
+    # A matched block's answer is its donor's, scored on every row, never Brier'd as the person's.
+    assert block.answers == {f"R{i}": v for i, v in enumerate(("3", "3", "2", "1", "1", "2"))}
+    assert block.person_level is False
+    assert [r.cell for r in respondents] == [
+        "muž|18-29",
+        "žena|30-44",
+        "muž|60-74",
+        "žena|30-44",
+        "muž|45-59",
+        None,  # an unknown age band puts nobody in a cell
+    ]
+    assert respondents[3].weight == 4.0 and respondents[3].donor_id == "D3"
+    assert rows == {f"R{i}": i for i in range(6)}
+
+
+def test_a_stored_answer_that_is_no_option_or_an_item_the_population_lacks_is_refused(
+    scored_population: Any,
+) -> None:
+    with pytest.raises(HoldoutRefused) as lacked:
+        scoring_inputs(scored_population, [_scored_item("absent")], _people())
+    assert lacked.value.reason == "holdout_item_not_in_population"
+    narrow = replace(_scored_item("block_item"), options=(Option("1", "A"), Option("2", "B")))
+    with pytest.raises(HoldoutRefused) as coerced:
+        scoring_inputs(scored_population, [narrow], _people())
+    assert coerced.value.reason == "holdout_truth_not_an_option"

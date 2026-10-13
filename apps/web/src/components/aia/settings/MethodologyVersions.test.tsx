@@ -356,7 +356,7 @@ describe("guided methodology editing", () => {
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
     expect((await field(form, "terrain.sigma")).value).toBe("0,35");
     const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload); expect(unload.defaultPrevented).toBe(true);
-    fireEvent.change(within(form).getByLabelText("Vycházet z metodiky z kódu"), { target: { value: "aia-sociomap-2" } });
+    fireEvent.change(within(form).getByLabelText("Začít od metodiky z kódu"), { target: { value: "aia-sociomap-2" } });
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect((await field(form, "terrain.sigma")).value).toBe("0,35");
@@ -402,11 +402,32 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   it("opens on the editor, with no extra click", async () => {
     fakeApi(); render(<MethodologyPanel />);
     const form = await editor();
-    expect(within(form).getByRole("heading", { name: /^Úprava metodiky \(výchozí: aia-sociomap-/ })).toBeTruthy();
+    // It edits what is in force, and says so; the newer preset it saves over computes the same.
+    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-3)" })).toBeTruthy();
+    expect(form.querySelector("[data-start-note]")?.textContent).toMatch(/^Úprava se uloží nad aia-sociomap-4: počítá stejně jako aia-sociomap-3 v platnosti/);
+    expect((within(form).getByLabelText("Začít od metodiky z kódu") as HTMLSelectElement).selectedOptions[0].textContent).toBe("Metodika v platnosti");
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
     // The outline is the calculation in order, every editable step one click away.
     const outline = within(form).getByRole("navigation", { name: "Kroky výpočtu" });
     expect(within(outline).getAllByRole("button").length).toBeGreaterThan(3);
+  });
+
+  it("opens the next edit on the stored version in force, with its values", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    let form = await editor();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    const section = await versionsSection();
+    fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-4+e1 v platnost" }, { timeout: 5000 }));
+    fireEvent.click(within(await found("[data-methodology-activate]", section)).getByRole("button", { name: "Potvrdit" }));
+    await waitFor(() => expect(within(section).getByText("uložená verze")).toBeTruthy());
+    cleanup();
+    render(<MethodologyPanel />);
+    form = await editor();
+    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-4+e1)" })).toBeTruthy();
+    expect((await field(form, "terrain.sigma")).value).toBe("0.3"); // stored values are shown as stored
+    // A stored version is edited as it is: no note about another preset.
+    expect(form.querySelector("[data-start-note]")).toBeNull();
   });
 
   it("shows the change's place in the safe sequence, and what the draft changes in words", async () => {

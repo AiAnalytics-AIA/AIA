@@ -119,8 +119,10 @@ describe("a past research in project memory", () => {
     expect(await within(labels).findByText(t(`${S}.report.draft`))).toBeTruthy();
     expect(within(labels).getByText(t(`${S}.internal`))).toBeTruthy();
     expect(await screen.findByText(/Fiktivní data\. Tento běh používá smyšlené respondenty/)).toBeTruthy();
-    const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
-    expect(download.disabled).toBe(true);
+    // Read-only: the report is neither downloaded nor approved from project memory.
+    for (const name of [t("research.exec.results.reportDownload"), "Stáhnout zprávu", t("research.exec.results.reportApprove")]) {
+      expect(screen.queryByRole("button", { name, hidden: true })).toBeNull();
+    }
 
     // The older revision: what it said, and that it was never run.
     fireEvent.click(screen.getByRole("button", { name: new RegExp(tv(`${S}.revision`, { revision: 1 })) }));

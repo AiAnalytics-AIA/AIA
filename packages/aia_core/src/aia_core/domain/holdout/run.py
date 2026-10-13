@@ -30,30 +30,36 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, Final
 
+from ..evidence.joint_status import CORE_BLOCKS
 from ..evidence.validation import RESPONDENT_SYSTEM_COMPONENTS
 from ..population.sampling import PanelSample
 from ..research_design import COMPILER_VERSION, ResearchSpecification, SpecQuestion
 from ..respondent_facts import FactStatus, classify_question
 from ..workflow import StepDefinition
-from .bank import ItemBank, canonical_json
+from .bank import HoldoutItem, ItemBank, canonical_json
+from .eligibility import HoldoutPopulation, scored_rows
 from .preregistration import HoldoutRefused, Preregistration
-from .scoring import ArmRun
+from .scoring import ArmRun, ItemTruth, Respondent
 
 __all__ = [
     "ARM_ARTIFACT",
     "ARM_KIND",
     "SAMPLE_ARTIFACT",
     "SAMPLE_KIND",
+    "SCORE_ARTIFACT",
     "SCORE_KIND",
     "VALIDATION_PROJECT_OWNER",
     "VALIDATION_WORKFLOW",
+    "SampledPerson",
     "arm_node_key",
     "arm_record",
     "preregistered_blocks",
     "read_arm_record",
     "sample_sha256",
+    "scoring_inputs",
     "shuffle_seed",
     "system_mismatch",
     "validation_cost_ceiling",
@@ -72,6 +78,10 @@ SCORE_KIND: Final = "holdout_score"
 #: The artifacts the sample and arm steps write.
 SAMPLE_ARTIFACT: Final = "holdout_sample"
 ARM_ARTIFACT: Final = "holdout_arm_answers"
+SCORE_ARTIFACT: Final = "holdout_verdict"
+#: The subgroup cell: sex x age band (scoring's ``Respondent.cell``).
+_CELL_FIELDS: Final = ("pohlavi", "vek_skupina")
+_NA_TOKENS: Final = frozenset({"", "NA", "NaN", "nan", "N/A", "<NA>", "None", "null"})
 #: What a confirmation run is titled in its questionnaire.
 _TITLE: Final = "Validace respondentního systému"
 
@@ -314,3 +324,86 @@ def read_arm_record(arm: str, replicate: int, record: Mapping[str, Any]) -> ArmR
         for respondent, probs in by.items()
     }
     return ArmRun(arm=arm, replicate=replicate, answers=answers, probabilities=probabilities)
+
+
+@dataclass(frozen=True, slots=True)
+class SampledPerson:
+    """A sampled respondent as the arms asked them: their id, row, donor and weight."""
+
+    respondent_id: str
+    row: int
+    donor_id: str
+    weight: float
+
+
+def _value(cell: Any) -> str | None:
+    if cell is None:
+        return None
+    text = str(cell).strip()
+    return None if text in _NA_TOKENS else text
+
+
+def scoring_inputs(
+    population: HoldoutPopulation,
+    items: Sequence[HoldoutItem],
+    sampled: Sequence[SampledPerson],
+) -> tuple[tuple[ItemTruth, ...], tuple[Respondent, ...], dict[str, int]]:
+    """The sampled people's own answers to each item, the respondents as scoring reads them,
+    and each respondent's row (for the code baselines).
+
+    A respondent is scored on an item only where the answer is real: on the rows the item is
+    scored on (``eligibility.scored_rows``), and only when they hold an answer. A stored answer
+    that is not one of the item's codes is refused (``holdout_truth_not_an_option``), never
+    coerced. An item the population lacks is refused (``holdout_item_not_in_population``).
+    The answer is the person's own (Brier applies) for a core item; a matched block's is its
+    donor's.
+    """
+    fields = set(population.fields)
+    cells = {name: population.column(name) for name in _CELL_FIELDS if name in fields}
+
+    def cell_of(row: int) -> str | None:
+        parts = [_value(cells[name][row]) if name in cells else None for name in _CELL_FIELDS]
+        return None if any(p is None for p in parts) else "|".join(parts)  # type: ignore[arg-type]
+
+    respondents = tuple(
+        Respondent(
+            respondent_id=p.respondent_id,
+            donor_id=p.donor_id,
+            weight=p.weight,
+            cell=cell_of(p.row),
+        )
+        for p in sampled
+    )
+    truths = []
+    for item in items:
+        if item.field not in fields:
+            raise HoldoutRefused(
+                f"{item.field} is not a field of the run's population",
+                reason="holdout_item_not_in_population",
+            )
+        column = population.column(item.field)
+        asked = set(scored_rows(population, item))
+        answers: dict[str, str] = {}
+        for p in sampled:
+            if p.row not in asked:
+                continue
+            value = _value(column[p.row])
+            if value is None:
+                continue
+            if value not in item.codes:
+                raise HoldoutRefused(
+                    f"{item.field} holds {value!r}, which is not one of its options",
+                    reason="holdout_truth_not_an_option",
+                )
+            answers[p.respondent_id] = value
+        entry = population.field_policy.entry(item.field)
+        truths.append(
+            ItemTruth(
+                item=item.field,
+                domain=item.domain,
+                codes=item.codes,
+                person_level=entry is not None and entry.block in CORE_BLOCKS,
+                answers=answers,
+            )
+        )
+    return tuple(truths), respondents, {p.respondent_id: p.row for p in sampled}
