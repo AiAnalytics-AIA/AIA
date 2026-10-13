@@ -188,7 +188,7 @@ def test_what_cannot_be_read_says_so_by_name(
 
 
 def test_a_reader_still_to_come_reads_as_unsupported_never_as_read() -> None:
-    for name in ("a.doc", "a.odt", "a.pptx", "a.csv", "a.xls", "a.ods"):
+    for name in ("a.csv", "a.xlsx", "a.xls", "a.ods"):
         reading = read_source(b"anything", name)
         assert (reading.outcome, reading.reason, reading.segments) == (
             ReadingOutcome.UNSUPPORTED,

@@ -51,6 +51,13 @@ ignore_missing_imports = true
 module = ["openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
+# olefile ships no type stubs; it is used in one function
+# (aia_core.infrastructure.source_reading._doc_text), only to open a compound file and
+# read two streams as bytes.
+[[tool.mypy.overrides]]
+module = ["olefile", "olefile.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.
