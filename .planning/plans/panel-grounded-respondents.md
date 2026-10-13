@@ -33,7 +33,14 @@ chunks:
   - "[x] 6d. Readiness says whether the filters will be applied, by what a run started now would pin"
   - "[x] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
   - "[x] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
-  - "[ ] 7. Validation: persona ablation and a holdout against known marginals before any client-facing claim"
+  - "[x] 7a. Validation contract (plan before code): the claim, held-out truth, leakage, arms, metrics, P1-P8, money, recording"
+  - "[ ] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
+  - "[ ] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
+  - "[ ] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
+  - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
+  - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
+  - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
+  - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
 ---
 # Panel-grounded AI respondents
 
@@ -1193,6 +1200,417 @@ Code comments that still give OI-61 as the reason fieldwork is fictional change 
 none / demographics / full, TVD per question) and add a holdout: questions whose
 population marginals are known (ISSP items in the panel), asked of panel-grounded
 respondents, compared. No client-facing claim until the holdout result is recorded.
+
+### 7. Validation (contract, 7a)
+
+Anchors @ `ccddfd87`; unit anchors under `legacy/npc-panel-18.6.6/app/`, frozen.
+
+**Owner decisions (2026-10-13, in session).** Design the validation to be the most
+methodologically robust it can be, and decide its thresholds here. The cost ceiling is the
+validation study's own money: its budget and spend limit. The researcher records the result.
+
+#### The claim being validated
+
+A client asks questions the population never asked. Chunk 7 has to support one claim and no
+other:
+
+> On a closed question that was not in its persona, the current respondent system's AI
+> respondents answer, in aggregate, close to how the people they were drawn from actually
+> answered, and closer than a model given no person, or the wrong person.
+
+So the test reproduces a client's situation on questions whose real answers AIA holds. A real
+answer for each sampled person sits in the panel, but is kept out of everything the model
+sees. The validation is earned by **one** respondent system (`respondent_system_fingerprint`,
+`domain/evidence/validation.py:106-136`). Any change to the prompt, the persona builder, the
+sampler, the population version, the model binding or the response process makes it stale.
+4e2 already enforces that (`effective_validation_status` :151-157).
+
+#### What exists, and why it is not enough
+
+**What 18.6.6 has.** It specifies more than it runs:
+
+- `persona_ablation.py` measures sensitivity, not accuracy. Its arms are `none` /
+  `demographics` / `full`, its metric is TVD, and its status is `EFFECT_TEST_ONLY_NOT_ACCURACY`.
+- `LLM_ABLATION_STATUS_v17_1.json` asks for four arms, three seeds and "D beats C beats B by
+  more than between-seed noise on preregistered external truth". It was never run
+  (`llm_ablation_run: false`).
+- The holdout gate (`validation_gate.py:28-46`) requires:
+  - at least 30 questions across at least 5 domains, with at least 3 per domain;
+  - full-persona MAE of at most 7.5 pp;
+  - a paired-bootstrap improvement over the demographics, generic and shuffled baselines;
+  - preregistration and a hash-chained ledger (`holdout_protocol.py`).
+- It was never run either: its benchmark calls an unimported `resolve_model`
+  (`benchmark.py:212-239`). Its truth is uploaded by a person (`VALIDATION_ANCHORS.json`:
+  `anchors: []`).
+
+**Where 18.6.6 falls short.** Its own design has four weaknesses AIA corrects:
+
+1. **No sampling floor for the truth.** Every arm is scored against a survey marginal, so
+   the error of drawing n respondents is counted as the model's error. Here every sampled
+   person's real answer is in the panel, so the modelled answers are compared with *the same
+   people's* answers and the respondent draw cancels.
+2. **No baseline without a model.** All of its baselines are LLM runs. AIA adds two code
+   baselines, a population marginal and a demographic-cell lookup. These show what the panel
+   alone already knows, and therefore how much the model adds.
+3. **No correction across comparisons.** It makes four uncorrected 95 % comparisons. Here
+   the confirmatory comparisons are Holm-corrected.
+4. **No leakage rule beyond source names.** It matches cited-source strings
+   (`holdout_registry.py:75-136`). Here the excluded set is computed from the data: the item,
+   its matched block, and any persona field associated with it.
+
+AIA today has the validation's *effect* (4e2: only a current `HOLDOUT_VALIDATED` lifts
+`INTERNAL_ONLY`) but not the validation itself:
+
+- nothing stores one (`application/analysis_results.py:509-511` passes `validation=None`);
+- `ValidationState` has no date or evidence;
+- a run cannot leave a field out of its personas: `panel_persona.py:193-294` takes no
+  exclusion.
+
+#### The truth: what may be held out
+
+**The surveys behind the panel** (`legacy/npc-panel-18.6.6/app/DONOR_BLOCK_REGISTRY.json`,
+`CORE_JOINT_STATUS.json`, both 17.x). The panel is not built from ISSP and PIAAC alone.
+
+| Part | Source | Wave | Donors (effective) | Who it is measured for |
+|---|---|---|---|---|
+| Core | PIAAC Cycle 2 CZ | 2023 | the core | 18-65 only |
+| Core | ISSP CZ | 2022 | the core | 66+ only |
+| Matched block `mental_health` | NUDZ CAPI | 2022 | 3,063 (2,240) | everyone, a matched donor's answer |
+| Matched block `social_network` | JRC Loneliness CZ | 2022 | 1,000 (564) | the same |
+| Matched block `institutions` | QoG EQI CZ | 2024 | 5,033 (3,884) | the same |
+| Matched block `rule_of_law` | CSDA Rule of Law | 2024 | 981 (511) | the same |
+| Matched block `politics` | CSES Module 5 CZE | 2021 | 1,451 (1,123) | the same |
+| Matched block `family_health` | ISSP CZ | 2022 | 1,243 (831) | the same |
+
+These give seven natural domains (the core's skills and work, plus the six blocks). Two
+consequences for the item bank:
+
+- **A core item is scored only where it was measured.** PIAAC items exist for 18-65 and
+  ISSP core items for 66+. Such an item is asked of the whole sample, as a client run would
+  ask it, but scored only on the age range whose answers are real: a row outside it has no
+  truth, never a guessed one. Its support (criterion 4) is counted in that range.
+- **A matched block's support is its effective donors.** `rule_of_law` (511) and
+  `social_network` (564) pass the 300 floor; any block under it would not.
+
+**The item bank.** Each candidate item is a panel field whose answers are a survey's
+measured responses. Each item needs:
+
+- the field's dictionary entry: block, source and evidence status;
+- the source questionnaire's **exact wording and options in Czech, as fielded**, with the
+  map from the panel's codes to those options. The international master (English) is not
+  enough: a translation made by us would be our wording;
+- the source item id.
+
+The dictionary carries no question wording (`POLICY_COLUMNS`, `population/policy.py:233-243`).
+So the bank is a separate, hash-pinned file, an import-contract companion like
+`PERSONA_VALUE_LABELS`, compiled from the source questionnaires (ISSP CZ, PIAAC CZ). An item
+without its source wording is ineligible. A question re-worded by us would test our wording,
+not the system.
+
+**Eligible.** A field is eligible only when every one of these holds:
+
+1. **Measured, never modelled.** Its `evidence_status` is one of the measured classes:
+   `CANONICAL_CORE`, `MEASURED_CORE_PIAAC`, `MATCHED_WHOLE_BLOCK(_CANONICAL)` or
+   `MATCHED_POLITICS_CANONICAL`. `CALIBRATED_*` and `MODELED_*` are models, and a model
+   scored against a model proves nothing.
+2. **Closed.** A single choice of 2-11 options, or an ordinal scale of at most 11 points,
+   since the respondent contract answers closed items.
+3. **Answered.** Non-null for at least 80 % of LIVE's weighted rows. A missing answer is
+   never scored as an option.
+4. **Supported.** At least 300 effective donors (Kish, over `core_donor_id` or the block's
+   donor). This is 18.6.6's `human_n >= 300`, counted in donors as 4e4 counts support.
+5. **Not given.** Not a sampling or raking field (sex, age, education, region), not an
+   audience dimension (`DERIVED_COLUMNS`), and not a fact the factual layer answers by code
+   (`respondent_facts._DIRECT_PATTERNS`). A respondent is told those, so predicting them
+   proves nothing.
+6. **Not near-duplicate.** Among items with |r| (or Cramér's V) >= 0.7 between them, only
+   one is kept, chosen by the draw. This stops one construct being counted several times.
+
+**Domains.** A domain is the dictionary's `block` grouped by the bank's declared domain map,
+pinned in the bank. Examples: family and gender roles, work, health, trust and institutions,
+politics, environment, skills use.
+
+**The split, made once and pinned.** The eligible pool is drawn by stratified random
+sampling within domain, under a seed recorded in the preregistration, into two sets:
+
+| Set | Share | What it is for |
+|---|---|---|
+| **Development** | 40 % | Any number of runs: debugging, cost measurement, the ablation's design questions. Never scores a validation. |
+| **Confirmation** | 60 % | Used once per respondent system; never seen by any development run, prompt or person tuning the system. |
+
+A confirmation set is **consumed** when its run completes, pass or fail, as 18.6.6's
+`assert_holdout_unconsumed` consumes a holdout (`holdout_protocol.py:214-218`).
+- After a failure, the system must change (a new fingerprint), and a new confirmation draw
+  comes from the items not yet consumed.
+- When fewer than the minimum remain, validation needs an external truth (below). The pool
+  is never re-used.
+
+**Minimums for a confirmation set.** At least 40 items, across at least 5 domains, with at
+least 4 per domain. 18.6.6 required 30 / 5 / 3. The higher numbers buy a tighter interval
+over items, at about a third more cost.
+
+#### Leakage: what each respondent is not given
+
+For each confirmation item, the persona of every arm leaves out:
+
+1. the item itself;
+2. if the item is in a **matched block**, every field of that block. The block is one
+   donor's answers, so any sibling item carries the answer;
+3. every field whose weighted association with the item, computed on LIVE, is
+   |r| >= 0.30 (ordinal or numeric) or Cramér's V >= 0.30 (nominal). The set is computed and
+   pinned at preregistration, never chosen by hand;
+4. every catalog signal whose `column` is excluded, or whose `concept` is the item's.
+
+**Unit of exclusion.** Items are asked in blocks of at most 8 by domain (one request per
+block, as fieldwork does), so a block's exclusion is the **union** over its items.
+
+**The persona is never filled in.** An excluded field is left out, never replaced. The
+profile reads one line shorter, as a policy refusal reads today (3a).
+
+**Conservative by construction.** Leaving correlated fields out makes the test **harder**
+than production. A client's question also correlates with fields that stay in, so a pass
+here understates the production system's performance and never overstates it. The
+exclusion is an input to the validation run only; no client run accepts one.
+
+**Contamination is measured, not assumed away.** ISSP and PIAAC marginals are public, and a
+model may have seen them in training. Two arms isolate that:
+- arm **A** (no persona) shows what recall alone gets;
+- arm **S** (the shuffled persona) shows whether the *right* person matters.
+
+The validation requires D to beat both. A model that knows the published marginal but not
+the person cannot pass.
+
+#### The arms
+
+Every arm has:
+- one sample: LIVE, no audience filter, the production sampler (`draw_panel_sample`), n 600,
+  its seed in the preregistration;
+- the same block plans;
+- the same prompt, response process and model binding.
+
+Only the persona text differs.
+
+| Arm | What the respondent is given | Model | What it shows |
+|---|---|---|---|
+| **L0** | -- | code | The population's weighted marginal of the item, predicted for everyone: what knowing the population, with no person, already gets |
+| **L1** | -- | code | The weighted distribution of the item in the respondent's sex × age band × education × region cell, the respondent's own donor left out; backs off to a coarser cell under 30 donors: what demographics alone get, by lookup |
+| **A** | No persona: the question only | model | Recall and priors |
+| **B** | Demographics: the base lines (3b, 1) | model | Demographics, through the model |
+| **C** | Core profile: base, socio-economic and household lines, no catalog signals | model | What the signals add (D vs C) |
+| **D** | The production persona (`panel_personas`), with the exclusions | model | **The system being validated** |
+| **S** | D's personas deranged: each respondent gets another sampled respondent's persona | model | Whether the right person matters |
+
+**Replicates.** The model arms run 3 replicates each: answer-draw seed and request order
+change, and the sample and personas do not. That gives the between-replicate noise the
+ablation's decision rule needs (18.6.6's `required_seeds: 3`).
+
+**Arm D is production.** Its prompt, builder and response process are byte-identical to a
+client run's, so its respondent system fingerprint equals production's. A test proves that D
+with no exclusions builds the same requests as `panel_plans` does today.
+
+#### The metrics
+
+All metrics are per item i, on the confirmation set. The truth is **the same sampled
+people's own answers** (weighted, the raked analysis weight), so no respondent-draw error is
+counted against the model. The model returns each respondent's probabilities and code draws
+the answer (`ai_respondent`); the metrics use both.
+
+1. **Marginal error (primary).** `TVD_i` is the total variation distance, in percentage
+   points, between the weighted distribution of the drawn answers and the weighted
+   distribution of the true answers.
+2. **Subgroup error.** The same TVD within each sex × age-band cell (6 cells) holding at
+   least 50 donors, averaged per item. A client's breakdown is a subgroup, so the tier gate's
+   `demographic_breakdown` needs this criterion as well as criterion 1.
+3. **Person-level score.** The mean Brier score of each respondent's predicted probabilities
+   against their own answer, compared between arms. It is scored **only on core-block items**,
+   whose answer is the same person's. A matched block's answer is another donor's, matched
+   on covariates, so a person-level score there would grade the matching, not the model.
+4. **Dispersion.** The entropy gap: modelled minus true entropy, in bits. Mode collapse (the
+   known failure of persona simulation) shows as a negative gap.
+5. **Stability.** The standard deviation of mean TVD over the 3 replicates.
+
+**Uncertainty is computed by bootstrap over items** (an item is the unit of replication),
+10,000 resamples, seed recorded. Item-level differences between arms are paired.
+
+#### Pass: every criterion, on the confirmation set, arm D
+
+Thresholds are fixed here, before any confirmation item is drawn, and copied into the
+preregistration. They cannot change after it is pinned.
+
+| # | Criterion | Threshold | Why this number |
+|---|---|---|---|
+| P1 | Mean `TVD_i` over items | <= 10 pp, **and** its 95 % bootstrap upper bound <= 12 pp | 18.6.6's 7.5 pp was MAE per category. For a typical 4-option item, MAE = TVD / 2, so 7.5 pp MAE is about 15 pp TVD. In general MAE = 2 TVD / k, so 7.5 pp MAE allows 3.75 k pp TVD: 10 pp TVD is stricter than 18.6.6 for every item of 3 or more options and looser only for a 2-option item (7.5). The upper bound stops a lucky mean from passing |
+| P2 | Worst domain's mean `TVD_i` | <= 15 pp | One domain the system cannot model must not hide in the average |
+| P3 | Share of items with `TVD_i` > 20 pp | <= 10 % | A client asks one question, not the average |
+| P4 | D beats **A** and D beats **S** on mean `TVD_i` | paired-bootstrap improvement > 0 at Holm-corrected α = 0.05 (one family, the two comparisons) | Without this, a pass could be recall (A) or no person-specific signal (S). Beating them is what "AI respondents drawn from the population" means |
+| P5 | D's mean Brier score vs **S** on core items | lower, Holm-corrected as in P4 (same family) | The person drives the answer, not just the aggregate |
+| P6 | Mean subgroup TVD | <= 12.5 pp | Needed before any breakdown reaches a client |
+| P7 | Mean entropy gap | >= −0.25 bits | No mode collapse |
+| P8 | Replicate SD of mean TVD | <= 1.5 pp | Otherwise the run's own noise is the size of the effect |
+
+`PASS` holds only if all eight hold. Each criterion is recorded with its value and interval,
+so a failure says which part failed.
+
+**What does not decide the pass, but is recorded and reported:**
+
+- **L0 and L1.** They have the truth's own column, which no client question has. Measuring D
+  against them shows how much of what the panel already knows the model recovers. A system
+  that passes yet sits far above L1 has room to improve, which is a finding, not a failure.
+- **The ablation's ladder (B, C, D).** Its rule is 18.6.6's own (`LLM_ABLATION_STATUS_v17_1`):
+  the catalog signals stay in the persona only if D beats C, and C beats B, by more than
+  twice the between-replicate SD. If not, that is a finding naming the part of the persona
+  that does not earn its place. Changing it changes the fingerprint and needs a new
+  confirmation draw.
+
+**A failed validation is recorded as failed.** It is not retried on the same items, and the
+system stays internal. A negative result is a result.
+
+#### Preregistration: pinned before the first confirmation call
+
+One immutable record, SHA-256 over its canonical JSON (18.6.6's `prereg_sha256`,
+`holdout_protocol.py:23-28`), stored insert-once. It holds:
+
+- the item bank's hash and the eligible pool's hash;
+- the split seed and both sets;
+- each block's items and its exclusion set, with the association values that put each field
+  in it;
+- the arms, n, sample seed, replicate seeds and bootstrap seed;
+- the metrics and P1-P8 with their thresholds;
+- the scoring code's version;
+- the population version;
+- the respondent system's components and fingerprint (arm D's).
+
+The confirmation run refuses to start without it, and refuses one whose system fingerprint
+is not the current one. Development runs need no preregistration and never score a
+validation.
+
+#### Money: the validation study's own budget and spend limit
+
+A validation runs as a **Study** (`kind` RESEARCH) of an internal client, through the same
+gates as any run. No new money mechanism:
+
+- **The study's budget** (`budget_usd`, `scope_repository.set_study_budget`) is the hard cap.
+  Every request reserves against it before it leaves (`reserve_budget`,
+  `workflow_repository.py:1017-1059`).
+- **When the budget runs out.** The step parks in `AWAITING_BUDGET` and waits for a person to
+  lift it (`lift_budget_wait`). It is never silently cut, because a run cut part-way would
+  compare unbalanced arms, as 18.6.6's `ABLATION_BUDGET_EXHAUSTED` refused.
+- **The study's spend limit** (`spend_confirm_usd`). If the run's cost ceiling reaches it,
+  starting needs the researcher's confirmation, recorded in the approval ledger (ADR 0019
+  gate 2; `ResearchRuns.start`, `research.py:441-457`).
+- **The ceiling** is computed as `run_cost` computes one: n × blocks × model arms ×
+  replicates requests × the fieldwork reservation. The code baselines L0 and L1 cost
+  nothing.
+
+**Size, as designed.**
+
+| Pass | Requests | Arithmetic |
+|---|---|---|
+| Confirmation | 45,000 | n 600; 40 items in 5 blocks; 5 model arms (A, B, C, D, S); 3 replicates. 600 × 5 × 5 × 3 |
+| Development | about 4,500 | n 300; the development items in 3 blocks; 5 arms; 1 replicate |
+
+5e measured about 3,500 characters per request, roughly 1,200 input tokens. With about 300
+output tokens and an assumed $3 / $15 per MTok, that is about $0.008 per request: roughly
+$360 for the confirmation pass. The ceiling, at the reservation, is higher. **The real price
+is the development pass's ledger** (`ai_usage_events`). The confirmation study's budget is
+set from it, and the preregistration records the ceiling the researcher confirmed.
+
+#### Who records it, and what recording changes
+
+**The researcher.** Under ADR 0019, a Researcher holds every permission; the worker's scope
+withholds approvals. Recording works like this:
+
+- **Code computes the verdict.** The scoring step writes an immutable verdict artifact:
+  every metric, interval and criterion, `PASS` or `FAIL`, the preregistration's hash and the
+  run's ledger totals.
+- **A person records it.** A member records the verdict as themselves, in the approval
+  ledger (gate `validation`), with an attestation that no confirmation item was seen while
+  the system was tuned (18.6.6's `--attest-holdout-excluded`).
+- **The verdict cannot be overridden.** Recording copies the computed verdict; nobody can
+  record a `PASS` over a computed `FAIL`.
+- **The record.** A recorded `PASS` becomes the respondent system's `ValidationState` with
+  the fingerprint, status `HOLDOUT_VALIDATED`, the recorder, the date, and the
+  preregistration and verdict hashes. A recorded `FAIL` is kept as well, and lifts nothing.
+
+**What it changes, through code 4e already wired:**
+
+- `analysis_results` reads the current validation instead of `None` (:509-511).
+- `lifts_internal_only` then drops `INTERNAL_ONLY` from `-2`.
+- A modelled claim may reach a client with both disclosures.
+- The DOCX prints the validation's date and fingerprint beside "modelováno: AI respondenti z
+  populace" (4e5, ADR §7).
+- Segment breakdowns still need the tier gate.
+- A stale validation (any component changed) lifts nothing, exactly as 4e2 tested.
+
+**No time expiry beyond the fingerprint.** Every input that can change the answers is in it,
+pinned model binding included. A validation older than 12 months is shown with its age,
+because Czech opinion moves and the population version does not, but it is not expired by
+date. That is a methodology call to revisit with the first re-validation.
+
+#### External truth: a second route, never a weaker one
+
+When the panel's pool is consumed, or a client domain lies outside it (brand, media,
+purchase), the same protocol takes an **external** truth instead. That is a survey not used
+to build the population (18.6.6's `HOLDOUT_ZDROJE`, `holdout_registry.py:28-52`), with
+its wording, its weighted marginals, and n >= 1,000 with a stated margin of error.
+
+Because no sampled person's own answer exists for it:
+- P1-P3 are scored against its marginal, with the survey's sampling error subtracted as the
+  floor (18.6.6's `_human_moe_pp`, `benchmark.py:61-78`);
+- P5 is not scored.
+
+The record names which truth earned it: `PANEL_HELD_OUT` or `EXTERNAL`.
+
+#### Chunks
+
+- **7a.** This contract.
+- **7b.** The item bank and the preregistration, pure:
+  - eligibility, the pinned split and the exclusion sets;
+  - the preregistration record and its hash;
+  - refusals by name.
+
+  Tests on a fictional population, including one where a sibling field leaks the answer.
+- **7c.** Persona arms and exclusions (`panel_persona`):
+  - A, B, C, D and S as inputs of a validation run only;
+  - D with no exclusions is byte-identical to today's `panel_plans`;
+  - a client run cannot carry an arm or an exclusion.
+- **7d.** Scoring, pure:
+  - L0, L1, the five metrics, paired bootstrap, Holm, P1-P8 and the verdict.
+
+  Tested on constructed answers where the right verdict is known: a perfect system, a
+  recall-only system that fails P4, a collapsed one that fails P7.
+- **7e.** The validation run:
+  - a `respondent_validation` workflow under a Study: sample once, arms × replicates through
+    the real fieldwork executor, scoring, the verdict artifact;
+  - the cost ceiling, the study budget and the confirmation;
+  - the preregistration refused if missing or stale.
+- **7f.** Recording:
+  - the insert-once tables (preregistration, verdict, validation record);
+  - the researcher's record in the approval ledger;
+  - `ValidationState` gains the date and evidence;
+  - `analysis_results` reads the current validation;
+  - the report prints the date and fingerprint;
+  - Settings shows the respondent system's validation state.
+- **7g.** The item bank compiled from the eight source questionnaires (the table above):
+  the Czech wording and options as fielded, mapped to the panel's codes.
+
+  This is the one input code cannot produce. Each item records its source document (URL and
+  SHA-256 of the file read) and the page it came from. A person checks it against the source
+  documents, then it is pinned. The owner says the documents are public (2026-10-13);
+  where only an international master exists, the item is ineligible, never translated.
+- **7h.** On develop:
+  - the development pass (real Bedrock, development items), whose ledger sets the
+    confirmation budget;
+  - then the preregistration;
+  - then the confirmation run;
+  - then the researcher records the verdict.
+
+  The result is whatever it is.
+
+**Out of scope:**
+- tuning the persona to pass (a change after a failure is a new system, with a new draw);
+- calibration layers (18.6.6's `output_calibration` / `persona_calibration`);
+- any external survey's acquisition.
 
 ## Findings
 
