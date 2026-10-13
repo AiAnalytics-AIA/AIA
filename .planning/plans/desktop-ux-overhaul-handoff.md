@@ -137,3 +137,29 @@ API calls, guards and server checks; nothing about what a version may be moved.
   first preset (`aia-sociomap-4`), not the one in force (`aia-sociomap-3`)
   (`MethodologyVersions.tsx` `editStart`). Kept as it was; whether an edit should start from what is
   in force is the product owner's call.
+
+## Chunk 3, second slice: Návrh as one research document
+
+Built on the merged Zadání and Metodika slices; the same plan functions, store and agent jobs.
+
+- An outline replaces the jump chips: the proposal in research order (scope, understanding, each
+  comparable set with its item count, amber when outside 4–15, the AI's questions, comments). Test:
+  `PlanStep.test.tsx` "draws the analysis, its sets…".
+- The highlighted header card becomes one status line: where the text stands (Návrh od AI /
+  Upraveno výzkumníkem / Upraveno podle vašich komentářů), unsaved edits in progress, and the
+  counts. The duplicate "changed" badge on the narrative is gone; the "principle of objects" is plain
+  text under the sets instead of a disclosure.
+- The AI's side sits apart from the accepted text, in a column from 1536 px (below the document
+  under that): the design check (opens the help panel; nothing is sent until the researcher submits
+  there), the AI's follow-up questions and the comments it will work in.
+- Measured in Chromium (local workbench, 1440/1710/1920): first section at 165 px, no overflow, no
+  page error; an outline jump 46–91 ms; the narrative editor painted 36 ms after the click.
+  `proposal_prompt_journey.mjs` passes unchanged (save/reload, refused-save retry, edit guards,
+  downstream design equality, zero paid jobs).
+
+### Findings
+
+- `ResearchScreen.test.tsx` "keeps one study session while each step's page mounts afresh" waited
+  for the run step's preflight list with the 1 s default; under the full parallel suite it failed
+  (reproduced twice with this slice's tests beside it, passes alone). The wait is now 5 s, the
+  assertion unchanged (CLAUDE.md § 7: size timing waits generously).

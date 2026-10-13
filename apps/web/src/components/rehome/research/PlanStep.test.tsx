@@ -100,9 +100,12 @@ describe("Návrh", () => {
     expect(process.getAttribute("data-ai-action")).toBe("true");
     // The recommended variant is the chosen one until another is applied.
     expect(screen.getByRole("radio", { name: /Varianty a cena/ }).getAttribute("aria-checked")).toBe("true");
-    // Jump chips over the sections.
+    // The outline: the proposal in research order, each comparable set with its item count.
     const jump = screen.getByRole("navigation", { name: "Oddíly návrhu" });
-    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
+    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Varianty nápoje · 2", "Otázky AI · 0/1", "Komentáře · 0"]);
+    // Where the text stands, said once, and the AI's side apart from it.
+    expect(document.querySelector("[data-proposal-status]")?.textContent).toContain("Návrh od AI");
+    expect(screen.getByRole("complementary", { name: "Revize návrhu a AI" })).toBeTruthy();
   });
 
   it("applies a design variant to the project", async () => {

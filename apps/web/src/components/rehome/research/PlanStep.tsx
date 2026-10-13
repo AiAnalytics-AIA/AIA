@@ -41,7 +41,7 @@ import {
 import type { Analysis } from "@/research/store";
 import { applyPlanSets, lines, proposalAnalysis, validMeasurement } from "@/research/plan-edit";
 import { ProposalEditor } from "./ProposalEditor";
-import { Icon, type IconName } from "../icons";
+import { Icon, type IconName, Sparkle } from "../icons";
 import { ActionDock, ChipInput, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button, Field, TextArea, TextInput } from "../ui";
 import { useResearch } from "./context";
@@ -74,7 +74,7 @@ export function followUpAnswers(questions: string[], answers: string[]): string 
 }
 
 export function PlanStep() {
-  const { store, state, toast, stepHref, confirm } = useResearch();
+  const { store, state, toast, stepHref, confirm, askAssistance } = useResearch();
   const router = useRouter();
   const { analyse, failure, busy } = useAnalysis();
   const a = proposalAnalysis(state);
@@ -171,10 +171,11 @@ export function PlanStep() {
     );
   }
 
-  const chips: { id: string; label: string; state: "done" | "you" | "neutral" }[] = [
+  const chips: OutlineItem[] = [
     ...(variants.length ? [{ id: "plan-variants", label: t("research.plan.jumpScope"), state: "done" as const }] : []),
-    { id: "plan-understanding", label: t("research.plan.jumpUnderstanding"), state: p.ui_state.plan_changed26 ? "done" : "neutral" },
-    { id: "plan-sets", label: tv("research.plan.jumpSets", { n: sets.length }), state: short ? "you" : sets.length ? "done" : "neutral" },
+    { id: "plan-understanding", label: t("research.plan.jumpUnderstanding"), state: editingNarrative ? "you" : p.ui_state.plan_changed26 ? "done" : "neutral" },
+    { id: "plan-sets", label: tv("research.plan.jumpSets", { n: sets.length }), state: short ? "you" : sets.length ? "done" : "neutral",
+      children: sets.map((set, i) => ({ id: `plan-set-${i}`, label: `${setTitle(set) || t("research.plan.untitledSet")} · ${(set.objects || []).length}`, state: outOfRange(set) ? "you" as const : "done" as const })) },
     ...(questions.length
       ? [{ id: "plan-questions", label: tv("research.plan.jumpQuestions", { a: answered, b: questions.length }), state: answered ? ("done" as const) : ("you" as const) }]
       : []),
@@ -182,57 +183,87 @@ export function PlanStep() {
   ];
   // Section numbers follow what is on the page: no variants, no "Rozsah".
   let n = variants.length ? 1 : 0;
+  // Where the proposal's text stands: the AI's, reworked from comments, or a person's own edit.
+  const origin = p.ui_state.plan_changed26 ? "research.plan.originComments" : p.ui_state.plan_manual_changed ? "research.plan.originManual" : "research.plan.originAi";
+  const counts = [
+    { label: "objectiveTotal", value: Array.isArray(a.objectives) ? a.objectives.length : 0 },
+    { label: "questionTotal", value: Array.isArray(a.research_questions) ? a.research_questions.length : 0 },
+    { label: "itemTotal", value: sets.reduce((total, s) => total + (s.objects?.length ?? 0), 0) },
+  ];
 
   return (
-    <div className="flex max-w-6xl flex-col gap-4">
-      <header className="rounded-card border border-signal-edge bg-signal-wash p-4 sm:p-5">
-        <h2 className="text-xl font-semibold">{t("research.plan.workspaceTitle")}</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-ink-muted">{t("research.plan.workspaceHint")}</p>
-        <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-signal-edge pt-3">
-          {[{ label: "objectiveTotal", value: Array.isArray(a.objectives) ? a.objectives.length : 0 }, { label: "questionTotal", value: Array.isArray(a.research_questions) ? a.research_questions.length : 0 }, { label: "itemTotal", value: sets.reduce((n, s) => n + (s.objects?.length ?? 0), 0) }].map((item) => <div key={item.label}><dt className="text-xs text-ink-muted">{t(`research.plan.${item.label}`)}</dt><dd className="mt-1 text-xl font-semibold">{item.value}</dd></div>)}
-        </dl>
-        <p className="mt-3 text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
-      </header>
-      <JumpChips chips={chips} />
-      {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} /> : null}
-      {variantSection}
-      <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
-        <div className="flex flex-col gap-4">
-          <Understanding n={++n} analysis={a} goal={p.goal || ""} changed={Boolean(p.ui_state.plan_changed26)} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
-          <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={editingNarrative || busy} />
+    <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[12rem_minmax(0,1fr)] 2xl:grid-cols-[12rem_minmax(0,1fr)_20rem]">
+      <Outline items={chips} />
+
+      {/* The proposal itself: what is accepted, edited in place. */}
+      <div className="flex min-w-0 flex-col gap-4">
+        <div data-proposal-status className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-border pb-3">
+          <span className="text-sm font-semibold">{t(origin)}</span>
+          {editing ? <span role="status" className="rounded-sm bg-status-you-wash px-1.5 text-xs font-semibold text-status-you-ink">{t("research.plan.unsavedEdits")}</span> : null}
+          <dl className="ml-auto flex flex-wrap gap-x-4 text-xs text-ink-muted">
+            {counts.map((item) => <div key={item.label} className="flex gap-1"><dt>{t(`research.plan.${item.label}`)}</dt><dd className="font-mono font-semibold text-ink">{item.value}</dd></div>)}
+          </dl>
         </div>
-      </Commentable>
-      {questions.length ? (
-        <FollowUps
+        {failure ? <AnalysisFailureCard failure={failure} onRetry={() => void analyse()} /> : null}
+        {variantSection}
+        <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
+          <div className="flex flex-col gap-4">
+            <Understanding n={++n} analysis={a} goal={p.goal || ""} editing={editingNarrative} setEditing={setEditingNarrative} blocked={editingSet !== null || busy} />
+            <Sets n={++n} analysis={a} editing={editingSet} onEditing={setEditingSet} blocked={editingNarrative || busy} />
+          </div>
+        </Commentable>
+        {dock}
+      </div>
+
+      {/* The AI's side, kept apart from the accepted text: its check, its questions, the comments it will work in. */}
+      <aside aria-label={t("research.plan.reviewTitle")} className="flex min-w-0 flex-col gap-4 xl:col-start-2 2xl:sticky 2xl:top-20 2xl:col-start-auto">
+        {askAssistance ? (
+          <section aria-labelledby="plan-critique" className="rounded-card border border-ai-edge bg-surface-raised p-4">
+            <h2 id="plan-critique" className="text-sm font-semibold">{t("research.plan.critiqueTitle")}</h2>
+            <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.plan.critiqueHint")}</p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => askAssistance("critique_design")}
+              className={`mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-control border border-ai-edge bg-ai-wash px-3 text-sm font-semibold text-ai-ink hover:border-ai disabled:opacity-50 ${FOCUS}`}
+            >
+              <Sparkle size={14} />
+              {t("research.plan.critiqueOpen")}
+            </button>
+          </section>
+        ) : null}
+        {questions.length ? (
+          <FollowUps
+            n={++n}
+            questions={questions}
+            answers={answers}
+            answered={answered}
+            setAnswers={setAnswers}
+            busy={busy || editing}
+            onSubmit={async () => {
+              const r = answerFollowUps(store.get().project, followUpAnswers(questions, answers));
+              if ("error" in r) return r.error;
+              store.update(() => ({ project: r.project }));
+              setAnswers([]);
+              await analyse();
+              return null;
+            }}
+          />
+        ) : null}
+        <Comments
           n={++n}
-          questions={questions}
-          answers={answers}
-          answered={answered}
-          setAnswers={setAnswers}
           busy={busy || editing}
-          onSubmit={async () => {
-            const r = answerFollowUps(store.get().project, followUpAnswers(questions, answers));
-            if ("error" in r) return r.error;
-            store.update(() => ({ project: r.project }));
-            setAnswers([]);
-            await analyse();
-            return null;
+          drafts={drafts}
+          setDrafts={setDrafts}
+          onProcess={async () => {
+            const reviewed = commentsToReview(store.get().project);
+            if (!reviewed) return;
+            store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
+            if (await analyse({ force: true, byComments: true })) toast(t("research.plan.commentsDone"));
           }}
         />
-      ) : null}
-      <Comments
-        n={++n}
-        busy={busy || editing}
-        drafts={drafts}
-        setDrafts={setDrafts}
-        onProcess={async () => {
-          const reviewed = commentsToReview(store.get().project);
-          if (!reviewed) return;
-          store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
-          if (await analyse({ force: true, byComments: true })) toast(t("research.plan.commentsDone"));
-        }}
-      />
-      {dock}
+        <p className="text-xs leading-5 text-ink-muted">{t("research.plan.manualNote")}</p>
+      </aside>
     </div>
   );
 }
@@ -243,22 +274,30 @@ const DOT: Record<"done" | "you" | "neutral", { glyph: IconName; look: string }>
   neutral: { glyph: "dot", look: "bg-surface-sunken text-ink-faint" },
 };
 
-function JumpChips({ chips }: { chips: { id: string; label: string; state: "done" | "you" | "neutral" }[] }) {
-  return (
-    <nav aria-label={t("research.plan.jumpLabel")} className="flex flex-wrap gap-1.5">
-      {chips.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => jumpTo(c.id)}
-          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-border bg-surface-raised py-1 pl-1.5 pr-3 text-[13px] leading-5 hover:border-border-strong hover:bg-surface-sunken ${FOCUS}`}
-        >
-          <span aria-hidden="true" className={`inline-flex size-4 items-center justify-center rounded-full ${DOT[c.state].look}`}>
+type OutlineItem = { id: string; label: string; state: "done" | "you" | "neutral"; children?: OutlineItem[] };
+
+/** The proposal in research order: scope, understanding, each comparable set, the AI's questions, comments. */
+function Outline({ items }: { items: OutlineItem[] }) {
+  const entry = (c: OutlineItem, child = false) => (
+    <li key={c.id}>
+      <button
+        type="button"
+        onClick={() => jumpTo(c.id)}
+        className={`flex min-h-8 w-full items-center gap-2 rounded-sm px-2 text-left leading-5 hover:bg-surface-sunken ${child ? "pl-7 text-[13px] text-ink-muted" : "text-sm text-ink"} ${FOCUS}`}
+      >
+        {child ? null : (
+          <span aria-hidden="true" className={`inline-flex size-4 shrink-0 items-center justify-center rounded-full ${DOT[c.state].look}`}>
             <Icon name={DOT[c.state].glyph} size={10} />
           </span>
-          {c.label}
-        </button>
-      ))}
+        )}
+        <span className={`min-w-0 flex-1 ${child && c.state === "you" ? "font-medium text-status-you-ink" : ""}`}>{c.label}</span>
+      </button>
+      {c.children?.length ? <ul className="flex flex-col">{c.children.map((x) => entry(x, true))}</ul> : null}
+    </li>
+  );
+  return (
+    <nav aria-label={t("research.plan.jumpLabel")} className="min-w-0 xl:sticky xl:top-20">
+      <ul className="flex flex-wrap gap-1 xl:flex-col xl:flex-nowrap xl:gap-0.5">{items.map((c) => entry(c))}</ul>
     </nav>
   );
 }
@@ -320,7 +359,7 @@ function Variants({ variants, current, onApply }: { variants: Variant[]; current
   );
 }
 
-function Understanding({ n, analysis, goal, changed, editing, setEditing, blocked }: { n: number; analysis: Analysis; goal: string; changed: boolean; editing: boolean; setEditing: (v: boolean) => void; blocked: boolean }) {
+function Understanding({ n, analysis, goal, editing, setEditing, blocked }: { n: number; analysis: Analysis; goal: string; editing: boolean; setEditing: (v: boolean) => void; blocked: boolean }) {
   const objectives = Array.isArray(analysis.objectives) ? analysis.objectives.map(String) : [];
   const hypotheses = Array.isArray(analysis.hypotheses) ? analysis.hypotheses.map(String) : [];
   const list = (title: string, items: string[]) =>
@@ -345,12 +384,6 @@ function Understanding({ n, analysis, goal, changed, editing, setEditing, blocke
       hint={t("research.plan.understoodHint")}
       aside={<div className="flex flex-wrap gap-2">
         <Button small disabled={blocked} onClick={() => setEditing(!editing)}>{t(`research.plan.${editing ? "cancelEdits" : "edit"}`)}</Button>
-        {changed ? (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-status-done/14 px-2 py-0.5 text-xs text-status-done">
-            <Icon name="done" size={12} />
-            {t("research.plan.changed")}
-          </span>
-        ) : null}
       </div>}
     >
       {editing ? <ProposalEditor analysis={analysis} onClose={() => setEditing(false)} /> : <>
@@ -361,13 +394,6 @@ function Understanding({ n, analysis, goal, changed, editing, setEditing, blocke
         {list(t("research.plan.hypotheses"), hypotheses)}
       </div>
       </>}
-      <details className="group mt-4 rounded-control border border-signal-edge bg-signal-tint px-3 py-2">
-        <summary className="cursor-pointer text-[13px] font-medium text-signal">{t("research.plan.principleSummary")}</summary>
-        <p className="mt-2 text-[13px] leading-5">
-          {t("research.plan.principleIntro")} <b>{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b>{t("research.plan.principleNo")}</b>{" "}
-          {t("research.plan.principleNoText")}
-        </p>
-      </details>
     </StepSection>
   );
 }
@@ -419,11 +445,16 @@ function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysi
           <Button variant="quiet" className="!rounded-control" onClick={() => setAdding(null)}>{t("aia.cancel")}</Button>
         </form>
       ) : null}
+      <p className="mb-3 max-w-3xl text-[13px] leading-5 text-ink-muted">
+        {t("research.plan.principleIntro")} <b className="text-ink">{t("research.plan.principleYes")}</b> {t("research.plan.principleYesText")} <b className="text-ink">{t("research.plan.principleNo")}</b>{" "}
+        {t("research.plan.principleNoText")}
+      </p>
       {sets.length ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4">
           {sets.map((set, si) => (
             <SetCard
               key={`${si}-${setTitle(set)}`}
+              anchor={`plan-set-${si}`}
               set={set} blocked={blocked || (editing !== null && editing !== String(si))} editing={editing === String(si)} onEditing={(value) => onEditing(value ? String(si) : null)}
               onMeasurement={(updated) => { const fresh = trackedSets(current()); put({ ...current(), tracked_sets: fresh.map((s, i) => i === si ? updated : s) }, "plan_measurement_edited"); toast(t("research.plan.measurementChanged")); }}
               onAddObject={(value) => {
@@ -444,8 +475,8 @@ function Sets({ n, analysis, editing, onEditing, blocked }: { n: number; analysi
   );
 }
 
-function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onMeasurement, onEditing, blocked, editing }: {
-  blocked: boolean; editing: boolean;
+function SetCard({ anchor, set, onAddObject, onRename, onRemove, onRemoveObject, onMeasurement, onEditing, blocked, editing }: {
+  anchor: string; blocked: boolean; editing: boolean;
   onEditing: (v: boolean) => void;
   onMeasurement: (set: TrackedSet) => void;
   set: TrackedSet;
@@ -465,7 +496,7 @@ function SetCard({ set, onAddObject, onRename, onRemove, onRemoveObject, onMeasu
     else setTitleDraft(setTitle(set));
   };
   return (
-    <article className="flex min-w-0 flex-col gap-3 rounded-card border border-border bg-surface p-4">
+    <article id={anchor} className="flex min-w-0 scroll-mt-20 flex-col gap-3 rounded-card border border-border bg-surface p-4">
       {editing ? <MeasurementEditor set={set} onCancel={() => onEditing(false)} onSave={(updated) => { onEditing(false); onMeasurement(updated); }} /> : <>
 
       <div className="flex items-start justify-between gap-2">
