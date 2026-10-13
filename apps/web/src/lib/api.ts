@@ -869,6 +869,9 @@ export const research = {
   /** Which Sociomap methods are approved, by exact spec (complete-study-report B4). */
   sociomapRegister: (studyId: string) =>
     request<{ entries: RegisterEntry[] }>("GET", `${studyPath(studyId)}/research/sociomap-register`),
+  /** The client report of a modelled run (complete-study-report B5c); 409 names why a run has none. */
+  downloadClientReport: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/client/download`),
   downloadReportPdf: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */

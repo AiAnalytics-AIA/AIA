@@ -68,6 +68,7 @@ from ..evidence import (
     instrument_policy_book,
     load_joint_status,
 )
+from ..evidence.report_lift import ModelledReportLift
 from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from ..research_aggregate import AGGREGATE_VERSION
@@ -450,6 +451,7 @@ def native_evidence(
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
     joint_certificate: tuple[bytes, str] | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> NativeEvidence:
     """Build the evidence of one native run from its specification and aggregate.
 
@@ -484,6 +486,7 @@ def native_evidence(
         source=f"fieldwork dataset {dataset_sha256} ({origin.value if origin else '?'})",
         respondent_system=respondent_system,
         validation=validation,
+        report_lift=report_lift,
     )
     assert origin is not None  # the book refuses an unknown origin
     rows = _Rows(kept=[], removed={}, origin=origin)

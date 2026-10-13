@@ -2018,6 +2018,8 @@ export const cs = {
         reportDownload: "Stáhnout interní DOCX",
         reportDownloading: "Stahuji…",
         reportDownloadPdf: "Stáhnout PDF",
+        reportDownloadClient: "Stáhnout klientskou zprávu",
+        reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy. Je to koncept: před předáním ji schvalte.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproving: "Schvaluji…",

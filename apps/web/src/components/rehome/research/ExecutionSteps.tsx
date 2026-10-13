@@ -1033,6 +1033,17 @@ function InternalReport({ run }: { run: ResearchRun }) {
       setDownloading(false);
     }
   };
+  const downloadClient = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      saveBlob(await research.downloadClientReport(frame.studyId, run.run_id), `AIA-${frame.studyId}-client-draft.docx`);
+    } catch (error) {
+      setDownloadError(message(error));
+    } finally {
+      setDownloading(false);
+    }
+  };
   const downloadPdf = async () => {
     setDownloading(true);
     setDownloadError(null);
@@ -1079,6 +1090,11 @@ function InternalReport({ run }: { run: ResearchRun }) {
             <Button onClick={download} disabled={downloading || !frame.canEdit}>
               {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
             </Button>
+            {reportKind === "MODELLED" ? (
+              <Button onClick={downloadClient} disabled={downloading || !frame.canEdit}>
+                {t("research.exec.results.reportDownloadClient")}
+              </Button>
+            ) : null}
             {status.pdf?.state === "READY" ? (
               <Button onClick={downloadPdf} disabled={downloading || !frame.canEdit}>
                 {t("research.exec.results.reportDownloadPdf")}
@@ -1090,6 +1106,9 @@ function InternalReport({ run }: { run: ResearchRun }) {
               </Button>
             ) : null}
           </div>
+          {reportKind === "MODELLED" ? (
+            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportClientHint")}</p>
+          ) : null}
           {status.pdf && status.pdf.state !== "READY" ? (
             <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportPdfFailed")}</p>
           ) : null}

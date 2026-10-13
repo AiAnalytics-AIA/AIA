@@ -462,6 +462,23 @@ def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refus
     assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
 
 
+def test_a_run_without_modelled_data_has_no_client_report_and_says_why(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Complete-study-report B5c: the client report is refused by name (409), never printed
+    with a caveat, and another client's study cannot reach the run at all."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report/client/download"
+    refused = researcher.get(url)
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "client_report_refused"
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/client/download"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
 def test_the_sociomap_register_is_read_through_a_study(researcher: TestClient, world: Any) -> None:
     url = f"{API}/studies/{world.study_id()}/research/sociomap-register"
     (entry,) = researcher.get(url).json()["entries"]

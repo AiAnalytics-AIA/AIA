@@ -18,7 +18,13 @@ from dataclasses import dataclass
 
 from aia_core.application.analysis_results import RunAnalysis
 from aia_core.domain.analysis import AnalysisModuleId
-from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
+from aia_core.domain.evidence import (
+    AdmittedClaim,
+    ClaimSurface,
+    EvidenceTable,
+    FieldPolicyBook,
+    JointStatus,
+)
 from aia_core.domain.evidence.admission import NumericClaim, admit_numeric_claims
 from aia_core.domain.evidence.instrument import InstrumentItem
 from aia_core.domain.report.model import (
@@ -87,7 +93,30 @@ def compose_question_tables(
     if executive is None:
         raise ValueError("the run's analysis has no executive module to read its evidence from")
     inputs = executive.inputs
-    table = inputs.table
+    return question_tables(
+        inputs.table,
+        items,
+        book=inputs.book,
+        joint_status=inputs.joint_status,
+        source=source,
+        surface=ClaimSurface.INTERNAL,
+    )
+
+
+def question_tables(
+    table: EvidenceTable,
+    items: Sequence[InstrumentItem],
+    *,
+    book: FieldPolicyBook,
+    joint_status: JointStatus,
+    source: str,
+    surface: ClaimSurface,
+) -> QuestionTables:
+    """The question tables over ``table``, every cell admitted for ``surface``.
+
+    Internal, a question the gate refuses is named with the gate's reasons. Client-facing, it
+    is left out and the chapter says only how many were: the reasons are internal terms.
+    """
     known = set(table.rows) | set(table.suppressed)
 
     blocks: list[Block] = [
@@ -120,13 +149,15 @@ def compose_question_tables(
                 for ref in kept
             ],
             table,
-            book=inputs.book,
-            joint_status=inputs.joint_status,
-            surface=ClaimSurface.INTERNAL,
+            book=book,
+            joint_status=joint_status,
+            surface=surface,
         )
         if kept and not admission.decision.allowed:
             reasons = tuple(f"{v.code}: {v.detail}" for v in admission.decision.violations)
             refused.append((qid, reasons))
+            if surface is ClaimSurface.CLIENT_FACING:
+                continue
             blocks.append(
                 Callout(
                     CalloutKind.LIMITATION,
@@ -154,6 +185,16 @@ def compose_question_tables(
                 rows=tuple(rows),
                 source=source,
                 base_ref=kept[0] if kept else None,
+            )
+        )
+    if surface is ClaimSurface.CLIENT_FACING and refused:
+        blocks.append(
+            Callout(
+                CalloutKind.LIMITATION,
+                text(
+                    f"Výsledky {len(refused)} otázek zpráva neuvádí: jejich čísla nesplnila "
+                    "pravidla, za nichž lze modelovaná čísla předat klientovi."
+                ),
             )
         )
     section = Section("Výsledky jednotlivých otázek", tuple(blocks), id="ch-questions")

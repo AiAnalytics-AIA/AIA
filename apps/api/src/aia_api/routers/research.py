@@ -15,6 +15,7 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.client_report import ClientReportRefused, stored_client_report
 from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
@@ -1382,6 +1383,63 @@ def download_contextual_report(
             ),
             "Cache-Control": "no-store",
             # The stored draft these bytes are, for its review and approval (B2).
+            "X-AIA-Artifact-Id": artifact.artifact_id,
+            "X-AIA-Review-State": "APPROVED_INTERNAL"
+            if artifact.is_approved
+            else "DRAFT_UNAPPROVED",
+        },
+    )
+
+
+@router.get(
+    "/research/runs/{run_id}/report/client/download",
+    response_class=Response,
+    summary="The run's client report (modelled data, labelled; a stored, unapproved draft)",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_client_report(
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> Response:
+    """Complete-study-report B5c: only a run whose respondents were modelled from the
+    population has one; any other is refused by name (409 ``client_report_refused``)."""
+    try:
+        artifact, data = stored_client_report(
+            session, scope, store, run_id=run_id, build=settings.build.sha or ""
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    except ClientReportRefused as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_refused",
+                "message": str(exc),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    except (ReportCompositionRefused, ReportInvalid, ArtifactNotFound) as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_refused",
+                "message": str(exc),
+                "details": {"reason": "composition_refused"},
+            },
+        ) from exc
+    return Response(
+        content=data,
+        media_type=INTERNAL_REPORT_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="AIA-{scope.study_id}-client-draft.docx"',
+            "Cache-Control": "no-store",
             "X-AIA-Artifact-Id": artifact.artifact_id,
             "X-AIA-Review-State": "APPROVED_INTERNAL"
             if artifact.is_approved

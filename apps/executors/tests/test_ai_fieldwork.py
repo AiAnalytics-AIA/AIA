@@ -1177,6 +1177,62 @@ def test_a_run_pinned_to_its_population_is_answered_by_respondents_drawn_from_it
         assert steps[node]["output"]["data_origin"] == "MODELLED_AI_PANEL"
 
 
+def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fictional_none(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
+) -> None:
+    """Complete-study-report B5: the client report of a panel run prints only numbers admitted
+    CLIENT_FACING under the owner's lift and the population's certificate, each labelled
+    modelled; it renders as a client document. A fictional run has none, by name."""
+    import io
+    import zipfile
+
+    from aia_core.application.client_report import ClientReportRefused, compose_client_report
+    from aia_core.domain.report.model import ReportKind
+    from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(ScriptedBedrock(), env=_grounded_env(), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        composed = compose_client_report(session, world.lead_scope(session), store, run_id=run_id)
+    document = composed.document
+    assert document.meta.kind is ReportKind.CLIENT and document.meta.identifiers == ()
+    assert document.ledger.rows and all(
+        row.data_origin is DataOrigin.MODELLED_AI_PANEL for row in document.ledger.rows.values()
+    )
+    body = (
+        zipfile.ZipFile(io.BytesIO(DocxRenderer().render(document)))
+        .read("word/document.xml")
+        .decode()
+    )
+    assert "modelováno: AI respondenti z populace" in body
+    assert "13. 10. 2026 rozhodl zařadit je do klientské" in body
+    assert "Výsledky jednotlivých otázek" in body
+    # Nothing internal: no unapproved map, no pair table of raw r.
+    assert "interním výstupem" not in body and "Směr a podpora vztahů" not in body
+
+    # Stored once as an unapproved draft, read back, and approvable as this run's report.
+    from aia_core.application.client_report import stored_client_report
+    from aia_core.application.report_approval import approve_report
+
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        stored, data = stored_client_report(session, scope, store, run_id=run_id)
+        again, same = stored_client_report(session, scope, store, run_id=run_id)
+        assert again.artifact_id == stored.artifact_id and same == data
+        assert stored.metadata["review_state"] == "DRAFT_UNAPPROVED"
+        assert approve_report(
+            session, scope, store, run_id=run_id, artifact_id=stored.artifact_id
+        ).is_approved
+        session.commit()
+
+    fictional = _start(world)
+    assert _drain(run_with(ScriptedBedrock(), env=_fictional(world))) == ["completed"] * 5
+    with world.sessions() as session, pytest.raises(ClientReportRefused) as refused:
+        compose_client_report(session, world.lead_scope(session), store, run_id=fictional)
+    assert refused.value.reason == "not_modelled"
+
+
 def test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:

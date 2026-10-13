@@ -9,8 +9,8 @@ chunks:
   - "[x] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
   - "[x] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
   - "[x] B5a. A panel run records the CORE_JOINT_STATUS certificate of the population its respondents were drawn from (text, SHA-256, the panel SHA-256 the loader verified), and its evidence is judged under it, re-hashed on read; every other run stays uncertified"
-  - "[ ] B5b. The owner's recorded lift of -2's INTERNAL_ONLY for the client report only (2026-10-13): support, intervals, the certificate and the no-predictive-validity rule still apply; client-facing analysis modules stay blocked until the holdout"
-  - "[ ] B5c. Client report composer: the client recipe over a CLIENT_FACING ledger of admitted modelled numbers, every one labelled 'modelováno: AI respondenti z populace', approved maps only; a route, a stored artifact and the button on Výsledky"
+  - "[x] B5b. The owner's recorded lift of -2's INTERNAL_ONLY for the client report only (2026-10-13): support, intervals, the certificate and the no-predictive-validity rule still apply; client-facing analysis modules stay blocked until the holdout"
+  - "[x] B5c. Client report composer: the client recipe over a CLIENT_FACING ledger of admitted modelled numbers, every one labelled 'modelováno: AI respondenti z populace', approved maps only; a route, a stored artifact and the button on Výsledky"
   - "[ ] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
 ---
 # The complete study report
@@ -165,6 +165,31 @@ number labelled (B5); stages before backend (done in PR #382).
   recorded `joint_state` (`population_ops status`); if it does not, nothing client-facing
   passes, as before. Tests: test_modelled_joint_certificate.py (6), the panel fieldwork
   test asserts the recorded certificate.
+- B5b: `domain/evidence/report_lift.py` `MODELLED_CLIENT_REPORT_LIFT`, the owner's decision as
+  data (id, surface CLIENT_REPORT, decided 2026-10-13, record, the note every client report
+  prints). `instrument_policy(..., report_lift=)` drops `INTERNAL_ONLY` from `-2` only for a
+  modelled run that recorded its respondent system and only where no holdout already lifted
+  it; the lift's id enters the declaration's identity; simulated answers refuse it. Only the
+  client composer passes it, so client-facing analysis modules stay blocked
+  (`test_client_facing_analysis_stays_blocked_because_it_never_passes_the_lift`).
+- B5c: `application/client_report.py` `compose_client_report` (a modelled run only, else
+  `ClientReportRefused("not_modelled")`; nothing admitted is refused too, naming the gate's
+  reasons): the run's evidence judged under the lift and the recorded certificate; every row
+  carries the scope disclosure because every table prints the scope (`AI respondenti
+  sestavení z populace <label>; modelováno: AI respondenti z populace`) and its base n;
+  `question_tables(..., surface=CLIENT_FACING)` (a refused question left out, counted, its
+  internal reasons not printed); `compose_map_sections(client=True)`: approved maps only, as
+  figures with their fit, no support paragraph or pair table (numbers outside the ledger);
+  the design chapter, "Respondenti a výpočet", the questionnaire appendix; a METHOD callout
+  with the lift's note; ReportKind.CLIENT, CLIENT_CONFIDENTIAL, no run identifiers;
+  `require_valid` passes. `stored_client_report`: `research_client_docx`, DRAFT_UNAPPROVED,
+  stored once per exact sources; approvable (B2's `REPORT_ARTIFACT_TYPES`).
+  `GET …/report/client/download` (409 `client_report_refused` with its reason); Výsledky:
+  "Stáhnout klientskou zprávu" for a modelled run only. `verified_map` is the one map check
+  both composers use; `question_tables` the one admission loop. Tests: the panel-run journey
+  in test_ai_fieldwork.py (composes, validates, renders, labels, stores once, approves; a
+  fictional run refused), test_modelled_joint_certificate.py (8), the route test, the web
+  test.
 - PDFs on for develop (owner, 2026-10-13): `AIA_WORKER_PDF=true` in the worker image build
   (.github/workflows/deploy-develop.yml) and `AIA_REPORT_PDF_ENABLED` defaulting to true in
   the develop worker's Compose environment (deploy/develop/docker-compose.yml, env.example).
@@ -229,4 +254,14 @@ number labelled (B5); stages before backend (done in PR #382).
   chase the errors. Right: `rm -rf .mypy_cache` and re-run before believing them.
 - CLAUDE.md § 2 map: domain/fieldwork.py gains JOINT_CERTIFICATE_METADATA; panel_source.py
   gains joint_certificate_record; population/runtime.py gains joint_certificate.
+- CLAUDE.md § 2 map: domain/evidence/report_lift.py (`MODELLED_CLIENT_REPORT_LIFT`: the
+  owner's 2026-10-13 lift of -2's INTERNAL_ONLY for the client report only); application/
+  client_report.py (`compose_client_report` / `stored_client_report`: a modelled run's client
+  report, admitted numbers labelled modelled, approved maps only; refused by name otherwise);
+  report_tables.py gains `question_tables(..., surface=)`; report_chapters.py gains
+  `verified_map`; routers/research gains `GET …/report/client/download`. CLAUDE.md § 2 prose
+  "Evidence is a capability": add that a modelled number reaches a client only in the client
+  report, under the recorded lift, the run's certificate and every other gate.
+- ADR 0024 §4 amendment (docs PR): the owner's 2026-10-13 lift for the client report, ahead
+  of the holdout; client-facing analysis still waits for the holdout.
 - open-items.md: F1 to be numbered there.

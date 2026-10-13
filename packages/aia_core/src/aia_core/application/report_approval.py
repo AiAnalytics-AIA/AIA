@@ -3,15 +3,16 @@
 The approval is the artifact repository's own: ``SIGN_OFF_DELIVERABLE``, the
 independence the scope's self-approval policy requires, and a row in the approval ledger.
 This module decides only *which* artifacts are a run's reports: the internal report its
-REPORT step stored, or the report with literature stored for it, each found through the
-Study's run and checked to name that run. An approved report is an internally approved
-draft; nothing here makes it client-facing.
+REPORT step stored, the report with literature or the client report stored for it, each
+found through the Study's run and checked to name that run. Approval is a person's sign-off
+on the stored document; what the client report may contain was decided when it was composed.
 """
 
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.application.research import ResearchRuns, research_artifacts
@@ -19,7 +20,9 @@ from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
 from aia_core.infrastructure.storage import ArtifactStore
 
-REPORT_ARTIFACT_TYPES = frozenset({INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE})
+REPORT_ARTIFACT_TYPES = frozenset(
+    {INTERNAL_REPORT_ARTIFACT_TYPE, CONTEXT_REPORT_ARTIFACT_TYPE, CLIENT_REPORT_ARTIFACT_TYPE}
+)
 
 
 class ReportNotApprovable(Exception):

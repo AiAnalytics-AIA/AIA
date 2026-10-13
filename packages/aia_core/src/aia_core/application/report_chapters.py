@@ -50,6 +50,56 @@ class ReportChapters:
     map_sha256: str
 
 
+@dataclass(frozen=True, slots=True)
+class VerifiedMap:
+    """A run's frozen Sociomap, verified as derived from its dataset and specification."""
+
+    body: Mapping[str, Any]
+    artifact_id: str
+    sha256: str
+    specification: ResearchSpecification
+
+
+def verified_map(
+    repo: ArtifactRepository,
+    map_artifact_id: str | None,
+    *,
+    dataset_sha256: str,
+    specification_fingerprint: str,
+) -> VerifiedMap:
+    """The run's Sociomap and the specification it was derived from, each checked to belong to
+    the run's dataset and specification. Raises :class:`ReportCompositionRefused` otherwise."""
+    if not map_artifact_id:
+        raise ReportCompositionRefused("the run recorded no sociomap artifact")
+    map_source = repo.get(map_artifact_id)
+    if (
+        map_source.artifact_type != SOCIOMAP_ARTIFACT
+        or map_source.status is not ArtifactStatus.VALID
+    ):
+        raise ReportCompositionRefused("the map source is not a valid sociomap artifact")
+    dependencies = repo.dependencies(map_artifact_id)
+    if not any(d.sha256 == dataset_sha256 for d in dependencies):
+        raise ReportCompositionRefused("the map is not derived from this run's dataset")
+    specification = next(
+        (
+            payload
+            for d in dependencies
+            if d.artifact_type == SPECIFICATION_ARTIFACT
+            and (payload := repo.read_json(d.artifact_id)).get("specification_fingerprint")
+            == specification_fingerprint
+        ),
+        None,
+    )
+    if specification is None:
+        raise ReportCompositionRefused("the map is not derived from this specification")
+    return VerifiedMap(
+        body=repo.read_json(map_artifact_id)["sociomap"],
+        artifact_id=map_artifact_id,
+        sha256=map_source.sha256,
+        specification=ResearchSpecification.model_validate(specification["specification"]),
+    )
+
+
 def report_chapters(
     repo: ArtifactRepository,
     run: Mapping[str, Any],
@@ -65,36 +115,18 @@ def report_chapters(
     first = analysis.modules.get(AnalysisModuleId.EXECUTIVE)
     if first is None or first.result is None:
         raise ReportCompositionRefused("executive analysis is incomplete")
-    if not map_artifact_id:
-        raise ReportCompositionRefused("the run recorded no sociomap artifact")
-    map_source = repo.get(map_artifact_id)
-    if (
-        map_source.artifact_type != SOCIOMAP_ARTIFACT
-        or map_source.status is not ArtifactStatus.VALID
-    ):
-        raise ReportCompositionRefused("the map source is not a valid sociomap artifact")
-    dependencies = repo.dependencies(map_artifact_id)
-    if not any(d.sha256 == first.record.sources.dataset.sha256 for d in dependencies):
-        raise ReportCompositionRefused("the map is not derived from this run's dataset")
-    specification = next(
-        (
-            payload
-            for d in dependencies
-            if d.artifact_type == SPECIFICATION_ARTIFACT
-            and (payload := repo.read_json(d.artifact_id)).get("specification_fingerprint")
-            == first.record.sources.specification_fingerprint
-        ),
-        None,
+    mapped = verified_map(
+        repo,
+        map_artifact_id,
+        dataset_sha256=first.record.sources.dataset.sha256,
+        specification_fingerprint=first.record.sources.specification_fingerprint,
     )
-    if specification is None:
-        raise ReportCompositionRefused("the map is not derived from this specification")
-    spec = ResearchSpecification.model_validate(specification["specification"])
-    body = repo.read_json(map_artifact_id)["sociomap"]
+    spec, body = mapped.specification, mapped.body
     return ReportChapters(
         maps=compose_map_sections(
             body,
             object_map_snapshots(body),
-            source=f"Zmrazený výsledek běhu {run_id}; SHA-256 {map_source.sha256}",
+            source=f"Zmrazený výsledek běhu {run_id}; SHA-256 {mapped.sha256}",
         ),
         questions=compose_question_tables(
             analysis,
@@ -104,6 +136,6 @@ def report_chapters(
         ),
         design=compose_design_sections(spec, first.inputs.research_questions),
         method=compose_method_section(run.get("metadata") or {}, first.record.labels.data_origin),
-        map_artifact_id=map_artifact_id,
-        map_sha256=map_source.sha256,
+        map_artifact_id=mapped.artifact_id,
+        map_sha256=mapped.sha256,
     )

@@ -75,6 +75,7 @@ from .field_policy import (
     ProvenanceClass,
     claim_rules_for,
 )
+from .report_lift import ModelledReportLift
 from .validation import ValidationState, lifts_internal_only
 
 __all__ = [
@@ -211,6 +212,8 @@ class _Judged:
     #: validation on it lifts ``INTERNAL_ONLY``.
     respondent_system: str | None
     lifted: bool
+    #: The owner lift that lifted ``INTERNAL_ONLY`` instead of a holdout, if one did (B5b).
+    lift_id: str | None = None
 
     @property
     def rules(self) -> tuple[ClaimRule, ...]:
@@ -224,6 +227,7 @@ def _judge(
     origin: DataOrigin | None,
     respondent_system: str | None,
     validation: ValidationState | None,
+    report_lift: ModelledReportLift | None = None,
 ) -> _Judged:
     """The policy ``origin``'s answers are declared under, and what a validation does to it.
 
@@ -234,7 +238,7 @@ def _judge(
     if respondent_system is not None and not _SHA256.fullmatch(respondent_system):
         raise ValueError("a respondent system is named by its fingerprint (a SHA-256)")
     if declared is _SIMULATED:
-        if respondent_system is not None or validation is not None:
+        if respondent_system is not None or validation is not None or report_lift is not None:
             raise InstrumentPolicyRefused(
                 "simulated answers are never validated: no respondent system or validation "
                 "applies to them"
@@ -243,7 +247,16 @@ def _judge(
     if validation is not None and respondent_system is None:
         raise ValueError("a validation is judged against the current respondent system; none given")
     lifted = lifts_internal_only(validation, respondent_system)
-    return _Judged(declared_origin, declared, respondent_system, lifted)
+    # The owner's client-report lift (B5b): only a modelled run that recorded its respondent
+    # system, and only where a holdout has not already lifted it.
+    by_owner = not lifted and report_lift is not None and respondent_system is not None
+    return _Judged(
+        declared_origin,
+        declared,
+        respondent_system,
+        lifted or by_owner,
+        report_lift.lift_id if by_owner and report_lift is not None else None,
+    )
 
 
 def instrument_policy(
@@ -253,12 +266,14 @@ def instrument_policy(
     source: str,
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> FieldPolicy:
     """The fixed policy of one instrument item whose answers came from ``origin``.
 
-    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4).
+    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4);
+    ``report_lift`` only to a modelled origin judged for the client report (B5b).
     """
-    judged = _judge(origin, respondent_system, validation)
+    judged = _judge(origin, respondent_system, validation, report_lift)
     if not source.strip():
         raise ValueError("an instrument policy names the source of its answers")
     return FieldPolicy(
@@ -284,6 +299,7 @@ def instrument_declaration_sha256(
     source: str,
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> str:
     """Identity of a declaration: the policy version, the origin, the source, the items.
 
@@ -291,7 +307,7 @@ def instrument_declaration_sha256(
     ``INTERNAL_ONLY``, so a module judged under one validation is never reused under another.
     A simulated declaration's identity is ``-1``'s, unchanged.
     """
-    judged = _judge(origin, respondent_system, validation)
+    judged = _judge(origin, respondent_system, validation, report_lift)
     material: dict[str, object] = {
         "policy": judged.declared.version,
         "origin": judged.origin.value,
@@ -301,6 +317,8 @@ def instrument_declaration_sha256(
     if judged.declared is _MODELLED:
         material["respondent_system"] = judged.respondent_system
         material["internal_only_lifted"] = judged.lifted
+        if judged.lift_id is not None:
+            material["lifted_by"] = judged.lift_id
     return fingerprint(material)
 
 
@@ -311,6 +329,7 @@ def instrument_policy_book(
     source: str,
     respondent_system: str | None = None,
     validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> FieldPolicyBook:
     """The policy book of one run's instrument: every item it asked, and nothing else.
 
@@ -325,6 +344,7 @@ def instrument_policy_book(
             source=source,
             respondent_system=respondent_system,
             validation=validation,
+            report_lift=report_lift,
         )
         if policy.field in fields:
             raise FieldPolicyError(f"instrument item {item.question_id!r} is declared twice")
@@ -338,6 +358,7 @@ def instrument_policy_book(
             source=source,
             respondent_system=respondent_system,
             validation=validation,
+            report_lift=report_lift,
         ),
         fields=fields,
     )

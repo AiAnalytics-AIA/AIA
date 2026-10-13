@@ -86,3 +86,66 @@ def test_the_evidence_is_certified_under_the_certificate_that_covered_its_respon
     assert not _evidence((_certificate(), "d" * 64)).joint_status.certified
     # The certificate enters the system fingerprint: a run judged under it is a different run.
     assert certified.system_fingerprint != _evidence(None).system_fingerprint
+
+
+# --- the owner's client-report lift (B5b) ------------------------------------------------
+
+
+def test_the_owners_lift_frees_modelled_items_for_the_client_report_only() -> None:
+    from aia_core.domain.analysis.native import native_items
+    from aia_core.domain.evidence import ClaimRule
+    from aia_core.domain.evidence.instrument import (
+        InstrumentPolicyRefused,
+        instrument_declaration_sha256,
+        instrument_policy_book,
+    )
+    from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT as LIFT
+
+    spec, _, _ = run()
+    items = native_items(spec)
+
+    def internal(**kw: Any) -> bool:
+        book = instrument_policy_book(items, origin=MODELLED, source="t", **kw)
+        return any(book.get(f).has(ClaimRule.INTERNAL_ONLY) for f in book.fields)
+
+    system = "a" * 64
+    # Unlifted, -2 is internal; the lift frees it only for a run that names its system.
+    assert internal(respondent_system=system)
+    assert not internal(respondent_system=system, report_lift=LIFT)
+    assert internal(report_lift=LIFT)
+    # The lift is part of the declaration's identity: never confused with an unlifted book.
+    assert instrument_declaration_sha256(
+        items, origin=MODELLED, source="t", respondent_system=system, report_lift=LIFT
+    ) != instrument_declaration_sha256(items, origin=MODELLED, source="t", respondent_system=system)
+    # Simulated answers are never evidence, lift or no lift.
+    with pytest.raises(InstrumentPolicyRefused):
+        instrument_policy_book(
+            items, origin=DataOrigin.SYNTHETIC_AI_FICTIONAL, source="t", report_lift=LIFT
+        )
+    assert LIFT.surface == "CLIENT_REPORT" and LIFT.decided_on.isoformat() == "2026-10-13"
+
+
+def test_client_facing_analysis_stays_blocked_because_it_never_passes_the_lift() -> None:
+    from aia_core.domain.analysis import ANALYSIS_MODULES
+    from aia_core.domain.analysis.native import native_preflight
+    from aia_core.domain.evidence import ClaimSurface, ViolationCode
+
+    # Certified, with a respondent system: only the lift is missing, and analysis never has it.
+    spec, _, aggregate = run()
+    evidence = native_evidence(
+        spec,
+        {**aggregate, "data_origin": MODELLED.value},
+        dataset_sha256=DATASET_SHA,
+        origin=MODELLED,
+        support=REFERENCE_THRESHOLDS,
+        respondent_system="a" * 64,
+        joint_certificate=(_certificate(), PANEL),
+    )
+    for module in ANALYSIS_MODULES:
+        codes = {
+            v.code
+            for v in native_preflight(
+                module, evidence, surface=ClaimSurface.CLIENT_FACING, research_questions=("?",)
+            )
+        }
+        assert ViolationCode.FIELD_INTERNAL_ONLY in codes

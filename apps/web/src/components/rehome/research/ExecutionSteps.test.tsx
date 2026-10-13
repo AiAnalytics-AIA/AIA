@@ -950,6 +950,40 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
   });
 
+  it("offers the client report only for modelled data, and says why when the API refuses it", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+      })],
+    });
+    let kind = "MODELLED";
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10,
+        synthetic: kind !== "MODELLED", modelled: kind === "MODELLED", data_origin_kind: kind,
+      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/client/download": () =>
+        new Response('{"code":"client_report_refused","message":"Žádné číslo tohoto běhu nesplnilo pravidla pro klienta."}', { status: 409 }),
+    });
+    const { unmount } = render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
+    expect(await screen.findByText(/nesplnilo pravidla pro klienta/)).toBeTruthy();
+    expect(screen.getByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
+    unmount();
+
+    kind = "SIMULATED";
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(await screen.findByRole("button", { name: t("research.exec.results.reportDownload") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownloadClient") })).toBeNull();
+  });
+
   it("offers the report's PDF when the run stored one, and says so when it could not", async () => {
     const reportRun = run({
       ...COMPLETED,
