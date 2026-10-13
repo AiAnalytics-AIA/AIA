@@ -34,7 +34,7 @@ chunks:
   - "[x] 6e. The audience step: live filters, built-in subpanels and the preview; OI-50's empty bound is no bound"
   - "[x] 6f. Journey: the audience step in the workbench, and a modelled run's results labelled"
   - "[x] 7a. Validation contract (plan before code): the claim, held-out truth, leakage, arms, metrics, P1-P8, money, recording"
-  - "[ ] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
+  - "[x] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
   - "[ ] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
   - "[ ] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
@@ -1606,6 +1606,70 @@ The record names which truth earned it: `PANEL_HELD_OUT` or `EXTERNAL`.
   - then the researcher records the verdict.
 
   The result is whatever it is.
+
+**7b landed.** `packages/aia_core/src/aia_core/domain/holdout/`, pure:
+
+- `bank.py`: `read_item_bank` reads `aia-holdout-bank-1`. Each item carries:
+  - its field, survey (one of the seven in `SURVEYS`) and domain;
+  - its Czech wording, and its options with their panel codes;
+  - `measured_ages` (a core item's range, or `None` for a matched block);
+  - `ordinal`;
+  - its source document (an https URL, the SHA-256 of the file read, the page and the item id).
+
+  The bank is pinned by the SHA-256 of its canonical JSON. A malformed bank is refused by
+  name (`item_bank_malformed`, `item_not_closed`, `item_survey`, `item_source_missing`,
+  `item_bank_version`).
+- `eligibility.py`: `assess_item` / `assess_bank` apply eligibility rules 1-5 and list every
+  failing reason:
+  - `not_measured`, `value_not_an_option`, `low_coverage`;
+  - `low_support` (Kish over the donor behind the answer: `core_donor_id` or
+    `_donor_<block>_id`);
+  - `given_to_respondent`, `not_in_population`, `donor_unknown`, `age_unknown`.
+
+  `scored_rows` gives a core item only the ages its survey asked; an unknown age is in no
+  range.
+- `leakage.py`: `block_exclusion` returns, for a block, what its respondents are not given:
+  `ITEM`, `MATCHED_BLOCK`, `ASSOCIATED` (|r| or Cramér's V >= 0.30, recorded),
+  `ASSOCIATION_UNKNOWN` (left out, never read as none) and `SIGNAL_CONCEPT`.
+  `ParsedColumns` parses each column once per computation.
+- `preregistration.py`:
+  - `draw_split`: near-duplicates (>= 0.70) are dropped in a seeded order and recorded, then
+    a 40 / 60 split is drawn within each domain. Every order is sorted before it is
+    shuffled, so the split moves with the seed and the pool, never with the bank's order.
+  - `confirmation_blocks`: by domain, at most 8 items each.
+  - `preregister`: the record and its SHA-256. It refuses:
+    - a confirmation set under the minimums (`holdout_confirmation_short`);
+    - exclusions that do not match the blocks;
+    - fewer than three distinct replicate seeds;
+    - under 10,000 bootstrap resamples;
+    - a non-positive ceiling;
+    - a respondent system that does not fingerprint.
+
+  The population version is the respondent system's own: there is no second place to name it.
+
+**Measured.** This is the cost of one preregistration, on a fictional population of v17's
+size: 18,766 rows, 105 items in 7 domains, 150 persona fields.
+
+| Step | Time |
+|---|---|
+| Eligibility | 1.0 s |
+| Split, including the near-duplicate pass over every pair | 57.9 s |
+| Exclusions over 63 confirmation items | 88.9 s |
+
+About 2.5 minutes, once per preregistration, never on a run's path.
+
+Tests (`test_holdout_bank.py`, `test_holdout_leakage.py`, `test_holdout_preregistration.py`), among them:
+- `test_a_modelled_field_is_never_truth`
+- `test_a_core_item_is_scored_only_in_the_ages_its_survey_asked`
+- `test_a_missing_donor_makes_support_unknown_never_counted`
+- `test_the_item_its_matched_block_and_what_tracks_it_are_left_out`
+- `test_an_association_that_cannot_be_computed_leaves_the_field_out`
+- `test_a_near_duplicate_is_dropped_and_recorded_never_counted_twice`
+- `test_the_split_does_not_depend_on_the_banks_order`
+- `test_a_confirmation_set_below_the_minimums_is_refused_never_run_small`
+- `test_a_preregistration_pins_everything_that_decides_the_verdict`
+
+The fictional population is `conftest.holdout_population`, a session-scoped factory.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
