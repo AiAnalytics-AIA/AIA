@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import importlib
 import io
 import json
 from pathlib import Path
@@ -91,6 +92,26 @@ def test_a_column_the_population_does_not_carry_is_left_out() -> None:
     columns = {k: v for k, v in COLUMNS.items() if k != "kraj"}
     ids = [f["id"] for f in audience_catalogue(columns)["factors"]]
     assert "kraj" not in ids and "vek" in ids
+
+
+@pytest.mark.parametrize("name,value", [("vek", "35"), ("kraj", "Praha")])
+def test_a_factor_classifies_its_column_once(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: str
+) -> None:
+    """A real panel has thousands of rows; per-cell classification makes a deploy quadratic."""
+    module = importlib.import_module("aia_core.domain.population.audience_catalogue")
+    classify = module.column_type
+    calls = 0
+
+    def counted(column_name: str, cells: tuple[str, ...]) -> str:
+        nonlocal calls
+        calls += 1
+        return classify(column_name, cells)
+
+    monkeypatch.setattr(module, "column_type", counted)
+    factors = audience_catalogue({name: (value,) * 512})["factors"]
+    assert len(factors) == 1
+    assert calls == 1
 
 
 #: The fictional population's dictionary marks one curated column as audit-only.
