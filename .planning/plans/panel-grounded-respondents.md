@@ -37,7 +37,10 @@ chunks:
   - "[x] 7b. The item bank and the preregistration: eligibility, the pinned split, exclusion sets by association; pure"
   - "[x] 7c. Persona arms (A, B, C, D, S) and exclusions for a validation run only; D without exclusions is today's persona"
   - "[x] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
-  - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
+  - "[x] 7e1. Fieldwork's answering extracted (answer_plans): plans from any source answered exactly as a run answers them"
+  - "[ ] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
+  - "[ ] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
+  - "[ ] 7e4. Its executors: an arm's replicate answered through answer_plans, the score step's verdict artifact; the layer rule on arms"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
   - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
@@ -1753,6 +1756,24 @@ Tests:
 - `test_holdout_baselines.py`:
   - `test_l1_predicts_the_cell_and_never_the_respondent_themselves`
   - `test_a_small_cell_backs_off_to_a_coarser_one`
+
+**7e, split (2026-10-13).** The fieldwork executor chose its plans inline and had no seam a
+validation could hand its arm plans to. The preregistration must also exist before the run, so
+storing it moves from 7f to 7e2. The sub-chunks are 7e1-7e4 above.
+
+**7e1 landed.** `AIFieldwork.answer_plans(plans, spec, context, *, seed, response, data_class,
+lineage) -> Answered | Failed` is everything fieldwork did after choosing its plans:
+- the preflight on the first plan with a block;
+- one request per respondent block;
+- the draw by code;
+- the call ledger and the progress.
+
+`produce` now calls it, and its behaviour is unchanged: the executor suite passes, 467 passed and
+2 skipped, the same as before. A validation's replicate calls it with its arm plans and its own
+seed.
+
+Test: `test_ai_fieldwork_answer_plans.py`, `test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code`
+(a scripted caller, no network).
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
