@@ -39,7 +39,7 @@ chunks:
   - "[ ] 7d. Scoring: L0, L1, TVD, subgroup TVD, Brier, entropy, replicate SD, paired bootstrap, Holm, the verdict; pure"
   - "[ ] 7e. The validation run under a Study: one sample, arms x replicates through the real executor, scoring; budget-gated"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
-  - "[ ] 7g. The item bank compiled from the ISSP CZ / PIAAC CZ questionnaires, checked by a person, pinned"
+  - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
   - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
 ---
 # Panel-grounded AI respondents
@@ -1268,12 +1268,37 @@ AIA today has the validation's *effect* (4e2: only a current `HOLDOUT_VALIDATED`
 
 #### The truth: what may be held out
 
+**The surveys behind the panel** (`legacy/npc-panel-18.6.6/app/DONOR_BLOCK_REGISTRY.json`,
+`CORE_JOINT_STATUS.json`, both 17.x). The panel is not built from ISSP and PIAAC alone.
+
+| Part | Source | Wave | Donors (effective) | Who it is measured for |
+|---|---|---|---|---|
+| Core | PIAAC Cycle 2 CZ | 2023 | the core | 18-65 only |
+| Core | ISSP CZ | 2022 | the core | 66+ only |
+| Matched block `mental_health` | NUDZ CAPI | 2022 | 3,063 (2,240) | everyone, a matched donor's answer |
+| Matched block `social_network` | JRC Loneliness CZ | 2022 | 1,000 (564) | the same |
+| Matched block `institutions` | QoG EQI CZ | 2024 | 5,033 (3,884) | the same |
+| Matched block `rule_of_law` | CSDA Rule of Law | 2024 | 981 (511) | the same |
+| Matched block `politics` | CSES Module 5 CZE | 2021 | 1,451 (1,123) | the same |
+| Matched block `family_health` | ISSP CZ | 2022 | 1,243 (831) | the same |
+
+These give seven natural domains (the core's skills and work, plus the six blocks). Two
+consequences for the item bank:
+
+- **A core item is scored only where it was measured.** PIAAC items exist for 18-65 and
+  ISSP core items for 66+. Such an item is asked of the whole sample, as a client run would
+  ask it, but scored only on the age range whose answers are real: a row outside it has no
+  truth, never a guessed one. Its support (criterion 4) is counted in that range.
+- **A matched block's support is its effective donors.** `rule_of_law` (511) and
+  `social_network` (564) pass the 300 floor; any block under it would not.
+
 **The item bank.** Each candidate item is a panel field whose answers are a survey's
 measured responses. Each item needs:
 
 - the field's dictionary entry: block, source and evidence status;
-- the source questionnaire's **exact wording and options in Czech**, with the map from the
-  panel's codes to those options;
+- the source questionnaire's **exact wording and options in Czech, as fielded**, with the
+  map from the panel's codes to those options. The international master (English) is not
+  enough: a translation made by us would be our wording;
 - the source item id.
 
 The dictionary carries no question wording (`POLICY_COLUMNS`, `population/policy.py:233-243`).
@@ -1566,11 +1591,13 @@ The record names which truth earned it: `PANEL_HELD_OUT` or `EXTERNAL`.
   - `analysis_results` reads the current validation;
   - the report prints the date and fingerprint;
   - Settings shows the respondent system's validation state.
-- **7g.** The item bank compiled from the source questionnaires (ISSP CZ and PIAAC CZ
-  wording and options, mapped to the panel's codes).
+- **7g.** The item bank compiled from the eight source questionnaires (the table above):
+  the Czech wording and options as fielded, mapped to the panel's codes.
 
-  This is the one input code cannot produce. It is checked by a person against the source
-  PDFs, then pinned.
+  This is the one input code cannot produce. Each item records its source document (URL and
+  SHA-256 of the file read) and the page it came from. A person checks it against the source
+  documents, then it is pinned. The owner says the documents are public (2026-10-13);
+  where only an international master exists, the item is ineligible, never translated.
 - **7h.** On develop:
   - the development pass (real Bedrock, development items), whose ledger sets the
     confirmation budget;
