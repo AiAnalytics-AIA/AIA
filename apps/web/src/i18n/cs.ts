@@ -1502,6 +1502,10 @@ export const cs = {
       questionTotal: "Výzkumné otázky",
     },
     questionnaire: {
+      unworded: "Doplňte znění. Bez něj návrh nejde spustit.",
+      readyTitle: "Dotazník",
+      readyCounts: "{questions} otázek · {sets} sledovaných sad",
+      readyCountsDetail: "Běžné otázky a sady k porovnání",
       chooseTitle: "Jak chcete dotazník vytvořit?",
       chooseIntro: "Nemusíte znát interní datovou strukturu. Vyberte jednu ze tří cest.",
       pathUpload: "Nahrát Excel",
