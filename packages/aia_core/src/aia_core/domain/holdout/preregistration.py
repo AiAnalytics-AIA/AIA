@@ -22,6 +22,7 @@ Pure: stdlib only.
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -50,6 +51,7 @@ __all__ = [
     "confirmation_blocks",
     "draw_split",
     "preregister",
+    "read_preregistration",
 ]
 
 PREREGISTRATION_VERSION: Final = "aia-holdout-prereg-1"
@@ -315,4 +317,58 @@ def preregister(
         },
         "cost_ceiling_usd": cost_ceiling_usd,
     }
+    return Preregistration(document=document)
+
+
+def _malformed(message: str) -> HoldoutRefused:
+    return HoldoutRefused(message, reason="holdout_preregistration_malformed")
+
+
+def read_preregistration(raw: bytes) -> Preregistration:
+    """A stored preregistration, checked as :func:`preregister` wrote it.
+
+    The bytes must be the record's canonical JSON, so the hash read back is the hash stored.
+    The respondent system must fingerprint to the fingerprint it names, the population version
+    must be the system's, the blocks must hold exactly the confirmation set, disjoint from the
+    development set, and the thresholds must be this code's: a record with other thresholds is
+    not one this code scores. Refuses ``holdout_preregistration_malformed``; never repairs.
+    """
+    try:
+        document = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise _malformed("the preregistration is not JSON") from None
+    if not isinstance(document, dict):
+        raise _malformed("the preregistration is not an object")
+    if canonical_json(document) != raw:
+        raise _malformed("the preregistration is not in its canonical form")
+    if document.get("preregistration_version") != PREREGISTRATION_VERSION:
+        raise _malformed("the preregistration's version is not this code's")
+    if document.get("thresholds") != dict(THRESHOLDS):
+        raise _malformed("the preregistration's thresholds are not this code's")
+    system = document.get("respondent_system")
+    if not isinstance(system, dict) or not isinstance(system.get("components"), dict):
+        raise _malformed("the preregistration names no respondent system")
+    try:
+        computed = respondent_system_fingerprint(system["components"])
+    except ValueError as exc:
+        raise _malformed(str(exc)) from None
+    if system.get("fingerprint") != computed:
+        raise _malformed("the respondent system does not fingerprint to the one named")
+    if document.get("population_version") != system["components"]["population_version"]:
+        raise _malformed("the population version is not the respondent system's")
+    split = document.get("split")
+    blocks = document.get("blocks")
+    if not isinstance(split, dict) or not isinstance(blocks, list) or not blocks:
+        raise _malformed("the preregistration has no split or no blocks")
+    confirmation = split.get("confirmation")
+    development = split.get("development")
+    if not isinstance(confirmation, list) or not isinstance(development, list):
+        raise _malformed("the split has no sets")
+    asked = [
+        item for block in blocks if isinstance(block, dict) for item in block.get("items") or ()
+    ]
+    if len(asked) != len(set(asked)) or set(asked) != set(confirmation) or not confirmation:
+        raise _malformed("the blocks do not hold exactly the confirmation set")
+    if set(confirmation) & set(development):
+        raise _malformed("an item is in both sets")
     return Preregistration(document=document)
