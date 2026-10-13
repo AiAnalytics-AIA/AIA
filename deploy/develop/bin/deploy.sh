@@ -125,11 +125,17 @@ fi
 # step's factor editor is served without reading a row. Acts as no one and decides nothing;
 # with every catalogue kept it changes nothing. A refusal (the population will not load) is
 # said and does not undo a deploy that is otherwise healthy: the step then says the
-# catalogue is not kept.
+# catalogue is not kept. Bounded: a catalogue is seconds of work (3.6 s to load v17's
+# 18,766 rows, measured), so five minutes means the host is stuck, and a stuck optional
+# step must not hold the deploy or its lock (2026-10-13: it held both for an hour).
 log "keeping each population's audience catalogue"
-if ! "$DEPLOY_DIR/bin/population.sh" record-catalogue; then
-  log "WARNING: an audience catalogue could not be kept (above); the deploy goes on"
-fi
+catalogue_status=0
+timeout --kill-after=30 300 "$DEPLOY_DIR/bin/population.sh" record-catalogue || catalogue_status=$?
+case "$catalogue_status" in
+  0) ;;
+  124|137) log "WARNING: record-catalogue did not finish in 5 minutes and was stopped; no catalogue was kept; the deploy goes on" ;;
+  *) log "WARNING: an audience catalogue could not be kept (above); the deploy goes on" ;;
+esac
 
 
 log "smoke tests"
