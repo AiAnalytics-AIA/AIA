@@ -863,6 +863,11 @@ export const research = {
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
   downloadReport: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  /** A person approves a stored report of the run (internal only; recorded in the ledger). */
+  approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
+    request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
+    ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
   sociomappingReport: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/sociomapping/report`),

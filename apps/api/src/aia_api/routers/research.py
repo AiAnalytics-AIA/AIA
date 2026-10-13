@@ -28,6 +28,7 @@ from aia_core.application.report import (
     INTERNAL_REPORT_MEDIA_TYPE,
     ReportCompositionRefused,
 )
+from aia_core.application.report_approval import ReportNotApprovable, approve_report
 from aia_core.application.research import (
     BudgetNotRaised,
     CostCeilingUnknown,
@@ -57,7 +58,12 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
-from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
+from aia_core.domain.scope import (
+    Permission,
+    ScopeDenied,
+    SeparationOfDutiesViolation,
+    StudyContext,
+)
 from aia_core.domain.workflow import StepRunStatus
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactStatus
 from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
@@ -1289,6 +1295,63 @@ def download_contextual_report(
             else "DRAFT_UNAPPROVED",
         },
     )
+
+
+class ReportApprovalRequest(BaseModel):
+    """Which stored report of the run a person approves, and why."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    artifact_id: str = Field(pattern=r"^ART-[0-9a-f]{16}$")
+    note: str = Field(default="", max_length=2000)
+
+
+@router.post(
+    "/research/runs/{run_id}/report/approve",
+    response_model=dict[str, Any],
+    summary="Approve a stored report of the run (internal approval, recorded)",
+    responses={403: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def approve_run_report(
+    run_id: RunIdPath,
+    body: ReportApprovalRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    try:
+        artifact = approve_report(
+            session, scope, store, run_id=run_id, artifact_id=body.artifact_id, note=body.note
+        )
+    except SeparationOfDutiesViolation as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": exc.reason,
+                "message": "Someone other than the report's producer must approve it.",
+            },
+        ) from exc
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except ArtifactNotFound as exc:
+        raise _not_found("report") from exc
+    except ReportNotApprovable as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_not_approvable",
+                "message": "The artifact is not a valid stored report of this run.",
+            },
+        ) from exc
+    return {
+        "run_id": run_id,
+        "artifact_id": artifact.artifact_id,
+        "artifact_type": artifact.artifact_type,
+        "review_state": "APPROVED_INTERNAL",
+        "internal_only": True,
+    }
 
 
 def _sociomapping_report(

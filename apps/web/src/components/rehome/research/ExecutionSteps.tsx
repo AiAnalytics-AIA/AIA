@@ -1003,6 +1003,8 @@ function InternalReport({ run }: { run: ResearchRun }) {
   const [loaded, setLoaded] = useState<Loaded<ResearchReport>>({ state: "loading" });
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approveError, setApproveError] = useState<string | null>(null);
   const step = stepOf(run, "report");
   useEffect(() => {
     let live = true;
@@ -1031,6 +1033,20 @@ function InternalReport({ run }: { run: ResearchRun }) {
       setDownloading(false);
     }
   };
+  const approve = async () => {
+    if (!status?.artifact_id) return;
+    setApproving(true);
+    setApproveError(null);
+    try {
+      const approved = await research.approveReport(frame.studyId, run.run_id, status.artifact_id);
+      setLoaded({ state: "ready", value: { ...status, review_state: approved.review_state } });
+    } catch (error) {
+      setApproveError(error instanceof ApiError && error.code === "separation_of_duties"
+        ? t("research.exec.results.reportApproveIndependent") : message(error));
+    } finally {
+      setApproving(false);
+    }
+  };
   return (
     <Card title={t("research.exec.results.report")} tone="notice">
       <p role="note" className="mb-2 text-sm font-semibold">{t("research.exec.results.reportInternal")}</p>
@@ -1048,9 +1064,19 @@ function InternalReport({ run }: { run: ResearchRun }) {
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          <Button onClick={download} disabled={downloading || !frame.canEdit}>
-            {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
-          </Button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button onClick={download} disabled={downloading || !frame.canEdit}>
+              {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
+            </Button>
+            {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit && status.artifact_id ? (
+              <Button variant="secondary" onClick={approve} disabled={approving}>
+                {approving ? t("research.exec.results.reportApproving") : t("research.exec.results.reportApprove")}
+              </Button>
+            ) : null}
+          </div>
+          {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit ? (
+            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportApproveHint")}</p>
+          ) : null}
         </>
       ) : null}
       {status && status.state !== "READY" ? (
@@ -1063,6 +1089,7 @@ function InternalReport({ run }: { run: ResearchRun }) {
         </p>
       ) : null}
       {downloadError ? <p role="alert" className="mt-2 text-sm text-status-fault">{downloadError}</p> : null}
+      {approveError ? <p role="alert" className="mt-2 text-sm text-status-fault">{approveError}</p> : null}
     </Card>
   );
 }

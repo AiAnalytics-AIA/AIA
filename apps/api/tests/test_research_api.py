@@ -25,6 +25,7 @@ from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
     ProjectArtifactRow,
     ProjectRow,
     StudyRow,
@@ -311,24 +312,9 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
-def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
-    app: FastAPI,
-    researcher: TestClient,
-    viewer: TestClient,
-    outsider: TestClient,
-    other_client_lead: TestClient,
-    world: Any,
-    damage_artifact: Any,
-    artifact_status: Any,
-) -> None:
-    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
-    revision = submit(researcher, world).json()["revision_id"]
-    run_id = start(researcher, world, revision).json()["run_id"]
-    url = f"{_runs(world)}/{run_id}/report"
-    assert researcher.get(url).json()["state"] == "BLOCKED"
-    assert researcher.get(f"{url}/download").status_code == 404
-
-    document = b"PK\x03\x04internal-draft-test"
+def _store_internal_report(app: FastAPI, world: Any, run_id: str, document: bytes) -> str:
+    """Drive the run's steps to the end, the report step storing ``document`` as the
+    researcher's internal report; return its artifact id."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
         principal = AuthenticatedPrincipal(
@@ -363,6 +349,28 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
             workflow.complete_attempt(work.attempt_id, worker_id="report-fixture", output=output)
         session.commit()
     assert report_id is not None
+    return report_id
+
+
+def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(url).json()["state"] == "BLOCKED"
+    assert researcher.get(f"{url}/download").status_code == 404
+
+    document = b"PK\x03\x04internal-draft-test"
+    report_id = _store_internal_report(app, world, run_id, document)
 
     listed = viewer.get(url)
     assert listed.status_code == 200, listed.text
@@ -386,6 +394,53 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     damaged = researcher.get(f"{url}/download")
     assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
     assert artifact_status(report_id) == "CORRUPT"
+
+
+def test_a_person_approves_a_runs_stored_report_once_and_only_that(
+    app: FastAPI,
+    owner: TestClient,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """Complete-study-report B2: the approval is the ledger's, of a report of this run."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04approve-test")
+    url = f"{_runs(world)}/{run_id}/report"
+    approve = f"{url}/approve"
+
+    # No such report in the study, and another client's study cannot see the run.
+    unknown = researcher.post(approve, json={"artifact_id": "ART-0000000000000000"})
+    assert unknown.status_code == 404
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/approve"
+    assert other_client_lead.post(foreign, json={"artifact_id": report_id}).status_code == 404
+
+    # Independent review turned on for this client: the producer may not clear it.
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    own = researcher.post(approve, json={"artifact_id": report_id})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    assert researcher.get(url).json()["review_state"] == "DRAFT_UNAPPROVED"
+
+    approved = outsider.post(approve, json={"artifact_id": report_id, "note": "Přečteno."})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["review_state"] == "APPROVED_INTERNAL"
+    assert approved.json()["internal_only"] is True
+    assert researcher.get(url).json()["review_state"] == "APPROVED_INTERNAL"
+    again = outsider.post(approve, json={"artifact_id": report_id})
+    assert again.status_code == 200
+
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        decisions = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
+        ).all()
+    assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
 
 
 def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(

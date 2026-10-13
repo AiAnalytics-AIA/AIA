@@ -950,6 +950,40 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
   });
 
+  it("approves the stored draft for internal use, and says so when its producer may not", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+      })],
+    });
+    let refuse = true;
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true,
+      }),
+      "POST /api/v1/studies/STU-1/research/runs/RUN-1/report/approve": () => refuse
+        ? new Response('{"code":"separation_of_duties","message":"independent review required"}', { status: 403 })
+        : { run_id: "RUN-1", artifact_id: "ART-report", review_state: "APPROVED_INTERNAL", internal_only: true },
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    const approve = await screen.findByRole("button", { name: t("research.exec.results.reportApprove") });
+    fireEvent.click(approve);
+    expect(await screen.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.results.reportDraft"))).toBeTruthy();
+    refuse = false;
+    fireEvent.click(screen.getByRole("button", { name: t("research.exec.results.reportApprove") }));
+    expect(await screen.findByText(t("research.exec.results.reportApprovedInternal"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportApprove") })).toBeNull();
+    const posted = called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/report/approve");
+    expect(posted).toHaveLength(2);
+  });
+
   it("explains why a report could not be made when analysis was refused", async () => {
     const reportRun = run({
       ...COMPLETED,
@@ -1013,6 +1047,7 @@ describe("A run's results outside a study session (project memory M2a)", () => {
     expect(await screen.findByText(/Interní: metodika Sociomapy \(PROGRESS D6\) zatím není schválená/)).toBeTruthy();
     const download = screen.getByRole("button", { name: t("research.exec.results.reportDownload"), hidden: true }) as HTMLButtonElement;
     expect(download.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportApprove"), hidden: true })).toBeNull();
     expect(screen.queryByRole("link", { name: /Průběh tohoto běhu/ })).toBeNull();
     expect(called("GET", "/api/v1/studies/STU-1/deep-research")).toHaveLength(0);
     expect(calls.filter((c) => c.method !== "GET")).toEqual([]);

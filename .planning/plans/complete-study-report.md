@@ -5,7 +5,7 @@ chunks:
   - "[x] B1b. The design in the report: the Design Revision's goal, research questions and comparable sets as a chapter, and the questionnaire (blocks, questions, options, scales) as an appendix -- words from the run's own specification, no numbers"
   - "[x] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
   - "[x] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
-  - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
+  - "[x] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
   - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
   - "[ ] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
   - "[ ] B5. Client report composer: client_report recipe over a CLIENT_FACING ledger admitting MODELLED_AI_PANEL under the owner's 2026-10-13 decision, every modelled number labelled"
@@ -98,6 +98,19 @@ number labelled (B5); stages before backend (done in PR #382).
   download route serves the stored bytes and names the artifact
   (`X-AIA-Artifact-Id`, `X-AIA-Review-State`), so B2 can approve the document a person
   read. Test: the interpretation journey downloads twice and gets the same artifact.
+- B2: `application/report_approval.py` `approve_report(session, scope, store, run_id=,
+  artifact_id=, note=)`: a stored report of the run (the internal report or the report with
+  literature, VALID, its metadata naming the run) approved through
+  `ArtifactRepository.approve` -- SIGN_OFF_DELIVERABLE, the scope's self-approval policy,
+  a row in approval_decisions; an approved report is returned as it is, never a second row.
+  `POST …/research/runs/{run_id}/report/approve` {artifact_id, note}: 404 for a run or
+  report the study cannot see, 409 report_not_approvable, 403 separation_of_duties. The
+  internal report's card on Výsledky gains "Schválit pro interní použití" (not in a
+  read-only frame). Approval is internal; it makes nothing client-facing. Tests:
+  `test_a_person_approves_a_runs_stored_report_once_and_only_that`, ExecutionSteps
+  "approves the stored draft for internal use…". The report with literature has no
+  button yet: the web reads its artifact id from `X-AIA-Artifact-Id` once #382's
+  CompleteReport lands (it is not on develop).
 
 ## Findings
 
@@ -132,4 +145,8 @@ number labelled (B5); stages before backend (done in PR #382).
 - CLAUDE.md § 2 map, contextual_report.py: "stored once per exact source set as
   research_internal_docx_with_research (DRAFT_UNAPPROVED; stored_contextual_report); the
   download serves that artifact and names it in X-AIA-Artifact-Id / X-AIA-Review-State".
+- CLAUDE.md § 2 map, application/: `report_approval.py  approve_report: a person approves a
+  run's stored report (internal or with literature) through ArtifactRepository.approve,
+  once`; routers/ research: "POST …/report/approve, a stored report approved for
+  internal use (ADR 0019 self-approval policy)".
 - open-items.md: F1 to be numbered there.
