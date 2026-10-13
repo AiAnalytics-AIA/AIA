@@ -42,7 +42,9 @@ chunks:
   - "[x] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
   - "[x] 7e4a. The sample and arm executors: the sample drawn once, each arm's replicate over the preregistered blocks through answer_plans, the binding checked at the preflight; the layer rule on arms"
   - "[x] 7e4b. The score executor: truths from the population, L0 and L1, the P1-P8 verdict artifact with the run's ledger totals"
-  - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
+  - "[x] 7f1. Recording: the researcher records the computed verdict, attested, in the approval ledger; insert-once; ValidationState with the date and evidence"
+  - "[ ] 7f2. Analysis and the report read the current validation: lifts_internal_only on it; the report prints its date and fingerprint"
+  - "[ ] 7f3. The API (preregistration status, start, record) and Settings showing the respondent system's validation state"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
   - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
 ---
@@ -1951,6 +1953,36 @@ Tests:
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);
 - calibration layers (18.6.6's `output_calibration` / `persona_calibration`);
 - any external survey's acquisition.
+
+**7f1 landed. A person records the verdict; the system's state is read from the record.**
+
+- **`ValidationRuns.record(store=, attest_confirmation_unseen=)`** (`application/validation.py`)
+  needs `APPROVE_GATE` on an open Study. It refuses:
+  - a record without the person's attestation that they had not seen the confirmation items'
+    results before the preregistration was fixed (`holdout_attestation_missing`);
+  - a Study with no confirmation run (`holdout_not_confirmed`);
+  - a run that has not completed (`holdout_run_not_complete`);
+  - a verdict that is not this run's (`holdout_verdict_mismatch`): the score step's artifact must
+    be a `holdout_verdict` of this run, read hash-verified, naming this preregistration, this
+    system and the preregistered scoring version, and saying the verdict the step's output says.
+- **The verdict is copied, never chosen.** There is no verdict argument and no override. A PASS is
+  `HOLDOUT_VALIDATED`; a FAIL is kept as `NOT_VALIDATED` and lifts nothing. A table check holds
+  verdict and status together.
+- **Once per Study.** `respondent_validations` (migration `d8f0b2c4e6a9`) is insert-once, keyed by
+  the Study and tied to its confirmation; asking again answers the stored record and writes
+  nothing. A system is confirmed once in an organization (7e3), so one Study holds its record.
+- **In the approval ledger.** `subject_type = 'validation'`, `decision = record_pass | record_fail`,
+  with the verdict artifact, both hashes, the fingerprint and the attestation in `comment`.
+  Independence is observed, not enforced: code computed the verdict, and who started the run and
+  who recorded it are both kept.
+- **`ValidationState`** now carries its evidence: `validated_at`, `truth` (`ValidationTruth`:
+  `PANEL_HELD_OUT` here, `EXTERNAL` for a survey outside the population), the preregistration's
+  and the verdict's SHA-256. All four or none. `HoldoutRepository.current_validation(fingerprint)`
+  returns the organization's recorded state of a system, for 7f2 to read.
+
+Tests: `test_validation_runs.py`,
+`test_a_recorded_pass_is_the_systems_holdout_validation_with_its_evidence` and the refusals
+beside it (SQLite and PostgreSQL); `test_evidence_validation.py` for the state's evidence rule.
 
 ## Findings
 
