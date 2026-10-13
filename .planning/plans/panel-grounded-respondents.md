@@ -40,7 +40,8 @@ chunks:
   - "[x] 7e1. Fieldwork's answering extracted (answer_plans): plans from any source answered exactly as a run answers them"
   - "[x] 7e2. The preregistration stored insert-once under the validation Study, before any confirmation call"
   - "[x] 7e3. The respondent_validation workflow: sample, arm x replicate fieldwork steps, score; started with the study's ceiling, budget and confirmation"
-  - "[ ] 7e4. Its executors: an arm's replicate answered through answer_plans, the score step's verdict artifact; the layer rule on arms"
+  - "[x] 7e4a. The sample and arm executors: the sample drawn once, each arm's replicate over the preregistered blocks through answer_plans, the binding checked at the preflight; the layer rule on arms"
+  - "[ ] 7e4b. The score executor: truths from the population, L0 and L1, the P1-P8 verdict artifact with the run's ledger totals"
   - "[ ] 7f. Recording: the researcher records the computed verdict; ValidationState with date and evidence; analysis and report read it"
   - "[ ] 7g. The item bank compiled from the eight source questionnaires (Czech as fielded), checked by a person, pinned"
   - "[ ] 7h. On develop: the development pass prices the run, then preregistration, the confirmation run and the recorded verdict"
@@ -1859,6 +1860,57 @@ Tests:
   `test_the_database_holds_the_rule_when_two_starts_race`;
 - the hand-built bank and preregistration are a conftest fixture (`holdout_records`), shared
   with `test_holdout_repository.py`.
+
+**7e4, split (2026-10-13).** 7e4 is two chunks: the steps that ask (7e4a) and the step that
+scores (7e4b). Each is a reviewable PR, and the asking can be checked under the real worker before
+anything is scored.
+
+**7e4a landed.** `apps/executors/src/aia_executors/validation.py`, registered in the default
+registry beside the fieldwork it answers through:
+
+- **`holdout_sample`.** It draws the n respondents once, from the run's recorded population,
+  under the preregistered seed, with no audience filter. It records them and the sample's identity
+  (`run.sample_sha256`: version, seed, and each row, donor and weight in order).
+- **`holdout_arm`.** It draws the sample again and refuses one that is not the recorded one
+  (`holdout_sample_moved`), so every arm asks the same people. Then:
+  - it builds the personas and the arm's plans over the **preregistered blocks**
+    (`arm_plans(..., blocks=)`), refusing blocks that are not exactly the questionnaire
+    (`arm_blocks_mismatch`) and items code answers as facts (`arm_item_is_a_fact`);
+  - it answers through `AIFieldwork.answer_plans` with `require_binding`: the preflight's
+    resolved binding is compared with the preregistered one before the first request, and a
+    different one fails for good (`model_binding_changed`), nothing sent;
+  - it stores each respondent's drawn code and the probabilities it was drawn from
+    (`run.arm_record`, read back by `run.read_arm_record` as the scoring's `ArmRun`). A missing
+    answer or draw is refused (`holdout_answer_missing`), never scored.
+- **What answers.** The questionnaire's material is classified as a design's is: an operator's
+  content-bound approval, or the arm parks (`egress_unclassified_material`). Panel personas make
+  every request Class A, under the panel's lineage, as a panel research run's are. The response
+  process is the unit's (`AIA_RESPONSE_V1`); the respondent system names its behaviour and fact
+  layers, and a validation does not choose another process.
+- **Without the AI runtime or the panel path,** the arms park and the sample parks; nothing is
+  answered by fictional respondents instead.
+- **`answer_plans` now returns each draw's record** (`Answered.details`), which `produce`
+  ignores. Its behaviour for a research run is unchanged.
+- **The start passes what the steps need.** Each arm gets its items' codes in the fielded
+  order; the score step gets the items as the bank holds them (`bank.item_payload`, read back by
+  `bank.read_item`). A bank whose option labels repeat is refused when read
+  (`item_bank_malformed`) and at start (`holdout_option_labels_repeat`): an answer is a label,
+  and a repeated one could not name its code.
+- **Layering.** `tools/layer_check.sh`: nothing in the core but the holdout package, nothing in
+  the API or the worker, and among the executors only `validation.py` imports `holdout.arms`. A
+  client research run cannot build an arm.
+
+Tests:
+- `test_validation_executors.py`: a full confirmation run under the real worker, over the
+  grounded population with a scripted caller (no network). The sample is drawn once; 15 arm
+  replicates answer the same 200 people in two preregistered blocks (6,000 requests); a different
+  binding fails before any request; without the runtime nothing succeeds; an unclassified
+  questionnaire parks.
+- `test_holdout_arms.py`: the preregistered blocks are asked, a mismatch and a fact are refused.
+- `test_holdout_run.py`: the arm record, a missing answer refused, repeated labels refused, the
+  sample's identity.
+- `test_holdout_bank.py`: the payload round-trip and repeated labels.
+- `test_ai_fieldwork_answer_plans.py`: the draw records and the binding check.
 
 **Out of scope:**
 - tuning the persona to pass (a change after a failure is a new system, with a new draw);

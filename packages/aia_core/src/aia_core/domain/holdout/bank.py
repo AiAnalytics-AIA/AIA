@@ -33,6 +33,8 @@ __all__ = [
     "Option",
     "SourceDocument",
     "canonical_json",
+    "item_payload",
+    "read_item",
     "read_item_bank",
 ]
 
@@ -177,6 +179,11 @@ def _options(value: Any, where: str) -> tuple[Option, ...]:
     codes = [o.code for o in options]
     if len(set(codes)) != len(codes):
         raise _refuse(f"{where}: option codes repeat", "item_bank_malformed")
+    # The respondent answers with a label and code maps it back to its code: a label shown
+    # twice could not say which code was meant.
+    labels = [o.label for o in options]
+    if len(set(labels)) != len(labels):
+        raise _refuse(f"{where}: option labels repeat", "item_bank_malformed")
     return tuple(options)
 
 
@@ -219,6 +226,30 @@ def _item(raw: Any, i: int) -> HoldoutItem:
         ordinal=ordinal,
         source=_source(raw.get("source"), where),
     )
+
+
+def read_item(raw: Any) -> HoldoutItem:
+    """One item as :func:`item_payload` wrote it, checked as the bank's are."""
+    return _item(raw, 0)
+
+
+def item_payload(item: HoldoutItem) -> dict[str, Any]:
+    """An item as the bank's JSON holds it; :func:`read_item` reads it back."""
+    return {
+        "field": item.field,
+        "survey": item.survey,
+        "domain": item.domain,
+        "wording": item.wording,
+        "options": [{"code": o.code, "label": o.label} for o in item.options],
+        "measured_ages": list(item.measured_ages) if item.measured_ages is not None else None,
+        "ordinal": item.ordinal,
+        "source": {
+            "url": item.source.url,
+            "sha256": item.source.sha256,
+            "page": item.source.page,
+            "item_id": item.source.item_id,
+        },
+    }
 
 
 def read_item_bank(data: bytes) -> ItemBank:

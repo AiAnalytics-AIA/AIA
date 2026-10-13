@@ -16,6 +16,7 @@ from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_executors.ai_fieldwork import AIFieldwork, AIFieldworkConfig, Answered
+from aia_worker.executor import Failed
 
 DESIGN: dict[str, Any] = {
     "title": "Fiktivní plány",
@@ -125,3 +126,51 @@ def test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code() ->
     for _, answers in answered.rows:
         assert set(answers) >= {"q1", "q2"}
     assert context.progressed[-1] == {"respondents": len(plans), "of": len(plans)}
+
+
+def test_each_draw_is_recorded_beside_the_answers_it_gave() -> None:
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    answered = fieldwork.answer_plans(
+        plans,
+        spec,
+        _Context(),  # type: ignore[arg-type]
+        seed=7,
+        response=AIA_RESPONSE_V1,
+        data_class=DataClass.CLASS_C_INTERNAL,
+        lineage=DataLineage(datasets=frozenset({"synthetic"})),
+    )
+    assert isinstance(answered, Answered)
+    assert len(answered.details) == len(answered.rows)
+    for detail in answered.details:
+        assert len(detail["q2"]["probabilities"]) == 3
+
+
+def test_answers_from_another_binding_than_required_fail_before_any_request() -> None:
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+    kwargs: dict[str, Any] = {
+        "seed": 7,
+        "response": AIA_RESPONSE_V1,
+        "data_class": DataClass.CLASS_C_INTERNAL,
+        "lineage": DataLineage(datasets=frozenset({"synthetic"})),
+    }
+    refused = fieldwork.answer_plans(
+        plans,
+        spec,
+        _Context(),  # type: ignore[arg-type]
+        require_binding="aws_bedrock/another-model/route-x",
+        **kwargs,
+    )
+    assert isinstance(refused, Failed)
+    assert refused.error["reason"] == "model_binding_changed"
+    assert refused.error["resolved"] == "aws_bedrock/model-x/route-x"
+    assert caller.requests == []
+    same = fieldwork.answer_plans(
+        plans,
+        spec,
+        _Context(),  # type: ignore[arg-type]
+        require_binding="aws_bedrock/model-x/route-x",
+        **kwargs,
+    )
+    assert isinstance(same, Answered) and caller.requests

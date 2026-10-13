@@ -10,6 +10,8 @@ import pytest
 from aia_core.domain.holdout.bank import (
     BANK_VERSION,
     ItemBankRefused,
+    item_payload,
+    read_item,
     read_item_bank,
 )
 from aia_core.domain.holdout.eligibility import (
@@ -142,6 +144,11 @@ def test_a_bank_is_pinned_by_its_canonical_form_not_its_formatting() -> None:
             _item("x", options=[{"code": "1", "label": "A"}, {"code": "1", "label": "B"}]),
             "item_bank_malformed",
         ),
+        # The respondent answers with a label: two options worded alike could not be told apart.
+        (
+            _item("x", options=[{"code": "1", "label": "A"}, {"code": "2", "label": "A"}]),
+            "item_bank_malformed",
+        ),
     ],
 )
 def test_a_bank_that_is_not_well_formed_is_refused_by_name(
@@ -241,3 +248,9 @@ def test_a_missing_donor_makes_support_unknown_never_counted(population: Any) ->
     assessment = assess_item(world, item)
     assert "donor_unknown" in assessment.reasons
     assert assessment.effective_donors is None
+
+
+def test_an_item_reads_back_as_its_payload_wrote_it() -> None:
+    item = read_item_bank(_bank(_item("rodina_q3a", measured_ages=[18, 65]))).items[0]
+    assert read_item(item_payload(item)) == item
+    assert read_item(json.loads(json.dumps(item_payload(item)))) == item
