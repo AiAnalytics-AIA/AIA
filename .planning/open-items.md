@@ -3576,6 +3576,9 @@ its request. Fixed in #382 (research-lane-redesign, F1).
 **Smallest fix / status.** `approve_report` and `POST …/report/approve`, through the one approve
 method. Fixed in #385 (complete-study-report B2);
 `test_research_api.py::test_a_person_approves_a_runs_stored_report_once_and_only_that`.
+The buttons for every stored report (internal, client, with literature) are on Výsledky's report
+card since #393, each approving the document its download named (`X-AIA-Artifact-Id`);
+`ExecutionSteps.test.tsx` "Internal report" and "Interpretation research".
 
 ## OI-108 · Finding, closed · OI-61's status line said Open under a "closed" heading
 
