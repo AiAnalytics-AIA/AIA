@@ -33,6 +33,7 @@ from aia_core.application.analysis_results import (
 )
 from aia_core.application.report import ReportCompositionRefused, compose_internal_report
 from aia_core.application.report_design import compose_design_sections
+from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -1308,3 +1309,25 @@ def test_the_report_states_the_design_it_ran_and_appends_its_questionnaire(
     rendered = DocxRenderer().render(doc)
     assert not lint_docx(rendered)
     (tmp_path / "internal-report-with-design.docx").write_bytes(rendered)
+
+
+def test_who_answered_comes_after_the_methodology_and_before_the_numbers(world: World) -> None:
+    """complete-study-report B1c."""
+    run = _question_tables_run(world)
+    spec, _ = compile_design(DESIGN)
+    assert spec is not None
+    first = run.modules[AnalysisModuleId.EXECUTIVE]
+    assert first.result is not None
+    method = compose_method_section(
+        {"persona_source": "fictional_roster"}, first.record.labels.data_origin
+    )
+    doc = compose_internal_report(
+        run,
+        report_meta(first.result.method_status),
+        method=method,
+        question_tables=compose_question_tables(run, native_items(spec), source="Zmrazený běh"),
+    )
+    ids = [s.id for s in doc.sections]
+    assert ids.index("methodology") + 1 == ids.index("ch-method")
+    assert ids.index("ch-method") + 1 == ids.index("ch-questions")
+    assert not lint_docx(DocxRenderer().render(doc))

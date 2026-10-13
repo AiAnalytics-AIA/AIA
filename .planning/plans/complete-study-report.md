@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] B1a. Per-question tables in the internal report: every question's numbers (option shares, scale mean, top-2-box) as NumberCells over claims admitted question by question through admit_numeric_claims; a question the gate refuses says why instead of blocking the report; suppressed cells removed and counted by the table"
   - "[x] B1b. The design in the report: the Design Revision's goal, research questions and comparable sets as a chapter, and the questionnaire (blocks, questions, options, scales) as an appendix -- words from the run's own specification, no numbers"
-  - "[ ] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
+  - "[x] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
   - "[ ] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
   - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
   - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
@@ -72,6 +72,16 @@ number labelled (B5); stages before backend (done in PR #382).
   `test_the_report_states_the_design_it_ran_and_appends_its_questionnaire`; the stored
   DOCX orders design < methodology and the questionnaire after the question tables.
 
+- B1c: `application/report_method.py` `compose_method_section(meta, origin)`: the chapter
+  "Respondenti a výpočet" after the methodology and before the question tables -- who
+  answered by the dataset's origin kind (fictional / modelled from the population /
+  unknown), the population the run recorded and whether fieldwork read it, whether the
+  audience filters were applied (a panel run's are; dimensions are not yet), and a table
+  of the methods the run pinned (`run_methods`, an unreadable pin says so). What the run
+  did not record is said to be unrecorded. Contract `aia-internal-report-7`. Tests:
+  test_report_method.py (4), `test_who_answered_comes_after_the_methodology_and_before_the_numbers`;
+  the stored DOCX orders methodology < respondents < question tables.
+
 ## Findings
 
 - **F1 (hypothesis until the governance call is made). Fictional data prints the grade
@@ -95,4 +105,7 @@ number labelled (B5); stages before backend (done in PR #382).
 - CLAUDE.md § 2 map, application/: `report_design.py  compose_design_sections: the design
   the run executed (questions, sets, sample, audience as stated) and its questionnaire as
   an appendix, from the run's specification`.
+- CLAUDE.md § 2 map, application/: `report_method.py  compose_method_section: who answered
+  (by origin kind), the population recorded and read, filters applied or not, the methods
+  pinned; from the run's record, unrecorded said so`.
 - open-items.md: F1 to be numbered there.

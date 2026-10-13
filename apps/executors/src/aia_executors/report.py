@@ -11,6 +11,7 @@ from aia_core.application.report import (
 )
 from aia_core.application.report_design import compose_design_sections
 from aia_core.application.report_maps import compose_map_sections
+from aia_core.application.report_method import compose_method_section
 from aia_core.application.report_tables import compose_question_tables
 from aia_core.application.research import research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES
@@ -32,7 +33,7 @@ from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Suc
 from .research import SOCIOMAP, upstream_artifact
 
 REPORT_ARTIFACT_TYPE = INTERNAL_REPORT_ARTIFACT_TYPE
-REPORT_CONTRACT_VERSION = "aia-internal-report-6"
+REPORT_CONTRACT_VERSION = "aia-internal-report-7"
 
 
 class ReportExecutor:
@@ -114,6 +115,10 @@ class ReportExecutor:
                     map_sections=sections,
                     question_tables=questions,
                     design=design,
+                    # Who answered and the methods the run pinned, from its own record (B1c).
+                    method=compose_method_section(
+                        run.get("metadata") or {}, first.record.labels.data_origin
+                    ),
                 )
             except (
                 ReconstructionRefused,

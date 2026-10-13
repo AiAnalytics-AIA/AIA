@@ -124,6 +124,7 @@ def compose_internal_report(
     context_sections: tuple[Section, ...] = (),
     question_tables: QuestionTables | None = None,
     design: DesignSections | None = None,
+    method: Section | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
@@ -131,7 +132,8 @@ def compose_internal_report(
     ``question_tables`` (``compose_question_tables``) follow the methodology chapter; their
     claims must be over this run's evidence table, admitted for the internal surface.
     ``design`` (``compose_design_sections``): its chapter follows the introduction and the
-    questionnaire is an appendix before the evidence appendix.
+    questionnaire is an appendix before the evidence appendix. ``method``
+    (``compose_method_section``): who answered and the run's methods, after the methodology.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -272,6 +274,8 @@ def compose_internal_report(
                     id="methodology",
                 )
             )
+            if method is not None:
+                sections.append(method)
             if question_tables is not None:
                 for claim in question_tables.claims:
                     if (
