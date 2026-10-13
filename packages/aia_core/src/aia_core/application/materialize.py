@@ -34,9 +34,12 @@ from ..domain.pipeline import ProjectType
 from ..domain.population import (
     CZ_LIVE,
     MATERIALIZE_PROJECT_OWNER,
+    DatasetVersion,
+    MaterializedKind,
     PopulationBinding,
     PopulationImportContract,
     VersionOwner,
+    target_met,
 )
 from ..domain.population.czech import CZ_SYNTHETIC_V17
 from ..domain.population.definition import DimensionDefinition
@@ -45,20 +48,30 @@ from ..domain.scope import Permission, StudyContext
 from ..domain.workflow_templates import POPULATION_MATERIALIZE
 from ..infrastructure.population_repository import PopulationRegistryRepository
 from ..infrastructure.repositories import ProjectRepository
+from ..infrastructure.workflow_repository import WorkflowNotFound, WorkflowRepository
 from .population import live_binding
 from .population_characteristics import shared_version_policy
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
     "MATERIALIZE_KEY_PREFIX",
+    "ChildOutcome",
+    "MaterializationNotFound",
     "MaterializationRefused",
     "MaterializationRequest",
+    "child_outcome",
+    "materialization_run",
+    "materialization_runs",
     "prepare_materialization",
     "start_materialization",
 ]
 
 #: Every materialize run's idempotency key starts with this.
 MATERIALIZE_KEY_PREFIX: Final = "population_materialize"
+
+
+class MaterializationNotFound(LookupError):
+    """No materialize run with this id in the Study in scope."""
 
 
 class MaterializationRefused(Exception):
@@ -182,12 +195,18 @@ def prepare_materialization(
     )
 
 
-def _population_project(session: Session, scope: StudyContext) -> str:
-    """The study's population project, created on first use; seen by no generic route."""
+def _existing_population_project(session: Session, scope: StudyContext) -> str | None:
     projects = ProjectRepository(session, scope, owner=MATERIALIZE_PROJECT_OWNER)
     found = projects.list_projects(limit=1).items
-    if found:
-        return found[0].project_id
+    return found[0].project_id if found else None
+
+
+def _population_project(session: Session, scope: StudyContext) -> str:
+    """The study's population project, created on first use; seen by no generic route."""
+    existing = _existing_population_project(session, scope)
+    if existing is not None:
+        return existing
+    projects = ProjectRepository(session, scope, owner=MATERIALIZE_PROJECT_OWNER)
     project, _ = projects.create(
         title="Population materializations",
         project_type=ProjectType.RESEARCH,
@@ -221,10 +240,87 @@ def start_materialization(
         metadata={
             "definition_sha256": request.definition.sha256,
             "dimension_id": request.definition.dimension_id,
+            "kind": request.definition.kind.value,
             "child_key": request.child_key,
             "base_version_id": request.base.version_id,
         },
         step_inputs={"materialize": request.step_input()},
         owner=MATERIALIZE_PROJECT_OWNER,
         population=request.base,
+    )
+
+
+def materialization_run(session: Session, scope: StudyContext, run_id: str) -> dict[str, Any]:
+    """One materialize run of this Study, in full; :class:`MaterializationNotFound` otherwise.
+
+    Found only through the Study: scope confines the run to it, and its population project and
+    type confine it to its materializations.
+    """
+    project_id = _existing_population_project(session, scope)
+    try:
+        run = WorkflowRepository(session, scope).get_run(run_id)
+    except WorkflowNotFound as exc:
+        raise MaterializationNotFound(run_id) from exc
+    if (
+        project_id is None
+        or run["project_id"] != project_id
+        or run["workflow_type"] != POPULATION_MATERIALIZE
+    ):
+        raise MaterializationNotFound(run_id)
+    return run
+
+
+def materialization_runs(
+    session: Session, scope: StudyContext, *, limit: int = 20
+) -> list[dict[str, Any]]:
+    """This Study's materialize runs, newest first, without their steps."""
+    project_id = _existing_population_project(session, scope)
+    if project_id is None:
+        return []
+    return WorkflowRepository(session, scope).list_runs(
+        project_id=project_id, limit=limit, workflow_type=POPULATION_MATERIALIZE
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ChildOutcome:
+    """What a materialized child adds and what its derivation reached (P4d4)."""
+
+    dimension_id: str
+    kind: MaterializedKind
+    definition_sha256: str
+    method: str
+    target: float
+    achieved: float
+    #: Within :data:`~aia_core.domain.population.TARGET_TOLERANCE`; never presumed.
+    target_met: bool
+    usable_predictors: tuple[str, ...]
+
+
+def child_outcome(session: Session, version: DatasetVersion) -> ChildOutcome | None:
+    """A child's outcome from its stored extension and the record it was registered with.
+
+    ``None`` for a shared version, or for a child whose record carries no outcome (nothing is
+    reconstructed or guessed). The extension is re-hashed on read.
+    """
+    if version.shared or version.extension_sha256 is None:
+        return None
+    registry = PopulationRegistryRepository(session)
+    extension = registry.extension(version.extension_sha256)
+    record = (registry.validation_record(version.version_id) or {}).get("materialized")
+    if extension is None or not isinstance(record, dict) or len(extension.fields) != 1:
+        return None
+    field = extension.fields[0]
+    target, achieved = record.get("target"), record.get("achieved")
+    if not isinstance(target, int | float) or not isinstance(achieved, int | float):
+        return None
+    return ChildOutcome(
+        dimension_id=field.name,
+        kind=field.kind,
+        definition_sha256=field.definition_sha256,
+        method=f"{field.method_id}@{field.method_version}",
+        target=float(target),
+        achieved=float(achieved),
+        target_met=target_met(field.kind, float(target), float(achieved)),
+        usable_predictors=tuple(str(p) for p in record.get("usable_predictors", ())),
     )

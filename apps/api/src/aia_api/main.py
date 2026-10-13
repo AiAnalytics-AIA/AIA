@@ -25,6 +25,7 @@ from .routers import (
     deep_research,
     deep_research_settings,
     health,
+    materialize,
     methodology,
     population,
     projects,
@@ -138,6 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(system_prompts.router, prefix=API_PREFIX)
     app.include_router(methodology.router, prefix=API_PREFIX)
     app.include_router(population.router, prefix=API_PREFIX)
+    app.include_router(materialize.router, prefix=API_PREFIX)
     return app
 
 

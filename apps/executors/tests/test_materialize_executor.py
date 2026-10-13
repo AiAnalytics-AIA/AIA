@@ -265,6 +265,19 @@ def test_a_researcher_materializes_a_dimension_and_the_worker_registers_the_owne
     assert panel.header == (*FIELDS, "pije_kavu_rano")
     assert set(panel.column("pije_kavu_rano")) <= {"0", "1"}
 
+    # P4d4: the run reads through its study, and the registry says what the child reached.
+    from aia_core.application.materialize import child_outcome, materialization_run
+
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        read = materialization_run(session, scope, run_id)
+        outcome = child_outcome(session, child)
+    assert read["metadata"]["kind"] == "binary"
+    assert outcome is not None and outcome.dimension_id == "pije_kavu_rano"
+    assert (outcome.target, outcome.achieved) == (output["target"], output["achieved"])
+    assert outcome.usable_predictors == ("vek",)
+    assert outcome.target_met is (abs(output["achieved"] - 0.4) <= 0.005)
+
 
 def test_without_a_population_store_the_run_parks_and_nothing_is_written(
     world: Any,

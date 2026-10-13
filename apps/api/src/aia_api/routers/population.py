@@ -35,8 +35,10 @@ from datetime import datetime
 from typing import Any
 
 from aia_core.application.audience_catalogue import live_audience_catalogue
+from aia_core.application.materialize import child_outcome
 from aia_core.application.population_characteristics import version_characteristics
 from aia_core.domain.population import (
+    MaterializedKind,
     PopulationError,
     PopulationKind,
     UnknownDatasetVersion,
@@ -73,6 +75,20 @@ class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+class MaterializedEntry(_Model):
+    """What an owned child adds, and the target beside what its derivation achieved."""
+
+    dimension_id: str
+    kind: MaterializedKind
+    definition_sha256: str
+    method: str
+    target: float
+    achieved: float
+    #: Within the kind's tolerance; a target the derivation left unmet is ``false``.
+    target_met: bool
+    usable_predictors: list[str]
+
+
 class PopulationVersionEntry(_Model):
     version_id: str
     label: str
@@ -91,6 +107,8 @@ class PopulationVersionEntry(_Model):
     owner_client_id: str | None
     #: ``null`` on a shared version; on an owned child, the hash of what it adds.
     extension_sha256: str | None
+    #: ``null`` on a shared version; on an owned child, its dimension and outcome.
+    materialized: MaterializedEntry | None = None
 
 
 class PopulationEntry(_Model):
@@ -135,6 +153,7 @@ def population_registry(member: OrganizationDep, session: SessionDep) -> Populat
     entries = []
     for v in versions:
         status = version_status(v.version_id, populations, promotions)
+        outcome = child_outcome(session, v)
         entries.append(
             PopulationVersionEntry(
                 version_id=v.version_id,
@@ -151,6 +170,20 @@ def population_registry(member: OrganizationDep, session: SessionDep) -> Populat
                 provenance=v.provenance,
                 owner_client_id=v.owner.client_id if v.owner is not None else None,
                 extension_sha256=v.extension_sha256,
+                materialized=(
+                    MaterializedEntry(
+                        dimension_id=outcome.dimension_id,
+                        kind=outcome.kind,
+                        definition_sha256=outcome.definition_sha256,
+                        method=outcome.method,
+                        target=outcome.target,
+                        achieved=outcome.achieved,
+                        target_met=outcome.target_met,
+                        usable_predictors=list(outcome.usable_predictors),
+                    )
+                    if outcome is not None
+                    else None
+                ),
             )
         )
     return PopulationRegistry(

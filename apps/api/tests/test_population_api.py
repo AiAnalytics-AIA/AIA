@@ -299,7 +299,18 @@ def children(app: FastAPI, world: Any) -> dict[str, str]:
                 owner=owner_of,
                 extension_sha256=extension.sha256,
             )
-            repo.insert_version(child, validation={})
+            repo.insert_version(
+                child,
+                validation={
+                    "materialized": {
+                        "definition_sha256": _sha("definition"),
+                        "method": "method@1",
+                        "target": 0.4,
+                        "achieved": 0.4002,
+                        "usable_predictors": ["vek"],
+                    }
+                },
+            )
             ids[name] = child.version_id
         session.commit()
     ids["extension"] = extension.sha256
@@ -318,6 +329,18 @@ def test_the_registry_lists_our_child_and_never_another_organizations(
     assert ours["parent_version_id"] == children["base"]
     assert by_id[children["base"]]["owner_client_id"] is None
     assert by_id[children["base"]]["extension_sha256"] is None
+    # P4d4: the child's dimension, its target beside what was achieved, and the verdict.
+    assert ours["materialized"] == {
+        "dimension_id": "pije_kavu_rano",
+        "kind": "binary",
+        "definition_sha256": _sha("definition"),
+        "method": "method@1",
+        "target": 0.4,
+        "achieved": 0.4002,
+        "target_met": True,
+        "usable_predictors": ["vek"],
+    }
+    assert by_id[children["base"]]["materialized"] is None
 
 
 def test_a_childs_characteristics_are_its_organizations_and_404_to_any_other(
@@ -606,3 +629,115 @@ def test_a_previewer_already_installed_survives_the_servers_startup(
         app.state.engine.dispose()
         for name, value in kept.items():
             setattr(app.state, name, value)
+
+
+# --------------------------------------------------------------------------- materialize (P4d4)
+
+
+def _definition(**change: Any) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "dimension_id": "pije_kavu_rano",
+        "version": 1,
+        "construct": "morning coffee",
+        "label": "Pije kávu ráno",
+        "kind": "binary",
+        "target": 0.4,
+        "evidence": {"knowledge_item_id": "KNW-fictional", "revision": 1, "span": "40 % ráno"},
+        "predictors": [{"field": "vek"}],
+        "missingness": "predictor_mean",
+        "range": [0.0, 1.0],
+    }
+    body.update(change)
+    return body
+
+
+def _usable_live(app: FastAPI, version_id: str) -> None:
+    """LIVE's kept dictionary and a companion-set row: what resolving LIVE asks for."""
+    from aia_core.infrastructure.tables import PopulationCompanionSetRow
+
+    _keep_dictionary(app, version_id)
+    with create_session_factory(app.state.engine)() as session:
+        session.add(
+            PopulationCompanionSetRow(
+                version_id=version_id,
+                set_sha256=_sha("companions"),
+                joint_state="MISSING",
+                report_json={},
+                attached_at=AT,
+                attached_by="test",
+            )
+        )
+        session.commit()
+
+
+def _materializations(world: Any, study: str = "primary") -> str:
+    return f"/api/v1/studies/{world.study_id(study)}/population/materializations"
+
+
+def test_a_researcher_starts_a_materialization_from_a_study_and_reads_its_run(
+    app: FastAPI, registry: dict[str, str], world: Any, lead: Any, viewer: Any
+) -> None:
+    _usable_live(app, registry["live"])
+    started = lead.post(_materializations(world), json={"definition": _definition()})
+    assert started.status_code == 201, started.text
+    run = started.json()
+    assert run["created"] is True and run["step_status"] != "SUCCEEDED"
+    assert run["dimension_id"] == "pije_kavu_rano"
+    assert run["base_version_id"] == registry["live"]
+    assert run["child"] is None and run["refusal_reason"] is None
+    assert started.headers["Location"].endswith(run["run_id"])
+
+    # The same child from the same study is the same run; any member reads it.
+    again = lead.post(_materializations(world), json={"definition": _definition()})
+    assert again.status_code == 200 and again.json()["run_id"] == run["run_id"]
+    got = viewer.get(f"{_materializations(world)}/{run['run_id']}")
+    assert got.status_code == 200 and got.json()["run_id"] == run["run_id"]
+    listed = viewer.get(_materializations(world)).json()["items"]
+    assert [r["run_id"] for r in listed] == [run["run_id"]]
+
+
+def test_a_definition_that_cannot_become_a_child_is_refused_by_name_and_nothing_starts(
+    app: FastAPI, registry: dict[str, str], world: Any, lead: Any
+) -> None:
+    _usable_live(app, registry["live"])
+    for definition, reason in (
+        (_definition(predictors=[{"field": "is_student"}]), "predictor_not_permitted"),
+        (_definition(predictors=[{"field": "no_such_field"}]), "predictor_unknown"),
+        (_definition(dimension_id="vek"), "name_taken"),
+        (_definition(target=1.0), "target_out_of_range"),
+    ):
+        refused = lead.post(_materializations(world), json={"definition": definition})
+        assert refused.status_code == 422, refused.text
+        assert refused.json()["code"] == "materialization_refused"
+        assert refused.json()["details"]["reason"] == reason
+    assert lead.get(_materializations(world)).json()["items"] == []
+
+
+def test_without_live_there_is_nothing_to_extend(world: Any, lead: Any) -> None:
+    refused = lead.post(_materializations(world), json={"definition": _definition()})
+    assert refused.status_code == 422
+    assert refused.json()["details"]["reason"] == "population_not_established"
+
+
+def test_a_materialization_is_read_only_through_its_study(
+    app: FastAPI, registry: dict[str, str], world: Any, lead: Any, other_client_lead: Any
+) -> None:
+    _usable_live(app, registry["live"])
+    run_id = lead.post(_materializations(world), json={"definition": _definition()}).json()[
+        "run_id"
+    ]
+    # Another study of another client: the run is not there.
+    other = other_client_lead.get(f"{_materializations(world, 'other_client')}/{run_id}")
+    assert other.status_code == 404
+    assert other.json()["code"] == "materialization_not_found"
+    assert other_client_lead.get(_materializations(world, "other_client")).json()["items"] == []
+
+
+def test_a_live_that_cannot_be_resolved_is_unavailable_not_an_error(
+    app: FastAPI, registry: dict[str, str], world: Any, lead: Any
+) -> None:
+    _keep_dictionary(app, registry["live"])  # no companion set: LIVE is not usable
+    refused = lead.post(_materializations(world), json={"definition": _definition()})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "population_unavailable"
+    assert refused.json()["details"]["reason"] == "companions_incomplete"

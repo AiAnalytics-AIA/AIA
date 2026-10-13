@@ -23,9 +23,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Any, Final
 
 from .contract import field_names_fingerprint
@@ -43,11 +44,13 @@ __all__ = [
     "EXTENSION_CONTRACT",
     "MATERIALIZED_BLOCK",
     "MATERIALIZE_PROJECT_OWNER",
+    "TARGET_TOLERANCE",
     "MaterializedField",
     "MaterializedKind",
     "PopulationContractExtension",
     "check_child_version",
     "materialized_policy_entry",
+    "target_met",
     "with_materialized_fields",
 ]
 
@@ -277,3 +280,22 @@ def check_child_version(
         raise VersionIntegrityError(
             f"{child.version_id} is not {base.version_id} extended: " + "; ".join(problems)
         )
+
+
+#: How far ``achieved`` may sit from ``target`` and still be called met, per kind (P4d4).
+#: A binary fill stops on the row that crosses the target, so it overshoots by at most one
+#: row's weight share: half a percentage point is far above that on any real panel. A scale's
+#: values are rounded to two decimals, which moves its mean by at most 0.005; the clip to
+#: [1, 10] can move it much further (P4b's M04: 2.0 asked, 2.68 achieved), and that is not met.
+TARGET_TOLERANCE: Final[Mapping[MaterializedKind, float]] = MappingProxyType(
+    {MaterializedKind.BINARY: 0.005, MaterializedKind.SCALE_1_10: 0.01}
+)
+
+
+def target_met(kind: MaterializedKind, target: float, achieved: float) -> bool:
+    """Whether a materialized dimension reached what was asked, within :data:`TARGET_TOLERANCE`.
+
+    Never presumed: a target the derivation left unmet reads ``False``, with ``achieved``
+    beside it to say by how much.
+    """
+    return abs(achieved - target) <= TARGET_TOLERANCE[kind]
