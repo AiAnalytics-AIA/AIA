@@ -6,7 +6,7 @@ chunks:
   - "[x] 3. Inspector: the right column holds this stage's readiness and what still blocks a run; AI pomoc becomes its second tab (ResearchAssistance content, same jobs and contracts)"
   - "[x] 4. Zadání: denser sections, AI actions on the card they change, drop files anywhere on the stage, per-file reading state; readiness moves to the inspector"
   - "[x] 5. Návrh: an AI proposal is reviewed inline as changes, accepted per item or all (AgentProposalDialog stays for jobs from other stages until 6-8)"
-  - "[ ] 6. Dotazník: one toolbar (add, Excel, AI), outline beside the editor, the invalid question marked where it is"
+  - "[x] 6. Dotazník: one toolbar (add, Excel, AI), outline beside the editor, the invalid question marked where it is"
   - "[ ] 7. Cílová skupina and Dimenze: one source/population/strategy card; dimensions as a checklist grid; sample beside them"
   - "[ ] 8. Kontrola, Průběh, Výsledky: problems first with a fix link, the run's steps as one list, the complete-report card at the top of Výsledky"
   - "[ ] 9. Browser pass on the workbench (ux_journey at 1440/1024/768/390), screenshots in the PR"
@@ -14,7 +14,7 @@ chunks:
   - "[ ] B2. Approve a report: a researcher-only route over ArtifactRepository.approve and the button on Výsledky (APPROVED_INTERNAL)"
   - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report, its cost and time measured"
   - "[ ] B4. Sociomap methodology registry (OI-17) replacing D6_OPEN: per (methodology version, spec fingerprint) status; the owner's 2026-10-13 decision recorded as its first row (aia-sociomap-3 as computed today); a client branch in compose_map_sections"
-  - "[ ] B5. Client report composer (client_report recipe, CLIENT_FACING ledger) -- blocked on ANL-1 / ADR 0024: modelled evidence is INTERNAL_ONLY until the panel holdout validation (panel-grounded-respondents 7e2-7h), or an owner decision that says otherwise"
+  - "[ ] B5. Client report composer (client_report recipe, CLIENT_FACING ledger) admitting MODELLED_AI_PANEL evidence under the owner's 2026-10-13 decision, every modelled number labelled modelováno; after chunks 6-8 (owner's order)"
   - "[ ] B6. Audience filters in a run: not new code -- AIA_AI_POPULATION_PERSONAS_ENABLED (operator call) and audience-catalogue-cpu chunk 4 (owned there); dimensions applied to respondents stay with sociomap-formula-corrections I0/I1"
 ---
 # Research lane redesign
@@ -45,6 +45,21 @@ as a wizard, the shell takes too much width, and run/results feel bolted on.
   also release aia-sociomap-1 -- so B4 replaces it with a per-version registry (OI-17)
   rather than flipping it. The docs PR carries the decision into overview.md (D6) and
   OI-16.
+
+- **2026-10-13, modelled data in the client report (ANL-1 / ADR 0024).** The owner, in
+  the same session: "allow modelled data in client report". Read as: the client version
+  of the complete report may carry numbers from AI respondents drawn from the population
+  (MODELLED_AI_PANEL) before the panel holdout validation (panel-grounded-respondents
+  7e2-7h) has passed, provided every such number keeps the modelled disclosure
+  ("modelováno: AI respondenti z populace", `report/evidence.py` modelled_panel). It does
+  not admit fictional data (SYNTHETIC_*), which stays non-evidence. Engineering
+  consequence: B5. Today `lifts_internal_only` (evidence/validation.py) admits MODELLED
+  only under a current holdout, and `CLIENT_ADMISSIBLE_ORIGINS` (fieldwork.py) is the
+  allowlist every client-facing gate reads; B5 changes that rule in one place, recorded
+  as this decision, not by bypassing a gate. The docs PR carries it into overview.md
+  (ANL-1) and ADR 0024.
+- **2026-10-13, order of work.** The owner: "finish the stages first" -- chunks 6-8
+  before B1-B5.
 
 ## Backend gaps the design shows
 
@@ -77,7 +92,12 @@ From the assessment of 2026-10-13 (anchors @ b05b698):
 - Chunk 8, started: the complete-report card at the top of Výsledky (CompleteReport.tsx;
   each part claimed only from the run's own steps), Kontrola's checks first with
   failures on top. Průběh is unchanged.
-- Chunks 6 and 7: only the shared section density (StepSection) has reached them.
+- Chunk 6: the toolbar holds the method, the edit/preview switch and "Optimalizovat s AI";
+  the questionnaire's readiness is in the inspector; a question without wording is
+  marked on its card (aria-invalid, the reason beside it). The three-path chooser stays
+  as the empty questionnaire's screen: which screen draws is parity-tested
+  (questionnaireView).
+- Chunk 7: only the shared section density (StepSection) has reached it so far.
 
 ## Findings
 

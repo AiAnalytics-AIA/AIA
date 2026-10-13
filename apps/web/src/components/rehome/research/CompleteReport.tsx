@@ -5,9 +5,9 @@
 // It reads the run as it is: a part is "ve zprávě" only when the internal report
 // AIA composes today carries it (application/report.py compose_internal_report),
 // and a part AIA does not compose yet says so rather than pretending. The client
-// version and PDF are drawn and refused with their reason: modelled evidence stays
-// internal until the AI respondents' holdout validation (ANL-1 / ADR 0024), and
-// AIA renders DOCX only.
+// version and PDF are drawn and refused with their reason: AIA does not compose the
+// client version yet (research-lane-redesign B5; the owner admitted modelled data to
+// it on 2026-10-13, each number labelled), and it renders DOCX only.
 
 import { useEffect, useState } from "react";
 
@@ -111,7 +111,7 @@ export function CompleteReport({ run }: { run: ResearchRun }) {
             <button type="button" role="radio" aria-checked="true" className="min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]">Interní</button>
             <button type="button" role="radio" aria-checked="false" aria-disabled="true" aria-describedby="report-client-why" className="min-h-8 cursor-not-allowed rounded-[4px] px-2.5 text-xs font-medium text-ink-faint">Pro klienta</button>
           </div>
-          <p id="report-client-why" className="text-xs leading-4 text-ink-muted">Pro klienta: modelovaná data AI respondentů smějí do klientské zprávy až po jejich validaci.</p>
+          <p id="report-client-why" className="text-xs leading-4 text-ink-muted">Pro klienta: klientskou verzi (s modelovanými daty označenými „modelováno“) AIA zatím neskládá.</p>
           <span className="text-xs font-medium text-ink-muted">Formát</span>
           <div role="radiogroup" aria-label="Formát zprávy" className="inline-flex w-fit rounded-control border border-border bg-surface-sunken p-0.5">
             <button type="button" role="radio" aria-checked="true" className="min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]">DOCX</button>
