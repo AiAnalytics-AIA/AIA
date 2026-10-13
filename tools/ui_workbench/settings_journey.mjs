@@ -145,7 +145,7 @@ try {
   await methodForm.getByRole("button", { name: "Zkontrolovat", exact: true }).click(); await methodForm.getByText(/Kontrola neprošla/).waitFor();
   assert.equal((await get("/api/v1/methodology/sociomap/versions")).versions.length, beforeVersions.versions.length);
   await (await chooseField("relation.n_min")).fill("34"); assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
-  await methodForm.getByLabel("Vycházet z metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
+  await methodForm.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
   await page.getByRole("button", { name: "Změnit oblast", exact: true }).click();
   await page.getByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)", exact: true }).click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();

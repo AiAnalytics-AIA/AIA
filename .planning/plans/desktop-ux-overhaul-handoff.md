@@ -202,3 +202,12 @@ Finding (not this slice, hypothesis-grade until reproduced on develop):
 once in the full web suite (`Unable to find role="list" and name "Kontrola připravenosti"`, the
 file took 17 s) and passed twice alone. Likely a default 1 s `findBy` under load; the research
 lane is `research-lane-redesign.md`'s, so it is left there.
+
+Metodika: an edit starts from what is in force (owner, 2026-10-13). It already did: a stored version
+in force is the editor's start, and with the code's aia-sociomap-3 in force the start is
+aia-sociomap-4, which computes the same byte for byte and declares the constants -3 keeps in code
+(f588045c), so an edit can move them. What was wrong was the label: "Úprava metodiky (výchozí:
+aia-sociomap-4)" read as a different starting point. The editor now says "Úprava metodiky v
+platnosti (…)", one line says why it saves over -4, and the base picker reads "Začít od metodiky
+z kódu" with "Metodika v platnosti" selected (tests: "opens on the editor, with no extra click",
+"opens the next edit on the stored version in force, with its values").

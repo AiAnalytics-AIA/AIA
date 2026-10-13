@@ -63,6 +63,8 @@ type Start = {
   /** A person asked for this edit (the page then moves to it); the editor a methodologist
    *  opens on stays where the page is. */
   byPerson?: boolean;
+  /** The methodology in force this edit starts from, by name: the editor says so. */
+  inForce?: string;
 };
 
 function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: MethodModuleSummary; data: MethodVersions; people: People; reload: () => void; onEditing?: (value: boolean) => void; onDirty?: (value: boolean) => void }) {
@@ -70,11 +72,13 @@ function Body({ summary, data, people, reload, onEditing, onDirty }: { summary: 
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
   const versionStart = (v: MethodVersion): Start => ({ base: v.base_preset, spec: v.spec, formulas: v.formulas, from: v.name });
-  // Where an edit starts, as before this layout: the stored version in force, else the code's
-  // first (newest) preset.
+  // An edit starts from what is in force (product owner, 2026-10-13): the stored version in force,
+  // else the code's newest preset, which computes what the code's preset in force computes byte for
+  // byte and declares the constants that preset keeps in code, so an edit can move them (f588045c).
   const editStart = (): Start => {
     const stored = data.in_force.origin === "stored" ? data.versions.find((v) => v.version_number === data.in_force.version_number) : undefined;
-    return stored ? versionStart(stored) : presetStart(summary.presets[0] ?? summary.in_force ?? "");
+    const from = stored ? versionStart(stored) : presetStart(summary.presets[0] ?? summary.in_force ?? "");
+    return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13).
   const [start, setStart] = useState<Start | null>(() => (data.may_administer ? editStart() : null));
@@ -382,11 +386,14 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
       {/* What is being edited, and where the change stands in the safe sequence. */}
       <div className="flex flex-col gap-3 border-b border-border pb-3">
         <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
-          <h4 ref={headingRef} tabIndex={-1} className="mr-auto scroll-mt-24 text-base font-semibold">{tv(`${V}.editorTitle`, { from: start.from })}</h4>
+          <div className="mr-auto flex min-w-0 flex-col gap-0.5">
+            <h4 ref={headingRef} tabIndex={-1} className="scroll-mt-24 text-base font-semibold">{start.inForce ? tv(`${V}.editorInForce`, { name: start.inForce }) : tv(`${V}.editorTitle`, { from: start.from })}</h4>
+            {start.inForce && start.base !== start.inForce && start.from === start.base ? <p data-start-note className="max-w-2xl text-sm text-ink-muted">{tv(`${V}.editorSameAs`, { base: start.base, name: start.inForce })}</p> : null}
+          </div>
           {presets.length > 1 ? (
             <Field label={t(`${V}.base`)} className="w-56">
-              <Select aria-label={t(`${V}.base`)} disabled={busy} value={start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
-                {start.from === start.base ? null : <option value="">{start.from}</option>}
+              <Select aria-label={t(`${V}.base`)} disabled={busy} value={!start.inForce && start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
+                {!start.inForce && start.from === start.base ? null : <option value="">{start.inForce ? t(`${V}.inForceOption`) : start.from}</option>}
                 {presets.map((p) => <option key={p} value={p}>{p}</option>)}
               </Select>
             </Field>
