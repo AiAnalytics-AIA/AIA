@@ -56,7 +56,7 @@ export function StepSection({
 }
 
 /**
- * The step's sticky dock: the way back on the left, why the step is or is not
+ * The step's action dock: the way back on the left, why the step is or is not
  * ready in the middle, the one primary action on the right. It replaces each
  * step's bottom row; the action keeps the conditions it had there.
  */
@@ -68,7 +68,7 @@ export function ActionDock({ back, note, ready = true, children }: {
   children: ReactNode;
 }) {
   return (
-    <div className="sticky bottom-4 z-[6] flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5 shadow-[var(--shadow-overlay)]">
+    <div className="sticky bottom-4 z-[6] flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5 shadow-[var(--shadow-overlay)] lg:static lg:mt-6 lg:shadow-none">
       {back ? (
         <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${FOCUS}`}>
           <Icon name="back" size={14} />

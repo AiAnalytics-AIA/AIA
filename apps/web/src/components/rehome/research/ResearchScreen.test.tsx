@@ -218,19 +218,16 @@ describe("AI pomoc (Studio v3)", () => {
     expect(offered("verify")).toEqual(["answer_memory"]);
   });
 
-  it("places the same AI actions beside the stage heading with a prefill-only suggestion", async () => {
+  it("keeps the header compact and opens stage-specific help without starting an AI job", async () => {
     api(() => content());
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     await screen.findByText("Uloženo");
     const bar = screen.getByRole("region", { name: t("research.aiHelpLabel") });
     expect(bar.closest("header")).not.toBeNull();
-    const buttons = within(bar).getAllByRole("button").filter((b) => b.hasAttribute("data-ai-action"));
-    expect(buttons.map((b) => b.textContent)).toEqual([t("research.aiCritique"), t("research.aiCopilot"), t("research.aiMemory")]);
-    for (const b of buttons) {
-      expect(b.getAttribute("data-ai-action")).toBe("true");
-      expect(b.getAttribute("title")).toBe(t("research.aiActionTitle"));
-    }
-    fireEvent.click(within(bar).getByRole("button", { name: /Které výzkumné otázky/ }));
+    expect(within(bar).getAllByRole("button")).toHaveLength(1);
+    expect(within(bar).queryByRole("button", { name: t("research.aiCritique") })).toBeNull();
+    fireEvent.click(within(bar).getByRole("button", { name: t("research.aiHelp") }));
+    fireEvent.click(screen.getByRole("button", { name: /Začít otázkou: Které výzkumné otázky/ }));
     expect((screen.getByRole("textbox", { name: "Co chcete zjistit?" }) as HTMLTextAreaElement).value).toBe("Které výzkumné otázky potřebují zpřesnit, aby podpořily rozhodnutí?");
     expect(screen.getByRole("complementary", { name: "Pomoc s návrhem" })).toBeTruthy();
   });
