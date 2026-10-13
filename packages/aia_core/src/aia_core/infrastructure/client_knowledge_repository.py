@@ -10,13 +10,16 @@ afterwards: retrieval resolves the client first.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from datetime import datetime
 from typing import Any, Final, cast
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..domain.knowledge import (
+    STALE_AFTER,
     KnowledgeFolder,
+    KnowledgeHealth,
     KnowledgeItem,
     KnowledgeKind,
     KnowledgeLabel,
@@ -716,6 +719,49 @@ class ClientKnowledgeRepository:
         ).all()
         by_id = {r.item_id: _item(r) for r in rows}
         return self._with_placement(scope, [by_id[i] for i in ids])
+
+    # --------------------------------------------------------------- overview
+
+    def health(self, scope: ClientContext, *, now: datetime) -> KnowledgeHealth:
+        """How many active items have gone unchanged for a year, and how many are in no folder."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        active = (
+            ClientKnowledgeItemRow.organization_id == scope.organization_id,
+            ClientKnowledgeItemRow.client_id == scope.client_id,
+            ClientKnowledgeItemRow.status == "ACTIVE",
+        )
+        stale = self._session.scalar(
+            select(func.count()).where(
+                *active, ClientKnowledgeItemRow.modified_at < now - STALE_AFTER
+            )
+        )
+        unfiled = self._session.scalar(
+            select(func.count()).where(
+                *active,
+                ClientKnowledgeItemRow.item_id.not_in(
+                    select(ClientKnowledgeItemFolderRow.item_id).where(
+                        ClientKnowledgeItemFolderRow.client_id == scope.client_id
+                    )
+                ),
+            )
+        )
+        return KnowledgeHealth(stale=int(stale or 0), unfiled=int(unfiled or 0))
+
+    def recent_revisions(self, scope: ClientContext, *, limit: int = 8) -> list[KnowledgeRevision]:
+        """The client's latest knowledge revisions, newest first: what changed and how."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        rows = self._session.scalars(
+            select(ClientKnowledgeRevisionRow)
+            .where(
+                ClientKnowledgeRevisionRow.organization_id == scope.organization_id,
+                ClientKnowledgeRevisionRow.client_id == scope.client_id,
+            )
+            .order_by(ClientKnowledgeRevisionRow.context_revision.desc())
+            .limit(max(1, min(limit, 50)))
+        ).all()
+        return [_revision(r) for r in rows]
 
     # -------------------------------------------------------------- proposals
 

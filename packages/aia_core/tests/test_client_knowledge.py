@@ -559,3 +559,49 @@ def test_organizing_needs_the_permission_to_propose_and_is_audited(
     with pytest.raises(ScopeDenied):
         knowledge.place(reader, item_ids=[a], folder_id=None)
     assert [f.name for f in knowledge.folders(reader)] == ["Audit"]
+
+
+# --------------------------------------------------------------------------- #
+# Přehled (client-workspace C10): what wants a person's attention, what changed
+# --------------------------------------------------------------------------- #
+
+
+def test_health_counts_items_unchanged_for_a_year_and_items_in_no_folder(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import update
+
+    from aia_core.infrastructure.tables import ClientKnowledgeItemRow
+
+    lead = client_scope(scoped, "lead")
+    a, b = _two_items(knowledge, lead)
+    now = datetime.now(UTC)
+    assert knowledge.health(lead, now=now).model_dump() == {"stale": 0, "unfiled": 2}
+    folder = knowledge.create_folder(lead, name="Archiv")
+    knowledge.place(lead, item_ids=[a], folder_id=folder.folder_id)
+    session.execute(
+        update(ClientKnowledgeItemRow)
+        .where(ClientKnowledgeItemRow.item_id == b)
+        .values(modified_at=now - timedelta(days=400))
+    )
+    assert knowledge.health(lead, now=now).model_dump() == {"stale": 1, "unfiled": 1}
+    # A day short of the year is not stale yet.
+    assert knowledge.health(lead, now=now - timedelta(days=36)).stale == 0
+    assert knowledge.health(client_scope(scoped, "other_lead", "other"), now=now).model_dump() == {
+        "stale": 0,
+        "unfiled": 0,
+    }
+
+
+def test_recent_revisions_are_the_clients_latest_changes_newest_first(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    first = knowledge.add(lead, kind=KnowledgeKind.FACT, title="První")
+    knowledge.add(lead, kind=KnowledgeKind.TERM, title="Druhý")
+    knowledge.add(lead, kind=KnowledgeKind.FACT, title="První, opravený", item_id=first.item_id)
+    recent = knowledge.recent_revisions(lead, limit=2)
+    assert [(r.title, r.revision) for r in recent] == [("První, opravený", 2), ("Druhý", 1)]
+    assert knowledge.recent_revisions(client_scope(scoped, "other_lead", "other")) == []

@@ -17,7 +17,7 @@ import base64
 import binascii
 import re
 import unicodedata
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
@@ -362,6 +362,23 @@ class KnowledgeSummaryResponse(BaseModel):
     items_by_kind: dict[str, int]
     pending_proposals: int
     last_approved_at: datetime | None = None
+    #: Active items unchanged for over a year, and active items in no folder.
+    stale_items: int = 0
+    unfiled_items: int = 0
+
+
+class KnowledgeChangeResponse(BaseModel):
+    """One recent revision of the client's knowledge, for Přehled's feed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_id: str
+    title: str
+    revision: int
+    #: STUDY: a study's finding accepted; PERSON: written by a person; PROPOSAL: a person's
+    #: proposal decided by someone else.
+    origin: Literal["STUDY", "PERSON", "PROPOSAL"]
+    at: datetime | None = None
 
 
 class ClientOverview(BaseModel):
@@ -375,6 +392,7 @@ class ClientOverview(BaseModel):
     recent_outputs: list[OutputItem]
     knowledge: KnowledgeSummaryResponse | None
     pending: list[ProposalResponse]
+    recent_changes: list[KnowledgeChangeResponse] = Field(default_factory=list)
 
 
 class StudyCreate(BaseModel):
@@ -1010,18 +1028,38 @@ def client_overview(
 
     knowledge: KnowledgeSummaryResponse | None = None
     pending: list[ProposalResponse] = []
+    changes: list[KnowledgeChangeResponse] = []
     if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
         kr = ClientKnowledgeRepository(session)
         summary = kr.summary(scope)
+        health = kr.health(scope, now=datetime.now(UTC))
         knowledge = KnowledgeSummaryResponse(
             context_revision=summary.context_revision,
             items_by_kind={k.value: n for k, n in summary.items_by_kind.items()},
             pending_proposals=summary.pending_proposals,
             last_approved_at=summary.last_approved_at,
+            stale_items=health.stale,
+            unfiled_items=health.unfiled,
         )
         pending = [
             _proposal(p, actor=scope.actor_id, names=names)
             for p in kr.proposals(scope, status=ProposalStatus.PROPOSED)[:5]
+        ]
+        changes = [
+            KnowledgeChangeResponse(
+                item_id=r.item_id,
+                title=r.title,
+                revision=r.revision,
+                origin=(
+                    "STUDY"
+                    if r.provenance.get("origin") == "STUDY"
+                    else "PERSON"
+                    if r.provenance.get("authored") == "person"
+                    else "PROPOSAL"
+                ),
+                at=r.approved_at,
+            )
+            for r in kr.recent_revisions(scope, limit=6)
         ]
     return ClientOverview(
         client=_workspace(scope, repo),
@@ -1030,6 +1068,7 @@ def client_overview(
         recent_outputs=outputs[:6],
         knowledge=knowledge,
         pending=pending,
+        recent_changes=changes,
     )
 
 

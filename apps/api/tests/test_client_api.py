@@ -216,6 +216,12 @@ def test_the_overview_shows_active_work_and_the_knowledge_state(
     assert body["knowledge"]["items_by_kind"] == {"TERM": 1}
     assert body["knowledge"]["pending_proposals"] == 1
     assert [p["title"] for p in body["pending"]] == ["Mladší kupci řeší cenu"]
+    # What wants attention: the new term is in no folder and was changed today.
+    assert body["knowledge"]["unfiled_items"] == 1 and body["knowledge"]["stale_items"] == 0
+    # What changed: the term a person wrote; the study's finding still waits, so it is not here.
+    assert [(c["title"], c["origin"], c["revision"]) for c in body["recent_changes"]] == [
+        ("Flotilový zákazník", "PERSON", 1)
+    ]
 
 
 # --------------------------------------------------------------------------- #

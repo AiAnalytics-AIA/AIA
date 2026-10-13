@@ -32,7 +32,7 @@ Pure: stdlib and Pydantic only.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, Final
 from uuid import uuid4
@@ -42,7 +42,9 @@ from pydantic import BaseModel, ConfigDict, Field
 __all__ = [
     "KNOWLEDGE_SECTIONS",
     "ORGANIZER_NAME_MAX",
+    "STALE_AFTER",
     "KnowledgeFolder",
+    "KnowledgeHealth",
     "KnowledgeItem",
     "KnowledgeKind",
     "KnowledgeLabel",
@@ -262,6 +264,23 @@ class KnowledgeProposal(BaseModel):
     decided_at: datetime | None = None
     decision_note: str = ""
     revision: int | None = None
+
+
+#: How long an item may go unchanged before Přehled asks a person to look at it again.
+STALE_AFTER: Final = timedelta(days=365)
+
+
+class KnowledgeHealth(BaseModel):
+    """What in a client's knowledge wants a person's attention (Přehled).
+
+    ``stale``: active items unchanged for longer than ``STALE_AFTER``.
+    ``unfiled``: active items in no folder.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    stale: int
+    unfiled: int
 
 
 class KnowledgeSummary(BaseModel):
