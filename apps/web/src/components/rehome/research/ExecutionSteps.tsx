@@ -1033,6 +1033,17 @@ function InternalReport({ run }: { run: ResearchRun }) {
       setDownloading(false);
     }
   };
+  const downloadPdf = async () => {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      saveBlob(await research.downloadReportPdf(frame.studyId, run.run_id), `AIA-${frame.studyId}-internal-draft.pdf`);
+    } catch (error) {
+      setDownloadError(message(error));
+    } finally {
+      setDownloading(false);
+    }
+  };
   const approve = async () => {
     if (!status?.artifact_id) return;
     setApproving(true);
@@ -1068,12 +1079,20 @@ function InternalReport({ run }: { run: ResearchRun }) {
             <Button onClick={download} disabled={downloading || !frame.canEdit}>
               {downloading ? t("research.exec.results.reportDownloading") : t("research.exec.results.reportDownload")}
             </Button>
+            {status.pdf?.state === "READY" ? (
+              <Button onClick={downloadPdf} disabled={downloading || !frame.canEdit}>
+                {t("research.exec.results.reportDownloadPdf")}
+              </Button>
+            ) : null}
             {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit && status.artifact_id ? (
               <Button variant="secondary" onClick={approve} disabled={approving}>
                 {approving ? t("research.exec.results.reportApproving") : t("research.exec.results.reportApprove")}
               </Button>
             ) : null}
           </div>
+          {status.pdf && status.pdf.state !== "READY" ? (
+            <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportPdfFailed")}</p>
+          ) : null}
           {status.review_state !== "APPROVED_INTERNAL" && frame.canEdit ? (
             <p className="mt-1 text-xs text-ink-muted">{t("research.exec.results.reportApproveHint")}</p>
           ) : null}

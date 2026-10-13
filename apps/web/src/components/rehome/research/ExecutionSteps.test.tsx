@@ -950,6 +950,48 @@ describe("Results", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/download")).toHaveLength(1);
   });
 
+  it("offers the report's PDF when the run stored one, and says so when it could not", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      steps: [...COMPLETED.steps, step("report", "SUCCEEDED", {
+        kind: "research_report", stage_type: "REPORT", artifact_id: "ART-report",
+      })],
+    });
+    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
+    URL.createObjectURL = vi.fn(() => "blob:pdf");
+    URL.revokeObjectURL = vi.fn();
+    HTMLAnchorElement.prototype.click = vi.fn();
+    onTestFinished(() => {
+      URL.createObjectURL = real.create;
+      URL.revokeObjectURL = real.revoke;
+      HTMLAnchorElement.prototype.click = real.click;
+    });
+    let pdf: unknown = { state: "READY", artifact_id: "ART-pdf", size_bytes: 9 };
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({
+        run_id: "RUN-1", state: "READY", internal_only: true, review_state: "DRAFT_UNAPPROVED",
+        artifact_id: "ART-report", sha256: "abcdef0123456789", size_bytes: 10, synthetic: true, pdf,
+      }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download": () =>
+        new Response(new Blob(["%PDF-1.7"], { type: "application/pdf" }), { status: 200 }),
+    });
+    const { unmount } = render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.results.reportDownloadPdf") }));
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1/report/pdf/download")).toHaveLength(1));
+    expect(screen.queryByText(t("research.exec.results.reportPdfFailed"))).toBeNull();
+    unmount();
+
+    pdf = { state: "FAILED", reason: "pdf_conversion_failed" };
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(await screen.findByText(t("research.exec.results.reportPdfFailed"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownloadPdf") })).toBeNull();
+  });
+
   it("approves the stored draft for internal use, and says so when its producer may not", async () => {
     const reportRun = run({
       ...COMPLETED,

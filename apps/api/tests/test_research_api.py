@@ -16,6 +16,7 @@ import pytest
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
+    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
 )
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
@@ -312,9 +313,18 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
-def _store_internal_report(app: FastAPI, world: Any, run_id: str, document: bytes) -> str:
+def _store_internal_report(
+    app: FastAPI,
+    world: Any,
+    run_id: str,
+    document: bytes,
+    *,
+    pdf: bytes | None = None,
+    pdf_of: str | None = None,
+) -> str:
     """Drive the run's steps to the end, the report step storing ``document`` as the
-    researcher's internal report; return its artifact id."""
+    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given);
+    return its artifact id."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
         principal = AuthenticatedPrincipal(
@@ -335,7 +345,7 @@ def _store_internal_report(app: FastAPI, world: Any, run_id: str, document: byte
                     artifact_type=INTERNAL_REPORT_ARTIFACT_TYPE,
                     data=document,
                     content_type=INTERNAL_REPORT_MEDIA_TYPE,
-                    input_fingerprint="report-route-test",
+                    input_fingerprint=f"report-route-test-{run_id}",
                     produced_by_job_id=work.attempt_id,
                     metadata={
                         "run_id": run_id,
@@ -346,6 +356,19 @@ def _store_internal_report(app: FastAPI, world: Any, run_id: str, document: byte
                 )
                 report_id = artifact.artifact_id
                 output = {"artifact_id": report_id}
+                if pdf is not None:
+                    rendering, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+                        project_id=work.project_id,
+                        revision=work.project_revision,
+                        stage_type="REPORT",
+                        artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+                        data=pdf,
+                        content_type="application/pdf",
+                        input_fingerprint=f"report-pdf-route-test-{run_id}",
+                        metadata={"run_id": run_id, "rendering_of": pdf_of or report_id},
+                        depends_on=[report_id],
+                    )
+                    output["pdf"] = {"state": "READY", "artifact_id": rendering.artifact_id}
             workflow.complete_attempt(work.attempt_id, worker_id="report-fixture", output=output)
         session.commit()
     assert report_id is not None
@@ -394,6 +417,49 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     damaged = researcher.get(f"{url}/download")
     assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
     assert artifact_status(report_id) == "CORRUPT"
+
+
+def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Complete-study-report B3: the status says whether a PDF exists; the download serves it
+    only through the run, and only as the rendering of that run's report."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx", pdf=b"%PDF-1.7 test")
+    url = f"{_runs(world)}/{run_id}/report"
+    status = researcher.get(url).json()
+    assert status["pdf"]["state"] == "READY" and status["pdf"]["size_bytes"] == 13
+    downloaded = researcher.get(f"{url}/pdf/download")
+    assert downloaded.status_code == 200 and downloaded.content == b"%PDF-1.7 test"
+    assert downloaded.headers["content-type"] == "application/pdf"
+    assert "internal-draft.pdf" in downloaded.headers["content-disposition"]
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf/download"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
+def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refused(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(url).json()["pdf"] is None
+    assert researcher.get(f"{url}/pdf/download").status_code == 404
+
+    other_revision = submit(researcher, world, {**DESIGN, "title": "Jiná"}).json()["revision_id"]
+    other_run = start(researcher, world, other_revision).json()["run_id"]
+    _store_internal_report(
+        app, world, other_run, b"PK\x03\x04other", pdf=b"%PDF x", pdf_of="ART-0000000000000000"
+    )
+    other_url = f"{_runs(world)}/{other_run}/report"
+    # The report still reads; only its PDF is said to be unusable.
+    assert researcher.get(other_url).json()["pdf"] == {"state": "INVALID", "reason": None}
+    refused = researcher.get(f"{other_url}/pdf/download")
+    assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
 
 
 def test_a_person_approves_a_runs_stored_report_once_and_only_that(

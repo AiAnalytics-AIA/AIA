@@ -807,6 +807,8 @@ export type ResearchReport = {
   synthetic?: boolean;
   modelled?: boolean;
   data_origin_kind?: string | null;
+  /** The stored DOCX rendered as PDF; null when this run's worker made none (B3). */
+  pdf?: { state: "READY"; artifact_id: string; size_bytes: number } | { state: string; reason?: string | null } | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -863,6 +865,8 @@ export const research = {
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
   downloadReport: (studyId: string, runId: string) =>
     requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/download`),
+  downloadReportPdf: (studyId: string, runId: string) =>
+    requestBlob(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run (internal only; recorded in the ledger). */
   approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
     request<{ run_id: string; artifact_id: string; review_state: "APPROVED_INTERNAL"; internal_only: true }>(

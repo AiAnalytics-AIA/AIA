@@ -91,6 +91,18 @@ CMD ["uvicorn", "aia_api.main:app", "--host", "0.0.0.0", "--port", "8000", \
 # ----------------------------------------------------------------- worker ---
 FROM runtime AS worker
 
+# The report's PDF (complete-study-report B3) is headless LibreOffice Writer. It adds
+# about 300 MB to the image, so it is installed only when the build asks for it;
+# AIA_REPORT_PDF_ENABLED=true on a worker without it stops the worker at start.
+ARG AIA_WORKER_PDF=false
+USER root
+RUN if [ "$AIA_WORKER_PDF" = "true" ]; then \
+      apt-get update \
+      && apt-get install -y --no-install-recommends libreoffice-writer-nogui \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+USER aia
+
 # No inbound port. The worker polls PostgreSQL; a first SIGTERM releases the
 # executing step and exits 0, a second exits at once (aia_worker.__main__).
 STOPSIGNAL SIGTERM

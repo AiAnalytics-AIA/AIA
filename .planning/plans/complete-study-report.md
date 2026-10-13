@@ -6,7 +6,7 @@ chunks:
   - "[x] B1c. Method and respondents: who answered (fictional roster / AI respondents from population <version>), the persona source, the population binding the run recorded, the sample, the respondent system's identity -- from the run's records, never stated where unknown"
   - "[x] B1d. The report with Deep Research stored as an artifact (research_internal_docx with the bundle pinned) and a review_state, instead of rendered on every download"
   - "[x] B2. Approve a report: a researcher-only route over ArtifactRepository.approve, recorded in the approval ledger, and the button on Výsledky"
-  - "[ ] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
+  - "[x] B3. PDF beside the DOCX: headless LibreOffice in the worker image, one artifact per report; time and size measured"
   - "[ ] B4. Sociomap methodology register (OI-17) replacing D6_OPEN: status per (methodology version, spec fingerprint); the owner's 2026-10-13 decision its first row (aia-sociomap-3); compose_map_sections takes the register's status"
   - "[ ] B5. Client report composer: client_report recipe over a CLIENT_FACING ledger admitting MODELLED_AI_PANEL under the owner's 2026-10-13 decision, every modelled number labelled"
   - "[ ] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
@@ -111,6 +111,25 @@ number labelled (B5); stages before backend (done in PR #382).
   "approves the stored draft for internal use…". The report with literature has no
   button yet: the web reads its artifact id from `X-AIA-Artifact-Id` once #382's
   CompleteReport lands (it is not on develop).
+- B3: `infrastructure/report_pdf.py` `LibreOfficePdf` (headless soffice, a private profile
+  per conversion, timeout, `%PDF` checked) behind `AIA_REPORT_PDF_ENABLED` (off when unset;
+  on without soffice stops the worker). The report step renders the DOCX it stored and
+  stores `research_internal_pdf` beside it (`rendering_of` the DOCX, depending on it,
+  fingerprinted by the DOCX's SHA-256 and the converter's version); a conversion that fails
+  is said in the step's output (`pdf: {state: FAILED, reason: pdf_conversion_failed}`)
+  and fails nothing. The report status carries `pdf` (READY / FAILED / INVALID / null) and
+  `GET …/report/pdf/download` serves it only as that run's DOCX's rendering. Výsledky gains
+  "Stáhnout PDF". The worker image installs LibreOffice only with the build arg
+  `AIA_WORKER_PDF=true` (default false). Measured: 1.7-2.0 s per conversion of a 1.5 MB
+  report (LibreOffice 24.2.7, cold profile), PDFs 250-360 kB; the image cost is estimated
+  from the host install (/usr/lib/libreoffice 313 MB), not measured -- the sandbox's
+  Docker build could not reach Debian's mirror. Tests: test_report_pdf.py (a stand-in
+  soffice), the three PDF tests in test_analysis_executor.py, the two in
+  test_research_api.py, ExecutionSteps "offers the report's PDF…".
+- Operator call (open): turning PDFs on for develop needs `AIA_WORKER_PDF=true` in the
+  worker image build (.github/workflows/deploy-develop.yml) and
+  `AIA_REPORT_PDF_ENABLED=true` in the worker's environment; ~300 MB per worker image on
+  a host that already prunes images for disk.
 
 ## Findings
 
@@ -149,4 +168,10 @@ number labelled (B5); stages before backend (done in PR #382).
   run's stored report (internal or with literature) through ArtifactRepository.approve,
   once`; routers/ research: "POST …/report/approve, a stored report approved for
   internal use (ADR 0019 self-approval policy)".
+- CLAUDE.md § 2 map, infrastructure/: `report_pdf.py  LibreOfficePdf: a stored DOCX rendered as
+  PDF (headless soffice, private profile, timeout); AIA_REPORT_PDF_ENABLED (off by default)`;
+  executors/report.py's line gains "and, with AIA_REPORT_PDF_ENABLED, its PDF rendering
+  (research_internal_pdf)"; deploy/docker: "worker build arg AIA_WORKER_PDF installs
+  LibreOffice Writer".
+- CLAUDE.md § 3 commands or deploy/develop README: how to turn PDFs on (both switches).
 - open-items.md: F1 to be numbered there.

@@ -40,6 +40,8 @@ from aia_core.domain.report.model import (
 from aia_core.domain.report.validation import require_valid
 
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
+# The stored DOCX rendered as PDF beside it (complete-study-report B3).
+INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )

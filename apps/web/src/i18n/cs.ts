@@ -2016,6 +2016,8 @@ export const cs = {
         reportProvenance: "Artefakt {id} · SHA256 {sha} · běh {run}",
         reportDownload: "Stáhnout interní DOCX",
         reportDownloading: "Stahuji…",
+        reportDownloadPdf: "Stáhnout PDF",
+        reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
         reportApproving: "Schvaluji…",
         reportApproveHint: "Schválením potvrzujete, že jste zprávu přečetli. Klientovi tím neodchází.",
