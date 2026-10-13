@@ -131,6 +131,7 @@ function StageChrome({ frame, step, status, help, children }: { frame: StudyFram
       status={status}
       action={help}
       alignActionStart
+      compact
       aside={<ResearchRail stepHref={frame.stepHref} current={step} studyName={frame.studyName} />}
     >
       {frame.notice ? (

@@ -173,6 +173,7 @@ export function AppShell({
   client,
   back,
   aside,
+  compact = false,
   children,
 }: {
   crumbs?: Crumb[];
@@ -194,6 +195,12 @@ export function AppShell({
   back?: { href: string; label: string };
   /** The rail of the open study: its stages. Never global navigation. */
   aside?: ReactNode;
+  /**
+   * A working surface (a study's stage): the header is one row -- where you are,
+   * the save state, the utility action -- and the title opens the work below it,
+   * so the first field is on screen without scrolling (desktop UX overhaul).
+   */
+  compact?: boolean;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -205,6 +212,18 @@ export function AppShell({
       <Sidebar path={path} client={client} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {compact ? (
+          <header data-compact-header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+            <div aria-hidden="true" className={`-mx-4 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
+            <div className="flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-1 py-1.5">
+              <div className="min-w-0 flex-1"><Breadcrumbs crumbs={crumbs} /></div>
+              <div className="flex flex-wrap items-center gap-3">
+                {status}
+                {action}
+              </div>
+            </div>
+          </header>
+        ) : (
         <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
           <div aria-hidden="true" className={`-mx-4 mb-2 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
@@ -257,12 +276,21 @@ export function AppShell({
             ) : null}
           </div>
         </header>
+        )}
         <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           {aside ? (
             <aside className="shrink-0 border-b border-border bg-surface-raised xl:w-56 xl:border-b-0 xl:border-r">{aside}</aside>
           ) : null}
           <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 pb-8 pt-4 lg:px-6 xl:px-8">
-            <div className="mx-auto max-w-[88rem]">{children}</div>
+            <div className="mx-auto max-w-[88rem]">
+              {compact ? (
+                <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                  <h1 className="text-xl font-semibold leading-7 tracking-[-0.01em]">{title}</h1>
+                  {sub ? <p className="text-sm leading-5 text-ink-muted">{sub}</p> : null}
+                </div>
+              ) : null}
+              {children}
+            </div>
           </main>
         </div>
       </div>

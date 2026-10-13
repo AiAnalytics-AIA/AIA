@@ -64,7 +64,10 @@ describe("ResearchScreen", () => {
     expect(await screen.findByText(t("research.notInAia"))).toBeTruthy();
     expect(screen.queryByRole("link", { name: /klasick/i })).toBeNull();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("8. Ověření & kontext");
-    expect(screen.getByText(t("aia.kind.RESEARCH"))).toBeTruthy(); // not a rail step: no step counter
+    // The compact stage header is one row: where you are and the save state; the title opens the work.
+    const header = document.querySelector("[data-compact-header]")!;
+    expect(header.querySelector("h1")).toBeNull();
+    expect(within(header as HTMLElement).getByRole("navigation", { name: "Kde jste" })).toBeTruthy();
     const rail = screen.getByRole("navigation", { name: "Fáze výzkumu" });
     const steps = within(rail).getAllByRole("link");
     expect(steps.map((a) => a.getAttribute("href"))).toEqual(
@@ -160,7 +163,8 @@ describe("ResearchScreen", () => {
     const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.textContent);
     expect(global).toEqual(["AI AnalyticsResearch Studio", "Změnit klienta ›", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
     expect(screen.getByText("Klient A", { selector: "nav span" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Zpět na klienta/ }).getAttribute("href")).toBe("/app/clients/CLI-1");
+    // The way back to the client is its breadcrumb; the header repeats it nowhere else.
+    expect(screen.queryByRole("link", { name: /Zpět na klienta/ })).toBeNull();
   });
 
   it("saves a new study's first change as revision one, and the next one from it", async () => {

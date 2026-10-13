@@ -19,7 +19,7 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
  * `done` marks a section already answered.
  */
 export function StepSection({
-  id, n, title, hint, optional = false, done = false, lead = false, aside, children,
+  id, n, title, hint, optional = false, done = false, lead = false, plain = false, aside, children,
 }: {
   id?: string;
   n: number;
@@ -29,6 +29,8 @@ export function StepSection({
   done?: boolean;
   /** The step's lead question: a larger title. */
   lead?: boolean;
+  /** A section of a page that is already one surface: no card of its own. */
+  plain?: boolean;
   /** Something at the right of the header (a count, an action). */
   aside?: ReactNode;
   children?: ReactNode;
@@ -36,7 +38,7 @@ export function StepSection({
   const headingId = useId();
   const mark = done ? "bg-status-done/14 text-status-done" : optional ? "bg-surface-sunken text-ink-muted" : "bg-signal-wash text-signal";
   return (
-    <section id={id} aria-labelledby={headingId} className="scroll-mt-60 rounded-card border border-border bg-surface-raised p-5">
+    <section id={id} aria-labelledby={headingId} className={plain ? "scroll-mt-20 py-5" : "scroll-mt-20 rounded-card border border-border bg-surface-raised p-5"}>
       <div className="flex flex-wrap items-start gap-3">
         <span aria-hidden="true" className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs font-semibold ${mark}`}>
           {done ? <Icon name="done" size={12} /> : n}
