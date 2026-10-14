@@ -38,6 +38,7 @@ import {
   isModelled,
   isSynthetic,
   parkedForRuntime,
+  reportHolds,
   resultOriginKind,
   stepOriginKind,
   type OriginKind,
@@ -961,7 +962,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
   const report = run?.steps.some((step) => step.kind === "research_report")
-    ? <InternalReport key={run.run_id} run={run} />
+    ? <InternalReport key={run.run_id} run={run} progressHref={progressHref} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
@@ -1022,7 +1023,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     ]} />;
 }
 
-function InternalReport({ run }: { run: ResearchRun }) {
+function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
   const frame = useFrame();
   const step = stepOf(run, "report");
   // What the last read answered, and for which state of the report step: a read for an
@@ -1079,7 +1080,36 @@ function InternalReport({ run }: { run: ResearchRun }) {
             : t("research.exec.results.reportWaiting")}
         </p>
       ) : null}
+      {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
+  );
+}
+
+/** Which module or step keeps the report from being ready, and why, with the way to Progress. */
+function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
+  const holds = reportHolds(run);
+  if (!holds.length && !progressHref) return null;
+  return (
+    <div className="mt-2 text-sm">
+      {holds.length ? (
+        <>
+          <p className="font-medium">{t("research.exec.results.reportHeldBy")}</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {holds.map(({ step, detail }) => (
+              <li key={step.node_key} data-hold={step.node_key} data-status={step.status}>
+                <span className="font-medium">{stepLabel(step.node_key)}</span>
+                {" · "}
+                {stepStatusLabel(step)}
+                {detail ? <span className="text-ink-muted">{`: ${detail}`}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {progressHref ? (
+        <a className="mt-2 inline-block underline" href={progressHref}>{t("research.exec.results.reportSeeProgress")}</a>
+      ) : null}
+    </div>
   );
 }
 
