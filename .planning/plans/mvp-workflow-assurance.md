@@ -10,7 +10,7 @@ chunks:
   - "[x] A3a. Classify the candidate areas by traced consumers, at develop cd6da1e1"
   - "[x] A3b. Delete the root Fastify stub and its root npm package (no consumer)"
   - "[x] A3c. Remove the unconnected small surfaces the owner confirmed; test the kept snapshot route"
-  - "[ ] A3d. Decide the Sociomap body's duplicated side tables, then measure and simplify (queue item 3)"
+  - "[x] A3d. Decide the Sociomap body's duplicated side tables, then measure and simplify (queue item 3)"
   - "[x] A3e. One reader of a stored contract-3 map for the report and its figures (queue item 4)"
   - "[ ] A4. Run the complete four-area recorded acceptance on a release candidate"
   - "[ ] A5. Verify bounded deployed acceptance and record the release decision"
@@ -526,6 +526,39 @@ name (the report then refused it; the work was wasted, nothing wrong was printed
 holds the shared rule, and fails when the key check is removed (checked by mutation);
 `test_read_object_maps_reads_in_stored_order_and_refuses_another_contract` holds the reader.
 The web's reader (`apps/web/src/lib/object-map-view.ts`) is TypeScript and stays separate.
+
+**A3d (owner, 2026-10-14: "go ahead", after the measurement below).** Decision: the body keeps
+no second copy of what each pinned contract-3 map holds. Its `relation_rescaled`,
+`object_scores` and `connectedness_100` are gone; `relation` (the contract-2 matrix and pairs)
+and the `side_tables` record stay. Traced consumers: none outside the body's own tests -- the
+web, the API, `report.py`, `report_maps.py`, `object_map_figure.py`, Metodika's compare, the
+analysis modules and Interpretation Research all read the maps. `battery_sociomap`
+(`packages/aia_core/src/aia_core/domain/research_sociomap.py:441-541`, this PR) now computes the
+pairs and the maps only; `SOCIOMAP_VERSION` is `aia-research-sociomap-10` (`:134`), so a body
+stored under `9` is not reused as if it were `10` -- reuse of earlier Sociomaps is re-keyed once,
+and a stored body is never rewritten. A run that pinned no object map (`LEGACY_METHODS`) loses
+the copies on recompute; nothing read them. The `-3` map uses Kish n, so the body's K100
+shortcut ("copy the map's") never fired and, with the K100 switch on, the body paid a second
+bootstrap.
+
+Measured before the change (fictional respondents, 4-core container, the methods a new run
+pins today; scratch bench, not committed):
+
+| respondents x objects | K100 switch | whole step | the side tables alone | their share of the body JSON |
+|---|---|---|---|---|
+| 150 x 5 | off | 0.46 s | 0.004 s (1 %) | 6 of 240 KiB (2 %) |
+| 150 x 5 | on | 1.7 s | 0.54 s (31 %) | 3 % |
+| 1,500 x 22 | off | 17.5 s | 0.5 s (3 %) | 85 of 498 KiB (17 %) |
+| 1,500 x 22 | on | 251 s | 94 s (38 %) | 18 % |
+
+Develop's Compose does not set `AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED`, so develop saves
+the off rows. The methodology is unchanged: the weights step's formula is the same, its pin
+(`domain/methodology/sociomap_reference.py`) moves only because `battery_sociomap`'s source
+moved. Tests: `test_research_sociomap.py::test_the_body_keeps_one_copy_of_what_each_map_holds`,
+`::test_with_the_switch_on_a_set_pays_one_bootstrap_per_pinned_map` (one bootstrap per pinned
+map, counted), `::test_with_the_switch_off_no_bootstrap_runs_and_each_map_says_so`; the F2/F8
+and K100 assertions moved onto the map (`sociomapping-evidence-register.json` names them);
+`test_research_sociomap_k100_copy.py` is deleted with the rule it tested.
 
 ## Findings
 
