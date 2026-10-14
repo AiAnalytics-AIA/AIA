@@ -37,6 +37,7 @@ from ..domain.knowledge import (
     new_knowledge_proposal_id,
     organizer_key,
     organizer_name,
+    source_ref,
 )
 from ..domain.scope import (
     ClientContext,
@@ -786,6 +787,9 @@ class ClientKnowledgeRepository:
             raise ValueError("a proposal needs a title")
         if item_id is None and base_revision is not None:
             raise ValueError("only a revision of an existing item has a base revision")
+        # The shape of a file's reference; that it is this client's source is the caller's
+        # check against the source store (C7a).
+        source_ref(kind, content)
         if item_id is not None:
             target = self._session.scalar(
                 select(ClientKnowledgeItemRow)
@@ -841,9 +845,14 @@ class ClientKnowledgeRepository:
         item_id: str | None = None,
         base_revision: int | None = None,
     ) -> KnowledgeProposal:
-        """A study offers a finding for reuse. Changes nothing until someone approves it."""
+        """A study offers a finding for reuse. Changes nothing until someone approves it.
+
+        A study does not attach a client's file: only a person on the client does (C7a).
+        """
         scope = _study(scope)
         scope.require(Permission.EDIT_STUDY)
+        if source_ref(kind, content or {}) is not None:
+            raise ValueError("a study's proposal does not attach a client's source")
         return self._add_proposal(
             organization_id=scope.organization_id,
             client_id=scope.client_id,

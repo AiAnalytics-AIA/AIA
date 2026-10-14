@@ -17,11 +17,13 @@ import {
   type Placement,
   workspace,
 } from "@/lib/api";
+import { sourceIdOf, takesFile, withSource } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, actedOn, atCap, filingFor, shown, staleEdit, toggled, toggledAll } from "@/lib/knowledge-library";
 import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
+import { SourceCard, SourcePicker } from "./SourceFile";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
@@ -292,21 +294,36 @@ function ItemPanel({
 }) {
   const [title, setTitle] = useState(item.title);
   const [summary, setSummary] = useState(item.summary);
+  // The item's file (C7a): the one it names, or one just picked to be named by the next revision.
+  const named = sourceIdOf(item.content);
+  const [picked, setPicked] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [history, retryHistory] = useResource(() => workspace.revisions(clientId, item.item_id), [clientId, item.item_id, item.revision]);
   const on = new Set(item.label_ids ?? []);
-  const changed = title.trim() !== item.title || summary !== item.summary;
+  const fileShown = picked ?? named;
+  const changed = title.trim() !== item.title || summary !== item.summary || (picked !== null && picked !== named);
+  // An edit keeps the item's content: it names the file shown, and keeps whatever else it held.
   const save = () =>
-    workspace.propose(clientId, { kind: item.kind, title: title.trim(), summary, item_id: item.item_id, base_revision: item.revision }).then(
-      (p) => {
-        setError(null);
-        // Where the client asked for independent review, an edit waits for someone else.
-        setNote(p.status === "PROPOSED" ? t("aia.library.editWaits") : null);
-        onChanged();
-      },
-      (e: unknown) => setError(said(e)),
-    );
+    workspace
+      .propose(clientId, {
+        kind: item.kind,
+        title: title.trim(),
+        summary,
+        content: picked ? withSource(item.content, picked) : (item.content ?? {}),
+        item_id: item.item_id,
+        base_revision: item.revision,
+      })
+      .then(
+        (p) => {
+          setPicked(null);
+          setError(null);
+          // Where the client asked for independent review, an edit waits for someone else.
+          setNote(p.status === "PROPOSED" ? t("aia.library.editWaits") : null);
+          onChanged();
+        },
+        (e: unknown) => setError(said(e)),
+      );
   return (
     <section aria-labelledby="kn-open" className={`${CARD} flex flex-col gap-4`}>
       <div className="flex items-start gap-3">
@@ -325,6 +342,18 @@ function ItemPanel({
           <Field label={t("aia.library.summary")}>
             <TextArea value={summary} onChange={(e) => setSummary(e.target.value)} />
           </Field>
+          {takesFile(item.kind) ? (
+            <div className="flex flex-col gap-2" role="group" aria-label={t("aia.sources.file")}>
+              <span className="text-xs font-medium text-ink-muted">{t("aia.sources.file")}</span>
+              {fileShown ? <SourceCard key={fileShown} clientId={clientId} sourceId={fileShown} /> : null}
+              <SourcePicker
+                clientId={clientId}
+                label={fileShown ? t("aia.sources.replace") : t("aia.sources.attach")}
+                onStored={(s) => setPicked(s.source_id)}
+              />
+              {picked !== null && picked !== named ? <p className="text-xs text-status-you-ink">{t("aia.sources.fileIsSaved")}</p> : null}
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
             <Button small variant="primary" disabled={!changed || !title.trim()} onClick={() => void save()}>
               {tv("aia.library.saveRevision", { n: item.revision + 1 })}
@@ -332,9 +361,12 @@ function ItemPanel({
             {note ? <span role="status" className="text-xs text-status-you-ink">{note}</span> : null}
           </div>
         </div>
-      ) : item.summary ? (
-        <p className="text-sm text-ink-muted">{item.summary}</p>
-      ) : null}
+      ) : (
+        <>
+          {item.summary ? <p className="text-sm text-ink-muted">{item.summary}</p> : null}
+          {named ? <SourceCard clientId={clientId} sourceId={named} /> : null}
+        </>
+      )}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
 
       <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2">

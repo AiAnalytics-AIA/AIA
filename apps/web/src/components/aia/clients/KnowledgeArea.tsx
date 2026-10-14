@@ -19,9 +19,11 @@ import {
   LABEL_COLOURS,
   type LabelColour,
   type Proposal,
+  type SourceAdded,
   workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { takesFile, titleFromFilename, withSource } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, staleEdit } from "@/lib/knowledge-library";
 import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
@@ -29,6 +31,7 @@ import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { ClientPage, useClient } from "./ClientContext";
 import { KnowledgeLibrary, said } from "./KnowledgeLibrary";
+import { SourceCard, SourcePicker } from "./SourceFile";
 
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
 const KINDS: (KnowledgeSection | "all")[] = ["all", "sources", "knowledge", "dimensions", "audiences", "data"];
@@ -80,6 +83,11 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       <div className={EYEBROW}>{t(`aia.knowledge.kinds.${p.kind}`)}</div>
                       <div className="mt-1 font-medium">{p.title}</div>
                       {p.summary ? <p className="mt-1 text-sm text-ink-muted">{p.summary}</p> : null}
+                      {p.source_id ? (
+                        <div className="mt-2">
+                          <SourceCard clientId={clientId} sourceId={p.source_id} compact />
+                        </div>
+                      ) : null}
                       <p className="mt-2 text-xs text-ink-faint">
                         {p.study_name ? tv("aia.knowledge.fromStudy", { name: p.study_name }) : t("aia.knowledge.fromClient")} · {relative(p.proposed_at)}
                       </p>
@@ -124,10 +132,14 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   const [kind, setKind] = useState<string>("FACT");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
+  // The file a Dokument, Zdroj or Datová sada carries: already the client's source (C7a).
+  const [source, setSource] = useState<SourceAdded | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const withFile = takesFile(kind);
   const submit = () => {
     if (!title.trim()) return;
-    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    const content = withFile && source ? withSource({}, source.source_id) : {};
+    workspace.propose(clientId, { kind, title: title.trim(), summary, content }).then((added) => onDone(added), (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   };
   return (
     <section className={`${CARD} mb-5`} aria-labelledby="kn-propose">
@@ -144,6 +156,21 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
           <TextInput value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
       </div>
+      {withFile ? (
+        <div className="mt-3 flex flex-col gap-2" role="group" aria-label={t("aia.sources.file")}>
+          <span className="text-xs font-medium text-ink-muted">{t("aia.sources.file")}</span>
+          {source ? <SourceCard clientId={clientId} sourceId={source.source_id} /> : null}
+          <SourcePicker
+            clientId={clientId}
+            label={source ? t("aia.sources.replace") : t("aia.sources.pick")}
+            onStored={(s) => {
+              setSource(s);
+              if (!title.trim()) setTitle(titleFromFilename(s.filename));
+            }}
+          />
+          <p className="text-xs leading-5 text-ink-faint">{t("aia.sources.notKnowledge")}</p>
+        </div>
+      ) : null}
       <Field label={t("aia.knowledge.proposeSummary")} className="mt-3">
         <TextArea value={summary} onChange={(e) => setSummary(e.target.value)} />
       </Field>

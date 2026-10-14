@@ -315,7 +315,71 @@ export type Proposal = {
   /** The item revision an edit was written from; null for a new item, or unknown. */
   base_revision: number | null;
   yours: boolean;
+  /** The client's source (a file) the proposed item names, client-workspace C7a. */
+  source_id?: string | null;
 };
+
+// ---- a client's sources (lifecycle K2a-K2c; the file a document item names, C7a) ----
+
+export type ReadingOutcome = "READ" | "PARTIAL" | "UNREADABLE" | "UNSUPPORTED" | "REFUSED";
+
+export type SourceOccurrence = { occurrence_id: string; filename: string; origin: string; added_by: string | null; added_at: string | null };
+
+/** A source as listed: what it is and what reading it produced. */
+export type ClientSource = {
+  source_id: string;
+  sha256: string;
+  size_bytes: number;
+  media_type: string;
+  family: "DOCUMENT" | "DATASET" | "IMAGE" | "VIDEO" | "UNKNOWN";
+  filename: string;
+  outcome: ReadingOutcome;
+  reason: string | null;
+  reader: string | null;
+  characters: number;
+  segments: number;
+  occurrences: SourceOccurrence[];
+  created_at: string | null;
+};
+
+export type SourceAdded = ClientSource & { created: boolean };
+
+export type SourceLocator = {
+  page?: number | null;
+  paragraph?: number | null;
+  slide?: number | null;
+  table?: number | null;
+  sheet?: string | null;
+  row?: number | null;
+  line?: number | null;
+};
+
+export type SourceColumn = {
+  index: number;
+  letter: string;
+  header: string | null;
+  kind: "NUMBER" | "DATE" | "TEXT" | "MIXED" | "EMPTY";
+  filled: number;
+  distinct: number;
+  distinct_capped: boolean;
+  /** Why the column is treated as personal data; its samples then come masked. */
+  personal: string | null;
+  sample: string[];
+};
+
+export type SourceReading = {
+  outcome: ReadingOutcome;
+  reader: string | null;
+  reason: string | null;
+  segments: { locator: SourceLocator; text: string }[];
+  notes: { code: string; at?: SourceLocator | null; count?: number | null }[];
+  dataset: {
+    sheets: { name: string | null; header_row: number | null; rows: number; columns: SourceColumn[]; truncated: boolean }[];
+    more_sheets: boolean;
+  } | null;
+};
+
+export type SourceDetail = ClientSource & { reading: SourceReading };
 
 export type KnowledgeSummary = {
   context_revision: number;
@@ -727,6 +791,13 @@ export const workspace = {
     body: { kind: string; title: string; summary?: string; item_id?: string; base_revision?: number; content?: Record<string, unknown> },
   ) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
+  /** Keep a file as the client's source: read at once; the same bytes again are the same source. */
+  addSource: (clientId: string, body: { filename: string; data_b64: string }) =>
+    request<SourceAdded>("POST", `/api/v1/clients/${enc(clientId)}/sources`, body),
+  source: (clientId: string, sourceId: string) =>
+    request<SourceDetail>("GET", `/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}`),
+  sourceOriginal: (clientId: string, sourceId: string) =>
+    requestBlob(`/api/v1/clients/${enc(clientId)}/sources/${enc(sourceId)}/original`),
   /** `reviewedRevision`: the item's current revision, read by the reviewer, to approve an edit of an older one over it. */
   decide: (clientId: string, proposalId: string, approve: boolean, note = "", reviewedRevision?: number) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {
