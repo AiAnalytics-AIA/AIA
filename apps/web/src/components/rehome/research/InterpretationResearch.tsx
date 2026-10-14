@@ -12,21 +12,28 @@ import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
 
 const message = (e: unknown) => e instanceof Error ? e.message : String(e);
+const coverageLabel = (status: string) => ({
+  GROUNDED: "Doložené podklady", PARTIAL: "Částečné pokrytí",
+  INSUFFICIENT: "Nedostatek podkladů", NO_EVIDENCE: "Bez ověřených zjištění",
+}[status] ?? "Pokrytí nelze určit");
 
 /** Research over the pinned result, with its own explicit report selection. */
 export function InterpretationResearch({ run }: { run: ResearchRun }) {
   const { frame, confirm } = useResearch();
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
-  const [bundle, setBundle] = useState<DeepResearchBundle | null>(null);
+  const [bundleFor, setBundleFor] = useState<{ runId: string; value: DeepResearchBundle } | null>(null);
+  const [analysisReady, setAnalysisReady] = useState<"loading" | "ready" | "incomplete" | "unavailable">("loading");
   const [preset, setPreset] = useState<"QUICK" | "STANDARD">("QUICK");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   // The stored draft the last download was, for its approval (complete-study-report B2/B1d).
-  const [stored, setStored] = useState<{ artifactId: string; approved: boolean } | null>(null);
+  const [stored, setStored] = useState<{ runId: string; artifactId: string; approved: boolean } | null>(null);
   const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED")?.artifact_id;
   const current = jobs.find(j => j.run_id === selected);
+  const bundle = bundleFor && current && bundleFor.runId === current.run_id ? bundleFor.value : null;
+  const currentStored = stored && current && stored.runId === current.run_id ? stored : null;
   const running = jobs.some(j => !j.is_terminal);
   const active = current ? deepResearchRunningStep(current.steps) : null;
   // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
@@ -51,15 +58,26 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
 
   useEffect(() => {
     let live = true;
-    setBundle(null);
+    setBundleFor(null);
     if (current?.status === "COMPLETED" && frame.canEdit) {
       deepResearch.bundle(frame.studyId, current.run_id).then(
-        value => { if (live) setBundle(value); },
+        value => { if (live) setBundleFor({ runId: current.run_id, value }); },
         (e: unknown) => { if (live) setError(message(e)); },
       );
     }
     return () => { live = false; };
   }, [frame.studyId, frame.canEdit, current?.run_id, current?.status]);
+
+  useEffect(() => {
+    if (!bundle) { setAnalysisReady("loading"); return; }
+    let live = true;
+    setAnalysisReady("loading");
+    research.analysis(frame.studyId, run.run_id).then(
+      value => { if (live) setAnalysisReady(value.complete === true ? "ready" : "incomplete"); },
+      () => { if (live) setAnalysisReady("unavailable"); },
+    );
+    return () => { live = false; };
+  }, [bundle, frame.studyId, run.run_id]);
 
   const start = async () => {
     if (!artifact || busy) return;
@@ -81,22 +99,22 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   };
 
   const download = async () => {
-    if (!current || !bundle || busy) return;
+    if (!current || !bundle || analysisReady !== "ready" || busy) return;
     setBusy(true); setError(null);
     try {
       const got = await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id);
       saveBlob(got.blob, `AIA-${frame.studyId}-with-research.docx`);
-      setStored(got.artifactId ? { artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
+      setStored(got.artifactId ? { runId: current.run_id, artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   };
 
   const approve = async () => {
-    if (!stored || busy) return;
+    if (!currentStored || busy) return;
     setBusy(true); setError(null);
     try {
-      await research.approveReport(frame.studyId, run.run_id, stored.artifactId);
-      setStored({ ...stored, approved: true });
+      await research.approveReport(frame.studyId, run.run_id, currentStored.artifactId);
+      setStored({ ...currentStored, approved: true });
     } catch (e) {
       setError(e instanceof ApiError && e.code === "separation_of_duties"
         ? "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil." : message(e));
@@ -122,9 +140,8 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   };
 
   return <section id="res-literature" aria-labelledby="literature-title" className="scroll-mt-60 rounded-md border border-border bg-surface-raised p-4">
-    <h2 id="literature-title" className="mb-2 text-lg font-semibold">Literární rešerše a externí kontext</h2>
-    <p className="mb-3 text-sm text-ink-muted">Deep Research vyhledá veřejné podklady k výzkumným otázkám tohoto běhu. Ověřená zjištění, dostupné benchmarky, zdroje a omezení lze zahrnout do AIA zprávy společně s výsledky a sociomapami. Rešerše čerpá rozpočet studie.</p>
-    <p className="mb-3 text-sm">Interní návrh. Externí literatura nemění odpovědi respondentů ani výpočty map. Cílená rešerše nemusí pokrýt veškerou akademickou literaturu.</p>
+    <h2 id="literature-title" className="mb-2 text-base font-semibold">Literární rešerše k výsledkům</h2>
+    <p className="mb-3 max-w-3xl text-sm leading-6 text-ink-muted">Rešerše hledá externí kontext k tomuto běhu. Do zprávy mohou vstoupit jen přijatá zjištění s kontrolovaným zdrojem; zachycená stránka sama o sobě není ověřený důkaz. Spuštění rešerše čerpá rozpočet studie a nemění odpovědi ani mapy.</p>
     <details className="mb-4 rounded-control border border-border p-3" open={!jobs.length}>
     <summary className="cursor-pointer text-sm font-semibold">{jobs.length ? "Spustit další rešerši · čerpá rozpočet studie" : "Přidat literární kontext k této zprávě"}</summary>
     <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -136,7 +153,7 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     </div>
     {!artifact ? <p className="text-sm text-ink-muted">Nejprve je potřeba dokončit analýzu výzkumných otázek.</p> : null}
     </details>
-    {jobs.length ? <Field label="Rešerše pro tuto zprávu"><Select value={selected ?? ""} onChange={e => { setSelected(e.target.value); setError(null); }}>
+    {jobs.length ? <Field label="Rešerše pro tuto zprávu"><Select value={selected ?? ""} onChange={e => { setSelected(e.target.value); setBundleFor(null); setError(null); }}>
       {jobs.map(j => <option key={j.run_id} value={j.run_id}>{j.title ?? "Literární rešerše"} · {j.preset === "QUICK" ? "Rychlá" : j.preset === "STANDARD" ? "Standardní" : j.preset} · {phaseLabel(j.phase)} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</option>)}
     </Select></Field> : <p className="text-sm text-ink-muted">K tomuto běhu zatím není připojena interpretační rešerše.</p>}
     {current ? <div className="mt-3">
@@ -152,16 +169,22 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       <div className="grid grid-cols-2 gap-3 rounded-control bg-surface-sunken p-3 sm:grid-cols-3">
         <div><p className="text-xs text-ink-muted">Přijatá zjištění</p><p className="text-xl font-semibold">{bundle.accepted.length}</p></div>
         <div><p className="text-xs text-ink-muted">Zachycené zdroje</p><p className="text-xl font-semibold">{bundle.snapshots.length}</p></div>
-        <div><p className="text-xs text-ink-muted">Pokrytí podklady</p><p className="text-sm font-semibold">{bundle.quality_status === "GROUNDED" ? "Doložené podklady" : bundle.quality_status === "PARTIAL" ? "Částečné pokrytí" : bundle.quality_status === "INSUFFICIENT" ? "Nedostatek podkladů" : bundle.quality_status}</p></div>
+        <div><p className="text-xs text-ink-muted">Pokrytí podklady</p><p className="text-sm font-semibold">{coverageLabel(bundle.quality_status)}</p></div>
       </div>
+      {bundle.accepted.length === 0 ? <p role="note" className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">Rešerše dokončila hledání, ale žádné externí tvrzení neprošlo ověřením. Zachycené zdroje si můžete prohlédnout níže; zpráva z nich nesmí vytvářet benchmark ani literární závěr.</p> : null}
       <div className="rounded-control border border-signal/30 bg-signal-wash p-4">
-        <p className="mb-2 text-sm font-semibold">AIA zpráva včetně vybrané rešerše</p>
-        <p className="mb-3 text-sm leading-6">Dokument v designu AIA obsahuje výsledky studie, sociomapy, přijaté externí podklady a bibliografii. Stažení používá uložené výsledky; nespouští další placený výzkum.</p>
+        <p className="mb-2 text-sm font-semibold">AIA zpráva s vybranou rešerší</p>
+        <p className="mb-3 text-sm leading-6">{bundle.accepted.length
+          ? "Zpráva spojí uložené výsledky a sociomapy s přijatými externími podklady a jejich zdroji. Stažení nespouští další placený výzkum."
+          : "Zpráva může uvést, že rešerše nepřinesla ověřené zjištění; nebude tvrdit, že obsahuje externě doložený benchmark. Stažení nespouští další placený výzkum."}</p>
+        {analysisReady === "incomplete" ? <p role="status" className="mb-3 text-sm font-medium">Analýza běhu není úplná. Zprávu lze stáhnout až po dokončení všech jejích částí.</p> : null}
+        {analysisReady === "unavailable" ? <p role="status" className="mb-3 text-sm font-medium">Připravenost analýzy se nepodařilo ověřit. Obnovte stránku a zkuste to znovu.</p> : null}
+        {analysisReady === "loading" ? <p role="status" className="mb-3 text-sm text-ink-muted">Ověřuji připravenost zprávy…</p> : null}
         <div className="flex flex-wrap gap-2">
-          <Button variant="primary" onClick={download} disabled={busy || !frame.canEdit}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
-          {stored && !stored.approved && frame.canEdit ? <Button onClick={approve} disabled={busy}>Schválit pro interní použití</Button> : null}
+          <Button variant="primary" onClick={download} disabled={busy || !frame.canEdit || analysisReady !== "ready"}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
+          {currentStored && !currentStored.approved && frame.canEdit ? <Button onClick={approve} disabled={busy}>Schválit pro interní použití</Button> : null}
         </div>
-        {stored ? <p className="mt-2 text-xs text-ink-muted">{stored.approved ? "Stažený dokument je schválen pro interní použití." : "Stažený dokument je koncept: schvalujete právě ten, který jste stáhli."}</p> : null}
+        {currentStored ? <p className="mt-2 text-xs text-ink-muted">{currentStored.approved ? "Stažený dokument je schválen pro interní použití." : "Stažený dokument je koncept: schvalujete právě ten, který jste stáhli."}</p> : null}
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>
@@ -173,7 +196,6 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
           {a.evidence.quote ? <details className="mt-2 text-xs"><summary className="cursor-pointer text-ink-muted">Citovaný podklad</summary><blockquote className="mt-2 border-l-2 border-border pl-3 leading-5 text-ink-muted">{a.evidence.quote}</blockquote></details> : null}
         </li>;
       })}</ol>
-      {bundle.accepted.length === 0 ? <p className="text-sm">Zatím nejsou ověřené podklady ani benchmarky. Zpráva uvede toto omezení.</p> : null}
       <details><summary className="cursor-pointer text-sm font-medium">Zachycené zdroje</summary>
         {bundle.snapshots.map(s => <p key={s.snapshot_id} className="mt-2 text-sm"><a href={s.url} target="_blank" rel="noreferrer" className="underline">{s.title || s.url}</a></p>)}
       </details>

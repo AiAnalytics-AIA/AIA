@@ -52,7 +52,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead }: {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><p className="text-xs font-semibold uppercase tracking-wide text-signal">Výsledky studie</p>
           <h2 className="mt-1 text-xl font-semibold">Od výsledků k souvislostem a zprávě</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">Projděte data, prozkoumejte mapy a doplňte externí podklady. Zprávu stáhnete v oddílu Rešerše a zpráva.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-muted">Projděte data, prozkoumejte mapy a ověřte, které části analýzy a externí podklady lze použít. Připravenost dokumentu zjistíte v oddílu Rešerše a zpráva.</p>
         </div>{progressHref ? <Link href={progressHref} className="rounded-control border border-border px-3 py-2 text-sm font-medium no-underline hover:bg-surface-sunken">Průběh tohoto běhu →</Link> : null}
       </div>
       <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 border-t border-border pt-3 text-sm">
