@@ -9,6 +9,7 @@ chunks:
   - "[x] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
   - "[x] C7a. A document's file: Dokument, Zdroj and Datová sada take a file, kept as the client's source; the open item shows what AIA read"
+  - "[ ] C7b. Intake sheet for files and text: Přidat podklady everywhere, drop anywhere, per-file reading, Datová sada or Dokument, folder and labels; links and AI extraction say V AIA zatím není"
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
   - "[ ] C8. Data area: datasets with column check, personal-data columns dropped, ownership and licence; use in a study says V AIA zatím není (needs lifecycle K2)"
   - "[ ] C9. Retire and restore an item from the library (needs lifecycle K6's contract)"
@@ -346,6 +347,36 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   client's file; K2d's proposals cite a source in provenance, not content).
 - **Not here:** the intake sheet (C7: many files, links, text, the paying study), AI
   proposals from the file (K2d), the Data area's column check (C8).
+
+### C7b. The intake sheet for files and text (2026-10-14)
+- **Why:** the owner, 2026-10-14: "use the design artifact to create a better UX". C7a put
+  one file on one item's form; the design's intake (artboard *Klient · Přidat podklady*, the
+  `Client` component's intake sheet) is one way in for many files.
+- **What it does, as drawn:**
+  - **Přidat podklady** in the client bar on every area, replacing *Přidat znalost*; files
+    dropped anywhere on the client page open the same sheet with them;
+  - a right-hand sheet: a drop zone with *Vybrat soubory*, *Vložit odkaz*, *Vložit text*;
+    *Složka pro všechny* and *Štítky pro všechny*; one row per file with its type badge,
+    name, size and reading state in words (stored and read, partly read and why, AI cannot
+    read an image, refused by name), *Odebrat*, and a per-file folder;
+  - a table (CSV, XLSX, XLS, ODS) asks *Uložit jako: Datová sada / Dokument*, defaulting to
+    Datová sada, with the design's note for each and the personal-data warning the reading
+    found; an image or video is kept as a *Zdroj*;
+  - pasted text is kept as a `.txt` source under the name given;
+  - the footer counts what will be added and *Přidat N podkladů* creates one item per file
+    (C7a's `content.source_id`), then files them in the chosen folders and labels in one
+    placement per folder; where self-approval is off the items wait in *Ke schválení* and
+    the sheet says that filing follows the approval;
+  - the text form on Znalosti is *Napsat znalost* (the design's name); a kind that takes a
+    file points to *Přidat podklady* instead of carrying its own picker.
+- **Said where met, not built:** *Vložit odkaz* (lifecycle K2e) and *Navrhnout znalosti z
+  textu* (K2d, the paying study) are drawn and disabled with *V AIA zatím není* (ADR 0018's
+  rule).
+- **Not here:** reading progress as a percentage (the API reads in one request; the row says
+  it is reading, never a number it does not have); per-file labels.
+- **Tests:** `lib/intake.ts` as pure functions (`intake.test.ts`); the sheet against a fake
+  API (`IntakeSheet.test.tsx`): drop, mixed batch, dataset or document, refusal, pasted text,
+  the items and placements sent, nothing sent for links or AI.
 
 ### C7. Intake sheet
 - **Depends on:** lifecycle K2's client-level source API.
