@@ -190,7 +190,8 @@ export type ResultTable = {
 };
 
 type Interval = { low: number; high: number } | null | undefined;
-type QuestionResult = Record<string, unknown> & {
+/** One question's (or one set object's) stored aggregate, as the aggregate step wrote it. */
+export type QuestionResult = Record<string, unknown> & {
   typ: string;
   support_status: SupportStatus;
   n_platnych: number;
