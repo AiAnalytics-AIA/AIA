@@ -82,7 +82,10 @@ apps/
                             knowledge counts (approved, proposed, rejected); the knowledge's
                             folders and labels (list, create, rename or recolour, delete), PUT
                             …/knowledge/placement, GET …/knowledge?folder=…|unfiled&label=…; the
-                            overview's stale_items, unfiled_items and recent_changes; GET/PUT
+                            overview's stale_items, unfiled_items and recent_changes; a SOURCE,
+                            DOCUMENT or DATASET item names its client's source as
+                            content.source_id (422 unknown_source for any other; a study's
+                            proposal names none), and a proposal answers its source_id; GET/PUT
                             /clients/{id}/profile (the profile, its contacts, its history),
                             POST /clients/{id}/contacts, PUT/DELETE …/contacts/{contact_id}),
                             client_sources (a client's sources, lifecycle K2: POST/GET
@@ -145,7 +148,9 @@ apps/
                             KnowledgeLibrary, its table, bulk bar and the open item with its
                             history; ClientOverview, Přehled opening on Čeká na vás; ProfileArea,
                             the details, contacts, brands and competitors as ENTITY knowledge, the
-                            self-approval rule and the history), ResearchStudy
+                            self-approval rule and the history; SourceFile: SourcePicker, one file
+                            kept as the client's source with its reading in words, and
+                            SourceCard, a named file, what was read and the original), ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
                             settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
@@ -230,6 +235,9 @@ apps/
     src/lib/knowledge-library.ts  How the client's library reads its views: the year rule
                             (YEAR_MS, the API's STALE_AFTER), the 200-item cap (RESULT_CAP), selection; study-table.ts
                             the studies table's filters and orders
+    src/lib/client-sources.ts  How a client's source reads on its knowledge: the kinds that take a
+                            file (FILE_KINDS), sourceIdOf / withSource, the reading and its
+                            locators in words (readingLine, locatorWords, reasonWords)
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
                             runLabels (a past run's data, report, reach: unknown never good),
                             designSummary (what a past design says, as the search reads it),
@@ -583,7 +591,9 @@ packages/aia_core/src/aia_core/
                             copy checked against the unit's own hashes, one-for-one validation, report
     knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015);
                             folders and labels (organization, not knowledge: no model sees them, no
-                            revision is written), STALE_AFTER (365 days), KnowledgeHealth
+                            revision is written), STALE_AFTER (365 days), KnowledgeHealth;
+                            source_ref: a file by reference (content.source_id, SOURCE /
+                            DOCUMENT / DATASET only)
     client_profile.py       A client's profile on its record (short code, industry, market,
                             description) and its contacts; neither is knowledge, no model reads them
     client_sources.py       A client's sources (lifecycle K2): family by suffix (the owner's format
