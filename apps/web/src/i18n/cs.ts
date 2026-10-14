@@ -1638,6 +1638,8 @@ export const cs = {
         AWAITING_GATE: "Čeká na rozhodnutí",
         AWAITING_BUDGET: "Čeká na rozpočet",
         RECOVERY_REQUIRED: "Potřebuje zásah",
+        // Not a workflow status: an analysis step that SUCCEEDED with a BLOCKED module.
+        ANALYSIS_BLOCKED: "Potřebuje opravu",
       },
       support: {
         REPORTABLE: "{donors} unikátních dárců, n = {n}.",
@@ -1723,6 +1725,14 @@ export const cs = {
       cancel: "Zrušit běh",
       cancelConfirm: "Opravdu zrušit tento běh? Hotové kroky zůstanou uložené.",
       retry: "Spustit znovu",
+      retryWhole: "Spustit celý běh znovu (znovu sebere data)",
+      analysisRetry: {
+        title: "Analýza potřebuje opravu",
+        body: "Sebraná data jsou v pořádku. {n} z 8 modulů analýzy model nedokázal sestavit tak, aby každé číslo mělo oporu v datech, a interní report proto nevznikne.",
+        modules: "Moduly k opravě: {list}.",
+        how: "Oprava je nový běh nad týmiž odpověďmi respondentů: znovu se nic nesbírá, hotové moduly se převezmou zdarma a model dostane jen moduly výše.",
+        action: "Zopakovat neúspěšné moduly",
+      },
       refresh: "Obnovit stav",
       retryOf: "Opakování běhu {run}",
       noResults: "Výsledky zatím nejsou.",

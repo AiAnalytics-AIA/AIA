@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { isSynthetic, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, waitingDetail } from "./research-execution";
+import { isSynthetic, mayRetryAnalysis, needsRepair, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -95,3 +95,27 @@ describe("populationNote (population-operations P3)", () => {
   });
 });
 
+
+
+describe("an analysis module a model could not complete", () => {
+  const module = (extra: Partial<ResearchStep>) =>
+    ({ node_key: "analysis_objects", kind: "research_analysis", status: "SUCCEEDED", analysis_outcome: "COMPLETED", ...extra }) as ResearchStep;
+
+  it("is not \"Hotovo\": its step succeeded, its module needs repair", () => {
+    const blocked = module({ analysis_outcome: "BLOCKED" });
+    expect(needsRepair(blocked)).toBe(true);
+    expect(stepStatusLabel(blocked)).toBe("Potřebuje opravu");
+    expect(stepTone(blocked)).toBe("fault");
+    expect(stepStatusLabel(module({}))).toBe("Hotovo");
+    expect(stepTone(module({}))).toBe("done");
+    expect(needsRepair(module({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
+  });
+
+  it("makes a finished run worth asking about a retry, and only a finished one", () => {
+    const blocked = module({ analysis_outcome: "BLOCKED" });
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [blocked] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: false, steps: [blocked] }))).toBe(false);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [module({ status: "FAILED", analysis_outcome: null })] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [module({})] }))).toBe(false);
+  });
+});

@@ -590,6 +590,8 @@ export type ResearchStep = {
   error_message: string | null;
   artifact_id: string | null;
   data_origin: string | null;
+  /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
+  analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
 };
 export type ResearchRun = {
   run_id: string;
@@ -627,6 +629,8 @@ export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
 export type ResearchAnalysis = {
   run_id: string;
   complete: boolean;
+  /** Modules a person may ask again over the run's frozen data (`research.retryAnalysis`). */
+  retryable_modules: string[];
   internal_only: true;
   synthetic: boolean;
   pending: Record<string, string>;
@@ -683,6 +687,13 @@ export const research = {
     request<ResearchRun>(
       "POST",
       `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
+      confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
+    ),
+  /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
+  retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
+    request<ResearchRun>(
+      "POST",
+      `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
   /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */

@@ -33,6 +33,7 @@ import {
   STEP_ORDER,
   ANALYSIS_ORDER,
   isSynthetic,
+  mayRetryAnalysis,
   parkedForRuntime,
   waitingDetail,
   phaseLabel,
@@ -595,12 +596,71 @@ function StepOrb({ run, step }: { run: ResearchRun; step: ResearchStep }) {
   return orb ? <ActivityOrb orb={orb} /> : null;
 }
 
+/**
+ * The modules of a finished run a person may ask again (`GET …/analysis`), or `null` while
+ * there is nothing to ask about. Read once per finished run, not on every poll.
+ */
+function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
+  const frame = useFrame();
+  const runId = run?.run_id ?? null;
+  const possible = !!run && mayRetryAnalysis(run);
+  const [modules, setModules] = useState<{ runId: string; list: string[] } | null>(null);
+  useEffect(() => {
+    if (!possible || !runId) return;
+    let live = true;
+    research
+      .analysis(frame.studyId, runId)
+      .then((a) => live && setModules({ runId, list: a.retryable_modules ?? [] }))
+      .catch(() => live && setModules({ runId, list: [] }));
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, runId, possible]);
+  return possible && modules && modules.runId === runId && modules.list.length ? modules.list : null;
+}
+
+/** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
+function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules: string[]; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+  const frame = useFrame();
+  return (
+    <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
+      <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: modules.length })}</p>
+      <p className="mt-1 text-sm">{tv("research.exec.analysisRetry.modules", { list: modules.map((m) => stepLabel(`analysis_${m}`)).join(", ") })}</p>
+      <p className="mt-1 text-xs text-ink-muted">{t("research.exec.analysisRetry.how")}</p>
+      {frame.canEdit ? (
+        <Button
+          className="mt-3"
+          variant="primary"
+          disabled={busy}
+          onClick={() =>
+            act(async () => {
+              try {
+                return await research.retryAnalysis(frame.studyId, run.run_id);
+              } catch (e) {
+                // The retry asks a model again, so the study's limit asks again over what it may cost.
+                const asked = confirmationAsked(e);
+                if (!asked) throw e;
+                const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+                if (!yes) return run;
+                return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+              }
+            })
+          }
+        >
+          {t("research.exec.analysisRetry.action")}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 export function ProgressStep() {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const retryable = useRetryableModules(run);
 
   const act = useCallback(
     async (fn: () => Promise<ResearchRun>) => {
@@ -622,6 +682,7 @@ export function ProgressStep() {
   if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
+  const repairable = retryable;
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       {isSynthetic(run) ? <SyntheticBanner /> : null}
@@ -646,6 +707,7 @@ export function ProgressStep() {
         ) : null}
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
+      {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {[...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s).map((s) => (
@@ -685,7 +747,7 @@ export function ProgressStep() {
         ) : null}
         {frame.canEdit && run.retryable ? (
           <Button
-            variant="primary"
+            variant={repairable ? undefined : "primary"}
             disabled={busy}
             onClick={() =>
               act(async () => {
@@ -702,7 +764,7 @@ export function ProgressStep() {
               })
             }
           >
-            {t("research.exec.retry")}
+            {repairable ? t("research.exec.retryWhole") : t("research.exec.retry")}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>

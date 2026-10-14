@@ -48,6 +48,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
+from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
@@ -183,6 +184,10 @@ class ResearchStepResponse(BaseModel):
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
+    #: An analysis step's stored outcome, ``COMPLETED`` or ``BLOCKED``; ``None`` for any
+    #: other step. A BLOCKED module's step SUCCEEDED (the outcome is stored), and this is
+    #: what tells it apart from a finished one.
+    analysis_outcome: str | None = None
 
 
 class ResearchRunPopulation(BaseModel):
@@ -456,7 +461,13 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         error_message=str(error.get("message")) if error.get("message") else None,
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
+        analysis_outcome=str(output["outcome"])
+        if s.get("kind") == ANALYSIS_STEP_KIND and output.get("outcome") in _ANALYSIS_OUTCOMES
+        else None,
     )
+
+
+_ANALYSIS_OUTCOMES: Final = frozenset({"COMPLETED", "BLOCKED"})
 
 
 def _run(
@@ -930,6 +941,7 @@ def run_analysis(
     return {
         "run_id": run_id,
         "complete": analysis.complete,
+        "retryable_modules": [module.value for module in analysis.retryable],
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
         "pending": {module.value: state for module, state in analysis.pending.items()},
