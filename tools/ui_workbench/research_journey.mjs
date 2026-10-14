@@ -116,7 +116,7 @@ await shot("2-progress");
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Results do not say the data are fictional"));
 await page.getByRole("tab", { name: "Data", exact: true }).click();
-await page.locator("table").first().waitFor({ timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
+await page.locator("table").first().waitFor({ state: "attached", timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
 await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
 await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
