@@ -20,6 +20,7 @@ import {
   type ResearchReport,
   type QuestionOutlook,
   type Readiness,
+  type ResearchTrace,
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
@@ -44,6 +45,7 @@ import {
   outlookFixStep,
   outlookReason,
   parkedForRuntime,
+  traceMeasures,
   reportHolds,
   resultOriginKind,
   stepOriginKind,
@@ -354,6 +356,54 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
   );
 }
 
+/** "Výzkumné otázky a jejich měření": each research question of the plan, the questions that
+ * measure it and what the run will make of them (plan run-recovery-and-truth 3b). */
+function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[] }) {
+  const { stepHref } = useResearch();
+  if (!trace.questions.length) return null;
+  return (
+    <Card title={t("research.exec.trace.title")} region>
+      <p className="text-[13px] text-ink-muted">{t("research.exec.trace.help")}</p>
+      <ol className="mt-3 flex flex-col gap-3">
+        {trace.questions.map((q, i) => {
+          const measures = traceMeasures(q, outlook);
+          return (
+            <li key={`${i}-${q.text}`} className="flex items-start gap-2 text-sm">
+              <Chip tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</Chip>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{q.text}</p>
+                {q.reasons.map((r) => (
+                  <p key={r} className="text-[13px] text-ink-muted">{t(`research.exec.trace.reason.${r}`)}</p>
+                ))}
+                {measures.length ? (
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {measures.map((m) => (
+                      <li key={m.key} className="flex items-start gap-2 text-[13px]">
+                        <Chip tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</Chip>
+                        <span className="min-w-0 flex-1">{m.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {q.verdict !== "ANSWERABLE" ? (
+                <Link href={stepHref("questionnaire")} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                  {t("research.exec.fix")}
+                </Link>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+      {trace.dangling.length ? (
+        <p className="mt-3 text-[13px] text-status-you-ink">
+          {tv("research.exec.trace.dangling", { list: [...new Set(trace.dangling.map((d) => d.research_question))].join("; ") })}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
 /** "Na co běh odpoví": every item a respondent will answer, worst first, as they read it, with
  * the reasons in words; what the run will answer folds away (plan run-recovery-and-truth 2b). */
 function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
@@ -542,6 +592,7 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} /> : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />

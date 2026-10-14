@@ -7,7 +7,7 @@ chunks:
   - "[x] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
   - "[x] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
   - "[x] 3a. Design: a question or tracked set names the research questions it measures; readiness traces each research question to its measures and flags one nothing measures"
-  - "[ ] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
+  - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
   - "[ ] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
   - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
@@ -267,6 +267,37 @@ Tests:
 - `packages/aia_core/tests/test_research_trace.py`
 - `test_readiness_traces_each_research_question_to_the_questions_that_measure_it` (API)
 
+## 3b — the link in Dotazník and the chain on the Run screen
+
+- **`src/research/trace.ts`**, pure:
+  - `researchQuestionsOf` reads research questions as the server's `research_questions_of`
+    does: the plan's research questions, else its objectives, else the goal; at most eight.
+  - `linksOf` and `danglingLinks` read an item's declaration.
+  - `toggleQuestionLink` and `toggleSectionLink` write it. An empty declaration is
+    removed, not written as `[]`.
+- **Dotazník:** every question card and tracked set shows "Odpovídá na výzkumné otázky",
+  a toggle per stated research question (`aria-pressed`). A link the plan no longer states
+  is shown in the warning tone, to remove. Saves use the reason `questionnaire_links`.
+- **Run screen:** a "Výzkumné otázky a jejich měření" card lists each research question
+  with:
+  - its verdict;
+  - its reasons in words;
+  - its measures by their wording, a tracked set listed once with its object count and
+    best verdict (`traceMeasures`);
+  - a fix link to Dotazník for any research question not answerable.
+  Dangling links are listed under it.
+- **Not done:** editing a research question's text in the plan does not carry its links
+  along. Matching by index breaks when questions are inserted or reordered, so the link
+  goes dangling where the person sees it.
+
+Tests:
+
+- `trace.test.ts`
+- `QuestionnaireStep.test.tsx` ("says which research question a question and a set
+  measure")
+- `research-execution.test.ts` ("a research question's measures in words")
+- `ExecutionSteps.test.tsx` ("traces each research question to its measures")
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -309,3 +340,8 @@ Tests:
   when empty".
 - 3a, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
   research_trace".
+- 3b, `CLAUDE.md` § map, web `src/research/`: "trace.ts: which research question each
+  questionnaire item measures (researchQuestionsOf, as the server reads them; the link
+  read and toggled)"; `QuestionnaireStep`: "Odpovídá na výzkumné otázky on every question
+  and tracked set"; `ExecutionSteps.tsx`: "the Run stage's 'Výzkumné otázky a jejich
+  měření' card"; `research-execution.ts`: "traceMeasures".

@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -249,5 +249,26 @@ describe("which questions a run will answer (run-recovery-and-truth 2b)", () => 
       expect(outlookReason(code)).not.toContain(code);
     }
     expect(outlookReason("new_rule")).toContain("new_rule");
+  });
+});
+
+describe("a research question's measures in words (run-recovery-and-truth 3b)", () => {
+  const item = (id: string, text: string, verdict: QuestionOutlook["verdict"], battery_id: string | null = null): QuestionOutlook => ({ question_id: id, text, section_id: battery_id ?? "s", battery_id, verdict, reasons: [] });
+  const outlook = [
+    item("q1", "Jak často pijete kávu?", "ANSWERABLE"),
+    item("set_obj_a", "Jak hodnotíte Káva?", "AT_RISK", "set"),
+    item("set_obj_b", "Jak hodnotíte Čaj?", "ANSWERABLE", "set"),
+  ];
+
+  it("names a question by its wording and a tracked set once, with its best verdict", () => {
+    const measures = traceMeasures({ text: "RQ", measures: ["q1", "set_obj_a", "set_obj_b"], verdict: "ANSWERABLE", reasons: [] }, outlook);
+    expect(measures.map((m) => [m.text, m.verdict])).toEqual([
+      ["Jak často pijete kávu?", "ANSWERABLE"],
+      ["Jak hodnotíte Káva? a další položky sady (2 celkem)", "ANSWERABLE"],
+    ]);
+  });
+
+  it("reads a measure the outlook does not list as unknown, never answerable", () => {
+    expect(traceMeasures({ text: "RQ", measures: ["gone"], verdict: "UNKNOWN", reasons: [] }, outlook)).toEqual([{ key: "gone", text: "gone", verdict: "UNKNOWN" }]);
   });
 });

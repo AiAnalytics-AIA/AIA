@@ -321,6 +321,29 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(card).getByText(tv("research.exec.outlook.answerable", { count: 1 }))).toBeTruthy();
   });
 
+  it("traces each research question to its measures, and says when nothing measures one", async () => {
+    const traced = {
+      ...OUTLOOK,
+      research_trace: {
+        linked: true,
+        dangling: [{ question_id: "q1", research_question: "Stará otázka?" }],
+        questions: [
+          { text: "Jak často lidé pijí kávu?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+          { text: "Co lidé snídají?", measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+        ],
+      },
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => traced });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.trace.title") });
+    const rows = within(card).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
+    expect(within(rows[0]).getByText("Jak často pijete kávu?")).toBeTruthy(); // its measure, by its wording
+    expect(within(rows[0]).queryByRole("link")).toBeNull();
+    expect(within(rows[1]).getByText(t("research.exec.trace.reason.unmeasured"))).toBeTruthy();
+    expect(within(rows[1]).getByRole("link", { name: t("research.exec.fix") })).toBeTruthy();
+    expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
+  });
+
   it("shows no card for a design with no items", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
