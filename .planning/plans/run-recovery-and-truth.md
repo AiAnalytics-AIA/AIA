@@ -5,7 +5,7 @@ chunks:
   - "[x] 1b. Analysis: retry failed modules over the run's frozen dataset and aggregate (no new fieldwork), as a new linked run"
   - "[x] 1c. Web: a blocked module is not \"Hotovo\"; the run offers \"Zopakovat neúspěšné moduly\"; no report download that can only fail"
   - "[x] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
-  - "[ ] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
+  - "[x] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
   - "[ ] 3. Proposal editor: research question -> measure -> comparison -> external source, unanswered questions flagged before a paid run"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
@@ -162,6 +162,59 @@ Tests:
   run's aggregate carries exactly the forecast's donors and status.
 - `test_readiness_forecasts_whether_a_runs_numbers_will_be_shown` (API)
 
+## 2b — which questions a run will answer
+
+2a gives one status for every question, because every question is asked of every
+respondent. A design can pass it and still pay for questions that come back empty, for
+reasons just as certain before launch:
+
+- the unit's fidelity rule refuses a question about absolute willingness to pay or market
+  size (`research_aggregate.evidence_rating`, mode `REFUSE`);
+- the analysis gate then removes every row of that question (`analysis/native.py`
+  `_fidelity_refusal`);
+- an open question's verbatims are never evidence.
+
+The Run screen named none of this.
+
+`domain/question_outlook.py` gives every item a respondent will answer (each question,
+and each object of each tracked set, worded as fieldwork asks it) one verdict, with every
+reason behind it:
+
+- **UNANSWERABLE**:
+  - `conditional` and `familiarity`: it cannot be asked;
+  - `fidelity_refused`;
+  - `support_suppressed`, from the 2a forecast.
+- **AT_RISK**: `open_ended`, or `support_indicative`.
+- **UNKNOWN**: `support_unknown`. This covers a panel run, and a source with no forecast
+  (the workbench's fixture). Unknown is never answerable.
+- **ANSWERABLE**: none of these reasons applies. This is still an upper bound.
+
+The worst verdict wins. The reasons are codes, and the screen words them
+(`research.exec.outlook.reason.*`).
+
+`ResearchRuns.outlook` returns the specification, the readiness and the outlook from one
+forecast; `readiness` reads it. `GET …/research/readiness` carries `question_outlook`.
+The outlook is kept out of `Readiness` on purpose: the preflight step stores `Readiness`
+in its artifact, and a new field would change every preflight artifact's bytes.
+
+The Run screen's card "Na co běh odpoví":
+
+- the counts per verdict;
+- every item the run will not fully answer, worst first, by its wording, with the reasons
+  in words and a fix link (the questionnaire for a question's own fault, Dimenze for
+  support);
+- what it will answer, folded away.
+
+Tests:
+
+- `packages/aia_core/tests/test_question_outlook.py`, including
+  `test_what_the_outlook_refuses_the_analysis_gate_then_removes`: over a real aggregate,
+  a refused question keeps no row in the evidence table and an open question keeps no
+  content row.
+- `test_readiness_lists_every_question_with_whether_the_run_will_answer_it` (API).
+- `research-execution.test.ts` ("which questions a run will answer").
+- `ExecutionSteps.test.tsx` ("Run: which questions the run will answer").
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -185,3 +238,12 @@ Tests:
   draw seed from the specification (moved from the executor)".
 - 2a, `CLAUDE.md` § map, `application/research.py`: "readiness(…, fieldwork_source=):
   with ai_runtime, the support forecast under the support rules a start would pin".
+- 2b, `CLAUDE.md` § map, domain (new line after `support_forecast.py`):
+  "question_outlook.py: before a run, every item a respondent will answer with one verdict
+  (ANSWERABLE / AT_RISK / UNKNOWN / UNANSWERABLE) and its reasons (conditional,
+  familiarity, fidelity_refused, open_ended, support_*), by the rules that decide after
+  the run; unknown never answerable".
+- 2b, `CLAUDE.md` § map, `application/research.py`: "outlook(): the specification,
+  readiness and question outlook from one forecast (RunOutlook); readiness reads it".
+- 2b, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
+  question_outlook"; web `ExecutionSteps.tsx`: "the Run stage's 'Na co běh odpoví' card".

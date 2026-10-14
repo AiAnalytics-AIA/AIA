@@ -18,6 +18,7 @@ import {
   type Artifact,
   type ResearchAnalysis,
   type ResearchReport,
+  type QuestionOutlook,
   type Readiness,
   type ResearchRun,
   type ResearchRunSummary,
@@ -38,6 +39,10 @@ import {
   isModelled,
   isSynthetic,
   mayRetryAnalysis,
+  outlookByVerdict,
+  outlookCounts,
+  outlookFixStep,
+  outlookReason,
   parkedForRuntime,
   reportHolds,
   resultOriginKind,
@@ -59,6 +64,7 @@ import {
   topBoxWidth,
   type AggregateDeviation,
   type ResultTable,
+  verdictTone,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -348,6 +354,57 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
   );
 }
 
+/** "Na co běh odpoví": every item a respondent will answer, worst first, as they read it, with
+ * the reasons in words; what the run will answer folds away (plan run-recovery-and-truth 2b). */
+function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
+  const { stepHref } = useResearch();
+  if (!items.length) return null;
+  const counts = outlookCounts(items);
+  const sorted = outlookByVerdict(items);
+  const flagged = sorted.filter((i) => i.verdict !== "ANSWERABLE");
+  const answerable = sorted.filter((i) => i.verdict === "ANSWERABLE");
+  const row = (item: QuestionOutlook) => {
+    const fix = outlookFixStep(item.reasons);
+    return (
+      <li key={item.question_id} className="flex items-start gap-2 text-sm">
+        <Chip tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</Chip>
+        <div className="min-w-0 flex-1">
+          <p>{item.text}</p>
+          {item.reasons.length ? (
+            <ul className="mt-0.5 text-[13px] text-ink-muted">
+              {item.reasons.map((r) => (
+                <li key={r}>{outlookReason(r)}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        {fix && item.verdict !== "ANSWERABLE" ? (
+          <Link href={stepHref(fix)} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+            {t("research.exec.fix")}
+          </Link>
+        ) : null}
+      </li>
+    );
+  };
+  return (
+    <Card title={t("research.exec.outlook.title")} region>
+      <p className="text-[13px] text-ink-muted">{t("research.exec.outlook.help")}</p>
+      <p className="mt-2 text-sm font-medium">{tv("research.exec.outlook.summary", counts)}</p>
+      {flagged.length ? (
+        <ul className="mt-3 flex flex-col gap-2" aria-label={t("research.exec.outlook.title")}>
+          {flagged.map(row)}
+        </ul>
+      ) : null}
+      {answerable.length ? (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm">{tv("research.exec.outlook.answerable", { count: answerable.length })}</summary>
+          <ul className="mt-2 flex flex-col gap-2">{answerable.map(row)}</ul>
+        </details>
+      ) : null}
+    </Card>
+  );
+}
+
 /** Failures first, then warnings: what stops the run is read before what passed. */
 const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 
@@ -485,6 +542,7 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}

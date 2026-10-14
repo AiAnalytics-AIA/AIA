@@ -911,6 +911,30 @@ def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     assert enough["status"] == "PASS"
 
 
+def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2b: each item, as the respondent reads it, with its
+    verdict and the reasons; the support forecast decides the verdict of every one."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def outlook(n: int) -> list[dict[str, Any]]:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        items: list[dict[str, Any]] = body["question_outlook"]
+        assert len(items) == body["questions"] + body["objects"]
+        return items
+
+    small = outlook(50)
+    assert {i["verdict"] for i in small} == {"UNANSWERABLE"}
+    assert all("support_suppressed" in i["reasons"] for i in small)
+    assert all(i["text"] for i in small)
+    enough = outlook(450)
+    assert "support_suppressed" not in {r for i in enough for r in i["reasons"]}
+    assert any(i["verdict"] == "ANSWERABLE" for i in enough)
+    assert any(i["battery_id"] is not None for i in enough)
+
+
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     app: FastAPI,
     researcher: TestClient,
