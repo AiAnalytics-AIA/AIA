@@ -21,6 +21,7 @@ from .catalogue import (
     Preset,
     StepGroup,
     Symbol,
+    feeds_of,
 )
 from .registry import MODULES, module
 from .resolution import (
@@ -57,6 +58,7 @@ __all__ = [
     "ValueOrigin",
     "ValueView",
     "describe",
+    "feeds_of",
     "leaf_paths",
     "module",
     "module_problems",

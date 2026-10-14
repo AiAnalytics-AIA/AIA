@@ -58,7 +58,7 @@ afterEach(() => {
 });
 
 describe("the Metodika tab", () => {
-  it("lists every module and opens the object map in force, in the audit's order", async () => {
+  it("lists every module and opens the object map in force, grouped by the stages of the computation", async () => {
     fakeApi();
     render(<MethodologyPanel />);
     // The area in force opens at once; choosing another is one click away.
@@ -74,10 +74,30 @@ describe("the Metodika tab", () => {
     expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Čísla ve výsledcích" })).toBeTruthy();
     expect(within(nav).getByRole("group", { name: "Respondenti a váhy" })).toBeTruthy();
-    await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
+    await screen.findByRole("heading", { name: "Vstupní hodnocení" });
     const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
-    expect(groups.slice(0, 4)).toEqual(["Metoda", "F1 Které položky jsou hodnocení", "F2 Hodnoticí zvyklosti", "F3 Vztah dvou objektů a jeho spolehlivost"]);
+    expect(groups.slice(0, 8)).toEqual(["Metoda", "Vstupní hodnocení", "Vztahy mezi objekty", "Rozložení na mapě", "Věrohodnost mapy", "Skóre a výška objektů", "Terén", "Respondenti a podpora mapy"]);
     expect(screen.getByRole("radio", { name: /aia-sociomap-3 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("says where each step sits: what it is for, what it reads, what reads it, and its audit point", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    const distance = await card("Cílová vzdálenost z korelace");
+    expect(within(distance).getByText("audit F6")).toBeTruthy();
+    const context = distance.querySelector("[data-step-context]") as HTMLElement;
+    const linked = (row: string) => [...context.querySelectorAll(`[data-context="${row}"] [data-context-link]`)].map((a) => a.getAttribute("data-context-link"));
+    expect(linked("from")).toEqual(["f3_correlation", "f3_status"]);
+    expect(linked("to")).toEqual(["f6_smacof", "f7_stress"]);
+    // The first step reads the answers themselves; the last ones hand their result to the reader.
+    const declared = await card("Hodnocení na společné škále 0-1");
+    expect(within(declared.querySelector("[data-context=from]") as HTMLElement).getByText(/odpovědi respondentů/)).toBeTruthy();
+    // A link opens the step it names, even in a stage that is closed.
+    const smacofHeading = document.getElementById("ms-f6_smacof")!;
+    smacofHeading.scrollIntoView = vi.fn();
+    fireEvent.click(context.querySelector('[data-context-link="f6_smacof"]')!);
+    expect(smacofHeading.scrollIntoView).toHaveBeenCalled();
+    expect((smacofHeading.closest("details") as HTMLDetailsElement).open).toBe(true);
   });
 
   it("shows each value with where it comes from, and draws the formula as MathML", async () => {
@@ -120,7 +140,7 @@ describe("the Metodika tab", () => {
   it("says where AIA does not compute a point yet", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    const f14 = (await screen.findByRole("heading", { name: "F14 Testy při porovnání oblastí" })).closest("section") as HTMLElement;
+    const f14 = (await screen.findByRole("heading", { name: "Zatím v AIA není: testy při porovnání oblastí (F14)" })).closest("section") as HTMLElement;
     expect(within(f14).getByText(/V AIA zatím není/)).toBeTruthy();
     expect(within(f14).getByText("Žádný krok: v AIA se zatím nepočítá.")).toBeTruthy();
   });

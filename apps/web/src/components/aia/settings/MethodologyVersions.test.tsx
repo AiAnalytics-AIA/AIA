@@ -386,6 +386,38 @@ describe("guided methodology editing", () => {
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
   });
 
+  it("shows each step's stage, audit point and place in the computation, and moves along it", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    const outline = form.querySelector("[data-methodology-outline]") as HTMLElement;
+    expect(within(outline).getByText("Vztahy mezi objekty")).toBeTruthy();
+    expect(within(outline.querySelector("[data-not-yet]") as HTMLElement).getByText("testy při porovnání oblastí (F14)")).toBeTruthy();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f6_distance"]')!);
+    const step = form.querySelector('[data-edit-step="f6_distance"]') as HTMLElement;
+    expect(step.querySelector("[data-step-stage]")!.textContent).toBe("Rozložení na mapě · audit F6");
+    fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
+    expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
+    expect(step.hidden).toBe(true);
+    // A step with nothing to edit is named, never a link that would empty the pane.
+    fireEvent.click(form.querySelector('[data-edit-step-link="f1_declared_scale"]')!);
+    const first = form.querySelector('[data-edit-step="f1_declared_scale"] [data-context="to"]') as HTMLElement;
+    expect(first.querySelector('[data-context-name="f11_not_placed"]')).not.toBeNull();
+    expect(first.querySelector('[data-context-link="f11_not_placed"]')).toBeNull();
+    expect(first.querySelector('[data-context-link="f2_person_minmax"]')).not.toBeNull();
+  });
+
+  it("says which part of a step's formula the expression replaces, and what stays code", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f3_effective_n"]')!);
+    const slot = form.querySelector('[data-edit-slot="f3.effective_n"]') as HTMLElement;
+    expect(within(slot).getByRole("textbox", { name: "Upravitelný výraz · Kishovo efektivní n" })).toBeTruthy();
+    const kept = slot.querySelector("[data-kept]") as HTMLElement;
+    expect(within(kept).getByText(/Výraz nahrazuje jen Kishovu větev/)).toBeTruthy();
+  });
+
   it("invalidates a previous successful check when the parameter changes", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />);
     await openEditor();
