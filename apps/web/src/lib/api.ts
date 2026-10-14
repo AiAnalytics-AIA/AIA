@@ -312,6 +312,8 @@ export type Proposal = {
   decided_at: string | null;
   decision_note: string;
   revision: number | null;
+  /** The item revision an edit was written from; null for a new item, or unknown. */
+  base_revision: number | null;
   yours: boolean;
 };
 
@@ -720,12 +722,17 @@ export const workspace = {
   proposals: (clientId: string, status?: Proposal["status"]) =>
     request<Proposal[]>("GET", `/api/v1/clients/${enc(clientId)}/knowledge/proposals${query({ status })}`),
   /** Add knowledge, or (with `item_id`) edit an item: a new revision, or a proposal where self-approval is off. */
-  propose: (clientId: string, body: { kind: string; title: string; summary?: string; item_id?: string; content?: Record<string, unknown> }) =>
+  propose: (
+    clientId: string,
+    body: { kind: string; title: string; summary?: string; item_id?: string; base_revision?: number; content?: Record<string, unknown> },
+  ) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals`, body),
-  decide: (clientId: string, proposalId: string, approve: boolean, note = "") =>
+  /** `reviewedRevision`: the item's current revision, read by the reviewer, to approve an edit of an older one over it. */
+  decide: (clientId: string, proposalId: string, approve: boolean, note = "", reviewedRevision?: number) =>
     request<Proposal>("POST", `/api/v1/clients/${enc(clientId)}/knowledge/proposals/${enc(proposalId)}/decision`, {
       approve,
       note,
+      ...(reviewedRevision === undefined ? {} : { reviewed_revision: reviewedRevision }),
     }),
   study: (studyId: string) => request<StudyWorkspace>("GET", `/api/v1/studies/${enc(studyId)}/workspace`),
   content: (studyId: string) => request<WorkingContent>("GET", `/api/v1/studies/${enc(studyId)}/workspace/content`),

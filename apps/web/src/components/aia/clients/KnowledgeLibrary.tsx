@@ -18,7 +18,7 @@ import {
   workspace,
 } from "@/lib/api";
 import { relative } from "@/lib/format";
-import { LABEL_DOT, type LibraryView, actedOn, atCap, filingFor, shown, toggled, toggledAll } from "@/lib/knowledge-library";
+import { LABEL_DOT, type LibraryView, actedOn, atCap, filingFor, shown, staleEdit, toggled, toggledAll } from "@/lib/knowledge-library";
 import { Button, Field, Select, Tag, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -28,6 +28,8 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 /** A refusal in words: the API's code where AIA has its own wording, else its message. */
 export function said(e: unknown): string {
   if (e instanceof ApiError && e.code === "name_taken") return t("aia.library.nameTaken");
+  const stale = staleEdit(e);
+  if (stale) return tv("aia.library.staleEdit", { current: stale.current });
   if (e instanceof ApiError && e.status === 404) return t("aia.library.goneMeanwhile");
   return e instanceof Error ? e.message : String(e);
 }
@@ -296,7 +298,7 @@ function ItemPanel({
   const on = new Set(item.label_ids ?? []);
   const changed = title.trim() !== item.title || summary !== item.summary;
   const save = () =>
-    workspace.propose(clientId, { kind: item.kind, title: title.trim(), summary, item_id: item.item_id }).then(
+    workspace.propose(clientId, { kind: item.kind, title: title.trim(), summary, item_id: item.item_id, base_revision: item.revision }).then(
       (p) => {
         setError(null);
         // Where the client asked for independent review, an edit waits for someone else.

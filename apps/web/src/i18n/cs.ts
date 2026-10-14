@@ -211,6 +211,11 @@ export const cs = {
       proposed: "Uloženo.",
       approve: "Schválit",
       reject: "Zamítnout",
+      staleDecision:
+        "Položka se od návrhu změnila: návrh vychází z revize {base}, nyní platí revize {current}. Schválením nahradíte revizi {current} tímto návrhem; přečtěte si ji v knihovně.",
+      staleDecisionUnknown:
+        "Položka se mohla od návrhu změnit: není známo, z které revize návrh vychází, nyní platí revize {current}. Přečtěte si ji v knihovně.",
+      approveOver: "Schválit místo revize {current}",
       fromStudy: "Ze studie {name}",
       fromClient: "Přidáno v pracovním prostoru klienta",
       yours: "Váš návrh",
@@ -278,6 +283,7 @@ export const cs = {
       summary: "Shrnutí",
       saveRevision: "Uložit jako revizi {n}",
       editWaits: "Úprava čeká na schválení někým jiným.",
+      staleEdit: "Položka se mezitím změnila (nyní revize {current}). Vaše úprava nebyla uložena; zavřete ji a otevřete znovu.",
       folder: "Složka",
       labels: "Štítky",
       history: "Historie revizí",

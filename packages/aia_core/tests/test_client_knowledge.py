@@ -20,6 +20,7 @@ from aia_core.domain.knowledge import (
     LabelColour,
     OrganizerNameTaken,
     ProposalStatus,
+    StaleKnowledgeProposal,
 )
 from aia_core.domain.scope import (
     ClientContext,
@@ -605,3 +606,120 @@ def test_recent_revisions_are_the_clients_latest_changes_newest_first(
     recent = knowledge.recent_revisions(lead, limit=2)
     assert [(r.title, r.revision) for r in recent] == [("První, opravený", 2), ("Druhý", 1)]
     assert knowledge.recent_revisions(client_scope(scoped, "other_lead", "other")) == []
+
+
+# ---------------------------------------------------------------- F-K1: stale revisions
+
+
+def _fact_corrected_after_a_study_proposed(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> tuple[str, str]:
+    """A FACT at revision 1, a study's edit of it, then a person's correction (revision 2)."""
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    assert first.item_id is not None
+    edit = knowledge.propose_from_study(
+        scoped.scope(user="researcher"),
+        kind=KnowledgeKind.FACT,
+        title="Dealers: 125",
+        item_id=first.item_id,
+    )
+    assert edit.base_revision == 1
+    knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 134", item_id=first.item_id)
+    return first.item_id, edit.proposal_id
+
+
+def test_an_edit_written_before_a_newer_correction_is_refused_and_changes_nothing(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """F-K1: approving the older edit used to replace the correction at revision 3."""
+    item_id, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    with pytest.raises(StaleKnowledgeProposal) as refused:
+        knowledge.decide(reviewer, proposal_id=proposal_id, approve=True)
+    assert (refused.value.item_id, refused.value.base_revision) == (item_id, 1)
+    assert refused.value.current_revision == 2
+    [item] = knowledge.items(reviewer)
+    assert (item.title, item.revision) == ("Dealers: 134", 2)
+    [pending] = knowledge.proposals(reviewer, status=ProposalStatus.PROPOSED)
+    assert pending.proposal_id == proposal_id
+    # Naming a revision that is not the current one is still stale.
+    with pytest.raises(StaleKnowledgeProposal):
+        knowledge.decide(reviewer, proposal_id=proposal_id, approve=True, reviewed_revision=1)
+    assert knowledge.summary(reviewer).context_revision == 2
+
+
+def test_a_reviewer_who_names_the_current_revision_accepts_the_edit_over_it(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    item_id, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    decided = knowledge.decide(reviewer, proposal_id=proposal_id, approve=True, reviewed_revision=2)
+    assert decided.status is ProposalStatus.APPROVED and decided.revision == 3
+    history = knowledge.revisions(reviewer, item_id=item_id)
+    assert [r.title for r in history] == ["Dealers: 120", "Dealers: 134", "Dealers: 125"]
+    assert history[-1].provenance["base_revision"] == 1
+    assert history[-1].provenance["accepted_over_revision"] == 2
+
+
+def test_a_stale_edit_can_still_be_rejected(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    _, proposal_id = _fact_corrected_after_a_study_proposed(scoped, knowledge)
+    reviewer = client_scope(scoped, "reviewer")
+    rejected = knowledge.decide(reviewer, proposal_id=proposal_id, approve=False, note="older")
+    assert rejected.status is ProposalStatus.REJECTED
+    [item] = knowledge.items(reviewer)
+    assert item.title == "Dealers: 134"
+
+
+def test_a_persons_edit_from_an_older_revision_is_refused_before_it_is_filed(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    assert first.item_id is not None
+    knowledge.add(
+        researcher,
+        kind=KnowledgeKind.FACT,
+        title="Dealers: 134",
+        item_id=first.item_id,
+        base_revision=1,
+    )
+    with pytest.raises(StaleKnowledgeProposal):
+        knowledge.add(
+            researcher,
+            kind=KnowledgeKind.FACT,
+            title="Dealers: 99",
+            item_id=first.item_id,
+            base_revision=1,
+        )
+    [item] = knowledge.items(researcher)
+    assert (item.title, item.revision) == ("Dealers: 134", 2)
+    assert knowledge.proposals(researcher, status=ProposalStatus.PROPOSED) == []
+    with pytest.raises(ValueError):
+        knowledge.add(researcher, kind=KnowledgeKind.FACT, title="New", base_revision=1)
+
+
+def test_an_edit_filed_before_its_base_was_recorded_is_treated_as_stale(
+    scoped: Any, knowledge: ClientKnowledgeRepository, session: Any
+) -> None:
+    """Unknown is never current: a pending edit from before the column waits for a reviewer."""
+    from aia_core.infrastructure.tables import ClientKnowledgeProposalRow
+
+    researcher = client_scope(scoped, "researcher")
+    first = knowledge.add(researcher, kind=KnowledgeKind.FACT, title="Dealers: 120")
+    edit = knowledge.propose(
+        researcher, kind=KnowledgeKind.FACT, title="Dealers: 125", item_id=first.item_id
+    )
+    row = session.get(ClientKnowledgeProposalRow, edit.proposal_id)
+    row.base_revision = None
+    session.flush()
+    reviewer = client_scope(scoped, "reviewer")
+    with pytest.raises(StaleKnowledgeProposal) as refused:
+        knowledge.decide(reviewer, proposal_id=edit.proposal_id, approve=True)
+    assert refused.value.base_revision is None
+    decided = knowledge.decide(
+        reviewer, proposal_id=edit.proposal_id, approve=True, reviewed_revision=1
+    )
+    assert decided.revision == 2

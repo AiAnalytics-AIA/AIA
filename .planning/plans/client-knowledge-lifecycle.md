@@ -10,6 +10,7 @@ chunks:
   - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
+  - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
   - "[ ] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
@@ -435,6 +436,33 @@ dimensions (K5) and retirement (K6).
 6. Test: disposable `test_a_pending_edit_can_replace_a_newer_accepted_correction` reproduces
    current behavior. Implementation must add an ordinary regression expecting refusal and a
    separate explicit rebase/accept case, with a PostgreSQL contention case where required.
+
+**Disposition (K3a, 2026-10-14).** Fixed as the smallest fix above, ahead of the rest of K3:
+- A revising proposal records `base_revision`, the item revision it was written from
+  (`client_knowledge_proposals.base_revision`, migration `d4f6a8c0e2b5`). An edit sent with an
+  older `base_revision` is refused before it is filed; without one it is written from the
+  revision current then.
+- An approval locks the item and compares (`_require_current_base`). A base that is not the
+  current revision raises `StaleKnowledgeProposal` and changes nothing; the API answers 409
+  `knowledge_proposal_stale` with `item_id`, `base_revision` and `current_revision`.
+- The explicit accept: a reviewer who names the current revision as `reviewed_revision` approves
+  the edit over it, and the new revision's provenance records `base_revision` and
+  `accepted_over_revision`. A rejection needs neither.
+- A pending edit filed before the column has a null base: unknown, so stale, never current.
+- The web: an item edit sends the revision it showed; a refused save says the item changed; the
+  pending card, on a refused approval, says which revision the edit came from and which is
+  current, and offers "Schválit místo revize N".
+- Tests: `test_an_edit_written_before_a_newer_correction_is_refused_and_changes_nothing`,
+  `test_a_reviewer_who_names_the_current_revision_accepts_the_edit_over_it`,
+  `test_a_stale_edit_can_still_be_rejected`,
+  `test_a_persons_edit_from_an_older_revision_is_refused_before_it_is_filed`,
+  `test_an_edit_filed_before_its_base_was_recorded_is_treated_as_stale` (core);
+  `test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current`
+  (API); `staleEdit` and two KnowledgeLibrary tests (web). On PostgreSQL the item row is locked
+  with `FOR UPDATE` across the check and the write; no separate contention test was added,
+  since the lock is the same one `_apply` already took.
+- Not done here: typed revisions, rebase with a merge view, and conflict notices to dependent
+  studies stay in K3 and K6.
 
 **F-K2 — Knowledge classification is being used as a dimension catalogue entry.**
 1. Claim: a title-only DIMENSION can be accepted and offered as a selectable client dimension.

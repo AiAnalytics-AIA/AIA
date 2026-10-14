@@ -161,7 +161,7 @@ describe("the knowledge library", () => {
     fireEvent.change(panel.getByRole("textbox", { name: "Název" }), { target: { value: "Hlavní konkurenti v retailu" } });
     fireEvent.click(save);
     await waitFor(() =>
-      expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "ENTITY", title: "Hlavní konkurenti v retailu", summary: "Dva hlavní.", item_id: "KNW-1" }),
+      expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "ENTITY", title: "Hlavní konkurenti v retailu", summary: "Dva hlavní.", item_id: "KNW-1", base_revision: 2 }),
     );
 
     fireEvent.change(panel.getByRole("combobox", { name: "Složka" }), { target: { value: "none" } });
@@ -178,6 +178,45 @@ describe("the knowledge library", () => {
     fireEvent.change(panel.getByRole("textbox", { name: "Shrnutí" }), { target: { value: "Tři hlavní." } });
     fireEvent.click(panel.getByRole("button", { name: "Uložit jako revizi 3" }));
     expect(await screen.findByText("Úprava čeká na schválení někým jiným.")).toBeTruthy();
+  });
+
+  it("says an edit was not saved when the item moved on since it was opened (F-K1)", async () => {
+    api({
+      "POST /api/v1/clients/CLI-a/knowledge/proposals": () =>
+        new Response(
+          JSON.stringify({ code: "knowledge_proposal_stale", message: "x", details: { item_id: "KNW-1", base_revision: 2, current_revision: 3 } }),
+          { status: 409 },
+        ),
+    });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: /Hlavní konkurenti/ }));
+    const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
+    fireEvent.change(panel.getByRole("textbox", { name: "Shrnutí" }), { target: { value: "Tři hlavní." } });
+    fireEvent.click(panel.getByRole("button", { name: "Uložit jako revizi 3" }));
+    expect(await screen.findByText(/Položka se mezitím změnila \(nyní revize 3\)/)).toBeTruthy();
+  });
+
+  it("asks before approving an edit of an older revision, and approves it over the current one only when asked (F-K1)", async () => {
+    const pending = { proposal_id: "KNP-5", origin: "STUDY", study_id: "STU-1", study_name: "Studie", item_id: "KNW-1", kind: "ENTITY", title: "Konkurenti: tři", summary: "", status: "PROPOSED", proposed_by: "USR-2", proposed_at: "2026-10-01T10:00:00Z", decided_by: null, decided_at: null, decision_note: "", revision: null, base_revision: 1, yours: false };
+    api({
+      "GET /api/v1/clients/CLI-a/knowledge/proposals": () => [pending],
+      "POST /api/v1/clients/CLI-a/knowledge/proposals/KNP-5/decision": (b) =>
+        (b as { reviewed_revision?: number }).reviewed_revision === 2
+          ? { ...pending, status: "APPROVED", revision: 3 }
+          : new Response(
+              JSON.stringify({ code: "knowledge_proposal_stale", message: "x", details: { item_id: "KNW-1", base_revision: 1, current_revision: 2 } }),
+              { status: 409 },
+            ),
+    });
+    window.history.replaceState(null, "", "/app/clients/CLI-a/knowledge?view=review");
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Schválit" }));
+    expect(await screen.findByText(/návrh vychází z revize 1, nyní platí revize 2/)).toBeTruthy();
+    const decisions = () => sent("POST", "/proposals/KNP-5/decision").map((c) => c.body);
+    expect(decisions()).toEqual([{ approve: true, note: "" }]);
+    fireEvent.click(screen.getByRole("button", { name: "Schválit místo revize 2" }));
+    await waitFor(() => expect(decisions()[1]).toEqual({ approve: true, note: "", reviewed_revision: 2 }));
+    window.history.replaceState(null, "", "/");
   });
 
   it("creates a folder, and says so in Czech when the name is taken", async () => {

@@ -368,6 +368,47 @@ def test_a_study_proposes_and_consumes_but_never_writes_client_knowledge(
     assert here.status_code == 200 and here.json()["client_id"] == world.client_id()
 
 
+def test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current(
+    researcher: TestClient, reviewer: TestClient, world: Any
+) -> None:
+    """F-K1: approving a study's older edit no longer replaces a newer correction."""
+    base = f"{API}/clients/{world.client_id()}/knowledge"
+    first = researcher.post(f"{base}/proposals", json={"kind": "FACT", "title": "Dealers: 120"})
+    item_id = first.json()["item_id"]
+    edit = researcher.post(
+        f"{API}/studies/{world.study_id()}/knowledge-proposals",
+        json={"kind": "FACT", "title": "Dealers: 125", "item_id": item_id},
+    ).json()
+    assert edit["base_revision"] == 1
+    corrected = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 134", "item_id": item_id, "base_revision": 1},
+    )
+    assert corrected.status_code == 201 and corrected.json()["revision"] == 2
+
+    # A person's save from the screen that still showed revision 1 is refused too.
+    again = researcher.post(
+        f"{base}/proposals",
+        json={"kind": "FACT", "title": "Dealers: 99", "item_id": item_id, "base_revision": 1},
+    )
+    assert again.status_code == 409
+    assert again.json()["code"] == "knowledge_proposal_stale"
+
+    decision = f"{base}/proposals/{edit['proposal_id']}/decision"
+    refused = reviewer.post(decision, json={"approve": True})
+    assert refused.status_code == 409, refused.text
+    error = refused.json()
+    assert error["code"] == "knowledge_proposal_stale"
+    assert error["details"] == {"item_id": item_id, "base_revision": 1, "current_revision": 2}
+    [item] = researcher.get(base, params={"section": "knowledge"}).json()
+    assert (item["title"], item["revision"]) == ("Dealers: 134", 2)
+
+    accepted = reviewer.post(decision, json={"approve": True, "reviewed_revision": 2})
+    assert accepted.status_code == 200 and accepted.json()["revision"] == 3
+    [item] = researcher.get(base, params={"section": "knowledge"}).json()
+    assert item["title"] == "Dealers: 125"
+
+
 def test_any_member_sees_the_whole_client_and_its_knowledge(
     outsider: TestClient, world: Any
 ) -> None:

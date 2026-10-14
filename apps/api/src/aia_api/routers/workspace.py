@@ -39,6 +39,7 @@ from aia_core.domain.knowledge import (
     LabelColour,
     OrganizerNameTaken,
     ProposalStatus,
+    StaleKnowledgeProposal,
 )
 from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
 from aia_core.domain.research_template import research_template
@@ -356,6 +357,8 @@ class ProposalResponse(BaseModel):
     decided_at: datetime | None = None
     decision_note: str = ""
     revision: int | None = None
+    #: The item revision an edit was written from (null for a new item, or unknown).
+    base_revision: int | None = None
     yours: bool = False
 
 
@@ -560,6 +563,8 @@ class ProposalCreate(BaseModel):
     summary: str = Field(default="", max_length=10_000)
     content: dict[str, Any] = Field(default_factory=dict)
     item_id: str | None = Field(default=None, max_length=64)
+    #: The item revision this edit was made from; an edit of an older one is refused (409).
+    base_revision: int | None = Field(default=None, ge=1)
 
 
 class DecisionRequest(BaseModel):
@@ -569,6 +574,9 @@ class DecisionRequest(BaseModel):
 
     approve: bool
     note: str = Field(default="", max_length=2_000)
+    #: The item's current revision, which the reviewer read: approves an edit written from
+    #: an older one over it. Without it such an approval is refused (409).
+    reviewed_revision: int | None = Field(default=None, ge=1)
 
 
 class StudyContextResponse(BaseModel):
@@ -671,7 +679,24 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         decided_at=p.decided_at,
         decision_note=p.decision_note,
         revision=p.revision,
+        base_revision=p.base_revision,
         yours=p.proposed_by == actor,
+    )
+
+
+def _stale(exc: StaleKnowledgeProposal) -> HTTPException:
+    """409: the item moved on since the edit was written; nothing was changed."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "code": "knowledge_proposal_stale",
+            "message": "The item has a newer revision than the one this edit was written from.",
+            "details": {
+                "item_id": exc.item_id,
+                "base_revision": exc.base_revision,
+                "current_revision": exc.current_revision,
+            },
+        },
     )
 
 
@@ -1654,7 +1679,10 @@ def propose_knowledge(
             summary=body.summary,
             content=body.content,
             item_id=body.item_id,
+            base_revision=body.base_revision,
         )
+    except StaleKnowledgeProposal as exc:
+        raise _stale(exc) from exc
     except ScopeDenied as exc:
         if exc.reason == "unknown_item":
             raise _not_found() from exc
@@ -1685,8 +1713,14 @@ def decide_knowledge(
     scope = _knowledge_scope(principal, resolver, client_id)
     try:
         proposal = ClientKnowledgeRepository(session).decide(
-            scope, proposal_id=proposal_id, approve=body.approve, note=body.note
+            scope,
+            proposal_id=proposal_id,
+            approve=body.approve,
+            note=body.note,
+            reviewed_revision=body.reviewed_revision,
         )
+    except StaleKnowledgeProposal as exc:
+        raise _stale(exc) from exc
     except SeparationOfDutiesViolation as exc:
         raise _forbidden(
             exc.reason, "Someone other than the proposer must decide this update."
@@ -2042,7 +2076,10 @@ def propose_from_study(
             summary=body.summary,
             content=body.content,
             item_id=body.item_id,
+            base_revision=body.base_revision,
         )
+    except StaleKnowledgeProposal as exc:
+        raise _stale(exc) from exc
     except ScopeDenied as exc:
         if exc.reason == "unknown_item":
             raise _not_found() from exc

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { actedOn, atCap, filingFor, folderOf, folderView, olderThanAYear, shown, toggled, toggledAll } from "./knowledge-library";
+import { ApiError } from "@/lib/api";
+
+import { actedOn, atCap, filingFor, folderOf, folderView, olderThanAYear, shown, staleEdit, toggled, toggledAll } from "./knowledge-library";
 
 const NOW = Date.parse("2026-10-13T12:00:00Z");
 
@@ -53,5 +55,18 @@ describe("the selection the bulk bar acts on", () => {
 
   it("acts only on ticked items that are still shown, so nothing hidden moves unseen", () => {
     expect(actedOn(new Set(["a", "hidden"]), ["a", "b"])).toEqual(["a"]);
+  });
+});
+
+describe("an edit refused because the item moved on (F-K1)", () => {
+  it("reads the base and current revisions from the API's refusal and nothing else", () => {
+    const stale = new ApiError(409, "knowledge_proposal_stale", "x", null, { item_id: "KNW-1", base_revision: 1, current_revision: 2 });
+    expect(staleEdit(stale)).toEqual({ base: 1, current: 2 });
+    // A base filed before it was recorded stays unknown, never assumed current.
+    const unknown = new ApiError(409, "knowledge_proposal_stale", "x", null, { base_revision: null, current_revision: 4 });
+    expect(staleEdit(unknown)).toEqual({ base: null, current: 4 });
+    expect(staleEdit(new ApiError(409, "already_decided", "x", null))).toBeNull();
+    expect(staleEdit(new ApiError(409, "knowledge_proposal_stale", "x", null, {}))).toBeNull();
+    expect(staleEdit(new Error("boom"))).toBeNull();
   });
 });
