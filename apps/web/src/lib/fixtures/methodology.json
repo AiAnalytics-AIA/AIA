@@ -1927,6 +1927,7 @@
       ],
       "feeds": [
        "f3_correlation",
+       "f3_effective_n",
        "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
@@ -2149,6 +2150,7 @@
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
       "inputs": [
+       "f2_person_minmax",
        "f11_not_placed"
       ],
       "note_cs": "",
@@ -3847,6 +3849,7 @@
       ],
       "feeds": [
        "f3_correlation",
+       "f3_effective_n",
        "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
@@ -4069,6 +4072,7 @@
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
       "inputs": [
+       "f2_person_minmax",
        "f11_not_placed"
       ],
       "note_cs": "",
@@ -5767,6 +5771,7 @@
       ],
       "feeds": [
        "f3_correlation",
+       "f3_effective_n",
        "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
@@ -5989,6 +5994,7 @@
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
       "inputs": [
+       "f2_person_minmax",
        "f11_not_placed"
       ],
       "note_cs": "",

@@ -63,6 +63,8 @@ def test_every_step_says_what_it_is_for_where_it_reads_and_which_audit_point_it_
     # Who reads a step is derived from the inputs, never declared twice.
     assert feeds_of(SOCIOMAP, "f6_distance") == ("f6_smacof", "f7_stress")
     assert feeds_of(SOCIOMAP, "f7_quality") == ()
+    # A pair's n is read over who rated both objects, on the person-scaled ratings (pairs.py).
+    assert "f2_person_minmax" in by_id["f3_effective_n"].inputs
 
 
 def test_the_points_aia_does_not_compute_say_so() -> None:

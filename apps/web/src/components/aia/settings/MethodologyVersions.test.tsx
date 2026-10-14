@@ -399,6 +399,12 @@ describe("guided methodology editing", () => {
     fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
     expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
     expect(step.hidden).toBe(true);
+    // A step with nothing to edit is named, never a link that would empty the pane.
+    fireEvent.click(form.querySelector('[data-edit-step-link="f1_declared_scale"]')!);
+    const first = form.querySelector('[data-edit-step="f1_declared_scale"] [data-context="to"]') as HTMLElement;
+    expect(first.querySelector('[data-context-name="f11_not_placed"]')).not.toBeNull();
+    expect(first.querySelector('[data-context-link="f11_not_placed"]')).toBeNull();
+    expect(first.querySelector('[data-context-link="f2_person_minmax"]')).not.toBeNull();
   });
 
   it("says which part of a step's formula the expression replaces, and what stays code", async () => {

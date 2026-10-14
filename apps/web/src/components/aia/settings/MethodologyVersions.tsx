@@ -280,6 +280,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
   // Where each step sits: its stage, every step's title for the context's links, and the audit
   // points AIA does not compute yet (empty groups, listed after the outline).
   const titles = useMemo(() => Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs])), [detail]);
+  const editableIds = useMemo(() => new Set(steps.map(({ step }) => step.id)), [steps]);
   const stageOf = useMemo(() => new Map(groupSteps(detail).flatMap(({ group, steps: groupItems }) => group ? groupItems.map((item) => [item.id, group.title_cs] as const) : [])), [detail]);
   const notYet = useMemo(() => groupSteps(detail).filter(({ group, steps: groupItems }) => group && !groupItems.length).map(({ group }) => group!.title_cs.replace(/^Zatím v AIA není:\s*/, "")), [detail]);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
@@ -491,6 +492,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                 clearPreview={clearPreview}
                 stage={stageOf.get(step.id) ?? ""}
                 titles={titles}
+                linkable={editableIds}
                 onPick={setSelectedStep}
                 signature={JSON.stringify([selectedStep === step.id, busy, values, formulas, own, written, notComputed])}
               />
@@ -537,13 +539,13 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
 /** One step of the editor, redrawn only when its own values, problems or visibility change:
  *  every keystroke would otherwise re-typeset every step's formulas (measured: the guided test
  *  went from 3.7 s to 5.4 s before this split). */
-const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, onPick }: {
+const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, linkable, onPick }: {
   step: MethodStepOut; fields: EditField[]; hidden: boolean; busy: boolean; start: Start; currentSpec?: Record<string, unknown>;
   values: Record<string, string>; formulas: Record<string, string>; problems: Record<string, string>;
   written: Record<string, string>; notComputed: string[];
   setRaw: Dispatch<SetStateAction<Record<string, string>>>; setExprs: Dispatch<SetStateAction<Record<string, string>>>; clearPreview: () => void;
   /** The step's stage, every step's title and the move to another step: its place in the computation. */
-  stage: string; titles: Record<string, string>; onPick: (stepId: string) => void;
+  stage: string; titles: Record<string, string>; linkable: ReadonlySet<string>; onPick: (stepId: string) => void;
   /** Everything above that can change, as one value: the memo compares this alone. */
   signature: string;
 }) {
@@ -552,7 +554,7 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
       <legend className="mb-1 text-lg font-semibold leading-[26px]">{step.title_cs}</legend>
       {stage || step.audit ? <p data-step-stage className="text-xs text-ink-faint">{stage}{stage && step.audit ? " · " : ""}{step.audit ? <span className="font-mono">{tv(`${M}.audit`, { point: step.audit })}</span> : null}</p> : null}
       {step.note_cs ? <p className="max-w-3xl text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
-      {hidden ? null : <StepContext step={step} titles={titles} onPick={onPick} />}
+      {hidden ? null : <StepContext step={step} titles={titles} linkable={linkable} onPick={onPick} />}
       {step.formula_latex && !hidden ? <div className="min-w-0 max-w-full overflow-x-auto rounded-card border border-border bg-surface-raised px-6 py-5 text-center text-lg text-ink"><Formula latex={step.formula_latex} /></div> : null}
 
       {step.formulas.map((f) => {
@@ -641,4 +643,4 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
       ) : null}
     </fieldset>
   );
-}, (a, b) => a.signature === b.signature && a.stage === b.stage && a.titles === b.titles && a.step === b.step && a.start === b.start && a.currentSpec === b.currentSpec);
+}, (a, b) => a.signature === b.signature && a.stage === b.stage && a.titles === b.titles && a.linkable === b.linkable && a.step === b.step && a.start === b.start && a.currentSpec === b.currentSpec);

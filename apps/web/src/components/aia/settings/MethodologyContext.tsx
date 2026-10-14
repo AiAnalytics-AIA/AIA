@@ -10,22 +10,25 @@ import type { MethodStepOut } from "@/lib/api";
 
 const C = "aia.settings.methodology.context";
 
-export function StepContext({ step, titles, onPick }: {
+export function StepContext({ step, titles, onPick, linkable }: {
   step: MethodStepOut;
   /** Every step of the module by id, as its title reads. */
   titles: Record<string, string>;
   /** Moves to a step; without it, a link follows its anchor to the step's card (`#ms-<id>`). */
   onPick?: (stepId: string) => void;
+  /** The steps a link may move to; any other is named without a link (the editor has no
+   *  view of a step it cannot edit). Without it, every step is a link. */
+  linkable?: ReadonlySet<string>;
 }) {
   if (!step.role_cs) return null;
   const links = (ids: string[]) => ids.map((id, i) => (
     <span key={id}>
-      <a
+      {linkable && !linkable.has(id) ? <span data-context-name={id}>{titles[id] ?? id}</span> : <a
         data-context-link={id}
         href={`#ms-${id}`}
         onClick={onPick ? (e) => { e.preventDefault(); onPick(id); } : undefined}
         className="rounded-sm text-signal underline underline-offset-2 hover:text-signal-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-      >{titles[id] ?? id}</a>
+      >{titles[id] ?? id}</a>}
       {i < ids.length - 1 ? ", " : ""}
     </span>
   ));

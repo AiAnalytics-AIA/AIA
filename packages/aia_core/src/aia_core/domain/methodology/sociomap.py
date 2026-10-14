@@ -608,7 +608,8 @@ _CONTEXT: Final[dict[str, _Context]] = {
     ),
     "f3_effective_n": _Context(
         role_cs="Kolik respondentů pár skutečně nese; při vážení méně než počet lidí.",
-        inputs=("f11_not_placed",),
+        # Who rated both objects is read from the person-scaled ratings (pairs.py), not F11.
+        inputs=("f2_person_minmax", "f11_not_placed"),
         audit="F3",
     ),
     "f3_interval": _Context(
