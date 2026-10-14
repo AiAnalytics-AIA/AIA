@@ -610,7 +610,9 @@ packages/aia_core/src/aia_core/
                             written from the expression; slot properties checked on a grid);
                             sociomap_formulas.py (the 14 built-in formulas, bit-identical to the
                             engine; each says what the engine keeps around it, kept_cs, whatever
-                            replaces it); versions.py (what a stored version may be: <base>+e<n>);
+                            replaces it); aggregation_formulas.py (the aggregate's five
+                            estimators, each with what the aggregate keeps around it, kept_cs);
+                            versions.py (what a stored version may be: <base>+e<n>);
                             pins.py (the methodology in force -> a run's Sociomap pins;
                             COMPUTED_SLOTS); sociomap_check.py (an edit beside what is in force on
                             three fixed fictional panels, through the run's own pin)
@@ -1243,6 +1245,7 @@ ungated fixture.
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
 | **Client workspace acceptance** | After `make ui-workbench` + `make ui-fixtures`, `node tools/ui_workbench/client_journey.mjs` (Playwright + Chromium; `AIA_CHROMIUM` selects the browser): six client areas at four widths without overflow; fictional knowledge added, filed, labelled, edited and removed; the profile saved and read back after a reload; a contact added and removed with no e-mail in the history; zero paid jobs. After a migration that adds columns, start the workbench with `python tools/ui_workbench/workbench.py up --fresh` |
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
+| **The Metodika tab, every module** | `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): every module's steps and links, one edit compared, stored and activated per editable module, a run that pins them; every module restored afterwards. `--facade`, `--out` and `AIA_CHROMIUM` as for the settings journey |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
