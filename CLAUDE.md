@@ -75,7 +75,22 @@ apps/
                             workspace (clients, a client's workspace, its knowledge and proposals,
                             a study's frame and its working content in AIA, ADR 0015, ADR 0018;
                             GET /clients/{id}/memory/search: project memory, one client's studies;
-                            POST /clients/{id}/memory/reuse: a new or empty study from a past design),
+                            POST /clients/{id}/memory/reuse: a new or empty study from a past design;
+                            GET /clients/{id} carries the tabs' counts (archived studies out, the
+                            knowledge counts null without VIEW_CLIENT_KNOWLEDGE) and the client's
+                            effective self_approval_allowed / _source; each listed study its
+                            knowledge counts (approved, proposed, rejected); the knowledge's
+                            folders and labels (list, create, rename or recolour, delete), PUT
+                            …/knowledge/placement, GET …/knowledge?folder=…|unfiled&label=…; the
+                            overview's stale_items, unfiled_items and recent_changes; GET/PUT
+                            /clients/{id}/profile (the profile, its contacts, its history),
+                            POST /clients/{id}/contacts, PUT/DELETE …/contacts/{contact_id}),
+                            client_sources (a client's sources, lifecycle K2: POST/GET
+                            /clients/{id}/sources -- 201 when new, 200 with created: false for the
+                            same bytes again -- GET …/{source_id} with its reading (a dataset's
+                            columns in reading.dataset), GET …/{source_id}/original, always an
+                            application/octet-stream attachment; POST …/{source_id}/reading reads a
+                            source again with its format's current reader, OI-110),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
@@ -116,14 +131,21 @@ apps/
                             pages, and /app: AIA, client-first (ADR 0015); no mock data. Nothing of
                             18.6.6: no hand-off, no skin, no call to the unit (ADR 0018)
     src/app/app/            AIA behind AIA's own gate (no switch): /app/clients (home),
-                            clients/<client>/{research,simulations,knowledge,data},
+                            clients/<client>/{research,simulations,knowledge,data,profile},
                             clients/<client>/research/<study>/<stage>, clients/<client>/memory/<study>
                             (a past research, read-only), intelligence, memory, settings
     src/app/classic/        The public page an old /classic link lands on: 18.6.6 is gone, the way in
     src/components/aia/     The client-first shell: AppShell (four global items, breadcrumbs, one
                             action, tabs; a `track` puts it in study mode: icon-only global
                             navigation, a one-row header, the title in the page), the client
-                            workspace and its areas, ResearchStudy
+                            workspace and its areas (clients/: StudyList, Výzkumy and Simulace as a
+                            table with status filters and two orders; KnowledgeArea, the library:
+                            views, folders, labels, kinds and the open item, opened on
+                            ?view=review|unfiled|old and ?add=1, read with useSearchParams;
+                            KnowledgeLibrary, its table, bulk bar and the open item with its
+                            history; ClientOverview, Přehled opening on Čeká na vás; ProfileArea,
+                            the details, contacts, brands and competitors as ENTITY knowledge, the
+                            self-approval rule and the history), ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
                             settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
@@ -205,6 +227,9 @@ apps/
                             listed on their own with target beside achieved, unknown never met.
                             components/aia/PopulationCharacteristics.tsx:
                             a version's weights, blocks, the 18 subpanels and every field's uses
+    src/lib/knowledge-library.ts  How the client's library reads its views: the year rule
+                            (YEAR_MS, the API's STALE_AFTER), the 200-item cap (RESULT_CAP), selection; study-table.ts
+                            the studies table's filters and orders
     src/lib/memory.ts       How project memory's search reads (sendable, ofKind, evidence);
                             runLabels (a past run's data, report, reach: unknown never good),
                             designSummary (what a past design says, as the search reads it),
@@ -556,7 +581,20 @@ packages/aia_core/src/aia_core/
                             (its row rules and the normalize_project rules an import meets)
     workspace_migration.py  The 18.6.6 migration's rules: file references, the record rewrite, the
                             copy checked against the unit's own hashes, one-for-one validation, report
-    knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015)
+    knowledge.py            Client Knowledge: layers, kinds, proposals, revisions (ADR 0015);
+                            folders and labels (organization, not knowledge: no model sees them, no
+                            revision is written), STALE_AFTER (365 days), KnowledgeHealth
+    client_profile.py       A client's profile on its record (short code, industry, market,
+                            description) and its contacts; neither is knowledge, no model reads them
+    client_sources.py       A client's sources (lifecycle K2): family by suffix (the owner's format
+                            list of 2026-10-13), Locator, Segment, ReadingNote, SourceReading (READ /
+                            PARTIAL / UNREADABLE / UNSUPPORTED / REFUSED, never more than happened),
+                            display_name (the name as written)
+    client_datasets.py      A dataset's preview (K2c): per column the header (row 1 when all text
+                            over numbers or dates), kind, fill, distinct values (to 1,000) and five
+                            samples; a column flagged personal (header, or a third of its values an
+                            e-mail, Czech phone or birth number) has its samples masked; patterns
+                            pinned in fixtures/client_datasets/personal.json
     project_memory.py       Project memory's match: every word, accent-folded, a four-letter stem;
                             DIMENSION_LABELS, the canonical dimension titles pinned to the web's
     workflow.py             Workflow DAG, job states, retry classification
@@ -799,14 +837,31 @@ packages/aia_core/src/aia_core/
     document_text.py        An attachment's text, read as the unit read it (pypdf, python-docx,
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked;
                             a PDF's tables through pdfplumber, after pypdf, bounded
-                            (`MAX_PDF_TABLES`, 20 s)
+                            (`MAX_PDF_TABLES`, 20 s); check_zip_bounds(data, kind) before any
+                            Office or OpenDocument ZIP is inflated; grid_from_rows, the one way a
+                            reader outside it makes a bounded grid
+    source_reading.py       read_source: a client source's bytes -> segments with locators, a pure
+                            function: PDF by page and table row, DOCX and ODT by paragraph and table
+                            row, PPTX by slide, TXT/MD by paragraph, DOC from its Word 97 piece table
+                            (piece_text; olefile only opens the file; a DOC's cells are Word's
+                            paragraphs, no row guessed); CSV, XLSX, XLS (xlrd) and ODS by sheet and
+                            row, with the dataset preview, an ODS's repeats never materialized past
+                            the grid bounds; an XML part declaring a DTD refused
     questionnaire_file.py   A questionnaire file's rows (the unit's CSV and stdlib XLSX readers) and
                             AIA's own template workbook
     unit_project_store.py   A COPY of the 18.6.6 project store, read mode=ro&immutable=1 (a live
                             database refused; the backup ZIP unpacked to scratch); files by base name
     client_knowledge_repository.py  The ONLY reader/writer of Client Knowledge: read inside a
                             resolved scope, changed by a person's write or an accepted proposal
-                            (a new revision each time)
+                            (a new revision each time); also of its folders, labels and item filing
+                            (no revision, no date moved, every change audited), health and
+                            recent_revisions
+    client_profile_repository.py  The ONLY reader/writer of client_contacts and the profile columns
+                            of clients; history read from the audit, never naming an e-mail
+    client_source_repository.py  The ONLY reader/writer of client_sources and
+                            client_source_occurrences: kept once per client and SHA-256, bytes and
+                            reading under org/<org>/client/<client>/sources/<sha256>/, verified on
+                            every read; reread: a newer reader's reading beside the first
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
     methodology_repository.py  The ONLY reader/writer of the methodology tables (ADR 0023):
                             immutable versions, validated by domain.methodology.versions; append-only
@@ -922,6 +977,10 @@ tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own b
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
                             unit's own `_extract_text` on each (`capture`, with the unit's libraries)
+tools/source_fixtures.py    Client-source reader fixtures: fictional text and one fictional export
+                            LibreOffice converts into DOC, ODT, DOCX, PPTX, ODS, XLSX and XLS, and a
+                            Czech CSV (`write [name …]`: only the named, their pins merged), pinned
+                            in fixtures/client_sources/index.json (`verify`)
 tools/questionnaire_import_capture.py  Import fixtures: fictional files (`inputs`), AIA's template
                             (`template`), the unit's own import on each (`capture`)
 tools/deep_research_capture.py  Leakage-screen and merge fixtures from the unit's own
@@ -989,7 +1048,7 @@ hand (ADR 0018 decision 5). The product deployment has no unit in it and needs n
 
 **The develop site is AIA, client-first** (ADR 0015). `/` answers 302
 `/app/clients`; the hierarchy is Clients → client workspace (Přehled, Výzkumy,
-Simulace, Znalosti, Data) → study → stages, and the global navigation has four
+Simulace, Znalosti, Data, Profil) → study → stages, and the global navigation has four
 items: Klienti, Společenská inteligence, Projektová paměť, Nastavení. Research
 and simulation are both `Study` records, told apart by `Study.kind`. The 18.6.6
 interface is not part of the product (ADR 0018 decision 4): no page hands off to
@@ -1174,6 +1233,7 @@ ungated fixture.
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **Client workspace acceptance** | After `make ui-workbench` + `make ui-fixtures`, `node tools/ui_workbench/client_journey.mjs` (Playwright + Chromium; `AIA_CHROMIUM` selects the browser): six client areas at four widths without overflow; fictional knowledge added, filed, labelled, edited and removed; the profile saved and read back after a reload; a contact added and removed with no e-mail in the history; zero paid jobs. After a migration that adds columns, start the workbench with `python tools/ui_workbench/workbench.py up --fresh` |
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **Layering** | `make layer_check` |
 | **Reference exposure** | `make exposure_check` |

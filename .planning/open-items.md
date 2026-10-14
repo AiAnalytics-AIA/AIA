@@ -3560,6 +3560,10 @@ workbench up: a timeout on the hidden button, then an error for the expected 404
 **Smallest fix / status.** Open the disclosure, name the expected 404 and judge a logged 404 by
 its request. Fixed in #382 (research-lane-redesign, F1).
 
+**Also reported as** client-workspace F-CW1 (#380, `.planning/plans/client-workspace.md`
+§ Findings): the same timeout at the rotate button, seen on that branch after merging develop
+`04c8830`, before #382 landed. One cause, one fix; no separate item.
+
 ## OI-107 · Finding, closed · A report could never be approved
 
 **Claim.** `ArtifactRepository.approve` had no caller for reports, so every report's
@@ -3615,3 +3619,32 @@ beside the basis.
 **Test.** A caption assertion on a SYNTHETIC_FIXTURE table.
 
 **Status.** Open; analysis-governance's call, with OI-9 and OI-103 (complete-study-report F1).
+
+## OI-110 · Finding, closed · A client source kept before its format had a reader is never read again
+
+**Claim.** A source is read once, when it is first kept; the same bytes added again only add an
+occurrence, so a file stored as `UNSUPPORTED` / `reader_pending` stays unread after its format
+gains a reader.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/client_source_repository.py:200-203`
+@ `afc2056` (`add` reuses the row found by (client, sha256) and calls `_keep` only when there is
+none) and `:260` @ `afc2056` (`_keep` is the only place `read_source` runs).
+
+**Reproduction.** Keep a `.xlsx` (read as `reader_pending` until K2c), land the dataset reader,
+add the same file again: `GET /clients/{id}/sources/{source_id}` still answers `UNSUPPORTED`.
+
+**Consequence.** Material a client added early never yields text or proposals, and the page says
+"reader pending" for a format AIA reads.
+
+**Smallest fix.** A re-read of a source whose stored reader is absent or older than the current
+one: read the kept original again, store the new reading beside the old (the reader is in its key),
+move the row's outcome; never change the original.
+
+**Test.** A source kept as `reader_pending`, then re-read after the reader is registered: `READ`,
+the first reading still in storage.
+
+**Status.** Fixed in #398 (client-knowledge-lifecycle K2c): `ClientSourceRepository.reread` and
+`POST /clients/{id}/sources/{source_id}/reading` read a source again when its format's current
+reader is not the one that read it, as does adding the same bytes again; the original never
+changes and the first reading stays beside the new one (`CLIENT_SOURCE_REREAD`). Test:
+`test_source_datasets.py::test_a_source_kept_before_its_reader_is_read_again_and_its_first_reading_kept`.
