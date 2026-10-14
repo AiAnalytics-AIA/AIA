@@ -3648,3 +3648,31 @@ the first reading still in storage.
 reader is not the one that read it, as does adding the same bytes again; the original never
 changes and the first reading stays beside the new one (`CLIENT_SOURCE_REREAD`). Test:
 `test_source_datasets.py::test_a_source_kept_before_its_reader_is_read_again_and_its_first_reading_kept`.
+
+## OI-111 · Finding, closed · Approving an older knowledge edit replaced a newer correction
+
+**Claim.** An approval did not check whether the item had changed after the proposal was made, so
+approving an edit written from an older revision silently replaced a newer correction.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/client_knowledge_repository.py:250-296,
+353-387, 516-527` @ `67af44e`; `ProposalCreate` and `DecisionRequest` in
+`apps/api/src/aia_api/routers/workspace.py:385-405` @ `67af44e` carried no reviewed base revision
+(client-knowledge-lifecycle F-K1).
+
+**Reproduction.** A FACT at revision 1; a study proposes an edit of it; a person corrects it to
+revision 2; approving the study's edit succeeded as revision 3 with the older text current.
+
+**Consequence.** A validly authorized acceptance could undo a newer correction; only the revision
+history still held it.
+
+**Smallest fix.** Record the base revision on a revising proposal and compare it under the item lock
+before applying; refuse a stale one by name.
+
+**Test.** `test_client_knowledge.py::test_an_edit_written_before_a_newer_correction_is_refused_and_changes_nothing`.
+
+**Status.** Fixed in #401 (client-knowledge-lifecycle K3a): `client_knowledge_proposals.base_revision`
+(migration `d4f6a8c0e2b5`); `_require_current_base` in `client_knowledge_repository.py` @ `60150f61`
+raises `StaleKnowledgeProposal` (409 `knowledge_proposal_stale`, both revisions named) unless the
+reviewer names the current revision as `reviewed_revision`, which the new revision's provenance
+records. A pending edit filed before the column has an unknown base and is treated as stale. The
+API test is `test_client_api.py::test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current`.
