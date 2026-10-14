@@ -23,7 +23,7 @@ import {
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
-import { LABEL_DOT, type LibraryView, folderOf, folderView } from "@/lib/knowledge-library";
+import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, staleEdit } from "@/lib/knowledge-library";
 import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -45,13 +45,26 @@ const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApprove: boolean; onDecided: () => void }) {
   const [res, retry] = useResource(() => workspace.proposals(clientId, "PROPOSED"), [clientId]);
   const [error, setError] = useState<string | null>(null);
-  const decide = (p: Proposal, approve: boolean) =>
-    workspace.decide(clientId, p.proposal_id, approve).then(
+  // An approval refused because the item moved on (F-K1): which proposal, and the revision now current.
+  const [stale, setStale] = useState<{ proposalId: string; edit: StaleEdit } | null>(null);
+  const decide = (p: Proposal, approve: boolean, reviewedRevision?: number) =>
+    workspace.decide(clientId, p.proposal_id, approve, "", reviewedRevision).then(
       () => {
+        setError(null);
+        setStale(null);
         retry();
         onDecided();
       },
-      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => {
+        const edit = staleEdit(e);
+        if (edit) {
+          setError(null);
+          setStale({ proposalId: p.proposal_id, edit });
+        } else {
+          setStale(null);
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      },
     );
   return (
     <>
@@ -81,6 +94,20 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       ) : null}
                     </div>
                   </div>
+                  {stale?.proposalId === p.proposal_id ? (
+                    <div role="alert" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
+                      <p>
+                        {stale.edit.base === null
+                          ? tv("aia.knowledge.staleDecisionUnknown", { current: stale.edit.current })
+                          : tv("aia.knowledge.staleDecision", { base: stale.edit.base, current: stale.edit.current })}
+                      </p>
+                      <div>
+                        <Button small onClick={() => void decide(p, true, stale.edit.current)}>
+                          {tv("aia.knowledge.approveOver", { current: stale.edit.current })}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

@@ -2,7 +2,7 @@
 // for what, the "older than a year" rule, label colours, and the selection the bulk bar
 // acts on. Pure, so the rules are tested apart from the page.
 
-import type { KnowledgeFiling, KnowledgeItem, LabelColour } from "@/lib/api";
+import { ApiError, type KnowledgeFiling, type KnowledgeItem, type LabelColour } from "@/lib/api";
 
 /**
  * What the library shows: everything, items in no folder, items not changed for a year,
@@ -77,4 +77,16 @@ export function toggledAll(selected: ReadonlySet<string>, shownIds: readonly str
 /** What the bulk bar acts on: the ticked items still shown, so nothing hidden moves unseen. */
 export function actedOn(selected: ReadonlySet<string>, shownIds: readonly string[]): string[] {
   return shownIds.filter((id) => selected.has(id));
+}
+
+/** An edit refused because the item moved on (F-K1): the revision it was written from and the current one. */
+export type StaleEdit = { base: number | null; current: number };
+
+/** The API's `knowledge_proposal_stale` refusal read; anything else is not a stale edit. A missing base stays unknown. */
+export function staleEdit(e: unknown): StaleEdit | null {
+  if (!(e instanceof ApiError) || e.code !== "knowledge_proposal_stale") return null;
+  const current = e.details.current_revision;
+  if (typeof current !== "number") return null;
+  const base = e.details.base_revision;
+  return { base: typeof base === "number" ? base : null, current };
 }

@@ -1085,6 +1085,9 @@ class ClientKnowledgeProposalRow(Base):
     decision_note: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # The item revision an approval produced.
     revision: Mapped[int | None] = mapped_column(Integer)
+    # The item revision a revising proposal was written from (F-K1); null for a new item and
+    # for a revision filed before this column, which an approval treats as stale.
+    base_revision: Mapped[int | None] = mapped_column(Integer)
 
     __table_args__ = (
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),

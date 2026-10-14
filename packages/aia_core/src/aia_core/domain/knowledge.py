@@ -56,6 +56,7 @@ __all__ = [
     "OrganizerNameTaken",
     "ProposalOrigin",
     "ProposalStatus",
+    "StaleKnowledgeProposal",
     "new_knowledge_folder_id",
     "new_knowledge_item_id",
     "new_knowledge_label_id",
@@ -113,6 +114,27 @@ def organizer_key(name: str) -> str:
 
 class OrganizerNameTaken(ValueError):
     """The client already has a folder (or a label) by that name."""
+
+
+class StaleKnowledgeProposal(Exception):
+    """A revision was written from an item revision that is no longer the current one.
+
+    Approving it would replace the newer text with the older one's edit (F-K1). The
+    reviewer may read the current revision and accept against it by naming it; nothing
+    else lets a stale edit through. ``base_revision`` is ``None`` for a proposal filed
+    before its base was recorded: unknown, so it is treated as stale, never as current.
+    """
+
+    reason = "stale_proposal"
+
+    def __init__(self, *, item_id: str, base_revision: int | None, current_revision: int) -> None:
+        super().__init__(
+            f"knowledge item {item_id} is at revision {current_revision}; "
+            f"this edit was written from revision {base_revision}"
+        )
+        self.item_id = item_id
+        self.base_revision = base_revision
+        self.current_revision = current_revision
 
 
 class LabelColour(StrEnum):
@@ -264,6 +286,9 @@ class KnowledgeProposal(BaseModel):
     decided_at: datetime | None = None
     decision_note: str = ""
     revision: int | None = None
+    #: The item revision a revising proposal was written from; ``None`` for a new item, or
+    #: for a revision filed before the base was recorded (unknown, never current).
+    base_revision: int | None = None
 
 
 #: How long an item may go unchanged before Přehled asks a person to look at it again.

@@ -30,6 +30,7 @@ from ..domain.knowledge import (
     OrganizerNameTaken,
     ProposalOrigin,
     ProposalStatus,
+    StaleKnowledgeProposal,
     new_knowledge_folder_id,
     new_knowledge_item_id,
     new_knowledge_label_id,
@@ -121,6 +122,7 @@ def _proposal(row: ClientKnowledgeProposalRow) -> KnowledgeProposal:
         decided_at=as_utc(row.decided_at) if row.decided_at else None,
         decision_note=row.decision_note,
         revision=row.revision,
+        base_revision=row.base_revision,
     )
 
 
@@ -778,21 +780,35 @@ class ClientKnowledgeRepository:
         content: dict[str, Any],
         provenance: dict[str, Any],
         item_id: str | None,
+        base_revision: int | None,
     ) -> KnowledgeProposal:
         if not title.strip():
             raise ValueError("a proposal needs a title")
+        if item_id is None and base_revision is not None:
+            raise ValueError("only a revision of an existing item has a base revision")
         if item_id is not None:
             target = self._session.scalar(
-                select(ClientKnowledgeItemRow).where(
+                select(ClientKnowledgeItemRow)
+                .where(
                     ClientKnowledgeItemRow.item_id == item_id,
                     ClientKnowledgeItemRow.organization_id == organization_id,
                     ClientKnowledgeItemRow.client_id == client_id,
                 )
+                .with_for_update()
             )
             if target is None:
                 raise ScopeDenied("not found", reason="unknown_item")
             if target.kind != kind.value:
                 raise ValueError("a revision keeps the item's kind")
+            # An edit made from an older screen is stale before it is filed. Without a
+            # named base, the proposal is written from the revision current now.
+            if base_revision is not None and base_revision != target.current_revision:
+                raise StaleKnowledgeProposal(
+                    item_id=item_id,
+                    base_revision=base_revision,
+                    current_revision=target.current_revision,
+                )
+            base_revision = target.current_revision
         row = ClientKnowledgeProposalRow(
             proposal_id=new_knowledge_proposal_id(),
             organization_id=organization_id,
@@ -807,6 +823,7 @@ class ClientKnowledgeRepository:
             status=ProposalStatus.PROPOSED.value,
             proposed_by=actor_id,
             proposed_at=utcnow(),
+            base_revision=base_revision,
         )
         self._session.add(row)
         self._session.flush()
@@ -822,6 +839,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A study offers a finding for reuse. Changes nothing until someone approves it."""
         scope = _study(scope)
@@ -837,6 +855,7 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance={**(provenance or {}), "study_id": scope.study_id},
             item_id=item_id,
+            base_revision=base_revision,
         )
 
     def propose(
@@ -849,6 +868,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A proposal made in the client workspace itself (a source added, a term defined)."""
         scope = _client(scope)
@@ -864,17 +884,30 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance=provenance or {},
             item_id=item_id,
+            base_revision=base_revision,
         )
 
     # --------------------------------------------------------------- decisions
 
     def decide(
-        self, scope: ClientContext, *, proposal_id: str, approve: bool, note: str = ""
+        self,
+        scope: ClientContext,
+        *,
+        proposal_id: str,
+        approve: bool,
+        note: str = "",
+        reviewed_revision: int | None = None,
     ) -> KnowledgeProposal:
         """Approve or reject a proposal. An approval appends a revision and a knowledge revision.
 
         Needs ``APPROVE_CLIENT_KNOWLEDGE``; the proposer may not decide their own
         proposal unless self-approval is allowed at the client's scope.
+
+        An edit of an item is approved only against the revision it was written from
+        (F-K1). Where the item has moved on, the approval raises
+        :class:`StaleKnowledgeProposal` and changes nothing, unless the reviewer names the
+        item's current revision as ``reviewed_revision``: they read it and accept the edit
+        over it, which the new revision's provenance records. A rejection needs neither.
         """
         scope = _client(scope)
         scope.require(ClientPermission.APPROVE_CLIENT_KNOWLEDGE)
@@ -895,7 +928,12 @@ class ClientKnowledgeRepository:
             raise SeparationOfDutiesViolation(scope.actor_id, what="this proposal")
 
         return self._settle(
-            scope, row, approve=approve, note=note, action="CLIENT_KNOWLEDGE_DECIDED"
+            scope,
+            row,
+            approve=approve,
+            note=note,
+            action="CLIENT_KNOWLEDGE_DECIDED",
+            reviewed_revision=reviewed_revision,
         )
 
     def add(
@@ -908,6 +946,7 @@ class ClientKnowledgeRepository:
         content: dict[str, Any] | None = None,
         provenance: dict[str, Any] | None = None,
         item_id: str | None = None,
+        base_revision: int | None = None,
     ) -> KnowledgeProposal:
         """A person adds or edits knowledge in the client workspace; it takes effect now.
 
@@ -933,6 +972,7 @@ class ClientKnowledgeRepository:
                 content=content,
                 provenance=provenance,
                 item_id=item_id,
+                base_revision=base_revision,
             )
         proposal = self._add_proposal(
             organization_id=scope.organization_id,
@@ -945,6 +985,7 @@ class ClientKnowledgeRepository:
             content=content or {},
             provenance={**(provenance or {}), "authored": "person"},
             item_id=item_id,
+            base_revision=base_revision,
         )
         row = self._session.scalar(
             select(ClientKnowledgeProposalRow)
@@ -968,8 +1009,11 @@ class ClientKnowledgeRepository:
         approve: bool,
         note: str,
         action: str,
+        reviewed_revision: int | None = None,
     ) -> KnowledgeProposal:
         """Record the decision on a proposal row and, if approved, apply it."""
+        if approve and row.item_id is not None:
+            self._require_current_base(scope, row, reviewed_revision)
         now = utcnow()
         row.decided_by = scope.actor_id
         row.decided_at = now
@@ -997,6 +1041,42 @@ class ClientKnowledgeRepository:
         )
         self._session.flush()
         return _proposal(row)
+
+    def _require_current_base(
+        self,
+        scope: ClientContext,
+        row: ClientKnowledgeProposalRow,
+        reviewed_revision: int | None,
+    ) -> None:
+        """Refuse an edit whose base is not the item's current revision (F-K1).
+
+        The item is locked here, so nothing writes a revision between this check and
+        :meth:`_apply`. An unknown base (``None``) is stale. A reviewer who names the
+        current revision accepts over it; the proposal's provenance then says so.
+        """
+        assert row.item_id is not None
+        item = self._session.scalar(
+            select(ClientKnowledgeItemRow)
+            .where(
+                ClientKnowledgeItemRow.item_id == row.item_id,
+                ClientKnowledgeItemRow.client_id == scope.client_id,
+            )
+            .with_for_update()
+        )
+        if item is None:
+            raise ScopeDenied("not found", reason="unknown_item")
+        current = item.current_revision
+        if row.base_revision == current:
+            return
+        if reviewed_revision != current:
+            raise StaleKnowledgeProposal(
+                item_id=row.item_id, base_revision=row.base_revision, current_revision=current
+            )
+        row.provenance = {
+            **(row.provenance or {}),
+            "base_revision": row.base_revision,
+            "accepted_over_revision": current,
+        }
 
     def _apply(self, scope: ClientContext, proposal: ClientKnowledgeProposalRow, now: Any) -> int:
         context_revision = 1 + int(
