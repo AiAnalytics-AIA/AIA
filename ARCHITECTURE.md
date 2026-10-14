@@ -206,7 +206,10 @@ can grant approval or supply deployment prices.
   on the client record; no study context or model request reads them. **A source** --
   the client's stored original, kept once per client by its SHA-256 with every
   occurrence -- accepts nothing by being stored; knowledge comes from it only as a
-  proposal a person accepts (lifecycle plan § K2).
+  proposal a person accepts (lifecycle plan § K2). A SOURCE, DOCUMENT or DATASET item
+  may name one of its client's sources by id (`content.source_id`, `knowledge.source_ref`;
+  the API answers 422 `unknown_source` for any other client's); the item never holds the
+  file, and a study's proposal cannot attach one (client-workspace C7a).
 - **A research study's working content is AIA's, found only through the Study**
   ([ADR 0018](docs/architecture/adr/0018-aia-runs-without-18-6-6.md), OI-58).
   `StudyWorkspaceRepository` keeps it in the Study's owned working project

@@ -1331,6 +1331,19 @@ an error the screen then shows, not a thrown one, which reads as a rendering
 bug. Polyfill it in the test through `FileReader`, never in app code
 (`BriefStep.test.tsx`).
 
+**Testing Library normalizes the text it is asked for, not only the DOM's.** A cs-CZ
+number (`toLocaleString("cs-CZ")`) groups thousands with a non-breaking space
+(U+00A0). `findByText` collapses whitespace in the expected string to a plain space, so
+a query written with the very character the page renders never matches. Match with a
+regex (`KnowledgeLibrary.test.tsx`, a document's file):
+
+```ts
+// WRONG: the expected U+00A0 is normalized away; the rendered one is not
+await findByText("Přečteno: 2 části, 1\u00a0200 znaků");
+// RIGHT
+await findByText(/Přečteno: 2 části, 1.200 znaků/);
+```
+
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
 bytes (`workspace.attachment` in `src/lib/api.ts`) and `saveBlob`
