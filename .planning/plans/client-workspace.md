@@ -387,6 +387,18 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
     on the workbench: the sheet opened in 84 ms (budget 400 ms); a DOCX, an XLSX with its
     E-mail column named, a PNG and a refused `.key`; three items listed; a drop on the page
     opens the sheet; no paid job; no failed request but the refused format.
+- **Review fixes (#417):**
+  - A table now stays *Ukládám a čtu…* until its columns are in. If they fail to load, the row
+    says so and offers *Zkusit znovu*. Saving no longer happens without the personal-data
+    warning.
+  - Items made before a placement failed are kept. *Dokončit zařazení* files them without
+    making them again. Repeating a placement has the same effect as applying it once: the folder
+    is replaced, and a label an item already has is skipped (`ClientKnowledgeRepository.place`).
+  - Every control is held still while a batch is being sent, Esc included. Files dropped on the
+    page during a save wait for it to finish.
+  - Tests: `IntakeSheet.test.tsx` "holds a table whose columns did not load…", "files items made
+    before a failed placement…" and "holds every control still…". The journey ran again: 16
+    checks, opened in 66 ms.
 - **Open question for the owner before K2d** (canvas note *clientOpen*): who pays for AI
   extraction at the client, which has no budget today. The sheet's option names "the study
   you choose" until that is decided.

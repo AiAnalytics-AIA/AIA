@@ -8,7 +8,9 @@ import {
   alreadyKept,
   badge,
   changed,
+  detailFailed,
   failed,
+  folderOf,
   itemsFor,
   kindOfName,
   newEntry,
@@ -16,6 +18,8 @@ import {
   personalColumns,
   placementsFor,
   removed,
+  retryable,
+  retrying,
   rowLine,
   stored,
   summary,
@@ -102,6 +106,9 @@ describe("a batch of files on the intake sheet (client-workspace C7b)", () => {
   it("asks a table to be a dataset or a document, and names its personal columns", () => {
     let e = stored(batch("odpovedi.xlsx"), "k0", src(A, { family: "DATASET", segments: 5 }));
     expect(e[0].kind).toBe("DATASET");
+    // Kept, but it reads until its columns are in: never saved before its warning can show.
+    expect(rowLine(e, e[0]).text).toBe("Ukládám a čtu…");
+    expect(action(e).disabled).toBe(true);
     const detail = {
       ...src(A, { family: "DATASET" }),
       reading: {
@@ -122,10 +129,29 @@ describe("a batch of files on the intake sheet (client-workspace C7b)", () => {
     expect(summary(e)).toBe("Přidá se 1 dokument.");
   });
 
+  it("holds a table whose columns did not come back, until a retry reads them", () => {
+    let e = stored(batch("odpovedi.xlsx"), "k0", src(A, { family: "DATASET" }));
+    e = detailFailed(e, "k0", "Sloupce se nenačetly.");
+    expect(retryable(e[0])).toBe(true);
+    expect(rowLine(e, e[0])).toEqual({ tone: "fault", text: "Sloupce se nenačetly." });
+    expect(addable(e)).toEqual([]);
+    expect(summary(e)).toBe("Zatím není co přidat. 1 soubor nelze přidat.");
+    e = retrying(e, "k0");
+    expect(action(e)).toEqual({ label: "Čeká se na čtení…", disabled: true });
+    // A file AIA refused has nothing to retry.
+    expect(retryable(failed(batch("x.key"), "k0", "ne")[0])).toBe(false);
+  });
+
+  it("finishes the filing of items already made, and makes none of them twice", () => {
+    expect(action([], true)).toEqual({ label: "Dokončit zařazení", disabled: false });
+    expect(action([], false)).toEqual({ label: "Přidat 0 podkladů", disabled: true });
+  });
+
   it("makes one item per file naming its source, with the title as edited", () => {
     let e = batch("a.pdf", "b.xlsx");
     e = stored(e, "k0", src(A));
     e = stored(e, "k1", src(B, { family: "DATASET" }));
+    e = withDetail(e, "k1", { ...src(B, { family: "DATASET" }), reading: { outcome: "READ", reader: "xlsx/1", reason: null, segments: [], notes: [], dataset: null } } as SourceDetail);
     e = changed(e, "k0", { title: "  Brand tracking 2025 " });
     e = changed(e, "k1", { title: "" });
     expect(itemsFor(e)).toEqual([
@@ -138,14 +164,15 @@ describe("a batch of files on the intake sheet (client-workspace C7b)", () => {
     let e = batch("a.pdf", "b.pdf", "c.pdf");
     e = changed(e, "k1", { folder: "KNF-2" });
     e = changed(e, "k2", { folder: null });
-    const created = [{ key: "k0", itemId: "KNW-0" }, { key: "k1", itemId: "KNW-1" }, { key: "k2", itemId: "KNW-2" }];
-    expect(placementsFor(created, e, "KNF-1", ["KNL-1"])).toEqual([
+    expect(e.map((x) => folderOf(x, "KNF-1"))).toEqual(["KNF-1", "KNF-2", null]);
+    const created = e.map((x, i) => ({ itemId: `KNW-${i}`, folder: folderOf(x, "KNF-1") }));
+    expect(placementsFor(created, ["KNL-1"])).toEqual([
       { item_ids: ["KNW-0"], folder_id: "KNF-1" },
       { item_ids: ["KNW-1"], folder_id: "KNF-2" },
       { item_ids: ["KNW-0", "KNW-1", "KNW-2"], add_labels: ["KNL-1"] },
     ]);
     // No folder and no labels: nothing to file.
-    expect(placementsFor(created, batch("a", "b", "c"), null, [])).toEqual([]);
+    expect(placementsFor(batch("a", "b", "c").map((x, i) => ({ itemId: `KNW-${i}`, folder: folderOf(x, null) })), [])).toEqual([]);
   });
 
   it("keeps pasted text as a text file under the name given", () => {

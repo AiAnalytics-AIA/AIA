@@ -197,6 +197,71 @@ describe("the intake sheet", () => {
     await waitFor(() => expect(sent("POST", "/sources")).toHaveLength(1));
   });
 
+  it("holds a table whose columns did not load, and reads them again on Zkusit znovu", async () => {
+    let fail = true;
+    api({
+      [`GET /api/v1/clients/CLI-a/sources/${XLSX}`]: () =>
+        fail ? new Response(JSON.stringify({ code: "internal", message: "x" }), { status: 500 }) : TABLE_DETAIL,
+    });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    pick(file("odpovedi.xlsx"));
+    expect(await sheet().findByText(/sloupce se nepodařilo načíst/)).toBeTruthy();
+    expect((sheet().getByRole("button", { name: "Přidat 0 podkladů" }) as HTMLButtonElement).disabled).toBe(true);
+    fail = false;
+    fireEvent.click(sheet().getByRole("button", { name: "Zkusit znovu odpovedi.xlsx" }));
+    expect(await sheet().findByText(/Sloupec E-mail vypadá jako osobní údaj/)).toBeTruthy();
+    expect((sheet().getByRole("button", { name: "Přidat 1 podklad" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("files items made before a failed placement on the next try, without making them again", async () => {
+    let fail = true;
+    api({
+      "PUT /api/v1/clients/CLI-a/knowledge/placement": () =>
+        fail ? new Response(JSON.stringify({ code: "internal", message: "Výpadek" }), { status: 500 }) : [],
+    });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    await sheet().findByRole("option", { name: "Minulé výzkumy" });
+    fireEvent.change(sheet().getByRole("combobox", { name: "Složka pro všechny" }), { target: { value: "KNF-1" } });
+    pick(file("a.pdf"));
+    fireEvent.click(await sheet().findByRole("button", { name: "Přidat 1 podklad" }));
+    expect(await sheet().findByText(/nepodařilo se je zařadit/)).toBeTruthy();
+    fail = false;
+    fireEvent.click(sheet().getByRole("button", { name: "Dokončit zařazení" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(sent("POST", "/knowledge/proposals")).toHaveLength(1);
+    expect(sent("PUT", "/knowledge/placement").map((c) => c.body)).toEqual([
+      { item_ids: ["KNW-0"], folder_id: "KNF-1" },
+      { item_ids: ["KNW-0"], folder_id: "KNF-1" },
+    ]);
+  });
+
+  it("holds every control still while the batch is being sent", async () => {
+    let finish: (v: unknown) => void = () => {};
+    api({ "POST /api/v1/clients/CLI-a/knowledge/proposals": (b) => new Promise((resolve) => (finish = () => resolve({ proposal_id: "KNP-0", status: "APPROVED", item_id: "KNW-0", ...(b as object) }))) });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    pick(file("a.pdf"));
+    fireEvent.click(await sheet().findByRole("button", { name: "Přidat 1 podklad" }));
+    await waitFor(() => expect(sent("POST", "/knowledge/proposals")).toHaveLength(1));
+    const still = (name: string | RegExp, role = "button") => (sheet().getByRole(role, { name }) as HTMLButtonElement).disabled;
+    expect(still("Přidávám…")).toBe(true);
+    expect(still("Vybrat soubory")).toBe(true);
+    expect(still("Vložit text")).toBe(true);
+    expect(still("Zavřít")).toBe(true);
+    expect(still("Zrušit")).toBe(true);
+    expect(still("Odebrat a.pdf")).toBe(true);
+    expect(still("Název znalosti pro a.pdf", "textbox")).toBe(true);
+    expect(still("Složka pro a.pdf", "combobox")).toBe(true);
+    expect(still("Složka pro všechny", "combobox")).toBe(true);
+    // Esc does not close it either.
+    fireEvent(screen.getByRole("dialog"), new Event("cancel", { cancelable: true }));
+    expect(screen.queryByRole("dialog")).not.toBeNull();
+    finish(null);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  });
+
   it("says that items wait for someone else when the client asked for review, and files nothing yet", async () => {
     proposalStatus = "PROPOSED";
     api();

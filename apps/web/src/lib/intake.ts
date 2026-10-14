@@ -18,7 +18,7 @@ export type Entry = {
   size: number;
   phase: "reading" | "stored" | "failed";
   source: SourceAdded | null;
-  /** A table's reading, read once it is kept, for its columns. */
+  /** A table's reading, read once it is kept, for its columns; the row reads until it has it. */
   detail: SourceDetail | null;
   error: string | null;
   kind: IntakeKind;
@@ -70,14 +70,17 @@ export function newEntry(file: { name: string; size: number }, key: string): Ent
   };
 }
 
-/** A file kept: what it is now follows what AIA found, and a repeat in the batch is named. */
+/** A file kept: what it is now follows what AIA found, and a repeat in the batch is named.
+ *  A table still reads until its columns are in (withDetail), so its personal-data warning is
+ *  never missing from a row that can be saved. */
 export function stored(entries: Entry[], key: string, source: SourceAdded): Entry[] {
   const earlier = entries.find((e) => e.key !== key && e.source?.source_id === source.source_id && !e.duplicateOf);
   return entries.map((e) => {
     if (e.key !== key) return e;
     const kind: IntakeKind =
       source.family === "DATASET" ? (e.kind === "DOCUMENT" ? "DOCUMENT" : "DATASET") : source.family === "DOCUMENT" ? "DOCUMENT" : "SOURCE";
-    return { ...e, phase: "stored", source, kind, duplicateOf: earlier ? earlier.key : null };
+    const phase = source.family === "DATASET" ? "reading" : "stored";
+    return { ...e, phase, source, kind, error: null, duplicateOf: earlier ? earlier.key : null };
   });
 }
 
@@ -85,7 +88,18 @@ export const failed = (entries: Entry[], key: string, message: string): Entry[] 
   entries.map((e) => (e.key === key ? { ...e, phase: "failed", error: message } : e));
 
 export const withDetail = (entries: Entry[], key: string, detail: SourceDetail): Entry[] =>
-  entries.map((e) => (e.key === key ? { ...e, detail } : e));
+  entries.map((e) => (e.key === key ? { ...e, phase: "stored", detail, error: null } : e));
+
+/** A kept table whose columns could not be read back: it waits for a retry, never saved blind. */
+export const detailFailed = (entries: Entry[], key: string, message: string): Entry[] =>
+  entries.map((e) => (e.key === key ? { ...e, phase: "failed", error: message } : e));
+
+/** A row that can be tried again: the file is kept, only its columns are missing. */
+export const retryable = (e: Entry): boolean => e.phase === "failed" && e.source !== null;
+
+/** A retried row reads again. */
+export const retrying = (entries: Entry[], key: string): Entry[] =>
+  entries.map((e) => (e.key === key ? { ...e, phase: "reading", error: null } : e));
 
 export const changed = (entries: Entry[], key: string, change: Partial<Pick<Entry, "kind" | "title" | "folder">>): Entry[] =>
   entries.map((e) => (e.key === key ? { ...e, ...change } : e));
@@ -127,6 +141,7 @@ export function tableLine(detail: SourceDetail): string | null {
 /** What happened to a row, in words, and its tone. Never a number AIA does not have. */
 export function rowLine(entries: Entry[], e: Entry): { tone: Tone; text: string } {
   if (e.phase === "reading") return { tone: "running", text: t("aia.intake.reading") };
+  if (retryable(e)) return { tone: "fault", text: e.error ?? t("aia.intake.columnsFailed") };
   if (e.phase === "failed" || !e.source) return { tone: "fault", text: e.error ?? t("aia.intake.failed") };
   if (e.duplicateOf) {
     const first = entries.find((x) => x.key === e.duplicateOf);
@@ -167,9 +182,11 @@ export function summary(entries: Entry[]): string {
   return lines.join(" ");
 }
 
-/** The save button's words; it waits while a file is still being read. */
-export function action(entries: Entry[]): { label: string; disabled: boolean } {
+/** The save button's words; it waits while a file is still being read. Items made but not yet
+ *  filed (a placement failed) are finished first, and are never made twice. */
+export function action(entries: Entry[], unfiled = false): { label: string; disabled: boolean } {
   if (stillReading(entries)) return { label: t("aia.intake.waiting"), disabled: true };
+  if (unfiled && !addable(entries).length) return { label: t("aia.intake.fileAgain"), disabled: false };
   const n = addable(entries).length;
   return { label: tv("aia.intake.add", { n: plural(n, "podklad", "podklady", "podkladů") }), disabled: n === 0 };
 }
@@ -184,19 +201,18 @@ export function itemsFor(entries: Entry[]): { key: string; kind: IntakeKind; tit
   }));
 }
 
+/** The folder a row's item goes to: its own, else the batch's. */
+export const folderOf = (e: Entry, batchFolder: string | null): string | null => (e.folder === undefined ? batchFolder : e.folder);
+
+/** An item made, with the folder its row asked for when it was made. */
+export type Made = { itemId: string; folder: string | null };
+
 /** Filing after the items exist: one placement per folder, then the batch's labels once. */
-export function placementsFor(
-  created: { key: string; itemId: string }[],
-  entries: Entry[],
-  batchFolder: string | null,
-  labels: string[],
-): Placement[] {
+export function placementsFor(created: Made[], labels: string[]): Placement[] {
   const byFolder = new Map<string, string[]>();
   for (const c of created) {
-    const e = entries.find((x) => x.key === c.key);
-    const folder = e?.folder === undefined ? batchFolder : e.folder;
-    if (!folder) continue;
-    byFolder.set(folder, [...(byFolder.get(folder) ?? []), c.itemId]);
+    if (!c.folder) continue;
+    byFolder.set(c.folder, [...(byFolder.get(c.folder) ?? []), c.itemId]);
   }
   const out: Placement[] = [...byFolder].map(([folder_id, item_ids]) => ({ item_ids, folder_id }));
   if (labels.length && created.length) out.push({ item_ids: created.map((c) => c.itemId), add_labels: labels });

@@ -18,11 +18,14 @@ import { FILE_ACCEPT, FILE_MAX_BYTES, reasonKnown, reasonWords, sizeWords } from
 import {
   type Entry,
   type IntakeKind,
+  type Made,
   action,
   alreadyKept,
   badge,
   changed,
+  detailFailed,
   failed,
+  folderOf,
   isTable,
   itemsFor,
   newEntry,
@@ -30,6 +33,8 @@ import {
   personalColumns,
   placementsFor,
   removed,
+  retryable,
+  retrying,
   rowLine,
   stored,
   summary,
@@ -80,6 +85,26 @@ export function IntakeSheet() {
   const queue = useRef<{ key: string; file: File }[]>([]);
   const running = useRef(false);
   const handed = useRef(0);
+  // Items already made by an earlier attempt, and whether their filing is still owed: a retry
+  // files them and never makes them again.
+  const made = useRef<Made[]>([]);
+  const waiting = useRef(0);
+  const [unfiled, setUnfiled] = useState(false);
+  // The files the page handed over, as of the last render: a drop during a save waits for it.
+  const latest = useRef(intake);
+  useEffect(() => {
+    latest.current = intake;
+  });
+
+  // A table's columns, for the personal-data warning: the row reads until they are in.
+  const columns = async (key: string, sourceId: string) => {
+    try {
+      const detail = await workspace.source(clientId, sourceId);
+      setEntries((es) => withDetail(es, key, detail));
+    } catch {
+      setEntries((es) => detailFailed(es, key, t("aia.intake.columnsFailed")));
+    }
+  };
 
   const pump = async () => {
     if (running.current) return;
@@ -87,21 +112,25 @@ export function IntakeSheet() {
     try {
       for (let next = queue.current.shift(); next; next = queue.current.shift()) {
         const { key, file } = next;
+        let source;
         try {
-          const source = await workspace.addSource(clientId, { filename: file.name, data_b64: await fileToBase64(file) });
-          setEntries((es) => stored(es, key, source));
-          if (source.family === "DATASET") {
-            // A table's columns, for the personal-data warning before it is saved.
-            const detail = await workspace.source(clientId, source.source_id).catch(() => null);
-            if (detail) setEntries((es) => withDetail(es, key, detail));
-          }
+          source = await workspace.addSource(clientId, { filename: file.name, data_b64: await fileToBase64(file) });
         } catch (e) {
           setEntries((es) => failed(es, key, refusal(e)));
+          continue;
         }
+        setEntries((es) => stored(es, key, source));
+        if (source.family === "DATASET") await columns(key, source.source_id);
       }
     } finally {
       running.current = false;
     }
+  };
+
+  const retry = (e: Entry) => {
+    if (!e.source) return;
+    setEntries((es) => retrying(es, e.key));
+    void columns(e.key, e.source.source_id);
   };
 
   const take = (files: File[]) => {
@@ -120,15 +149,16 @@ export function IntakeSheet() {
     void pump();
   };
 
-  // Files handed over by the page (a drop anywhere on the client) join the list.
+  // Files handed over by the page (a drop anywhere on the client) join the list; during a save
+  // they wait for it, so nothing joins a batch already being sent.
   useEffect(() => {
-    if (!intake) return;
+    if (!intake || saving) return;
     const fresh = intake.files.slice(handed.current);
     handed.current = intake.files.length;
     if (fresh.length) take(fresh);
     // take reads only refs and setters
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [intake]);
+  }, [intake, saving]);
 
   useLayoutEffect(() => {
     const d = dialog.current;
@@ -146,49 +176,64 @@ export function IntakeSheet() {
     setPaste(null);
   };
 
+  const close = () => {
+    if (!saving) closeIntake();
+  };
+
+  // Every control is still while a save runs: the batch it sends is the one on screen.
   const save = async () => {
     setSaving(true);
     setError(null);
     const all = entries;
-    const created: { key: string; itemId: string }[] = [];
-    let waiting = 0;
+    let filing = false;
     try {
       for (const item of itemsFor(all)) {
         const p = await workspace.propose(clientId, { kind: item.kind, title: item.title, content: item.content });
-        if (p.status === "APPROVED" && p.item_id) created.push({ key: item.key, itemId: p.item_id });
-        else waiting += 1;
+        const row = all.find((e) => e.key === item.key)!;
+        if (p.status === "APPROVED" && p.item_id) made.current.push({ itemId: p.item_id, folder: folderOf(row, batchFolder) });
+        else waiting.current += 1;
         // Made: never sent twice, even if a later one fails.
         setEntries((es) => removed(es, item.key));
       }
-      for (const placement of placementsFor(created, all, batchFolder, labels)) await workspace.place(clientId, placement);
+      filing = true;
+      // Filed from what is owed, so a failed placement is tried again with every item it held.
+      for (const placement of placementsFor(made.current, labels)) await workspace.place(clientId, placement);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setError(filing ? tv("aia.intake.unfiled", { error: message }) : message);
+      setUnfiled(made.current.length > 0);
       setSaving(false);
-      if (created.length || waiting) {
+      if (made.current.length || waiting.current) {
         noteAdded();
         reload();
       }
       return;
     }
+    const waited = waiting.current;
+    made.current = [];
+    waiting.current = 0;
+    setUnfiled(false);
     setSaving(false);
     noteAdded();
     reload();
-    if (waiting) {
+    if (waited) {
       setNote(t("aia.intake.waitsForApproval"));
       return;
     }
+    // Files dropped on the page during the save stay on the sheet.
+    if ((latest.current?.files.length ?? 0) > handed.current) return;
     closeIntake();
     if (!path.includes("/knowledge") && !path.includes("/data")) router.push(appRoutes.area(clientId, "knowledge"));
   };
 
-  const act = action(entries);
+  const act = action(entries, unfiled);
   return (
     <dialog
       ref={dialog}
       aria-labelledby="intake-title"
       onCancel={(e) => {
         e.preventDefault();
-        closeIntake();
+        close();
       }}
       className="m-0 ml-auto flex h-dvh max-h-dvh w-[min(48rem,100vw)] max-w-none flex-col border-0 border-l border-border bg-surface-raised p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
     >
@@ -197,7 +242,7 @@ export function IntakeSheet() {
           <h2 id="intake-title" className="text-lg font-semibold leading-6">{tv("aia.intake.title", { client: client.name })}</h2>
           <p className="mt-0.5 text-[13px] text-ink-muted">{t("aia.intake.sub")}</p>
         </div>
-        <Button small variant="quiet" onClick={closeIntake}>{t("aia.intake.close")}</Button>
+        <Button small variant="quiet" disabled={saving} onClick={close}>{t("aia.intake.close")}</Button>
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-6 py-4">
@@ -207,7 +252,7 @@ export function IntakeSheet() {
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            take(Array.from(e.dataTransfer.files));
+            if (!saving) take(Array.from(e.dataTransfer.files));
           }}
         >
           <strong className="text-sm">{t("aia.intake.drop")}</strong>
@@ -217,6 +262,7 @@ export function IntakeSheet() {
             type="file"
             multiple
             hidden
+            disabled={saving}
             aria-label={t("aia.intake.pickLabel")}
             accept={FILE_ACCEPT}
             onChange={(e) => {
@@ -225,8 +271,8 @@ export function IntakeSheet() {
             }}
           />
           <span className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
-            <Button small onClick={() => picker.current?.click()}>{t("aia.intake.pick")}</Button>
-            <Button small aria-expanded={paste !== null} onClick={() => setPaste(paste ? null : { name: "", text: "" })}>{t("aia.intake.pasteOpen")}</Button>
+            <Button small disabled={saving} onClick={() => picker.current?.click()}>{t("aia.intake.pick")}</Button>
+            <Button small disabled={saving} aria-expanded={paste !== null} onClick={() => setPaste(paste ? null : { name: "", text: "" })}>{t("aia.intake.pasteOpen")}</Button>
             <Button small disabled aria-describedby="intake-link-later">{t("aia.intake.link")}</Button>
             <span id="intake-link-later" className="text-xs text-ink-faint">{t("aia.intake.linkLater")}</span>
           </span>
@@ -235,13 +281,13 @@ export function IntakeSheet() {
         {paste ? (
           <div className="flex flex-col gap-2 rounded-md border border-border bg-surface p-3">
             <Field label={t("aia.intake.pasteName")}>
-              <TextInput value={paste.name} onChange={(e) => setPaste({ ...paste, name: e.target.value })} />
+              <TextInput disabled={saving} value={paste.name} onChange={(e) => setPaste({ ...paste, name: e.target.value })} />
             </Field>
             <Field label={t("aia.intake.pasteText")}>
-              <TextArea rows={4} value={paste.text} onChange={(e) => setPaste({ ...paste, text: e.target.value })} />
+              <TextArea rows={4} disabled={saving} value={paste.text} onChange={(e) => setPaste({ ...paste, text: e.target.value })} />
             </Field>
             <span className="flex flex-wrap items-center gap-2">
-              <Button small disabled={!paste.text.trim()} onClick={addPasted}>{t("aia.intake.pasteAdd")}</Button>
+              <Button small disabled={saving || !paste.text.trim()} onClick={addPasted}>{t("aia.intake.pasteAdd")}</Button>
               <span className="text-xs text-ink-muted">{t("aia.intake.pasteHint")}</span>
             </span>
           </div>
@@ -249,7 +295,7 @@ export function IntakeSheet() {
 
         <div className="grid gap-2.5 sm:grid-cols-2">
           <Field label={t("aia.intake.folderAll")}>
-            <Select value={batchFolder ?? ""} onChange={(e) => setBatchFolder(e.target.value || null)}>
+            <Select disabled={saving} value={batchFolder ?? ""} onChange={(e) => setBatchFolder(e.target.value || null)}>
               <option value="">{t("aia.intake.noFolder")}</option>
               {folderList.map((f) => (
                 <option key={f.folder_id} value={f.folder_id}>{f.name}</option>
@@ -262,12 +308,12 @@ export function IntakeSheet() {
               {allLabels
                 .filter((l) => labels.includes(l.label_id))
                 .map((l) => (
-                  <LabelChip key={l.label_id} label={l} onRemove={() => setLabels(labels.filter((x) => x !== l.label_id))} />
+                  <LabelChip key={l.label_id} label={l} onRemove={saving ? undefined : () => setLabels(labels.filter((x) => x !== l.label_id))} />
                 ))}
               {allLabels.some((l) => !labels.includes(l.label_id)) ? (
                 <label>
                   <span className="sr-only">{t("aia.intake.addLabel")}</span>
-                  <Select value="" className="min-h-8" onChange={(e) => e.target.value && setLabels([...labels, e.target.value])}>
+                  <Select disabled={saving} value="" className="min-h-8" onChange={(e) => e.target.value && setLabels([...labels, e.target.value])}>
                     <option value="">{t("aia.intake.addLabel")}</option>
                     {allLabels
                       .filter((l) => !labels.includes(l.label_id))
@@ -289,6 +335,8 @@ export function IntakeSheet() {
                 entry={e}
                 entries={entries}
                 folders={folderList}
+                locked={saving}
+                onRetry={() => retry(e)}
                 onChange={(change) => setEntries((es) => changed(es, e.key, change))}
                 onRemove={() => drop(e.key)}
               />
@@ -311,7 +359,7 @@ export function IntakeSheet() {
         <span aria-live="polite" className="min-w-0 flex-[1_1_16rem] text-xs leading-4 text-ink-muted">
           {error ? <span role="alert" className="text-status-fault">{error}</span> : note ?? summary(entries)}
         </span>
-        <Button onClick={closeIntake}>{t("aia.intake.cancel")}</Button>
+        <Button disabled={saving} onClick={close}>{t("aia.intake.cancel")}</Button>
         <Button variant="primary" disabled={act.disabled || saving} onClick={() => void save()}>
           {saving ? t("aia.intake.adding") : act.label}
         </Button>
@@ -324,12 +372,16 @@ function Row({
   entry: e,
   entries,
   folders,
+  locked,
+  onRetry,
   onChange,
   onRemove,
 }: {
   entry: Entry;
   entries: Entry[];
   folders: { folder_id: string; name: string }[];
+  locked: boolean;
+  onRetry: () => void;
   onChange: (change: Partial<Pick<Entry, "kind" | "title" | "folder">>) => void;
   onRemove: () => void;
 }) {
@@ -362,6 +414,7 @@ function Row({
                     key={k}
                     type="button"
                     aria-pressed={e.kind === k}
+                    disabled={locked}
                     onClick={() => onChange({ kind: k })}
                     className={`min-h-[30px] rounded-[4px] px-2.5 text-xs font-medium ${e.kind === k ? "bg-surface-raised text-ink shadow-[0_0_0_1px_var(--color-border)]" : "text-ink-muted"}`}
                   >
@@ -382,11 +435,12 @@ function Row({
           <span className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem]">
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-ink-muted">{t("aia.intake.itemTitle")}</span>
-              <TextInput aria-label={tv("aia.intake.itemTitleFor", { name: e.name })} value={e.title} onChange={(ev) => onChange({ title: ev.target.value })} />
+              <TextInput disabled={locked} aria-label={tv("aia.intake.itemTitleFor", { name: e.name })} value={e.title} onChange={(ev) => onChange({ title: ev.target.value })} />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-ink-muted">{t("aia.library.folder")}</span>
               <Select
+                disabled={locked}
                 aria-label={tv("aia.intake.fileFolder", { name: e.name })}
                 value={e.folder === undefined ? "__batch" : (e.folder ?? "")}
                 onChange={(ev) => onChange({ folder: ev.target.value === "__batch" ? undefined : ev.target.value || null })}
@@ -401,9 +455,16 @@ function Row({
           </span>
         ) : null}
       </span>
-      <Button small variant="quiet" aria-label={tv(e.phase === "reading" ? "aia.intake.cancelFile" : "aia.intake.removeFile", { name: e.name })} onClick={onRemove}>
-        {e.phase === "reading" ? t("aia.intake.cancel") : t("aia.intake.remove")}
-      </Button>
+      <span className="flex flex-col items-end gap-1">
+        {retryable(e) ? (
+          <Button small disabled={locked} aria-label={tv("aia.intake.retryFile", { name: e.name })} onClick={onRetry}>
+            {t("aia.intake.retry")}
+          </Button>
+        ) : null}
+        <Button small variant="quiet" disabled={locked} aria-label={tv(e.phase === "reading" ? "aia.intake.cancelFile" : "aia.intake.removeFile", { name: e.name })} onClick={onRemove}>
+          {e.phase === "reading" ? t("aia.intake.cancel") : t("aia.intake.remove")}
+        </Button>
+      </span>
     </li>
   );
 }
