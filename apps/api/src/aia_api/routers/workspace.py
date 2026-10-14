@@ -40,6 +40,7 @@ from aia_core.domain.knowledge import (
     OrganizerNameTaken,
     ProposalStatus,
     StaleKnowledgeProposal,
+    source_ref,
 )
 from aia_core.domain.questionnaire_import import QuestionnaireImportRejected
 from aia_core.domain.research_template import research_template
@@ -65,6 +66,7 @@ from aia_core.infrastructure.client_knowledge_repository import (
     ClientKnowledgeRepository,
 )
 from aia_core.infrastructure.client_profile_repository import ClientProfileRepository
+from aia_core.infrastructure.client_source_repository import ClientSourceRepository
 from aia_core.infrastructure.questionnaire_file import (
     TEMPLATE_FILENAME,
     import_questionnaire,
@@ -360,6 +362,8 @@ class ProposalResponse(BaseModel):
     #: The item revision an edit was written from (null for a new item, or unknown).
     base_revision: int | None = None
     yours: bool = False
+    #: The client's source the proposed item names (C7a), so a reviewer sees the file.
+    source_id: str | None = None
 
 
 class KnowledgeSummaryResponse(BaseModel):
@@ -681,7 +685,16 @@ def _proposal(p: KnowledgeProposal, *, actor: str, names: dict[str, str]) -> Pro
         revision=p.revision,
         base_revision=p.base_revision,
         yours=p.proposed_by == actor,
+        source_id=_named_source(p),
     )
+
+
+def _named_source(p: KnowledgeProposal) -> str | None:
+    """The source a proposal names; one filed before the rule was kept (C7a) names none."""
+    try:
+        return source_ref(p.kind, p.content)
+    except ValueError:
+        return None
 
 
 def _stale(exc: StaleKnowledgeProposal) -> HTTPException:
@@ -1663,14 +1676,36 @@ def propose_knowledge(
     principal: PrincipalDep,
     resolver: ResolverDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
 ) -> ProposalResponse:
     """What a person writes here takes effect now (ADR 0019); the answer is the approved record.
 
     Only when self-approval is turned off for this client does it come back ``PROPOSED``,
     for someone else to decide. A study's findings are different: they are offered through
     ``/studies/{study_id}/knowledge-proposals`` and always wait for a person.
+
+    A SOURCE, DOCUMENT or DATASET item may name one of this client's sources as
+    ``content.source_id`` (C7a); any other source is ``422 unknown_source``.
     """
     scope = _knowledge_scope(principal, resolver, client_id)
+    try:
+        ref = source_ref(body.kind, body.content)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": "invalid_proposal", "message": str(exc)}
+        ) from exc
+    if ref is not None:
+        try:
+            ClientSourceRepository(session, store).source(scope, ref)
+        except ScopeDenied as exc:
+            if exc.reason != "unknown_source":
+                raise _forbidden(
+                    exc.reason, "Your role for this client does not permit adding knowledge."
+                ) from exc
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "unknown_source", "message": "No such source for this client."},
+            ) from exc
     try:
         proposal = ClientKnowledgeRepository(session).add(
             scope,
