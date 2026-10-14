@@ -147,13 +147,22 @@ apps/
                             workspace and its areas (clients/: StudyList, Výzkumy and Simulace as a
                             table with status filters and two orders; KnowledgeArea, the library:
                             views, folders, labels, kinds and the open item, opened on
-                            ?view=review|unfiled|old and ?add=1, read with useSearchParams;
+                            ?view=review|unfiled|old and ?add=1, read with useSearchParams; its
+                            text form is Napsat znalost;
                             KnowledgeLibrary, its table, bulk bar and the open item with its
                             history; ClientOverview, Přehled opening on Čeká na vás; ProfileArea,
                             the details, contacts, brands and competitors as ENTITY knowledge, the
                             self-approval rule and the history; SourceFile: SourcePicker, one file
                             kept as the client's source with its reading in words, and
-                            SourceCard, a named file, what was read and the original), ResearchStudy
+                            SourceCard, a named file, what was read and the original; IntakeSheet:
+                            Přidat podklady, the client's one way in for files, on every area via
+                            IntakeButton or a drop anywhere on the client's page (ClientContext
+                            holds intake / openIntake / added): each file kept and read at once,
+                            its row in words; a table as Datová sada or Dokument with its personal
+                            columns named, reading until they are in; pasted text; one knowledge
+                            item per file, filed in folders and labels (filing finished on a
+                            retry, never made twice); links and AI extraction say V AIA zatím
+                            není), ResearchStudy
                             (a study's frame; its content loaded by the study's id), useResource
                             (404 = nothing here),
                             settings/ControlPanel (eight task-based tabs, searchable reference/audit/studies,
@@ -240,6 +249,7 @@ apps/
     src/lib/knowledge-library.ts  How the client's library reads its views: the year rule
                             (YEAR_MS, the API's STALE_AFTER), the 200-item cap (RESULT_CAP), selection; study-table.ts
                             the studies table's filters and orders
+    src/lib/intake.ts       The intake sheet's pure part: rows, their words, items, placements
     src/lib/client-sources.ts  How a client's source reads on its knowledge: the kinds that take a
                             file (FILE_KINDS), sourceIdOf / withSource, the reading and its
                             locators in words (readingLine, locatorWords, reasonWords)
@@ -1273,6 +1283,7 @@ ungated fixture.
 | **See every screen** | `make ui-capture` (workbench running; needs Playwright + Chromium): every AIA screen, and, with `make ui-workbench-reference`, the unit's router routes and DEMO views as shipped, 1440/1024 → `tmp/ui-workbench/shots/<time>/index.html` + `report.json` (errors, overflow, off-palette colours) |
 | **Research UX regression** | After `make ui-fixtures` + `make ui-research`, `node tools/ui_workbench/ux_journey.mjs` (needs Playwright + Chromium): 17 AIA routes at 1440/1024/768/390, result sections, keyboard/hash navigation, client search and preserved 3D camera; real local APIs, fictional fieldwork, no paid calls; evidence → `tmp/ui-workbench/ux-journey/` |
 | **Proposal and prompt UX acceptance** | After `make ui-fixtures`, `node tools/ui_workbench/proposal_prompt_journey.mjs` (Playwright + Chromium): real local save/reload, rejected-save retry, unfinished-edit guards, native proposals without legacy analysis, downstream design equality, prompt save/activation/reset and four responsive widths. Local fictional identity only; asserts zero paid jobs. `--facade` and `--out` override the local URL/evidence directory; `AIA_CHROMIUM` selects an installed browser. |
+| **The client intake sheet, in a browser** | `make ui-intake` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): files kept and read, a table named, one item per file, a drop on the page, the sheet open within 400 ms |
 | **Client workspace acceptance** | After `make ui-workbench` + `make ui-fixtures`, `node tools/ui_workbench/client_journey.mjs` (Playwright + Chromium; `AIA_CHROMIUM` selects the browser): six client areas at four widths without overflow; fictional knowledge added, filed, labelled, edited and removed; the profile saved and read back after a reload; a contact added and removed with no e-mail in the history; zero paid jobs. After a migration that adds columns, start the workbench with `python tools/ui_workbench/workbench.py up --fresh` |
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all eight tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **The Metodika tab, every module** | `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): every module's steps and links, one edit compared, stored and activated per editable module, a run that pins them; every module restored afterwards. `--facade`, `--out` and `AIA_CHROMIUM` as for the settings journey |
