@@ -91,6 +91,10 @@ class SpecQuestion(_Frozen):
     #: it enters every person's min-max (audit F2) beside the tracked sets' items. Never
     #: inferred from the type: a numeric question is a descriptor unless declared.
     rating_item: bool = False
+    #: The research questions the design says this question measures (``research_questions``),
+    #: by their text as the plan states them. A link is a declaration, never inferred; one
+    #: that names no stated research question is the trace's to report, not the compiler's.
+    research_questions: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _shape(self) -> SpecQuestion:
@@ -131,6 +135,8 @@ class SpecBattery(_Frozen):
     #: Whether the design declared the roles at all; ``False`` is "every object PRIMARY
     #: because nothing was declared", which the artifact says.
     roles_declared: bool = False
+    #: The research questions the design says this set measures, as :class:`SpecQuestion`'s.
+    research_questions: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _roles(self) -> SpecBattery:
@@ -201,10 +207,14 @@ class ResearchSpecification(_Frozen):
         for question in body["questions"]:
             if not question["rating_item"]:
                 del question["rating_item"]
+            if not question["research_questions"]:
+                del question["research_questions"]
         for battery in body["batteries"]:
             if not battery["roles_declared"]:
                 del battery["roles_declared"]
                 del battery["context_objects"]
+            if not battery["research_questions"]:
+                del battery["research_questions"]
         if body["selection"] is None:
             del body["selection"]
         return fingerprint(body)
@@ -282,6 +292,26 @@ def _scale(raw: Any, default: tuple[int, int]) -> tuple[int, int] | None:
     return (low, high) if low < high else None
 
 
+def _links(
+    raw: dict[str, Any], where: str, problems: list[CompileProblem]
+) -> tuple[str, ...] | None:
+    """The research questions an item says it measures: texts, whitespace collapsed, once
+    each, in order. Absent is none; anything but a list of texts is a problem, never guessed."""
+    declared = raw.get("research_questions")
+    if declared is None:
+        return ()
+    if not isinstance(declared, list) or not all(isinstance(x, str) for x in declared):
+        problems.append(
+            CompileProblem(
+                code="invalid_research_question_links",
+                where=where,
+                message=f"{where}: výzkumné otázky položky musí být seznam textů.",
+            )
+        )
+        return None
+    return tuple(dict.fromkeys(t for t in (_text(x) for x in declared) if t))
+
+
 def _question(
     raw: Any, *, section_id: str, ordinal: int, used: set[str], problems: list[CompileProblem]
 ) -> SpecQuestion | None:
@@ -345,6 +375,9 @@ def _question(
             )
         )
         return None
+    links = _links(raw, qid, problems)
+    if links is None:
+        return None
     return SpecQuestion(
         id=qid,
         section_id=section_id,
@@ -355,6 +388,7 @@ def _question(
         allow_dont_know=allow_dont_know,
         has_filter=bool(_text(raw.get("filtr"))),
         rating_item=rating_item,
+        research_questions=links,
     )
 
 
@@ -432,6 +466,9 @@ def _battery(
             )
         )
         return None
+    links = _links(raw, section_id, problems)
+    if links is None:
+        return None
     return SpecBattery(
         id=section_id,
         title=title,
@@ -446,6 +483,7 @@ def _battery(
         else "pozicni_mapa",
         context_objects=context,
         roles_declared=roles_declared,
+        research_questions=links,
     )
 
 
