@@ -41,7 +41,7 @@ chunks:
   - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
-  - "[ ] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
+  - "[x] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
 ---
 # The Metodika tab — every formula and statistic in AIA, shown from the code and editable by the methodologist
 
@@ -1168,3 +1168,30 @@ To be written as chunks land:
   paths;
 - the ADR index entry for 0023;
 - `AGENTS.md` if Temml under Next 16 or the expression compiler needs a note.
+
+- **Z1b. Landed.** `tools/ui_workbench/methodology_journey.mjs`, `make ui-methodology` (needs
+  `make ui-workbench` and `make ui-fixtures`). Z1a's walk, committed, over every module the API
+  lists:
+  - an editable module (sociomap, support, aggregation, response) opens on its editor; every
+    outline step shows itself alone, and every link of a step's place in the computation lands
+    on a step the editor shows; one edit is compared, stored and put in force, and the API
+    agrees;
+  - a read-only module (sociomap_reference, sociomapping, weighting) opens on its catalogue,
+    every stage with its steps or saying none is computed;
+  - with `--run` (the make target), one research run through `research_journey.mjs` pins every
+    stored version by name (`methodology` on the run);
+  - every module it touched goes back to what was in force before it, pass or fail.
+  - Measured on the workbench (next dev, fictional data): PASS, 8 checks; the Sociomap's 19
+    steps and 50 context links walked; the run pinned `aia-sociomap-4+e5`, `aia-support-1+e3`,
+    `aia-aggregate-1+e3`, `aia-response-1+e3`; afterwards all four read `code` again.
+  - Proved to catch #400's review finding: with the editor's `linkable` guard switched off, it
+    fails "the link f1_declared_scale -> f11_not_placed left 0 steps shown".
+  - Fixed on the way: `research_journey.mjs` waited for a *visible* table on Results' Data tab,
+    but the research-lane redesign renders each question's table inside a closed section, so
+    it failed on plain develop ("Results show no aggregate table") with the tables present. It
+    now waits for the table to be attached.
+  - Doc follow-up: CLAUDE.md § 3 Commands, a row "**The Metodika tab, every module** |
+    `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright +
+    Chromium): every module's steps and links, one edit compared, stored and activated per
+    editable module, a run that pins them; every module restored afterwards".
+
