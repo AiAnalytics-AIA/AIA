@@ -19,6 +19,7 @@ from aia_core.application.analysis_results import (
     ReconstructionRefused,
     reconstruct_run,
     retry_failed_modules,
+    stored_analysis,
 )
 from aia_core.application.client_report import ClientReportRefused, stored_client_report
 from aia_core.application.contextual_report import stored_contextual_report
@@ -1033,6 +1034,31 @@ def retry_run(
     return _started(runs, started, response)
 
 
+@router.get(
+    "/research/runs/{run_id}/analysis/retryable",
+    response_model=dict[str, Any],
+    summary="The analysis modules of a run a person may ask again over its collected data",
+)
+def run_analysis_retryable(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Read from the stored outcomes as they are, under whichever harness stored them, so a
+    run made before a harness change can still be repaired (``…/analysis`` re-judges and
+    refuses those)."""
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        analysis = stored_analysis(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return {"run_id": run_id, "modules": [module.value for module in analysis.retryable]}
+
+
 _NOT_RETRYABLE_MESSAGES: Final = {
     "run_not_finished": "Běh ještě neskončil; neúspěšné moduly lze zopakovat až po jeho konci.",
     "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
@@ -1174,7 +1200,6 @@ def run_analysis(
     return {
         "run_id": run_id,
         "complete": analysis.complete,
-        "retryable_modules": [module.value for module in analysis.retryable],
         "internal_only": True,
         "synthetic": any(o.record.labels.simulated_respondents for o in analysis.modules.values()),
         **_origin_flags(

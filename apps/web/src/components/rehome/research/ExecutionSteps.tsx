@@ -697,7 +697,7 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 // ------------------------------------------------------------ Progress -------
 
 /**
- * The modules of a finished run a person may ask again (`GET …/analysis`), or `null` while
+ * The modules of a finished run a person may ask again (`GET …/analysis/retryable`), or `null` while
  * there is nothing to ask about. Read once per finished run, not on every poll.
  */
 function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
@@ -709,8 +709,8 @@ function useRetryableModules(run: ResearchRun | null | undefined): string[] | nu
     if (!possible || !runId) return;
     let live = true;
     research
-      .analysis(frame.studyId, runId)
-      .then((a) => live && setModules({ runId, list: a.retryable_modules ?? [] }))
+      .retryableModules(frame.studyId, runId)
+      .then((list) => live && setModules({ runId, list }))
       .catch(() => live && setModules({ runId, list: [] }));
     return () => {
       live = false;

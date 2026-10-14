@@ -771,6 +771,12 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert "AI analýzu" in none.json()["message"]
     missing = researcher.post(f"{_runs(world)}/RUN-0000000000000000/analysis/retry")
     assert missing.status_code == 404
+    retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
+    assert retryable.status_code == 200, retryable.text
+    assert retryable.json() == {"run_id": run_id, "modules": []}
+    assert (
+        researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
+    )
 
 
 def test_any_member_may_cancel_a_run_with_or_without_a_grant(

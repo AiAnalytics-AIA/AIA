@@ -96,12 +96,24 @@ Tests: `test_retrying_failed_modules_asks_only_them_over_the_same_data`,
 `test_an_analysis_retry_buys_no_fieldwork_and_only_the_modules_it_asks`,
 `test_a_retry_round_is_its_own_turn_key_and_round_zero_keeps_the_old_one`.
 
+Review findings (Codex on #405), both fixed:
+
+- The retry read outcomes through `reconstruct_run`, which refuses any outcome whose
+  stored harness is not today's (`fingerprint_mismatch`), so every run stored under
+  harness 1 -- the very runs this repairs -- got a 409. The retry now reads outcomes as
+  stored (`stored_analysis`: bytes verified, contract parsed, nothing re-judged), and
+  the screen asks `GET …/analysis/retryable`, which does the same.
+  Test: `test_a_run_stored_under_the_previous_harness_can_still_be_repaired`.
+- A run cancelled after fieldwork had its cancelled modules counted as retryable while
+  the run status was refused. CANCELLED is finished for an analysis retry.
+  Test: `test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data`.
+
 ## 1c — the run screen
 
 - Each step of `GET …/research/runs/{id}` carries `analysis_outcome` (COMPLETED /
   BLOCKED for an analysis step). A BLOCKED module's step reads "Potřebuje opravu" in the
   fault tone, not "Hotovo" (`needsRepair`, `research-execution.test.ts`).
-- `GET …/analysis` carries `retryable_modules`. A finished run with any shows a card
+- `GET …/analysis/retryable` lists the modules a retry would ask. A finished run with any shows a card
   saying the data stands, which modules a model could not complete, and the action
   "Zopakovat neúspěšné moduly"; the whole-run retry beside it is demoted and says it
   collects the data again.

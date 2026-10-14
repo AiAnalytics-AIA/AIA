@@ -34,9 +34,11 @@ from aia_core.application.analysis_results import (
     SPECIFICATION_ARTIFACT,
     AnalysisNotRetryable,
     DatasetMaterial,
+    ReconstructionRefused,
     SourcesRefused,
     reconstruct_run,
     retry_failed_modules,
+    stored_analysis,
 )
 from aia_core.application.contextual_report import contextual_report, stored_contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
@@ -1326,6 +1328,72 @@ def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old
     assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.FAILED
     again = _retry_analysis(world, store, retry.run_id)
     assert _run(world, again.run_id)["metadata"]["analysis_retry"]["round"] == 2
+
+
+def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The runs this repairs were stored under harness 1, which reconstruct_run refuses to
+    re-admit. The retry reads their outcomes as stored, and asks again every module whose
+    reuse key the harness change moved."""
+    import aia_core.application.analysis_results as analysis_results
+
+    today = analysis_results.harness_summary
+
+    def earlier(**kw: Any) -> Any:
+        return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
+
+    monkeypatch.setattr(analysis_results, "harness_summary", earlier)
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    monkeypatch.undo()
+    models.invent.clear()
+    with pytest.raises(ReconstructionRefused) as old:
+        _reconstruct(world, store, first)
+    assert old.value.reason == "fingerprint_mismatch"
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    assert stored.retryable == (AnalysisModuleId.OBJECTS,)
+
+    asked_before = len(models.asked)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
+    assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
+    assert _reconstruct(world, store, retry.run_id).complete
+
+
+def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels()
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    while not any(
+        s["node_key"] == "aggregate" and s["status"] is StepRunStatus.SUCCEEDED
+        for s in _run(world, first)["steps"]
+    ):
+        assert worker.run_once() is not None, _unfinished(world, first)
+    with world.sessions() as session:
+        ResearchRuns(session, world.lead_scope(session)).cancel(first)
+        session.commit()
+    _drain(worker)
+    assert _run(world, first)["status"] is WorkflowRunStatus.CANCELLED
+    asked_before = len(models.asked)
+
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
+    before = {m for m, _ in models.asked[:asked_before]}
+    after = [m for m, _ in models.asked[asked_before:]]
+    # Each module asked once over the frozen data: the cancelled ones now, none twice.
+    assert sorted(after) == sorted(set(MODULES) - before)
+    assert _reconstruct(world, store, retry.run_id).complete
 
 
 def test_a_retry_whose_dataset_does_not_match_its_bytes_is_refused_not_collected_again(

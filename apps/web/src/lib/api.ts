@@ -878,8 +878,6 @@ export type ResearchRunSummary = Omit<ResearchRun, "steps" | "artifact_ids">;
 export type ResearchAnalysis = {
   run_id: string;
   complete: boolean;
-  /** Modules a person may ask again over the run's frozen data (`research.retryAnalysis`). */
-  retryable_modules: string[];
   internal_only: true;
   synthetic: boolean;
   modelled?: boolean;
@@ -955,6 +953,9 @@ export const research = {
       `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
+  /** The modules a finished run may ask again (`retryAnalysis`), read from its stored outcomes. */
+  retryableModules: (studyId: string, runId: string) =>
+    request<{ run_id: string; modules: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`).then((r) => r.modules),
   /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
   retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
     request<ResearchRun>(
