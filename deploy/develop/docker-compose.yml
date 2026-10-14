@@ -31,6 +31,9 @@ x-app-env: &app-env
   AIA_LOG_FORMAT: json
   AIA_LOG_LEVEL: ${AIA_LOG_LEVEL:-INFO}
   AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
+  # A new run's AI respondents drawn from its population (pinned at start by the API; the worker
+  # serves it from AIA_POPULATION_ASSET_ROOT below). Off: every run is the fictional roster.
+  AIA_AI_POPULATION_PERSONAS_ENABLED: ${AIA_AI_POPULATION_PERSONAS_ENABLED:-false}
   DATABASE_URL: postgresql+psycopg://aia:${POSTGRES_PASSWORD}@postgres:5432/aia
   AIA_STORAGE_BACKEND: s3
   AIA_STORAGE_BUCKET: ${AIA_STORAGE_BUCKET}
@@ -154,6 +157,12 @@ services:
       AIA_DEEP_RESEARCH_CONNECTORS: ${AIA_DEEP_RESEARCH_CONNECTORS:-}
       AIA_DEEP_RESEARCH_AGENT_DIRECTED: ${AIA_DEEP_RESEARCH_AGENT_DIRECTED:-false}
       AIA_DEEP_RESEARCH_LEAD: ${AIA_DEEP_RESEARCH_LEAD:-false}
+      # The audience step's preview (panel-grounded-respondents 6c): the API loads LIVE from the
+      # same read-only directory the worker reads, once per version, and answers with counts.
+      # AIA_API_POPULATION_ASSET_ROOT= (empty) in .env turns the preview off; the step says so.
+      AIA_POPULATION_ASSET_ROOT: ${AIA_API_POPULATION_ASSET_ROOT-/srv/population/v17}
+    volumes:
+      - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]
     depends_on:
       postgres:
@@ -198,6 +207,12 @@ services:
       AIA_AI_ANALYSIS_ENABLED: ${AIA_AI_ANALYSIS_ENABLED:-false}
       AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS: ${AIA_AI_ANALYSIS_MAX_OUTPUT_TOKENS:-}
       AIA_AI_ANALYSIS_RESERVATION_USD: ${AIA_AI_ANALYSIS_RESERVATION_USD:-}
+      # A model request's "sent" and "answered" in its run's feed (step-activity plan, chunk 5).
+      AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}
+      # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image
+      # is built with LibreOffice (AIA_WORKER_PDF=true in deploy-develop.yml), so it is on.
+      AIA_REPORT_PDF_ENABLED: ${AIA_REPORT_PDF_ENABLED:-true}
+      AIA_AI_POPULATION_PERSONAS_ENABLED: ${AIA_AI_POPULATION_PERSONAS_ENABLED:-false}
       AIA_DEEP_RESEARCH_ENABLED: ${AIA_DEEP_RESEARCH_ENABLED:-false}
       AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED: ${AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED:-false}
       AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS: ${AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS:-}
@@ -239,6 +254,10 @@ services:
       # bin/sync-population.sh fills from population/v17.files.
       AIA_POPULATION_OPERATORS: ${AIA_POPULATION_OPERATORS:-}
       AIA_POPULATION_ASSET_ROOT: /srv/population/v17
+      # Materialized children (population-operations P4d1): the bucket and region from SSM
+      # aia_population_store_*, both or neither (neither: no store, nothing written or read).
+      AIA_POPULATION_STORE_BUCKET: ${AIA_POPULATION_STORE_BUCKET:-}
+      AIA_POPULATION_STORE_REGION: ${AIA_POPULATION_STORE_REGION:-}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     depends_on:

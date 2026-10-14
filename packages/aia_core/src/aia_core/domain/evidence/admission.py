@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Final
 
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
 from .claims import (
     ClaimBasis,
@@ -241,15 +241,26 @@ def _check_claim(
         )
 
     decisions: list[GateDecision] = []
-    if surface is ClaimSurface.CLIENT_FACING and row.data_origin in NON_EVIDENCE_ORIGINS:
-        decisions.append(
-            block(
-                ViolationCode.SYNTHETIC_DATA_ORIGIN,
-                cid,
-                f"{claim.evidence_ref} is computed from synthetic respondents "
-                f"({row.data_origin.value if row.data_origin else '?'}); it is not a finding",
+    if surface is ClaimSurface.CLIENT_FACING and row.data_origin not in CLIENT_ADMISSIBLE_ORIGINS:
+        if row.data_origin in NON_EVIDENCE_ORIGINS:
+            decisions.append(
+                block(
+                    ViolationCode.SYNTHETIC_DATA_ORIGIN,
+                    cid,
+                    f"{claim.evidence_ref} is computed from synthetic respondents "
+                    f"({row.data_origin.value}); it is not a finding",
+                )
             )
-        )
+        else:
+            decisions.append(
+                block(
+                    ViolationCode.ORIGIN_NOT_ADMISSIBLE,
+                    cid,
+                    f"{claim.evidence_ref} has origin "
+                    f"{row.data_origin.value if row.data_origin else 'none'}, which no "
+                    "client-facing claim may come from (ADR 0024 §2)",
+                )
+            )
     try:
         metric = parse_metric(claim.metric)
     except UnknownMetric as exc:

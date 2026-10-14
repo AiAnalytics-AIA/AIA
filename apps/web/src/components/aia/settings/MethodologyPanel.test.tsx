@@ -35,9 +35,17 @@ function fakeApi(list: unknown = doc.modules) {
 
 const card = (title: string) =>
   waitFor(() => {
-    const heading = screen.getByRole("heading", { name: title });
+    const heading = screen.getByRole("heading", { name: title, hidden: true });
+    const group = heading.closest("details") as HTMLDetailsElement;
+    if (group && !group.open) fireEvent.click(group.querySelector("summary")!);
     return heading.closest("article") as HTMLElement;
   });
+
+/** The area chooser is closed by default (the editor opens first): open it, then pick an area. */
+async function openModule(name: string) {
+  if (!screen.queryByRole("navigation", { name: "Oblasti metodiky" })) fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
+  fireEvent.click(await screen.findByRole("button", { name }));
+}
 
 beforeEach(() => {
   resetConfigCache();
@@ -53,16 +61,23 @@ describe("the Metodika tab", () => {
   it("lists every module and opens the object map in force, in the audit's order", async () => {
     fakeApi();
     render(<MethodologyPanel />);
+    // The area in force opens at once; choosing another is one click away.
+    expect(await screen.findByRole("heading", { level: 3, name: "Sociomapa: objektová mapa" })).toBeTruthy();
+    expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Změnit oblast" }));
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
-    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual([
-      "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)",
-      "Sociomapping: experimentální H-Model (kandidát AIA)",
-      "Podpora a potlačení: kdy se číslo smí ukázat",
+    expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
+      "Sociomapa: objektová mapa", "Sociomapa: referenční mapa (18.6.6)", "Sociomapping: experimentální H-Model (kandidát AIA)",
+      "Agregace: z odpovědí odhad s intervalem", "Podpora a potlačení: kdy se číslo smí ukázat",
+      "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
     ]);
+    expect(within(nav).getByRole("group", { name: "Mapy objektů" })).toBeTruthy();
+    expect(within(nav).getByRole("group", { name: "Čísla ve výsledcích" })).toBeTruthy();
+    expect(within(nav).getByRole("group", { name: "Respondenti a váhy" })).toBeTruthy();
     await screen.findByRole("heading", { name: "F1 Které položky jsou hodnocení" });
-    const groups = screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent);
+    const groups = [...document.querySelectorAll("h3[id^=mg-]")].map((h) => h.textContent);
     expect(groups.slice(0, 4)).toEqual(["Metoda", "F1 Které položky jsou hodnocení", "F2 Hodnoticí zvyklosti", "F3 Vztah dvou objektů a jeho spolehlivost"]);
-    expect(screen.getByRole("radio", { name: /aia-sociomap-3 · v platnosti/ }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("radio", { name: /aia-sociomap-3 · výchozí v kódu/ }).getAttribute("aria-checked")).toBe("true");
   });
 
   it("shows each value with where it comes from, and draws the formula as MathML", async () => {
@@ -86,6 +101,7 @@ describe("the Metodika tab", () => {
     const slot = terrain.querySelector('[data-slot="f12.kernel"]') as HTMLElement;
     expect(within(slot).getByText("h * exp(-d2 / (2 * sigma * sigma))")).toBeTruthy();
     expect(slot.querySelector("math")).not.toBeNull();
+    fireEvent.click(slot.querySelector("summary")!);
     expect(within(slot).getByText("kopec má ve svém středu přesně svou výšku")).toBeTruthy();
     const smacof = await card("Rozložení objektů (SMACOF na pevném pravítku)");
     expect(smacof.querySelector("[data-slot]")).toBeNull();
@@ -112,7 +128,7 @@ describe("the Metodika tab", () => {
   it("opens the reference map with its own steps", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sociomapa: referenční mapa (18.6.6)" }));
+    await openModule("Sociomapa: referenční mapa (18.6.6)");
     await screen.findByRole("heading", { name: "Matice vztahů objektů (stupnice 1-10)" });
     expect(calls).toContain("/api/v1/methodology/sociomap_reference?preset=aia-sociomap-1");
   });
@@ -120,21 +136,75 @@ describe("the Metodika tab", () => {
   it("opens the experimental H-Model with its search parameters, shown and not offered for editing", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sociomapping: experimentální H-Model (kandidát AIA)" }));
+    await openModule("Sociomapping: experimentální H-Model (kandidát AIA)");
     await screen.findByRole("heading", { name: "Rozložení (H-Model, kandidát AIA)" });
     expect(calls).toContain("/api/v1/methodology/sociomapping?preset=aia_hmodel_candidate_v1");
     expect(screen.getAllByText(/EXPERIMENTAL_AIA/).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
   });
 
-  it("opens support and suppression with both rule sets side by side, documented and not editable", async () => {
+  it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {
     fakeApi();
     render(<MethodologyPanel />);
-    fireEvent.click(await screen.findByRole("button", { name: "Podpora a potlačení: kdy se číslo smí ukázat" }));
+    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
-    expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
+    await waitFor(() => expect(calls).toContain("/api/v1/methodology/support/versions")); // its versions, so its editor
+  });
+
+  it("opens aggregation with its declared bootstrap and the findings on their steps", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    await openModule("Agregace: z odpovědí odhad s intervalem");
+    await screen.findByRole("heading", { name: "Interval: bootstrap dárců" });
+    expect(screen.getByRole("heading", { name: "Věrohodnost otázky" })).toBeTruthy();
+    expect(screen.getAllByText(/aia-aggregate-1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/nález D5/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/nález D7/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeTruthy();
+    // Its estimators are shown as expressions, replaceable in the version editor (G3b).
+    const mean = document.querySelector('[data-slot="agg.mean"]') as HTMLElement;
+    expect(within(mean).getByText("sum(w * x) / sum(w)")).toBeTruthy();
+    expect(within(mean).getByText(/V editoru verzí ho lze nahradit/)).toBeTruthy();
+    expect(within(mean).queryByText(/až bude tato oblast upravitelná/)).toBeNull();
+  });
+
+  it("opens weighting read-only: the schemes, the sample's raking, the dataset's refusal and D1", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
+    expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
+    expect(screen.getByText("vaha_strukturalni_2025")).toBeTruthy();
+    // What a run's respondent weighs: the sampler's raking, its values the code's constants.
+    expect(screen.getByRole("heading", { name: "Váha respondenta běhu: vzorek z panelu" })).toBeTruthy();
+    expect(screen.getByText("Raking vzorku na cíle")).toBeTruthy();
+    expect(screen.getByText("Nejvýš iterací")).toBeTruthy();
+    // The inert median/refuse switch is gone (W1b); the dataset refuses instead.
+    expect(screen.queryByText("median")).toBeNull();
+    expect(screen.getByText("Váha v datové sadě běhu")).toBeTruthy();
+    // A total the contract does not declare is said, never shown as 0.
+    expect(screen.getAllByText("žádná (null)").length).toBe(4);
+    expect(screen.getAllByText(/nález D1/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/GREG ani jiná kalibrace v AIA nejsou/).length).toBeGreaterThan(0);
+    // Read-only until W1c, and the page says so.
+    expect(screen.getByText(/Tento postup je dostupný ke čtení/)).toBeTruthy();
+    expect(screen.queryByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeNull();
+  });
+
+  it("opens the response process: the unit's coefficients, the draw by code, D6, and editable", async () => {
+    fakeApi();
+    render(<MethodologyPanel />);
+    await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    await screen.findByRole("heading", { name: "Mechanismy odpovědi" });
+    expect(screen.getAllByText(/aia-response-1/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Losování odpovědi kódem")).toBeTruthy();
+    expect(screen.getByText("Strop podílu (λ max)")).toBeTruthy();
+    expect(screen.getAllByText(/Nález D6/).length).toBeGreaterThan(0);
+    // Editable from R1c: the page offers a new version, as for support and aggregation.
+    expect(screen.getByText(/Vlastník nebo správce může vytvořit novou verzi/)).toBeTruthy();
+    expect(screen.queryByText(/Tento postup je dostupný ke čtení/)).toBeNull();
   });
 
   it("refuses a body that is not a list rather than drawing an empty methodology", async () => {
@@ -143,3 +213,15 @@ describe("the Metodika tab", () => {
     await screen.findByText(/nemá podobu metodiky/);
   });
 });
+
+  it("focuses the calculation with search and keeps provenance available on demand", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    const input = await screen.findByRole("searchbox", { name: "Hledat výpočet nebo parametr" });
+    fireEvent.change(input, { target: { value: "Kish" } });
+    const cards = [...document.querySelectorAll("article")];
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.every((c) => c.textContent?.includes("Kish"))).toBe(true);
+    expect([...document.querySelectorAll("section > details")].every((d) => (d as HTMLDetailsElement).open)).toBe(true);
+    fireEvent.change(input, { target: { value: "no-such-calculation" } });
+    expect(screen.getByRole("status").textContent).toBe("Žádná část neodpovídá hledání.");
+  });

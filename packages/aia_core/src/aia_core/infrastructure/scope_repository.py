@@ -58,6 +58,10 @@ def _client_to_domain(row: ClientRow) -> Client:
         status=ClientStatus(row.status),
         reference=row.reference,
         allow_self_approval=row.allow_self_approval,
+        short_code=row.short_code,
+        industry=row.industry,
+        market=row.market,
+        description=row.description,
         created_at=row.created_at,
         modified_at=row.modified_at,
     )

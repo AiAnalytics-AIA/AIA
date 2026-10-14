@@ -8,7 +8,10 @@ locals {
 
   artifacts_bucket = "${local.name}-artifacts-${local.account_id}"
   ops_bucket       = "${local.name}-ops-${local.account_id}"
-  ecr_registry     = "${local.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
+  # Materialized population children (population-operations P4d1): licence-bound
+  # respondent data with its own access, so never a prefix of the artifacts bucket.
+  population_bucket = "${local.name}-population-${local.account_id}"
+  ecr_registry      = "${local.account_id}.dkr.ecr.${var.aws_region}.amazonaws.com"
 
   # Every image the deploy workflow pushes. The list is the ECR repository set
   # AND the deploy role's push grant (github.tf), so a new image in
@@ -104,8 +107,18 @@ resource "aws_s3_bucket" "ops" {
   force_destroy = true
 }
 
+# Population children are written once and never replaced (S3PopulationStore.put_once);
+# a destroy must not take them with it, so no force_destroy here.
+resource "aws_s3_bucket" "population" {
+  bucket = local.population_bucket
+}
+
 locals {
-  buckets = { artifacts = aws_s3_bucket.artifacts, ops = aws_s3_bucket.ops }
+  buckets = {
+    artifacts  = aws_s3_bucket.artifacts,
+    ops        = aws_s3_bucket.ops,
+    population = aws_s3_bucket.population,
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "all" {
@@ -197,6 +210,18 @@ resource "aws_s3_bucket_lifecycle_configuration" "ops" {
   }
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "population" {
+  bucket = aws_s3_bucket.population.id
+  rule {
+    id     = "tidy"
+    status = "Enabled"
+    filter {}
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 # ----------------------------------------------------------------------------- #
 # Registry: one repository per image, pulled by the instance role.
 # Tags stay mutable so `develop` can be re-pointed as a convenience alias; the
@@ -271,6 +296,18 @@ resource "aws_ssm_parameter" "config" {
   value = each.value
 }
 
+# Its own resource rather than a key of `config`: that map also carries the Cognito
+# ids, so planning one key of it plans the Google identity provider too.
+resource "aws_ssm_parameter" "population_store" {
+  for_each = {
+    aia_population_store_bucket = aws_s3_bucket.population.bucket
+    aia_population_store_region = var.aws_region
+  }
+  name  = "${local.ssm_prefix}/${each.key}"
+  type  = "String"
+  value = each.value
+}
+
 # ----------------------------------------------------------------------------- #
 # The instance role: the only credential the host has. Least privilege, one
 # statement per purpose, and the Bedrock grant names one model (ADR 0010).
@@ -311,6 +348,18 @@ data "aws_iam_policy_document" "instance" {
     sid       = "BackupsAndDeployBundles"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:ListBucket", "s3:GetBucketLocation"]
     resources = [aws_s3_bucket.ops.arn, "${aws_s3_bucket.ops.arn}/*"]
+  }
+  statement {
+    # Materialized population children: read and written once under materialized/.
+    # No delete: a child a run was computed over must stay readable.
+    sid       = "MaterializedPopulation"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["${aws_s3_bucket.population.arn}/materialized/*"]
+  }
+  statement {
+    sid       = "MaterializedPopulationList"
+    actions   = ["s3:ListBucket", "s3:GetBucketLocation"]
+    resources = [aws_s3_bucket.population.arn]
   }
   statement {
     sid       = "PullImages"

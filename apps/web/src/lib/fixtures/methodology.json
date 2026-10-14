@@ -1,5 +1,1515 @@
 {
  "details": {
+  "aggregation": {
+   "aia-aggregate-1": {
+    "editable": true,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Agregace"
+     },
+     {
+      "id": "V",
+      "note_cs": "",
+      "step_ids": [
+       "weights",
+       "kish"
+      ],
+      "title_cs": "Váhy"
+     },
+     {
+      "id": "O",
+      "note_cs": "",
+      "step_ids": [
+       "share",
+       "mean",
+       "median",
+       "sd",
+       "top_box",
+       "multi"
+      ],
+      "title_cs": "Odhady"
+     },
+     {
+      "id": "B",
+      "note_cs": "",
+      "step_ids": [
+       "resample",
+       "interval"
+      ],
+      "title_cs": "Interval: bootstrap dárců"
+     },
+     {
+      "id": "F",
+      "note_cs": "",
+      "step_ids": [
+       "classify",
+       "fidelity"
+      ],
+      "title_cs": "Věrohodnost otázky"
+     }
+    ],
+    "id": "aggregation",
+    "in_force": "aia-aggregate-1",
+    "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti. Metodik může upravit hodnoty i vzorce; kontrola návrhu je nejdřív ukáže na fiktivních panelech. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+    "preset": "aia-aggregate-1",
+    "presets": [
+     "aia-aggregate-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       }
+      ],
+      "formula_latex": "\\text{agregace} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.research_aggregate:AggregationSpec",
+      "note_cs": "",
+      "source_sha256": "b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit",
+       "packages/aia_core/tests/test_aggregate_deviation.py::test_a_changed_value_is_named_and_the_numbers_follow_it"
+      ],
+      "title_cs": "Pojmenování agregace",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze agregace",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-aggregate-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
+      "formulas": [],
+      "id": "weights",
+      "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1). Na běhu nenastane: datová sada běhu neplatnou váhu odmítne dřív (modul Vážení).",
+      "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Čištění vah",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [
+       {
+        "expression": "sum(w) ** 2 / sum(w * w)",
+        "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "",
+          "kind": "non_negative",
+          "variable": null
+         },
+         {
+          "description_cs": "nejvýš počet odpovědí",
+          "kind": "at_most_variable",
+          "variable": "w"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.kish",
+        "title_cs": "Kishovo efektivní n",
+        "variables": [
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
+      "id": "kish",
+      "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "note_cs": "Podporu buňky z něj počítá modul Podpora a potlačení.",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
+       "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
+      ],
+      "title_cs": "Kishovo efektivní n",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "p_c = 100\\,\\frac{\\sum_k w_k\\,[x_k = c]}{\\sum_k w_k}\\quad\\text{(na 1 desetinné místo)}",
+      "formulas": [
+       {
+        "expression": "100 * sum(w * hit) / sum(w)",
+        "latex": "\\frac{100 \\cdot \\left(\\sum w \\cdot [x_k = c]\\right)}{\\sum w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "podíl leží v [0, 100] %",
+          "kind": "within",
+          "variable": null
+         },
+         {
+          "description_cs": "",
+          "kind": "non_decreasing_in",
+          "variable": "hit"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.share",
+        "title_cs": "Vážený podíl odpovědi",
+        "variables": [
+         {
+          "latex": "[x_k = c]",
+          "meaning_cs": "1, když respondent zvolil tuto možnost, jinak 0",
+          "name": "hit",
+          "unit": "",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
+      "id": "share",
+      "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_distribution",
+      "note_cs": "Odhad i meze se zaokrouhlí na jedno desetinné místo.",
+      "source_sha256": "753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
+      "symbols": [
+       {
+        "latex": "p_c",
+        "meaning_cs": "podíl možnosti c",
+        "unit": "%"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Podíl odpovědi (výběr jedné možnosti)",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "\\bar{x} = \\frac{\\sum_k w_k x_k}{\\sum_k w_k}\\quad\\text{(na 2 desetinná místa)}",
+      "formulas": [
+       {
+        "expression": "sum(w * x) / sum(w)",
+        "latex": "\\frac{\\sum w \\cdot x}{\\sum w}",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "vyšší odpovědi, vyšší průměr",
+          "kind": "non_decreasing_in",
+          "variable": "x"
+         },
+         {
+          "description_cs": "průměr stejných odpovědí je ta odpověď",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.mean",
+        "title_cs": "Vážený průměr",
+        "variables": [
+         {
+          "latex": "x",
+          "meaning_cs": "odpovědi na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
+      "id": "mean",
+      "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_mean",
+      "note_cs": "Stejný vážený průměr počítá i podíl top boxu a podíl každé možnosti u výběru více možností (průměr ukazatelů 0/1) a každou replikaci bootstrapu. Úprava vzorce průměru proto mění i je.",
+      "source_sha256": "91e8c6f4c2d0216e310f68038d5be443312ee9d324f55dc469f87e9dac00726d",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Průměr škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "F_j = \\frac{\\sum_{i \\le j} w_{(i)}}{\\sum_i w_i},\\quad \\tilde{x} = \\operatorname{interp}\\!\\left(0{,}5;\\ F;\\ x_{(\\cdot)}\\right)",
+      "formulas": [],
+      "id": "median",
+      "implements": "aia_core.domain.research_aggregate:weighted_quantile",
+      "note_cs": "Lineární interpolace jako np.interp; mimo rozsah se drží krajní hodnoty.",
+      "source_sha256": "2c10357e72def048928949d3a726a20cd4c3a46fefaab70b853dc35e34ace9a3",
+      "symbols": [
+       {
+        "latex": "F_j",
+        "meaning_cs": "kumulativní podíl vah seřazených odpovědí",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_the_weighted_median_interpolates_like_numpy"
+      ],
+      "title_cs": "Medián škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "s = \\sqrt{\\frac{\\sum_k w_k (x_k - \\bar{x})^2}{\\sum_k w_k}}\\quad\\text{(ddof 0, na 2 desetinná místa)}",
+      "formulas": [
+       {
+        "expression": "sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)",
+        "latex": "\\frac{\\sum w \\cdot {\\left(x - \\frac{\\sum w \\cdot x}{\\sum w}\\right)}^{2}}{\\sum w}",
+        "note_cs": "Směrodatná odchylka je odmocnina z rozptylu.",
+        "properties": [
+         {
+          "description_cs": "",
+          "kind": "non_negative",
+          "variable": null
+         },
+         {
+          "description_cs": "stejné odpovědi nemají rozptyl",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.variance",
+        "title_cs": "Vážený rozptyl (ddof 0)",
+        "variables": [
+         {
+          "latex": "x",
+          "meaning_cs": "odpovědi na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": true
+         },
+         {
+          "latex": "w",
+          "meaning_cs": "váhy respondentů, kteří odpověděli",
+          "name": "w",
+          "unit": "",
+          "vector": true
+         }
+        ]
+       }
+      ],
+      "id": "sd",
+      "implements": "aia_core.domain.research_aggregate:weighted_variance",
+      "note_cs": "Vážená populační odchylka; pod dvěma platnými odpověďmi se nepočítá.",
+      "source_sha256": "3d8e38e6261391bd78ef35b58ef5407f44a66a26c38f900801586dc80d4838c2",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+      ],
+      "title_cs": "Směrodatná odchylka škály",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "T = 100\\,\\frac{\\sum_k w_k\\,[x_k \\ge \\max - (b - 1)]}{\\sum_k w_k}",
+      "formulas": [
+       {
+        "expression": "x >= top - (b - 1)",
+        "latex": "x_k \\ge \\max - \\left(b - 1\\right)",
+        "note_cs": "",
+        "properties": [
+         {
+          "description_cs": "ano (1) nebo ne (0)",
+          "kind": "within",
+          "variable": null
+         },
+         {
+          "description_cs": "",
+          "kind": "non_decreasing_in",
+          "variable": "x"
+         },
+         {
+          "description_cs": "",
+          "kind": "equals_at",
+          "variable": null
+         }
+        ],
+        "slot_id": "agg.top_box",
+        "title_cs": "Patří odpověď do top boxu?",
+        "variables": [
+         {
+          "latex": "x_k",
+          "meaning_cs": "odpověď na škále",
+          "name": "x",
+          "unit": "body škály",
+          "vector": false
+         },
+         {
+          "latex": "\\max",
+          "meaning_cs": "horní konec škály",
+          "name": "top",
+          "unit": "body škály",
+          "vector": false
+         },
+         {
+          "latex": "b",
+          "meaning_cs": "šířka top boxu",
+          "name": "b",
+          "unit": "bodů škály",
+          "vector": false
+         }
+        ]
+       }
+      ],
+      "id": "top_box",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "note_cs": "Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
+      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+      "symbols": [
+       {
+        "latex": "b",
+        "meaning_cs": "šířka top boxu",
+        "unit": "bodů škály"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation_formulas.py::test_every_fixture_aggregates_identically_through_its_built_in_expressions",
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Top box škály",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Šířka top boxu",
+        "origin": "specification",
+        "reference": "top_box",
+        "unit": "bodů škály",
+        "value": 2
+       },
+       {
+        "absent": false,
+        "label_cs": "Semínko bootstrapu top boxu",
+        "origin": "specification",
+        "reference": "bootstrap.seed_top_box",
+        "unit": "",
+        "value": 20260818
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT); hodnoty, které jednotka psala přímo do kódu, jsou deklarované v aia-aggregate-1.",
+        "ref": "dotaznik.py agreguj_otazku"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Odhady, Kishovo n, podpora a potlačení přesně; meze intervalů v rozptylu jednotky mezi semínky.",
+        "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
+       }
+      ],
+      "formula_latex": "p_i = 100\\,\\frac{\\sum_k w_k\\,[i \\in x_k]}{\\sum_k w_k},\\quad \\text{semínko}_i = \\text{semínko} + i",
+      "formulas": [],
+      "id": "multi",
+      "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "note_cs": "Součet podílů přesahuje 100 %. Každá možnost má vlastní bootstrap: semínko základního bootstrapu plus pořadí možnosti.",
+      "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Podíl možnosti (výběr více možností)",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Replikace bootstrapu na možnost",
+        "origin": "specification",
+        "reference": "bootstrap.reps_multi",
+        "unit": "",
+        "value": 350
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Generátor AIA (random.Random, index klastru floor(u·m)) místo PCG64 NumPy: stejné vstupy a semínko dávají stejné meze na každém stroji.",
+        "ref": ".planning/open-items.md OI-62"
+       }
+      ],
+      "formula_latex": "m^{(r)}_d = \\#\\{\\,j \\le M : \\lfloor u^{(r)}_j M \\rfloor = d\\,\\},\\quad w^{(r)}_k = m^{(r)}_{d_k} w_k,\\quad r = 1 \\dots R",
+      "formulas": [],
+      "id": "resample",
+      "implements": "aia_core.domain.research_aggregate:_multipliers",
+      "note_cs": "Převzorkují se klastry dárců, ne řádky. Při jediném dárci se interval nepočítá a meze se rovnají odhadu (replikací 0).",
+      "source_sha256": "33dc067b0b09ab9cacfabf79e80f1c1d56badaec811bc1fafeac15b6f719fa2f",
+      "symbols": [
+       {
+        "latex": "M",
+        "meaning_cs": "počet různých dárců (klastrů) v buňce",
+        "unit": ""
+       },
+       {
+        "latex": "R",
+        "meaning_cs": "počet replikací",
+        "unit": ""
+       },
+       {
+        "latex": "u^{(r)}_j",
+        "meaning_cs": "rovnoměrné číslo z generátoru se semínkem",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_every_bound_lies_within_the_units_own_seed_spread",
+       "packages/aia_core/tests/test_research_aggregate.py::test_aias_own_bounds_are_pinned"
+      ],
+      "title_cs": "Převzorkování dárců",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Replikace bootstrapu",
+        "origin": "specification",
+        "reference": "bootstrap.reps",
+        "unit": "",
+        "value": 400
+       },
+       {
+        "absent": false,
+        "label_cs": "Semínko bootstrapu",
+        "origin": "specification",
+        "reference": "bootstrap.seed",
+        "unit": "",
+        "value": 20260816
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
+       }
+      ],
+      "formula_latex": "[\\,Q_{q_1}(\\hat\\theta^{(1..R)}),\\ Q_{q_2}(\\hat\\theta^{(1..R)})\\,]\\quad\\text{(lineární kvantil, jako np.quantile)}",
+      "formulas": [],
+      "id": "interval",
+      "implements": "aia_core.domain.research_aggregate:_quantile",
+      "note_cs": "Percentilový interval s pevnými vahami respondentů: převzorkuje se jen výběr dárců, váhy se znovu nekalibrují. Jednotka tuto metodu nikde nedeklarovala (nález D5); 0,025 a 0,975 dávají 95% interval.",
+      "source_sha256": "947a26dd2691f27ea728bf3079aa32d0c768b5a255b1c1cd7d39eba1447746a2",
+      "symbols": [
+       {
+        "latex": "\\hat\\theta^{(r)}",
+        "meaning_cs": "odhad v replikaci r",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_research_aggregate.py::test_every_bound_lies_within_the_units_own_seed_spread",
+       "packages/aia_core/tests/test_research_aggregate.py::test_aias_own_bounds_are_pinned",
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
+      ],
+      "title_cs": "Interval z kvantilů replikací",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Kvantily intervalu",
+        "origin": "specification",
+        "reference": "bootstrap.quantiles",
+        "unit": "",
+        "value": [
+         0.025,
+         0.975
+        ]
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "",
+        "ref": "fidelity.py classify_question, evidence_rating"
+       }
+      ],
+      "formula_latex": "\\text{absolutní hodnota} \\succ \\text{otevřená} \\succ \\text{relativní srovnání} \\succ \\text{škála} \\succ \\text{rozdělení}",
+      "formulas": [],
+      "id": "classify",
+      "implements": "aia_core.domain.research_aggregate:classify_question",
+      "note_cs": "O typu rozhodnou prosté české seznamy klíčových slov v textu otázky (nález D7): otázku na absolutní cenu nebo velikost trhu, napsanou jinými slovy, nepoznají.",
+      "source_sha256": "27a2c1fce0ce919467230fa1dfa8c71a1157a0bf905e62c07f5de42e50cb149f",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_keyword_lists_decide_what_is_refused"
+      ],
+      "title_cs": "Typ otázky podle textu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Vzory absolutní hodnoty (regex)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_aggregate:_ABSOLUTE_PATTERNS",
+        "unit": "",
+        "value": [
+         "kolik\\s+(?:kč|korun|byste\\s+zaplat|zaplatil)",
+         "maxim[aá]ln[ií]\\s+cena",
+         "ochot[an]\\w*\\s+zaplat",
+         "velikost\\s+trhu",
+         "kolik\\s+lid[ií]",
+         "kolik\\s+z[aá]kazn[ií]k",
+         "tržb",
+         "obrat",
+         "v\\s*kč"
+        ]
+       },
+       {
+        "absent": false,
+        "label_cs": "Vzory relativního srovnání (regex)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.research_aggregate:_RELATIVE_PATTERNS",
+        "unit": "",
+        "value": [
+         "kter[áý]\\s+variant",
+         "porovnej",
+         "prefer",
+         "pořad",
+         "znění",
+         "koncept\\s+[ab]"
+        ]
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "",
+        "ref": "fidelity.py classify_question, evidence_rating"
+       }
+      ],
+      "formula_latex": "\\text{absolutní} \\Rightarrow \\text{RED, REFUSE};\\ \\text{validováno} \\Rightarrow \\text{GREEN};\\ \\text{jinak AMBER}",
+      "formulas": [],
+      "id": "fidelity",
+      "implements": "aia_core.domain.research_aggregate:evidence_rating",
+      "note_cs": "Relativní srovnání se doporučuje (RECOMMEND), ostatní se jen ukáže (JUST_SHOW). AIA nemá validovaný holdout, takže bez validace je hodnocení vždy AMBER.",
+      "source_sha256": "4a0f0d8a177bc045c96b874a168430e2039c910841b6e891532c9e072127dfdf",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_aggregation.py::test_the_keyword_lists_decide_what_is_refused"
+      ],
+      "title_cs": "Hodnocení věrohodnosti",
+      "values": []
+     }
+    ],
+    "steps": 13,
+    "title_cs": "Agregace: z odpovědí odhad s intervalem"
+   }
+  },
+  "response": {
+   "aia-response-1": {
+    "editable": true,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Proces odpovědi"
+     },
+     {
+      "id": "P",
+      "note_cs": "",
+      "step_ids": [
+       "request",
+       "normalise"
+      ],
+      "title_cs": "Pravděpodobnosti od modelu"
+     },
+     {
+      "id": "B",
+      "note_cs": "",
+      "step_ids": [
+       "reweight",
+       "social_desirability",
+       "acquiescence",
+       "extremity",
+       "dont_know",
+       "satisficing"
+      ],
+      "title_cs": "Mechanismy odpovědi"
+     },
+     {
+      "id": "D",
+      "note_cs": "",
+      "step_ids": [
+       "draw"
+      ],
+      "title_cs": "Losování"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "styles",
+       "noise",
+       "describe"
+      ],
+      "title_cs": "Styly respondenta"
+     },
+     {
+      "id": "F",
+      "note_cs": "",
+      "step_ids": [
+       "roster"
+      ],
+      "title_cs": "Fiktivní soubor"
+     }
+    ],
+    "id": "response",
+    "in_force": "aia-response-1",
+    "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Každý běh si proces odpovědi zapamatuje a opakování ho drží. Úpravu lze před uvedením v platnost porovnat na pevných fiktivních otázkách a respondentech.",
+    "preset": "aia-response-1",
+    "presets": [
+     "aia-response-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       }
+      ],
+      "formula_latex": "\\text{proces} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.respondent_behavior:ResponseProcessSpec",
+      "note_cs": "",
+      "source_sha256": "e83ea2fd01e11e005ebff5b499228fc0f2bf48e8cb6b8e77e82b20869e052354",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_response.py::test_the_preset_is_the_units_values_and_the_code_reads_it"
+      ],
+      "title_cs": "Pojmenování procesu odpovědi",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze procesu odpovědi",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-response-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Model odhaduje pravděpodobnosti jednoho respondenta, odpověď losuje kód. Model odpověď nikdy nevybírá.",
+        "ref": "docs/architecture/research-agents.md; ai_respondent.py"
+       }
+      ],
+      "formula_latex": "p = (p_1, \\dots, p_K) \\text{ od modelu, jeden respondent, teplota } 0",
+      "formulas": [],
+      "id": "request",
+      "implements": "aia_core.domain.ai_respondent:build_request",
+      "note_cs": "Model dostane profil jednoho respondenta a vrátí pro každou uzavřenou otázku rozdělení pravděpodobností, nikdy odpověď. Disperzní teplota 18.6.6 (dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1.",
+      "source_sha256": "df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
+      "symbols": [
+       {
+        "latex": "K",
+        "meaning_cs": "počet možností otázky (u škály body a případně „nevím“)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_ai_respondent.py::test_the_request_carries_class_lineage_prompt_and_no_scope"
+      ],
+      "title_cs": "Pravděpodobnosti od modelu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       }
+      ],
+      "formula_latex": "p_k := \\frac{\\max(0, p_k)}{\\sum_j \\max(0, p_j)}",
+      "formulas": [],
+      "id": "normalise",
+      "implements": "aia_core.domain.respondent_behavior:normalise",
+      "note_cs": "Nekonečná hodnota nebo NaN se odmítne ještě před ořezem: max(0, NaN) je 0 a z rozbité odpovědi by se tiše stala věrohodná.",
+      "source_sha256": "33f01949292172b274eb0f67c46e4cb107251b6f495c013d19e2c1dd856b8276",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_vector_without_positive_finite_mass_is_refused"
+      ],
+      "title_cs": "Normalizace",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "p_k := \\frac{p_k\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_k))}}{\\sum_j p_j\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_j))}}",
+      "formulas": [],
+      "id": "reweight",
+      "implements": "aia_core.domain.respondent_behavior:_soft_reweight",
+      "note_cs": "Každý z prvních čtyř mechanismů je jedno takové převážení se svým β a s.",
+      "source_sha256": "a33179e2b6d74fc8d728435f4b5221bd55fee967b57876611492cadc5d013b19",
+      "symbols": [
+       {
+        "latex": "\\beta",
+        "meaning_cs": "síla mechanismu u respondenta",
+        "unit": ""
+       },
+       {
+        "latex": "s_k",
+        "meaning_cs": "skóre možnosti k ve směru mechanismu",
+        "unit": ""
+       },
+       {
+        "latex": "L",
+        "meaning_cs": "mez exponentu",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Měkké převážení",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Mez exponentu (L)",
+        "origin": "specification",
+        "reference": "reweight_limit",
+        "unit": "",
+        "value": 8.0
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\beta = \\sigma \\left(a + b\\, z_{\\mathrm{sds}}\\right)",
+      "formulas": [],
+      "id": "social_desirability",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka směr žádoucnosti deklaruje; nikdy se nehádá.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{sds}}",
+        "meaning_cs": "styl: citlivost na společenskou žádoucnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit",
+       "packages/aia_core/tests/test_respondent_behavior.py::test_every_mechanism_is_exercised_by_the_captures"
+      ],
+      "title_cs": "Společenská žádoucnost",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Základ (a)",
+        "origin": "specification",
+        "reference": "social_desirability.base",
+        "unit": "",
+        "value": 0.18
+       },
+       {
+        "absent": false,
+        "label_cs": "Sklon se stylem (b)",
+        "origin": "specification",
+        "reference": "social_desirability.slope",
+        "unit": "",
+        "value": 0.1
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\beta = \\sigma\\, c\\, z_{\\mathrm{souhlas}}",
+      "formulas": [],
+      "id": "acquiescence",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka deklaruje, která odpověď je souhlas.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{souhlas}}",
+        "meaning_cs": "styl: souhlasný sklon",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Souhlasný sklon",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (c)",
+        "origin": "specification",
+        "reference": "acquiescence",
+        "unit": "",
+        "value": 0.16
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "s_k = \\left|-1 + \\frac{2(k-1)}{n-1}\\right|,\\quad \\beta = \\sigma\\, e\\, z_{\\mathrm{vyhr}}",
+      "formulas": [],
+      "id": "extremity",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "„Nevím“ má skóre 0: není střed ani krajnost.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet bodů škály (aspoň 3)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{vyhr}}",
+        "meaning_cs": "styl: vyhraněnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Vyhraněnost na škále",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (e)",
+        "origin": "specification",
+        "reference": "extremity",
+        "unit": "",
+        "value": 0.22
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "s = (0, \\dots, 0, 1),\\quad \\beta = \\sigma\\, d\\, z_{\\text{nevím}}",
+      "formulas": [],
+      "id": "dont_know",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Jen když otázka „nevím“ připouští; je vždy poslední možností.",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\text{nevím}}",
+        "meaning_cs": "styl: ochota přiznat „nevím“",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Ochota přiznat „nevím“",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Koeficient (d)",
+        "origin": "specification",
+        "reference": "dont_know",
+        "unit": "",
+        "value": 0.24
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 řádek po řádku; koeficienty jsou jednotky, záměrně mírné.",
+        "ref": "behavior.py (adjust_probabilities)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "\\lambda = \\min\\!\\left(\\lambda_{\\max},\\ \\sigma\\, \\mathrm{clamp}_{[0,1]}\\!\\left(g + h\\, z_{\\mathrm{sat}}\\right)\\right),\\quad p := \\frac{(1-\\lambda)\\,p + \\lambda\\, u}{\\sum}",
+      "formulas": [],
+      "id": "satisficing",
+      "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "note_cs": "Otázka může heuristiku vypnout (satisficing_strategy: none).",
+      "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
+      "symbols": [
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "síla procesu u otázky (response_process.strength, bez deklarace 1)",
+        "unit": ""
+       },
+       {
+        "latex": "z_{\\mathrm{sat}}",
+        "meaning_cs": "styl: satisficing",
+        "unit": ""
+       },
+       {
+        "latex": "u",
+        "meaning_cs": "heuristika otázky: rovnoměrně (výchozí), střed škály, nebo první možnost",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit"
+      ],
+      "title_cs": "Satisficing",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Základ (g)",
+        "origin": "specification",
+        "reference": "satisficing.base",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "Sklon se stylem (h)",
+        "origin": "specification",
+        "reference": "satisficing.slope",
+        "unit": "",
+        "value": 0.06
+       },
+       {
+        "absent": false,
+        "label_cs": "Strop podílu (λ max)",
+        "origin": "specification",
+        "reference": "satisficing.cap",
+        "unit": "",
+        "value": 0.35
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Model odhaduje pravděpodobnosti jednoho respondenta, odpověď losuje kód. Model odpověď nikdy nevybírá.",
+        "ref": "docs/architecture/research-agents.md; ai_respondent.py"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Losování ze standardní knihovny (random.Random), ne z NumPy: stejné rozdělení, jiné konkrétní losy než v 18.6.6.",
+        "ref": "open-items OI-62"
+       }
+      ],
+      "formula_latex": "u \\sim U[0, 1),\\quad k^{*} = \\min\\left\\{k : \\textstyle\\sum_{j \\le k} p_j > u\\right\\}",
+      "formulas": [],
+      "id": "draw",
+      "implements": "aia_core.domain.respondent_behavior:draw_index",
+      "note_cs": "Semínko je pro každého respondenta a otázku vlastní (sha256 ze semínka běhu, respondenta a otázky): stejný běh vylosuje stejné odpovědi.",
+      "source_sha256": "aa7e348734aaa6a401ea185e126032b2312aa11b54a8447ed2315e559e669deb",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_the_draw_is_seeded_and_follows_the_distribution",
+       "packages/aia_core/tests/test_ai_respondent.py::test_answers_are_drawn_by_code_reproducibly_and_zero_mass_is_refused"
+      ],
+      "title_cs": "Losování odpovědi kódem",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       },
+       {
+        "kind": "fixture",
+        "note_cs": "Zachycené výstupy nezměněných funkcí jednotky (tools/respondent_capture.py), EXACT.",
+        "ref": "fixtures/response_process (behavior.json, styles.json)"
+       }
+      ],
+      "formula_latex": "x = \\alpha z_{\\mathrm{vzd}} + \\gamma z_{\\text{věk}} + \\delta m + \\sqrt{\\max\\!\\left(1 - \\operatorname{var}(\\text{signál}),\\ \\phi\\right)}\\ \\varepsilon,\\quad \\text{styl} = z(x)",
+      "formulas": [],
+      "id": "styles",
+      "implements": "aia_core.domain.respondent_behavior:assign_styles",
+      "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící vzdělání nebo věk nepřispívá ničím; chybějící pohlaví se počítá jako ne-muž (-1), stejně jako v 18.6.6 (styly.py).",
+      "source_sha256": "0ee31228933919923cbead02ee072b3fa59b0456cd930ef4565e092be9280ed7",
+      "symbols": [
+       {
+        "latex": "z_{\\mathrm{vzd}},\\ z_{\\text{věk}}",
+        "meaning_cs": "z-skóre vzdělání a věku v souboru",
+        "unit": ""
+       },
+       {
+        "latex": "m",
+        "meaning_cs": "pohlaví: muž 1, jinak -1",
+        "unit": ""
+       },
+       {
+        "latex": "\\alpha, \\gamma, \\delta",
+        "meaning_cs": "vazby stylu na vzdělání, věk a pohlaví",
+        "unit": ""
+       },
+       {
+        "latex": "\\phi",
+        "meaning_cs": "dolní mez váhy šumu",
+        "unit": ""
+       },
+       {
+        "latex": "\\varepsilon",
+        "meaning_cs": "stabilní šum respondenta",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_styles_match_the_unit"
+      ],
+      "title_cs": "Styly respondenta",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.education",
+        "unit": "",
+        "value": -0.3
+       },
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: věk",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.age",
+        "unit": "",
+        "value": 0.2
+       },
+       {
+        "absent": false,
+        "label_cs": "souhlasný sklon: muž",
+        "origin": "specification",
+        "reference": "style_links.souhlasny_sklon.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.education",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: věk",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.age",
+        "unit": "",
+        "value": 0.15
+       },
+       {
+        "absent": false,
+        "label_cs": "vyhraněnost: muž",
+        "origin": "specification",
+        "reference": "style_links.vyhranenost.male",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.education",
+        "unit": "",
+        "value": -0.25
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: věk",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.age",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "ochota přiznat „nevím“: muž",
+        "origin": "specification",
+        "reference": "style_links.ochota_priznat_nevim.male",
+        "unit": "",
+        "value": -0.15
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.education",
+        "unit": "",
+        "value": 0.3
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: věk",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.age",
+        "unit": "",
+        "value": -0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "sdílnost: muž",
+        "origin": "specification",
+        "reference": "style_links.sdilnost.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.satisficing.education",
+        "unit": "",
+        "value": -0.25
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: věk",
+        "origin": "specification",
+        "reference": "style_links.satisficing.age",
+        "unit": "",
+        "value": 0.1
+       },
+       {
+        "absent": false,
+        "label_cs": "satisficing: muž",
+        "origin": "specification",
+        "reference": "style_links.satisficing.male",
+        "unit": "",
+        "value": 0.0
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: vzdělání",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.education",
+        "unit": "",
+        "value": -0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: věk",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.age",
+        "unit": "",
+        "value": 0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "citlivost na společenskou žádoucnost: muž",
+        "origin": "specification",
+        "reference": "style_links.social_desirability_sensitivity.male",
+        "unit": "",
+        "value": -0.05
+       },
+       {
+        "absent": false,
+        "label_cs": "Dolní mez váhy šumu (φ)",
+        "origin": "specification",
+        "reference": "style_noise_floor",
+        "unit": "",
+        "value": 0.05
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       }
+      ],
+      "formula_latex": "\\varepsilon = \\Phi^{-1}\\!\\left(\\frac{H_{12}(\\text{id} \\Vert \\text{styl}) + \\frac{1}{2}}{16^{12}}\\right)",
+      "formulas": [],
+      "id": "noise",
+      "implements": "aia_core.domain.respondent_behavior:_stable_noise",
+      "note_cs": "Šum závisí jen na respondentovi. Styl jako celek ne: z-skóre vzdělání a věku, rozptyl signálu i závěrečná standardizace se počítají přes celý soubor, takže tentýž respondent má v jiném souboru jiný styl.",
+      "source_sha256": "4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
+      "symbols": [
+       {
+        "latex": "H_{12}",
+        "meaning_cs": "prvních 12 šestnáctkových číslic SHA-256",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_respondent_behavior.py::test_a_respondent_keeps_their_style_whoever_else_is_in_the_roster",
+       "packages/aia_core/tests/test_methodology_response.py::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster"
+      ],
+      "title_cs": "Stabilní šum",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6; scipy.stats.norm.ppf nahrazuje statistics.NormalDist().inv_cdf.",
+        "ref": "styly.py (prirad_styly, popis_stylu)"
+       }
+      ],
+      "formula_latex": "|z| \\ge \\theta \\;\\Rightarrow\\; \\text{popis stylu v profilu}",
+      "formulas": [],
+      "id": "describe",
+      "implements": "aia_core.domain.ai_respondent:describe_style",
+      "note_cs": "Slovy se do profilu dostane jen výrazná strana stylu.",
+      "source_sha256": "3118f0838c18417235f4a50ea2bd6d29720b8e6e00087dba3730c8d2f65cce39",
+      "symbols": [
+       {
+        "latex": "\\theta",
+        "meaning_cs": "práh výraznosti stylu",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_response.py::test_a_style_is_put_into_words_from_the_threshold"
+      ],
+      "title_cs": "Styl slovy v profilu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Práh výraznosti (θ)",
+        "origin": "specification",
+        "reference": "describe_threshold",
+        "unit": "",
+        "value": 0.7
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Fiktivní soubor losuje dárce s opakováním z fondu max(3, ⌊n/3⌋) identifikátorů, takže skutečných dárců je méně. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou.",
+        "ref": "plan methodology-tab, nález D6"
+       }
+      ],
+      "formula_latex": "D = \\max\\!\\left(3,\\ \\left\\lfloor n/3 \\right\\rfloor\\right),\\quad w_i = 1",
+      "formulas": [],
+      "id": "roster",
+      "implements": "aia_core.domain.ai_respondent:fictional_roster",
+      "note_cs": "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu.",
+      "source_sha256": "70f80c16faef7718b30696b87c735b47c6442607ce9eb38ac2da7f1868230bca",
+      "symbols": [
+       {
+        "latex": "D",
+        "meaning_cs": "fond identifikátorů dárců; dárci se z něj losují s opakováním",
+        "unit": ""
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "počet respondentů",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_ai_respondent.py::test_the_roster_is_fictional_deterministic_and_carries_its_lineage",
+       "packages/aia_core/tests/test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support"
+      ],
+      "title_cs": "Fiktivní soubor: dárci a váhy",
+      "values": []
+     }
+    ],
+    "steps": 14,
+    "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "editable": true,
@@ -5158,7 +6668,7 @@
       "id": "weights",
       "implements": "aia_core.domain.research_sociomap:battery_sociomap",
       "note_cs": "Neplatná (nekonečná) váha se v matici vztahů čte jako 1.",
-      "source_sha256": "077f152acd4f9273218f43ceb5f05cfb214471556f81fd1dc9ce84a43d6a7a9a",
+      "source_sha256": "46b696d92233a00f20d6fd5a0c8ad613f8ab54ffedaf5ab38764c6e447fbe24d",
       "symbols": [
        {
         "latex": "N",
@@ -6519,9 +8029,17 @@
    }
   },
   "support": {
-   "null": {
-    "editable": false,
+   "aia-support-1": {
+    "editable": true,
     "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Pravidla"
+     },
      {
       "id": "U",
       "note_cs": "",
@@ -6545,11 +8063,44 @@
      }
     ],
     "id": "support",
-    "in_force": null,
-    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Které jedno pravidlo bude platit, rozhodne metodik zde, až budou prahy deklarované (G1b) a jedna verze v platnosti (G1c).",
-    "preset": null,
-    "presets": [],
+    "in_force": "aia-support-1",
+    "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
+    "preset": "aia-support-1",
+    "presets": [
+     "aia-support-1"
+    ],
     "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Dvě sady pravidel; jednu vybere metodik (G1c).",
+        "ref": ".planning/plans/methodology-tab.md, finding D2"
+       }
+      ],
+      "formula_latex": "\\text{pravidla} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.evidence.support:SupportSpec",
+      "note_cs": "",
+      "source_sha256": "2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_evidence_support.py::test_today_is_declared_both_rule_sets",
+       "packages/aia_core/tests/test_methodology_support.py::test_a_rule_that_suppresses_nothing_is_refused"
+      ],
+      "title_cs": "Pojmenování pravidel",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze pravidel",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-support-1"
+       }
+      ]
+     },
      {
       "evidence": [
        {
@@ -6584,7 +8135,7 @@
       "id": "unit_kish",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
       "note_cs": "",
-      "source_sha256": "3c90e9ebf0d24ff28d466cade217baac2b55e31c13c86b0d23cbc0191e4fee70",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_research_aggregate.py::test_kish_and_donor_support_follow_the_units_thresholds"
@@ -6605,7 +8156,7 @@
       "id": "unit_donors",
       "implements": "aia_core.domain.research_aggregate:donor_support",
       "note_cs": "Efektivní n se zaokrouhlí na jedno desetinné místo. Podíl největšího dárce se spočítá a uloží, ale žádné pravidlo ho nečte (nález D4).",
-      "source_sha256": "1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
+      "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [
        {
         "latex": "n_D",
@@ -6638,31 +8189,56 @@
         "ref": ".planning/plans/methodology-tab.md, finding D2"
        }
       ],
-      "formula_latex": "n_D < 25 \\Rightarrow \\text{POTLAČIT};\\quad n_D < 50 \\Rightarrow \\text{INDIKATIVNÍ};\\quad \\text{jinak REPORTOVATELNÉ}",
+      "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{jinak REPORTOVATELNÉ}",
       "formulas": [],
       "id": "unit_status",
       "implements": "aia_core.domain.research_aggregate:donor_support",
-      "note_cs": "Rozhoduje jen počet dárců: surové n ani efektivní n stav nemění.",
-      "source_sha256": "1d0b5d8ab8b72a76ec3102b62575338039236e3573849a111b59282a29586211",
+      "note_cs": "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky se píše z pravidla, které platí.",
+      "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit"
+       "packages/aia_core/tests/test_research_aggregate.py::test_estimates_support_and_suppression_are_exact_against_the_unit",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_uncertainty_note_states_the_lines_of_the_rule_in_force"
       ],
-      "title_cs": "Stav podpory podle jednotky (ukazují ho Výsledky)",
+      "title_cs": "Stav podpory pro Výsledky (pravidlo results)",
       "values": [
        {
         "absent": false,
+        "label_cs": "Nejmenší surové n buňky",
+        "origin": "specification",
+        "reference": "results.min_cell",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Potlačit pod efektivním n",
+        "origin": "specification",
+        "reference": "results.n_guard",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Indikativní pod efektivním n",
+        "origin": "specification",
+        "reference": "results.indicative",
+        "unit": "",
+        "value": null
+       },
+       {
+        "absent": false,
         "label_cs": "Potlačit pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.research_aggregate:_SUPPRESS_BELOW",
+        "origin": "specification",
+        "reference": "results.min_layer_donors",
         "unit": "dárců",
         "value": 25
        },
        {
         "absent": false,
-        "label_cs": "Reportovatelné od",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.research_aggregate:_REPORTABLE_FROM",
+        "label_cs": "Indikativní pod",
+        "origin": "specification",
+        "reference": "results.indicative_layer_donors",
         "unit": "dárců",
         "value": 50
        }
@@ -6697,7 +8273,7 @@
       "id": "gate_assess",
       "implements": "aia_core.domain.evidence.support:assess_support",
       "note_cs": "Bez důkazů je stav vždy POTLAČIT; vyšší stav vydá jen tato funkce.",
-      "source_sha256": "efc2dedce537d3a68222f2439210ab09b5a7c187451a19d551e28a80073459ee",
+      "source_sha256": "51fe30afce2c3de516b6405efcae8dac7420840b103250a6470284d7021c1c2d",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_evidence_support.py::test_reference_thresholds",
@@ -6710,40 +8286,40 @@
        {
         "absent": false,
         "label_cs": "Nejmenší surové n buňky",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.min_cell",
+        "origin": "specification",
+        "reference": "analysis.min_cell",
         "unit": "",
         "value": 50
        },
        {
         "absent": false,
         "label_cs": "Potlačit pod efektivním n",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.n_guard",
+        "origin": "specification",
+        "reference": "analysis.n_guard",
         "unit": "",
         "value": 25.0
        },
        {
         "absent": false,
         "label_cs": "Indikativní pod efektivním n",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.indicative",
+        "origin": "specification",
+        "reference": "analysis.indicative",
         "unit": "",
         "value": 50.0
        },
        {
         "absent": false,
         "label_cs": "Potlačit pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.min_layer_donors",
+        "origin": "specification",
+        "reference": "analysis.min_layer_donors",
         "unit": "dárců",
         "value": 25
        },
        {
         "absent": false,
         "label_cs": "Indikativní pod",
-        "origin": "code_constant",
-        "reference": "aia_core.domain.evidence.support:REFERENCE_THRESHOLDS.indicative_layer_donors",
+        "origin": "specification",
+        "reference": "analysis.indicative_layer_donors",
         "unit": "dárců",
         "value": 50
        }
@@ -6760,19 +8336,713 @@
       "formula_latex": "\\text{stav}_{\\mathrm{analýza}} = \\text{přísnější z}\\ \\left(\\text{stav}_{\\mathrm{jednotka}},\\ \\text{brána}(n, n_{\\mathrm{eff}}, n_D)\\right)",
       "formulas": [],
       "id": "gate_reassess",
-      "implements": "aia_core.domain.analysis.native:_support",
+      "implements": "aia_core.domain.analysis.native:reassess_support",
       "note_cs": "Brána dostává jako efektivní n kombinované efektivní n jednotky zaokrouhlené na jedno místo, ne Kishovo (nález D3). Buňka tak může být ve Výsledcích INDIKATIVNÍ a v analýze potlačená (nález D2).",
-      "source_sha256": "8cec538199db79932651b8640e3486e4e197cb966d0affa5f57ff7993e2af06f",
+      "source_sha256": "89ecd1adeb1e29d417d4120873f4f8fc9149ca07cf2c7592f960fcd7f4252cbc",
       "symbols": [],
       "tests": [
-       "packages/aia_core/tests/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds"
+       "packages/aia_core/tests/test_analysis_native.py::test_support_is_the_units_reassessed_by_aias_stricter_thresholds",
+       "packages/aia_core/tests/test_methodology_support_check.py::test_the_stricter_of_the_two_rules_still_wins_in_analysis"
       ],
       "title_cs": "Analýza přehodnotí stav jednotky branou AIA",
       "values": []
      }
     ],
-    "steps": 7,
+    "steps": 8,
     "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
+   }
+  },
+  "weighting": {
+   "aia-weighting-1": {
+    "editable": false,
+    "groups": [
+     {
+      "id": "M",
+      "note_cs": "",
+      "step_ids": [
+       "method"
+      ],
+      "title_cs": "Vážení"
+     },
+     {
+      "id": "S",
+      "note_cs": "",
+      "step_ids": [
+       "scheme",
+       "parse",
+       "column"
+      ],
+      "title_cs": "Schéma vah"
+     },
+     {
+      "id": "T",
+      "note_cs": "",
+      "step_ids": [
+       "total"
+      ],
+      "title_cs": "Součty populace"
+     },
+     {
+      "id": "V",
+      "note_cs": "",
+      "step_ids": [
+       "sample_base",
+       "sample_targets",
+       "rake",
+       "sample_without_quotas",
+       "sample_audit",
+       "respondent"
+      ],
+      "title_cs": "Váha respondenta běhu: vzorek z panelu"
+     },
+     {
+      "id": "C",
+      "note_cs": "",
+      "step_ids": [
+       "dataset",
+       "cleaning"
+      ],
+      "title_cs": "Neplatná váha"
+     },
+     {
+      "id": "K",
+      "note_cs": "",
+      "step_ids": [
+       "kish_aggregate",
+       "kish_gate",
+       "kish_sociomap",
+       "kish_sample"
+      ],
+      "title_cs": "Kishovo efektivní n na čtyřech místech"
+     }
+    ],
+    "id": "weighting",
+    "in_force": "aia-weighting-1",
+    "note_cs": "Schéma vah je sloupec panelu, který určí importní smlouva. Respondent běhu nese váhu vzorku: základní váhu s dolní mezí, raking na vážené podíly publika (IPF s ořezem, průměr 1) a audit reprezentativnosti, vše převzaté z 18.6.6. GREG ani jiná kalibrace v AIA nejsou. Datová sada běhu odmítne váhu, která není kladné konečné číslo. Hodnoty výběru jsou konstanty kódu; volbou běhu se stanou, až zdroj panelu dojde do sběru (W1c). Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí.",
+    "preset": "aia-weighting-1",
+    "presets": [
+     "aia-weighting-1"
+    ],
+    "step_details": [
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       }
+      ],
+      "formula_latex": "\\text{vážení} = \\text{methodology\\_version}",
+      "formulas": [],
+      "id": "method",
+      "implements": "aia_core.domain.population.weights:WeightingSpec",
+      "note_cs": "",
+      "source_sha256": "05e603e0a56e37161e45c9befff606f96861437657564e8d8918293b23bee608",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Pojmenování vážení",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Verze vážení",
+        "origin": "specification",
+        "reference": "methodology_version",
+        "unit": "",
+        "value": "aia-weighting-1"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "w_i = \\text{panel}\\left[i,\\ \\text{sloupec}(r)\\right],\\quad r = \\text{role běhu, jinak výchozí role}",
+      "formulas": [],
+      "id": "scheme",
+      "implements": "aia_core.domain.population.weights:resolve_weight_scheme",
+      "note_cs": "Nedeklarovaná role se odmítne; náhradní sloupec ani váhy 1 neexistují. Výchozí role je sama deklarací smlouvy a vazba populace ji zapisuje, není to záloha.",
+      "source_sha256": "c387afd2b0977a0c8d33348890c301cbce620dcbdc0a2fd520880bf4758aecb2",
+      "symbols": [
+       {
+        "latex": "r",
+        "meaning_cs": "role vah, kterou si vazba populace zapamatuje",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_default_role_resolves_to_its_declared_column",
+       "packages/aia_core/tests/test_population_contract.py::test_an_unknown_role_is_an_error_not_the_census_weight",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Schéma: role určí sloupec",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Importní smlouva",
+        "origin": "specification",
+        "reference": "contract_id",
+        "unit": "",
+        "value": "cz_synthetic_population/v17"
+       },
+       {
+        "absent": false,
+        "label_cs": "Výchozí role",
+        "origin": "specification",
+        "reference": "default_role",
+        "unit": "",
+        "value": "default_current"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.column",
+        "unit": "",
+        "value": "vaha_strukturalni_2025"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.column",
+        "unit": "",
+        "value": "vaha_populace_2025_aprox"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.column",
+        "unit": "",
+        "value": "vaha_kalibrovana"
+       },
+       {
+        "absent": false,
+        "label_cs": "Sloupec: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.column",
+        "unit": "",
+        "value": "vaha_strana_2021_benchmark"
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "w = \\text{desetinné číslo},\\quad w \\in [0, \\infty)",
+      "formulas": [],
+      "id": "parse",
+      "implements": "aia_core.domain.population.weights:parse_weight",
+      "note_cs": "Jen prosté desetinné číslo: „nan“, „inf“, podtržítka ani mezery nejsou váha.",
+      "source_sha256": "28a3cbf048b457a9cecc10a1a1d73d7c1dbd175c604dd12f957f87a92118c644",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_parse_weight_refuses_anything_else"
+      ],
+      "title_cs": "Čtení jedné váhy",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Reference měla čtyři nezávislé cesty k váze a každá selhávala jinak (náhradní sloupec, váhy 1, fillna(0)). AIA má jednu: role určí sloupec, nebo se načtení odmítne. Záměrný rozdíl (INTENTIONAL_DIFFERENCE).",
+        "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
+       }
+      ],
+      "formula_latex": "\\exists i:\\ w_i \\text{ chybí nebo je neplatná} \\;\\lor\\; \\textstyle\\sum_i w_i \\le 0\\;\\Rightarrow\\; \\text{odmítnuto}",
+      "formulas": [],
+      "id": "column",
+      "implements": "aia_core.domain.population.weights:analysis_weights",
+      "note_cs": "Odmítne se celý sloupec a chyba spočítá každou vadu. Reference prázdnou nebo zápornou váhu nulovala (fillna(0).clip(0)) a respondenta tím tiše vyřadila.",
+      "source_sha256": "bd255e3b9db802617439d546d79f7ae92c257534d889534a1b8f85c94e25ed6a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_analysis_weights_refuse_an_unusable_column",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight"
+      ],
+      "title_cs": "Sloupec vah pro analýzu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Schémata, výchozí role i součty jsou deklarace importní smlouvy, ověřené proti referenci (F11).",
+        "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
+       }
+      ],
+      "formula_latex": "\\left|\\textstyle\\sum_i w_i - T\\right| \\le \\tau",
+      "formulas": [],
+      "id": "total",
+      "implements": "aia_core.domain.population.validation:validate_import",
+      "note_cs": "Kontroluje se jen tam, kde reference součet deklarovala; u ostatních schémat se žádný nevymýšlí.",
+      "source_sha256": "d56289c2f42d88c58362e3d70f06b13f04397fb1451aa691cbe673781a971ae0",
+      "symbols": [
+       {
+        "latex": "T",
+        "meaning_cs": "očekávaný součet (velikost populace)",
+        "unit": "osob"
+       },
+       {
+        "latex": "\\tau",
+        "meaning_cs": "tolerance",
+        "unit": "osob"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_contract.py::test_a_weight_total_outside_tolerance_fails",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly"
+      ],
+      "title_cs": "Kontrola součtu vah při importu",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.expected_total",
+        "unit": "osob",
+        "value": 8956290.3618
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: výchozí (struktura 2025)",
+        "origin": "specification",
+        "reference": "schemes.default_current.tolerance",
+        "unit": "osob",
+        "value": 2.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.expected_total",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: demografické (populace 2025, přibližně)",
+        "origin": "specification",
+        "reference": "schemes.demographic_current_approx.tolerance",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.expected_total",
+        "unit": "osob",
+        "value": 8533116.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: Sčítání 2021",
+        "origin": "specification",
+        "reference": "schemes.census_2021.tolerance",
+        "unit": "osob",
+        "value": 0.001
+       },
+       {
+        "absent": false,
+        "label_cs": "Očekávaný součet: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.expected_total",
+        "unit": "osob",
+        "value": null
+       },
+       {
+        "absent": false,
+        "label_cs": "Tolerance: volby 2021 (srovnání)",
+        "origin": "specification",
+        "reference": "schemes.party_2021_aggregate.tolerance",
+        "unit": "osob",
+        "value": null
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w^{0}_i = \\max\\!\\left(w_i,\\ 10^{-12}\\right),\\quad \\textstyle\\sum_{i \\in A} w_i = 0 \\;\\Rightarrow\\; \\text{odmítnuto}",
+      "formulas": [],
+      "id": "sample_base",
+      "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "note_cs": "Řádek s nulovou vahou se vylosuje jen tehdy, když ho jeho buňka potřebuje. Publikum, jehož váhy jsou všechny nulové, se odmítne (18.6.6 mu dalo váhy 1).",
+      "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+      "symbols": [
+       {
+        "latex": "A",
+        "meaning_cs": "publikum běhu: řádky panelu po filtru",
+        "unit": ""
+       },
+       {
+        "latex": "w_i",
+        "meaning_cs": "váha řádku ze sloupce schématu (analytická váha populace)",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_a_zero_weight_row_keeps_the_units_floor_when_it_is_drawn",
+       "packages/aia_core/tests/test_population_sampling.py::test_a_sample_that_cannot_be_drawn_as_asked_is_refused_by_name"
+      ],
+      "title_cs": "Základní váha ve výběru",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Dolní mez základní váhy",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_WEIGHT_FLOOR",
+        "unit": "",
+        "value": 1e-12
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "t_{f,c} = \\frac{\\sum_{i \\in A,\\ x_{if} = c} w^{0}_i}{\\sum_{i \\in A} w^{0}_i}",
+      "formulas": [],
+      "id": "sample_targets",
+      "implements": "aia_core.domain.population.sampling:targets",
+      "note_cs": "Pole se použije, jen když má v publiku víc než jednu hodnotu.",
+      "source_sha256": "c7466c00f095703c196356b9da56a538091e0dcf2026502ca7b4900331e82dd0",
+      "symbols": [
+       {
+        "latex": "f",
+        "meaning_cs": "kvótní pole (pohlaví, věková skupina, kraj, vzdělání, zaměstnání)",
+        "unit": ""
+       },
+       {
+        "latex": "c",
+        "meaning_cs": "kategorie pole",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_targets_and_quota_fields_are_the_units"
+      ],
+      "title_cs": "Cíle: vážené podíly publika",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w_i \\leftarrow w_i \\cdot \\frac{t_{f,c}}{\\sum_{j \\in c} w_j \\,/\\, \\sum_j w_j}\\ \\ (i \\in c),\\quad w_i \\leftarrow \\frac{\\min\\!\\left(\\max(w_i, \\varepsilon),\\ \\max(\\kappa\\, q_{0{,}99}(w), \\varepsilon)\\right)}{\\bar{w}}",
+      "formulas": [],
+      "id": "rake",
+      "implements": "aia_core.domain.population.sampling:rake",
+      "note_cs": "Iterativní proporcionální přizpůsobení (IPF) po polích, v každé iteraci ořez a normalizace na průměr 1; skončí, když se žádná váha nezmění o víc než mez konvergence. Toto je jediná kalibrace v AIA; GREG ani jiné odhady vah tu nejsou.",
+      "source_sha256": "271df8674134cc5ee6ac06a574ff273516249d24ed9fc0d3fad565100987077f",
+      "symbols": [
+       {
+        "latex": "\\varepsilon",
+        "meaning_cs": "dolní mez váhy při rakingu",
+        "unit": ""
+       },
+       {
+        "latex": "\\kappa",
+        "meaning_cs": "násobek 99. percentilu, horní mez váhy",
+        "unit": ""
+       },
+       {
+        "latex": "q_{0{,}99}(w)",
+        "meaning_cs": "99. percentil vah (do 20 respondentů maximum)",
+        "unit": ""
+       },
+       {
+        "latex": "\\bar{w}",
+        "meaning_cs": "průměr vah: výsledné váhy mají průměr 1",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_raking_the_units_picks_gives_the_units_weights",
+       "packages/aia_core/tests/test_population_sampling.py::test_raking_where_the_cap_binds_is_the_units"
+      ],
+      "title_cs": "Raking vzorku na cíle",
+      "values": [
+       {
+        "absent": false,
+        "label_cs": "Nejvýš iterací",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_ITERATIONS",
+        "unit": "",
+        "value": 60
+       },
+       {
+        "absent": false,
+        "label_cs": "Dolní mez váhy (ε)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_FLOOR",
+        "unit": "",
+        "value": 1e-06
+       },
+       {
+        "absent": false,
+        "label_cs": "Násobek percentilu (κ)",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_CAP",
+        "unit": "",
+        "value": 8.0
+       },
+       {
+        "absent": false,
+        "label_cs": "Konvergence: největší změna váhy",
+        "origin": "code_constant",
+        "reference": "aia_core.domain.population.sampling:_RAKE_CONVERGED",
+        "unit": "",
+        "value": 1e-08
+       }
+      ]
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w_i = \\frac{w^{0}_i}{\\overline{w^{0}}}",
+      "formulas": [],
+      "id": "sample_without_quotas",
+      "implements": "aia_core.domain.population.sampling:representative_draw",
+      "note_cs": "Když publikum nemá žádné použitelné kvótní pole, vylosuje se n řádků podle váhy a raking se nedělá.",
+      "source_sha256": "45fcb9c64c6a55b24f3c77cff25abb34b7956ec7501e4630c1c0206098bcfb02",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_with_no_usable_quota_field_the_weight_is_the_base_over_its_mean"
+      ],
+      "title_cs": "Bez kvótního pole: základní váha přes průměr",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "\\max_{f,c} \\left| p^{\\mathrm{váž}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}25,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.},\\quad \\max_{f,c} \\left| p^{\\mathrm{surový}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}50,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.}",
+      "formulas": [],
+      "id": "sample_audit",
+      "implements": "aia_core.domain.population.sampling:judge",
+      "note_cs": "Překročení vážené tolerance vzorek odmítne (sampling_unrepresentative); překročení surové jen varuje (PASS_WEIGHTED).",
+      "source_sha256": "862a0c9dd814c8eb4fc7a34c326476272adad3a4de84aa326797c3228a6bed6b",
+      "symbols": [
+       {
+        "latex": "p_{f,c}",
+        "meaning_cs": "podíl kategorie ve vzorku, vážený nebo surový",
+        "unit": "p. b."
+       },
+       {
+        "latex": "n",
+        "meaning_cs": "velikost vzorku",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units",
+       "packages/aia_core/tests/test_population_sampling.py::test_the_tolerances_are_the_units_boundaries"
+      ],
+      "title_cs": "Audit reprezentativnosti",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "w^{\\mathrm{resp}}_i = w_i\\ \\text{(po rakingu)}",
+      "formulas": [],
+      "id": "respondent",
+      "implements": "aia_core.domain.panel_persona:panel_personas",
+      "note_cs": "Respondent postavený z panelu nese váhu vzorku po rakingu. Zdroj panelu ještě není zapojen do sběru (plán panel-grounded-respondents, část 5); AI respondenti dnes váží 1 a smyšlení respondenti pracovní plochy svou váhu.",
+      "source_sha256": "9f68f6e30b141b74b6b67df8969447dc2559c31654b11c2286ee1ac6dd82674a",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_panel_persona.py::test_every_sampled_row_becomes_a_panel_persona"
+      ],
+      "title_cs": "Váha respondenta běhu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Datová sada běhu odmítne váhu, která není kladné konečné číslo; agregace tak dostane jen platné váhy a pravidlo mediánu na běhu nikdy nenastane.",
+        "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
+       }
+      ],
+      "formula_latex": "w_i \\notin (0, \\infty) \\;\\Rightarrow\\; \\text{datová sada odmítnuta}",
+      "formulas": [],
+      "id": "dataset",
+      "implements": "aia_core.domain.fieldwork:FieldworkRespondent",
+      "note_cs": "Nula, záporná hodnota, NaN i nekonečno: sběr se odmítne a do agregace nic nedojde. Nekonečno dříve prošlo a agregace ho nahradila mediánem.",
+      "source_sha256": "91578619d19f36fee70b32c46f0622d8816df6adba36a4299bbc1389623b8166",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite"
+      ],
+      "title_cs": "Váha v datové sadě běhu",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Brána důkazů váhy nečistí: do analýzy mají přijít už jako deklarované schéma.",
+        "ref": "evidence/support.py (methodology-ledger M06, M16)"
+       },
+       {
+        "kind": "aia_decision",
+        "note_cs": "Datová sada běhu odmítne váhu, která není kladné konečné číslo; agregace tak dostane jen platné váhy a pravidlo mediánu na běhu nikdy nenastane.",
+        "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
+       }
+      ],
+      "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
+      "formulas": [],
+      "id": "cleaning",
+      "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "note_cs": "Přenos 18.6.6 ponechaný kvůli paritě. Na běhu nenastane: datová sada neplatnou váhu odmítne dřív (krok Váha v datové sadě běhu). Brána důkazů i načítání populace takovou váhu také odmítají (nález D1); volba mezi mediánem a odmítnutím proto není potřeba a z deklarace vážení zmizela (W1b).",
+      "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_three_cleaning_rules_impute_or_refuse_the_same_weight",
+       "packages/aia_core/tests/test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite"
+      ],
+      "title_cs": "Čištění vah v agregaci (přenos 18.6.6)",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6 přesně (EXACT).",
+        "ref": "uncertainty.py (clean_weights, kish_effective_n)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k > 0",
+      "formulas": [],
+      "id": "kish_aggregate",
+      "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "note_cs": "Čte váhy už vyčištěné; nekladnou nebo neplatnou váhu vynechá. Vzorec lze upravit v modulu Agregace (agg.kish).",
+      "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n v agregaci",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Brána důkazů váhy nečistí: do analýzy mají přijít už jako deklarované schéma.",
+        "ref": "evidence/support.py (methodology-ledger M06, M16)"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "kish_gate",
+      "implements": "aia_core.domain.evidence.support:kish_effective_n",
+      "note_cs": "Zápornou nebo neplatnou váhu odmítne; nulová nic nepřidá.",
+      "source_sha256": "dd0bd83ed33fce776c48ee8111788ff6418084214626c468c7f8dda0e5d5f08c",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n v bráně důkazů",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "aia_decision",
+        "note_cs": "Kishovo n páru v Fisherově intervalu: přiblížení schválené jako rozhodnutí AIA.",
+        "ref": "plan sociomap-signed-relations, rozhodnutí Q6"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
+      "formulas": [],
+      "id": "kish_sociomap",
+      "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "note_cs": "Odmítne i nulovou váhu. Na kladných konečných vahách dávají všechna místa totéž číslo, na jakýchkoli jiných se liší (nález D1).",
+      "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_methodology_weighting.py::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights"
+      ],
+      "title_cs": "Kishovo n páru v Sociomapě",
+      "values": []
+     },
+     {
+      "evidence": [
+       {
+        "kind": "legacy_port",
+        "note_cs": "Převzato z 18.6.6: cíle, kvóty, raking a audit EXACT při stejném výběru řádků, losování vlastností (plán panel-grounded-respondents § 2e).",
+        "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
+       }
+      ],
+      "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_i w_i\\right)^2}{\\sum_i w_i^2}",
+      "formulas": [],
+      "id": "kish_sample",
+      "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "note_cs": "Čtvrté místo, kde se Kishovo n počítá: z vah po rakingu, zapsané do auditu vzorku (effective_n). Váhy jsou tu kladné z konstrukce (dolní mez rakingu).",
+      "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
+      "symbols": [],
+      "tests": [
+       "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units"
+      ],
+      "title_cs": "Kishovo n vzorku",
+      "values": []
+     }
+    ],
+    "steps": 17,
+    "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
    }
   }
  },
@@ -7054,8 +9324,16 @@
    "title_cs": "Sociomapping: experimentální H-Model (kandidát AIA)"
   },
   {
-   "editable": false,
+   "editable": true,
    "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Pravidla"
+    },
     {
      "id": "U",
      "note_cs": "",
@@ -7079,14 +9357,286 @@
     }
    ],
    "id": "support",
-   "in_force": null,
-   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Které jedno pravidlo bude platit, rozhodne metodik zde, až budou prahy deklarované (G1b) a jedna verze v platnosti (G1c).",
-   "presets": [],
-   "steps": 7,
+   "in_force": "aia-support-1",
+   "note_cs": "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet dárců, 25/50); analýza ho přehodnotí branou AIA (surové n 50, efektivní n 25/50, dárci 25/50) a platí přísnější. Buňka tak může být na obrazovce INDIKATIVNÍ a v analýze potlačená. Obě pravidla jsou deklarovaná (verze aia-support-1 je dnešek) a metodik je může upravit oběma směry, i sjednotit do jednoho; kontrola návrhu ukáže každou buňku, kterou úprava nově ukáže nebo nově potlačí.",
+   "presets": [
+    "aia-support-1"
+   ],
+   "steps": 8,
    "title_cs": "Podpora a potlačení: kdy se číslo smí ukázat"
+  },
+  {
+   "editable": true,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Agregace"
+    },
+    {
+     "id": "V",
+     "note_cs": "",
+     "step_ids": [
+      "weights",
+      "kish"
+     ],
+     "title_cs": "Váhy"
+    },
+    {
+     "id": "O",
+     "note_cs": "",
+     "step_ids": [
+      "share",
+      "mean",
+      "median",
+      "sd",
+      "top_box",
+      "multi"
+     ],
+     "title_cs": "Odhady"
+    },
+    {
+     "id": "B",
+     "note_cs": "",
+     "step_ids": [
+      "resample",
+      "interval"
+     ],
+     "title_cs": "Interval: bootstrap dárců"
+    },
+    {
+     "id": "F",
+     "note_cs": "",
+     "step_ids": [
+      "classify",
+      "fidelity"
+     ],
+     "title_cs": "Věrohodnost otázky"
+    }
+   ],
+   "id": "aggregation",
+   "in_force": "aia-aggregate-1",
+   "note_cs": "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, OI-62). Hodnoty, které jednotka psala přímo do kódu (replikace, semínka, kvantily intervalu, šířka top boxu), jsou deklarované ve verzi aia-aggregate-1. Běh si při spuštění zapamatuje verzi agregace v platnosti. Metodik může upravit hodnoty i vzorce; kontrola návrhu je nejdřív ukáže na fiktivních panelech. Agregace se změněnou hodnotou nebo nahrazeným vzorcem už není přenosem 18.6.6 a říká to: Výsledky nad čísly ukážou Odchylku od 18.6.6 i s tím, co se změnilo.",
+   "presets": [
+    "aia-aggregate-1"
+   ],
+   "steps": 13,
+   "title_cs": "Agregace: z odpovědí odhad s intervalem"
+  },
+  {
+   "editable": false,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Vážení"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "scheme",
+      "parse",
+      "column"
+     ],
+     "title_cs": "Schéma vah"
+    },
+    {
+     "id": "T",
+     "note_cs": "",
+     "step_ids": [
+      "total"
+     ],
+     "title_cs": "Součty populace"
+    },
+    {
+     "id": "V",
+     "note_cs": "",
+     "step_ids": [
+      "sample_base",
+      "sample_targets",
+      "rake",
+      "sample_without_quotas",
+      "sample_audit",
+      "respondent"
+     ],
+     "title_cs": "Váha respondenta běhu: vzorek z panelu"
+    },
+    {
+     "id": "C",
+     "note_cs": "",
+     "step_ids": [
+      "dataset",
+      "cleaning"
+     ],
+     "title_cs": "Neplatná váha"
+    },
+    {
+     "id": "K",
+     "note_cs": "",
+     "step_ids": [
+      "kish_aggregate",
+      "kish_gate",
+      "kish_sociomap",
+      "kish_sample"
+     ],
+     "title_cs": "Kishovo efektivní n na čtyřech místech"
+    }
+   ],
+   "id": "weighting",
+   "in_force": "aia-weighting-1",
+   "note_cs": "Schéma vah je sloupec panelu, který určí importní smlouva. Respondent běhu nese váhu vzorku: základní váhu s dolní mezí, raking na vážené podíly publika (IPF s ořezem, průměr 1) a audit reprezentativnosti, vše převzaté z 18.6.6. GREG ani jiná kalibrace v AIA nejsou. Datová sada běhu odmítne váhu, která není kladné konečné číslo. Hodnoty výběru jsou konstanty kódu; volbou běhu se stanou, až zdroj panelu dojde do sběru (W1c). Verze aia-weighting-1 je deklarace smlouvy přesně: čtyři schémata, výchozí role a dva očekávané součty s tolerancí.",
+   "presets": [
+    "aia-weighting-1"
+   ],
+   "steps": 17,
+   "title_cs": "Vážení: která váha patří respondentovi a co s neplatnou"
+  },
+  {
+   "editable": true,
+   "groups": [
+    {
+     "id": "M",
+     "note_cs": "",
+     "step_ids": [
+      "method"
+     ],
+     "title_cs": "Proces odpovědi"
+    },
+    {
+     "id": "P",
+     "note_cs": "",
+     "step_ids": [
+      "request",
+      "normalise"
+     ],
+     "title_cs": "Pravděpodobnosti od modelu"
+    },
+    {
+     "id": "B",
+     "note_cs": "",
+     "step_ids": [
+      "reweight",
+      "social_desirability",
+      "acquiescence",
+      "extremity",
+      "dont_know",
+      "satisficing"
+     ],
+     "title_cs": "Mechanismy odpovědi"
+    },
+    {
+     "id": "D",
+     "note_cs": "",
+     "step_ids": [
+      "draw"
+     ],
+     "title_cs": "Losování"
+    },
+    {
+     "id": "S",
+     "note_cs": "",
+     "step_ids": [
+      "styles",
+      "noise",
+      "describe"
+     ],
+     "title_cs": "Styly respondenta"
+    },
+    {
+     "id": "F",
+     "note_cs": "",
+     "step_ids": [
+      "roster"
+     ],
+     "title_cs": "Fiktivní soubor"
+    }
+   ],
+   "id": "response",
+   "in_force": "aia-response-1",
+   "note_cs": "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze aia-response-1 jsou hodnoty 18.6.6 a kód je čte, takže zobrazené je počítané. Každý běh si proces odpovědi zapamatuje a opakování ho drží. Úpravu lze před uvedením v platnost porovnat na pevných fiktivních otázkách a respondentech.",
+   "presets": [
+    "aia-response-1"
+   ],
+   "steps": 14,
+   "title_cs": "Odpověď respondenta: od pravděpodobností modelu k odpovědi"
   }
  ],
  "presets": {
+  "aggregation": {
+   "aia-aggregate-1": {
+    "bootstrap": {
+     "quantiles": [
+      0.025,
+      0.975
+     ],
+     "reps": 400,
+     "reps_multi": 350,
+     "seed": 20260816,
+     "seed_top_box": 20260818
+    },
+    "methodology_version": "aia-aggregate-1",
+    "top_box": 2
+   }
+  },
+  "response": {
+   "aia-response-1": {
+    "acquiescence": 0.16,
+    "describe_threshold": 0.7,
+    "dont_know": 0.24,
+    "extremity": 0.22,
+    "methodology_version": "aia-response-1",
+    "reweight_limit": 8.0,
+    "satisficing": {
+     "base": 0.1,
+     "cap": 0.35,
+     "slope": 0.06
+    },
+    "social_desirability": {
+     "base": 0.18,
+     "slope": 0.1
+    },
+    "style_links": {
+     "ochota_priznat_nevim": {
+      "age": -0.1,
+      "education": -0.25,
+      "male": -0.15
+     },
+     "satisficing": {
+      "age": 0.1,
+      "education": -0.25,
+      "male": 0.0
+     },
+     "sdilnost": {
+      "age": -0.1,
+      "education": 0.3,
+      "male": 0.0
+     },
+     "social_desirability_sensitivity": {
+      "age": 0.05,
+      "education": -0.05,
+      "male": -0.05
+     },
+     "souhlasny_sklon": {
+      "age": 0.2,
+      "education": -0.3,
+      "male": 0.0
+     },
+     "vyhranenost": {
+      "age": 0.15,
+      "education": -0.1,
+      "male": 0.05
+     }
+    },
+    "style_noise_floor": 0.05
+   }
+  },
   "sociomap": {
    "aia-sociomap-2": {
     "connectedness": {
@@ -7213,6 +9763,25 @@
   },
   "sociomap_reference": {},
   "sociomapping": {},
-  "support": {}
+  "support": {
+   "aia-support-1": {
+    "analysis": {
+     "indicative": 50.0,
+     "indicative_layer_donors": 50,
+     "min_cell": 50,
+     "min_layer_donors": 25,
+     "n_guard": 25.0
+    },
+    "methodology_version": "aia-support-1",
+    "results": {
+     "indicative": null,
+     "indicative_layer_donors": 50,
+     "min_cell": null,
+     "min_layer_donors": 25,
+     "n_guard": null
+    }
+   }
+  },
+  "weighting": {}
  }
 }

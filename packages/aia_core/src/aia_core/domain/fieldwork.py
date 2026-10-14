@@ -13,22 +13,31 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Final
+from typing import Any, Final
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .research_design import ResearchSpecification
 
 __all__ = [
+    "CLIENT_ADMISSIBLE_ORIGINS",
     "DATASET_VERSION",
+    "JOINT_CERTIFICATE_METADATA",
+    "MODELLED_DISCLOSURE",
     "NON_EVIDENCE_ORIGINS",
+    "RESPONDENT_SYSTEM_METADATA",
     "Answer",
     "DataOrigin",
     "FieldworkDataset",
     "FieldworkRespondent",
     "FieldworkSource",
     "InvalidDataset",
+    "OriginKind",
+    "PersonaSource",
+    "origin_kind",
+    "persona_source_of",
     "validate_dataset",
 ]
 
@@ -50,8 +59,11 @@ class FieldworkSource(StrEnum):
 class DataOrigin(StrEnum):
     """Where the respondent data behind an artifact came from, stamped on it.
 
-    Every member so far is synthetic, and none is evidence: the evidence gate refuses
-    a client-facing claim from any origin in :data:`NON_EVIDENCE_ORIGINS`.
+    Two members are synthetic and never evidence (:data:`NON_EVIDENCE_ORIGINS`); one is
+    modelled evidence (ADR 0024). A client-facing claim is admitted only from an origin in
+    :data:`CLIENT_ADMISSIBLE_ORIGINS`, an allowlist, so a member added later is refused until
+    it is decided. Every member is in exactly one of the two sets
+    (``test_every_origin_is_decided_once``).
     """
 
     #: Invented respondents from ``random.Random(seed)``: no panel, no person, no model.
@@ -60,12 +72,96 @@ class DataOrigin(StrEnum):
     #: fictional roster). Model-simulated answers of people who do not exist: never
     #: observed fieldwork, never a finding.
     SYNTHETIC_AI_FICTIONAL = "SYNTHETIC_AI_FICTIONAL"
+    #: A model answering as respondents built from rows sampled from the run's own recorded
+    #: population (ADR 0024): modelled evidence, never measured and never fictional. Every
+    #: respondent's donor is its row's ``core_donor_id``.
+    MODELLED_AI_PANEL = "MODELLED_AI_PANEL"
 
 
-#: Origins from which no client-facing claim may be made. Today: all of them.
+#: Synthetic origins: never evidence, labelled "simulated respondents" everywhere.
 NON_EVIDENCE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset(
     {DataOrigin.SYNTHETIC_FIXTURE, DataOrigin.SYNTHETIC_AI_FICTIONAL}
 )
+
+#: The only origins a client-facing claim may come from (ADR 0024 §2). An allowlist: ``None``
+#: and any origin not named here are refused client-facing.
+CLIENT_ADMISSIBLE_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+#: What every modelled number carries beside it (ADR 0024 §7). Never "respondents said",
+#: "measured" or "the survey found".
+MODELLED_DISCLOSURE: Final = "modelováno: AI respondenti z populace"
+
+
+class PersonaSource(StrEnum):
+    """Who the AI respondents of an ``ai_runtime`` run are, pinned on the run at start.
+
+    Never read from a switch at execution: a retry keeps the original's, so a run's respondents
+    are what it was created to have (plan ``panel-grounded-respondents`` 5a, decision 1).
+    """
+
+    #: Invented personas (``ai_respondent.fictional_roster``): ``SYNTHETIC_AI_FICTIONAL``.
+    FICTIONAL_ROSTER = "fictional_roster"
+    #: Respondents drawn from the run's recorded population (``panel_source``):
+    #: ``MODELLED_AI_PANEL``.
+    PANEL = "panel"
+
+
+def persona_source_of(metadata: Mapping[str, Any]) -> PersonaSource:
+    """The persona source a run pinned; a run started before the pin existed is the roster.
+
+    A value this code does not know is refused, never read as either source.
+    """
+    raw = metadata.get("persona_source")
+    if raw is None:
+        return PersonaSource.FICTIONAL_ROSTER
+    try:
+        return PersonaSource(raw)
+    except ValueError:
+        raise ValueError(f"unknown persona source {raw!r}") from None
+
+
+#: The fieldwork dataset artifact's metadata key holding the components of the respondent system
+#: its answers came from (``evidence.validation.RESPONDENT_SYSTEM_COMPONENTS``), written by the
+#: source that produced a modelled dataset. A modelled run's evidence is judged on it.
+RESPONDENT_SYSTEM_METADATA: Final = "respondent_system"
+
+#: The fieldwork dataset artifact's metadata key holding the ``CORE_JOINT_STATUS`` certificate of
+#: the population a modelled dataset's respondents were drawn from (its text, its SHA-256 and the
+#: panel SHA-256 the loader checked it against; complete-study-report B5a). A modelled run's
+#: evidence is judged under it, so a client claim meets the certificate that covered its people.
+JOINT_CERTIFICATE_METADATA: Final = "joint_certificate"
+
+
+class OriginKind(StrEnum):
+    """How a label reads an origin: the one three-way reading every surface uses."""
+
+    #: Fictional respondents (:data:`NON_EVIDENCE_ORIGINS`): never evidence.
+    SIMULATED = "SIMULATED"
+    #: AI respondents built from the run's population (ADR 0024): modelled, never measured.
+    MODELLED = "MODELLED"
+    #: No origin, or one this code does not know: labelled unknown, never read as real.
+    UNKNOWN = "UNKNOWN"
+
+
+_MODELLED_ORIGINS: Final[frozenset[DataOrigin]] = frozenset({DataOrigin.MODELLED_AI_PANEL})
+
+
+def origin_kind(origin: DataOrigin | str | None) -> OriginKind:
+    """The kind of ``origin``; ``None`` and an unrecognised value are :attr:`OriginKind.UNKNOWN`.
+
+    No member reads as measured: AIA has no measured origin, so there is no fourth kind.
+    """
+    if origin is None:
+        return OriginKind.UNKNOWN
+    try:
+        member = DataOrigin(origin)
+    except ValueError:
+        return OriginKind.UNKNOWN
+    if member in NON_EVIDENCE_ORIGINS:
+        return OriginKind.SIMULATED
+    if member in _MODELLED_ORIGINS:
+        return OriginKind.MODELLED
+    return OriginKind.UNKNOWN
 
 
 #: One answer: a category (``vyber``), categories (``multi``), a scale point or
@@ -78,7 +174,10 @@ class FieldworkRespondent(BaseModel):
 
     respondent_id: str
     donor_id: str
-    weight: float = Field(gt=0)
+    #: A positive finite number, or the dataset is refused: the one rule a run's weights meet
+    #: (plan ``methodology-tab`` W1b). ``gt=0`` alone let infinity through to the aggregate,
+    #: whose ``clean_weights`` then replaced it by the median.
+    weight: float = Field(gt=0, allow_inf_nan=False)
     answers: dict[str, Answer]
 
 

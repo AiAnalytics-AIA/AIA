@@ -15,5 +15,5 @@
 
 require_env_file
 cd "$DEPLOY_DIR" || exit 1
-[ "$#" -gt 0 ] || die "name a command: status, import, attach, establish or promote"
+[ "$#" -gt 0 ] || die "name a command: status, record-dictionary, record-catalogue, import, attach, establish or promote"
 exec "${COMPOSE[@]}" run --rm --no-deps -T worker python -m aia_executors.population_ops "$@"

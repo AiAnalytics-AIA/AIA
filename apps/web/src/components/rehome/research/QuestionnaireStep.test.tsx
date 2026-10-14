@@ -122,6 +122,18 @@ describe("Dotazník", () => {
     expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("marks a question without wording where it is, and lists it beside the questionnaire", async () => {
+    const sections = structuredClone(SECTIONS) as { questions?: { text?: string }[] }[];
+    sections[0]!.questions![1]!.text = "";
+    unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázek · 1 sledovaných sad" });
+    const unworded = screen.getAllByRole("textbox", { name: "Znění otázky" }).find((x) => x.getAttribute("aria-invalid") === "true")!;
+    expect(document.getElementById(unworded.getAttribute("aria-describedby")!)?.textContent).toBe("Doplňte znění. Bez něj návrh nejde spustit.");
+    const ready = screen.getByRole("region", { name: "Dotazník" });
+    expect(within(ready).getByRole("button", { name: /Otázky bez znění: 1/ })).toBeTruthy();
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

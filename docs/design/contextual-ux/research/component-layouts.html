@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIA · contextual AI assistance · component layouts</title>
+<link rel="stylesheet" href="../../styles.css">
+<style>
+/* Colours come from the AIA foundation (tokens/tokens.css via styles.css): light + [data-theme="dark"]. No overrides here. */
+html,body{margin:0;background:var(--surface);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:32px 24px;display:flex;flex-direction:column;gap:40px}
+.label{font:11px/16px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin:0 0 8px}
+/* AI context card */
+.ai-card{display:flex;flex-direction:column;gap:10px;max-width:460px;box-sizing:border-box;border-radius:8px;border:1px solid var(--ai-edge);background:var(--ai-wash);padding:14px 16px}
+.ai-card h2{margin:0;font-size:13px;line-height:20px;font-weight:600;color:var(--ai-ink)}
+.ai-card .scope{margin:0;font-size:12px;line-height:18px;color:var(--ink-muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn-ai{min-height:44px;border-radius:6px;border:1px solid var(--ai-strong);background:var(--ai);color:var(--on-ai);padding:0 14px;font:600 14px "IBM Plex Sans",sans-serif;cursor:pointer}
+.btn-ai-2{min-height:44px;border-radius:6px;border:1px solid var(--ai-edge);background:var(--surface-raised);color:var(--ai-ink);padding:0 12px;font:600 13px "IBM Plex Sans",sans-serif;cursor:pointer}
+.btn{min-height:44px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface-raised);color:var(--ink);padding:0 14px;font:500 13px "IBM Plex Sans",sans-serif;cursor:pointer}
+.chip{min-height:32px;border-radius:999px;border:1px dashed var(--ai-edge);background:transparent;padding:4px 12px;font:13px/18px "IBM Plex Sans",sans-serif;color:var(--ink);cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+/* Panel */
+.ai-panel{width:380px;max-width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;border-radius:8px;border:1px solid var(--ai-edge);background:var(--surface-raised);padding:16px}
+.scope-box{border-radius:6px;background:var(--surface-sunken);padding:12px;font-size:13px;line-height:20px}
+/* Job state */
+.job{display:flex;flex-direction:column;gap:8px;border-radius:6px;border:1px solid var(--ai-edge);background:var(--ai-wash);padding:12px;font-size:14px}
+.job[data-tone=you]{border-color:var(--status-you-ink);background:var(--status-you-wash)}
+.job[data-tone=fault]{border-color:var(--status-fault);background:var(--status-fault-wash)}
+.job dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font:12px/18px "IBM Plex Mono",monospace;color:var(--ink-muted)}
+/* Finding row */
+.finding{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px}
+@media (max-width:1179px){.finding{grid-template-columns:minmax(0,1fr)}}
+.card{border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);padding:16px}
+.kn{border-radius:8px;border:1px solid var(--border);background:var(--surface-sunken);padding:12px;font-size:13px}
+.dr{border-radius:8px;border:1px solid var(--border);background:var(--surface-raised);padding:12px;font-size:13px}
+/* Map + legend */
+.map-legend{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px}
+@media (max-width:1179px){.map-legend{grid-template-columns:minmax(0,1fr)}}
+.map{min-height:280px;border-radius:6px;border:1px dashed var(--border-strong);display:flex;align-items:center;justify-content:center;color:var(--ink-muted);font-size:13px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<p style="max-width:1100px;margin:16px auto 0;padding:0 24px;display:flex;gap:8px"><button class="btn" type="button" onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'">Přepnout světlý / tmavý motiv</button></p>
+<div class="wrap">
+  <section>
+    <p class="label">AI context card · beside the stage heading</p>
+    <section class="ai-card" aria-labelledby="c1">
+      <h2 id="c1">AI pomoc v tomto kroku</h2>
+      <p class="scope">Kontext: uložená revize návrhu 3 · schválené znalosti klienta Banka Horizont (34).</p>
+      <div class="row">
+        <button class="btn-ai" type="button">AI zkontroluje návrh</button>
+        <button class="btn-ai-2" type="button">Zeptat se na návrh</button>
+        <button class="btn-ai-2" type="button">Zeptat se na klientské znalosti</button>
+      </div>
+      <div class="row"><button class="chip" type="button">Jsou škály u všech sad stejné?</button></div>
+    </section>
+  </section>
+
+  <section>
+    <p class="label">AI panel · side (≥1024px, role=complementary) or dialog (&lt;1024px, role=dialog aria-modal)</p>
+    <aside class="ai-panel" aria-labelledby="p1">
+      <div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1"><h2 id="p1" tabindex="-1" style="margin:0;font-size:16px">Klientské znalosti</h2><p style="margin:2px 0 0;font-size:12px;color:var(--ink-muted)">Krok 3 · Dotazník · Vnímání značky 2026</p></div><button class="btn" type="button" aria-label="Zavřít AI pomoc (Esc)" style="width:44px;padding:0">×</button></div>
+      <div class="scope-box"><strong style="font:11px 'IBM Plex Mono',monospace;text-transform:uppercase;color:var(--ink-faint)">Co AI uvidí</strong><ul style="margin:6px 0 0;padding-left:18px"><li>Schválené znalosti klienta Banka Horizont (34)</li><li>Uloženou revizi návrhu</li><li>Vaši otázku</li></ul><p style="margin:6px 0 0;font-size:12px;color:var(--ink-muted)">Hodnoty z výsledků a map se do otázky nepřidávají automaticky.</p></div>
+      <label for="q1" style="font-size:12px;color:var(--ink-muted)">Co chcete zjistit?</label>
+      <textarea id="q1" rows="3" style="border-radius:6px;border:1px solid var(--border-strong);padding:10px;font:14px/22px 'IBM Plex Sans',sans-serif"></textarea>
+      <div class="row" style="align-items:center"><button class="btn-ai" type="button" disabled>Odeslat otázku</button><span style="font-size:12px;color:var(--ink-muted)">Spustí AI úlohu na pozadí · platí se z rozpočtu studie</span></div>
+    </aside>
+  </section>
+
+  <section>
+    <p class="label">Job states</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+      <div class="job" role="status"><strong>Kontrola návrhu · Běží</strong><span>AI zpracovává návrh</span><span style="font-size:13px;color:var(--ink-muted)">Délka se liší podle zátěže; AIA neodhaduje procenta ani zbývající čas.</span><dl><dt>Úloha</dt><dd>RA-3c1e</dd><dt>Čas</dt><dd>0:07</dd><dt>Cena</dt><dd>≤ 0.12 USD rezervováno</dd></dl><div class="row"><button class="btn" type="button">Zrušit běh</button></div></div>
+      <div class="job" data-tone="you" role="status"><strong>Čeká na zásah</strong><span style="font-size:13px">AI běhové prostředí teď není dostupné (ai_runtime_unavailable). Úloha je uložená a nic se neodeslalo.</span><div class="row"><button class="btn-ai" type="button">Pokračovat v úloze</button><button class="btn" type="button">Zrušit běh</button></div></div>
+      <div class="job" data-tone="fault" role="status"><strong>Stav neznámý</strong><span style="font-size:13px">Spojení vypršelo (HTTP 504). Úloha může běžet dál; nespouštějte ji znovu.</span><div class="row"><button class="btn-ai" type="button">Obnovit stav</button></div></div>
+      <div class="job" data-tone="you" role="status"><strong>Odmítnuto</strong><span style="font-size:13px">AIA_AI_RESEARCH_AGENTS_ENABLED je vypnutý. Nic se neodeslalo ani neúčtovalo.</span><div class="row"><button class="btn" type="button">Rozumím</button></div></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="label">Results · finding with client knowledge and Deep Research beside it</p>
+    <article class="finding">
+      <div class="card"><h3 style="margin:0;font-size:16px">Horizont má nejvíc hlavních klientů, ale v hodnocení zaostává</h3><p style="font-size:14px">7,1 proti 7,7 u Neobanky C.</p><p style="margin:0;font-size:13px;color:var(--ink-muted)">Podpora: n = 500 · Nejistota: modelovaný odhad</p></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <section class="kn"><p class="label" style="color:var(--hue-violet)">Klientské znalosti · schválené</p>Brand tracking 2025: hodnocení 6,9 z 10.<div style="margin-top:8px"><button class="btn-ai-2" type="button">Zeptat se na klientské znalosti</button></div></section>
+        <section class="dr"><p class="label">Literatura · Deep Research DR-9c41e2a7</p>Neobanky vedou v hodnocení zákaznické zkušenosti.</section>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <p class="label">Map with read-only legend & method aside</p>
+    <div class="map-legend"><div class="map">Sociomap (baseline component)</div><aside class="card" aria-label="Legenda a metoda" style="font-size:13px"><strong>Legenda a metoda</strong><p style="color:var(--ink-muted)">Jen ke čtení. Metodika aia-sociomap-3 zapsaná v běhu. Dvojice pod 30 respondenty se nekreslí.</p></aside></div>
+  </section>
+</div>
+</body>
+</html>

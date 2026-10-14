@@ -162,6 +162,8 @@ class AnalysisConfig:
     #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
+    step_events: bool = False
 
     def __post_init__(self) -> None:
         if not self.policy_version:
@@ -216,6 +218,7 @@ class AnalysisConfig:
             reservation_usd=reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
+            step_events=settings.step_events,
         )
 
 
@@ -586,6 +589,7 @@ class AnalysisModuleExecutor:
             runtime_version=self._build.sha or "",
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
+            announce=cfg.step_events,
         )
         turns = _Turns(
             executor=self,

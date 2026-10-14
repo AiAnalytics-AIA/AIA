@@ -34,18 +34,24 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Final
 
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+
 __all__ = [
+    "AIA_SUPPORT_V1",
     "REFERENCE_THRESHOLDS",
+    "UNIT_DONOR_THRESHOLDS",
     "Interval",
     "ReportableEstimate",
     "SupportAssessment",
     "SupportEvidence",
+    "SupportSpec",
     "SupportStatus",
     "SupportThresholds",
     "Suppression",
     "UnsupportedEstimate",
     "assess_support",
     "kish_effective_n",
+    "support_status",
     "suppress_cells",
     "top2box_pct",
     "weighted_mean",
@@ -63,21 +69,84 @@ class SupportStatus(StrEnum):
     REPORTABLE = "REPORTABLE"
 
 
-@dataclass(frozen=True, slots=True)
-class SupportThresholds:
-    min_cell: int
-    n_guard: float
-    indicative: float
-    min_layer_donors: int
-    indicative_layer_donors: int
+class SupportThresholds(BaseModel):
+    """One rule set: the lines a cell's support is measured against.
+
+    ``None`` means the rule does not check that line: the unit's donor rule
+    (:data:`UNIT_DONOR_THRESHOLDS`) checks donors only. A line that is checked is a
+    non-negative number, never a boolean, and an indicative line is never below the
+    suppression line it accompanies (plan ``methodology-tab`` G1b).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    min_cell: int | None
+    n_guard: float | None
+    indicative: float | None
+    min_layer_donors: int | None
+    indicative_layer_donors: int | None
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _a_number_not_a_boolean(cls, v: object) -> object:
+        if isinstance(v, bool):
+            raise ValueError("expected a number, not a boolean")
+        return v
+
+    @model_validator(mode="after")
+    def _lines_in_order(self) -> SupportThresholds:
+        for name in type(self).model_fields:
+            value = getattr(self, name)
+            if value is not None and (not math.isfinite(value) or value < 0):
+                raise ValueError(f"{name} must be a finite number, at least 0")
+        for low, high in (
+            ("n_guard", "indicative"),
+            ("min_layer_donors", "indicative_layer_donors"),
+        ):
+            a, b = getattr(self, low), getattr(self, high)
+            if a is not None and b is not None and b < a:
+                raise ValueError(f"{high} ({b:g}) is below {low} ({a:g})")
+        return self
 
 
+#: AIA's evidence gate, the methodology ledger's M16 (see the module docstring).
 REFERENCE_THRESHOLDS: Final = SupportThresholds(
     min_cell=50,
     n_guard=25.0,
     indicative=50.0,
     min_layer_donors=25,
     indicative_layer_donors=50,
+)
+
+#: 18.6.6's own rule (``dotaznik.agreguj_otazku``): unique donors alone decide, fewer than
+#: 25 suppress, fewer than 50 are indicative. Results shows a cell's status by this rule.
+UNIT_DONOR_THRESHOLDS: Final = SupportThresholds(
+    min_cell=None,
+    n_guard=None,
+    indicative=None,
+    min_layer_donors=25,
+    indicative_layer_donors=50,
+)
+
+
+class SupportSpec(BaseModel):
+    """Which rule decides where (plan ``methodology-tab`` G1b): ``results``, the status every
+    aggregate cell carries and Results shows; ``analysis``, the gate a cell passes before a
+    number reaches an analysis result, which keeps the stricter of the two."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    methodology_version: str
+    results: SupportThresholds
+    analysis: SupportThresholds
+
+
+#: Today, declared: the unit's donor rule for Results, AIA's gate for analysis. They
+#: disagree (finding D2); which single rule holds is the methodologist's (G1c).
+AIA_SUPPORT_V1: Final = SupportSpec(
+    methodology_version="aia-support-1",
+    results=UNIT_DONOR_THRESHOLDS,
+    analysis=REFERENCE_THRESHOLDS,
 )
 
 
@@ -122,45 +191,64 @@ class SupportAssessment:
         return self.status is not SupportStatus.SUPPRESS
 
 
-def assess_support(
-    evidence: SupportEvidence, thresholds: SupportThresholds = REFERENCE_THRESHOLDS
-) -> SupportAssessment:
-    """Decide a cell's support. Unknown, inconsistent or thin support suppresses."""
+def _decide(
+    evidence: SupportEvidence, thresholds: SupportThresholds
+) -> tuple[SupportStatus, tuple[str, ...]]:
+    """The status a rule gives a cell, and every reason. A line the rule does not check
+    (``None``) is skipped; unknown, inconsistent or thin support suppresses."""
     n, eff = evidence.n, evidence.effective_n
     if n is None or eff is None or not math.isfinite(eff) or eff < 0 or n < 0:
-        return SupportAssessment(reasons=("support unknown: n or effective n missing",))
+        return SupportStatus.SUPPRESS, ("support unknown: n or effective n missing",)
     if eff > n + 1e-9:
-        return SupportAssessment(
-            reasons=(f"effective n {eff:g} exceeds n {n}: inconsistent support",), effective_n=eff
-        )
+        return SupportStatus.SUPPRESS, (f"effective n {eff:g} exceeds n {n}: inconsistent support",)
 
     suppress: list[str] = []
     indicative: list[str] = []
-    if n < thresholds.min_cell:
+    if thresholds.min_cell is not None and n < thresholds.min_cell:
         suppress.append(f"n {n} < min_cell {thresholds.min_cell}")
-    if eff < thresholds.n_guard:
+    if thresholds.n_guard is not None and eff < thresholds.n_guard:
         suppress.append(f"effective n {eff:g} < {thresholds.n_guard:g}")
-    elif eff < thresholds.indicative:
+    elif thresholds.indicative is not None and eff < thresholds.indicative:
         indicative.append(f"effective n {eff:g} < {thresholds.indicative:g}")
 
     if evidence.requires_donor_support:
         donors = evidence.n_unique_layer_donors
         if donors is None or donors < 0:
             suppress.append("donor-layer support unknown")
-        elif donors < thresholds.min_layer_donors:
+        elif thresholds.min_layer_donors is not None and donors < thresholds.min_layer_donors:
             suppress.append(f"{donors} unique layer donors < {thresholds.min_layer_donors}")
-        elif donors < thresholds.indicative_layer_donors:
+        elif (
+            thresholds.indicative_layer_donors is not None
+            and donors < thresholds.indicative_layer_donors
+        ):
             indicative.append(
                 f"{donors} unique layer donors < {thresholds.indicative_layer_donors}"
             )
 
     if suppress:
-        return SupportAssessment(SupportStatus.SUPPRESS, tuple(suppress), eff)
+        return SupportStatus.SUPPRESS, tuple(suppress)
     if indicative:
-        return SupportAssessment(
-            SupportStatus.INDICATIVE, tuple(indicative), eff, _issuer=_SUPPORT_ISSUER
-        )
-    return SupportAssessment(SupportStatus.REPORTABLE, (), eff, _issuer=_SUPPORT_ISSUER)
+        return SupportStatus.INDICATIVE, tuple(indicative)
+    return SupportStatus.REPORTABLE, ()
+
+
+def assess_support(
+    evidence: SupportEvidence, thresholds: SupportThresholds = REFERENCE_THRESHOLDS
+) -> SupportAssessment:
+    """Decide a cell's support. Unknown, inconsistent or thin support suppresses."""
+    status, reasons = _decide(evidence, thresholds)
+    eff = evidence.effective_n
+    if status is SupportStatus.SUPPRESS:
+        unknown = reasons == ("support unknown: n or effective n missing",)
+        return SupportAssessment(reasons=reasons, effective_n=None if unknown else eff)
+    return SupportAssessment(status, reasons, eff, _issuer=_SUPPORT_ISSUER)
+
+
+def support_status(evidence: SupportEvidence, thresholds: SupportThresholds) -> SupportStatus:
+    """The status alone, for a cell that records it rather than gating a number on it (the
+    status an aggregate carries, plan ``methodology-tab`` G1b). The same decision as
+    :func:`assess_support`."""
+    return _decide(evidence, thresholds)[0]
 
 
 @dataclass(frozen=True, slots=True)

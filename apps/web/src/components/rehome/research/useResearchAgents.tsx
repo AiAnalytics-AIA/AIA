@@ -20,10 +20,16 @@ function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
 }
 
-export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void) {
+/**
+ * `adviceInWorkspace`: advice opens in the workspace's AI panel. `proposalsInWorkspace`:
+ * a design proposal is reviewed inline at the top of the stage (ProposalReview)
+ * instead of the modal dialog; the decision and what it does are the same.
+ */
+export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false) {
   const [recent, setRecent] = useState<ResearchAgentJob[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeAction, setActiveAction] = useState<ResearchAgentAction | null>(null);
   const [review, setReview] = useState<{ result: ResearchAgentResult; advice: boolean; decide: (ok: boolean) => void } | null>(null);
   const lifetime = useRef<AbortController | null>(null);
   const active = useRef<AbortController | null>(null);
@@ -52,7 +58,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       if (owner.signal.aborted || active.current) return;
       const running = jobs.find((j) => !j.is_terminal && !j.needs_attention && !j.status.startsWith("WAITING"));
       if (!running) return;
-      active.current = owner; setBusy(true);
+      active.current = owner; setBusy(true); setActiveAction(running.action);
       try {
         await followAgentJob(studyId, running.run_id, "Uložený AI krok", onUpdate, owner.signal);
         check(owner.signal);
@@ -60,13 +66,13 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       } catch (e) { if (!owner.signal.aborted) setNotice(message(e)); }
       finally {
         if (active.current === owner) active.current = null;
-        if (!owner.signal.aborted) { setBusy(false); onUpdate(null); }
+        if (!owner.signal.aborted) { setBusy(false); setActiveAction(null); onUpdate(null); }
       }
     }).catch((e: unknown) => { if (!owner.signal.aborted) setNotice(message(e)); });
     return () => {
       owner.abort(); active.current?.abort(); active.current = null;
       pendingDecision.current?.(false); pendingDecision.current = null;
-      setRecent([]); setNotice(null); setReview(null); setBusy(false);
+      setRecent([]); setNotice(null); setReview(null); setBusy(false); setActiveAction(null);
     };
   }, [studyId, refresh, onUpdate]);
 
@@ -92,7 +98,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
   const finish = useCallback(async (controller: AbortController) => {
     if (active.current === controller) active.current = null;
     if (!controller.signal.aborted && !lifetime.current?.signal.aborted) {
-      setBusy(false); onUpdate(null);
+      setBusy(false); setActiveAction(null); onUpdate(null);
       // A failed inbox refresh must not hide the job's original result or error.
       await refresh().catch((e: unknown) => { if (!controller.signal.aborted) setNotice(message(e)); });
     }
@@ -100,7 +106,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
 
   const run = useCallback(async (action: ResearchAgentAction, payload: Record<string, unknown>, title: string) => {
     if (active.current) throw new JobError("Jiný AI krok ještě běží.", "busy", null);
-    const controller = new AbortController(); active.current = controller; setBusy(true); setNotice(null);
+    const controller = new AbortController(); active.current = controller; setBusy(true); setActiveAction(action); setNotice(null);
     try {
       if (action === "analyze_brief" && payload.briefing) store.update(({ project }) => ({ project: { ...project, briefing: payload.briefing } as ResearchProject }), { reason: "native_ai_context" });
       await store.flush(); check(controller.signal);
@@ -123,7 +129,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
 
   const open = useCallback(async (job: ResearchAgentJob) => {
     if (active.current) { setNotice("Jiný AI krok ještě běží."); return; }
-    const controller = new AbortController(); active.current = controller; setBusy(true);
+    const controller = new AbortController(); active.current = controller; setBusy(true); setActiveAction(job.action);
     try {
       const response = await researchAgents.design(studyId, job.design_revision_id); check(controller.signal);
       if (!adviceActions.has(job.action) && canonicalProject(response.content) !== canonicalProject(store.get().project)) {
@@ -135,6 +141,23 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
     } catch (e) { if (!controller.signal.aborted) setNotice(message(e)); }
     finally { await finish(controller); }
   }, [studyId, store, apply, askReview, finish]);
-  return { run, recent, notice, busy, open, refresh,
-    dialog: review ? <AgentProposalDialog result={review.result} advice={review.advice} onDecision={review.decide} /> : null };
+  // Continue the same advice job. A status refresh never enqueues another paid call.
+  const continueAdvice = useCallback(async (job: ResearchAgentJob) => {
+    if (active.current) throw new JobError("Jiný AI krok ještě běží.", "busy", job.run_id);
+    if (!adviceActions.has(job.action)) throw new Error("Tento návrh otevřete v jeho kroku výzkumu.");
+    const controller = new AbortController(); active.current = controller;
+    setBusy(true); setActiveAction(job.action); setNotice(null);
+    try {
+      if (job.status === "WAITING_PROVIDER" && job.steps.some((step) => step.waiting_reason === "ai_runtime_unavailable")) {
+        await researchAgents.resume(studyId, job.run_id); check(controller.signal);
+      }
+      const finished = await followAgentJob(studyId, job.run_id, "Uložený AI krok", onUpdate, controller.signal);
+      await apply(finished, canonicalProject(store.get().project), controller.signal);
+    } finally { await finish(controller); }
+  }, [studyId, store, onUpdate, apply, finish]);
+
+  return { run, recent, notice, busy, activeAction, open, refresh, continueAdvice,
+    adviceReview: adviceInWorkspace && review?.advice ? review : null,
+    proposalReview: proposalsInWorkspace && review && !review.advice ? review : null,
+    dialog: review && !(adviceInWorkspace && review.advice) && !(proposalsInWorkspace && !review.advice) ? <AgentProposalDialog result={review.result} advice={review.advice} onDecision={review.decide} /> : null };
 }

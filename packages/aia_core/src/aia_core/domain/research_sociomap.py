@@ -29,11 +29,13 @@ PR C chunk 6. For each tracked object set of the specification:
    were pinned is read as ``aia-sociomap-1`` (:data:`LEGACY_METHODS`), the method that
    computed it (plan ``sociomap-formula-corrections`` § 8.2, I0 and I4).
 
-**Integration is not exposure.** The preset carries four AIA methodology
-declarations that PROGRESS D6 has not approved, so every Sociomap this module
-builds is ``INTERNAL_ONLY``: the Study's researchers may inspect it; no
-client-facing surface, export or report may render it. :func:`require_client_facing`
-is the one check such a surface calls, and it refuses while D6 is open.
+**Integration is not exposure.** A map's status is the Sociomap register's for the
+method, at the exact specification, that computed it (:mod:`.sociomap_register`,
+complete-study-report B4). The drawn contract-2 map (``aia-sociomap-1``, whose four AIA
+declarations PROGRESS D6 has not approved) is not in the register, so it is
+``INTERNAL_ONLY``: the Study's researchers may inspect it; no client-facing surface, export
+or report may render it. :func:`require_client_facing` is the one check such a surface
+calls, and it refuses anything the register has not approved.
 
 Pure: no I/O.
 """
@@ -42,7 +44,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from enum import StrEnum
 from typing import Any, Final
 
 from pydantic import (
@@ -83,12 +84,12 @@ from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relatio
 from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
 from .sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
 from .sociomap.specification import PairEvidenceBasis
+from .sociomap_register import MethodologyStatus, method_status
 
 __all__ = [
     "CONNECTEDNESS_NOT_COMPUTED",
     "CONNECTEDNESS_RESAMPLES",
     "CONNECTEDNESS_SEED",
-    "D6_OPEN",
     "LEGACY_METHODS",
     "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
@@ -213,18 +214,6 @@ def side_tables_for(object_maps: Sequence[SociomapSpecV3]) -> SideTables:
     )
 
 
-#: PROGRESS D6: the four AIA Sociomap declarations await the methodology owner.
-#: Flipping this is a methodology decision recorded in PROGRESS, never a fix.
-D6_OPEN: Final = True
-
-
-class MethodologyStatus(StrEnum):
-    #: The Study's researchers may look at it; nobody else, nowhere else.
-    INTERNAL_ONLY = "INTERNAL_ONLY"
-    #: D6 approved: a client-facing surface may render it.
-    CLIENT_FACING = "CLIENT_FACING"
-
-
 class SociomapNotApproved(PermissionError):
     """A Sociomap reached a client-facing surface while its methodology is not approved."""
 
@@ -233,8 +222,8 @@ def require_client_facing(sociomap: dict[str, Any]) -> None:
     """The check every client-facing surface, export and report makes. Fails closed."""
     if sociomap.get("methodology_status") != MethodologyStatus.CLIENT_FACING.value:
         raise SociomapNotApproved(
-            "this Sociomap is INTERNAL_ONLY: its methodology (PROGRESS D6) is not approved "
-            "for client use"
+            "this Sociomap is INTERNAL_ONLY: the Sociomap register does not approve its "
+            "methodology for client use"
         )
 
 
@@ -397,8 +386,10 @@ def read_methods(value: Any) -> tuple[SociomapMethod, ...]:
     return methods
 
 
-def _methodology_status() -> MethodologyStatus:
-    return MethodologyStatus.INTERNAL_ONLY if D6_OPEN else MethodologyStatus.CLIENT_FACING
+def _methodology_status(spec: SociomapSpec | SociomapSpecV3) -> MethodologyStatus:
+    """The register's status for the spec a run pinned (complete-study-report B4). PROGRESS
+    D6's global switch is gone: what is approved is a method at its exact specification."""
+    return method_status(spec.methodology_version, spec.fingerprint())
 
 
 def _rating(value: Any) -> float | None:
@@ -638,7 +629,7 @@ def battery_sociomap(
         "title": battery.title,
         "family": battery.family,
         "objects": [{"id": o.id, "label": o.label} for o in battery.objects],
-        "methodology_status": _methodology_status().value,
+        "methodology_status": _methodology_status(map_spec).value,
         "methodology_decision": "PROGRESS D6: the four AIA Sociomap declarations, open",
         "preset": map_spec.methodology_version,
         "rating_scale": [low, high],
@@ -710,7 +701,7 @@ def research_sociomaps(
             }
             for m in pinned
         ],
-        "methodology_status": _methodology_status().value,
+        "methodology_status": _methodology_status(map_spec).value,
         "data_origin": dataset.origin.value if dataset.origin else None,
         "batteries": [
             battery_sociomap(

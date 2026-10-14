@@ -138,7 +138,9 @@ def test_captions_number_figures_and_state_base_and_suppression(report_ledger: A
         for p in root.iter(f"{W}p")
         if (s := p.find(f"{W}pPr/{W}pStyle")) is not None and s.get(f"{W}val") == "Caption"
     ]
-    assert caps[0] == f"Graf 1 — Graf druhu bar (n{NB}={NB}480; měřeno)"
+    assert caps[0] == (
+        f"Graf 1 — Graf druhu bar (n{NB}={NB}480; měřeno; modelováno: AI respondenti z populace)"
+    )
     assert caps[2].startswith("Graf 3 — Graf druhu line (n")
     assert "měřeno" not in caps[2]  # a measured and a modelled series: no single grade
     sources = [_t(p) for p in root.iter(f"{W}p") if _t(p).startswith("Zdroj:")]

@@ -24,6 +24,7 @@ import pytest
 from aia_core.domain.methodology.expressions import compile_formula
 from aia_core.domain.methodology.pins import COMPUTED_SLOTS, sociomap_methods_for
 from aia_core.domain.methodology.sociomap_formulas import SOCIOMAP_FORMULAS
+from aia_core.domain.research_aggregate import AGGREGATE_SLOTS
 from aia_core.domain.research_sociomap import (
     SociomapMethod,
     SociomapMethodsInvalid,
@@ -110,7 +111,11 @@ OTHER: dict[str, tuple[str, Read]] = {
 
 
 def test_the_engine_computes_every_slot_and_the_catalogue_has_no_other() -> None:
-    assert set(BUILTIN) == ENGINE_SLOTS == COMPUTED_SLOTS == set(OTHER)
+    assert set(BUILTIN) == ENGINE_SLOTS == set(OTHER)
+    # What a run computes from a stored expression: the object map's slots and, since G3a,
+    # the aggregate's estimators -- every one of each, and nothing else.
+    assert COMPUTED_SLOTS == ENGINE_SLOTS | AGGREGATE_SLOTS
+    assert not ENGINE_SLOTS & AGGREGATE_SLOTS
 
 
 def test_the_panel_reaches_every_slot() -> None:

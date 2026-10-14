@@ -25,11 +25,23 @@ from collections.abc import Callable, Mapping
 from typing import Any, Final, Protocol
 
 from aia_core.application.research import research_artifacts
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
+    RESPONDENT_SYSTEM_METADATA,
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
+    OriginKind,
+    PersonaSource,
+    origin_kind,
+    persona_source_of,
     validate_dataset,
+)
+from aia_core.domain.methodology.pins import (
+    UNIT_AGGREGATION_PIN,
+    read_aggregation_pin,
+    read_support_pin,
 )
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
@@ -103,6 +115,13 @@ class AIDatasetProducer(Protocol):
     ) -> ProducedDataset | Failed: ...
 
 
+#: What the fieldwork step says when its dataset is stored: never "fieldwork done" for answers no
+#: person gave (ADR 0024 §7), and an origin of unknown kind is said, never read as real.
+_DATA_READY: Final[dict[OriginKind, str]] = {
+    OriginKind.SIMULATED: "fiktivní data připravena",
+    OriginKind.MODELLED: "modelovaná data připravena",
+    OriginKind.UNKNOWN: "data neznámého původu uložena",
+}
 _RUNTIME_UNAVAILABLE_MESSAGE: Final = (
     "AI respondenti zatím nejsou nasazeni. Běh čeká u sběru dat; nic nebylo vymyšleno "
     "ani nahrazeno a další kroky se nespustí, dokud sběr neproběhne."
@@ -244,13 +263,22 @@ class PreflightExecutor(_Step):
                 FailureClass.SCHEMA_VIOLATION,
                 error={"code": "sociomap_method_invalid", "message": str(exc)},
             )
+        # A run pinned to its population draws under the design's filters (6d); a run stored
+        # before the pin reached this step reads as the fictional roster.
+        try:
+            panel = persona_source_of(step.payload) is PersonaSource.PANEL
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "persona_source_unknown", "message": str(exc)},
+            )
         with context.transaction() as (session, workflow):
             spec_id = upstream_artifact(workflow, step, "compile")
             if spec_id is None:
                 return _missing_upstream("compile")
             repo = _artifacts(session, context, self._store)
             spec = _read_spec(repo, spec_id)
-            readiness = assess_readiness(spec, pair_n_min=pair_n_min)
+            readiness = assess_readiness(spec, pair_n_min=pair_n_min, filters_applied=panel)
             artifact, created = self._put(
                 repo,
                 step,
@@ -261,6 +289,8 @@ class PreflightExecutor(_Step):
                         "spec": spec.fingerprint(),
                         "rules": readiness.rules,
                         "pair_n_min": pair_n_min,
+                        # Only when it changes the checks: a roster run's key is unchanged.
+                        **({"filters_applied": True} if panel else {}),
                     }
                 ),
                 depends_on=[spec_id],
@@ -347,12 +377,16 @@ class FieldworkExecutor(_Step):
             spec = _read_spec(repo, spec_id)
 
         provenance: dict[str, Any] | None = None
+        system: dict[str, str] | None = None
+        certificate: dict[str, str] | None = None
         if source is FieldworkSource.AI_RUNTIME:
             assert self._ai is not None
             produced = self._ai.produce(spec, step, context)
             if isinstance(produced, Failed):
                 return produced
             dataset, provenance = produced.dataset, produced.provenance
+            system = produced.respondent_system
+            certificate = produced.joint_certificate
         else:
             assert producer is not None
             dataset = producer(spec)
@@ -386,10 +420,19 @@ class FieldworkExecutor(_Step):
                 artifact_type=FIELDWORK_DATASET,
                 input_fingerprint=fingerprint(fingerprint_inputs),
                 depends_on=[spec_id],
-                metadata={"data_origin": origin, "fieldwork_source": source.value},
+                metadata={
+                    "data_origin": origin,
+                    "fieldwork_source": source.value,
+                    # What a modelled analysis is judged on (ADR 0024 §4, plan 4e3).
+                    **({RESPONDENT_SYSTEM_METADATA: system} if system is not None else {}),
+                    # The certificate that covered those respondents (B5a).
+                    **(
+                        {JOINT_CERTIFICATE_METADATA: certificate} if certificate is not None else {}
+                    ),
+                },
             )
         context.progress(
-            "fiktivní data připravena" if dataset.is_synthetic else "sběr dat dokončen",
+            _DATA_READY[origin_kind(dataset.origin)],
             artifact_id=artifact.artifact_id,
             respondents=len(dataset.respondents),
         )
@@ -503,7 +546,26 @@ class AggregateExecutor(_Step):
             validate_dataset(spec, dataset)
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
-        result = aggregate_dataset(spec, dataset)
+        # The run's pinned support rules (plan methodology-tab G1c); a run started before they
+        # were pinned reads as aia-support-1, the rules it was computed under.
+        try:
+            support = read_support_pin(step.payload.get("support"))
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "support_pin_invalid", "message": str(exc)},
+            )
+        # The run's pinned aggregation (G3a): its specification and replaced formulas. A run
+        # started before it was pinned reads as 18.6.6's port, the way it was computed.
+        stored = step.payload.get("aggregation")
+        try:
+            method, slots = read_aggregation_pin(stored)
+        except ValueError as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"code": "aggregation_pin_invalid", "message": str(exc)},
+            )
+        result = aggregate_dataset(spec, dataset, support=support, method=method, slots=slots)
         context.checkpoint()
         origin = result["data_origin"]
         with context.transaction() as (session, _workflow):
@@ -517,6 +579,19 @@ class AggregateExecutor(_Step):
                         "dataset": dataset_sha,
                         "aggregate": AGGREGATE_VERSION,
                         "spec": spec.fingerprint(),
+                        # Only a rule other than today's enters the key, so an aggregate
+                        # stored under aia-support-1 is reused as it always was.
+                        **(
+                            {}
+                            if support == AIA_SUPPORT_V1
+                            else {"support": support.model_dump(mode="json")}
+                        ),
+                        # Likewise only an aggregation other than 18.6.6's port.
+                        **(
+                            {}
+                            if stored is None or stored == UNIT_AGGREGATION_PIN
+                            else {"aggregation": stored}
+                        ),
                     }
                 ),
                 depends_on=[spec_id, dataset_id],

@@ -349,3 +349,14 @@ def test_the_connectedness_interval_switch_is_off_unless_set_and_refuses_a_guess
     default = registry_for(store=store, build=build)["research_sociomap"]
     assert isinstance(default, research_module.SociomapExecutor)
     assert default._connectedness_interval is False
+
+
+def test_the_fieldwork_step_never_says_fieldwork_is_done_for_answers_no_person_gave() -> None:
+    """ADR 0024 §7: every origin kind has its own words; modelled data is said to be modelled."""
+    from aia_core.domain.fieldwork import OriginKind
+    from aia_executors.research import _DATA_READY
+
+    assert set(_DATA_READY) == set(OriginKind)
+    assert _DATA_READY[OriginKind.MODELLED] == "modelovaná data připravena"
+    assert _DATA_READY[OriginKind.SIMULATED] == "fiktivní data připravena"
+    assert all("sběr dat" not in words for words in _DATA_READY.values())

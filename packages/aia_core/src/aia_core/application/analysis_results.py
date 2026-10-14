@@ -30,6 +30,7 @@ internal interpretation, as they see the internal Sociomap (ADR 0016 decision 6)
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Final
@@ -82,18 +83,27 @@ from ..domain.analysis.native import (
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.evidence import (
-    INSTRUMENT_POLICY_VERSION,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
+    instrument_policy_version,
     method_status,
+    respondent_system_fingerprint,
 )
-from ..domain.fieldwork import DataOrigin, FieldworkSource
+from ..domain.evidence.support import SupportSpec
+from ..domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
+    RESPONDENT_SYSTEM_METADATA,
+    DataOrigin,
+    FieldworkSource,
+    OriginKind,
+    origin_kind,
+)
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from ..domain.methodology.pins import read_support_pin
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
-from ..domain.research_sociomap import read_methods
 from ..domain.scope import Permission, StudyContext
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import (
@@ -183,6 +193,15 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
+    #: gates every number this run's analysis admits.
+    support: SupportSpec
+    #: A modelled dataset's respondent system (ADR 0024 §4), fingerprinted from what the dataset
+    #: recorded; ``None`` for every other origin, or when it recorded none.
+    respondent_system: str | None = None
+    #: A modelled dataset's population certificate and the panel SHA-256 it was verified
+    #: against (complete-study-report B5a); ``None`` for every other origin or when none.
+    joint_certificate: tuple[bytes, str] | None = None
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -341,11 +360,19 @@ def native_sources(
     if not isinstance(aggregate, Mapping):
         raise SourcesRefused("aggregate_shape", "the aggregate artifact holds no aggregate")
 
+    try:
+        support = read_support_pin((run.get("metadata") or {}).get("support"))
+    except ValueError as exc:
+        raise SourcesRefused("support_pin", f"the run's support pin does not read: {exc}") from None
+
     raw_origin = dataset_row.metadata.get("data_origin")
     try:
         origin = DataOrigin(raw_origin) if raw_origin is not None else None
     except ValueError:
         raise SourcesRefused("dataset_origin", f"unknown data origin {raw_origin!r}") from None
+
+    respondent_system = _respondent_system(origin, dataset_row.metadata)
+    joint_certificate = _joint_certificate(origin, dataset_row.metadata)
 
     return NativeSources(
         run_id=str(run["run_id"]),
@@ -361,7 +388,59 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        support=support,
+        respondent_system=respondent_system,
+        joint_certificate=joint_certificate,
     )
+
+
+def _joint_certificate(
+    origin: DataOrigin | None, metadata: Mapping[str, Any]
+) -> tuple[bytes, str] | None:
+    """The population certificate a modelled dataset recorded, re-hashed; else ``None``.
+
+    Read for a modelled origin only. A record that does not hash to its recorded SHA-256 is
+    refused, never read as no certificate: the gate must not be judged on altered bytes.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(JOINT_CERTIFICATE_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(raw.get(k), str) for k in ("certificate", "sha256", "panel_sha256")
+    ):
+        raise SourcesRefused("joint_certificate", "the dataset's certificate is not a record")
+    data = str(raw["certificate"]).encode("utf-8")
+    if hashlib.sha256(data).hexdigest() != raw["sha256"]:
+        raise SourcesRefused(
+            "joint_certificate", "the dataset's certificate does not hash to its recorded SHA-256"
+        )
+    return data, str(raw["panel_sha256"])
+
+
+def _respondent_system(origin: DataOrigin | None, metadata: Mapping[str, Any]) -> str | None:
+    """The respondent system a modelled dataset recorded, fingerprinted; else ``None``.
+
+    Read for a modelled origin only: a simulated one is never validated. A record that does not
+    fingerprint (a missing or blank component, a name it does not bind) is refused, never read
+    as no system.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(RESPONDENT_SYSTEM_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
+    ):
+        raise SourcesRefused(
+            "respondent_system", "the dataset's respondent system is not a record of names"
+        )
+    try:
+        return respondent_system_fingerprint(raw)
+    except ValueError as exc:
+        raise SourcesRefused("respondent_system", str(exc)) from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -470,6 +549,12 @@ def prepare_module(
         sources.aggregate,
         dataset_sha256=sources.refs.dataset.sha256,
         origin=sources.dataset_origin,
+        support=sources.support.analysis,
+        respondent_system=sources.respondent_system,
+        joint_certificate=sources.joint_certificate,
+        # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
+        # modelled run's evidence stays internal.
+        validation=None,
     )
     inputs = AnalysisInputs(
         table=evidence.table,
@@ -540,7 +625,7 @@ def module_artifact(
             data_origin=evidence.origin,
         ),
         authority=AuthoritySummary(
-            field_policy_version=INSTRUMENT_POLICY_VERSION,
+            field_policy_version=instrument_policy_version(evidence.origin),
             field_policy_sha256=evidence.book.source_sha256,
             joint_status_fingerprint=joint.fingerprint(),
             joint_degradation=joint.degradation.value if joint.degradation else None,
@@ -583,6 +668,9 @@ class RunAnalysis:
     modules: Mapping[AnalysisModuleId, ReconstructedModule]
     #: Modules with no stored outcome, and the status of their step.
     pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+    #: How the aggregate every module read departs from 18.6.6's port (plan
+    #: ``methodology-tab`` G3c); ``None`` when it is the port, or nothing was read yet.
+    aggregation_deviation: Mapping[str, Any] | None = None
 
     @property
     def complete(self) -> bool:
@@ -790,14 +878,19 @@ def reconstruct_run(
         else:
             outcomes[module] = artifact_id
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
+    deviation: Mapping[str, Any] | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
+        raw = sources.aggregate.get("deviation")
+        deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
             if module in outcomes:
                 modules[module] = _reconstruct(
                     session, scope, store, sources, module, outcomes[module]
                 )
-    return RunAnalysis(run_id=run_id, modules=modules, pending=pending)
+    return RunAnalysis(
+        run_id=run_id, modules=modules, pending=pending, aggregation_deviation=deviation
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -836,8 +929,9 @@ def retry_failed_modules(
 ) -> StartedRun:
     """Ask a finished run's failed analysis modules again, without collecting data again.
 
-    A new run, linked to ``run_id`` (``retry_of``), over the same Design Revision and
-    Sociomap pins: its fieldwork step takes this run's dataset by artifact id and SHA-256
+    A new run, linked to ``run_id`` (``retry_of``), over the same Design Revision and every
+    pin the run recorded (:meth:`~.research.ResearchRuns.retry_analysis`): its fieldwork
+    step takes this run's dataset by artifact id and SHA-256
     (:class:`~.research.FrozenDataset`), so the specification, the dataset and the
     aggregate are the same bytes and every completed module is reused by its reuse key at
     no cost. The modules in :attr:`RunAnalysis.retryable` are asked again in a new round;
@@ -896,14 +990,9 @@ def retry_failed_modules(
         retried=tuple(m.value for m in retried),
         modules_asked=asked,
     )
-    return runs.start(
-        design_revision_id=str(metadata["design_revision_id"]),
-        fieldwork_source=FieldworkSource(str(metadata["fieldwork_source"])),
-        retry_of=run_id,
-        analysis_enabled=True,
-        sociomapping_enabled=bool(metadata.get("sociomapping_enabled", False)),
+    return runs.retry_analysis(
+        run_id,
+        frozen_dataset=frozen,
         reservations=reservations,
         confirm_cost_usd=confirm_cost_usd,
-        sociomap_methods=read_methods(metadata.get("sociomap_methods")),
-        frozen_dataset=frozen,
     )

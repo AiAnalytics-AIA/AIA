@@ -64,7 +64,9 @@ __all__ = [
     "TEXT_SUFFIXES",
     "ZIP_MAX_MEMBERS",
     "ZIP_MAX_UNCOMPRESSED",
+    "check_zip_bounds",
     "extract_text",
+    "grid_from_rows",
     "read_csv",
     "read_pdf",
     "read_web_document",
@@ -363,12 +365,30 @@ def _grid(
     return GridContent(name=name, rows=tuple(kept), truncated=truncated)
 
 
-def _zip_within_web_bounds(data: bytes) -> None:
+def grid_from_rows(
+    name: str, rows: Iterable[tuple[object, ...]], budget: list[int], cut: bool
+) -> GridContent:
+    """Rows of cell values as one grid, within the row, column and cell bounds.
+
+    The one way a reader outside this module (a client source's XLS or ODS) makes a grid,
+    so every format is bounded and its values written as text by the same rules. ``budget``
+    is the document's remaining cell allowance, shared across its sheets.
+    """
+    return _grid(name, rows, budget, cut)
+
+
+def check_zip_bounds(data: bytes, kind: str = "XLSX") -> None:
+    """Refuse an Office or OpenDocument ZIP before anything in it is inflated.
+
+    More than ``ZIP_MAX_MEMBERS`` members, more than ``ZIP_MAX_UNCOMPRESSED`` bytes
+    declared, or a declared size past ``ZIP_MAX_RATIO`` times the file's own raises
+    ``DocumentRefused`` (``document_zip_bounds``); not a ZIP, ``document_malformed``.
+    """
     try:
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             members = archive.infolist()
     except Exception as exc:
-        raise _malformed("XLSX", exc) from exc
+        raise _malformed(kind, exc) from exc
     declared = sum(m.file_size for m in members)
     if (
         len(members) > ZIP_MAX_MEMBERS
@@ -376,7 +396,7 @@ def _zip_within_web_bounds(data: bytes) -> None:
         or declared > web_documents.ZIP_MAX_RATIO * max(len(data), 1)
     ):
         raise DocumentRefused(
-            f"the XLSX declares {len(members)} members and {declared} bytes unpacked",
+            f"the {kind} declares {len(members)} members and {declared} bytes unpacked",
             reason="document_zip_bounds",
         )
 
@@ -385,7 +405,7 @@ def read_xlsx(data: bytes) -> tuple[str, tuple[GridContent, ...], bool]:
     """A workbook's title, its sheets as grids, and whether a sheet bound cut it."""
     if not data.startswith(b"PK\x03\x04"):
         raise DocumentRefused("the body is not an XLSX", reason="document_malformed")
-    _zip_within_web_bounds(data)
+    check_zip_bounds(data)
     from openpyxl import load_workbook
 
     try:

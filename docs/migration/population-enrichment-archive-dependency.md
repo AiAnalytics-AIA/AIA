@@ -1,5 +1,13 @@
 # OI-7 — the seven enrichment derivations need the archive
 
+> **Superseded 2026-10-12.** Both files in the table below are vendored in the extracted unit
+> (ADR 0011), byte-identical to the hashes pinned here:
+> `legacy/npc-panel-18.6.6/app/audience_dimensions.py` and
+> `legacy/npc-panel-18.6.6/app/tests/test_audience_dimensions_1793.py`. The derivation is no longer
+> an acquisition task: [`panel-grounded-respondents.md`](../../.planning/plans/panel-grounded-respondents.md)
+> chunk 2d ports `attach_derived` as the `Enricher`, EXACT against the unit's own function. The rest
+> of this page is the record of the search as it was made.
+
 **Result: outcome B.** The exact derivations of the seven `*_derived` runtime
 fields are **not recoverable** from the committed evidence in
 `AiAnalytics-AIA/AIA-reference` @ `678e298`. This is a data/archive acquisition

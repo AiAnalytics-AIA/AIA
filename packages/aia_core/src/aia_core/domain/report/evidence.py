@@ -35,6 +35,7 @@ from types import MappingProxyType
 from aia_core.domain.evidence.admission import AdmittedClaim, EvidenceRow, EvidenceTable
 from aia_core.domain.evidence.claims import ClaimBasis, ClaimSurface
 from aia_core.domain.evidence.support import SupportStatus
+from aia_core.domain.fieldwork import OriginKind, origin_kind
 
 
 class PrintGrade(StrEnum):
@@ -142,6 +143,18 @@ class EvidenceLedger:
     def grade(self, ref: str) -> PrintGrade:
         """The printed grade of a cited ref (see :func:`grade_of`)."""
         return grade_of(self.row(ref), self.field_grades)
+
+    def modelled_panel(self, refs: Iterable[str]) -> bool:
+        """Does any of ``refs`` rest on AI respondents built from the population (ADR 0024)?
+
+        Such a number carries "modelováno: AI respondenti z populace" beside it (§7), which the
+        grade mark alone does not say. Suppressed refs print nothing and are not asked.
+        """
+        return any(
+            origin_kind(self.rows[ref].data_origin) is OriginKind.MODELLED
+            for ref in refs
+            if ref in self.rows
+        )
 
     def is_indicative(self, ref: str) -> bool:
         """INDICATIVE support prints the value with an "orientační" qualifier."""

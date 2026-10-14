@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ApiError, deepResearch, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
+import { ApiError, deepResearch, research, type DeepResearchBundle, type DeepResearchRun, type ResearchRun } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
-import { ActivityOrb } from "@/components/brand/ActivityOrb";
-import { deepResearchRunOrb } from "@/lib/activity-orb";
+import { deepResearchRunningStep } from "@/lib/activity-orb";
+import { activityOf } from "@/lib/step-activity";
+import { StepActivityPanel } from "./StepActivityPanel";
+import { useStepActivity } from "./useStepActivity";
 import { phaseLabel } from "@/lib/research-execution";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
@@ -21,10 +23,14 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  // The stored draft the last download was, for its approval (complete-study-report B2/B1d).
+  const [stored, setStored] = useState<{ artifactId: string; approved: boolean } | null>(null);
   const artifact = run.steps.find(s => s.node_key === "analysis_research_questions" && s.status === "SUCCEEDED")?.artifact_id;
   const current = jobs.find(j => j.run_id === selected);
   const running = jobs.some(j => !j.is_terminal);
-  const orb = current ? deepResearchRunOrb(current.steps) : null;
+  const active = current ? deepResearchRunningStep(current.steps) : null;
+  // The rešerše's feed, read live while one of its steps runs (lib/step-activity.ts).
+  const feed = useStepActivity(current?.run_id ?? null, (since) => deepResearch.events(frame.studyId, current!.run_id, since), !!active);
 
   useEffect(() => {
     let live = true;
@@ -78,9 +84,23 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
     if (!current || !bundle || busy) return;
     setBusy(true); setError(null);
     try {
-      saveBlob(await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id), `AIA-${frame.studyId}-with-research.docx`);
+      const got = await deepResearch.downloadContextReport(frame.studyId, run.run_id, current.run_id);
+      saveBlob(got.blob, `AIA-${frame.studyId}-with-research.docx`);
+      setStored(got.artifactId ? { artifactId: got.artifactId, approved: got.reviewState === "APPROVED_INTERNAL" } : null);
     } catch (e) { setError(message(e)); }
     finally { setBusy(false); }
+  };
+
+  const approve = async () => {
+    if (!stored || busy) return;
+    setBusy(true); setError(null);
+    try {
+      await research.approveReport(frame.studyId, run.run_id, stored.artifactId);
+      setStored({ ...stored, approved: true });
+    } catch (e) {
+      setError(e instanceof ApiError && e.code === "separation_of_duties"
+        ? "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil." : message(e));
+    } finally { setBusy(false); }
   };
 
   const control = async (action: "retry" | "cancel") => {
@@ -120,7 +140,8 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       {jobs.map(j => <option key={j.run_id} value={j.run_id}>{j.title ?? "Literární rešerše"} · {j.preset === "QUICK" ? "Rychlá" : j.preset === "STANDARD" ? "Standardní" : j.preset} · {phaseLabel(j.phase)} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</option>)}
     </Select></Field> : <p className="text-sm text-ink-muted">K tomuto běhu zatím není připojena interpretační rešerše.</p>}
     {current ? <div className="mt-3">
-      <div className="flex items-center gap-2">{orb ? <ActivityOrb orb={orb} /> : null}<p role="status" className="text-sm font-semibold">{phaseLabel(current.phase)}</p></div>
+      <p role="status" className="text-sm font-semibold">{phaseLabel(current.phase)}</p>
+      <StepActivityPanel orb={active?.orb ?? null} activity={activityOf(feed, active?.step.step_id)} startedAt={active?.step.started_at} label={active?.step.node_key ?? phaseLabel(current.phase)} />
       <details className="mt-2 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace rešerše</summary><p className="mt-1 break-all">{current.run_id}</p></details>
       {current.actual_cost_usd !== null ? <p className="mt-1 text-sm text-ink-muted">Skutečné náklady: {current.actual_cost_usd.toFixed(4)} USD</p> : null}
       {current.steps.filter(s => s.error_message || s.waiting_reason).map(s => <p key={s.node_key} className="mt-2 text-sm text-status-fault">{s.error_message ?? s.waiting_reason}</p>)}
@@ -136,7 +157,11 @@ export function InterpretationResearch({ run }: { run: ResearchRun }) {
       <div className="rounded-control border border-signal/30 bg-signal-wash p-4">
         <p className="mb-2 text-sm font-semibold">AIA zpráva včetně vybrané rešerše</p>
         <p className="mb-3 text-sm leading-6">Dokument v designu AIA obsahuje výsledky studie, sociomapy, přijaté externí podklady a bibliografii. Stažení používá uložené výsledky; nespouští další placený výzkum.</p>
-        <Button variant="primary" onClick={download} disabled={busy || !frame.canEdit}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="primary" onClick={download} disabled={busy || !frame.canEdit}>{busy ? "Připravuji zprávu…" : "Stáhnout AIA zprávu s rešerší"}</Button>
+          {stored && !stored.approved && frame.canEdit ? <Button onClick={approve} disabled={busy}>Schválit pro interní použití</Button> : null}
+        </div>
+        {stored ? <p className="mt-2 text-xs text-ink-muted">{stored.approved ? "Stažený dokument je schválen pro interní použití." : "Stažený dokument je koncept: schvalujete právě ten, který jste stáhli."}</p> : null}
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       <p className="text-sm leading-6">Níže jsou přijatá zjištění s kontrolovanou citací. Generovaná syntéza vyžaduje věcné posouzení; kontrola citací a čísel sama nepotvrzuje její interpretace. Zpráva obsahuje přijaté podklady a uvádí toto omezení.</p>

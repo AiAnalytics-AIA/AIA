@@ -28,7 +28,15 @@ from __future__ import annotations
 import re
 from typing import Annotated, Any, Final, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 from ..ai_contracts import MAX_REJECTED_OUTPUT_CHARS, canonical_json
 from ..evidence import ClaimSurface, Violation, ViolationCode
@@ -184,6 +192,18 @@ class ModuleLabels(_Closed):
     data_origin: DataOrigin
     simulated_respondents: bool
     internal_only: bool
+    #: ADR 0024: AI respondents built from the population. Absent from artifacts written before
+    #: the modelled origin existed, which were all simulated.
+    modelled_respondents: bool = False
+
+    @model_serializer(mode="wrap")
+    def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
+        """Absent stays absent (AGENTS.md § Pydantic): the labels are inside the hashed artifact
+        body, so writing ``false`` would move the body of every artifact stored before."""
+        body: dict[str, Any] = handler(self)
+        if body.get("modelled_respondents") is False:
+            body.pop("modelled_respondents")
+        return body
 
 
 class ProducedBy(_Closed):

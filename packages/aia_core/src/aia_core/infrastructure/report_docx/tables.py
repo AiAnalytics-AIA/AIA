@@ -22,6 +22,7 @@ from typing import Final
 from docx.shared import Emu
 from docx.table import _Cell
 
+from aia_core.domain.fieldwork import MODELLED_DISCLOSURE
 from aia_core.domain.report import numbers
 from aia_core.domain.report.copy import t
 from aia_core.domain.report.evidence import PrintGrade
@@ -163,6 +164,8 @@ def render_table(ctx: RenderContext, container: Container, block: Table) -> None
         anchor=block.id,
         base_ref=block.base_ref,
         grade=grade,
+        # Once beside the table's numbers rather than in every cell (ADR 0024 §7).
+        extra=MODELLED_DISCLOSURE if ctx.ledger.modelled_panel(refs) else None,
     )
 
     table = ctx.document.add_table(rows=1, cols=len(block.columns))

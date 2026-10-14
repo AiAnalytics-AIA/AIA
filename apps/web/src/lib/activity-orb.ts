@@ -80,8 +80,18 @@ export function deepResearchStepOrb(step: { node_key: string; status: string }):
   return DEEP_RESEARCH_ORB[step.node_key.split("/", 1)[0]] ?? UNNAMED;
 }
 
-/** The orb for a Deep Research run as a whole: the first running step that thinks, else the first running step. */
+/** The step a Deep Research run shows: the first running step that thinks, else the first running step. */
+export function deepResearchRunningStep<S extends { node_key: string; status: string }>(
+  steps: readonly S[],
+): { step: S; orb: Orb } | null {
+  const running = steps.flatMap((step) => {
+    const orb = deepResearchStepOrb(step);
+    return orb ? [{ step, orb }] : [];
+  });
+  return running.find((r) => r.orb.ink === "ai") ?? running[0] ?? null;
+}
+
+/** The orb for a Deep Research run as a whole (deepResearchRunningStep's). */
 export function deepResearchRunOrb(steps: readonly { node_key: string; status: string }[]): Orb | null {
-  const running = steps.map(deepResearchStepOrb).filter((o): o is Orb => o !== null);
-  return running.find((o) => o.ink === "ai") ?? running[0] ?? null;
+  return deepResearchRunningStep(steps)?.orb ?? null;
 }

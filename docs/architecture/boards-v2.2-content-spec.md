@@ -152,8 +152,8 @@ Show that approval is **per class, not per provider**.
 
 **Must not show:** the proposed Bedrock route as approved for client data, or
 licence eligibility as implied by residency. A proposed route may be shown in a
-separate, clearly labelled decision area, initially Class C only. OI-61 blocks
-panel-derived model transmission even when the EU route is available.
+separate, clearly labelled decision area, initially Class C only. Panel-derived
+model transmission is approved for `bedrock-eu-primary` alone (OI-61, closed 2026-10-12).
 
 ## Board 8 — Decision status
 

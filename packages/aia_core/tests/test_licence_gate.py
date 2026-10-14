@@ -23,6 +23,7 @@ from aia_core.domain.licence import (
     LicenceStatus,
 )
 from aia_core.domain.licence_determinations import (
+    PANEL_APPROVED_ROUTE,
     PANEL_DERIVED_DATASETS,
     RECORDED,
     SYNTHETIC_FIXTURE_DATASET,
@@ -31,7 +32,7 @@ from aia_core.domain.licence_determinations import (
 from aia_core.domain.residency import DataClass, EgressDenied, ProviderRoute, ResidencyZone
 
 BEDROCK_EU = ProviderRoute(
-    route_id="bedrock-eu-central-1",
+    route_id=PANEL_APPROVED_ROUTE,
     provider="bedrock",
     zone=ResidencyZone.EU,
     eu_processing_approved=True,
@@ -68,29 +69,35 @@ def _denied(policy: LicencePolicy, lineage: DataLineage | None, route: ProviderR
 
 
 @pytest.mark.parametrize("dataset", sorted(PANEL_DERIVED_DATASETS))
-def test_no_panel_derived_dataset_may_reach_any_route_today(dataset: str) -> None:
+def test_each_panel_derived_dataset_reaches_the_eu_bedrock_route_and_no_other(
+    dataset: str,
+) -> None:
+    """OI-61, determined 2026-10-12: approved for the one route named, and only that."""
     policy = recorded_policy()
-    for route in (BEDROCK_EU, OTHER):
-        assert _denied(policy, DataLineage.of(dataset), route) == "undetermined"
+    policy.authorise(lineage=DataLineage.of(dataset), route=BEDROCK_EU)
+    assert _denied(policy, DataLineage.of(dataset), OTHER) == "not_approved_for_route"
     found = policy.determination(dataset)
-    assert found is not None and found.status is LicenceStatus.UNDETERMINED
-    assert "OI-61" in found.basis and found.approved_routes == frozenset()
+    assert found is not None and found.status is LicenceStatus.APPROVED
+    assert found.approved_routes == frozenset({PANEL_APPROVED_ROUTE})
+    assert "OI-61" in found.basis and found.decided_by and found.decided_on
 
 
-def test_one_panel_dataset_in_a_lineage_refuses_the_whole_of_it() -> None:
+def test_a_lineage_mixing_the_panel_and_the_fixture_follows_its_narrowest_dataset() -> None:
     lineage = DataLineage.of(SYNTHETIC_FIXTURE_DATASET, "issp")
-    assert _denied(recorded_policy(), lineage, BEDROCK_EU) == "undetermined"
+    recorded_policy().authorise(lineage=lineage, route=BEDROCK_EU)
+    assert _denied(recorded_policy(), lineage, OTHER) == "not_approved_for_route"
 
 
 def test_the_fictional_fixture_and_no_data_at_all_may_be_sent() -> None:
     policy = recorded_policy()
     policy.authorise(lineage=DataLineage.of(SYNTHETIC_FIXTURE_DATASET), route=BEDROCK_EU)
+    policy.authorise(lineage=DataLineage.of(SYNTHETIC_FIXTURE_DATASET), route=OTHER)
     policy.authorise(lineage=DataLineage.none(), route=OTHER)
 
 
-def test_the_recorded_data_approves_nothing_but_the_fixture() -> None:
-    approved = {d.dataset for d in RECORDED if d.status is LicenceStatus.APPROVED}
-    assert approved == {SYNTHETIC_FIXTURE_DATASET}
+def test_only_the_fixture_is_approved_for_every_route() -> None:
+    every_route = {d.dataset for d in RECORDED if ANY_APPROVED_ROUTE in d.approved_routes}
+    assert every_route == {SYNTHETIC_FIXTURE_DATASET}
     assert {d.dataset for d in RECORDED} >= PANEL_DERIVED_DATASETS
 
 
@@ -127,12 +134,14 @@ def test_approval_is_per_route_and_a_refusal_is_final() -> None:
 
 
 def test_approving_a_dataset_changes_data_and_not_the_rule() -> None:
-    """What legal's approval would be: one determination replaced, the rule untouched."""
+    """An approval is one determination replaced; the rule reading it is untouched."""
     cleared = tuple(
-        _approved("issp", BEDROCK_EU.route_id) if d.dataset == "issp" else d for d in RECORDED
+        _approved("issp", OTHER.route_id) if d.dataset == "issp" else d for d in RECORDED
     )
-    LicencePolicy(cleared).authorise(lineage=DataLineage.of("issp"), route=BEDROCK_EU)
-    assert _denied(LicencePolicy(cleared), DataLineage.of("piaac"), BEDROCK_EU) == "undetermined"
+    LicencePolicy(cleared).authorise(lineage=DataLineage.of("issp"), route=OTHER)
+    assert _denied(LicencePolicy(cleared), DataLineage.of("piaac"), OTHER) == (
+        "not_approved_for_route"
+    )
 
 
 def test_a_determination_says_who_approved_what() -> None:

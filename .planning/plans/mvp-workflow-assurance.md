@@ -7,6 +7,11 @@ chunks:
   - "[x] A1c. Check the unmerged Sociomap stack plus Interpretation Research candidate and prepare the post-merge proof"
   - "[x] A2. Trace and prove the simulation, data-library and project-memory user journeys"
   - "[ ] A3. Review runtime complexity and carry out one measured simplification at a time"
+  - "[x] A3a. Classify the candidate areas by traced consumers, at develop cd6da1e1"
+  - "[x] A3b. Delete the root Fastify stub and its root npm package (no consumer)"
+  - "[x] A3c. Remove the unconnected small surfaces the owner confirmed; test the kept snapshot route"
+  - "[ ] A3d. Decide the Sociomap body's duplicated side tables, then measure and simplify (queue item 3)"
+  - "[x] A3e. One reader of a stored contract-3 map for the report and its figures (queue item 4)"
   - "[ ] A4. Run the complete four-area recorded acceptance on a release candidate"
   - "[ ] A5. Verify bounded deployed acceptance and record the release decision"
 ---
@@ -371,7 +376,7 @@ the assignment of every missing hop to a plan; the executable proof is A4's.
 |---|---|---|
 | Simulation studio | after "create a SIMULATION study": the page is a notice (`SimulationFrame.tsx:3-5, 33-38`), working content refused (`study_workspace_repository.py:135`), no workflow type (`workflow_templates.py:58`), no executor, no route; the core is pure and unconnected (its only non-test importer is `routers/settings.py`) | new [`simulation-studio.md`](simulation-studio.md) S0-S7 |
 | Data library / social intelligence | after "accept a knowledge item": no source intake (`workspace.py:385-394` takes kind/title/summary), a DIMENSION is a title, nothing outside the core calls `PopulationRuntime` / `PopulationAuthority`, no run records a binding (`workflows.py:96-105`) | intake, typed revisions, context, dimension definitions: [`client-knowledge-lifecycle.md`](client-knowledge-lifecycle.md) K2-K5; binding semantics and selection in fieldwork: `sociomap-formula-corrections.md` I0/I1; the operator root, registry, binding at creation, materialization contract and Promote: new [`population-operations.md`](population-operations.md) P1-P5 |
-| Project memory | after "list past studies by name": artifact approval has no caller (`artifact_repository.py:523-571`), no search crosses studies, accepting a memory answer raises `advice_only` (`research.py:637-638`), a revision cannot cite a source | [`project-memory-reuse.md`](project-memory-reuse.md) M0 (decided 2026-10-10) and M1-M4. "Find" is met by M1 (#279: `GET /clients/{id}/memory/search`, test `test_the_sibling_clients_study_saying_the_same_is_never_returned`); inspect (M2) and reuse (M3) remain |
+| Project memory | after "list past studies by name": artifact approval has no caller (`artifact_repository.py:523-571`), no search crosses studies, accepting a memory answer raises `advice_only` (`research.py:637-638`), a revision cannot cite a source | [`project-memory-reuse.md`](project-memory-reuse.md) M0 (decided 2026-10-10) and M1-M4. "Find" is met by M1 (#279: `GET /clients/{id}/memory/search`, test `test_the_sibling_clients_study_saying_the_same_is_never_returned`); "inspect" by M2 (#285: `/app/clients/<client>/memory/<study>`, `MemoryStudy.test.tsx`); "reuse" by M3 (#295: `POST /clients/{id}/memory/reuse`, `test_design_reuse.py`); the connected proof by M4 (#299: `test_project_memory_proof.py::test_a_fictional_source_reused_stays_untouched_cites_its_labels_and_never_crosses_a_boundary`). Project memory's MVP scope is met; result reuse stays after the MVP |
 
 Decisions the traces surfaced, each recorded in its plan: D9 reads as open while the user's
 2026-10-07 direction requires the studio (`simulation-studio.md` S0); memory's reach across
@@ -381,7 +386,165 @@ form materialization makes a revision, under OI-61 and D8 (`population-operation
 recorded as not to be ported. Order across areas, unchanged from A2's guidance: population
 P1-P3 first (they feed map, fieldwork and simulation S2), then K2-K5, then simulation and memory.
 
+## A3 — consumer-traced classification (2026-10-12, `develop @ cd6da1e1`)
+
+Static trace: every production caller found by `grep -rlw <name> apps packages tools` with
+`/tests/` and `.test.` excluded, then each caller followed to a registered executor
+(`apps/executors/src/aia_executors/registry.py`), a route, the web or an operator command;
+`deploy/`, `Makefile` and `.github/workflows` checked for the rest. Classes: **now** (a
+product path calls it), **historical** (needed to read what was stored), **parity** (gated by
+a fixture or the parity matrix), **experimental** (behind a switch or a planned chunk),
+**unused** (no consumer of any kind).
+
+Size at the same rule as the baseline (reproduced: tests and legacy match `bdf0408`'s figures
+exactly; application source counts 411 files, 120,492 lines at `bdf0408`):
+
+| Group | `bdf0408` files / lines | `cd6da1e1` files / lines |
+| --- | ---: | ---: |
+| Application source | 411 / 120,492 | 480 / 145,133 |
+| Tests and test helpers | 295 / 96,035 | 384 / 115,421 |
+| Frozen legacy reference | 309 / 45,805 | 309 / 45,805 |
+| Planning/documentation | 213 / 34,722 | 244 / 42,857 |
+| Tools and other text source | 63 / 12,590 | 73 / 13,757 |
+
+330 commits landed between the two. The growth is new capability (project memory, population
+operations, methodology, Deep Research web search), not duplication; size stays supporting
+evidence only.
+
+**The map computations are two, not three.** `domain/research_sociomap.py` orchestrates: each
+battery calls `compute_sociomap` once (contract 2, the one spec `read_methods` allows,
+`research_sociomap.py:391-396 @ cd6da1e1`) and `compute_object_map` once per pinned contract-3
+spec (`:563-573`).
+
+| Path | Consumers | Class |
+| --- | --- | --- |
+| `sociomap/engine.py` `compute_sociomap` (contract 2, `aia-sociomap-1`) | every run's `SociomapExecutor` (`aia_executors/research.py:546`); the web's comparison table reads `object_ids`, `layout.object_xy`, `relation.scores` (`apps/web/src/lib/research-execution.ts:205-210`) | **now**; its `respondent_terrain`, `object_terrain`, `object_metrics` have no reader |
+| No pin (`LEGACY_METHODS`, `research_sociomap.py:342`) | `read_methods(None)` for runs stored before pins; also inside `default_methods()` | **now** + **historical** |
+| `sociomap/engine_v2.py` `compute_object_map` (contract 3), `aia-sociomap-3` | new runs' pin; Metodika compare (`methodology/sociomap_check.py:234`); readers `object-map-view.ts:75`, `report_maps.py:65`, `object_map_figure.py:110` | **now** |
+| `aia-sociomap-2` | retries of runs that pinned it (`application/research.py:421`); still offered as a base preset (`methodology/sociomap.py:623`) | **historical** (see F3) |
+| `aia-sociomap-4` | the editor's default base (`MethodologyVersions.tsx:144`); never pinned bare | **now** as a base; the bare key in `object-map-view.ts:20` cannot occur |
+| H-Model `research_sociomapping.py` | `SociomappingExecutor`, only with `AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED` | **experimental** |
+| `sociomap/view.py` drag, view terrain, scenario layers | no product caller; `parity-matrix.json:279` names `apply_view_overrides` as an entry point, gated by `test_f9_manual_drag_is_a_view_override` | **parity**: kept |
+
+Duplication inside the map path, with anchors at `cd6da1e1`: the body's rescaled pair
+relations, `object_scores` and K100 (`research_sociomap.py:536-615`) repeat what each
+contract-3 map computes (`engine_v2.py:306-313, 379-421`), including a second bootstrap closure
+that the K100 copy shortcut (`:582-600`) exists to avoid paying for twice; two readers repeat
+the same contract-3 loop and check (`report_maps.py:65-70`, `object_map_figure.py:119-122`);
+`CONNECTEDNESS_NOT_COMPUTED` (`research_sociomap.py:496`) and `engine_v2`'s `CONNECTEDNESS_OFF`
+say the same; "-3 is in force" is stated by `default_methods()` and by `methodology/sociomap.py:625`.
+The body's side tables are documented artifact content (CLAUDE.md map, research_sociomap), so
+removing them is a stored-contract decision, not a cleanup (A3d).
+
+**Disconnected product surfaces**, at `cd6da1e1`:
+
+| Surface | Evidence | Class |
+| --- | --- | --- |
+| `src/server.js`, `src/views/`, root `package.json` + `package-lock.json` (177 packages) | CI's two Node jobs run in `apps/web` with its lockfile (`.github/workflows/ci.yml:610-622, 885-893`); `make setup` installs only `apps/web` (`Makefile:24`); `apps/web/Dockerfile:55`'s `server.js` is Next.js's; the root lockfile has no Playwright for `tools/ui_workbench/capture.mjs:63` to find; `overview.md` "Next" item 8 records the deletion as unblocked | **unused** → removed by A3b |
+| `api.ts` `workspace.revisions` (`:536`), `deepResearch.run` (`:793`) | no non-test caller | **unused** |
+| `GET …/deep-research/runs/{id}/snapshots/{snapshot_id}` (`routers/deep_research.py:691`) | no web caller, no API test (`DeepResearchRuns.snapshot` is tested and used by the executors) | **unused**, untested |
+| `application/analysis.py` `run_pending_modules` (`:225`), `application/deep_research.py` `run_settings` (`:944`) | tests only | **unused** |
+| `POST /clients` (`routers/scope.py:311`), `POST /studies` (`:410`) | the web creates through `/workspace/clients` and `/clients/{id}/studies` | **unused** by the product; API-tested |
+| project `PATCH`, `/revisions`, `/events`, `/trash`, `/restore` (`routers/projects.py:272-440`) | tests only; `/impact` is in CI's required-path list (`ci.yml:510`) | **unused** by the product; larger, touches CI |
+| Deep Research `/coverage`, `/provenance`, `/design-proposal`, `/accept` | tested; no screen yet (ADR 0019 gate 1 has no UI) | **experimental**: the missing consumer is the gap |
+| `application/deep_research_triage.py`, `application/site_crawl.py` (~740 lines each with their domain files) | tests only; kept for plan chunks 23 and 36 (`deep-research-web-search.md:931, 1447-1449`) | **experimental**: owner's call, not cleanup |
+| `aia_executors/legacy_workspace.py`, `application/workspace_migration.py` | operator runbook; the migration is not yet run on develop | **now** (operator) until it is applied and verified |
+| `apps/web/src/design/tokens.ts` | generated; read only by its test | **unused** at runtime, pinned by `tokens:check` |
+
+Every workflow template has a start path; every executor module is reached from a registered
+composition or an operator command. `analysis.py` *is* registered (`registry.py:79-83, 119-128`,
+behind `AIA_AI_ANALYSIS_ENABLED`): the CLAUDE.md line saying otherwise is stale (Doc follow-up).
+
+**Status narratives.** Only plan front-matter (`tools/progress.py`) and `parity-matrix.json`
+(`test_parity_matrix.py`, `parity_status.py`) are checked by anything. `research-journey.md`'s
+stage table (`:100-114`, "at `ceee2dc`") still says analysis and report have no executor;
+`docs/migration/status.md:337-339, 385-392` and `overview.md:31-37, 157-196, 248-256, 503-512`
+describe states since superseded; `mvp-acceptance.md:3-9, 115-118` is research-only (F2).
+Every one is a shared document: the corrections are listed under Doc follow-up for a docs PR.
+
+**Simplification queue**, one per PR, smallest consumer risk first:
+
+1. A3b — the root Fastify stub (this PR). Nothing runs it; measured below.
+2. A3c — the unused small surfaces above (two `api.ts` functions, the untested snapshot route,
+   `run_pending_modules`, `run_settings`; then, separately, `POST /clients` / `POST /studies`
+   and the project command routes). Each removal names its tests; the owner confirms none is
+   kept for an operator or a planned screen.
+3. A3d — the Sociomap body's duplicated side tables. Decide first: no product reader reads the
+   body's `relation_rescaled`, `object_scores` or `connectedness_100`; each contract-3 map holds
+   its own. Measure the sociomap step's time with and without, on the 150-respondent fixture,
+   before any change; an engine-version change re-keys reuse.
+4. A3e — one Python reader of a stored contract-3 map for `report_maps.py` and
+   `object_map_figure.py`.
+
+Kept, with the reason: `view.py` (parity F9), contract 2 (every run pins it; the web reads
+it), `LEGACY_METHODS` and `LEGACY_UNVERSIONED` (historical runs), the 18.6.6 migration (not yet
+run), triage and site crawl (planned chunks), the frozen legacy reference (the oracle).
+
+**A3b measured.** Removed: `src/server.js` (44 lines), `src/views/index.ejs` and `login.ejs` (51 lines),
+root `package.json` (27 lines) and `package-lock.json` (2,001 lines, 177 locked packages, among them
+fastify, ejs, better-sqlite3, exceljs, papaparse, zod): 2,123 lines in all, none of them run by
+CI, a Dockerfile, Compose or the Makefile. The deploy builds the web image with context
+`apps/web` (`.github/workflows/deploy-develop.yml:132`), whose `Dockerfile:18` copies that
+directory's own `package*.json`; the Python image copies no root package
+(`deploy/docker/python.Dockerfile:32-39, 76-77`). Run on this branch: the web job's steps from
+`apps/web` (lint, `tsc --noEmit`, `tokens:check`, 1,211 Vitest tests in 60 files, `next build`),
+all passing; `make layer_check` (113 rules) and `make exposure_check` (7 rules) pass. The image
+build itself was not run here (no Docker daemon); CI and the develop deploy build it.
+
+**A3c (owner, 2026-10-12: "go A3c" on the recommendation below).** The rule: nothing in the
+repository uses it and no plan needs it, remove it; a planned screen will need it, keep it and
+test it. Re-checked on `develop @ 42be47c1` before removal.
+
+| Item | Done | Why |
+| --- | --- | --- |
+| `api.ts` `workspace.revisions` and its `KnowledgeRevision` type, `deepResearch.run` | removed | no caller; `deepResearch[action]` in `InterpretationResearch.tsx:95` names only `retry` and `cancel` |
+| `application/analysis.py` `run_pending_modules` | removed | the worker reuses a module by `module_input_fingerprint` (`aia_executors/analysis.py:516, 712`), never through it |
+| `GET …/deep-research/runs/{id}/snapshots/{snapshot_id}` | kept, tested | a finding is a quote in a captured source; "show the source" is the screen that will read it |
+| `application/deep_research.py` `run_settings` | kept | seven lines; the verified read-back a Settings or audit view will need |
+| `POST /clients`, `POST /studies`, the project command routes | deferred past the MVP | unused, but removing them touches CI's required paths and repository code for no runtime gain |
+| `domain/simulation/reference.py:131` | corrected | cited the retired `.planning/PROGRESS.md`; the decision is `PROGRESS D10` in `overview.md` |
+
+Tests of `run_pending_modules`, and where each property is now held: resume after module five
+(`test_analysis_modules.py::test_resume_after_module_five_continues_at_six`); a blocked module
+strands no other (`test_analysis_executor.py::test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_strands_no_other`);
+a revoked holdout reruns every module as PENDING (`test_analysis_runner.py::test_revoking_a_holdout_does_not_reuse_the_validated_stamp`,
+rewritten over `modules_to_run` and `run_analysis_module`, its assertions unchanged). The new
+`test_deep_research_api.py::test_a_snapshot_is_read_only_through_its_own_published_run` fails
+when the route's snapshot-id pattern is loosened (checked by mutation). `modules_to_run` now has
+no production caller; it stays as the domain's statement of the unit's resume rule, which its
+tests pin.
+
+**A3e (owner, 2026-10-12: "start A3e").** `domain/sociomap/models_v3.py` `read_object_maps`
+is now the one reader of a battery's stored `maps`: each read by `read_artifact` (fingerprints
+verified), contract 3, and computed under the method it is stored by, or
+`ArtifactIntegrityError`. `application/report_maps.py` `compose_map_sections` and
+`infrastructure/report_docx/object_map_figure.py` `object_map_snapshots` both call it; their two
+copies of the loop are gone. The copies had drifted: the figure renderer did not check the
+stored key against the map's method, so it would draw a map stored under another method's
+name (the report then refused it; the work was wasted, nothing wrong was printed).
+`test_report_map_snapshots.py::test_a_map_stored_under_another_method_is_refused_by_report_and_figure_alike`
+holds the shared rule, and fails when the key check is removed (checked by mutation);
+`test_read_object_maps_reads_in_stored_order_and_refuses_another_contract` holds the reader.
+The web's reader (`apps/web/src/lib/object-map-view.ts`) is TypeScript and stays separate.
+
 ## Findings
+
+**F3 — A superseded Sociomap method can still be put in force as an edited version (hypothesis).**
+1. Claim: `aia-sociomap-2` remains a registered base preset, so an administrator can store and
+   activate `aia-sociomap-2+e<n>`, and new runs would then pin a method that no unedited new
+   run pins any more.
+2. Anchor: `packages/aia_core/src/aia_core/domain/methodology/sociomap.py:623`,
+   `apps/web/src/components/aia/settings/MethodologyVersions.tsx:319-323`,
+   `apps/api/src/aia_api/routers/methodology.py:620, 665, 708`,
+   `packages/aia_core/src/aia_core/domain/methodology/pins.py:60-71 @ cd6da1e1`.
+3. Reproduction: not yet run (a `POST …/methodology/…/versions` with `base_preset =
+   "aia-sociomap-2"` followed by activation and a run start). Until it is, this is a hypothesis.
+4. Consequence: a new run could compute a method that the in-force default (-3) replaced,
+   without anyone choosing -2 for new work on purpose.
+5. Smallest fix: if the owner confirms -2 is historical only, refuse it as a base for a new
+   version while keeping it readable for stored runs and versions.
+6. Test: an API test that the version POST refuses a superseded base and a stored -2 run
+   still reads and retries.
 
 **F2 — The machine-readable MVP contract still describes the earlier research-only scope.**
 1. Claim: MVP-ACCEPT-1 does not yet enforce the user's four-area release requirement.
@@ -432,6 +595,23 @@ acceptance limits in a docs-only PR. Reconcile completed/superseded status narra
 owning plan files; do not create another progress index. Describe any implemented simulation,
 materialization and artifact-reuse entry points in CLAUDE/ARCHITECTURE only after they exist.
 No independent technical review has been completed by this slice.
+
+A3 (2026-10-12) follow-ups for the docs PR:
+- A3b: delete the `src/server.js` row from CLAUDE.md's map (`CLAUDE.md:671`) and the legacy-stub
+  row of ARCHITECTURE.md (`:56`); mark `overview.md` "Next" item 8 done; in
+  `docs/architecture/README.md:116`, `docs/migration/status.md:58, 395, 499-528` and
+  `docs/migration/parity-matrix.md:212` (hand-written table) say the stub was removed, citing
+  this PR. ADR 0001 stays as written: it is history.
+- CLAUDE.md `analysis.py` "registered by no composition yet" (`:210-212`) is stale: it is
+  registered behind `AIA_AI_ANALYSIS_ENABLED` (`registry.py:79-83, 119-128 @ cd6da1e1`); the
+  executors map also lacks `report.py` and `sociomapping_report.py`.
+- `research-journey.md:100-114, 517-527`, `docs/migration/status.md:3-6, 337-339, 385-392`,
+  `docs/architecture/README.md:160-168` and `overview.md:14-16, 31-37, 157-196, 248-256, 503-512`:
+  bring each in line with the plan files, or replace the narrative with a pointer to
+  `tools/progress.py`, rather than maintaining a second status.
+- `packages/aia_core/src/aia_core/domain/simulation/reference.py:131` cites
+  `.planning/PROGRESS.md`; the decision now lives in `overview.md` (code change, next A3c PR).
+- F3 into `open-items.md` with an OI number, as a hypothesis until reproduced.
 F1 needs a docs-only follow-up alongside the existing AGENTS.md jsdom guidance: Blob.text()
 is also absent; captured download bytes can use the existing arrayBuffer() test stand-in.
 

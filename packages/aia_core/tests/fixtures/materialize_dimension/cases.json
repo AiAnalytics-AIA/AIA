@@ -1,0 +1,198 @@
+[
+  {
+    "id": "M01_binary_one_predictor",
+    "dimension_id": "pije_kavu_rano",
+    "spec": {
+      "kind": "binary",
+      "target_prevalence": 0.3,
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M02_binary_percent_two_predictors",
+    "dimension_id": "Kupuje BIO",
+    "spec": {
+      "kind": "prevalence",
+      "target_prevalence": 34,
+      "predictors": [
+        {
+          "column": "prijem",
+          "strength": 2
+        },
+        {
+          "id": "vek",
+          "direction": "negative"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M03_scale_mean",
+    "dimension_id": "duvera_v_media",
+    "spec": {
+      "kind": "scale_1_10",
+      "target_mean": 6.2,
+      "predictors": [
+        {
+          "column": "skore_zdravi"
+        },
+        {
+          "column": "deti",
+          "weight": 0.5
+        }
+      ]
+    }
+  },
+  {
+    "id": "M04_scale_low_mean_clips",
+    "dimension_id": "ochota_platit",
+    "spec": {
+      "scale": "1_10",
+      "target_mean": 2.0,
+      "predictors": [
+        {
+          "column": "prijem"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M05_flat_predictor_skipped",
+    "dimension_id": "sportuje",
+    "spec": {
+      "kind": "boolean",
+      "target_prevalence": 0.55,
+      "predictors": [
+        {
+          "column": "konstanta"
+        },
+        {
+          "column": "skore_zdravi"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M06_only_flat_predictor",
+    "dimension_id": "jen_konstanta",
+    "spec": {
+      "kind": "binary",
+      "target_prevalence": 0.2,
+      "predictors": [
+        {
+          "column": "konstanta"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M07_continuous_strength_zero_is_one",
+    "dimension_id": "spokojenost",
+    "spec": {
+      "kind": "continuous",
+      "target_mean": 7.5,
+      "predictors": [
+        {
+          "column": "vek",
+          "strength": 0
+        },
+        {
+          "column": "prijem",
+          "direction": "-"
+        }
+      ]
+    }
+  },
+  {
+    "id": "M08_default_kind_is_binary",
+    "dimension_id": "vychozi",
+    "spec": {
+      "target_prevalence": "0.4",
+      "predictors": [
+        {
+          "column": "deti"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E01_no_usable_predictor",
+    "dimension_id": "text_only",
+    "spec": {
+      "kind": "binary",
+      "target_prevalence": 0.3,
+      "predictors": [
+        {
+          "column": "kraj"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E02_prevalence_out_of_range",
+    "dimension_id": "spatne",
+    "spec": {
+      "kind": "binary",
+      "target_prevalence": 0,
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E03_prevalence_missing",
+    "dimension_id": "chybi",
+    "spec": {
+      "kind": "binary",
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E04_mean_out_of_range",
+    "dimension_id": "mimo",
+    "spec": {
+      "kind": "scale_1_10",
+      "target_mean": 11,
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E05_unsupported_kind",
+    "dimension_id": "kategorie",
+    "spec": {
+      "kind": "categorical",
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  },
+  {
+    "id": "E06_empty_dimension_id",
+    "dimension_id": "!!!",
+    "spec": {
+      "kind": "binary",
+      "target_prevalence": 0.3,
+      "predictors": [
+        {
+          "column": "vek"
+        }
+      ]
+    }
+  }
+]

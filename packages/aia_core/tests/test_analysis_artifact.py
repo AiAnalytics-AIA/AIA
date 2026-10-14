@@ -305,3 +305,23 @@ def test_step_inputs_name_the_module_and_the_surface() -> None:
         "analysis_surface": "INTERNAL",
     }
     assert len(inputs) == 8
+
+
+def test_an_artifact_stored_before_modelled_labels_round_trips_to_the_same_body() -> None:
+    """AGENTS.md § Pydantic: a default key must not appear on dump, or the hashed body of every
+    artifact stored before ADR 0024 moves. A modelled one says it."""
+    stored = payload()
+    assert "modelled_respondents" not in stored["labels"]
+    assert parse_module_artifact(stored).model_dump(mode="json")["labels"] == stored["labels"]
+    modelled = payload(
+        labels={
+            "surface": "INTERNAL",
+            "data_origin": "MODELLED_AI_PANEL",
+            "simulated_respondents": False,
+            "modelled_respondents": True,
+            "internal_only": True,
+        },
+        evidence={**payload()["evidence"], "data_origin": "MODELLED_AI_PANEL"},
+    )
+    dumped = parse_module_artifact(modelled).model_dump(mode="json")
+    assert dumped["labels"]["modelled_respondents"] is True

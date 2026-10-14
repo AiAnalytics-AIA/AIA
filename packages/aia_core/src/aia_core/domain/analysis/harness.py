@@ -54,7 +54,7 @@ from ..ai_contracts import (
 )
 from ..ai_models import ModelCapability
 from ..evidence import ClaimSurface
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..fieldwork import MODELLED_DISCLOSURE, DataOrigin, OriginKind, origin_kind
 from ..licence import DataLineage
 from ..residency import DataClass
 from .draft import AnalysisDraft, InvalidStructuredOutput
@@ -94,6 +94,15 @@ fact, and no number may be presented as measured. Each evidence row names its qu
 (question_id) and what it counts (cell); rows listed as suppressed cannot be cited.
 """
 
+_FRAME_MODELLED: Final = """\
+Harness ({harness}). This module is written for the {surface} surface.
+The respondents behind every number are modelled ({origin}): a model answering as people built
+from rows sampled from the run's recorded population, not people who answered. Every number is a
+modelled estimate from those answers ("{disclosure}"). No number may be presented as measured,
+as what respondents said, or as what a survey found. Each evidence row names its question
+(question_id) and what it counts (cell); rows listed as suppressed cannot be cited.
+"""
+
 _PREVIOUS_INVALID: Final = "(no draft: the previous answer did not match the output schema)"
 
 #: After a truncated answer: the same content cannot fit, so the repair asks for less.
@@ -130,9 +139,16 @@ def analysis_agent(*, max_output_tokens: int) -> AgentDefinition:
 
 
 def harness_frame(*, origin: DataOrigin, surface: ClaimSurface) -> str:
-    """What the harness adds to the module's system prompt."""
-    return _FRAME.format(
-        harness=ANALYSIS_HARNESS_VERSION, surface=surface.value, origin=origin.value
+    """What the harness adds to the module's system prompt; an origin of unknown kind is refused."""
+    kind = origin_kind(origin)
+    if kind is OriginKind.UNKNOWN:
+        raise ValueError(f"no harness frame for the origin {origin!r}: its kind is unknown")
+    frame = _FRAME if kind is OriginKind.SIMULATED else _FRAME_MODELLED
+    return frame.format(
+        harness=ANALYSIS_HARNESS_VERSION,
+        surface=surface.value,
+        origin=origin.value,
+        disclosure=MODELLED_DISCLOSURE,
     )
 
 
@@ -141,7 +157,8 @@ def harness_labels(*, origin: DataOrigin, surface: ClaimSurface) -> dict[str, An
     return {
         "surface": surface.value,
         "data_origin": origin.value,
-        "simulated_respondents": origin in NON_EVIDENCE_ORIGINS,
+        "simulated_respondents": origin_kind(origin) is OriginKind.SIMULATED,
+        "modelled_respondents": origin_kind(origin) is OriginKind.MODELLED,
         "internal_only": surface is ClaimSurface.INTERNAL,
     }
 
@@ -153,6 +170,7 @@ def harness_sha256() -> str:
         (
             ANALYSIS_HARNESS_VERSION,
             _FRAME,
+            _FRAME_MODELLED,
             _PREVIOUS_INVALID,
             _SCHEMA_REPORT,
             _TRUNCATED_REPORT,
@@ -178,7 +196,9 @@ def classify_analysis_material(
     recorded as fictional, make the request client material.
     """
     internal = (
-        client_declared_fictional and respondents_fictional and origin in NON_EVIDENCE_ORIGINS
+        client_declared_fictional
+        and respondents_fictional
+        and origin_kind(origin) is OriginKind.SIMULATED
     )
     return DataClass.CLASS_C_INTERNAL if internal else DataClass.CLASS_A_CLIENT_CONFIDENTIAL
 

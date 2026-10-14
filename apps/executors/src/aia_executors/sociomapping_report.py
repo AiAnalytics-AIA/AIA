@@ -13,10 +13,12 @@ from aia_core.application.research import research_artifacts
 from aia_core.application.sociomapping_report import (
     SOCIOMAPPING_REPORT_ARTIFACT_TYPE,
     SOCIOMAPPING_REPORT_CONTRACT,
+    SOCIOMAPPING_SUBTITLE,
     SociomappingReportRefused,
     compose_sociomapping_report,
 )
 from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
+from aia_core.domain.fieldwork import origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.model import Classification, ReportKind, ReportMeta
 from aia_core.domain.report.validation import ReportInvalid
@@ -85,9 +87,7 @@ class SociomappingReportExecutor:
         meta = ReportMeta(
             kind=ReportKind.INTERNAL,
             title="Sociomapping — experimentální metoda AIA",
-            subtitle="Interní pracovní koncept · fiktivní data"
-            if result.get("synthetic_data")
-            else "Interní pracovní koncept",
+            subtitle=SOCIOMAPPING_SUBTITLE[origin_kind(result.get("data_origin"))],
             client_name=client.name,
             study_name=study.name,
             study_id=context.scope.study_id,
@@ -144,6 +144,7 @@ class SociomappingReportExecutor:
                     "method_status": result["method_status"],
                     "client_facing": False,
                     "synthetic": bool(result.get("synthetic_data")),
+                    "data_origin": result.get("data_origin"),
                     "source_kind": SOCIOMAPPING,
                 },
                 depends_on=[source_id],

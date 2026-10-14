@@ -8,10 +8,15 @@ does not ask a model to invent a second interpretation of the results.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
+from typing import Any
 
 from aia_core.application.analysis_results import RunAnalysis
+from aia_core.application.report_design import DesignSections
+from aia_core.application.report_tables import QuestionTables
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
+from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     AuditBlock,
@@ -35,6 +40,8 @@ from aia_core.domain.report.model import (
 from aia_core.domain.report.validation import require_valid
 
 INTERNAL_REPORT_ARTIFACT_TYPE = "research_internal_docx"
+# The stored DOCX rendered as PDF beside it (complete-study-report B3).
+INTERNAL_REPORT_PDF_ARTIFACT_TYPE = "research_internal_pdf"
 INTERNAL_REPORT_MEDIA_TYPE = (
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 )
@@ -55,6 +62,61 @@ _TITLES = {
     AnalysisModuleId.LIMITATIONS: "Limity",
 }
 
+#: A research report's subtitle, by the origin's kind: never plain "Výzkum" for answers no person
+#: gave.
+RESEARCH_SUBTITLE: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: "Syntetický výzkum",
+    OriginKind.MODELLED: "Modelovaný výzkum",
+    OriginKind.UNKNOWN: "Výzkum neznámého původu",
+}
+
+#: How the report frames its numbers, by the origin's kind (ADR 0024 §7); every kind says one.
+_FRAME_TEXT: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: (
+        "Odpovědi v této studii vytvořili syntetičtí respondenti. "
+        "Výsledky popisují chování simulace, nikoli měření skutečných "
+        "osob. Slouží k ověření postupu a návrhu dalšího výzkumu; "
+        "závěry o reálném publiku vyžadují samostatné ověření."
+    ),
+    OriginKind.MODELLED: (
+        f"Všechna čísla v této zprávě jsou {MODELLED_DISCLOSURE}. Odpovědi vytvořil model "
+        "za respondenty sestavené z osob vybraných z populace běhu; nejde o měření ani "
+        "o výpovědi skutečných respondentů. Nejistota se počítá z počtu podkladových osob."
+    ),
+    OriginKind.UNKNOWN: (
+        "Původ dat této studie není znám. Výsledky nelze číst jako měření skutečných osob "
+        "ani jako modelovaný odhad, dokud původ není doložen."
+    ),
+}
+_LIMITATION_TEXT: dict[OriginKind, str] = {
+    OriginKind.SIMULATED: "Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob.",
+    OriginKind.MODELLED: (
+        f"Respondenti jsou {MODELLED_DISCLOSURE}. Tento návrh není měřením skutečných osob."
+    ),
+    OriginKind.UNKNOWN: "Původ dat není znám. Tento návrh není měřením skutečných osob.",
+}
+
+
+def _deviation_text(deviation: Mapping[str, Any]) -> str:
+    """What a reader of the report must know about an aggregate that is not 18.6.6's port:
+    the method it was computed under, every value it changed and every formula it replaced."""
+    parts = [
+        f"{c.get('path')} (18.6.6: {c.get('unit')}, zde {c.get('used')})"
+        for c in deviation.get("changed") or []
+        if isinstance(c, Mapping)
+    ]
+    formulas = [str(f) for f in deviation.get("replaced_formulas") or []]
+    named = "; ".join(
+        ([f"změněno: {', '.join(parts)}"] if parts else [])
+        + ([f"nahrazené vzorce: {', '.join(formulas)}"] if formulas else [])
+    )
+    return (
+        "Agregace v tomto běhu se odchyluje od přenosu 18.6.6: počítala podle metodiky "
+        f"{deviation.get('methodology_version') or 'neuvedené verze'}"
+        + (f" ({named})" if named else "")
+        + ". Odhady a intervaly proto nejsou bez této výhrady srovnatelné s výsledky 18.6.6."
+    )
+
 
 def compose_internal_report(
     run: RunAnalysis,
@@ -62,10 +124,18 @@ def compose_internal_report(
     *,
     map_sections: tuple[Section, ...] = (),
     context_sections: tuple[Section, ...] = (),
+    question_tables: QuestionTables | None = None,
+    design: DesignSections | None = None,
+    method: Section | None = None,
 ) -> ReportDocument:
     """Make an unapproved AIA-branded internal draft from all eight admitted modules.
 
     Caller supplies the Study-scoped ``reconstruct_run`` outcome and metadata.
+    ``question_tables`` (``compose_question_tables``) follow the methodology chapter; their
+    claims must be over this run's evidence table, admitted for the internal surface.
+    ``design`` (``compose_design_sections``): its chapter follows the introduction and the
+    questionnaire is an appendix before the evidence appendix. ``method``
+    (``compose_method_section``): who answered and the run's methods, after the methodology.
     Client deliverables have a separate admission and review contract; this
     function never upgrades internal claims to a client-facing surface.
     """
@@ -85,6 +155,7 @@ def compose_internal_report(
     sources = first.record.sources.content()
     table_fingerprint = reference.table.fingerprint()
     labels = first.record.labels
+    kind = origin_kind(labels.data_origin)
     if meta.method_status != first.result.method_status:
         raise ReportCompositionRefused("report method status differs from analysis")
 
@@ -127,21 +198,22 @@ def compose_internal_report(
                 )
             )
         )
-    if labels.simulated_respondents:
+    introduction.append(
+        Callout(CalloutKind.LIMITATION, text(_FRAME_TEXT[kind]), title="Rámec interpretace")
+    )
+    deviation = run.aggregation_deviation
+    if deviation is not None:
         introduction.append(
             Callout(
-                CalloutKind.LIMITATION,
-                text(
-                    "Odpovědi v této studii vytvořili syntetičtí respondenti. "
-                    "Výsledky popisují chování simulace, nikoli měření skutečných "
-                    "osob. Slouží k ověření postupu a návrhu dalšího výzkumu; "
-                    "závěry o reálném publiku vyžadují samostatné ověření."
-                ),
-                title="Rámec interpretace",
+                CalloutKind.LIMITATION, text(_deviation_text(deviation)), title="Odchylka od 18.6.6"
             )
         )
     sections: list[Section] = [Section("Úvod a rámec studie", tuple(introduction), id="intro")]
+    if design is not None:
+        sections.append(design.chapter)
     audit = [("Běh", run.run_id), ("Evidence", table_fingerprint)]
+    if deviation is not None:
+        audit.append(("Metodika agregace", str(deviation.get("methodology_version") or "?")))
     # Put the population context before object-level findings; keep module IDs
     # and their admitted paragraphs intact rather than rewriting the evidence.
     order = (
@@ -195,10 +267,28 @@ def compose_internal_report(
                                 "následující kapitoly rozvíjejí jejich věcný význam."
                             )
                         ),
+                        *(
+                            ()
+                            if deviation is None
+                            else (Paragraph(text(_deviation_text(deviation))),)
+                        ),
                     ),
                     id="methodology",
                 )
             )
+            if method is not None:
+                sections.append(method)
+            if question_tables is not None:
+                for claim in question_tables.claims:
+                    if (
+                        claim.surface is not ClaimSurface.INTERNAL
+                        or reference.table.rows.get(claim.row.evidence_ref) != claim.row
+                    ):
+                        raise ReportCompositionRefused(
+                            f"question table cites {claim.row.evidence_ref!r} outside run evidence"
+                        )
+                claims.extend(question_tables.claims)
+                sections.extend(question_tables.sections)
         module = run.modules[spec.module_id]
         result = module.result
         if result is None or result.module_id is not spec.module_id:
@@ -254,11 +344,16 @@ def compose_internal_report(
                     refs=tuple(by_claim[cid].row.evidence_ref for cid in finding.claim_ids),
                 )
             )
-        if spec.module_id is AnalysisModuleId.LIMITATIONS and labels.simulated_respondents:
+        if spec.module_id is AnalysisModuleId.LIMITATIONS:
+            blocks.append(Callout(CalloutKind.LIMITATION, text(_LIMITATION_TEXT[kind])))
+        if spec.module_id is AnalysisModuleId.LIMITATIONS and deviation is not None:
             blocks.append(
                 Callout(
                     CalloutKind.LIMITATION,
-                    text("Respondenti jsou syntetičtí. Tento návrh není měřením skutečných osob."),
+                    text(
+                        "Agregace se odchyluje od přenosu 18.6.6. Srovnání s výsledky 18.6.6 "
+                        "platí jen s touto výhradou."
+                    ),
                 )
             )
         sections.append(Section(_TITLES[spec.module_id], tuple(blocks), id=f"ch-{spec.ordinal}"))
@@ -269,6 +364,8 @@ def compose_internal_report(
     ledger = EvidenceLedger.from_claims(
         claims, surface=ClaimSurface.INTERNAL, table=reference.table
     )
+    if design is not None:
+        sections.append(design.appendix)
     sections.append(
         Section("Evidenční příloha", (EvidenceAppendix(),), id="app-evidence", appendix=True)
     )
