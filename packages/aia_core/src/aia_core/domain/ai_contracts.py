@@ -46,6 +46,8 @@ from .residency import DataClass
 from .workflow import FailureClass, classify_failure
 
 __all__ = [
+    "MAX_REJECTED_OUTPUT_CHARS",
+    "OUTPUT_TRUNCATED",
     "THINKING_MIN_BUDGET_TOKENS",
     "AIUsageEvent",
     "AdapterRequest",
@@ -883,6 +885,12 @@ class ModelResult:
         return sum(e.cost_usd for e in self.usage_events if e.outcome.is_terminal)
 
 
+#: The violation an answer cut off at its output token limit is refused with.
+OUTPUT_TRUNCATED: Final = "output truncated at the output token limit"
+#: The most of a refused answer a failure carries back (characters).
+MAX_REJECTED_OUTPUT_CHARS: Final = 65_536
+
+
 class ModelCallFailed(Exception):
     """A logical request failed. Carries what recovery needs, and nothing more.
 
@@ -906,6 +914,7 @@ class ModelCallFailed(Exception):
         outcome_known: bool = True,
         violations: Sequence[str] = (),
         usage_events: Sequence[AIUsageEvent] = (),
+        rejected_output: str | None = None,
     ) -> None:
         super().__init__(message)
         self.failure = failure
@@ -917,3 +926,9 @@ class ModelCallFailed(Exception):
         self.outcome_known = outcome_known
         self.violations = tuple(violations)
         self.usage_events = tuple(usage_events)
+        #: On a schema failure, the answer the contract refused, at most
+        #: :data:`MAX_REJECTED_OUTPUT_CHARS`: what a caller's own repair turn shows the
+        #: model it wrote. Never logged by the gateway; ``None`` for every other failure.
+        self.rejected_output = (
+            rejected_output[:MAX_REJECTED_OUTPUT_CHARS] if rejected_output is not None else None
+        )

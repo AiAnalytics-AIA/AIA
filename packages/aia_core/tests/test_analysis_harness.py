@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from aia_core.domain.ai_contracts import validate_structured_output
+from aia_core.domain.ai_contracts import OUTPUT_TRUNCATED, validate_structured_output
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.analysis import (
     PROMPT_TEMPLATE_VERSION,
@@ -99,6 +99,24 @@ def test_a_schema_failure_reaches_the_next_turn_as_its_violations() -> None:
     assert "and 3 more" in text
 
 
+def test_a_repair_after_a_schema_failure_shows_the_refused_answer() -> None:
+    rejected = '{"module": "executive", "summary": "s", "confidence": "high"}'
+    failed = InvalidStructuredOutput(
+        ("confidence: Extra inputs are not permitted",), rejected_output=rejected
+    )
+    repair = request(repair="Fix every problem below.", previous=failed)
+    assert repair.messages[1].content == rejected
+    assert "confidence: Extra inputs are not permitted" in repair.messages[2].content
+    assert "shorter answer" not in repair.messages[2].content
+
+
+def test_a_truncated_answer_is_not_replayed_and_the_repair_asks_for_less() -> None:
+    failed = InvalidStructuredOutput((OUTPUT_TRUNCATED,), rejected_output='{"module": "exec')
+    repair = request(repair="Fix every problem below.", previous=failed)
+    assert repair.messages[1].content.startswith("(no draft")
+    assert "shorter answer" in repair.messages[2].content
+
+
 def test_the_contract_is_closed_and_strict() -> None:
     contract = analysis_agent(max_output_tokens=10).output_contract
     assert contract is not None
@@ -156,7 +174,7 @@ def test_the_harness_has_its_own_identity_beside_the_domain_prompt() -> None:
     assert harness_sha256() == harness_sha256()
     assert len(harness_sha256()) == 64
     assert harness_sha256() != prompt_template_sha256()
-    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-1"
+    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-2"
 
 
 def test_an_undeclared_lineage_is_sent_as_undeclared_for_the_licence_gate_to_refuse() -> None:

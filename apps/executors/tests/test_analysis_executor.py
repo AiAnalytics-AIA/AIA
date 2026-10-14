@@ -1126,8 +1126,9 @@ def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_rep
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     assert models.calls("executive") == [1, 2], "no schema repair hidden inside the turn"
     _payload, previous, repair = models.messages("executive", 2)
-    assert previous.startswith("(no draft")
+    assert json.loads(previous)["confidence"] == "high", "the repair shows the refused answer"
     assert "output schema check of the previous answer reported" in repair
+    assert "confidence" in repair, "and names the field it broke"
 
     output = _analysis(_run(world, run_id))["executive"]["output"]
     assert (output["outcome"], output["calls_sent"]) == ("COMPLETED", 2)
@@ -1136,6 +1137,27 @@ def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_rep
     assert record.calls[0].cost_usd == pytest.approx(ANALYSIS_CALL_USD), "the refused answer cost"
     terminal = [e for e in _ledger(world, run_id) if e.outcome.is_terminal]
     assert len(terminal) == 9 and {e.purpose.value for e in terminal} == {"PRIMARY"}
+
+
+def test_a_module_off_the_contract_every_turn_is_blocked_naming_the_field_and_replays_free(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels(off_contract={("executive", n) for n in (1, 2, 3)})
+    run_id = _start(world)
+    assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
+    assert models.calls("executive") == [1, 2, 3]
+    _payload, previous, _repair = models.messages("executive", 3)
+    assert json.loads(previous)["confidence"] == "high"
+
+    output = _analysis(_run(world, run_id))["executive"]["output"]
+    assert (output["outcome"], output["calls_sent"]) == ("BLOCKED", 3)
+    record = _record(world, store, output["artifact_id"])
+    assert [c.answer for c in record.calls] == ["SCHEMA_INVALID"] * 3
+    # The stored outcome says which field failed, not "the draft is not a JSON object".
+    assert [(v.code, v.subject) for v in record.violations] == [
+        (ViolationCode.SCHEMA_INVALID, "confidence")
+    ]
+    assert "high" not in record.violations[0].detail, "a path and a reason, never a value"
 
 
 def test_the_research_questions_module_without_a_question_is_blocked_while_the_rest_run(

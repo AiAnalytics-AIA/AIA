@@ -415,6 +415,7 @@ class _Turns:
                 policy_version=last.policy_version if last else None,
                 cost_usd=sum(e.cost_usd for e in terminal),
                 cost_basis=last.cost_basis.value if last else None,
+                rejected_output=cause.rejected_output,
             )
         assert result.output is not None  # a structured agent's result has one
         return TurnArtifact(
@@ -454,7 +455,7 @@ class _Turns:
 
     def _answer(self, answer: TurnArtifact) -> object:
         if answer.draft is None:
-            self.last = InvalidStructuredOutput(answer.schema_violations)
+            self.last = InvalidStructuredOutput(answer.schema_violations, answer.rejected_output)
         else:
             self.last = answer.draft.model_dump(mode="json")
         return self.last
