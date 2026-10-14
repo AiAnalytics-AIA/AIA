@@ -37,6 +37,7 @@ import {
   hasUnknownOrigin,
   isModelled,
   isSynthetic,
+  mayRetryAnalysis,
   parkedForRuntime,
   reportHolds,
   resultOriginKind,
@@ -696,9 +697,70 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
+/**
+ * The modules of a finished run a person may ask again (`GET …/analysis/retryable`), or `null` while
+ * there is nothing to ask about. Read once per finished run, not on every poll.
+ */
+function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
+  const frame = useFrame();
+  const runId = run?.run_id ?? null;
+  const possible = !!run && mayRetryAnalysis(run);
+  const [modules, setModules] = useState<{ runId: string; list: string[] } | null>(null);
+  useEffect(() => {
+    if (!possible || !runId) return;
+    let live = true;
+    research
+      .retryableModules(frame.studyId, runId)
+      .then((list) => live && setModules({ runId, list }))
+      .catch(() => live && setModules({ runId, list: [] }));
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, runId, possible]);
+  return possible && modules && modules.runId === runId && modules.list.length ? modules.list : null;
+}
+
+/** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
+function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules: string[]; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+  const { confirm } = useResearch();
+  const frame = useFrame();
+  return (
+    <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
+      <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: modules.length })}</p>
+      <p className="mt-1 text-sm">{tv("research.exec.analysisRetry.modules", { list: modules.map((m) => stepLabel(`analysis_${m}`)).join(", ") })}</p>
+      <p className="mt-1 text-xs text-ink-muted">{t("research.exec.analysisRetry.how")}</p>
+      {frame.canEdit ? (
+        <Button
+          className="mt-3"
+          variant="primary"
+          disabled={busy}
+          onClick={() =>
+            act(async () => {
+              try {
+                return await research.retryAnalysis(frame.studyId, run.run_id);
+              } catch (e) {
+                // The retry asks a model again, so the study's limit asks again over what it may cost.
+                const asked = confirmationAsked(e);
+                if (!asked) throw e;
+                const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+                if (!yes) return run;
+                return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+              }
+            })
+          }
+        >
+          {t("research.exec.analysisRetry.action")}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 /** The run's state and what a person can do with it, in the inspector beside its steps. */
-function ProgressActions({ run, act, busy, refresh, actionError }: {
+function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   run: ResearchRun; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean; refresh: () => void; actionError: string | null;
+  /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
+  repairable: string[] | null;
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
@@ -724,7 +786,7 @@ function ProgressActions({ run, act, busy, refresh, actionError }: {
         ) : null}
         {frame.canEdit && run.retryable ? (
           <Button
-            variant="primary"
+            variant={repairable ? undefined : "primary"}
             disabled={busy}
             onClick={() =>
               act(async () => {
@@ -741,7 +803,7 @@ function ProgressActions({ run, act, busy, refresh, actionError }: {
               })
             }
           >
-            {t("research.exec.retry")}
+            {repairable ? t("research.exec.retryWhole") : t("research.exec.retry")}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
@@ -756,6 +818,7 @@ export function ProgressStep() {
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const repairable = useRetryableModules(run);
   // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
   const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
   const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
@@ -785,7 +848,7 @@ export function ProgressStep() {
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       <InspectorSlot>
-        <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} />
+        <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
       <OriginBanners run={run} />
       <PopulationNote run={run} />
@@ -817,6 +880,7 @@ export function ProgressStep() {
         ) : null}
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
+      {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (

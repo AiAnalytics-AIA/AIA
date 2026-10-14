@@ -87,6 +87,7 @@ __all__ = [
     "CostCeilingUnknown",
     "CostConfirmationRequired",
     "DesignNotReady",
+    "FrozenDataset",
     "PanelPopulationMissing",
     "ResearchAgentJobs",
     "ResearchRunNotFound",
@@ -171,6 +172,31 @@ class CostCeilingUnknown(Exception):
         self.limit_usd = limit_usd
         #: The kinds of call whose price is missing, when the ceiling names them.
         self.kinds = kinds
+
+
+@dataclass(frozen=True, slots=True)
+class FrozenDataset:
+    """What an analysis retry runs over: another run's dataset, and what it asks again."""
+
+    run_id: str
+    artifact_id: str
+    sha256: str
+    analysis_round: int
+    #: The modules the retry asks again: the most its analysis can cost.
+    retried: tuple[str, ...]
+    #: Modules whose step will ask a model: the retried ones, and any completed one whose
+    #: stored harness or prompt is not today's (its reuse key moved).
+    modules_asked: int
+
+    def __post_init__(self) -> None:
+        if self.analysis_round < 1:
+            raise ValueError("an analysis retry is round 1 or later")
+
+    def step_input(self) -> dict[str, Any]:
+        return {"run_id": self.run_id, "artifact_id": self.artifact_id, "sha256": self.sha256}
+
+    def note(self) -> dict[str, Any]:
+        return {**self.step_input(), "round": self.analysis_round, "modules": list(self.retried)}
 
 
 @dataclass(frozen=True, slots=True)
@@ -272,6 +298,8 @@ class ResearchRuns:
         fieldwork_source: FieldworkSource,
         analysis_enabled: bool,
         reservations: RunReservations | None,
+        fieldwork_frozen: bool = False,
+        analysis_modules: int | None = None,
     ) -> RunCostCeiling:
         """The most a run of ``spec`` can cost, from what the worker reserves per request."""
         reserved = reservations or RunReservations(None, None)
@@ -282,6 +310,8 @@ class ResearchRuns:
             analysis_enabled=analysis_enabled,
             analysis_reservation_usd=reserved.analysis_usd,
             analysis_calls_per_module=1 + MAX_REPAIRS,
+            fieldwork_frozen=fieldwork_frozen,
+            analysis_modules=analysis_modules,
         )
 
     def start(
@@ -301,8 +331,14 @@ class ResearchRuns:
         kept: Mapping[str, Any] | None = None,
         persona_source: PersonaSource = PersonaSource.FICTIONAL_ROSTER,
         population_version_id: str | None = None,
+        frozen_dataset: FrozenDataset | None = None,
     ) -> StartedRun:
         """Run the research workflow over one Design Revision of the Study.
+
+        ``frozen_dataset`` makes the run an analysis retry (:func:`retry_failed_modules`
+        in ``application.analysis_results``, through :meth:`retry_analysis`): its fieldwork
+        step takes that run's dataset by id and SHA-256 and asks nobody, and its analysis
+        steps run in round ``frozen_dataset.analysis_round``. It requires ``retry_of``.
 
         The run pins who its AI respondents are (``persona_source``, plan
         ``panel-grounded-respondents`` 5a): the fieldwork step reads the pin, never a switch,
@@ -420,7 +456,11 @@ class ResearchRuns:
             raise ValueError("panel personas answer only through the ai_runtime source")
         if panel:
             key += ":personas:panel"
-        if retry_of:
+        if frozen_dataset is not None:
+            if not retry_of or not analysis_enabled:
+                raise ValueError("an analysis retry names the run it retries, with analysis on")
+            key += f":analysis-retry:{retry_of}"
+        elif retry_of:
             key += f":retry:{retry_of}"
         # A retry's pins came from stored versions resolved when its original started.
         held = dict(kept or {})
@@ -447,6 +487,8 @@ class ResearchRuns:
                 fieldwork_source=fieldwork_source,
                 analysis_enabled=analysis_enabled,
                 reservations=reservations,
+                fieldwork_frozen=frozen_dataset is not None,
+                analysis_modules=frozen_dataset.modules_asked if frozen_dataset else None,
             )
             if ceiling.total_usd is None:
                 assert ceiling.unknown is not None
@@ -477,6 +519,7 @@ class ResearchRuns:
                 "response": response_pin,
                 **({"response_methodology": response_version} if response_version else {}),
                 **({"retry_of": retry_of} if retry_of else {}),
+                **({"analysis_retry": frozen_dataset.note()} if frozen_dataset else {}),
                 "persona_source": persona_source.value,
                 **(
                     {"population": _population_note(population, read_by_fieldwork=panel)}
@@ -491,10 +534,18 @@ class ResearchRuns:
                     "fieldwork_source": fieldwork_source.value,
                     "persona_source": persona_source.value,
                     "response": response_pin,
+                    **({"frozen_dataset": frozen_dataset.step_input()} if frozen_dataset else {}),
                 },
                 "aggregate": {"support": support_pin, "aggregation": aggregation_pin},
                 "sociomap": {"methods": pinned},
-                **(analysis_step_inputs(ClaimSurface.INTERNAL) if analysis_enabled else {}),
+                **(
+                    analysis_step_inputs(
+                        ClaimSurface.INTERNAL,
+                        analysis_round=frozen_dataset.analysis_round if frozen_dataset else 0,
+                    )
+                    if analysis_enabled
+                    else {}
+                ),
             },
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
@@ -531,11 +582,58 @@ class ResearchRuns:
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise ResearchRunNotRetryable(run["status"])
+        return self._restart(
+            run,
+            fieldwork_source=fieldwork_source,
+            reservations=reservations,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+
+    def retry_analysis(
+        self,
+        run_id: str,
+        *,
+        frozen_dataset: FrozenDataset,
+        reservations: RunReservations | None = None,
+        confirm_cost_usd: float | None = None,
+    ) -> StartedRun:
+        """Start ``run_id`` again over its own collected data: an analysis retry.
+
+        Every pin is kept as :meth:`retry` keeps it, and so is the fieldwork source the run
+        recorded (its dataset is reused, never collected again). Which runs may be retried
+        this way, and which modules, is :func:`~.analysis_results.retry_failed_modules`'s
+        to decide; this only starts the run.
+        """
+        run = self.get(run_id)
+        return self._restart(
+            run,
+            fieldwork_source=FieldworkSource(str(run["metadata"]["fieldwork_source"])),
+            reservations=reservations,
+            confirm_cost_usd=confirm_cost_usd,
+            analysis_enabled=True,
+            frozen_dataset=frozen_dataset,
+        )
+
+    def _restart(
+        self,
+        run: Mapping[str, Any],
+        *,
+        fieldwork_source: FieldworkSource,
+        reservations: RunReservations | None,
+        confirm_cost_usd: float | None,
+        analysis_enabled: bool | None = None,
+        frozen_dataset: FrozenDataset | None = None,
+    ) -> StartedRun:
+        """A new run linked to ``run``, under every pin it recorded."""
+        run_id = str(run["run_id"])
         return self.start(
             design_revision_id=str(run["metadata"]["design_revision_id"]),
             fieldwork_source=fieldwork_source,
             retry_of=run_id,
-            analysis_enabled=bool(run["metadata"].get("analysis_enabled", False)),
+            frozen_dataset=frozen_dataset,
+            analysis_enabled=bool(run["metadata"].get("analysis_enabled", False))
+            if analysis_enabled is None
+            else analysis_enabled,
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,

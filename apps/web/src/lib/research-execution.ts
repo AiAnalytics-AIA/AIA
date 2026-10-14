@@ -39,7 +39,12 @@ export function stepLabel(nodeKey: string): string {
   return label.startsWith("research.") ? nodeKey : label;
 }
 
+/** An analysis step whose module was stored BLOCKED: finished as a step, not as a result. */
+export const needsRepair = (step: ResearchStep): boolean =>
+  step.status === "SUCCEEDED" && step.analysis_outcome === "BLOCKED";
+
 export function stepTone(step: ResearchStep): Tone {
+  if (needsRepair(step)) return "fault";
   if (step.status === "SUCCEEDED") return "done";
   if (step.status === "RUNNING" || step.status === "RUNNABLE") return "running";
   if (step.status === "FAILED") return "fault";
@@ -48,8 +53,17 @@ export function stepTone(step: ResearchStep): Tone {
 }
 
 export function stepStatusLabel(step: ResearchStep): string {
+  if (needsRepair(step)) return t("research.exec.stepStatus.ANALYSIS_BLOCKED");
   const label = t(`research.exec.stepStatus.${step.status}`);
   return label.startsWith("research.") ? step.status : label;
+}
+
+/** Whether a finished run may have analysis modules to ask again: worth asking the API. */
+export function mayRetryAnalysis(run: ResearchRun): boolean {
+  return (
+    run.is_terminal &&
+    run.steps.some((s) => s.node_key.startsWith("analysis_") && (needsRepair(s) || s.status === "FAILED" || s.status === "CANCELLED"))
+  );
 }
 
 /** Keep reading while something can still change on its own; a parked run cannot. */
@@ -95,8 +109,11 @@ export function reportHolds(run: ResearchRun): ReportHold[] {
   for (const step of run.steps) {
     const analysis = step.kind === "research_analysis";
     if (!analysis && step.kind !== "research_report") continue;
-    if (step.status === "SUCCEEDED") continue;
-    const detail = waitingDetail(step) ?? (step.status === "FAILED" ? step.error_message : null);
+    // A module stored BLOCKED succeeded as a step and still holds the report.
+    if (step.status === "SUCCEEDED" && !needsRepair(step)) continue;
+    const detail = needsRepair(step)
+      ? t("research.exec.analysisRetry.held")
+      : (waitingDetail(step) ?? (step.status === "FAILED" ? step.error_message : null));
     if (analysis || detail !== null) holds.push({ step, detail });
   }
   return holds;

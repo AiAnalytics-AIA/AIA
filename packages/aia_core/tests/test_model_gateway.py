@@ -23,6 +23,7 @@ from aia_core.application.model_gateway import (
     input_token_bound,
 )
 from aia_core.domain.ai_contracts import (
+    MAX_REJECTED_OUTPUT_CHARS,
     AdapterRequest,
     AdapterResponse,
     AgentDefinition,
@@ -941,6 +942,21 @@ def test_agent_without_repair_fails_on_the_first_violation(
     )
     assert failure.failure is FailureClass.SCHEMA_VIOLATION
     assert len(adapter.requests) == 1
+    assert failure.rejected_output == "nope", "the refused answer goes back to the caller"
+
+
+def test_a_refused_answer_is_bounded_and_absent_on_other_failures(
+    model_registry: ModelRegistry, context: ExecutionContext
+) -> None:
+    adapter = ScriptedAdapter(Provider.OPENAI, [_ok("x" * (MAX_REJECTED_OUTPUT_CHARS + 10))])
+    failure = _fail(
+        _gateway(model_registry, adapter),
+        _request(agent=_agent(schema_repair_attempts=0)),
+        context,
+    )
+    assert failure.rejected_output is not None
+    assert len(failure.rejected_output) == MAX_REJECTED_OUTPUT_CHARS
+    assert ModelCallFailed("m", failure=FailureClass.UNKNOWN, reason="r").rejected_output is None
 
 
 def test_truncated_structured_output_is_a_violation(

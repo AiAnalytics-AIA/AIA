@@ -750,6 +750,35 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
 
 
+def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The route's refusals; the retry itself runs end to end in the executor suite
+    (test_retrying_failed_modules_asks_only_them_over_the_same_data)."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    early = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert early.status_code == 409, early.text
+    assert early.json()["code"] == "analysis_not_retryable"
+    assert early.json()["details"]["reason"] == "run_not_finished"
+    worker = _worker(app, FailureClass.PERMISSION)
+    while worker.run_once() is not None:
+        pass
+    none = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert none.status_code == 409
+    assert none.json()["details"]["reason"] == "analysis_not_in_run"
+    assert "AI analýzu" in none.json()["message"]
+    missing = researcher.post(f"{_runs(world)}/RUN-0000000000000000/analysis/retry")
+    assert missing.status_code == 404
+    retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
+    assert retryable.status_code == 200, retryable.text
+    assert retryable.json() == {"run_id": run_id, "modules": []}
+    assert (
+        researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
+    )
+
+
 def test_any_member_may_cancel_a_run_with_or_without_a_grant(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:

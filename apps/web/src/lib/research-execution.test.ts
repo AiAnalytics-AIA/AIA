@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, MODELLED_DISCLOSURE, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -153,6 +153,28 @@ describe("aggregateDeviation (methodology-tab G2c)", () => {
   });
 });
 
+describe("an analysis module a model could not complete", () => {
+  const analysisStep = (extra: Partial<ResearchStep>) =>
+    ({ node_key: "analysis_objects", kind: "research_analysis", status: "SUCCEEDED", analysis_outcome: "COMPLETED", ...extra }) as ResearchStep;
+
+  it("is not \"Hotovo\": its step succeeded, its module needs repair", () => {
+    const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
+    expect(needsRepair(blocked)).toBe(true);
+    expect(stepStatusLabel(blocked)).toBe("Potřebuje opravu");
+    expect(stepTone(blocked)).toBe("fault");
+    expect(stepStatusLabel(analysisStep({}))).toBe("Hotovo");
+    expect(stepTone(analysisStep({}))).toBe("done");
+    expect(needsRepair(analysisStep({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
+  });
+
+  it("makes a finished run worth asking about a retry, and only a finished one", () => {
+    const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [blocked] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: false, steps: [blocked] }))).toBe(false);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({ status: "FAILED", analysis_outcome: null })] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(false);
+  });
+});
 
 describe("reportHolds (run-gate-visibility chunk 2)", () => {
   const step = (node_key: string, kind: string, status: string, extra: Partial<ResearchStep> = {}) =>
@@ -185,5 +207,14 @@ describe("reportHolds (run-gate-visibility chunk 2)", () => {
     ]));
     expect(held).toEqual([{ step: expect.objectContaining({ node_key: "report" }), detail: "audience: no admitted result" }]);
     expect(reportHolds(runOf([step("report", "research_report", "SUCCEEDED")]))).toEqual([]);
+  });
+
+  it("names a module stored BLOCKED, whose step succeeded, as holding the report", () => {
+    const held = reportHolds(runOf([
+      step("analysis_executive", "research_analysis", "SUCCEEDED", { analysis_outcome: "COMPLETED" }),
+      step("analysis_objects", "research_analysis", "SUCCEEDED", { analysis_outcome: "BLOCKED" }),
+    ]));
+    expect(held.map((h) => h.step.node_key)).toEqual(["analysis_objects"]);
+    expect(held[0].detail).toMatch(/zopakovat/);
   });
 });

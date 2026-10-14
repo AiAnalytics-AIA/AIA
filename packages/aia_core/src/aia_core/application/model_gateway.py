@@ -45,6 +45,7 @@ from datetime import datetime
 from typing import Final
 
 from aia_core.domain.ai_contracts import (
+    OUTPUT_TRUNCATED,
     AdapterRequest,
     AIUsageEvent,
     CallProvenance,
@@ -307,6 +308,7 @@ class GovernedModelGateway:
             provider_request_id=last.provider_request_id,
             retry_after=last.retry_after,
             violations=last.violations,
+            rejected_output=last.rejected_output,
         ) from last
 
     # ---------------------------------------------------------------- stages --
@@ -592,7 +594,7 @@ class GovernedModelGateway:
             output = None
             if agent.output_contract is not None:
                 if response.finish_reason is FinishReason.TRUNCATED:
-                    violations = ("output truncated at the output token limit",)
+                    violations = (OUTPUT_TRUNCATED,)
                 elif tool_answer and response.structured is None:
                     # Off-contract even if the text parses: the answer had to come
                     # through the tool. It takes the same repair path as any violation.
@@ -662,6 +664,9 @@ class GovernedModelGateway:
                     error_kind=ProviderErrorKind.SCHEMA,
                     provider_request_id=response.provider_request_id,
                     violations=violations,
+                    rejected_output=response.text
+                    if response.structured is None
+                    else canonical_json(response.structured),
                 )
             repairs_left -= 1
             purpose = CallPurpose.SCHEMA_REPAIR
@@ -737,6 +742,7 @@ class GovernedModelGateway:
         provider_request_id: str | None = None,
         retry_after: datetime | None = None,
         violations: tuple[str, ...] = (),
+        rejected_output: str | None = None,
     ) -> ModelCallFailed:
         """Build the failure, with the billing facts taken from the ledger entries."""
         closed = {e.call_id for e in events if e.outcome.is_terminal}
@@ -756,6 +762,7 @@ class GovernedModelGateway:
             outcome_known=not uncertain,
             violations=violations,
             usage_events=events,
+            rejected_output=rejected_output,
         )
 
     def _provenance(

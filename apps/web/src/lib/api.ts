@@ -825,6 +825,8 @@ export type ResearchStep = {
   error_message: string | null;
   artifact_id: string | null;
   data_origin: string | null;
+  /** An analysis step's stored outcome: its step SUCCEEDED either way. `null` for other steps. */
+  analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
@@ -949,6 +951,16 @@ export const research = {
     request<ResearchRun>(
       "POST",
       `${studyPath(studyId)}/research/runs/${enc(runId)}/retry`,
+      confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
+    ),
+  /** The modules a finished run may ask again (`retryAnalysis`), read from its stored outcomes. */
+  retryableModules: (studyId: string, runId: string) =>
+    request<{ run_id: string; modules: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`).then((r) => r.modules),
+  /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
+  retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
+    request<ResearchRun>(
+      "POST",
+      `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retry`,
       confirmCostUsd === undefined ? undefined : { confirm_cost_usd: confirmCostUsd },
     ),
   /** Raise the Study's budget to `budgetUsd` (never below the current one) and let the waiting step go on. */

@@ -259,7 +259,15 @@ class ArtifactRepository:
             project = self._owned_project(project_id)
             stmt = stmt.where(ProjectArtifactRow.revision == project.current_revision)
 
-        row = self._session.scalar(stmt.order_by(ProjectArtifactRow.revision.desc()))
+        # Newest first, so the lookup is deterministic when one stage stored twice
+        # under one fingerprint: a module asked again in a later round wins.
+        row = self._session.scalar(
+            stmt.order_by(
+                ProjectArtifactRow.revision.desc(),
+                ProjectArtifactRow.created_at.desc(),
+                ProjectArtifactRow.artifact_id.desc(),
+            )
+        )
         if row is None:
             return None
 

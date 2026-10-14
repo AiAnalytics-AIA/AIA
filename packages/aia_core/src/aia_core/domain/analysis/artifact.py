@@ -38,7 +38,7 @@ from pydantic import (
     model_validator,
 )
 
-from ..ai_contracts import canonical_json
+from ..ai_contracts import MAX_REJECTED_OUTPUT_CHARS, canonical_json
 from ..evidence import ClaimSurface, Violation, ViolationCode
 from ..fieldwork import DataOrigin
 from ..pipeline import fingerprint
@@ -288,6 +288,10 @@ class TurnArtifact(_Closed):
     cost_basis: str | None
     produced_by: ProducedBy
     runtime_version: str | None
+    #: The answer the output contract refused (``SCHEMA_INVALID``), bounded, as the
+    #: gateway returned it: the next turn shows it to the model, so a replayed repair
+    #: sends what the original sent. Absent on turns stored before harness 2.
+    rejected_output: str | None = Field(default=None, max_length=MAX_REJECTED_OUTPUT_CHARS)
 
     @model_validator(mode="after")
     def _consistent(self) -> TurnArtifact:
@@ -295,6 +299,8 @@ class TurnArtifact(_Closed):
             raise ValueError("a DRAFT turn carries its draft and a SCHEMA_INVALID one does not")
         if self.answer == "SCHEMA_INVALID" and not self.schema_violations:
             raise ValueError("a schema failure says what failed")
+        if self.answer == "DRAFT" and self.rejected_output is not None:
+            raise ValueError("an accepted draft has no refused answer")
         return self
 
 
@@ -329,13 +335,23 @@ def module_reuse_fingerprint(
     )
 
 
-def turn_fingerprint(*, reuse_fingerprint: str, turn: int, request_sha256: str) -> str:
-    """The checkpoint key of one turn: which module, which turn, exactly what was sent."""
-    return fingerprint(
-        {
-            "contract": TURN_ARTIFACT_CONTRACT,
-            "module": reuse_fingerprint,
-            "turn": turn,
-            "request": request_sha256,
-        }
-    )
+def turn_fingerprint(
+    *, reuse_fingerprint: str, turn: int, request_sha256: str, analysis_round: int = 0
+) -> str:
+    """The checkpoint key of one turn: which module, which turn, exactly what was sent.
+
+    ``analysis_round`` is the retry round a person asked for (0: the run's own). A new
+    round asks again what an earlier round's turns answered; inside one round a retried
+    attempt still replays every turn it stored. Round 0 keys are unchanged.
+    """
+    if analysis_round < 0:
+        raise ValueError("an analysis round is 0 or more")
+    key: dict[str, object] = {
+        "contract": TURN_ARTIFACT_CONTRACT,
+        "module": reuse_fingerprint,
+        "turn": turn,
+        "request": request_sha256,
+    }
+    if analysis_round:
+        key["round"] = analysis_round
+    return fingerprint(key)
