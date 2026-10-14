@@ -87,8 +87,10 @@ apps/
                             POST /clients/{id}/contacts, PUT/DELETE …/contacts/{contact_id}),
                             client_sources (a client's sources, lifecycle K2: POST/GET
                             /clients/{id}/sources -- 201 when new, 200 with created: false for the
-                            same bytes again -- GET …/{source_id} with its reading, GET
-                            …/{source_id}/original, always an application/octet-stream attachment),
+                            same bytes again -- GET …/{source_id} with its reading (a dataset's
+                            columns in reading.dataset), GET …/{source_id}/original, always an
+                            application/octet-stream attachment; POST …/{source_id}/reading reads a
+                            source again with its format's current reader, OI-110),
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
@@ -588,6 +590,11 @@ packages/aia_core/src/aia_core/
                             list of 2026-10-13), Locator, Segment, ReadingNote, SourceReading (READ /
                             PARTIAL / UNREADABLE / UNSUPPORTED / REFUSED, never more than happened),
                             display_name (the name as written)
+    client_datasets.py      A dataset's preview (K2c): per column the header (row 1 when all text
+                            over numbers or dates), kind, fill, distinct values (to 1,000) and five
+                            samples; a column flagged personal (header, or a third of its values an
+                            e-mail, Czech phone or birth number) has its samples masked; patterns
+                            pinned in fixtures/client_datasets/personal.json
     project_memory.py       Project memory's match: every word, accent-folded, a four-letter stem;
                             DIMENSION_LABELS, the canonical dimension titles pinned to the web's
     workflow.py             Workflow DAG, job states, retry classification
@@ -831,12 +838,15 @@ packages/aia_core/src/aia_core/
                             openpyxl: the `documents` extra), with the ZIP bounds the unit lacked;
                             a PDF's tables through pdfplumber, after pypdf, bounded
                             (`MAX_PDF_TABLES`, 20 s); check_zip_bounds(data, kind) before any
-                            Office or OpenDocument ZIP is inflated
+                            Office or OpenDocument ZIP is inflated; grid_from_rows, the one way a
+                            reader outside it makes a bounded grid
     source_reading.py       read_source: a client source's bytes -> segments with locators, a pure
                             function: PDF by page and table row, DOCX and ODT by paragraph and table
                             row, PPTX by slide, TXT/MD by paragraph, DOC from its Word 97 piece table
                             (piece_text; olefile only opens the file; a DOC's cells are Word's
-                            paragraphs, no row guessed); an XML part declaring a DTD refused
+                            paragraphs, no row guessed); CSV, XLSX, XLS (xlrd) and ODS by sheet and
+                            row, with the dataset preview, an ODS's repeats never materialized past
+                            the grid bounds; an XML part declaring a DTD refused
     questionnaire_file.py   A questionnaire file's rows (the unit's CSV and stdlib XLSX readers) and
                             AIA's own template workbook
     unit_project_store.py   A COPY of the 18.6.6 project store, read mode=ro&immutable=1 (a live
@@ -851,7 +861,7 @@ packages/aia_core/src/aia_core/
     client_source_repository.py  The ONLY reader/writer of client_sources and
                             client_source_occurrences: kept once per client and SHA-256, bytes and
                             reading under org/<org>/client/<client>/sources/<sha256>/, verified on
-                            every read
+                            every read; reread: a newer reader's reading beside the first
     artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
     methodology_repository.py  The ONLY reader/writer of the methodology tables (ADR 0023):
                             immutable versions, validated by domain.methodology.versions; append-only
@@ -967,9 +977,10 @@ tools/respondent_capture.py  Respondent behaviour fixtures from the unit's own b
                             (`capture`, in an environment with NumPy, pandas and SciPy)
 tools/attachment_text_capture.py  Attachment-text fixtures: fictional documents (`inputs`) and the
                             unit's own `_extract_text` on each (`capture`, with the unit's libraries)
-tools/source_fixtures.py    Client-source reader fixtures: fictional text LibreOffice converts into
-                            DOC, ODT, DOCX and PPTX (`write`), pinned in fixtures/client_sources/
-                            index.json (`verify`)
+tools/source_fixtures.py    Client-source reader fixtures: fictional text and one fictional export
+                            LibreOffice converts into DOC, ODT, DOCX, PPTX, ODS, XLSX and XLS, and a
+                            Czech CSV (`write [name …]`: only the named, their pins merged), pinned
+                            in fixtures/client_sources/index.json (`verify`)
 tools/questionnaire_import_capture.py  Import fixtures: fictional files (`inputs`), AIA's template
                             (`template`), the unit's own import on each (`capture`)
 tools/deep_research_capture.py  Leakage-screen and merge fixtures from the unit's own

@@ -3620,7 +3620,7 @@ beside the basis.
 
 **Status.** Open; analysis-governance's call, with OI-9 and OI-103 (complete-study-report F1).
 
-## OI-110 · Finding · A client source kept before its format had a reader is never read again
+## OI-110 · Finding, closed · A client source kept before its format had a reader is never read again
 
 **Claim.** A source is read once, when it is first kept; the same bytes added again only add an
 occurrence, so a file stored as `UNSUPPORTED` / `reader_pending` stays unread after its format
@@ -3643,5 +3643,8 @@ move the row's outcome; never change the original.
 **Test.** A source kept as `reader_pending`, then re-read after the reader is registered: `READ`,
 the first reading still in storage.
 
-**Status.** Open; client-knowledge-lifecycle K2c, which is the first slice to make an
-`UNSUPPORTED` format readable after sources exist on develop.
+**Status.** Fixed in #398 (client-knowledge-lifecycle K2c): `ClientSourceRepository.reread` and
+`POST /clients/{id}/sources/{source_id}/reading` read a source again when its format's current
+reader is not the one that read it, as does adding the same bytes again; the original never
+changes and the first reading stays beside the new one (`CLIENT_SOURCE_REREAD`). Test:
+`test_source_datasets.py::test_a_source_kept_before_its_reader_is_read_again_and_its_first_reading_kept`.
