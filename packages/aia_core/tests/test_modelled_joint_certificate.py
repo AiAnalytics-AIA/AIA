@@ -13,7 +13,6 @@ import json
 from typing import Any
 
 import pytest
-from conftest import joint_certificate_json
 from test_analysis_native import DATASET_SHA, run
 
 from aia_core.application.analysis_results import SourcesRefused, _joint_certificate
@@ -34,8 +33,10 @@ def _record(data: bytes, panel: str = PANEL) -> dict[str, str]:
     }
 
 
-def _certificate(**overrides: Any) -> bytes:
-    return joint_certificate_json(PANEL, production_panel="PANEL_v1.csv.gz", **overrides)
+def _certificate(kit: Any, **overrides: Any) -> bytes:
+    # The writer comes from the population_kit fixture, never imported from conftest: in
+    # CI's one-session SQLite step ``conftest`` is whichever tree's conftest loaded last.
+    return kit.joint_certificate_json(PANEL, production_panel="PANEL_v1.csv.gz", **overrides)
 
 
 def _evidence(certificate: tuple[bytes, str] | None) -> Any:
@@ -50,8 +51,10 @@ def _evidence(certificate: tuple[bytes, str] | None) -> Any:
     )
 
 
-def test_a_recorded_certificate_is_re_hashed_and_read_for_a_modelled_run_only() -> None:
-    data = _certificate()
+def test_a_recorded_certificate_is_re_hashed_and_read_for_a_modelled_run_only(
+    population_kit: Any,
+) -> None:
+    data = _certificate(population_kit)
     meta = {JOINT_CERTIFICATE_METADATA: _record(data)}
     assert _joint_certificate(MODELLED, meta) == (data, PANEL)
     assert _joint_certificate(MODELLED, {}) is None
@@ -59,8 +62,8 @@ def test_a_recorded_certificate_is_re_hashed_and_read_for_a_modelled_run_only() 
     assert _joint_certificate(DataOrigin.SYNTHETIC_AI_FICTIONAL, meta) is None
 
 
-def test_a_record_with_a_byte_order_mark_still_verifies() -> None:
-    data = b"\xef\xbb\xbf" + _certificate()
+def test_a_record_with_a_byte_order_mark_still_verifies(population_kit: Any) -> None:
+    data = b"\xef\xbb\xbf" + _certificate(population_kit)
     held = _joint_certificate(MODELLED, {JOINT_CERTIFICATE_METADATA: _record(data)})
     assert held is not None and json.loads(held[0])["panel_sha256"] == PANEL
 
@@ -78,12 +81,14 @@ def test_an_altered_or_incomplete_record_is_refused_never_read_as_none(bad: Any)
         _joint_certificate(MODELLED, {JOINT_CERTIFICATE_METADATA: bad})
 
 
-def test_the_evidence_is_certified_under_the_certificate_that_covered_its_respondents() -> None:
-    certified = _evidence((_certificate(), PANEL))
+def test_the_evidence_is_certified_under_the_certificate_that_covered_its_respondents(
+    population_kit: Any,
+) -> None:
+    certified = _evidence((_certificate(population_kit), PANEL))
     assert certified.joint_status.certified
     # Without one, or against another panel, nothing client-facing: as before.
     assert not _evidence(None).joint_status.certified
-    assert not _evidence((_certificate(), "d" * 64)).joint_status.certified
+    assert not _evidence((_certificate(population_kit), "d" * 64)).joint_status.certified
     # The certificate enters the system fingerprint: a run judged under it is a different run.
     assert certified.system_fingerprint != _evidence(None).system_fingerprint
 
@@ -125,7 +130,9 @@ def test_the_owners_lift_frees_modelled_items_for_the_client_report_only() -> No
     assert LIFT.surface == "CLIENT_REPORT" and LIFT.decided_on.isoformat() == "2026-10-13"
 
 
-def test_client_facing_analysis_stays_blocked_because_it_never_passes_the_lift() -> None:
+def test_client_facing_analysis_stays_blocked_because_it_never_passes_the_lift(
+    population_kit: Any,
+) -> None:
     from aia_core.domain.analysis import ANALYSIS_MODULES
     from aia_core.domain.analysis.native import native_preflight
     from aia_core.domain.evidence import ClaimSurface, ViolationCode
@@ -139,7 +146,7 @@ def test_client_facing_analysis_stays_blocked_because_it_never_passes_the_lift()
         origin=MODELLED,
         support=REFERENCE_THRESHOLDS,
         respondent_system="a" * 64,
-        joint_certificate=(_certificate(), PANEL),
+        joint_certificate=(_certificate(population_kit), PANEL),
     )
     for module in ANALYSIS_MODULES:
         codes = {
