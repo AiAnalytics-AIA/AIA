@@ -39,6 +39,7 @@ import {
   isSynthetic,
   mayRetryAnalysis,
   parkedForRuntime,
+  reportHolds,
   resultOriginKind,
   stepOriginKind,
   type OriginKind,
@@ -954,10 +955,10 @@ function Provenance({ artifact, run }: { artifact: Artifact; run: ResearchRun })
   );
 }
 
-function Table({ table }: { table: ResultTable }) {
+function Table({ table, showSupportNote = true }: { table: ResultTable; showSupportNote?: boolean }) {
   return (
     <div className="flex flex-col gap-1">
-      <p className="text-xs text-ink-muted">{supportNote(table)}</p>
+      {showSupportNote ? <p className="text-xs text-ink-muted">{supportNote(table)}</p> : null}
       {table.rows.length ? (
         <table className="w-full text-sm">
           <thead>
@@ -1020,11 +1021,12 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const frame = useFrame();
   const session = useContext(ResearchContext);
   const assistance = session?.askAssistance;
+  const specification = useArtifact(run && stepOf(run, "aggregate")?.artifact_id ? run : null, "compile");
   const aggregate = useArtifact(run, "aggregate");
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
   const report = run?.steps.some((step) => step.kind === "research_report")
-    ? <InternalReport key={run.run_id} run={run} />
+    ? <InternalReport key={run.run_id} run={run} progressHref={progressHref} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
@@ -1051,7 +1053,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     panels={[
       { id: "data", label: "Data", description: "Odpovědi a srovnání hodnocených objektů. U každého výsledku zůstává uvedena podpora dat a nejistota.", content: <>
       <Card id="res-aggregate" title={t("research.exec.results.aggregate")}>
-        {aggregate?.state === "ready" ? <AggregateView artifact={aggregate.value} run={run} /> : null}
+        {aggregate?.state === "ready" ? <AggregateView artifact={aggregate.value} run={run} specification={specification?.state === "ready" ? specification.value : null} /> : null}
         {aggregate?.state === "failed" ? <p role="alert" className="text-sm text-status-fault">{aggregate.message}</p> : null}
         {aggregate?.state === "loading" ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
       </Card>
@@ -1076,16 +1078,16 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
         </Card>
       ) : null}
       </> }] : []),
-      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <>{knowledgeContext}<div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div></> }] : []),
-      { id: "report", label: "Rešerše a zpráva", description: "Stáhněte základní AIA zprávu nebo vyberte dokončenou literární rešerši pro zprávu doplněnou o externí kontext, zdroje a sociomapy.", content: <>
-        {knowledgeContext}
+      ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} /></div> }] : []),
+      { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
         <div id="res-report">{report}</div>
         {showAnalysis && frame.canEdit ? <InterpretationResearch key={run.run_id} run={run} /> : null}
+        <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
       </> },
     ]} />;
 }
 
-function InternalReport({ run }: { run: ResearchRun }) {
+function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
   const frame = useFrame();
   const step = stepOf(run, "report");
   // What the last read answered, and for which state of the report step: a read for an
@@ -1142,13 +1144,43 @@ function InternalReport({ run }: { run: ResearchRun }) {
             : t("research.exec.results.reportWaiting")}
         </p>
       ) : null}
+      {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
+  );
+}
+
+/** Which module or step keeps the report from being ready, and why, with the way to Progress. */
+function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
+  const holds = reportHolds(run);
+  if (!holds.length && !progressHref) return null;
+  return (
+    <div className="mt-2 text-sm">
+      {holds.length ? (
+        <>
+          <p className="font-medium">{t("research.exec.results.reportHeldBy")}</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {holds.map(({ step, detail }) => (
+              <li key={step.node_key} data-hold={step.node_key} data-status={step.status}>
+                <span className="font-medium">{stepLabel(step.node_key)}</span>
+                {" · "}
+                {stepStatusLabel(step)}
+                {detail ? <span className="text-ink-muted">{`: ${detail}`}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {progressHref ? (
+        <a className="mt-2 inline-block underline" href={progressHref}>{t("research.exec.results.reportSeeProgress")}</a>
+      ) : null}
+    </div>
   );
 }
 
 function AnalysisResults({ run }: { run: ResearchRun }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
+  const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
   const states = run.steps.filter((step) => step.kind === "research_analysis")
     .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
   useEffect(() => {
@@ -1163,6 +1195,11 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
     return () => { live = false; };
   }, [frame.studyId, run.run_id, states]);
   if (loaded.state === "hidden") return null;
+  const analysis = loaded.state === "ready" ? loaded.value : null;
+  const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
+  const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
+  const selected = analysis?.modules[selectedModule];
+  const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
   return (
     <Card title={t("research.exec.results.analysis")} tone="notice">
       <p role="note" className="mb-3 text-sm font-semibold">
@@ -1175,29 +1212,45 @@ function AnalysisResults({ run }: { run: ResearchRun }) {
       {loaded.state === "ready" && loaded.value.aggregation_deviation ? (
         <div className="mb-3"><Deviation deviation={aggregateDeviation({ deviation: loaded.value.aggregation_deviation }) as AggregateDeviation} /></div>
       ) : null}
-      {loaded.state === "ready" ? (
+      {analysis ? (
         <div className="flex flex-col gap-4">
-          {ANALYSIS_ORDER.map((id) => {
-            const outcome = loaded.value.modules[id];
-            const pending = loaded.value.pending[id];
-            return (
-              <section key={id} className="border-t border-border pt-3">
-                <h3 className="font-semibold">{stepLabel(`analysis_${id}`)}</h3>
-                {pending ? <p className="text-sm text-ink-muted">{t("research.exec.results.analysisPending")}: {pending}</p> : null}
-                {outcome?.outcome === "BLOCKED" ? (
-                  <ul className="text-sm text-status-you-ink">{outcome.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
-                ) : null}
-                {outcome?.summary ? <p className="mt-2 whitespace-pre-wrap text-sm">{outcome.summary}</p> : null}
-                {outcome?.research_question_answers.map((answer, index) => (
-                  <p key={index} className="mt-2 text-sm"><strong>{answer.question}</strong> {answer.answer}</p>
-                ))}
-                {outcome?.key_findings.map((finding, index) => (
-                  <p key={index} className="mt-2 text-sm">{finding.text}</p>
-                ))}
-                {outcome?.claims.length ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.analysisEvidence")}: {outcome.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p> : null}
-              </section>
-            );
-          })}
+          <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
+            <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
+              ? "Některé výstupy neprošly kontrolou. AIA je nepoužije ve zprávě; dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              : analysis.complete
+                ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
+                : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
+          </section>
+          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
+            <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">
+              {ANALYSIS_ORDER.map((id) => {
+                const outcome = analysis.modules[id];
+                const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? "Vyžaduje opravu" : "Čeká";
+                return <button key={id} type="button" onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
+                  className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
+                  <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
+                </button>;
+              })}
+            </nav>
+            <section aria-label={stepLabel(`analysis_${selectedModule}`)} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
+              <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
+              {selected?.outcome === "BLOCKED" ? <>
+                <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
+                <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Technické důvody odmítnutí</summary>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">{selected.violations.map((v, index) => <li key={index}>{v.code}: {v.detail}</li>)}</ul>
+                </details>
+              </> : selected?.outcome === "COMPLETED" ? <>
+                {selected.summary ? <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{selected.summary}</p> : null}
+                {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
+                  {selected.research_question_answers.map((answer, index) => <div key={index}><h5 className="text-sm font-medium">{answer.question}</h5><p className="mt-1 whitespace-pre-wrap text-sm leading-6">{answer.answer}</p></div>)}
+                </div> : null}
+                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6">{selected.key_findings.map((finding, index) => <li key={index}>{finding.text}</li>)}</ul></div> : null}
+                {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
+                {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
+              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+            </section>
+          </div>
         </div>
       ) : null}
     </Card>
@@ -1212,33 +1265,108 @@ type AggregatePayload = {
   };
 };
 
-function AggregateView({ artifact, run }: { artifact: Artifact; run: ResearchRun }) {
+type SpecificationPayload = {
+  design_revision_id?: string;
+  specification?: {
+    n?: number | null;
+    questions?: { id: string; text: string }[];
+  };
+};
+
+type AggregateMeasure = { id: string; title: string; group: string | null; table: ResultTable };
+type AggregateFilter = "all" | ResultTable["support"];
+
+function measureSummary(table: ResultTable): string {
+  if (table.suppressed) return "Číselný výsledek je skrytý, protože podpora dat nestačí.";
+  if (table.typ === "vyber" || table.typ === "multi") {
+    const leading = table.rows.filter((row) => row.bar).sort((a, b) => (b.bar?.value ?? 0) - (a.bar?.value ?? 0))[0];
+    return leading ? `Nejčastější ${table.typ === "multi" ? "výběr" : "odpověď"}: ${leading.label} · ${leading.value}.` : "Pro tuto otázku není dostupný číselný souhrn.";
+  }
+  if (table.typ === "skala") {
+    const [mean, top] = table.rows;
+    return mean?.value ? `Průměr ${mean.value}${top?.value ? ` · horní část škály ${top.value}` : ""}.` : "Pro tuto škálu není dostupný číselný souhrn.";
+  }
+  return "Otevřete detail pro dostupné odpovědi a podporu dat.";
+}
+
+function supportLabel(support: ResultTable["support"]): string {
+  if (support === "REPORTABLE") return "Podložené v rámci běhu";
+  if (support === "INDICATIVE") return "Orientační";
+  return "Potlačené";
+}
+
+function AggregateView({ artifact, run, specification }: { artifact: Artifact; run: ResearchRun; specification: Artifact | null }) {
+  const [filter, setFilter] = useState<AggregateFilter>("all");
+  const [query, setQuery] = useState("");
   const payload = artifact.payload as AggregatePayload | null;
-  if (!payload) return null;
+  if (!payload?.aggregate) return null;
   const { questions, batteries } = payload.aggregate;
   const deviation = aggregateDeviation(payload.aggregate);
   const box = topBoxWidth(deviation);
+  const spec = specification?.payload as SpecificationPayload | null;
+  // The compile step is the run's source of truth. An identical specification can be reused
+  // from an earlier revision, so its original revision id need not equal this run's id.
+  const pinned = specification?.artifact_type === "research_specification" ? spec?.specification : null;
+  const questionNames = new Map((pinned?.questions ?? []).map((question) => [question.id, question.text]));
+  const measures: AggregateMeasure[] = [
+    ...Object.entries(questions).map(([id, result]) => ({ id, title: questionNames.get(id) || `Otázka ${id}`, group: null, table: resultTable(id, result, box) })),
+    ...Object.entries(batteries).flatMap(([id, battery]) => Object.entries(battery.objects).map(([oid, result]) => ({ id: `${id}:${oid}`, title: result.label || `Objekt ${oid}`, group: battery.title || `Sada ${id}`, table: resultTable(oid, result, box) }))),
+  ];
+  const counts = {
+    REPORTABLE: measures.filter((measure) => measure.table.support === "REPORTABLE").length,
+    INDICATIVE: measures.filter((measure) => measure.table.support === "INDICATIVE").length,
+    SUPPRESS: measures.filter((measure) => measure.table.support === "SUPPRESS").length,
+  };
+  const matching = measures.filter((measure) =>
+    (filter === "all" || measure.table.support === filter) &&
+    `${measure.title} ${measure.group ?? ""} ${measure.id}`.toLocaleLowerCase("cs-CZ").includes(query.trim().toLocaleLowerCase("cs-CZ")),
+  );
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5" data-aggregate-explorer>
       {deviation ? <Deviation deviation={deviation} /> : null}
-      {Object.entries(questions).map(([id, result]) => (
-        <section key={id} aria-label={id}>
-          <h3 className="text-sm font-semibold">{id}</h3>
-          <Table table={resultTable(id, result, box)} />
-        </section>
-      ))}
-      {Object.entries(batteries).map(([id, battery]) => (
-        <section key={id} aria-label={battery.title}>
-          <h3 className="text-sm font-semibold">{battery.title}</h3>
-          {Object.entries(battery.objects).map(([oid, result]) => (
-            <div key={oid} className="mt-2">
-              <p className="text-sm">{result.label}</p>
-              <Table table={resultTable(oid, result, box)} />
+      <section aria-label="Jak číst tato data" className="rounded-md border border-border bg-surface-sunken p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-base font-semibold">Nejdřív posuďte sílu podkladů</h3>
+          {typeof pinned?.n === "number" ? <span className="text-sm text-ink-muted">Plánovaný vzorek: {pinned.n.toLocaleString("cs-CZ")}</span> : null}
+        </div>
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">Každá karta popisuje jednu otázku nebo hodnocený objekt. Podpora se posuzuje zvlášť pro každou kartu; počet platných odpovědí se může lišit. Nejčastější odpověď ani rozdíl mezi procenty samy o sobě neprokazují významný rozdíl.</p>
+        <dl className="mt-4 grid gap-2 sm:grid-cols-3">
+          {(["REPORTABLE", "INDICATIVE", "SUPPRESS"] as const).map((status) => <div key={status} className="rounded-md border border-border bg-surface-raised px-3 py-2"><dt className="text-xs text-ink-muted">{supportLabel(status)}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{counts[status]}</dd></div>)}
+        </dl>
+        <p className="mt-3 text-xs leading-5 text-ink-muted">Pruh označuje podíl odpovědí; světlé pásmo jeho 95% interval nejistoty. Potlačené hodnoty se nezobrazují. U fiktivních a modelovaných respondentů jde o výsledky simulace, nikoli o měření skutečné populace.</p>
+      </section>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-56 flex-1 text-sm font-medium">Najít otázku nebo objekt
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Hledat podle názvu nebo ID" className="mt-1 block w-full rounded-control border border-border bg-surface-raised px-3 py-2 text-sm font-normal focus-visible:outline-2 focus-visible:outline-focus-ring" />
+        </label>
+        <label className="text-sm font-medium">Podpora dat
+          <select value={filter} onChange={(event) => setFilter(event.target.value as AggregateFilter)} className="mt-1 block min-h-10 rounded-control border border-border bg-surface-raised px-3 py-2 text-sm font-normal focus-visible:outline-2 focus-visible:outline-focus-ring">
+            <option value="all">Všechny výsledky ({measures.length})</option>
+            <option value="REPORTABLE">Podložené ({counts.REPORTABLE})</option>
+            <option value="INDICATIVE">Orientační ({counts.INDICATIVE})</option>
+            <option value="SUPPRESS">Potlačené ({counts.SUPPRESS})</option>
+          </select>
+        </label>
+      </div>
+      <div className="flex flex-col gap-3" aria-live="polite">
+        {matching.length ? matching.map((measure) => <section key={measure.id} aria-label={measure.title} className="rounded-md border border-border bg-surface-raised p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {measure.group ? <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">{measure.group}</p> : null}
+              <h3 className="mt-1 text-sm font-semibold leading-6">{measure.title}</h3>
+              <p className="mt-1 text-sm leading-6">{measureSummary(measure.table)}</p>
             </div>
-          ))}
-        </section>
-      ))}
-      <Provenance artifact={artifact} run={run} />
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${measure.table.suppressed ? "bg-status-fault-wash text-status-fault" : "bg-signal-wash text-signal"}`}>{supportLabel(measure.table.support)}</span>
+          </div>
+          <p className="mt-2 text-xs text-ink-muted">{supportNote(measure.table)}</p>
+          <details className="mt-3 border-t border-border pt-3 text-sm">
+            <summary className="cursor-pointer font-medium">Odpovědi, intervaly a původ otázky</summary>
+            <div className="mt-3"><Table table={measure.table} showSupportNote={false} /></div>
+            <p className="mt-2 text-xs text-ink-muted">ID otázky: <code>{measure.id}</code> · platných odpovědí: {measure.table.respondents.toLocaleString("cs-CZ")} · unikátních dárců: {measure.table.donors.toLocaleString("cs-CZ")} · efektivní n: {measure.table.effectiveN.toLocaleString("cs-CZ")}</p>
+          </details>
+        </section>) : <p className="rounded-md border border-border bg-surface-sunken p-4 text-sm text-ink-muted">Žádný výsledek neodpovídá filtru. Změňte hledání nebo podporu dat.</p>}
+      </div>
+      <details className="text-xs text-ink-muted"><summary className="cursor-pointer">Původ agregace</summary><Provenance artifact={artifact} run={run} /></details>
     </div>
   );
 }

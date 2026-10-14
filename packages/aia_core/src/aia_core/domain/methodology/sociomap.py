@@ -16,6 +16,7 @@ Pure: stdlib and Pydantic only.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
 from typing import Final
 
 from pydantic import BaseModel
@@ -69,7 +70,7 @@ _Q7: Final = Evidence(
     "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
 )
 
-_STEPS: Final[tuple[MethodStep, ...]] = (
+_CATALOGUE: Final[tuple[MethodStep, ...]] = (
     # ------------------------------------------------------------------ the method
     MethodStep(
         id="method",
@@ -563,33 +564,220 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
     ),
 )
 
+
+# Where each step sits in the computation, as a methodologist reads it (product owner,
+# 2026-10-14): what it is for, the steps it reads, and the audit's point it implements. The
+# steps that read a step are derived from these inputs (catalogue.feeds_of).
+@dataclass(frozen=True, slots=True)
+class _Context:
+    role_cs: str
+    inputs: tuple[str, ...] = ()
+    source_cs: str = ""
+    audit: str = ""
+
+
+_CONTEXT: Final[dict[str, _Context]] = {
+    "method": _Context(
+        role_cs="Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy "
+        "vidět, čím byla spočtena.",
+        source_cs="metodika v platnosti při spuštění běhu",
+    ),
+    "f1_declared_scale": _Context(
+        role_cs="Převede každé hodnocení na společnou škálu 0-1. Na těchto hodnotách stojí "
+        "vše další; výšky objektů je berou přímo.",
+        source_cs="odpovědi respondentů a škály, které dotazník deklaruje",
+        audit="F1",
+    ),
+    "f2_person_minmax": _Context(
+        role_cs="Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí "
+        "podobně, ne jak přísně.",
+        inputs=("f1_declared_scale",),
+        audit="F2",
+    ),
+    "f11_not_placed": _Context(
+        role_cs="Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne "
+        "z korelací a terénu, výšky ho ale započtou.",
+        inputs=("f1_declared_scale",),
+        audit="F11",
+    ),
+    "f3_correlation": _Context(
+        role_cs="Jádro mapy: jak podobně lidé hodnotí dva objekty. Z korelace se počítá "
+        "vzdálenost, skóre i stav páru.",
+        inputs=("f2_person_minmax", "f11_not_placed"),
+        audit="F3",
+    ),
+    "f3_effective_n": _Context(
+        role_cs="Kolik respondentů pár skutečně nese; při vážení méně než počet lidí.",
+        # Who rated both objects is read from the person-scaled ratings (pairs.py), not F11.
+        inputs=("f2_person_minmax", "f11_not_placed"),
+        audit="F3",
+    ),
+    "f3_interval": _Context(
+        role_cs="Nejistota korelace; rozhoduje, zda je pár spolehlivý.",
+        inputs=("f3_correlation", "f3_effective_n"),
+        audit="F3",
+    ),
+    "f3_status": _Context(
+        role_cs="Třídí páry na spolehlivé, slabé a neznámé. Neznámý pár mapu netvaruje a do "
+        "skóre nevstupuje.",
+        inputs=("f3_correlation", "f3_effective_n", "f3_interval"),
+        audit="F3",
+    ),
+    "f3_effect_floor": _Context(
+        role_cs="Označí páry s prakticky malým vztahem; stav páru nemění, ukáže se vedle něj.",
+        inputs=("f3_correlation",),
+        audit="F3",
+    ),
+    "f4_strength": _Context(
+        role_cs="Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
+        inputs=("f3_correlation", "f3_status"),
+        audit="F4",
+    ),
+    "f6_mappable": _Context(
+        role_cs="Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne "
+        "místo kreslení.",
+        inputs=("f3_status",),
+        audit="F6",
+    ),
+    "f6_distance": _Context(
+        role_cs="Převede korelaci na vzdálenost, kterou se mapa snaží dodržet: podobně "
+        "hodnocené objekty leží blízko sebe.",
+        inputs=("f3_correlation", "f3_status"),
+        audit="F6",
+    ),
+    "f6_smacof": _Context(
+        role_cs="Najde polohy objektů, které cílové vzdálenosti drží nejlépe. To jsou "
+        "souřadnice na mapě.",
+        inputs=("f6_distance", "f6_mappable"),
+        audit="F6",
+    ),
+    "f7_stress": _Context(
+        role_cs="Měří, kolik musela mapa vzdálenosti zkreslit, aby se vešla do roviny.",
+        inputs=("f6_smacof", "f6_distance"),
+        audit="F7",
+    ),
+    "f7_quality": _Context(
+        role_cs="Převede Stress-1 na slovo, které vidí čtenář výsledků.",
+        inputs=("f7_stress",),
+        audit="F7",
+    ),
+    "f8_scores": _Context(
+        role_cs="Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
+        inputs=("f3_correlation", "f3_status"),
+        audit="F8",
+    ),
+    "f8_height": _Context(
+        role_cs="Průměrné hodnocení objektu; výška jeho kopce v terénu.",
+        inputs=("f1_declared_scale",),
+        audit="F8",
+    ),
+    "f9_k100": _Context(
+        role_cs="Propojenost na stupnici 0-100 s intervalem z převzorkování respondentů.",
+        inputs=("f8_scores",),
+        audit="F9",
+    ),
+    "f9_quantile": _Context(
+        role_cs="Z převzorkovaných hodnot vybere meze intervalu.",
+        inputs=("f9_k100",),
+        audit="F9",
+    ),
+    "f9_rank": _Context(
+        role_cs="Seřadí objekty jen tam, kde se jejich intervaly neprotínají.",
+        inputs=("f9_quantile",),
+        audit="F9",
+    ),
+    "f12_envelope": _Context(
+        role_cs="Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
+        inputs=("f6_smacof", "f8_height"),
+        audit="F12-F13",
+    ),
+    "f10_placement": _Context(
+        role_cs="Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+        inputs=("f6_smacof", "f2_person_minmax"),
+        audit="F10",
+    ),
+    "support": _Context(
+        role_cs="Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
+        inputs=("f11_not_placed",),
+        audit="F11",
+    ),
+}
+
+_STEPS: Final[tuple[MethodStep, ...]] = tuple(
+    replace(
+        step,
+        role_cs=_CONTEXT[step.id].role_cs,
+        inputs=_CONTEXT[step.id].inputs,
+        source_cs=_CONTEXT[step.id].source_cs,
+        audit=_CONTEXT[step.id].audit,
+    )
+    for step in _CATALOGUE
+)
+
+# The page follows the computation by its stages (product owner, 2026-10-14), no longer the
+# audit's F1-F16; each step keeps its audit point (MethodStep.audit). What AIA does not compute
+# yet closes the outline, one group per audit point, its proposal in the note.
 _GROUPS: Final = (
     StepGroup("M", "Metoda", ("method",)),
-    StepGroup("F1", "F1 Které položky jsou hodnocení", ("f1_declared_scale",)),
-    StepGroup("F2", "F2 Hodnoticí zvyklosti", ("f2_person_minmax",)),
     StepGroup(
-        "F3",
-        "F3 Vztah dvou objektů a jeho spolehlivost",
-        ("f3_correlation", "f3_effective_n", "f3_interval", "f3_status", "f3_effect_floor"),
+        "S1",
+        "Vstupní hodnocení",
+        ("f1_declared_scale", "f2_person_minmax", "f11_not_placed"),
+        "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
     ),
-    StepGroup("F4", "F4 Síla vztahu a šipky", ("f4_strength",)),
+    StepGroup(
+        "S2",
+        "Vztahy mezi objekty",
+        (
+            "f3_correlation",
+            "f3_effective_n",
+            "f3_interval",
+            "f3_status",
+            "f3_effect_floor",
+            "f4_strength",
+        ),
+        "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
+    ),
+    StepGroup(
+        "S3",
+        "Rozložení na mapě",
+        ("f6_mappable", "f6_distance", "f6_smacof"),
+        "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
+    ),
+    StepGroup(
+        "S4",
+        "Věrohodnost mapy",
+        ("f7_stress", "f7_quality"),
+        "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
+    ),
+    StepGroup(
+        "S5",
+        "Skóre a výška objektů",
+        ("f8_scores", "f8_height", "f9_k100", "f9_quantile", "f9_rank"),
+        "Co mapa o každém objektu říká číslem: souhlasnost, propojenost a výška.",
+    ),
+    StepGroup(
+        "S6",
+        "Terén",
+        ("f12_envelope",),
+        "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
+    ),
+    StepGroup(
+        "S7",
+        "Respondenti a podpora mapy",
+        ("f10_placement", "support"),
+        "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+    ),
     StepGroup(
         "F5",
-        "F5 Typ dodané matice",
+        "Zatím v AIA není: typ dodané matice (F5)",
         (),
         "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ "
         "matice platí pro referenční mapu.",
     ),
-    StepGroup("F6", "F6 Vzdálenost a rozložení", ("f6_mappable", "f6_distance", "f6_smacof")),
-    StepGroup("F7", "F7 Jedno rozložení a jeho věrohodnost", ("f7_stress", "f7_quality")),
-    StepGroup("F8", "F8 Skóre objektů a výška", ("f8_scores", "f8_height")),
-    StepGroup("F9", "F9 Propojenost 0-100", ("f9_k100", "f9_quantile", "f9_rank")),
-    StepGroup("F10", "F10 Umístění respondentů", ("f10_placement",)),
-    StepGroup("F11", "F11 Respondenti, které nelze umístit", ("f11_not_placed", "support")),
-    StepGroup("F12", "F12-F13 Terén", ("f12_envelope",)),
     StepGroup(
         "F14",
-        "F14 Testy při porovnání oblastí",
+        "Zatím v AIA není: testy při porovnání oblastí (F14)",
         (),
         "V AIA zatím není (sociomap-formula-corrections.md, krok 4d). Návrh auditu: testovat "
         "jen proměnné, které neurčily polohu, a korigovat Holmem: zamítnout H_(k), právě když "
@@ -598,14 +786,14 @@ _GROUPS: Final = (
     ),
     StepGroup(
         "F15",
-        "F15 Pořadí hlavních rozdílů",
+        "Zatím v AIA není: pořadí hlavních rozdílů (F15)",
         (),
         "V AIA zatím není (krok 4d). Návrh auditu: |d| = |x̄_A - x̄_B| / s_pooled pro čísla, "
         "|h| = |2 arcsin √\u03c0_A - 2 arcsin √\u03c0_B| pro kategorie (maximum přes kategorie).",
     ),
     StepGroup(
         "F16",
-        "F16 Cíle rozvinutí po respondentech",
+        "Zatím v AIA není: cíle rozvinutí po respondentech (F16)",
         (),
         "Otevřené (krok 4c). Týká se referenční mapy. Návrh auditu: \u03b4_kj = (s_max - a_kj) / "
         "(s_max - s_min) a skutečné řádkově podmíněné rozvinutí se sklonem a posunem na "

@@ -17,6 +17,7 @@ from aia_core.domain.methodology import (
     EvidenceKind,
     ValueOrigin,
     describe,
+    feeds_of,
     module,
 )
 from aia_core.domain.methodology.sociomap import SOCIOMAP
@@ -37,16 +38,40 @@ def test_the_sociomap_is_registered() -> None:
     assert module("sociomap_reference") is SOCIOMAP_REFERENCE
 
 
-def test_the_groups_follow_the_audit_from_f1_to_f16() -> None:
+def test_the_groups_follow_the_computation_by_its_stages() -> None:
+    # Product owner, 2026-10-14: stages of the process, not the audit's F1-F16; what AIA does
+    # not compute closes the outline.
     ids = [g.id for g in SOCIOMAP.groups]
-    assert ids == ["M", *[f"F{n}" for n in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16)]]
-    assert next(g for g in SOCIOMAP.groups if g.id == "F12").title_cs.startswith("F12-F13")
+    assert ids == ["M", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "F5", "F14", "F15", "F16"]
+    titles = {g.id: g.title_cs for g in SOCIOMAP.groups}
+    assert titles["S1"] == "Vstupní hodnocení" and titles["S6"] == "Terén"
+    by_id = {g.id: g for g in SOCIOMAP.groups}
+    # A respondent without variance is decided with the inputs, before any relation.
+    assert by_id["S1"].step_ids == ("f1_declared_scale", "f2_person_minmax", "f11_not_placed")
+    assert all(by_id[g].note_cs for g in ("S1", "S2", "S3", "S4", "S5", "S6", "S7"))
+
+
+def test_every_step_says_what_it_is_for_where_it_reads_and_which_audit_point_it_is() -> None:
+    for step in SOCIOMAP.steps:
+        assert step.role_cs, step.id
+        # A step reads other steps, or says what it reads from outside the map.
+        assert step.inputs or step.source_cs, step.id
+        assert step.audit or step.id == "method", step.id
+    by_id = {s.id: s for s in SOCIOMAP.steps}
+    assert by_id["f6_distance"].inputs == ("f3_correlation", "f3_status")
+    assert by_id["f12_envelope"].audit == "F12-F13"
+    # Who reads a step is derived from the inputs, never declared twice.
+    assert feeds_of(SOCIOMAP, "f6_distance") == ("f6_smacof", "f7_stress")
+    assert feeds_of(SOCIOMAP, "f7_quality") == ()
+    # A pair's n is read over who rated both objects, on the person-scaled ratings (pairs.py).
+    assert "f2_person_minmax" in by_id["f3_effective_n"].inputs
 
 
 def test_the_points_aia_does_not_compute_say_so() -> None:
     by_id = {g.id: g for g in SOCIOMAP.groups}
     for unbuilt in ("F14", "F15"):
         assert by_id[unbuilt].step_ids == ()
+        assert by_id[unbuilt].title_cs.startswith("Zatím v AIA není")
         assert "V AIA zatím není" in by_id[unbuilt].note_cs
     assert by_id["F16"].step_ids == () and "Otevřené" in by_id["F16"].note_cs
     placement = next(s for s in SOCIOMAP.steps if s.id == "f10_placement")

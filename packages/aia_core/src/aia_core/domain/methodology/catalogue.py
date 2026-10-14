@@ -39,6 +39,7 @@ __all__ = [
     "Preset",
     "StepGroup",
     "Symbol",
+    "feeds_of",
 ]
 
 
@@ -117,6 +118,15 @@ class MethodStep:
     evidence: tuple[Evidence, ...] = ()
     tests: tuple[str, ...] = ()
     note_cs: str = ""
+    #: Where the step sits in the computation, as a reader needs it (product owner,
+    #: 2026-10-14): what it is for, the steps whose results it reads (``inputs``, step ids of
+    #: the same module), what it reads from outside the module when it reads none of them
+    #: (``source_cs``), and the audit's point it implements (``audit``, e.g. "F3"). The steps
+    #: that read this one are derived from the others' ``inputs`` (:func:`feeds_of`).
+    role_cs: str = ""
+    inputs: tuple[str, ...] = ()
+    source_cs: str = ""
+    audit: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -147,6 +157,10 @@ class BuiltinFormula:
     slot: Slot
     expression: str
     note_cs: str = ""
+    #: What the engine keeps around the expression, whatever replaces it: the refusals, the
+    #: sets its variables are read over, the branch it does not cover (product owner,
+    #: 2026-10-14: a reader took the step's whole formula for the editable part).
+    kept_cs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,3 +195,8 @@ class MethodModule:
     #: Whether a methodology version may be stored for it (ADR 0023 decision 4).
     editable: bool = False
     note_cs: str = ""
+
+
+def feeds_of(module: MethodModule, step_id: str) -> tuple[str, ...]:
+    """The steps of ``module`` that read ``step_id``'s result, in the module's step order."""
+    return tuple(s.id for s in module.steps if step_id in s.inputs)

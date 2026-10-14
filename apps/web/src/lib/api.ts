@@ -1275,7 +1275,7 @@ export type MethodValue = {
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {
-  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string;
+  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string; kept_cs: string[];
   variables: { name: string; latex: string; meaning_cs: string; unit: string; vector: boolean }[];
   properties: { kind: string; variable: string | null; description_cs: string }[];
 };
@@ -1284,6 +1284,10 @@ export type MethodStepOut = {
   symbols: { latex: string; meaning_cs: string; unit: string }[];
   evidence: { kind: string; ref: string; note_cs: string }[];
   tests: string[]; note_cs: string; values: MethodValue[]; formulas: MethodFormula[];
+  /** Where the step sits in the computation: what it is for, the steps it reads, the steps
+   *  that read it (derived by the API), what it reads from outside the module, the audit's
+   *  point. Empty where the module declares none. */
+  role_cs: string; inputs: string[]; feeds: string[]; source_cs: string; audit: string;
 };
 export type MethodGroup = { id: string; title_cs: string; step_ids: string[]; note_cs: string };
 export type MethodModuleSummary = {
