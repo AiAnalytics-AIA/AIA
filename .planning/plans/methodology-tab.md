@@ -38,7 +38,9 @@ chunks:
   - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
   - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
   - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
-  - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
+  - "[ ] V1a. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own, editable as a version, pinned by a run (owner, 2026-10-14)"
+  - "[ ] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
+  - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
   - "[x] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
@@ -1194,4 +1196,21 @@ To be written as chunks land:
     `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright +
     Chromium): every module's steps and links, one edit compared, stored and activated per
     editable module, a run that pins them; every module restored afterwards".
+
+
+
+- **V1, decided (owner, 2026-10-14).** Asked one question per area, with the code's values:
+  - Readiness bounds (`research_design.SAMPLE_SIZE_BOUNDS` (20, 10 000), `TRACKED_SET_LIMITS`
+    ((3, 40), (4, 15))): **editable** by the methodologist, as a version. They are study-design
+    judgements, not safety gates. V1a.
+  - Presentation rounding (the aggregate's 0.1 % shares, 2-decimal means): **editable**, as a
+    version. The code's preset keeps 18.6.6's decimals, so the parity fixtures run under it
+    unchanged; a stored version that changes them names the deviation, as `top_box` does. V1b.
+  - Evidence tiers (`evidence.validation.TIER_PERMITS`: A everything; B aggregate, demographic
+    breakdown, internal; C internal only): **shown, not editable**. What may reach a client
+    stays a reviewed code change. V1c.
+  - Admission rules (`evidence.admission`: the decimal cap, an interval that must contain its
+    value, the holdout before a modelled panel leaves INTERNAL_ONLY): **left in code**, not
+    shown as editable. They are the fail-closed gates every number passes. No chunk.
+  - Each chunk is designed on the canvas first, then built (owner, 2026-10-13).
 
