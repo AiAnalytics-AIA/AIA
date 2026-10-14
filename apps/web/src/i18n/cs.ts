@@ -2198,6 +2198,8 @@ export const cs = {
         reportWaiting: "Report čeká na dokončení AI analýzy.",
         reportFailed: "Report se nepodařilo vytvořit. Podrobnosti jsou v průběhu běhu.",
         reportInputsRefused: "Report nelze vytvořit, protože jeden nebo více modulů analýzy neprošlo ověřením.",
+        reportHeldBy: "Report drží:",
+        reportSeeProgress: "Zobrazit průběh běhu",
         sociomapping: "Sociomapping · experimentální metoda AIA",
       },
       objectMap: {

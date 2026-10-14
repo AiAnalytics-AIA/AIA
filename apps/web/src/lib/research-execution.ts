@@ -81,6 +81,27 @@ export function waitingDetail(step: ResearchStep): string | null {
   return null;
 }
 
+/** A step that holds the internal report back, and why, in the words the step recorded. */
+export type ReportHold = { step: ResearchStep; detail: string | null };
+
+/**
+ * What keeps a run's report from being ready (run-gate-visibility chunk 2): every analysis
+ * module's step that has not succeeded, then the report step itself when it waits or failed, in
+ * the run's order. Each carries what it recorded: the wait's reason (`waitingDetail`) or a failed
+ * step's message. A step that only has not started yet has no detail: unknown, never invented.
+ */
+export function reportHolds(run: ResearchRun): ReportHold[] {
+  const holds: ReportHold[] = [];
+  for (const step of run.steps) {
+    const analysis = step.kind === "research_analysis";
+    if (!analysis && step.kind !== "research_report") continue;
+    if (step.status === "SUCCEEDED") continue;
+    const detail = waitingDetail(step) ?? (step.status === "FAILED" ? step.error_message : null);
+    if (analysis || detail !== null) holds.push({ step, detail });
+  }
+  return holds;
+}
+
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
 export const SYNTHETIC_ORIGINS: ReadonlySet<string> = new Set(["SYNTHETIC_FIXTURE", "SYNTHETIC_AI_FICTIONAL"]);
 /** Origins of modelled evidence: AI respondents built from the run's own population (ADR 0024). */

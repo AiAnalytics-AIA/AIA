@@ -1064,6 +1064,35 @@ describe("Results", () => {
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
   });
 
+  it("names the module that holds the report back, why, and the way to Progress", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      status: "WAITING", phase: "WAITING",
+      steps: [...COMPLETED.steps,
+        step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", stage_type: "ANALYSIS", artifact_id: "ART-a" }),
+        step("analysis_audience", "WAITING_PROVIDER", { kind: "research_analysis", stage_type: "ANALYSIS",
+          waiting_reason: "analysis_unconfigured", error_message: "AI analýza není pro tento běh zapnuta." }),
+        step("report", "PENDING", { kind: "research_report", stage_type: "REPORT" })],
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ run_id: "RUN-1", internal_only: true, synthetic: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({ run_id: "RUN-1", state: "PENDING", internal_only: true, reason: null }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(await screen.findByText(t("research.exec.results.reportHeldBy"))).toBeTruthy();
+    const hold = document.querySelector('[data-hold="analysis_audience"]');
+    expect(hold?.textContent).toContain("Cílová skupina");
+    expect(hold?.textContent).toContain("AI analýza není pro tento běh zapnuta.");
+    expect(document.querySelector('[data-hold="analysis_executive"]')).toBeNull();
+    expect(document.querySelector('[data-hold="report"]')).toBeNull();
+    const link = screen.getByRole("link", { name: t("research.exec.results.reportSeeProgress") });
+    expect(link.getAttribute("href")).toContain("?run=RUN-1");
+  });
+
   it("leaves the Sociomap out for a person the API refuses it to", async () => {
     api({
       ...listed(COMPLETED),

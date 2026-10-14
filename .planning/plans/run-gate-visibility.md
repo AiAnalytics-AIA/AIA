@@ -1,8 +1,8 @@
 ---
-status: in-progress
+status: done
 chunks:
   - "[x] 1. Progress page prints why a step waits, and names the step that is parked"
-  - "[ ] 2. Results page names the module or step that holds the report back"
+  - "[x] 2. Results page names the module or step that holds the report back"
 ---
 # A waiting run says why
 
@@ -65,7 +65,21 @@ licence message, an analysis park, and a budget wait and a quota wait.
 ## Chunk 2 — Results page
 
 The report and analysis cards say "waiting" or "refused" without naming the module. Name the blocked
-or waiting analysis module on the report card and link to Progress. Not started.
+or waiting analysis module on the report card and link to Progress.
+
+**Done 2026-10-14.** Web only; no API or contract change: everything needed was already on the run's
+steps (`error_message`, `waiting_reason`, `status`).
+- `reportHolds(run)` (`lib/research-execution.ts`): every analysis module's step that has not
+  succeeded, then the report step itself when it waits or failed, in the run's order. Each carries
+  what it recorded: `waitingDetail` for a wait, the message for a failure (for a report refused over
+  its inputs, the composition's own words, e.g. `audience: no admitted result`). A step that has not
+  started has no detail: unknown, never an invented reason.
+- The Results report card, when the report is not ready, lists them under "Report drží:" with the
+  step's name and status, and links to the run's Progress ("Zobrazit průběh běhu"). The read-only
+  run in project memory gets the list without the link (it has no Progress).
+- The analysis card already names each module (`stepLabel(analysis_<id>)`), so it is unchanged.
+- Tests: `research-execution.test.ts` › `reportHolds`; `ExecutionSteps.test.tsx` › `names the
+  module that holds the report back, why, and the way to Progress`.
 
 ## Not done here
 
