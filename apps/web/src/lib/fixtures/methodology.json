@@ -137,7 +137,11 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
-        "kept_cs": [],
+        "kept_cs": [
+         "Nevyplněné odpovědi se vynechají; neplatnou váhu (chybí, nula, záporná) kód předem nahradí mediánem platných vah, a když žádná platná není, dá všem váhu 1.",
+         "Bez kladné váhy je n 0 a výraz se nepoužije.",
+         "Efektivní n otázky kód dál omezí počtem dárců: nejvýš Kishovo n krát podíl dárců na odpovědích a nejvýš počet dárců. O stavu podpory a potlačení rozhoduje pravidlo podpory."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -204,7 +208,13 @@
       "formulas": [
        {
         "expression": "100 * sum(w * hit) / sum(w)",
-        "kept_cs": [],
+        "kept_cs": [
+         "Nevyplněné odpovědi se vynechají; neplatnou váhu (chybí, nula, záporná) kód předem nahradí mediánem platných vah, a když žádná platná není, dá všem váhu 1.",
+         "Bez kladné váhy je podíl 0 a výraz se nepoužije.",
+         "U otázky s jednou odpovědí počítá výraz bod i každý bootstrapový vzorek; převzorkování po dárcích a meze intervalu z kvantilů počítá kód.",
+         "U otázky s více odpověďmi počítá výraz jen bod; interval jde přes vážený průměr.",
+         "Zaokrouhlení na 0,1 % provede kód."
+        ],
         "latex": "\\frac{100 \\cdot \\left(\\sum w \\cdot [x_k = c]\\right)}{\\sum w}",
         "note_cs": "",
         "properties": [
@@ -284,7 +294,13 @@
       "formulas": [
        {
         "expression": "sum(w * x) / sum(w)",
-        "kept_cs": [],
+        "kept_cs": [
+         "Nevyplněné odpovědi se vynechají; neplatnou váhu (chybí, nula, záporná) kód předem nahradí mediánem platných vah, a když žádná platná není, dá všem váhu 1.",
+         "Pod dvěma platnými odpověďmi průměr ani interval není; s jediným dárcem je interval bod sám.",
+         "Výraz počítá bod i každý bootstrapový vzorek (váhy vynásobené počtem tažení dárce); převzorkování po dárcích a meze intervalu z kvantilů počítá kód.",
+         "Tentýž výraz dává i podíl top boxu a intervaly u otázek s více odpověďmi (průměr jedniček a nul).",
+         "Zaokrouhlení na dvě desetinná místa provede kód."
+        ],
         "latex": "\\frac{\\sum w \\cdot x}{\\sum w}",
         "note_cs": "",
         "properties": [
@@ -385,7 +401,11 @@
       "formulas": [
        {
         "expression": "sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)",
-        "kept_cs": [],
+        "kept_cs": [
+         "Nevyplněné odpovědi se vynechají; neplatnou váhu (chybí, nula, záporná) kód předem nahradí mediánem platných vah, a když žádná platná není, dá všem váhu 1.",
+         "Pod dvěma platnými odpověďmi rozptyl není a výraz se nepoužije.",
+         "Směrodatnou odchylku jako odmocninu z výsledku a její zaokrouhlení počítá kód."
+        ],
         "latex": "\\frac{\\sum w \\cdot {\\left(x - \\frac{\\sum w \\cdot x}{\\sum w}\\right)}^{2}}{\\sum w}",
         "note_cs": "Směrodatná odchylka je odmocnina z rozptylu.",
         "properties": [
@@ -454,7 +474,10 @@
       "formulas": [
        {
         "expression": "x >= top - (b - 1)",
-        "kept_cs": [],
+        "kept_cs": [
+         "Jen u otázek na škále; horní konec bere kód z otázky a šířku top boxu z metodiky.",
+         "Podíl top boxu a jeho interval počítá vážený průměr z těchto jedniček a nul."
+        ],
         "latex": "x_k \\ge \\max - \\left(b - 1\\right)",
         "note_cs": "",
         "properties": [
