@@ -855,7 +855,10 @@ packages/aia_core/src/aia_core/
                             resolved scope, changed by a person's write or an accepted proposal
                             (a new revision each time); also of its folders, labels and item filing
                             (no revision, no date moved, every change audited), health and
-                            recent_revisions
+                            recent_revisions; an edit of an item is approved only against the
+                            revision it was written from (base_revision), else
+                            StaleKnowledgeProposal (409 knowledge_proposal_stale) unless the
+                            reviewer names the current revision (reviewed_revision)
     client_profile_repository.py  The ONLY reader/writer of client_contacts and the profile columns
                             of clients; history read from the audit, never naming an e-mail
     client_source_repository.py  The ONLY reader/writer of client_sources and
@@ -1083,7 +1086,8 @@ takes a `ClientContext` or `StudyContext` and queries by that client; there is
 no global pool filtered afterwards. What a person writes in the client workspace is
 knowledge at once; a study proposes and a person accepts (the proposer too, unless
 self-approval is turned off), and either writes a new revision with provenance; knowledge
-the AI wrote stays a proposal until a person accepts it. Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
+the AI wrote stays a proposal until a person accepts it. An approval never applies an edit
+written from an older revision unless the reviewer names the current one (F-K1, OI-111). Nothing changes knowledge otherwise. `make layer_check` keeps the rows inside the
 repository.
 
 **A research run executes a Design Revision** (ADR 0016). The browser submits the
