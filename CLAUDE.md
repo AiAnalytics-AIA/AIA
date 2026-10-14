@@ -97,6 +97,9 @@ apps/
                             session (AIA's own session + the gate in front of /app: any active
                             member, ADR 0018), research (a study's Design Revisions, readiness, runs, their steps and
                             artifacts (ADR 0016), the budget lift for a step stopped at the study's cap,
+                            POST …/runs/{id}/analysis/retry (a finished run's failed analysis modules
+                            asked again over its own collected data) and GET …/analysis/retryable
+                            (read from the outcomes as stored), each step's analysis_outcome,
                             readiness with the run's cost ceiling and the study's spend limit, and native
                             agent-jobs beneath each Study, with their event feed (…/agent-jobs/{id}/events?
                             since=; a step names the step_id its events carry); GET …/design/source: where a reused design
@@ -225,7 +228,9 @@ apps/
                             fictional data is labelled every time, the park is explained;
                             originKind / resultOriginKind: the API's three-way reading of an
                             origin (fictional, modelled, unknown -- never fieldwork), the one
-                            every screen's label uses
+                            every screen's label uses; needsRepair: an analysis step that
+                            succeeded with its module stored BLOCKED ("Potřebuje opravu", never
+                            "Hotovo"), which reportHolds names as holding the report
     src/lib/population.ts   How Společenská inteligence reads the population registry (summarize,
                             labelOf, shortSha); read-only. children / clientChildren / sharedVersions /
                             targetVerdict / outcomeValue: an organization's materialized children,
@@ -319,7 +324,11 @@ apps/
                             twice), AnalysisConfig.from_settings; in the default registry: without
                             AIA_AI_ANALYSIS_ENABLED a module parks (analysis_unconfigured); the
                             model-backed module needs it and the AI runtime itself (AIA_AI_RUNTIME_ENABLED
-                            and a valid provider configuration), else it parks too (registry.py)
+                            and a valid provider configuration), else it parks too (registry.py).
+                            Harness 2: a schema failure is stored per failed field, and the repair
+                            turn shows the model its own refused answer (a truncated one: asked for
+                            less); analysis_round: a person's retry is a new round, in every turn
+                            key, and a model-BLOCKED outcome is not reused in a retry round
     report.py               research_report: the internal draft from the eight analysis modules and
                             the run's chapters (report_chapters: maps, question tables, design,
                             respondents); never approved here; with AIA_REPORT_PDF_ENABLED (off by
@@ -734,6 +743,12 @@ packages/aia_core/src/aia_core/
                             Design Revision (working content, first revision, citation, one transaction);
                             source_runs
     analysis.py             Runs one module: draft → gate → repair ≤2 → COMPLETED/BLOCKED
+    analysis_results.py     A module's sources, preparation and stored outcome; reconstruct_run
+                            re-judges every outcome under today's harness (refuses an older one);
+                            stored_analysis reads them as stored, any harness, judging nothing;
+                            retry_failed_modules: a finished run's model-blocked or failed modules
+                            asked again as a new linked run over its frozen dataset (no fieldwork),
+                            completed ones reused, the preflight's refusals not retried
     report.py               Main internal narrative from eight re-admitted analysis modules;
                             body prose keeps evidence refs and actual headings keep semantic styles;
                             the design chapter after the introduction, "Respondenti a výpočet" and the
@@ -783,7 +798,10 @@ packages/aia_core/src/aia_core/
                             selected child (population_version_id, pinned), when it creates a run (a
                             found run keeps what it recorded, a retry the original's), and pins
                             its persona source (a panel run is its own identity and needs an
-                            established population: PanelPopulationMissing); a retry keeps it
+                            established population: PanelPopulationMissing); a retry keeps it.
+                            retry_analysis: the same restart under every pin, its fieldwork step
+                            given the original's dataset (FrozenDataset: artifact id + SHA-256,
+                            verified by the step, never substituted)
     deep_research.py        DeepResearchRuns: the run spec frozen at enqueue (ADR 0021):
                             freeze_design (the engine request: knowledge via for_study, client
                             terms) and freeze_interpretation (a result of this Study's own research
@@ -881,7 +899,9 @@ packages/aia_core/src/aia_core/
                             client_source_occurrences: kept once per client and SHA-256, bytes and
                             reading under org/<org>/client/<client>/sources/<sha256>/, verified on
                             every read; reread: a newer reader's reading beside the first
-    artifact_repository.py  Artifact rows, provenance, dependency edges, reuse
+    artifact_repository.py  Artifact rows, provenance, dependency edges, reuse; find_reusable is
+                            newest first within a revision; put(reuse=False) stores beside an
+                            artifact under the same fingerprint
     methodology_repository.py  The ONLY reader/writer of the methodology tables (ADR 0023):
                             immutable versions, validated by domain.methodology.versions; append-only
                             activations, newest wins, NULL the code's preset; any member reads,

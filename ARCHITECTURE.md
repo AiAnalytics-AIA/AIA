@@ -246,7 +246,10 @@ can grant approval or supply deployment prices.
   the Study (`ResearchRuns`), and its artifacts are read only through the run
   (`research_artifacts`, `ArtifactRepository(owner=)`), never by id alone.
   Respondent rows are never sent to the browser; the Sociomap artifact is served
-  only with `EDIT_STUDY`.
+  only with `EDIT_STUDY`. An analysis retry (`retry_failed_modules`) is a new run
+  linked to the original whose fieldwork step takes the original's dataset by
+  artifact id and SHA-256 (`frozen_dataset`), verified and never substituted: it
+  collects nothing, and the report's gate over all eight modules is unchanged.
 - **Research assistants propose; a person accepts against an unchanged revision.**
   The `research_agent` workflow freezes approved Study-visible knowledge and
   harness context at enqueue. Its eight closed actions use `StepModelCaller`;
