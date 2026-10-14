@@ -600,13 +600,17 @@ packages/aia_core/src/aia_core/
     workflow.py             Workflow DAG, job states, retry classification
     workflow_templates.py   The closed set of workflow types and their step graphs
     methodology/            The Metodika tab's model (ADR 0023), pure: catalogue.py (module, step,
-                            group, preset; every step pinned to the function it describes),
-                            sociomap.py (the object map in the audit's order F1-F16) and
+                            group, preset; every step pinned to the function it describes; a step
+                            says what it is for, the steps it reads and its audit point, and
+                            feeds_of derives the steps that read it), sociomap.py (the object map
+                            in the order of its computation, stages S1-S7, each step citing its
+                            audit point F1-F16) and
                             sociomap_reference.py (aia-sociomap-1, read-only); expressions.py (the
                             formula language: AST whitelist compiled to closures, no eval; LaTeX
                             written from the expression; slot properties checked on a grid);
                             sociomap_formulas.py (the 14 built-in formulas, bit-identical to the
-                            engine); versions.py (what a stored version may be: <base>+e<n>);
+                            engine; each says what the engine keeps around it, kept_cs, whatever
+                            replaces it); versions.py (what a stored version may be: <base>+e<n>);
                             pins.py (the methodology in force -> a run's Sociomap pins;
                             COMPUTED_SLOTS); sociomap_check.py (an edit beside what is in force on
                             three fixed fictional panels, through the run's own pin)
