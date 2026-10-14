@@ -315,13 +315,23 @@ def module_reuse_fingerprint(
     )
 
 
-def turn_fingerprint(*, reuse_fingerprint: str, turn: int, request_sha256: str) -> str:
-    """The checkpoint key of one turn: which module, which turn, exactly what was sent."""
-    return fingerprint(
-        {
-            "contract": TURN_ARTIFACT_CONTRACT,
-            "module": reuse_fingerprint,
-            "turn": turn,
-            "request": request_sha256,
-        }
-    )
+def turn_fingerprint(
+    *, reuse_fingerprint: str, turn: int, request_sha256: str, analysis_round: int = 0
+) -> str:
+    """The checkpoint key of one turn: which module, which turn, exactly what was sent.
+
+    ``analysis_round`` is the retry round a person asked for (0: the run's own). A new
+    round asks again what an earlier round's turns answered; inside one round a retried
+    attempt still replays every turn it stored. Round 0 keys are unchanged.
+    """
+    if analysis_round < 0:
+        raise ValueError("an analysis round is 0 or more")
+    key: dict[str, object] = {
+        "contract": TURN_ARTIFACT_CONTRACT,
+        "module": reuse_fingerprint,
+        "turn": turn,
+        "request": request_sha256,
+    }
+    if analysis_round:
+        key["round"] = analysis_round
+    return fingerprint(key)

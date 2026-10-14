@@ -123,6 +123,15 @@ def test_analysis_that_is_switched_off_costs_nothing() -> None:
     assert ceiling.total_usd == ceiling.fieldwork_usd
 
 
+def test_an_analysis_retry_buys_no_fieldwork_and_only_the_modules_it_asks() -> None:
+    ceiling = _ceiling(_spec(), fieldwork_frozen=True, analysis_modules=3)
+    assert (ceiling.fieldwork_requests, ceiling.fieldwork_usd) == (0, 0.0)
+    assert ceiling.analysis_calls == 3 * 3
+    assert ceiling.total_usd == pytest.approx(9 * 2.0)
+    with pytest.raises(ValueError):
+        _ceiling(_spec(), analysis_modules=len(ANALYSIS_MODULES) + 1)
+
+
 def test_the_fixture_source_calls_no_model() -> None:
     ceiling = _ceiling(
         _spec(),

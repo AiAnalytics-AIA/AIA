@@ -93,8 +93,9 @@ from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
+from ..domain.research_sociomap import read_methods
 from ..domain.scope import Permission, StudyContext
-from ..domain.workflow import StepRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import (
     Artifact,
     ArtifactNotFound,
@@ -107,12 +108,20 @@ from ..infrastructure.study_design_repository import (
     StudyDesignRepository,
 )
 from .analysis import MAX_REPAIRS, AnalysisInputs, ModuleOutcomeKind, input_fingerprint
-from .research import ResearchRunNotFound, ResearchRuns, research_artifacts
+from .research import (
+    FrozenDataset,
+    ResearchRunNotFound,
+    ResearchRuns,
+    RunReservations,
+    research_artifacts,
+)
+from .workflows import StartedRun
 
 __all__ = [
     "AGGREGATE_ARTIFACT",
     "DATASET_ARTIFACT",
     "SPECIFICATION_ARTIFACT",
+    "AnalysisNotRetryable",
     "DatasetMaterial",
     "NativeSources",
     "PreparedModule",
@@ -127,6 +136,7 @@ __all__ = [
     "prepare_module",
     "reconstruct_module",
     "reconstruct_run",
+    "retry_failed_modules",
 ]
 
 #: The research steps' artifact types (``aia_executors.research``: SPECIFICATION,
@@ -135,6 +145,10 @@ __all__ = [
 SPECIFICATION_ARTIFACT: Final = "research_specification"
 DATASET_ARTIFACT: Final = "research_fieldwork_dataset"
 AGGREGATE_ARTIFACT: Final = "research_aggregate"
+
+
+#: A step that ended without an outcome a person can ask for again.
+_RETRYABLE_STEP_STATES: Final = frozenset({"FAILED", "CANCELLED"})
 
 
 class SourcesRefused(Exception):
@@ -579,6 +593,26 @@ class RunAnalysis:
             and all(m.outcome is ModuleOutcomeKind.COMPLETED for m in self.modules.values())
         )
 
+    @property
+    def retryable(self) -> tuple[AnalysisModuleId, ...]:
+        """The modules a person may ask again over this run's frozen data, in module order.
+
+        A module a model's drafts left ``BLOCKED`` (it took turns), and a module whose
+        step ended ``FAILED`` or ``CANCELLED`` without an outcome. Never a module the
+        preflight blocked before any turn: code refused it, and the same data would
+        refuse it again.
+        """
+        return tuple(
+            m
+            for m in AnalysisModuleId
+            if (
+                m in self.modules
+                and self.modules[m].outcome is ModuleOutcomeKind.BLOCKED
+                and self.modules[m].record.attempts > 0
+            )
+            or self.pending.get(m) in _RETRYABLE_STEP_STATES
+        )
+
 
 def _run(session: Session, scope: StudyContext, run_id: str) -> dict[str, Any]:
     scope.require(Permission.VIEW_RESULTS)
@@ -764,3 +798,112 @@ def reconstruct_run(
                     session, scope, store, sources, module, outcomes[module]
                 )
     return RunAnalysis(run_id=run_id, modules=modules, pending=pending)
+
+
+# --------------------------------------------------------------------------- #
+# asking failed modules again, over the run's frozen data
+# --------------------------------------------------------------------------- #
+
+#: Runs whose analysis a person may ask again: the run has stopped moving.
+_FINISHED: Final = frozenset({WorkflowRunStatus.COMPLETED, WorkflowRunStatus.FAILED})
+
+
+class AnalysisNotRetryable(Exception):
+    """The run's analysis cannot be asked again; ``reason`` says why, for the API."""
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def _reused(module: ReconstructedModule) -> bool:
+    """True when a retry will reuse this outcome: a completed module under today's harness."""
+    if module.outcome is not ModuleOutcomeKind.COMPLETED:
+        return False
+    return module.record.harness == harness_summary(
+        language=module.record.harness.language, max_repairs=module.record.harness.max_repairs
+    )
+
+
+def retry_failed_modules(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    reservations: RunReservations | None = None,
+    confirm_cost_usd: float | None = None,
+) -> StartedRun:
+    """Ask a finished run's failed analysis modules again, without collecting data again.
+
+    A new run, linked to ``run_id`` (``retry_of``), over the same Design Revision and
+    Sociomap pins: its fieldwork step takes this run's dataset by artifact id and SHA-256
+    (:class:`~.research.FrozenDataset`), so the specification, the dataset and the
+    aggregate are the same bytes and every completed module is reused by its reuse key at
+    no cost. The modules in :attr:`RunAnalysis.retryable` are asked again in a new round;
+    a module the preflight blocked is not, because code would refuse it again. The report
+    then composes only if all eight complete -- its gate is unchanged.
+
+    The spend limit works as it does for any start, over a ceiling that counts only the
+    modules that will ask a model. Idempotent: asking twice returns the same retry.
+    Raises :class:`AnalysisNotRetryable` with ``run_not_finished``,
+    ``analysis_not_in_run``, ``dataset_missing`` or ``nothing_to_retry``.
+    """
+    runs = ResearchRuns(session, scope)
+    run = runs.get(run_id)
+    metadata = run["metadata"]
+    if run["status"] not in _FINISHED:
+        raise AnalysisNotRetryable(
+            "run_not_finished", f"run {run_id} is {run['status']}; it has not finished"
+        )
+    if not metadata.get("analysis_enabled"):
+        raise AnalysisNotRetryable("analysis_not_in_run", f"run {run_id} ran no analysis")
+    fieldwork = next((s for s in run.get("steps") or [] if s.get("node_key") == "run"), None)
+    output = (fieldwork or {}).get("output") or {}
+    if (
+        fieldwork is None
+        or fieldwork.get("status") is not StepRunStatus.SUCCEEDED
+        or output.get("artifact_type") != DATASET_ARTIFACT
+        or not isinstance(output.get("artifact_id"), str)
+        or not isinstance(output.get("sha256"), str)
+    ):
+        raise AnalysisNotRetryable(
+            "dataset_missing", f"run {run_id} has no collected dataset to analyse again"
+        )
+    analysis = reconstruct_run(session, scope, store, run_id=run_id)
+    retried = analysis.retryable
+    if not retried:
+        raise AnalysisNotRetryable(
+            "nothing_to_retry", f"run {run_id} has no analysis module a model failed"
+        )
+    asked = sum(
+        1
+        for m in AnalysisModuleId
+        if m in retried
+        or (
+            m in analysis.modules
+            and not _reused(analysis.modules[m])
+            and analysis.modules[m].record.attempts > 0
+        )
+        or (m not in analysis.modules and m not in retried)
+    )
+    previous = metadata.get("analysis_retry") or {}
+    frozen = FrozenDataset(
+        run_id=run_id,
+        artifact_id=output["artifact_id"],
+        sha256=output["sha256"],
+        analysis_round=int(previous.get("round", 0)) + 1,
+        retried=tuple(m.value for m in retried),
+        modules_asked=asked,
+    )
+    return runs.start(
+        design_revision_id=str(metadata["design_revision_id"]),
+        fieldwork_source=FieldworkSource(str(metadata["fieldwork_source"])),
+        retry_of=run_id,
+        analysis_enabled=True,
+        sociomapping_enabled=bool(metadata.get("sociomapping_enabled", False)),
+        reservations=reservations,
+        confirm_cost_usd=confirm_cost_usd,
+        sociomap_methods=read_methods(metadata.get("sociomap_methods")),
+        frozen_dataset=frozen,
+    )

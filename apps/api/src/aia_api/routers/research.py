@@ -12,9 +12,14 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
-from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.analysis_results import (
+    AnalysisNotRetryable,
+    ReconstructionRefused,
+    reconstruct_run,
+    retry_failed_modules,
+)
 from aia_core.application.contextual_report import contextual_report
 from aia_core.application.deep_research import (
     BundleNotReady,
@@ -782,6 +787,73 @@ def retry_run(
             },
         ) from exc
     return _started(runs, started, response)
+
+
+_NOT_RETRYABLE_MESSAGES: Final = {
+    "run_not_finished": "Běh ještě neskončil; neúspěšné moduly lze zopakovat až po jeho konci.",
+    "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
+    "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
+    "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+}
+
+
+@router.post(
+    "/research/runs/{run_id}/analysis/retry",
+    response_model=ResearchRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ask a finished run's failed analysis modules again, over its collected data",
+    responses={
+        200: {"description": "This run's analysis was already retried: that retry"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Nothing to retry, the run has not finished, or the limit asks first",
+        },
+    },
+)
+def retry_analysis(
+    run_id: RunIdPath,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    response: Response,
+    body: RunRetry | None = None,
+) -> ResearchRunResponse:
+    """A new run linked to this one: the same respondents' answers, no new fieldwork; only
+    the modules a model failed (or whose step failed) are asked again."""
+    try:
+        started = retry_failed_modules(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            reservations=_reservations(request),
+            confirm_cost_usd=body.confirm_cost_usd if body else None,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except DesignNotReady as exc:
+        raise _not_ready(exc.readiness) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
+    except AnalysisNotRetryable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "analysis_not_retryable",
+                "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    return _started(ResearchRuns(session, scope), started, response)
 
 
 @router.get(
