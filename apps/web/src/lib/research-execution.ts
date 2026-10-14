@@ -379,7 +379,7 @@ export function outlookReason(code: string): string {
 /** Where an item's reason is fixed: support (n) on Dimenze, everything else in the questionnaire. */
 export function outlookFixStep(reasons: readonly string[]): "persona" | "questionnaire" | null {
   if (reasons.some((r) => r !== "support_unknown" && !r.startsWith("support_"))) return "questionnaire";
-  if (reasons.some((r) => r === "support_suppressed" || r === "support_indicative")) return "persona";
+  if (reasons.some((r) => r === "support_suppressed" || r === "support_analysis_excluded" || r === "support_indicative")) return "persona";
   return null;
 }
 

@@ -14,8 +14,8 @@ each object of each tracked set) one verdict and every reason behind it, decided
 same rules that decide after the run:
 
 * **UNANSWERABLE**: the run cannot ask it, or nothing it returns can be cited.
-* **AT_RISK**: it returns something, but less than a finding: indicative support, or
-  illustrations only.
+* **AT_RISK**: it returns something, but less than a finding: indicative support, numbers
+  Results shows but the analysis may not cite, or illustrations only.
 * **UNKNOWN**: support is decided only at fieldwork (a population-drawn run, or a source
   with no forecast). Unknown is never answerable.
 * **ANSWERABLE**: none of the above. That is still an upper bound: a respondent who
@@ -60,8 +60,11 @@ class OutlookReason(StrEnum):
     FIDELITY_REFUSED = "fidelity_refused"
     #: An open question: its answers are shown as illustrations, the analysis cites none.
     OPEN_ENDED = "open_ended"
-    #: The forecast support suppresses its numbers for the analysis.
+    #: The forecast support suppresses its numbers: Results hides them, the analysis cites none.
     SUPPORT_SUPPRESSED = "support_suppressed"
+    #: Results shows its numbers, but the stricter analysis rule suppresses them: the analysis
+    #: cites none (a version whose results rule is looser than its analysis rule).
+    SUPPORT_ANALYSIS_EXCLUDED = "support_analysis_excluded"
     #: The forecast support makes its numbers indicative.
     SUPPORT_INDICATIVE = "support_indicative"
     #: Support is decided only at fieldwork.
@@ -73,6 +76,7 @@ _VERDICT: Final[dict[OutlookReason, Verdict]] = {
     OutlookReason.FAMILIARITY: Verdict.UNANSWERABLE,
     OutlookReason.FIDELITY_REFUSED: Verdict.UNANSWERABLE,
     OutlookReason.SUPPORT_SUPPRESSED: Verdict.UNANSWERABLE,
+    OutlookReason.SUPPORT_ANALYSIS_EXCLUDED: Verdict.AT_RISK,
     OutlookReason.OPEN_ENDED: Verdict.AT_RISK,
     OutlookReason.SUPPORT_INDICATIVE: Verdict.AT_RISK,
     OutlookReason.SUPPORT_UNKNOWN: Verdict.UNKNOWN,
@@ -101,7 +105,12 @@ def _support_reason(forecast: SupportForecast | None) -> OutlookReason | None:
     if forecast is None or forecast.analysis is None:
         return OutlookReason.SUPPORT_UNKNOWN
     if forecast.analysis is SupportStatus.SUPPRESS:
-        return OutlookReason.SUPPORT_SUPPRESSED
+        # What Results shows and what the analysis may cite are two rules (SupportSpec).
+        return (
+            OutlookReason.SUPPORT_SUPPRESSED
+            if forecast.results is SupportStatus.SUPPRESS
+            else OutlookReason.SUPPORT_ANALYSIS_EXCLUDED
+        )
     if forecast.analysis is SupportStatus.INDICATIVE:
         return OutlookReason.SUPPORT_INDICATIVE
     return None

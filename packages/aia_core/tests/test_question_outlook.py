@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from aia_core.domain.analysis.native import native_evidence
-from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+from aia_core.domain.evidence import SupportStatus
+from aia_core.domain.evidence.support import AIA_SUPPORT_V1, SupportSpec, SupportThresholds
 from aia_core.domain.fieldwork import PersonaSource
 from aia_core.domain.question_outlook import OutlookReason, Verdict, question_outlook
 from aia_core.domain.research_aggregate import aggregate_dataset
@@ -167,3 +168,22 @@ def test_what_the_outlook_refuses_the_analysis_gate_then_removes() -> None:
             assert item.question_id not in content, item.question_id
         else:
             assert item.question_id in content, item.question_id
+
+
+def test_numbers_results_shows_but_the_analysis_may_not_cite_are_at_risk_not_suppressed() -> None:
+    """Review (Codex on #419): a version whose results rule is looser than its analysis rule
+    shows a question's numbers on Results while the analysis suppresses them; the outlook
+    must not say they are hidden."""
+    lenient = SupportThresholds(
+        min_cell=None, n_guard=None, indicative=None, min_layer_donors=5, indicative_layer_donors=5
+    )
+    support = SupportSpec(
+        methodology_version="test-split", results=lenient, analysis=AIA_SUPPORT_V1.analysis
+    )
+    spec = _spec(50)
+    forecast = forecast_support(spec, support=support, persona_source=ROSTER)
+    assert forecast.results is SupportStatus.REPORTABLE
+    assert forecast.analysis is SupportStatus.SUPPRESS
+    plain = _by_id(spec, forecast)[spec.questions[0].id]
+    assert plain.verdict is Verdict.AT_RISK
+    assert plain.reasons == (OutlookReason.SUPPORT_ANALYSIS_EXCLUDED,)
