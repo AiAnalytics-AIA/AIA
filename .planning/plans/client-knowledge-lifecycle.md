@@ -6,7 +6,7 @@ chunks:
   - "[ ] K2. Deliver document, dataset and web intake through one source-to-reviewed-knowledge journey"
   - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
   - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
-  - "[ ] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
+  - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
   - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
@@ -348,14 +348,42 @@ generic historical records without inventing source spans or validated dimension
       (a synthetic piece table, since LibreOffice writes only UTF-16 pieces);
     - `test_a_part_declaring_a_dtd_is_refused_before_it_is_parsed`;
     - `test_a_zip_that_inflates_far_past_its_size_is_refused`.
-- **K2c. Datasets.**
-  - CSV and XLSX use the existing readers (`document_text.py:384-463` @ 362f90e0). XLS uses
-    `xlrd` (BSD, pure Python, .xls only). ODS is stdlib ZIP and XML.
-  - A typed `DatasetPreview`: sheets, columns (header, inferred kind, non-empty count, distinct
-    count capped), row count and a bounded sample.
-  - The sample is masked where a column looks like personal data. The detector's patterns are
-    pinned by fictional values (client-workspace C8).
-  - The person's column roles are K3 and C8. K2c only reads.
+- **K2c. Datasets.** *(Landed.)*
+  - **Readers.** CSV and XLSX use `document_text.read_csv` / `read_xlsx`. XLS uses `xlrd`
+    (BSD, pure Python, in the `documents` extra); a date cell becomes its ISO date, and an
+    encrypted workbook is `document_encrypted`. ODS uses the stdlib, a DTD refused as in K2b.
+    - In ODS, repeated rows and cells are counted, never materialized past the grid bounds: an
+      empty repeat (the rest of a sheet) only moves the numbering.
+    - All four go through `document_text.grid_from_rows`, so every format has the same bounds
+      and the same cell text.
+  - **Segments.** One per row, located by sheet and row; a row ends at its last filled cell.
+  - **Preview.** `domain/client_datasets.py` builds the `DatasetPreview` on
+    `SourceReading.dataset`.
+    - Per column: the header, the kind (NUMBER / DATE / TEXT / MIXED / EMPTY), how many cells
+      are filled, the distinct values (counted up to 1,000), and five samples.
+    - **The header rule:** row 1 is the header when it is all text and a number or a date is
+      below it; otherwise the columns go by their letters.
+    - A phone number reads as TEXT: it is an identifier.
+  - **Personal data.** A column is flagged from its header (e-mail, phone, birth number, name,
+    address; accent-folded, a five-letter stem matching Czech endings) or when a third of its
+    values look like an e-mail, a Czech phone or a birth number (date and mod-11 checked).
+    - Its samples are masked.
+    - The patterns are pinned by fictional values in `fixtures/client_datasets/personal.json`.
+    - **For K2d:** a flagged column is never sent to a model.
+  - **OI-110, closed here.** `ClientSourceRepository.reread` and
+    `POST /clients/{id}/sources/{source_id}/reading` read a source again when its format's current
+    reader is not the one that read it.
+    - So does adding the same bytes again.
+    - The original never changes, and the new reading is stored beside the old one.
+    - Audited as `CLIENT_SOURCE_REREAD`.
+  - **Fixtures:** `tools/source_fixtures.py write <name …>` now writes only the named
+    outputs and merges their pins, so the K2b fixtures keep theirs. One fictional export goes to
+    ODS, XLSX and XLS (with a date style), plus a Czech CSV (BOM, semicolons, decimal comma,
+    fictional phones).
+  - **Tests:**
+    - `test_source_datasets.py`, 24 tests, on SQLite and PostgreSQL;
+    - `test_client_sources.py::test_every_format_on_the_owners_list_has_a_reader`;
+    - two API tests: the dataset's masked columns, and the re-read route.
 - **K2d. AI proposals from a source.**
   - A new workflow type beneath the chosen study, in a study-owned hidden project, as
     `population_materialize` does (`application/materialize.py:204-245` @ 362f90e0).

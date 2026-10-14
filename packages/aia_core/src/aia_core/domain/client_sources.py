@@ -24,6 +24,7 @@ from uuid import uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .attachments import extension_of
+from .client_datasets import DatasetPreview
 
 __all__ = [
     "NAME_MAX_CHARS",
@@ -234,6 +235,8 @@ class SourceReading(BaseModel):
     reason: str | None = None
     segments: tuple[Segment, ...] = ()
     notes: tuple[ReadingNote, ...] = ()
+    #: A dataset's columns as read (K2c); only a sheet or a CSV has one.
+    dataset: DatasetPreview | None = None
 
     @model_validator(mode="after")
     def _consistent(self) -> SourceReading:
@@ -243,11 +246,11 @@ class SourceReading(BaseModel):
             raise ValueError("an incomplete reading says why")
         if self.outcome in (ReadingOutcome.READ, ReadingOutcome.PARTIAL) and not self.reader:
             raise ValueError("a reading names its reader")
-        if (
-            self.outcome
-            in (ReadingOutcome.UNREADABLE, ReadingOutcome.UNSUPPORTED, ReadingOutcome.REFUSED)
-            and self.segments
-        ):
+        if self.outcome in (
+            ReadingOutcome.UNREADABLE,
+            ReadingOutcome.UNSUPPORTED,
+            ReadingOutcome.REFUSED,
+        ) and (self.segments or self.dataset):
             raise ValueError("nothing read keeps no segment")
         return self
 
@@ -262,6 +265,7 @@ def reading_of_segments(
     *,
     notes: list[ReadingNote] | None = None,
     limit: int = SOURCE_TEXT_MAX_CHARS,
+    dataset: DatasetPreview | None = None,
 ) -> SourceReading:
     """A reading from what a reader found: empty segments dropped, text bounded.
 
@@ -299,8 +303,11 @@ def reading_of_segments(
             reason=all_notes[0].code,
             segments=tuple(kept),
             notes=tuple(all_notes),
+            dataset=dataset,
         )
-    return SourceReading(outcome=ReadingOutcome.READ, reader=reader, segments=tuple(kept))
+    return SourceReading(
+        outcome=ReadingOutcome.READ, reader=reader, segments=tuple(kept), dataset=dataset
+    )
 
 
 class SourceOccurrence(BaseModel):

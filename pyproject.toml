@@ -58,6 +58,12 @@ ignore_missing_imports = true
 module = ["olefile", "olefile.*"]
 ignore_missing_imports = true
 
+# xlrd ships no type stubs; it is read in one function
+# (aia_core.infrastructure.source_reading._xls), whose cells become str.
+[[tool.mypy.overrides]]
+module = ["xlrd", "xlrd.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 # Both test directories are called `tests`, so they are not importable packages.
 # Helpers are shared through conftest fixtures rather than imports.
