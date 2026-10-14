@@ -163,6 +163,9 @@ apps/
     src/testing/legacy.ts   Parity harness: a function's effective binding, run in a Node vm (reads
                             the vendored ui_app.html: reference only, never product code)
     src/lib/app-routes.ts   Every /app URL, built in one place (stage slugs: `persona` is `dimensions`)
+    src/lib/api.ts          The API client; a stored report's download (requestStored) reads
+                            X-AIA-Artifact-Id / X-AIA-Review-State, so the report approved is the
+                            one downloaded
     src/components/rehome/research/  The stage frame (StudyFrame: client, study, rights):
                             StageTrack (every stage with its state, Průběh a stage of its own),
                             Inspector (InspectorProvider / InspectorSlot: a stage's readiness beside
@@ -170,8 +173,11 @@ apps/
                             shared brief analysis (useAnalysis), one screen per stage; ProposalReview
                             (a design proposal reviewed inline, its changes listed); CompleteReport
                             (the report card on Výsledky: a part claimed only when the run's steps
-                            made it); the internal report's card approves it, downloads its PDF and,
-                            for a modelled run, the client report; ProposalEditor and PlanStep edit the research narrative
+                            made it; the one place a run's report is downloaded -- internal or, for a
+                            modelled run, client; DOCX or PDF -- and approved, the document approved
+                            being the one downloaded); the internal report panel below shows its
+                            provenance only; InterpretationResearch approves the report with
+                            literature it downloaded; ProposalEditor and PlanStep edit the research narrative
                             and whole comparable measurements with live previews, preserving existing
                             questionnaires (PlanStep tests: direct proposal editing); ExecutionSteps.tsx: Run, Progress, Results (ADR 0016);
                             RunResults, one run's results from the StudyFrame alone (read-only when
