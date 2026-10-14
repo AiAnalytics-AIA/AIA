@@ -66,6 +66,7 @@ __all__ = [
     "ZIP_MAX_UNCOMPRESSED",
     "check_zip_bounds",
     "extract_text",
+    "grid_from_rows",
     "read_csv",
     "read_pdf",
     "read_web_document",
@@ -362,6 +363,18 @@ def _grid(
         budget[0] -= filled
         kept.append(GridRow(number=number, values=tuple(values)))
     return GridContent(name=name, rows=tuple(kept), truncated=truncated)
+
+
+def grid_from_rows(
+    name: str, rows: Iterable[tuple[object, ...]], budget: list[int], cut: bool
+) -> GridContent:
+    """Rows of cell values as one grid, within the row, column and cell bounds.
+
+    The one way a reader outside this module (a client source's XLS or ODS) makes a grid,
+    so every format is bounded and its values written as text by the same rules. ``budget``
+    is the document's remaining cell allowance, shared across its sheets.
+    """
+    return _grid(name, rows, budget, cut)
 
 
 def check_zip_bounds(data: bytes, kind: str = "XLSX") -> None:

@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from ..domain.attachments import extension_of
 from ..domain.client_sources import (
     SOURCE_MAX_BYTES,
     ReadingOutcome,
@@ -39,7 +40,7 @@ from ..domain.client_sources import (
     new_source_id,
 )
 from ..domain.scope import ClientContext, ClientPermission, ScopeDenied
-from .source_reading import read_source
+from .source_reading import READERS, read_source
 from .storage import ArtifactStore, sha256_bytes
 from .tables import (
     AccessAuditRow,
@@ -207,6 +208,9 @@ class ClientSourceRepository:
                     raise RuntimeError("a source refused as a duplicate is not there")
             else:
                 existing, created = kept, True
+        if not created:
+            # The same bytes again: read them again if a newer reader has come (OI-110).
+            self._reread(scope, existing)
         occurrence = ClientSourceOccurrenceRow(
             occurrence_id=new_occurrence_id(),
             source_id=existing.source_id,
@@ -258,11 +262,7 @@ class ClientSourceRepository:
         # row trusts (reaped later), never a row pointing at nothing.
         self._store.put(f"{prefix}/original", data, content_type=media_type)
         reading = read_source(data, name)
-        reading_key = reading_sha = None
-        if reading.segments or reading.notes:
-            body = reading.model_dump_json().encode()
-            reading_key = f"{prefix}/reading-{(reading.reader or 'none').replace('/', '-')}.json"
-            reading_sha = self._store.put(reading_key, body, content_type="application/json").sha256
+        reading_key, reading_sha = self._put_reading(prefix, reading)
         row = ClientSourceRow(
             source_id=new_source_id(),
             organization_id=scope.organization_id,
@@ -288,3 +288,72 @@ class ClientSourceRepository:
         except IntegrityError:
             return None
         return row
+
+    def _put_reading(self, prefix: str, reading: SourceReading) -> tuple[str | None, str | None]:
+        """Store a reading beside the original, under its reader's name; nothing if empty."""
+        if not (reading.segments or reading.notes):
+            return None, None
+        body = reading.model_dump_json().encode()
+        key = f"{prefix}/reading-{(reading.reader or 'none').replace('/', '-')}.json"
+        return key, self._store.put(key, body, content_type="application/json").sha256
+
+    # ------------------------------------------------------------------ re-reading
+
+    def _kept_name(self, row: ClientSourceRow) -> str:
+        """The name the source was first kept under: its format is the one it was read as."""
+        first = self._session.scalar(
+            select(ClientSourceOccurrenceRow.filename)
+            .where(ClientSourceOccurrenceRow.source_id == row.source_id)
+            .order_by(ClientSourceOccurrenceRow.added_at, ClientSourceOccurrenceRow.occurrence_id)
+            .limit(1)
+        )
+        return first or ""
+
+    def _reread(self, scope: ClientContext, row: ClientSourceRow) -> bool:
+        """Read the kept original again when its format's reader is not the one that read it.
+
+        The original never changes; the new reading is stored beside the old one (the
+        reader is in its key), and the row moves to it. ``False`` when there is nothing
+        newer to read it with.
+        """
+        name = self._kept_name(row)
+        current = READERS.get(extension_of(name))
+        if current is None or current == row.reader:
+            return False
+        data = self._store.get(row.storage_key, expected_sha256=row.sha256)
+        reading = read_source(data, name)
+        before = row.reader
+        reading_key, reading_sha = self._put_reading(_prefix(scope, row.sha256), reading)
+        row.reading_key, row.reading_sha256 = reading_key, reading_sha
+        row.outcome, row.reason, row.reader = reading.outcome.value, reading.reason, reading.reader
+        row.characters, row.segment_count = reading.characters, len(reading.segments)
+        self._session.add(
+            AccessAuditRow(
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                actor_id=scope.actor_id,
+                action="CLIENT_SOURCE_REREAD",
+                reason="",
+                payload={
+                    "source_id": row.source_id,
+                    "from_reader": before,
+                    "to_reader": reading.reader,
+                    "outcome": row.outcome,
+                },
+                request_id=scope.request_id,
+            )
+        )
+        self._session.flush()
+        return True
+
+    def reread(self, scope: ClientContext, source_id: str) -> tuple[SourceRecord, bool]:
+        """Read a source again with its format's current reader; ``True`` when it was.
+
+        Needs ``PROPOSE_CLIENT_KNOWLEDGE``, as adding does. A source already read by the
+        current reader is left as it is.
+        """
+        scope = _client(scope)
+        scope.require(ClientPermission.PROPOSE_CLIENT_KNOWLEDGE)
+        row = self._row(scope, source_id)
+        changed = self._reread(scope, row)
+        return self._records([row])[0], changed
