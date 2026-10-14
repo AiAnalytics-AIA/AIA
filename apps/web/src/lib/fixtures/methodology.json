@@ -62,6 +62,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -69,11 +70,15 @@
         "ref": "dotaznik.py agreguj_otazku"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{agregace} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.research_aggregate:AggregationSpec",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
       "symbols": [],
       "tests": [
@@ -93,6 +98,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -100,11 +106,15 @@
         "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
       "formulas": [],
       "id": "weights",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "inputs": [],
       "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA a populační váhy takové váhy odmítají místo čištění (nález D1). Na běhu nenastane: datová sada běhu neplatnou váhu odmítne dřív (modul Vážení).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
@@ -114,6 +124,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -121,6 +132,7 @@
         "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
       "formulas": [
        {
@@ -159,7 +171,10 @@
       ],
       "id": "kish",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "inputs": [],
       "note_cs": "Podporu buňky z něj počítá modul Podpora a potlačení.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
@@ -170,6 +185,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -182,6 +198,7 @@
         "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
        }
       ],
+      "feeds": [],
       "formula_latex": "p_c = 100\\,\\frac{\\sum_k w_k\\,[x_k = c]}{\\sum_k w_k}\\quad\\text{(na 1 desetinné místo)}",
       "formulas": [
        {
@@ -227,7 +244,10 @@
       ],
       "id": "share",
       "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_distribution",
+      "inputs": [],
       "note_cs": "Odhad i meze se zaokrouhlí na jedno desetinné místo.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
       "symbols": [
        {
@@ -244,6 +264,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -256,6 +277,7 @@
         "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\bar{x} = \\frac{\\sum_k w_k x_k}{\\sum_k w_k}\\quad\\text{(na 2 desetinná místa)}",
       "formulas": [
        {
@@ -296,7 +318,10 @@
       ],
       "id": "mean",
       "implements": "aia_core.domain.research_aggregate:bootstrap_weighted_mean",
+      "inputs": [],
       "note_cs": "Stejný vážený průměr počítá i podíl top boxu a podíl každé možnosti u výběru více možností (průměr ukazatelů 0/1) a každou replikaci bootstrapu. Úprava vzorce průměru proto mění i je.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "91e8c6f4c2d0216e310f68038d5be443312ee9d324f55dc469f87e9dac00726d",
       "symbols": [],
       "tests": [
@@ -307,6 +332,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -314,11 +340,15 @@
         "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
        }
       ],
+      "feeds": [],
       "formula_latex": "F_j = \\frac{\\sum_{i \\le j} w_{(i)}}{\\sum_i w_i},\\quad \\tilde{x} = \\operatorname{interp}\\!\\left(0{,}5;\\ F;\\ x_{(\\cdot)}\\right)",
       "formulas": [],
       "id": "median",
       "implements": "aia_core.domain.research_aggregate:weighted_quantile",
+      "inputs": [],
       "note_cs": "Lineární interpolace jako np.interp; mimo rozsah se drží krajní hodnoty.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "2c10357e72def048928949d3a726a20cd4c3a46fefaab70b853dc35e34ace9a3",
       "symbols": [
        {
@@ -334,6 +364,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -346,6 +377,7 @@
         "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
        }
       ],
+      "feeds": [],
       "formula_latex": "s = \\sqrt{\\frac{\\sum_k w_k (x_k - \\bar{x})^2}{\\sum_k w_k}}\\quad\\text{(ddof 0, na 2 desetinná místa)}",
       "formulas": [
        {
@@ -386,7 +418,10 @@
       ],
       "id": "sd",
       "implements": "aia_core.domain.research_aggregate:weighted_variance",
+      "inputs": [],
       "note_cs": "Vážená populační odchylka; pod dvěma platnými odpověďmi se nepočítá.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "3d8e38e6261391bd78ef35b58ef5407f44a66a26c38f900801586dc80d4838c2",
       "symbols": [],
       "tests": [
@@ -397,6 +432,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -409,6 +445,7 @@
         "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
        }
       ],
+      "feeds": [],
       "formula_latex": "T = 100\\,\\frac{\\sum_k w_k\\,[x_k \\ge \\max - (b - 1)]}{\\sum_k w_k}",
       "formulas": [
        {
@@ -461,7 +498,10 @@
       ],
       "id": "top_box",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "inputs": [],
       "note_cs": "Interval top boxu má vlastní semínko, ostatní nastavení bootstrapu sdílí.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
       "symbols": [
        {
@@ -496,6 +536,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -508,11 +549,15 @@
         "ref": "fixtures/research_aggregate (zachyceno na jednotce 18.6.6)"
        }
       ],
+      "feeds": [],
       "formula_latex": "p_i = 100\\,\\frac{\\sum_k w_k\\,[i \\in x_k]}{\\sum_k w_k},\\quad \\text{semínko}_i = \\text{semínko} + i",
       "formulas": [],
       "id": "multi",
       "implements": "aia_core.domain.research_aggregate:aggregate_question",
+      "inputs": [],
       "note_cs": "Součet podílů přesahuje 100 %. Každá možnost má vlastní bootstrap: semínko základního bootstrapu plus pořadí možnosti.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
       "symbols": [],
       "tests": [
@@ -532,6 +577,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -544,11 +590,15 @@
         "ref": ".planning/open-items.md OI-62"
        }
       ],
+      "feeds": [],
       "formula_latex": "m^{(r)}_d = \\#\\{\\,j \\le M : \\lfloor u^{(r)}_j M \\rfloor = d\\,\\},\\quad w^{(r)}_k = m^{(r)}_{d_k} w_k,\\quad r = 1 \\dots R",
       "formulas": [],
       "id": "resample",
       "implements": "aia_core.domain.research_aggregate:_multipliers",
+      "inputs": [],
       "note_cs": "Převzorkují se klastry dárců, ne řádky. Při jediném dárci se interval nepočítá a meze se rovnají odhadu (replikací 0).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "33dc067b0b09ab9cacfabf79e80f1c1d56badaec811bc1fafeac15b6f719fa2f",
       "symbols": [
        {
@@ -592,6 +642,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -599,11 +650,15 @@
         "ref": "uncertainty.py (clean_weights, kish_effective_n, weighted_*, bootstrap_weighted_*)"
        }
       ],
+      "feeds": [],
       "formula_latex": "[\\,Q_{q_1}(\\hat\\theta^{(1..R)}),\\ Q_{q_2}(\\hat\\theta^{(1..R)})\\,]\\quad\\text{(lineární kvantil, jako np.quantile)}",
       "formulas": [],
       "id": "interval",
       "implements": "aia_core.domain.research_aggregate:_quantile",
+      "inputs": [],
       "note_cs": "Percentilový interval s pevnými vahami respondentů: převzorkuje se jen výběr dárců, váhy se znovu nekalibrují. Jednotka tuto metodu nikde nedeklarovala (nález D5); 0,025 a 0,975 dávají 95% interval.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "947a26dd2691f27ea728bf3079aa32d0c768b5a255b1c1cd7d39eba1447746a2",
       "symbols": [
        {
@@ -633,6 +688,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -640,11 +696,15 @@
         "ref": "fidelity.py classify_question, evidence_rating"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{absolutní hodnota} \\succ \\text{otevřená} \\succ \\text{relativní srovnání} \\succ \\text{škála} \\succ \\text{rozdělení}",
       "formulas": [],
       "id": "classify",
       "implements": "aia_core.domain.research_aggregate:classify_question",
+      "inputs": [],
       "note_cs": "O typu rozhodnou prosté české seznamy klíčových slov v textu otázky (nález D7): otázku na absolutní cenu nebo velikost trhu, napsanou jinými slovy, nepoznají.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "27a2c1fce0ce919467230fa1dfa8c71a1157a0bf905e62c07f5de42e50cb149f",
       "symbols": [],
       "tests": [
@@ -688,6 +748,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -695,11 +756,15 @@
         "ref": "fidelity.py classify_question, evidence_rating"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{absolutní} \\Rightarrow \\text{RED, REFUSE};\\ \\text{validováno} \\Rightarrow \\text{GREEN};\\ \\text{jinak AMBER}",
       "formulas": [],
       "id": "fidelity",
       "implements": "aia_core.domain.research_aggregate:evidence_rating",
+      "inputs": [],
       "note_cs": "Relativní srovnání se doporučuje (RECOMMEND), ostatní se jen ukáže (JUST_SHOW). AIA nemá validovaný holdout, takže bez validace je hodnocení vždy AMBER.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "4a0f0d8a177bc045c96b874a168430e2039c910841b6e891532c9e072127dfdf",
       "symbols": [],
       "tests": [
@@ -783,6 +848,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -790,11 +856,15 @@
         "ref": "behavior.py (adjust_probabilities)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{proces} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.respondent_behavior:ResponseProcessSpec",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "e83ea2fd01e11e005ebff5b499228fc0f2bf48e8cb6b8e77e82b20869e052354",
       "symbols": [],
       "tests": [
@@ -813,6 +883,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -820,11 +891,15 @@
         "ref": "docs/architecture/research-agents.md; ai_respondent.py"
        }
       ],
+      "feeds": [],
       "formula_latex": "p = (p_1, \\dots, p_K) \\text{ od modelu, jeden respondent, teplota } 0",
       "formulas": [],
       "id": "request",
       "implements": "aia_core.domain.ai_respondent:build_request",
+      "inputs": [],
       "note_cs": "Model dostane profil jednoho respondenta a vrátí pro každou uzavřenou otázku rozdělení pravděpodobností, nikdy odpověď. Disperzní teplota 18.6.6 (dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "df1695f68eabd76ef93d467fe9ad22e41f8131b0e07aab674d866de5a68a187b",
       "symbols": [
        {
@@ -840,6 +915,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -847,11 +923,15 @@
         "ref": "behavior.py (adjust_probabilities)"
        }
       ],
+      "feeds": [],
       "formula_latex": "p_k := \\frac{\\max(0, p_k)}{\\sum_j \\max(0, p_j)}",
       "formulas": [],
       "id": "normalise",
       "implements": "aia_core.domain.respondent_behavior:normalise",
+      "inputs": [],
       "note_cs": "Nekonečná hodnota nebo NaN se odmítne ještě před ořezem: max(0, NaN) je 0 a z rozbité odpovědi by se tiše stala věrohodná.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "33f01949292172b274eb0f67c46e4cb107251b6f495c013d19e2c1dd856b8276",
       "symbols": [],
       "tests": [
@@ -861,6 +941,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -873,11 +954,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "p_k := \\frac{p_k\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_k))}}{\\sum_j p_j\\, e^{\\min(L,\\ \\max(-L,\\ \\beta s_j))}}",
       "formulas": [],
       "id": "reweight",
       "implements": "aia_core.domain.respondent_behavior:_soft_reweight",
+      "inputs": [],
       "note_cs": "Každý z prvních čtyř mechanismů je jedno takové převážení se svým β a s.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "a33179e2b6d74fc8d728435f4b5221bd55fee967b57876611492cadc5d013b19",
       "symbols": [
        {
@@ -912,6 +997,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -924,11 +1010,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\beta = \\sigma \\left(a + b\\, z_{\\mathrm{sds}}\\right)",
       "formulas": [],
       "id": "social_desirability",
       "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "inputs": [],
       "note_cs": "Jen když otázka směr žádoucnosti deklaruje; nikdy se nehádá.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
       "symbols": [
        {
@@ -967,6 +1057,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -979,11 +1070,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\beta = \\sigma\\, c\\, z_{\\mathrm{souhlas}}",
       "formulas": [],
       "id": "acquiescence",
       "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "inputs": [],
       "note_cs": "Jen když otázka deklaruje, která odpověď je souhlas.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
       "symbols": [
        {
@@ -1013,6 +1108,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1025,11 +1121,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "s_k = \\left|-1 + \\frac{2(k-1)}{n-1}\\right|,\\quad \\beta = \\sigma\\, e\\, z_{\\mathrm{vyhr}}",
       "formulas": [],
       "id": "extremity",
       "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "inputs": [],
       "note_cs": "„Nevím“ má skóre 0: není střed ani krajnost.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
       "symbols": [
        {
@@ -1064,6 +1164,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1076,11 +1177,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "s = (0, \\dots, 0, 1),\\quad \\beta = \\sigma\\, d\\, z_{\\text{nevím}}",
       "formulas": [],
       "id": "dont_know",
       "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "inputs": [],
       "note_cs": "Jen když otázka „nevím“ připouští; je vždy poslední možností.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
       "symbols": [
        {
@@ -1110,6 +1215,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1122,11 +1228,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\lambda = \\min\\!\\left(\\lambda_{\\max},\\ \\sigma\\, \\mathrm{clamp}_{[0,1]}\\!\\left(g + h\\, z_{\\mathrm{sat}}\\right)\\right),\\quad p := \\frac{(1-\\lambda)\\,p + \\lambda\\, u}{\\sum}",
       "formulas": [],
       "id": "satisficing",
       "implements": "aia_core.domain.respondent_behavior:adjust_probabilities",
+      "inputs": [],
       "note_cs": "Otázka může heuristiku vypnout (satisficing_strategy: none).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d7daff2b36cd4baccd9bf8be6da287368845c19ced40286e3468192d5a938632",
       "symbols": [
        {
@@ -1177,6 +1287,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1189,11 +1300,15 @@
         "ref": "open-items OI-62"
        }
       ],
+      "feeds": [],
       "formula_latex": "u \\sim U[0, 1),\\quad k^{*} = \\min\\left\\{k : \\textstyle\\sum_{j \\le k} p_j > u\\right\\}",
       "formulas": [],
       "id": "draw",
       "implements": "aia_core.domain.respondent_behavior:draw_index",
+      "inputs": [],
       "note_cs": "Semínko je pro každého respondenta a otázku vlastní (sha256 ze semínka běhu, respondenta a otázky): stejný běh vylosuje stejné odpovědi.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "aa7e348734aaa6a401ea185e126032b2312aa11b54a8447ed2315e559e669deb",
       "symbols": [],
       "tests": [
@@ -1204,6 +1319,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1216,11 +1332,15 @@
         "ref": "fixtures/response_process (behavior.json, styles.json)"
        }
       ],
+      "feeds": [],
       "formula_latex": "x = \\alpha z_{\\mathrm{vzd}} + \\gamma z_{\\text{věk}} + \\delta m + \\sqrt{\\max\\!\\left(1 - \\operatorname{var}(\\text{signál}),\\ \\phi\\right)}\\ \\varepsilon,\\quad \\text{styl} = z(x)",
       "formulas": [],
       "id": "styles",
       "implements": "aia_core.domain.respondent_behavior:assign_styles",
+      "inputs": [],
       "note_cs": "Vazby jsou informované priory, ne měření (říká to i 18.6.6); většina rozptylu stylu je individuální. Chybějící vzdělání nebo věk nepřispívá ničím; chybějící pohlaví se počítá jako ne-muž (-1), stejně jako v 18.6.6 (styly.py).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "0ee31228933919923cbead02ee072b3fa59b0456cd930ef4565e092be9280ed7",
       "symbols": [
        {
@@ -1409,6 +1529,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1416,11 +1537,15 @@
         "ref": "styly.py (prirad_styly, popis_stylu)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\varepsilon = \\Phi^{-1}\\!\\left(\\frac{H_{12}(\\text{id} \\Vert \\text{styl}) + \\frac{1}{2}}{16^{12}}\\right)",
       "formulas": [],
       "id": "noise",
       "implements": "aia_core.domain.respondent_behavior:_stable_noise",
+      "inputs": [],
       "note_cs": "Šum závisí jen na respondentovi. Styl jako celek ne: z-skóre vzdělání a věku, rozptyl signálu i závěrečná standardizace se počítají přes celý soubor, takže tentýž respondent má v jiném souboru jiný styl.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "4aac8f1a28ebac394d64c186d208f9342de8f3c6913c1461e840822efffd61f6",
       "symbols": [
        {
@@ -1437,6 +1562,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -1444,11 +1570,15 @@
         "ref": "styly.py (prirad_styly, popis_stylu)"
        }
       ],
+      "feeds": [],
       "formula_latex": "|z| \\ge \\theta \\;\\Rightarrow\\; \\text{popis stylu v profilu}",
       "formulas": [],
       "id": "describe",
       "implements": "aia_core.domain.ai_respondent:describe_style",
+      "inputs": [],
       "note_cs": "Slovy se do profilu dostane jen výrazná strana stylu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "3118f0838c18417235f4a50ea2bd6d29720b8e6e00087dba3730c8d2f65cce39",
       "symbols": [
        {
@@ -1473,6 +1603,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1480,11 +1611,15 @@
         "ref": "plan methodology-tab, nález D6"
        }
       ],
+      "feeds": [],
       "formula_latex": "D = \\max\\!\\left(3,\\ \\left\\lfloor n/3 \\right\\rfloor\\right),\\quad w_i = 1",
       "formulas": [],
       "id": "roster",
       "implements": "aia_core.domain.ai_respondent:fictional_roster",
+      "inputs": [],
       "note_cs": "Nález D6: D je fond, ne počet dárců. Dárci se losují s opakováním, takže skutečných dárců je méně než D: u 75 respondentů jich 25 dosáhne jen asi čtvrtina souborů. S pravidlem aia-support-1 (25 dárců) běh s méně než 75 fiktivními respondenty potlačí každou hodnotu vrstvy dárců vždy a do zhruba 90 respondentů většinou. Fiktivní soubor nese každý AI běh, který nebere respondenty z panelu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "70f80c16faef7718b30696b87c735b47c6442607ce9eb38ac2da7f1868230bca",
       "symbols": [
        {
@@ -1523,127 +1658,99 @@
       "title_cs": "Metoda"
      },
      {
-      "id": "F1",
-      "note_cs": "",
+      "id": "S1",
+      "note_cs": "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
       "step_ids": [
-       "f1_declared_scale"
+       "f1_declared_scale",
+       "f2_person_minmax",
+       "f11_not_placed"
       ],
-      "title_cs": "F1 Které položky jsou hodnocení"
+      "title_cs": "Vstupní hodnocení"
      },
      {
-      "id": "F2",
-      "note_cs": "",
-      "step_ids": [
-       "f2_person_minmax"
-      ],
-      "title_cs": "F2 Hodnoticí zvyklosti"
-     },
-     {
-      "id": "F3",
-      "note_cs": "",
+      "id": "S2",
+      "note_cs": "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
       "step_ids": [
        "f3_correlation",
        "f3_effective_n",
        "f3_interval",
        "f3_status",
-       "f3_effect_floor"
-      ],
-      "title_cs": "F3 Vztah dvou objektů a jeho spolehlivost"
-     },
-     {
-      "id": "F4",
-      "note_cs": "",
-      "step_ids": [
+       "f3_effect_floor",
        "f4_strength"
       ],
-      "title_cs": "F4 Síla vztahu a šipky"
+      "title_cs": "Vztahy mezi objekty"
      },
      {
-      "id": "F5",
-      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
-      "step_ids": [],
-      "title_cs": "F5 Typ dodané matice"
-     },
-     {
-      "id": "F6",
-      "note_cs": "",
+      "id": "S3",
+      "note_cs": "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
       "step_ids": [
        "f6_mappable",
        "f6_distance",
        "f6_smacof"
       ],
-      "title_cs": "F6 Vzdálenost a rozložení"
+      "title_cs": "Rozložení na mapě"
      },
      {
-      "id": "F7",
-      "note_cs": "",
+      "id": "S4",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
       "step_ids": [
        "f7_stress",
        "f7_quality"
       ],
-      "title_cs": "F7 Jedno rozložení a jeho věrohodnost"
+      "title_cs": "Věrohodnost mapy"
      },
      {
-      "id": "F8",
-      "note_cs": "",
+      "id": "S5",
+      "note_cs": "Co mapa o každém objektu říká číslem: souhlasnost, propojenost a výška.",
       "step_ids": [
        "f8_scores",
-       "f8_height"
-      ],
-      "title_cs": "F8 Skóre objektů a výška"
-     },
-     {
-      "id": "F9",
-      "note_cs": "",
-      "step_ids": [
+       "f8_height",
        "f9_k100",
        "f9_quantile",
        "f9_rank"
       ],
-      "title_cs": "F9 Propojenost 0-100"
+      "title_cs": "Skóre a výška objektů"
      },
      {
-      "id": "F10",
-      "note_cs": "",
-      "step_ids": [
-       "f10_placement"
-      ],
-      "title_cs": "F10 Umístění respondentů"
-     },
-     {
-      "id": "F11",
-      "note_cs": "",
-      "step_ids": [
-       "f11_not_placed",
-       "support"
-      ],
-      "title_cs": "F11 Respondenti, které nelze umístit"
-     },
-     {
-      "id": "F12",
-      "note_cs": "",
+      "id": "S6",
+      "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
        "f12_envelope"
       ],
-      "title_cs": "F12-F13 Terén"
+      "title_cs": "Terén"
+     },
+     {
+      "id": "S7",
+      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "step_ids": [
+       "f10_placement",
+       "support"
+      ],
+      "title_cs": "Respondenti a podpora mapy"
+     },
+     {
+      "id": "F5",
+      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
+      "step_ids": [],
+      "title_cs": "Zatím v AIA není: typ dodané matice (F5)"
      },
      {
       "id": "F14",
       "note_cs": "V AIA zatím není (sociomap-formula-corrections.md, krok 4d). Návrh auditu: testovat jen proměnné, které neurčily polohu, a korigovat Holmem: zamítnout H_(k), právě když p_(l) ≤ α / (|V_test| - l + 1) pro všechna l ≤ k, α = 0,05; nejdřív Cohenovo d s intervalem.",
       "step_ids": [],
-      "title_cs": "F14 Testy při porovnání oblastí"
+      "title_cs": "Zatím v AIA není: testy při porovnání oblastí (F14)"
      },
      {
       "id": "F15",
       "note_cs": "V AIA zatím není (krok 4d). Návrh auditu: |d| = |x̄_A - x̄_B| / s_pooled pro čísla, |h| = |2 arcsin √π_A - 2 arcsin √π_B| pro kategorie (maximum přes kategorie).",
       "step_ids": [],
-      "title_cs": "F15 Pořadí hlavních rozdílů"
+      "title_cs": "Zatím v AIA není: pořadí hlavních rozdílů (F15)"
      },
      {
       "id": "F16",
       "note_cs": "Otevřené (krok 4c). Týká se referenční mapy. Návrh auditu: δ_kj = (s_max - a_kj) / (s_max - s_min) a skutečné řádkově podmíněné rozvinutí se sklonem a posunem na respondenta a penalizací proti degeneraci.",
       "step_ids": [],
-      "title_cs": "F16 Cíle rozvinutí po respondentech"
+      "title_cs": "Zatím v AIA není: cíle rozvinutí po respondentech (F16)"
      }
     ],
     "id": "sociomap",
@@ -1657,6 +1764,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -1664,11 +1772,15 @@
         "ref": "docs/architecture/sociomapa-methodology-decision.md"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{metoda} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.sociomap.specification:SociomapSpecV3",
+      "inputs": [],
       "note_cs": "Běh si metodiku připne při spuštění; změna metodiky mění jméno i otisk.",
+      "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
+      "source_cs": "metodika v platnosti při spuštění běhu",
       "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
       "symbols": [],
       "tests": [
@@ -1687,12 +1799,18 @@
       ]
      },
      {
+      "audit": "F1",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F1"
        }
+      ],
+      "feeds": [
+       "f2_person_minmax",
+       "f8_height",
+       "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
       "formulas": [
@@ -1751,7 +1869,10 @@
       ],
       "id": "f1_declared_scale",
       "implements": "aia_core.domain.sociomap.engine_v2:_scaled",
+      "inputs": [],
       "note_cs": "Hodnocením je jen položka, kterou dotazník deklaruje jako škálu; nic se neodhaduje z hodnot sloupce.",
+      "role_cs": "Převede každé hodnocení na společnou škálu 0-1. Na těchto hodnotách stojí vše další; výšky objektů je berou přímo.",
+      "source_cs": "odpovědi respondentů a škály, které dotazník deklaruje",
       "source_sha256": "87ba2885568f944ceb4c7e2e4db4ebdf8e87a6d0289b2954ee32c300a85274d4",
       "symbols": [
        {
@@ -1787,12 +1908,17 @@
       ]
      },
      {
+      "audit": "F2",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F2"
        }
+      ],
+      "feeds": [
+       "f3_correlation",
+       "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
       "formulas": [
@@ -1846,7 +1972,12 @@
       ],
       "id": "f2_person_minmax",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Štědrý a přísný hodnotitel, kteří mají rádi totéž, pak vypadají stejně.",
+      "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [
        {
@@ -1878,6 +2009,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -1890,11 +2022,25 @@
         "ref": "AUDIT-F3"
        }
       ],
+      "feeds": [
+       "f3_interval",
+       "f3_status",
+       "f3_effect_floor",
+       "f4_strength",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\bar a = \\frac{\\sum_k w_k \\tilde a_{ki}}{\\sum_k w_k},\\quad \\operatorname{cov} = \\frac{\\sum_k w_k (\\tilde a_{ki}-\\bar a)(\\tilde a_{kj}-\\bar b)}{\\sum_k w_k},\\quad r_{ij} = \\operatorname{clip}_{[-1,1]}\\frac{\\operatorname{cov}}{\\max\\left(\\sqrt{v_i v_j},\\,10^{-12}\\right)}",
       "formulas": [],
       "id": "f3_correlation",
       "implements": "aia_core.domain.sociomap.pairs:derive_pair_relations",
+      "inputs": [
+       "f2_person_minmax",
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Jádro mapy: jak podobně lidé hodnotí dva objekty. Z korelace se počítá vzdálenost, skóre i stav páru.",
+      "source_cs": "",
       "source_sha256": "65c960383625ff990b9bfc07bc45713a3f1620ab6c6d9f90503485e3a13c2d80",
       "symbols": [
        {
@@ -1934,6 +2080,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -1945,6 +2092,10 @@
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f3_interval",
+       "f3_status"
       ],
       "formula_latex": "n_{ij} = \\begin{cases} \\#\\{k\\} & \\text{počet respondentů} \\\\ \\dfrac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2} & \\text{Kishovo efektivní } n\\end{cases}",
       "formulas": [
@@ -1979,7 +2130,12 @@
       ],
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Kolik respondentů pár skutečně nese; při vážení méně než počet lidí.",
+      "source_cs": "",
       "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
       "symbols": [
        {
@@ -2005,12 +2161,16 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F3"
        }
+      ],
+      "feeds": [
+       "f3_status"
       ],
       "formula_latex": "\\left[\\tanh\\!\\left(\\operatorname{atanh} r - \\frac{z_c}{\\sqrt{n-3}}\\right),\\;\\tanh\\!\\left(\\operatorname{atanh} r + \\frac{z_c}{\\sqrt{n-3}}\\right)\\right],\\qquad z_c = \\Phi^{-1}\\!\\left(\\tfrac12 + \\tfrac c2\\right)",
       "formulas": [
@@ -2111,7 +2271,13 @@
       ],
       "id": "f3_interval",
       "implements": "aia_core.domain.sociomap.relations:fisher_interval",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n"
+      ],
       "note_cs": "Při |r| = 1 je interval bodem (r, r); pod čtyřmi hodnotiteli interval není.",
+      "role_cs": "Nejistota korelace; rozhoduje, zda je pár spolehlivý.",
+      "source_cs": "",
       "source_sha256": "667142a630eedf3933a101cfff9669882e28f661c2feb1c4d93d7dc80ce0dcca",
       "symbols": [
        {
@@ -2151,6 +2317,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2163,11 +2330,24 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [
+       "f4_strength",
+       "f6_mappable",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\text{stav}_{ij} = \\begin{cases}\\text{UNKNOWN} & r_{ij} \\text{ neexistuje nebo } n_{ij} < n_{\\min} \\\\\\text{RELIABLE} & 0 \\notin \\text{interval} \\\\\\text{WEAK} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f3_status",
       "implements": "aia_core.domain.sociomap.relations:pair_status",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n",
+       "f3_interval"
+      ],
       "note_cs": "Neznámý pár se nikdy nezapíše jako „žádný vztah“: na mapě nepůsobí.",
+      "role_cs": "Třídí páry na spolehlivé, slabé a neznámé. Neznámý pár mapu netvaruje a do skóre nevstupuje.",
+      "source_cs": "",
       "source_sha256": "281eae379eae55c16e61af140e030ea6c95e318243636a20391a9981894ef5f7",
       "symbols": [],
       "tests": [
@@ -2195,6 +2375,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2207,6 +2388,7 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{dosahuje prahu}_{ij} = \\left(|r_{ij}| \\ge r_{\\min}\\right)",
       "formulas": [
        {
@@ -2242,7 +2424,12 @@
       ],
       "id": "f3_effect_floor",
       "implements": "aia_core.domain.sociomap.relations:meets_effect_floor",
+      "inputs": [
+       "f3_correlation"
+      ],
       "note_cs": "Zaznamenává se vedle stavu, nikdy do něj: pár může být spolehlivý a malý, nebo velký a nejistý.",
+      "role_cs": "Označí páry s prakticky malým vztahem; stav páru nemění, ukáže se vedle něj.",
+      "source_cs": "",
       "source_sha256": "a1f1186816f6aebe935a6a62b0c9f852e37066ddcc7e15af70617363cd31d57a",
       "symbols": [
        {
@@ -2268,6 +2455,7 @@
       ]
      },
      {
+      "audit": "F4",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2275,11 +2463,18 @@
         "ref": "AUDIT-F4"
        }
       ],
+      "feeds": [],
       "formula_latex": "s_{ij} = |r_{ij}|,\\qquad \\operatorname{sgn} r_{ij} \\text{ jako barva}",
       "formulas": [],
       "id": "f4_strength",
       "implements": "aia_core.domain.sociomap.engine_v2:compute_object_map",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Šipky (audit: jen spolehlivé vztahy) AIA zatím nekreslí. Stupnice 1-10 se pro objektovou mapu nepoužívá.",
+      "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
+      "source_cs": "",
       "source_sha256": "deb3c4c93cf57ca3ac2b4c7f3d537a89a19772d70ed442c2a23c2ace9505ce6e",
       "symbols": [],
       "tests": [
@@ -2289,6 +2484,7 @@
       "values": []
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2296,11 +2492,19 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f6_smacof"
+      ],
       "formula_latex": "m \\ge m_{\\min} \\;\\wedge\\; \\exists\\, \\text{známý pár} \\;\\wedge\\;\\text{graf známých párů je souvislý}",
       "formulas": [],
       "id": "f6_mappable",
       "implements": "aia_core.domain.sociomap.engine_v2:_unreached",
+      "inputs": [
+       "f3_status"
+      ],
       "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3.",
+      "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
+      "source_cs": "",
       "source_sha256": "316d808ab33bd28141fc3a012a8b1fd3f98884de5987199d395615d8824cd86b",
       "symbols": [
        {
@@ -2339,12 +2543,17 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F6"
        }
+      ],
+      "feeds": [
+       "f6_smacof",
+       "f7_stress"
       ],
       "formula_latex": "\\delta_{ij} = \\sqrt{\\max\\left(0,\\; 2\\,(1 - r_{ij})\\right)}\\quad\\text{pro známé páry, jinak bez váhy}",
       "formulas": [
@@ -2389,7 +2598,13 @@
       ],
       "id": "f6_distance",
       "implements": "aia_core.domain.sociomap.layout:correlation_distance",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "",
+      "role_cs": "Převede korelaci na vzdálenost, kterou se mapa snaží dodržet: podobně hodnocené objekty leží blízko sebe.",
+      "source_cs": "",
       "source_sha256": "299af337e48cbeba8044760465d6fd134b99f956576f69e0d6eee21e15d33f35",
       "symbols": [
        {
@@ -2415,6 +2630,7 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2422,11 +2638,22 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f7_stress",
+       "f10_placement",
+       "f12_envelope"
+      ],
       "formula_latex": "\\min_X \\sigma(X) = \\sum_{i<j} w_{ij}\\left(\\lVert x_i - x_j\\rVert - \\delta_{ij}\\right)^2,\\quad X \\leftarrow V^{+} B(X)\\, X,\\quad \\sigma_{t-1} - \\sigma_t \\le \\varepsilon \\max(\\sigma_t, 10^{-300})",
       "formulas": [],
       "id": "f6_smacof",
       "implements": "aia_core.domain.sociomap.layout:fit_smacof_objects",
+      "inputs": [
+       "f6_distance",
+       "f6_mappable"
+      ],
       "note_cs": "Start: Torgerson (neznámému páru se jen pro start doplní průměr známých δ²). Poté se mapa vycentruje, otočí do hlavních os a zrcadlí podle třetího momentu; nikdy se nenatahuje na poloměr.",
+      "role_cs": "Najde polohy objektů, které cílové vzdálenosti drží nejlépe. To jsou souřadnice na mapě.",
+      "source_cs": "",
       "source_sha256": "241827c0a6e4990ed89dff5a0258fcec75374f61866b79e538a197900e871f77",
       "symbols": [
        {
@@ -2508,12 +2735,16 @@
       ]
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F7"
        }
+      ],
+      "feeds": [
+       "f7_quality"
       ],
       "formula_latex": "\\text{Stress-1} = \\sqrt{\\frac{\\sum_{i<j} (d_{ij} - \\delta_{ij})^2}{\\sum_{i<j} \\delta_{ij}^2}}\\quad\\text{přes známé páry}",
       "formulas": [
@@ -2555,7 +2786,13 @@
       ],
       "id": "f7_stress",
       "implements": "aia_core.domain.sociomap.layout:_object_stress",
+      "inputs": [
+       "f6_smacof",
+       "f6_distance"
+      ],
       "note_cs": "",
+      "role_cs": "Měří, kolik musela mapa vzdálenosti zkreslit, aby se vešla do roviny.",
+      "source_cs": "",
       "source_sha256": "1eb3fa7ad0e52bd548350370d187308bc414561d15f2fa2d90a324cc6c989a3f",
       "symbols": [
        {
@@ -2571,6 +2808,7 @@
       "values": []
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2578,11 +2816,17 @@
         "ref": "AUDIT-F7"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{kvalita} = \\begin{cases} \\text{dobrá} & \\text{Stress-1} < b_1 \\\\ \\text{ucházející} & < b_2 \\\\ \\text{slabá} & < b_3 \\\\ \\text{2D obraz nespolehlivý} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f7_quality",
       "implements": "aia_core.domain.sociomap.view:stress_quality",
+      "inputs": [
+       "f7_stress"
+      ],
       "note_cs": "Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění.",
+      "role_cs": "Převede Stress-1 na slovo, které vidí čtenář výsledků.",
+      "source_cs": "",
       "source_sha256": "6a54c13d05342bde4d30ffd8bd768b43da0fe645650eeb826d8b06fd5085f3f0",
       "symbols": [
        {
@@ -2628,12 +2872,16 @@
       ]
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F8"
        }
+      ],
+      "feeds": [
+       "f9_k100"
       ],
       "formula_latex": "A_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} r_{ij},\\qquad K_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} |r_{ij}|",
       "formulas": [
@@ -2686,7 +2934,13 @@
       ],
       "id": "f8_scores",
       "implements": "aia_core.domain.sociomap.metrics:primary_scores",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
+      "source_cs": "",
       "source_sha256": "521da7e15361047c5c6ef793197310f57f1c6d4924ba85d101026517910ee021",
       "symbols": [
        {
@@ -2708,6 +2962,7 @@
       "values": []
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2719,6 +2974,9 @@
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
       "formulas": [
@@ -2755,7 +3013,12 @@
       ],
       "id": "f8_height",
       "implements": "aia_core.domain.sociomap.engine_v2:_heights",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "",
+      "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
+      "source_cs": "",
       "source_sha256": "b92511a1a55691a948eed0d03f1e4509a5d4bb2537edafb21e089e6e51494560",
       "symbols": [
        {
@@ -2780,12 +3043,16 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F9"
        }
+      ],
+      "feeds": [
+       "f9_quantile"
       ],
       "formula_latex": "K^{100}_i = 100\\,K_i,\\qquad K^{100,(b)}_i \\text{ pro } b = 1..B\\text{ (respondenti tažení s vracením)}",
       "formulas": [
@@ -2820,7 +3087,12 @@
       ],
       "id": "f9_k100",
       "implements": "aia_core.domain.sociomap.metrics:connectedness_100",
+      "inputs": [
+       "f8_scores"
+      ],
       "note_cs": "Stavy párů zůstávají z plného vzorku; převzorkování, které pár nespočte, objekt neskóruje. Počítá se jen se zapnutým AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED.",
+      "role_cs": "Propojenost na stupnici 0-100 s intervalem z převzorkování respondentů.",
+      "source_cs": "",
       "source_sha256": "e9302e1647a2b1318d3bbe60018fdb8133fd2783eed8e380fd687d776e11189a",
       "symbols": [
        {
@@ -2881,6 +3153,7 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2888,11 +3161,19 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [
+       "f9_rank"
+      ],
       "formula_latex": "Q(q) = x_{(\\lfloor h\\rfloor)} + (h - \\lfloor h\\rfloor)\\left(x_{(\\lfloor h\\rfloor + 1)} - x_{(\\lfloor h\\rfloor)}\\right),\\quad h = (B'-1)\\,q",
       "formulas": [],
       "id": "f9_quantile",
       "implements": "aia_core.domain.sociomap.metrics:linear_quantile",
+      "inputs": [
+       "f9_k100"
+      ],
       "note_cs": "",
+      "role_cs": "Z převzorkovaných hodnot vybere meze intervalu.",
+      "source_cs": "",
       "source_sha256": "95872353dfb1d33bacbeb502807d592ddb0710cc90117171edba39e2cec74048",
       "symbols": [
        {
@@ -2908,6 +3189,7 @@
       "values": []
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2915,11 +3197,17 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [],
       "formula_latex": "i \\succ j \\iff \\text{dolní}_i > \\text{horní}_j",
       "formulas": [],
       "id": "f9_rank",
       "implements": "aia_core.domain.sociomap.metrics:rank_with_ties",
+      "inputs": [
+       "f9_quantile"
+      ],
       "note_cs": "Dotýkající se intervaly se překrývají a jsou nerozhodné.",
+      "role_cs": "Seřadí objekty jen tam, kde se jejich intervaly neprotínají.",
+      "source_cs": "",
       "source_sha256": "750854455d8377bd7c8d313acdb0be1b34fa823f20d7387206c6f14b09cebbc0",
       "symbols": [],
       "tests": [
@@ -2930,6 +3218,7 @@
       "values": []
      },
      {
+      "audit": "F10",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2937,11 +3226,18 @@
         "ref": "AUDIT-F10"
        }
       ],
+      "feeds": [],
       "formula_latex": "x_k = \\arg\\min_x \\sum_{j \\in \\mathcal{P}} \\left(\\lVert x - y_j\\rVert - \\delta_{kj}\\right)^2,\\quad \\delta_{kj} = D\\,(1 - \\tilde a_{kj}),\\quad e_k = \\sqrt{\\frac{\\sum_j (\\lVert x_k - y_j\\rVert - \\delta_{kj})^2}{\\sum_j \\delta_{kj}^2}}",
       "formulas": [],
       "id": "f10_placement",
       "implements": "aia_core.domain.sociomap.specification:_require_supported_v3",
+      "inputs": [
+       "f6_smacof",
+       "f2_person_minmax"
+      ],
       "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "source_cs": "",
       "source_sha256": "8250a494e70414dd677225cc2c3d3ed2b51dd96ebeaa27bf1e41b35a484ed70c",
       "symbols": [
        {
@@ -2971,6 +3267,7 @@
       ]
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -2978,11 +3275,21 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [
+       "f3_correlation",
+       "f3_effective_n",
+       "support"
+      ],
       "formula_latex": "\\max_l a_{kl} = \\min_l a_{kl} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
       "id": "f11_not_placed",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Je vyloučen ze vztahů a z terénu, ale počítá se do výšek a je sečten.",
+      "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [],
       "tests": [
@@ -2993,6 +3300,7 @@
       "values": []
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3000,6 +3308,7 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\text{eff}} = \\frac{\\left(\\sum_{k \\in U} w_k\\right)^2}{\\sum_{k \\in U} w_k^2},\\quad U = \\text{umístění respondenti}",
       "formulas": [
        {
@@ -3033,7 +3342,12 @@
       ],
       "id": "support",
       "implements": "aia_core.domain.sociomap.engine_v2:_support",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "Mapa uvádí počet respondentů, umístěných, neumístěných, efektivní n a dárce.",
+      "role_cs": "Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
+      "source_cs": "",
       "source_sha256": "9a71aaf6b5538d7f9df8df8a3d2a0c29183d34c17c00d17377d62d622e5f382d",
       "symbols": [],
       "tests": [
@@ -3043,6 +3357,7 @@
       "values": []
      },
      {
+      "audit": "F12-F13",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3055,6 +3370,7 @@
         "ref": "AUDIT-F13"
        }
       ],
+      "feeds": [],
       "formula_latex": "z(q) = \\max_{j \\in \\mathcal{P},\\, h_j \\ne \\varnothing} h_j \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad g_t = -S + t\\,\\frac{2S}{N},\\; t = 0..N",
       "formulas": [
        {
@@ -3112,7 +3428,13 @@
       ],
       "id": "f12_envelope",
       "implements": "aia_core.domain.sociomap.terrain:envelope_at",
+      "inputs": [
+       "f6_smacof",
+       "f8_height"
+      ],
       "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
+      "source_cs": "",
       "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
       "symbols": [
        {
@@ -3199,127 +3521,99 @@
       "title_cs": "Metoda"
      },
      {
-      "id": "F1",
-      "note_cs": "",
+      "id": "S1",
+      "note_cs": "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
       "step_ids": [
-       "f1_declared_scale"
+       "f1_declared_scale",
+       "f2_person_minmax",
+       "f11_not_placed"
       ],
-      "title_cs": "F1 Které položky jsou hodnocení"
+      "title_cs": "Vstupní hodnocení"
      },
      {
-      "id": "F2",
-      "note_cs": "",
-      "step_ids": [
-       "f2_person_minmax"
-      ],
-      "title_cs": "F2 Hodnoticí zvyklosti"
-     },
-     {
-      "id": "F3",
-      "note_cs": "",
+      "id": "S2",
+      "note_cs": "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
       "step_ids": [
        "f3_correlation",
        "f3_effective_n",
        "f3_interval",
        "f3_status",
-       "f3_effect_floor"
-      ],
-      "title_cs": "F3 Vztah dvou objektů a jeho spolehlivost"
-     },
-     {
-      "id": "F4",
-      "note_cs": "",
-      "step_ids": [
+       "f3_effect_floor",
        "f4_strength"
       ],
-      "title_cs": "F4 Síla vztahu a šipky"
+      "title_cs": "Vztahy mezi objekty"
      },
      {
-      "id": "F5",
-      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
-      "step_ids": [],
-      "title_cs": "F5 Typ dodané matice"
-     },
-     {
-      "id": "F6",
-      "note_cs": "",
+      "id": "S3",
+      "note_cs": "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
       "step_ids": [
        "f6_mappable",
        "f6_distance",
        "f6_smacof"
       ],
-      "title_cs": "F6 Vzdálenost a rozložení"
+      "title_cs": "Rozložení na mapě"
      },
      {
-      "id": "F7",
-      "note_cs": "",
+      "id": "S4",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
       "step_ids": [
        "f7_stress",
        "f7_quality"
       ],
-      "title_cs": "F7 Jedno rozložení a jeho věrohodnost"
+      "title_cs": "Věrohodnost mapy"
      },
      {
-      "id": "F8",
-      "note_cs": "",
+      "id": "S5",
+      "note_cs": "Co mapa o každém objektu říká číslem: souhlasnost, propojenost a výška.",
       "step_ids": [
        "f8_scores",
-       "f8_height"
-      ],
-      "title_cs": "F8 Skóre objektů a výška"
-     },
-     {
-      "id": "F9",
-      "note_cs": "",
-      "step_ids": [
+       "f8_height",
        "f9_k100",
        "f9_quantile",
        "f9_rank"
       ],
-      "title_cs": "F9 Propojenost 0-100"
+      "title_cs": "Skóre a výška objektů"
      },
      {
-      "id": "F10",
-      "note_cs": "",
-      "step_ids": [
-       "f10_placement"
-      ],
-      "title_cs": "F10 Umístění respondentů"
-     },
-     {
-      "id": "F11",
-      "note_cs": "",
-      "step_ids": [
-       "f11_not_placed",
-       "support"
-      ],
-      "title_cs": "F11 Respondenti, které nelze umístit"
-     },
-     {
-      "id": "F12",
-      "note_cs": "",
+      "id": "S6",
+      "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
        "f12_envelope"
       ],
-      "title_cs": "F12-F13 Terén"
+      "title_cs": "Terén"
+     },
+     {
+      "id": "S7",
+      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "step_ids": [
+       "f10_placement",
+       "support"
+      ],
+      "title_cs": "Respondenti a podpora mapy"
+     },
+     {
+      "id": "F5",
+      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
+      "step_ids": [],
+      "title_cs": "Zatím v AIA není: typ dodané matice (F5)"
      },
      {
       "id": "F14",
       "note_cs": "V AIA zatím není (sociomap-formula-corrections.md, krok 4d). Návrh auditu: testovat jen proměnné, které neurčily polohu, a korigovat Holmem: zamítnout H_(k), právě když p_(l) ≤ α / (|V_test| - l + 1) pro všechna l ≤ k, α = 0,05; nejdřív Cohenovo d s intervalem.",
       "step_ids": [],
-      "title_cs": "F14 Testy při porovnání oblastí"
+      "title_cs": "Zatím v AIA není: testy při porovnání oblastí (F14)"
      },
      {
       "id": "F15",
       "note_cs": "V AIA zatím není (krok 4d). Návrh auditu: |d| = |x̄_A - x̄_B| / s_pooled pro čísla, |h| = |2 arcsin √π_A - 2 arcsin √π_B| pro kategorie (maximum přes kategorie).",
       "step_ids": [],
-      "title_cs": "F15 Pořadí hlavních rozdílů"
+      "title_cs": "Zatím v AIA není: pořadí hlavních rozdílů (F15)"
      },
      {
       "id": "F16",
       "note_cs": "Otevřené (krok 4c). Týká se referenční mapy. Návrh auditu: δ_kj = (s_max - a_kj) / (s_max - s_min) a skutečné řádkově podmíněné rozvinutí se sklonem a posunem na respondenta a penalizací proti degeneraci.",
       "step_ids": [],
-      "title_cs": "F16 Cíle rozvinutí po respondentech"
+      "title_cs": "Zatím v AIA není: cíle rozvinutí po respondentech (F16)"
      }
     ],
     "id": "sociomap",
@@ -3333,6 +3627,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -3340,11 +3635,15 @@
         "ref": "docs/architecture/sociomapa-methodology-decision.md"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{metoda} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.sociomap.specification:SociomapSpecV3",
+      "inputs": [],
       "note_cs": "Běh si metodiku připne při spuštění; změna metodiky mění jméno i otisk.",
+      "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
+      "source_cs": "metodika v platnosti při spuštění běhu",
       "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
       "symbols": [],
       "tests": [
@@ -3363,12 +3662,18 @@
       ]
      },
      {
+      "audit": "F1",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F1"
        }
+      ],
+      "feeds": [
+       "f2_person_minmax",
+       "f8_height",
+       "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
       "formulas": [
@@ -3427,7 +3732,10 @@
       ],
       "id": "f1_declared_scale",
       "implements": "aia_core.domain.sociomap.engine_v2:_scaled",
+      "inputs": [],
       "note_cs": "Hodnocením je jen položka, kterou dotazník deklaruje jako škálu; nic se neodhaduje z hodnot sloupce.",
+      "role_cs": "Převede každé hodnocení na společnou škálu 0-1. Na těchto hodnotách stojí vše další; výšky objektů je berou přímo.",
+      "source_cs": "odpovědi respondentů a škály, které dotazník deklaruje",
       "source_sha256": "87ba2885568f944ceb4c7e2e4db4ebdf8e87a6d0289b2954ee32c300a85274d4",
       "symbols": [
        {
@@ -3463,12 +3771,17 @@
       ]
      },
      {
+      "audit": "F2",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F2"
        }
+      ],
+      "feeds": [
+       "f3_correlation",
+       "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
       "formulas": [
@@ -3522,7 +3835,12 @@
       ],
       "id": "f2_person_minmax",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Štědrý a přísný hodnotitel, kteří mají rádi totéž, pak vypadají stejně.",
+      "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [
        {
@@ -3554,6 +3872,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3566,11 +3885,25 @@
         "ref": "AUDIT-F3"
        }
       ],
+      "feeds": [
+       "f3_interval",
+       "f3_status",
+       "f3_effect_floor",
+       "f4_strength",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\bar a = \\frac{\\sum_k w_k \\tilde a_{ki}}{\\sum_k w_k},\\quad \\operatorname{cov} = \\frac{\\sum_k w_k (\\tilde a_{ki}-\\bar a)(\\tilde a_{kj}-\\bar b)}{\\sum_k w_k},\\quad r_{ij} = \\operatorname{clip}_{[-1,1]}\\frac{\\operatorname{cov}}{\\max\\left(\\sqrt{v_i v_j},\\,10^{-12}\\right)}",
       "formulas": [],
       "id": "f3_correlation",
       "implements": "aia_core.domain.sociomap.pairs:derive_pair_relations",
+      "inputs": [
+       "f2_person_minmax",
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Jádro mapy: jak podobně lidé hodnotí dva objekty. Z korelace se počítá vzdálenost, skóre i stav páru.",
+      "source_cs": "",
       "source_sha256": "65c960383625ff990b9bfc07bc45713a3f1620ab6c6d9f90503485e3a13c2d80",
       "symbols": [
        {
@@ -3610,6 +3943,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3621,6 +3955,10 @@
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f3_interval",
+       "f3_status"
       ],
       "formula_latex": "n_{ij} = \\begin{cases} \\#\\{k\\} & \\text{počet respondentů} \\\\ \\dfrac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2} & \\text{Kishovo efektivní } n\\end{cases}",
       "formulas": [
@@ -3655,7 +3993,12 @@
       ],
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Kolik respondentů pár skutečně nese; při vážení méně než počet lidí.",
+      "source_cs": "",
       "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
       "symbols": [
        {
@@ -3681,12 +4024,16 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F3"
        }
+      ],
+      "feeds": [
+       "f3_status"
       ],
       "formula_latex": "\\left[\\tanh\\!\\left(\\operatorname{atanh} r - \\frac{z_c}{\\sqrt{n-3}}\\right),\\;\\tanh\\!\\left(\\operatorname{atanh} r + \\frac{z_c}{\\sqrt{n-3}}\\right)\\right],\\qquad z_c = \\Phi^{-1}\\!\\left(\\tfrac12 + \\tfrac c2\\right)",
       "formulas": [
@@ -3787,7 +4134,13 @@
       ],
       "id": "f3_interval",
       "implements": "aia_core.domain.sociomap.relations:fisher_interval",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n"
+      ],
       "note_cs": "Při |r| = 1 je interval bodem (r, r); pod čtyřmi hodnotiteli interval není.",
+      "role_cs": "Nejistota korelace; rozhoduje, zda je pár spolehlivý.",
+      "source_cs": "",
       "source_sha256": "667142a630eedf3933a101cfff9669882e28f661c2feb1c4d93d7dc80ce0dcca",
       "symbols": [
        {
@@ -3827,6 +4180,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3839,11 +4193,24 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [
+       "f4_strength",
+       "f6_mappable",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\text{stav}_{ij} = \\begin{cases}\\text{UNKNOWN} & r_{ij} \\text{ neexistuje nebo } n_{ij} < n_{\\min} \\\\\\text{RELIABLE} & 0 \\notin \\text{interval} \\\\\\text{WEAK} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f3_status",
       "implements": "aia_core.domain.sociomap.relations:pair_status",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n",
+       "f3_interval"
+      ],
       "note_cs": "Neznámý pár se nikdy nezapíše jako „žádný vztah“: na mapě nepůsobí.",
+      "role_cs": "Třídí páry na spolehlivé, slabé a neznámé. Neznámý pár mapu netvaruje a do skóre nevstupuje.",
+      "source_cs": "",
       "source_sha256": "281eae379eae55c16e61af140e030ea6c95e318243636a20391a9981894ef5f7",
       "symbols": [],
       "tests": [
@@ -3871,6 +4238,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3883,6 +4251,7 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{dosahuje prahu}_{ij} = \\left(|r_{ij}| \\ge r_{\\min}\\right)",
       "formulas": [
        {
@@ -3918,7 +4287,12 @@
       ],
       "id": "f3_effect_floor",
       "implements": "aia_core.domain.sociomap.relations:meets_effect_floor",
+      "inputs": [
+       "f3_correlation"
+      ],
       "note_cs": "Zaznamenává se vedle stavu, nikdy do něj: pár může být spolehlivý a malý, nebo velký a nejistý.",
+      "role_cs": "Označí páry s prakticky malým vztahem; stav páru nemění, ukáže se vedle něj.",
+      "source_cs": "",
       "source_sha256": "a1f1186816f6aebe935a6a62b0c9f852e37066ddcc7e15af70617363cd31d57a",
       "symbols": [
        {
@@ -3944,6 +4318,7 @@
       ]
      },
      {
+      "audit": "F4",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3951,11 +4326,18 @@
         "ref": "AUDIT-F4"
        }
       ],
+      "feeds": [],
       "formula_latex": "s_{ij} = |r_{ij}|,\\qquad \\operatorname{sgn} r_{ij} \\text{ jako barva}",
       "formulas": [],
       "id": "f4_strength",
       "implements": "aia_core.domain.sociomap.engine_v2:compute_object_map",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Šipky (audit: jen spolehlivé vztahy) AIA zatím nekreslí. Stupnice 1-10 se pro objektovou mapu nepoužívá.",
+      "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
+      "source_cs": "",
       "source_sha256": "deb3c4c93cf57ca3ac2b4c7f3d537a89a19772d70ed442c2a23c2ace9505ce6e",
       "symbols": [],
       "tests": [
@@ -3965,6 +4347,7 @@
       "values": []
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -3972,11 +4355,19 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f6_smacof"
+      ],
       "formula_latex": "m \\ge m_{\\min} \\;\\wedge\\; \\exists\\, \\text{známý pár} \\;\\wedge\\;\\text{graf známých párů je souvislý}",
       "formulas": [],
       "id": "f6_mappable",
       "implements": "aia_core.domain.sociomap.engine_v2:_unreached",
+      "inputs": [
+       "f3_status"
+      ],
       "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3.",
+      "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
+      "source_cs": "",
       "source_sha256": "316d808ab33bd28141fc3a012a8b1fd3f98884de5987199d395615d8824cd86b",
       "symbols": [
        {
@@ -4015,12 +4406,17 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F6"
        }
+      ],
+      "feeds": [
+       "f6_smacof",
+       "f7_stress"
       ],
       "formula_latex": "\\delta_{ij} = \\sqrt{\\max\\left(0,\\; 2\\,(1 - r_{ij})\\right)}\\quad\\text{pro známé páry, jinak bez váhy}",
       "formulas": [
@@ -4065,7 +4461,13 @@
       ],
       "id": "f6_distance",
       "implements": "aia_core.domain.sociomap.layout:correlation_distance",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "",
+      "role_cs": "Převede korelaci na vzdálenost, kterou se mapa snaží dodržet: podobně hodnocené objekty leží blízko sebe.",
+      "source_cs": "",
       "source_sha256": "299af337e48cbeba8044760465d6fd134b99f956576f69e0d6eee21e15d33f35",
       "symbols": [
        {
@@ -4091,6 +4493,7 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4098,11 +4501,22 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f7_stress",
+       "f10_placement",
+       "f12_envelope"
+      ],
       "formula_latex": "\\min_X \\sigma(X) = \\sum_{i<j} w_{ij}\\left(\\lVert x_i - x_j\\rVert - \\delta_{ij}\\right)^2,\\quad X \\leftarrow V^{+} B(X)\\, X,\\quad \\sigma_{t-1} - \\sigma_t \\le \\varepsilon \\max(\\sigma_t, 10^{-300})",
       "formulas": [],
       "id": "f6_smacof",
       "implements": "aia_core.domain.sociomap.layout:fit_smacof_objects",
+      "inputs": [
+       "f6_distance",
+       "f6_mappable"
+      ],
       "note_cs": "Start: Torgerson (neznámému páru se jen pro start doplní průměr známých δ²). Poté se mapa vycentruje, otočí do hlavních os a zrcadlí podle třetího momentu; nikdy se nenatahuje na poloměr.",
+      "role_cs": "Najde polohy objektů, které cílové vzdálenosti drží nejlépe. To jsou souřadnice na mapě.",
+      "source_cs": "",
       "source_sha256": "241827c0a6e4990ed89dff5a0258fcec75374f61866b79e538a197900e871f77",
       "symbols": [
        {
@@ -4184,12 +4598,16 @@
       ]
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F7"
        }
+      ],
+      "feeds": [
+       "f7_quality"
       ],
       "formula_latex": "\\text{Stress-1} = \\sqrt{\\frac{\\sum_{i<j} (d_{ij} - \\delta_{ij})^2}{\\sum_{i<j} \\delta_{ij}^2}}\\quad\\text{přes známé páry}",
       "formulas": [
@@ -4231,7 +4649,13 @@
       ],
       "id": "f7_stress",
       "implements": "aia_core.domain.sociomap.layout:_object_stress",
+      "inputs": [
+       "f6_smacof",
+       "f6_distance"
+      ],
       "note_cs": "",
+      "role_cs": "Měří, kolik musela mapa vzdálenosti zkreslit, aby se vešla do roviny.",
+      "source_cs": "",
       "source_sha256": "1eb3fa7ad0e52bd548350370d187308bc414561d15f2fa2d90a324cc6c989a3f",
       "symbols": [
        {
@@ -4247,6 +4671,7 @@
       "values": []
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4254,11 +4679,17 @@
         "ref": "AUDIT-F7"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{kvalita} = \\begin{cases} \\text{dobrá} & \\text{Stress-1} < b_1 \\\\ \\text{ucházející} & < b_2 \\\\ \\text{slabá} & < b_3 \\\\ \\text{2D obraz nespolehlivý} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f7_quality",
       "implements": "aia_core.domain.sociomap.view:stress_quality",
+      "inputs": [
+       "f7_stress"
+      ],
       "note_cs": "Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění.",
+      "role_cs": "Převede Stress-1 na slovo, které vidí čtenář výsledků.",
+      "source_cs": "",
       "source_sha256": "6a54c13d05342bde4d30ffd8bd768b43da0fe645650eeb826d8b06fd5085f3f0",
       "symbols": [
        {
@@ -4304,12 +4735,16 @@
       ]
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F8"
        }
+      ],
+      "feeds": [
+       "f9_k100"
       ],
       "formula_latex": "A_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} r_{ij},\\qquad K_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} |r_{ij}|",
       "formulas": [
@@ -4362,7 +4797,13 @@
       ],
       "id": "f8_scores",
       "implements": "aia_core.domain.sociomap.metrics:primary_scores",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
+      "source_cs": "",
       "source_sha256": "521da7e15361047c5c6ef793197310f57f1c6d4924ba85d101026517910ee021",
       "symbols": [
        {
@@ -4384,6 +4825,7 @@
       "values": []
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4395,6 +4837,9 @@
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
       "formulas": [
@@ -4431,7 +4876,12 @@
       ],
       "id": "f8_height",
       "implements": "aia_core.domain.sociomap.engine_v2:_heights",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "",
+      "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
+      "source_cs": "",
       "source_sha256": "b92511a1a55691a948eed0d03f1e4509a5d4bb2537edafb21e089e6e51494560",
       "symbols": [
        {
@@ -4456,12 +4906,16 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F9"
        }
+      ],
+      "feeds": [
+       "f9_quantile"
       ],
       "formula_latex": "K^{100}_i = 100\\,K_i,\\qquad K^{100,(b)}_i \\text{ pro } b = 1..B\\text{ (respondenti tažení s vracením)}",
       "formulas": [
@@ -4496,7 +4950,12 @@
       ],
       "id": "f9_k100",
       "implements": "aia_core.domain.sociomap.metrics:connectedness_100",
+      "inputs": [
+       "f8_scores"
+      ],
       "note_cs": "Stavy párů zůstávají z plného vzorku; převzorkování, které pár nespočte, objekt neskóruje. Počítá se jen se zapnutým AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED.",
+      "role_cs": "Propojenost na stupnici 0-100 s intervalem z převzorkování respondentů.",
+      "source_cs": "",
       "source_sha256": "e9302e1647a2b1318d3bbe60018fdb8133fd2783eed8e380fd687d776e11189a",
       "symbols": [
        {
@@ -4557,6 +5016,7 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4564,11 +5024,19 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [
+       "f9_rank"
+      ],
       "formula_latex": "Q(q) = x_{(\\lfloor h\\rfloor)} + (h - \\lfloor h\\rfloor)\\left(x_{(\\lfloor h\\rfloor + 1)} - x_{(\\lfloor h\\rfloor)}\\right),\\quad h = (B'-1)\\,q",
       "formulas": [],
       "id": "f9_quantile",
       "implements": "aia_core.domain.sociomap.metrics:linear_quantile",
+      "inputs": [
+       "f9_k100"
+      ],
       "note_cs": "",
+      "role_cs": "Z převzorkovaných hodnot vybere meze intervalu.",
+      "source_cs": "",
       "source_sha256": "95872353dfb1d33bacbeb502807d592ddb0710cc90117171edba39e2cec74048",
       "symbols": [
        {
@@ -4584,6 +5052,7 @@
       "values": []
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4591,11 +5060,17 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [],
       "formula_latex": "i \\succ j \\iff \\text{dolní}_i > \\text{horní}_j",
       "formulas": [],
       "id": "f9_rank",
       "implements": "aia_core.domain.sociomap.metrics:rank_with_ties",
+      "inputs": [
+       "f9_quantile"
+      ],
       "note_cs": "Dotýkající se intervaly se překrývají a jsou nerozhodné.",
+      "role_cs": "Seřadí objekty jen tam, kde se jejich intervaly neprotínají.",
+      "source_cs": "",
       "source_sha256": "750854455d8377bd7c8d313acdb0be1b34fa823f20d7387206c6f14b09cebbc0",
       "symbols": [],
       "tests": [
@@ -4606,6 +5081,7 @@
       "values": []
      },
      {
+      "audit": "F10",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4613,11 +5089,18 @@
         "ref": "AUDIT-F10"
        }
       ],
+      "feeds": [],
       "formula_latex": "x_k = \\arg\\min_x \\sum_{j \\in \\mathcal{P}} \\left(\\lVert x - y_j\\rVert - \\delta_{kj}\\right)^2,\\quad \\delta_{kj} = D\\,(1 - \\tilde a_{kj}),\\quad e_k = \\sqrt{\\frac{\\sum_j (\\lVert x_k - y_j\\rVert - \\delta_{kj})^2}{\\sum_j \\delta_{kj}^2}}",
       "formulas": [],
       "id": "f10_placement",
       "implements": "aia_core.domain.sociomap.specification:_require_supported_v3",
+      "inputs": [
+       "f6_smacof",
+       "f2_person_minmax"
+      ],
       "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "source_cs": "",
       "source_sha256": "8250a494e70414dd677225cc2c3d3ed2b51dd96ebeaa27bf1e41b35a484ed70c",
       "symbols": [
        {
@@ -4647,6 +5130,7 @@
       ]
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4654,11 +5138,21 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [
+       "f3_correlation",
+       "f3_effective_n",
+       "support"
+      ],
       "formula_latex": "\\max_l a_{kl} = \\min_l a_{kl} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
       "id": "f11_not_placed",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Je vyloučen ze vztahů a z terénu, ale počítá se do výšek a je sečten.",
+      "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [],
       "tests": [
@@ -4669,6 +5163,7 @@
       "values": []
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4676,6 +5171,7 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\text{eff}} = \\frac{\\left(\\sum_{k \\in U} w_k\\right)^2}{\\sum_{k \\in U} w_k^2},\\quad U = \\text{umístění respondenti}",
       "formulas": [
        {
@@ -4709,7 +5205,12 @@
       ],
       "id": "support",
       "implements": "aia_core.domain.sociomap.engine_v2:_support",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "Mapa uvádí počet respondentů, umístěných, neumístěných, efektivní n a dárce.",
+      "role_cs": "Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
+      "source_cs": "",
       "source_sha256": "9a71aaf6b5538d7f9df8df8a3d2a0c29183d34c17c00d17377d62d622e5f382d",
       "symbols": [],
       "tests": [
@@ -4719,6 +5220,7 @@
       "values": []
      },
      {
+      "audit": "F12-F13",
       "evidence": [
        {
         "kind": "register_rule",
@@ -4731,6 +5233,7 @@
         "ref": "AUDIT-F13"
        }
       ],
+      "feeds": [],
       "formula_latex": "z(q) = \\max_{j \\in \\mathcal{P},\\, h_j \\ne \\varnothing} h_j \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad g_t = -S + t\\,\\frac{2S}{N},\\; t = 0..N",
       "formulas": [
        {
@@ -4788,7 +5291,13 @@
       ],
       "id": "f12_envelope",
       "implements": "aia_core.domain.sociomap.terrain:envelope_at",
+      "inputs": [
+       "f6_smacof",
+       "f8_height"
+      ],
       "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
+      "source_cs": "",
       "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
       "symbols": [
        {
@@ -4875,127 +5384,99 @@
       "title_cs": "Metoda"
      },
      {
-      "id": "F1",
-      "note_cs": "",
+      "id": "S1",
+      "note_cs": "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
       "step_ids": [
-       "f1_declared_scale"
+       "f1_declared_scale",
+       "f2_person_minmax",
+       "f11_not_placed"
       ],
-      "title_cs": "F1 Které položky jsou hodnocení"
+      "title_cs": "Vstupní hodnocení"
      },
      {
-      "id": "F2",
-      "note_cs": "",
-      "step_ids": [
-       "f2_person_minmax"
-      ],
-      "title_cs": "F2 Hodnoticí zvyklosti"
-     },
-     {
-      "id": "F3",
-      "note_cs": "",
+      "id": "S2",
+      "note_cs": "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
       "step_ids": [
        "f3_correlation",
        "f3_effective_n",
        "f3_interval",
        "f3_status",
-       "f3_effect_floor"
-      ],
-      "title_cs": "F3 Vztah dvou objektů a jeho spolehlivost"
-     },
-     {
-      "id": "F4",
-      "note_cs": "",
-      "step_ids": [
+       "f3_effect_floor",
        "f4_strength"
       ],
-      "title_cs": "F4 Síla vztahu a šipky"
+      "title_cs": "Vztahy mezi objekty"
      },
      {
-      "id": "F5",
-      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
-      "step_ids": [],
-      "title_cs": "F5 Typ dodané matice"
-     },
-     {
-      "id": "F6",
-      "note_cs": "",
+      "id": "S3",
+      "note_cs": "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
       "step_ids": [
        "f6_mappable",
        "f6_distance",
        "f6_smacof"
       ],
-      "title_cs": "F6 Vzdálenost a rozložení"
+      "title_cs": "Rozložení na mapě"
      },
      {
-      "id": "F7",
-      "note_cs": "",
+      "id": "S4",
+      "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
       "step_ids": [
        "f7_stress",
        "f7_quality"
       ],
-      "title_cs": "F7 Jedno rozložení a jeho věrohodnost"
+      "title_cs": "Věrohodnost mapy"
      },
      {
-      "id": "F8",
-      "note_cs": "",
+      "id": "S5",
+      "note_cs": "Co mapa o každém objektu říká číslem: souhlasnost, propojenost a výška.",
       "step_ids": [
        "f8_scores",
-       "f8_height"
-      ],
-      "title_cs": "F8 Skóre objektů a výška"
-     },
-     {
-      "id": "F9",
-      "note_cs": "",
-      "step_ids": [
+       "f8_height",
        "f9_k100",
        "f9_quantile",
        "f9_rank"
       ],
-      "title_cs": "F9 Propojenost 0-100"
+      "title_cs": "Skóre a výška objektů"
      },
      {
-      "id": "F10",
-      "note_cs": "",
-      "step_ids": [
-       "f10_placement"
-      ],
-      "title_cs": "F10 Umístění respondentů"
-     },
-     {
-      "id": "F11",
-      "note_cs": "",
-      "step_ids": [
-       "f11_not_placed",
-       "support"
-      ],
-      "title_cs": "F11 Respondenti, které nelze umístit"
-     },
-     {
-      "id": "F12",
-      "note_cs": "",
+      "id": "S6",
+      "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
       "step_ids": [
        "f12_envelope"
       ],
-      "title_cs": "F12-F13 Terén"
+      "title_cs": "Terén"
+     },
+     {
+      "id": "S7",
+      "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+      "step_ids": [
+       "f10_placement",
+       "support"
+      ],
+      "title_cs": "Respondenti a podpora mapy"
+     },
+     {
+      "id": "F5",
+      "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
+      "step_ids": [],
+      "title_cs": "Zatím v AIA není: typ dodané matice (F5)"
      },
      {
       "id": "F14",
       "note_cs": "V AIA zatím není (sociomap-formula-corrections.md, krok 4d). Návrh auditu: testovat jen proměnné, které neurčily polohu, a korigovat Holmem: zamítnout H_(k), právě když p_(l) ≤ α / (|V_test| - l + 1) pro všechna l ≤ k, α = 0,05; nejdřív Cohenovo d s intervalem.",
       "step_ids": [],
-      "title_cs": "F14 Testy při porovnání oblastí"
+      "title_cs": "Zatím v AIA není: testy při porovnání oblastí (F14)"
      },
      {
       "id": "F15",
       "note_cs": "V AIA zatím není (krok 4d). Návrh auditu: |d| = |x̄_A - x̄_B| / s_pooled pro čísla, |h| = |2 arcsin √π_A - 2 arcsin √π_B| pro kategorie (maximum přes kategorie).",
       "step_ids": [],
-      "title_cs": "F15 Pořadí hlavních rozdílů"
+      "title_cs": "Zatím v AIA není: pořadí hlavních rozdílů (F15)"
      },
      {
       "id": "F16",
       "note_cs": "Otevřené (krok 4c). Týká se referenční mapy. Návrh auditu: δ_kj = (s_max - a_kj) / (s_max - s_min) a skutečné řádkově podmíněné rozvinutí se sklonem a posunem na respondenta a penalizací proti degeneraci.",
       "step_ids": [],
-      "title_cs": "F16 Cíle rozvinutí po respondentech"
+      "title_cs": "Zatím v AIA není: cíle rozvinutí po respondentech (F16)"
      }
     ],
     "id": "sociomap",
@@ -5009,6 +5490,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -5016,11 +5498,15 @@
         "ref": "docs/architecture/sociomapa-methodology-decision.md"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{metoda} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.sociomap.specification:SociomapSpecV3",
+      "inputs": [],
       "note_cs": "Běh si metodiku připne při spuštění; změna metodiky mění jméno i otisk.",
+      "role_cs": "Jméno a otisk metodiky, které si běh připne; podle nich je u každé mapy vidět, čím byla spočtena.",
+      "source_cs": "metodika v platnosti při spuštění běhu",
       "source_sha256": "a6306dbbc93aa77f0908bd5321d83d90083487d6943d90282b40fe83c62896ee",
       "symbols": [],
       "tests": [
@@ -5039,12 +5525,18 @@
       ]
      },
      {
+      "audit": "F1",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F1"
        }
+      ],
+      "feeds": [
+       "f2_person_minmax",
+       "f8_height",
+       "f11_not_placed"
       ],
       "formula_latex": "\\tilde a_{kc} = \\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c} \\in [0, 1],\\qquad a_{kc} \\notin [s^{\\min}_c, s^{\\max}_c] \\Rightarrow \\text{odmítnuto}",
       "formulas": [
@@ -5103,7 +5595,10 @@
       ],
       "id": "f1_declared_scale",
       "implements": "aia_core.domain.sociomap.engine_v2:_scaled",
+      "inputs": [],
       "note_cs": "Hodnocením je jen položka, kterou dotazník deklaruje jako škálu; nic se neodhaduje z hodnot sloupce.",
+      "role_cs": "Převede každé hodnocení na společnou škálu 0-1. Na těchto hodnotách stojí vše další; výšky objektů je berou přímo.",
+      "source_cs": "odpovědi respondentů a škály, které dotazník deklaruje",
       "source_sha256": "87ba2885568f944ceb4c7e2e4db4ebdf8e87a6d0289b2954ee32c300a85274d4",
       "symbols": [
        {
@@ -5139,12 +5634,17 @@
       ]
      },
      {
+      "audit": "F2",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F2"
        }
+      ],
+      "feeds": [
+       "f3_correlation",
+       "f10_placement"
       ],
       "formula_latex": "\\tilde a_{ki} = \\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}},\\qquad l \\in \\text{všechny položky, které } k \\text{ hodnotil}",
       "formulas": [
@@ -5198,7 +5698,12 @@
       ],
       "id": "f2_person_minmax",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Štědrý a přísný hodnotitel, kteří mají rádi totéž, pak vypadají stejně.",
+      "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [
        {
@@ -5230,6 +5735,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5242,11 +5748,25 @@
         "ref": "AUDIT-F3"
        }
       ],
+      "feeds": [
+       "f3_interval",
+       "f3_status",
+       "f3_effect_floor",
+       "f4_strength",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\bar a = \\frac{\\sum_k w_k \\tilde a_{ki}}{\\sum_k w_k},\\quad \\operatorname{cov} = \\frac{\\sum_k w_k (\\tilde a_{ki}-\\bar a)(\\tilde a_{kj}-\\bar b)}{\\sum_k w_k},\\quad r_{ij} = \\operatorname{clip}_{[-1,1]}\\frac{\\operatorname{cov}}{\\max\\left(\\sqrt{v_i v_j},\\,10^{-12}\\right)}",
       "formulas": [],
       "id": "f3_correlation",
       "implements": "aia_core.domain.sociomap.pairs:derive_pair_relations",
+      "inputs": [
+       "f2_person_minmax",
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Jádro mapy: jak podobně lidé hodnotí dva objekty. Z korelace se počítá vzdálenost, skóre i stav páru.",
+      "source_cs": "",
       "source_sha256": "65c960383625ff990b9bfc07bc45713a3f1620ab6c6d9f90503485e3a13c2d80",
       "symbols": [
        {
@@ -5286,6 +5806,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5297,6 +5818,10 @@
         "note_cs": "Dvě brány, nikdy jedna: dostatečnost důkazu (stav páru) a praktická velikost (práh účinku), obě deklarované a zaznamenané u každého páru.",
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f3_interval",
+       "f3_status"
       ],
       "formula_latex": "n_{ij} = \\begin{cases} \\#\\{k\\} & \\text{počet respondentů} \\\\ \\dfrac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2} & \\text{Kishovo efektivní } n\\end{cases}",
       "formulas": [
@@ -5331,7 +5856,12 @@
       ],
       "id": "f3_effective_n",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "",
+      "role_cs": "Kolik respondentů pár skutečně nese; při vážení méně než počet lidí.",
+      "source_cs": "",
       "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
       "symbols": [
        {
@@ -5357,12 +5887,16 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F3"
        }
+      ],
+      "feeds": [
+       "f3_status"
       ],
       "formula_latex": "\\left[\\tanh\\!\\left(\\operatorname{atanh} r - \\frac{z_c}{\\sqrt{n-3}}\\right),\\;\\tanh\\!\\left(\\operatorname{atanh} r + \\frac{z_c}{\\sqrt{n-3}}\\right)\\right],\\qquad z_c = \\Phi^{-1}\\!\\left(\\tfrac12 + \\tfrac c2\\right)",
       "formulas": [
@@ -5463,7 +5997,13 @@
       ],
       "id": "f3_interval",
       "implements": "aia_core.domain.sociomap.relations:fisher_interval",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n"
+      ],
       "note_cs": "Při |r| = 1 je interval bodem (r, r); pod čtyřmi hodnotiteli interval není.",
+      "role_cs": "Nejistota korelace; rozhoduje, zda je pár spolehlivý.",
+      "source_cs": "",
       "source_sha256": "667142a630eedf3933a101cfff9669882e28f661c2feb1c4d93d7dc80ce0dcca",
       "symbols": [
        {
@@ -5503,6 +6043,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5515,11 +6056,24 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [
+       "f4_strength",
+       "f6_mappable",
+       "f6_distance",
+       "f8_scores"
+      ],
       "formula_latex": "\\text{stav}_{ij} = \\begin{cases}\\text{UNKNOWN} & r_{ij} \\text{ neexistuje nebo } n_{ij} < n_{\\min} \\\\\\text{RELIABLE} & 0 \\notin \\text{interval} \\\\\\text{WEAK} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f3_status",
       "implements": "aia_core.domain.sociomap.relations:pair_status",
+      "inputs": [
+       "f3_correlation",
+       "f3_effective_n",
+       "f3_interval"
+      ],
       "note_cs": "Neznámý pár se nikdy nezapíše jako „žádný vztah“: na mapě nepůsobí.",
+      "role_cs": "Třídí páry na spolehlivé, slabé a neznámé. Neznámý pár mapu netvaruje a do skóre nevstupuje.",
+      "source_cs": "",
       "source_sha256": "281eae379eae55c16e61af140e030ea6c95e318243636a20391a9981894ef5f7",
       "symbols": [],
       "tests": [
@@ -5547,6 +6101,7 @@
       ]
      },
      {
+      "audit": "F3",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5559,6 +6114,7 @@
         "ref": "sociomap-formula-corrections.md § 4a, Q6 (2026-10-09)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{dosahuje prahu}_{ij} = \\left(|r_{ij}| \\ge r_{\\min}\\right)",
       "formulas": [
        {
@@ -5594,7 +6150,12 @@
       ],
       "id": "f3_effect_floor",
       "implements": "aia_core.domain.sociomap.relations:meets_effect_floor",
+      "inputs": [
+       "f3_correlation"
+      ],
       "note_cs": "Zaznamenává se vedle stavu, nikdy do něj: pár může být spolehlivý a malý, nebo velký a nejistý.",
+      "role_cs": "Označí páry s prakticky malým vztahem; stav páru nemění, ukáže se vedle něj.",
+      "source_cs": "",
       "source_sha256": "a1f1186816f6aebe935a6a62b0c9f852e37066ddcc7e15af70617363cd31d57a",
       "symbols": [
        {
@@ -5620,6 +6181,7 @@
       ]
      },
      {
+      "audit": "F4",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5627,11 +6189,18 @@
         "ref": "AUDIT-F4"
        }
       ],
+      "feeds": [],
       "formula_latex": "s_{ij} = |r_{ij}|,\\qquad \\operatorname{sgn} r_{ij} \\text{ jako barva}",
       "formulas": [],
       "id": "f4_strength",
       "implements": "aia_core.domain.sociomap.engine_v2:compute_object_map",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Šipky (audit: jen spolehlivé vztahy) AIA zatím nekreslí. Stupnice 1-10 se pro objektovou mapu nepoužívá.",
+      "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
+      "source_cs": "",
       "source_sha256": "deb3c4c93cf57ca3ac2b4c7f3d537a89a19772d70ed442c2a23c2ace9505ce6e",
       "symbols": [],
       "tests": [
@@ -5641,6 +6210,7 @@
       "values": []
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5648,11 +6218,19 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f6_smacof"
+      ],
       "formula_latex": "m \\ge m_{\\min} \\;\\wedge\\; \\exists\\, \\text{známý pár} \\;\\wedge\\;\\text{graf známých párů je souvislý}",
       "formulas": [],
       "id": "f6_mappable",
       "implements": "aia_core.domain.sociomap.engine_v2:_unreached",
+      "inputs": [
+       "f3_status"
+      ],
       "note_cs": "Známý pár je spolehlivý nebo slabý. Minimum objektů deklaruje aia-sociomap-4 (nejméně 3: dva body nemají tvar); běh připnutý dřív počítá s konstantou 3.",
+      "role_cs": "Rozhodne, zda se z rodiny objektů dá mapa nakreslit. Když ne, běh to řekne místo kreslení.",
+      "source_cs": "",
       "source_sha256": "316d808ab33bd28141fc3a012a8b1fd3f98884de5987199d395615d8824cd86b",
       "symbols": [
        {
@@ -5691,12 +6269,17 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F6"
        }
+      ],
+      "feeds": [
+       "f6_smacof",
+       "f7_stress"
       ],
       "formula_latex": "\\delta_{ij} = \\sqrt{\\max\\left(0,\\; 2\\,(1 - r_{ij})\\right)}\\quad\\text{pro známé páry, jinak bez váhy}",
       "formulas": [
@@ -5741,7 +6324,13 @@
       ],
       "id": "f6_distance",
       "implements": "aia_core.domain.sociomap.layout:correlation_distance",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "",
+      "role_cs": "Převede korelaci na vzdálenost, kterou se mapa snaží dodržet: podobně hodnocené objekty leží blízko sebe.",
+      "source_cs": "",
       "source_sha256": "299af337e48cbeba8044760465d6fd134b99f956576f69e0d6eee21e15d33f35",
       "symbols": [
        {
@@ -5767,6 +6356,7 @@
       ]
      },
      {
+      "audit": "F6",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5774,11 +6364,22 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [
+       "f7_stress",
+       "f10_placement",
+       "f12_envelope"
+      ],
       "formula_latex": "\\min_X \\sigma(X) = \\sum_{i<j} w_{ij}\\left(\\lVert x_i - x_j\\rVert - \\delta_{ij}\\right)^2,\\quad X \\leftarrow V^{+} B(X)\\, X,\\quad \\sigma_{t-1} - \\sigma_t \\le \\varepsilon \\max(\\sigma_t, 10^{-300})",
       "formulas": [],
       "id": "f6_smacof",
       "implements": "aia_core.domain.sociomap.layout:fit_smacof_objects",
+      "inputs": [
+       "f6_distance",
+       "f6_mappable"
+      ],
       "note_cs": "Start: Torgerson (neznámému páru se jen pro start doplní průměr známých δ²). Poté se mapa vycentruje, otočí do hlavních os a zrcadlí podle třetího momentu; nikdy se nenatahuje na poloměr.",
+      "role_cs": "Najde polohy objektů, které cílové vzdálenosti drží nejlépe. To jsou souřadnice na mapě.",
+      "source_cs": "",
       "source_sha256": "241827c0a6e4990ed89dff5a0258fcec75374f61866b79e538a197900e871f77",
       "symbols": [
        {
@@ -5860,12 +6461,16 @@
       ]
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F7"
        }
+      ],
+      "feeds": [
+       "f7_quality"
       ],
       "formula_latex": "\\text{Stress-1} = \\sqrt{\\frac{\\sum_{i<j} (d_{ij} - \\delta_{ij})^2}{\\sum_{i<j} \\delta_{ij}^2}}\\quad\\text{přes známé páry}",
       "formulas": [
@@ -5907,7 +6512,13 @@
       ],
       "id": "f7_stress",
       "implements": "aia_core.domain.sociomap.layout:_object_stress",
+      "inputs": [
+       "f6_smacof",
+       "f6_distance"
+      ],
       "note_cs": "",
+      "role_cs": "Měří, kolik musela mapa vzdálenosti zkreslit, aby se vešla do roviny.",
+      "source_cs": "",
       "source_sha256": "1eb3fa7ad0e52bd548350370d187308bc414561d15f2fa2d90a324cc6c989a3f",
       "symbols": [
        {
@@ -5923,6 +6534,7 @@
       "values": []
      },
      {
+      "audit": "F7",
       "evidence": [
        {
         "kind": "register_rule",
@@ -5930,11 +6542,17 @@
         "ref": "AUDIT-F7"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{kvalita} = \\begin{cases} \\text{dobrá} & \\text{Stress-1} < b_1 \\\\ \\text{ucházející} & < b_2 \\\\ \\text{slabá} & < b_3 \\\\ \\text{2D obraz nespolehlivý} & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "f7_quality",
       "implements": "aia_core.domain.sociomap.view:stress_quality",
+      "inputs": [
+       "f7_stress"
+      ],
       "note_cs": "Zarovnání na referenční mapu (Procrustes) je pohled a výpočet mapy nemění.",
+      "role_cs": "Převede Stress-1 na slovo, které vidí čtenář výsledků.",
+      "source_cs": "",
       "source_sha256": "6a54c13d05342bde4d30ffd8bd768b43da0fe645650eeb826d8b06fd5085f3f0",
       "symbols": [
        {
@@ -5984,12 +6602,16 @@
       ]
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F8"
        }
+      ],
+      "feeds": [
+       "f9_k100"
       ],
       "formula_latex": "A_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} r_{ij},\\qquad K_i = \\frac{1}{k_i}\\sum_{j \\in \\mathcal{K}_i} |r_{ij}|",
       "formulas": [
@@ -6042,7 +6664,13 @@
       ],
       "id": "f8_scores",
       "implements": "aia_core.domain.sociomap.metrics:primary_scores",
+      "inputs": [
+       "f3_correlation",
+       "f3_status"
+      ],
       "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
+      "source_cs": "",
       "source_sha256": "521da7e15361047c5c6ef793197310f57f1c6d4924ba85d101026517910ee021",
       "symbols": [
        {
@@ -6064,6 +6692,7 @@
       "values": []
      },
      {
+      "audit": "F8",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6075,6 +6704,9 @@
         "note_cs": "Výška objektu je jeho vážený průměr hodnocení na deklarované škále 0-1.",
         "ref": "sociomap-formula-corrections.md § 4a, Q7 (2026-10-09)"
        }
+      ],
+      "feeds": [
+       "f12_envelope"
       ],
       "formula_latex": "h_j = \\frac{\\sum_k w_k \\tilde a_{kj}}{\\sum_k w_k}\\quad\\text{(F1, před F2)}",
       "formulas": [
@@ -6111,7 +6743,12 @@
       ],
       "id": "f8_height",
       "implements": "aia_core.domain.sociomap.engine_v2:_heights",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "",
+      "role_cs": "Průměrné hodnocení objektu; výška jeho kopce v terénu.",
+      "source_cs": "",
       "source_sha256": "b92511a1a55691a948eed0d03f1e4509a5d4bb2537edafb21e089e6e51494560",
       "symbols": [
        {
@@ -6136,12 +6773,16 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
         "note_cs": "",
         "ref": "AUDIT-F9"
        }
+      ],
+      "feeds": [
+       "f9_quantile"
       ],
       "formula_latex": "K^{100}_i = 100\\,K_i,\\qquad K^{100,(b)}_i \\text{ pro } b = 1..B\\text{ (respondenti tažení s vracením)}",
       "formulas": [
@@ -6176,7 +6817,12 @@
       ],
       "id": "f9_k100",
       "implements": "aia_core.domain.sociomap.metrics:connectedness_100",
+      "inputs": [
+       "f8_scores"
+      ],
       "note_cs": "Stavy párů zůstávají z plného vzorku; převzorkování, které pár nespočte, objekt neskóruje. Počítá se jen se zapnutým AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED.",
+      "role_cs": "Propojenost na stupnici 0-100 s intervalem z převzorkování respondentů.",
+      "source_cs": "",
       "source_sha256": "e9302e1647a2b1318d3bbe60018fdb8133fd2783eed8e380fd687d776e11189a",
       "symbols": [
        {
@@ -6240,6 +6886,7 @@
       ]
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6247,11 +6894,19 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [
+       "f9_rank"
+      ],
       "formula_latex": "Q(q) = x_{(\\lfloor h\\rfloor)} + (h - \\lfloor h\\rfloor)\\left(x_{(\\lfloor h\\rfloor + 1)} - x_{(\\lfloor h\\rfloor)}\\right),\\quad h = (B'-1)\\,q",
       "formulas": [],
       "id": "f9_quantile",
       "implements": "aia_core.domain.sociomap.metrics:linear_quantile",
+      "inputs": [
+       "f9_k100"
+      ],
       "note_cs": "",
+      "role_cs": "Z převzorkovaných hodnot vybere meze intervalu.",
+      "source_cs": "",
       "source_sha256": "95872353dfb1d33bacbeb502807d592ddb0710cc90117171edba39e2cec74048",
       "symbols": [
        {
@@ -6267,6 +6922,7 @@
       "values": []
      },
      {
+      "audit": "F9",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6274,11 +6930,17 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [],
       "formula_latex": "i \\succ j \\iff \\text{dolní}_i > \\text{horní}_j",
       "formulas": [],
       "id": "f9_rank",
       "implements": "aia_core.domain.sociomap.metrics:rank_with_ties",
+      "inputs": [
+       "f9_quantile"
+      ],
       "note_cs": "Dotýkající se intervaly se překrývají a jsou nerozhodné.",
+      "role_cs": "Seřadí objekty jen tam, kde se jejich intervaly neprotínají.",
+      "source_cs": "",
       "source_sha256": "750854455d8377bd7c8d313acdb0be1b34fa823f20d7387206c6f14b09cebbc0",
       "symbols": [],
       "tests": [
@@ -6289,6 +6951,7 @@
       "values": []
      },
      {
+      "audit": "F10",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6296,11 +6959,18 @@
         "ref": "AUDIT-F10"
        }
       ],
+      "feeds": [],
       "formula_latex": "x_k = \\arg\\min_x \\sum_{j \\in \\mathcal{P}} \\left(\\lVert x - y_j\\rVert - \\delta_{kj}\\right)^2,\\quad \\delta_{kj} = D\\,(1 - \\tilde a_{kj}),\\quad e_k = \\sqrt{\\frac{\\sum_j (\\lVert x_k - y_j\\rVert - \\delta_{kj})^2}{\\sum_j \\delta_{kj}^2}}",
       "formulas": [],
       "id": "f10_placement",
       "implements": "aia_core.domain.sociomap.specification:_require_supported_v3",
+      "inputs": [
+       "f6_smacof",
+       "f2_person_minmax"
+      ],
       "note_cs": "V AIA zatím není: specifikace musí uvést null a jinou hodnotu odmítne. Vzorec je návrh auditu; práh nesouladu je otevřený (sociomap-formula-corrections.md, krok 3).",
+      "role_cs": "Návrh: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
+      "source_cs": "",
       "source_sha256": "8250a494e70414dd677225cc2c3d3ed2b51dd96ebeaa27bf1e41b35a484ed70c",
       "symbols": [
        {
@@ -6330,6 +7000,7 @@
       ]
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6337,11 +7008,21 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [
+       "f3_correlation",
+       "f3_effective_n",
+       "support"
+      ],
       "formula_latex": "\\max_l a_{kl} = \\min_l a_{kl} \\;\\Rightarrow\\; k \\text{ NEUMÍSTĚN}",
       "formulas": [],
       "id": "f11_not_placed",
       "implements": "aia_core.domain.sociomap.relations:person_minmax",
+      "inputs": [
+       "f1_declared_scale"
+      ],
       "note_cs": "Je vyloučen ze vztahů a z terénu, ale počítá se do výšek a je sečten.",
+      "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
+      "source_cs": "",
       "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
       "symbols": [],
       "tests": [
@@ -6352,6 +7033,7 @@
       "values": []
      },
      {
+      "audit": "F11",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6359,6 +7041,7 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\text{eff}} = \\frac{\\left(\\sum_{k \\in U} w_k\\right)^2}{\\sum_{k \\in U} w_k^2},\\quad U = \\text{umístění respondenti}",
       "formulas": [
        {
@@ -6392,7 +7075,12 @@
       ],
       "id": "support",
       "implements": "aia_core.domain.sociomap.engine_v2:_support",
+      "inputs": [
+       "f11_not_placed"
+      ],
       "note_cs": "Mapa uvádí počet respondentů, umístěných, neumístěných, efektivní n a dárce.",
+      "role_cs": "Počty, které mapa uvádí: kdo ji nese, kdo vypadl a jaké je efektivní n.",
+      "source_cs": "",
       "source_sha256": "9a71aaf6b5538d7f9df8df8a3d2a0c29183d34c17c00d17377d62d622e5f382d",
       "symbols": [],
       "tests": [
@@ -6402,6 +7090,7 @@
       "values": []
      },
      {
+      "audit": "F12-F13",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6414,6 +7103,7 @@
         "ref": "AUDIT-F13"
        }
       ],
+      "feeds": [],
       "formula_latex": "z(q) = \\max_{j \\in \\mathcal{P},\\, h_j \\ne \\varnothing} h_j \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad g_t = -S + t\\,\\frac{2S}{N},\\; t = 0..N",
       "formulas": [
        {
@@ -6471,7 +7161,13 @@
       ],
       "id": "f12_envelope",
       "implements": "aia_core.domain.sociomap.terrain:envelope_at",
+      "inputs": [
+       "f6_smacof",
+       "f8_height"
+      ],
       "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů).",
+      "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
+      "source_cs": "",
       "source_sha256": "8672f6dc43b2c181319e75a62724dad7138ece866ec1628d6f1a29f2b755e254",
       "symbols": [
        {
@@ -6621,6 +7317,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -6628,11 +7325,15 @@
         "ref": "docs/architecture/sociomapa-methodology-decision.md § 1"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{metoda} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.sociomap.specification:SociomapSpec",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "70e2ca702cea3acaf42d4c9e082e25456752fb130bcff8a79edf82a6400154e8",
       "symbols": [],
       "tests": [
@@ -6651,6 +7352,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6663,11 +7365,15 @@
         "ref": "project_engine.py:34-35 (vaha)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_k \\leftarrow w_k \\cdot \\frac{N}{\\sum_l w_l}",
       "formulas": [],
       "id": "weights",
       "implements": "aia_core.domain.research_sociomap:battery_sociomap",
+      "inputs": [],
       "note_cs": "Neplatná (nekonečná) váha se v matici vztahů čte jako 1.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "46b696d92233a00f20d6fd5a0c8ad613f8ab54ffedaf5ab38764c6e447fbe24d",
       "symbols": [
        {
@@ -6683,6 +7389,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6700,11 +7407,15 @@
         "ref": "F8"
        }
       ],
+      "feeds": [],
       "formula_latex": "a_{kj} \\in [s^{\\min}, s^{\\max}],\\quad a_{kj} \\notin [s^{\\min}, s^{\\max}] \\Rightarrow \\text{odmítnuto, ne oříznuto}",
       "formulas": [],
       "id": "scale",
       "implements": "aia_core.domain.sociomap.engine:_check_scale",
+      "inputs": [],
       "note_cs": "Výzkumný krok přepíše oba konce škálou baterie, takže mapa běhu nese škálu dat, ne 1-10 z presetu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "eedd2d4a2d4df28cf781e29e3ae834f9c144a748f8a739292752dff829866352",
       "symbols": [],
       "tests": [
@@ -6732,6 +7443,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6739,11 +7451,15 @@
         "ref": "AUDIT-F11"
        }
       ],
+      "feeds": [],
       "formula_latex": "k \\text{ neumístěn} \\iff \\#\\{j : a_{kj} \\text{ pozorováno}\\} < 2\\;\\vee\\; \\max_j a_{kj} = \\min_j a_{kj}",
       "formulas": [],
       "id": "placeability",
       "implements": "aia_core.domain.sociomap.engine:_placeability",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "80baacdb7e98e699f6a02ae6c7bf33ccd79e0cb6ec322aabb92ad47d5ebd0cd2",
       "symbols": [],
       "tests": [
@@ -6754,6 +7470,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -6776,11 +7493,15 @@
         "ref": "AUDIT-F4"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{rel}_{ij} = \\begin{cases} 5{,}5 & \\text{méně než 5 společných hodnotitelů} \\\\ \\operatorname{clip}_{[1,10]}\\!\\left(1 + 9\\,\\frac{r_{ij} + 1}{2}\\right) & \\text{jinak} \\end{cases}",
       "formulas": [],
       "id": "relation_matrix",
       "implements": "aia_core.domain.sociomap.pairs:derive_relation_matrix",
+      "inputs": [],
       "note_cs": "Hranice 5 hodnotitelů a hodnota 5,5 jsou přímo v kódu převzaté funkce.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "f108245e0be7e8016248075efa15e8bcc985f7e26202b4088b26e289235c7bec",
       "symbols": [
        {
@@ -6797,6 +7518,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -6809,11 +7531,15 @@
         "ref": "AUDIT-F5"
        }
       ],
+      "feeds": [],
       "formula_latex": "R'_{ij} = \\begin{cases} 1 + 9x & \\text{všechny mimo diagonálu v } [0,1] \\\\ 1 + 9\\,\\frac{x+1}{2} & \\text{všechny v } [-1,1] \\\\ \\operatorname{clip}_{[1,10]}(x) & \\text{jinak} \\end{cases},\\quad R'_{ii} = 0",
       "formulas": [],
       "id": "coercion",
       "implements": "aia_core.domain.sociomap.relations:coerce_relation_scale_1_10",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ce1e1a5b6543131758bc4e42a05ff0ce4d1263a6e1157d15cea9fb8f84eacf4f",
       "symbols": [],
       "tests": [
@@ -6874,6 +7600,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -6886,11 +7613,15 @@
         "ref": "F2"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\mu_{ij} = \\operatorname{clip}_{[0,1]}\\!\\left(\\frac{(R'_{ij} + R'_{ji})/2 - 1}{9}\\right)",
       "formulas": [],
       "id": "projection",
       "implements": "aia_core.domain.sociomap.relations:mutual_from_1_10",
+      "inputs": [],
       "note_cs": "Ukládá se, ale polohu neurčuje: tu dává rozvinutí hodnocení níže.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d5ae50da12aedcbe09ad71770657ee3f630d1b3d8275376791bffaa3dd312434",
       "symbols": [],
       "tests": [
@@ -6909,6 +7640,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -6926,11 +7658,15 @@
         "ref": "AUDIT-F16"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\delta_{kj} = s^{\\max} - a_{kj}\\quad\\text{přes pozorované buňky}",
       "formulas": [],
       "id": "dissimilarity",
       "implements": "aia_core.domain.sociomap.layout:scale_top_dissimilarity",
+      "inputs": [],
       "note_cs": "Ipsatizace (F3) je převzatá, ale s tímto cílem ji specifikace odmítne.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "bec759d7150e79f0dd9ff838d9eced4e30ee23976405546a2ce5984ac9ed8121",
       "symbols": [],
       "tests": [
@@ -6965,6 +7701,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -6977,11 +7714,15 @@
         "ref": "AUDIT-F16"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\hat d_{kj} = b_k \\delta_{kj},\\ \\sum_k b_k^2 \\lVert\\delta_k\\rVert^2 = C;\\quad \\min \\sum_{k,j} (\\hat d_{kj} - \\lVert x_k - y_j\\rVert)^2;\\quad \\frac{\\sigma_{t-1} - \\sigma_t}{C} < \\varepsilon",
       "formulas": [],
       "id": "unfolding",
       "implements": "aia_core.domain.sociomap.layout:fit_rowcond_unfolding",
+      "inputs": [],
       "note_cs": "Start: klasické škálování profilů, respondenti jako vážený průměr objektů. Kroky: majorizace respondentů, objektů, pak měřítek řádků. Výsledek se vycentruje, otočí do hlavních os a zrcadlí podle třetího momentu. Bez náhody (semínko null).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "b6636d7c1a6f71421fcc3c8d5b1237c8cd27cc5c164b5f0e8c28c1582e2926fc",
       "symbols": [
        {
@@ -7051,6 +7792,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7058,11 +7800,15 @@
         "ref": "AUDIT-F7"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{Stress-1} = \\sqrt{\\frac{\\sum (\\hat d_{kj} - d_{kj})^2}{\\sum d_{kj}^2}}\\quad\\text{přes pozorované buňky}",
       "formulas": [],
       "id": "stress",
       "implements": "aia_core.domain.sociomap.layout:stress_1",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "6fc92ed373138105d47a1d9d37572d7cc3b5ceab7cc9af82295acfbb49e53512",
       "symbols": [],
       "tests": [
@@ -7072,6 +7818,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -7084,11 +7831,15 @@
         "ref": "AUDIT-F6"
        }
       ],
+      "feeds": [],
       "formula_latex": "s = \\frac{\\text{rozsah}}{\\max |c|}\\quad\\text{přes všechny souřadnice}",
       "formulas": [],
       "id": "frame",
       "implements": "aia_core.domain.sociomap.engine:compute_sociomap",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "4352fbe2f1cfa7f1c92688466a81a59542bbad6adf810bb9086ea9fb44572189",
       "symbols": [],
       "tests": [
@@ -7115,6 +7866,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7127,11 +7879,15 @@
         "ref": "F6"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{výška}_j, \\text{barva}_j \\in \\{\\text{zvolená metrika objektu}\\}",
       "formulas": [],
       "id": "object_metric",
       "implements": "aia_core.domain.sociomap.metrics:object_metric",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "bfbefd65abf19999eb6a07b0b0903274fe09cb1e4c516f0caa48f3a444bdc00e",
       "symbols": [],
       "tests": [
@@ -7158,6 +7914,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -7170,11 +7927,15 @@
         "ref": "AUDIT-F8"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{classic}_i = \\sum_j \\left(R'_{ij} + R'_{ji}\\right)",
       "formulas": [],
       "id": "relation_classic",
       "implements": "aia_core.domain.sociomap.metrics:relation_classic",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "75349f84132a258a653947e8cb284455fc087ac9631cc32fdca50e3be28cac2c",
       "symbols": [],
       "tests": [
@@ -7184,6 +7945,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -7196,11 +7958,15 @@
         "ref": "AUDIT-F9"
        }
       ],
+      "feeds": [],
       "formula_latex": "T_i = 50 + 10\\,\\frac{v_i - \\mu}{\\sigma},\\quad \\sigma \\text{ populační};\\quad \\sigma < \\varepsilon \\Rightarrow T_i = 50",
       "formulas": [],
       "id": "tscore",
       "implements": "aia_core.domain.sociomap.metrics:tscore",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "a5f543b6740edec57cff7419cf8eeb48b5ac57bfe2d9196657712f4c2637bb28",
       "symbols": [],
       "tests": [
@@ -7227,6 +7993,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7239,11 +8006,15 @@
         "ref": "docs/architecture/sociomapa-methodology-decision.md § 1"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\bar a_j = \\frac{1}{n_j}\\sum_{k} a_{kj},\\quad n_j = \\#\\text{pozorovaných}",
       "formulas": [],
       "id": "mean_rating",
       "implements": "aia_core.domain.sociomap.metrics:object_rating_summaries",
+      "inputs": [],
       "note_cs": "Nevážený průměr; matice vztahů výše počítá vážený.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "6532c9f3db04cc9df23cce989217acddb488be1ec30acdfe6beb040ef6582a1b",
       "symbols": [],
       "tests": [
@@ -7253,6 +8024,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7265,11 +8037,15 @@
         "ref": "F7"
        }
       ],
+      "feeds": [],
       "formula_latex": "h(q) = \\sum_{k} \\kappa(q, x_k),\\quad \\kappa = e^{-\\lVert q - x\\rVert^2 / 2\\sigma^2}\\ (\\text{vynechá se pod prahem}),\\quad z = \\operatorname{norm}(h)\\cdot z_{\\text{scale}}",
       "formulas": [],
       "id": "terrain_respondents",
       "implements": "aia_core.domain.sociomap.terrain:compute_terrain",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "879f9f3fe2dc085c2cc8fa13182c34c83aa53deff8cbaace16d3fc6e01683ad4",
       "symbols": [],
       "tests": [
@@ -7321,6 +8097,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "fixture",
@@ -7333,11 +8110,15 @@
         "ref": "AUDIT-F12"
        }
       ],
+      "feeds": [],
       "formula_latex": "h(q) = \\frac{\\sum_j \\kappa(q, y_j)\\, v_j}{\\sum_j \\kappa(q, y_j)},\\quad \\sum_j \\kappa = 0 \\Rightarrow \\text{bez výšky}",
       "formulas": [],
       "id": "terrain_objects",
       "implements": "aia_core.domain.sociomap.terrain:_accumulate",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "1a6e72708598c90ab95ad49c7e7677737bc28297733ff41742d14d5626c5e541",
       "symbols": [],
       "tests": [
@@ -7389,6 +8170,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7401,11 +8183,15 @@
         "ref": "F5"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\operatorname{norm}(x) = \\begin{cases}\\operatorname{clip}_{[0,1]}\\frac{x - lo}{hi - lo}\\ (0{,}5 \\text{ při } hi = lo) & \\text{range} \\\\\\operatorname{clip}_{[0,1]}\\frac{x - a}{b - a} & \\text{absolute} \\\\\\operatorname{clip}_{[0,1]}\\left(0{,}5 + \\frac{z}{5}\\right),\\ z = \\frac{x-\\mu}{\\sigma} & \\text{sigma} \\\\\\#\\{v \\le x\\} / n & \\text{percentile} \\end{cases}",
       "formulas": [],
       "id": "normaliser",
       "implements": "aia_core.domain.sociomap.metrics:build_normalizer",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "22fafbf0d80250de2e10eae2af0f31f1f4c33319b3f267c3e8a96e09a4f77e40",
       "symbols": [],
       "tests": [
@@ -7487,6 +8273,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7494,11 +8281,15 @@
         "ref": "AIA-D2"
        }
       ],
+      "feeds": [],
       "formula_latex": "K = \\{k : a_{kj}\\ \\text{zodpovězeno pro všechna}\\ j\\},\\quad w_k = 1",
       "formulas": [],
       "id": "complete_cases",
       "implements": "aia_core.domain.research_sociomapping:battery_sociomapping",
+      "inputs": [],
       "note_cs": "Váhy respondentů se nepoužijí (žádný zdroj Sociomapu neváží, M7). Sada pod tři objekty nebo pod dva úplné respondenty se nemapuje a výsledek řekne proč.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "405812d3899dfdccde38ea60ce950758d0f70520d6aa94b30412bf5dec01811e",
       "symbols": [
        {
@@ -7532,6 +8323,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7539,11 +8331,15 @@
         "ref": "RTS-N1"
        }
       ],
+      "feeds": [],
       "formula_latex": "x_{kj} = \\frac{a_{kj} - s^{\\min}}{s^{\\max} - s^{\\min}}",
       "formulas": [],
       "id": "scale",
       "implements": "aia_core.domain.sociomap.fuzzy:rts_scale_answers",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "fd203e7bb93a530834f36c900900efe2fa447fe037ca4a6bb298a7361fc6963d",
       "symbols": [],
       "tests": [
@@ -7553,6 +8349,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7560,11 +8357,15 @@
         "ref": "RTS-O1"
        }
       ],
+      "feeds": [],
       "formula_latex": "v_{rs} = \\operatorname{corr}(x_{\\cdot r}, x_{\\cdot s})",
       "formulas": [],
       "id": "correlations",
       "implements": "aia_core.domain.sociomap.fuzzy:rts_object_correlations",
+      "inputs": [],
       "note_cs": "Pearsonova korelace se znaménkem; nic se neořezává ani neposouvá.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ba7df2fbc7f3aecf9d52e0131eaf2eb2621ea5ec8bf7015d4fc190da8ca14dc5",
       "symbols": [],
       "tests": [
@@ -7574,6 +8375,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7581,11 +8383,15 @@
         "ref": "AIA-D1"
        }
       ],
+      "feeds": [],
       "formula_latex": "V = (v_{rs}),\\quad v_{rs}\\ \\text{nedefinováno} \\Rightarrow \\text{pojmenováno, nedoplněno}",
       "formulas": [],
       "id": "declared",
       "implements": "aia_core.domain.sociomap.declared:declared_from_correlations",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "3272d6d6c5471734c704d77a23ef8a2824fe27f6802f6279db5f5ad545ee25a9",
       "symbols": [],
       "tests": [
@@ -7595,6 +8401,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7607,11 +8414,15 @@
         "ref": "QED-H2"
        }
       ],
+      "feeds": [],
       "formula_latex": "A = \\rho_S\\big(v_{rs},\\ -d_{rs}\\big)\\quad\\text{přes definované uspořádané páry}",
       "formulas": [],
       "id": "accuracy",
       "implements": "aia_core.domain.sociomap.hmodel:hmodel_accuracy",
+      "inputs": [],
       "note_cs": "Všechny body váží stejně; důležitost bodu (SOMECS, s. 56) se nemodeluje.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "a3936fe51d510e607147c6a41f6c86d8537ca4a23e1217ffd650db77dd030cda",
       "symbols": [
        {
@@ -7633,6 +8444,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7640,11 +8452,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "j\\ \\text{bez definovaného vztahu} \\Rightarrow \\text{neumístěn, s důvodem}",
       "formulas": [],
       "id": "placeable",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_placeable",
+      "inputs": [],
       "note_cs": "Nikdy se nevypustí potichu ani nepoloží na výchozí místo.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "1dd0accd503b2417744a16fd92494bce71fa8f5529f169ef63c6377df6fe3a3c",
       "symbols": [],
       "tests": [
@@ -7654,6 +8470,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7661,11 +8478,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{klasické MDS na pořadích} \\;\\cup\\; \\{U(\\text{seed} + k)\\}_{k=1}^{R}",
       "formulas": [],
       "id": "starts",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_classical_start",
+      "inputs": [],
       "note_cs": "Vyhrává nejvyšší konečná přesnost, při shodě dřívější start. Přesnost startu klasickým MDS se uvádí jako základna.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ac386127825d1a1716f19d111a363c19a99f1682cedd943527cba58a383199e8",
       "symbols": [
        {
@@ -7698,6 +8519,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7705,11 +8527,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\max\\ \\operatorname{corr}(L, -D)",
       "formulas": [],
       "id": "smooth",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_smooth",
+      "inputs": [],
       "note_cs": "Gradientní výstup: po úspěchu krok krát 1,2, po neúspěchu poloviční.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "b5b2e6cd75f10b7b666479aadd7c924eb7542bf542b0c13247f27a0613071b78",
       "symbols": [
        {
@@ -7734,6 +8560,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7741,11 +8568,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\min \\sum (d_{rs} - \\hat d_{rs})^2,\\quad \\hat d\\ \\text{izotonní, ostře rostoucí o mezeru}\\ g",
       "formulas": [],
       "id": "ordinal",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_ordinal",
+      "inputs": [],
       "note_cs": "Z hladkého rozložení vedou dvě větve, přímá a ordinální; ponechá se lepší.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ffe73908e9ce18203c4dc26883a6e8c5d7ff1e6691c8b10d8e3686c443134e34",
       "symbols": [
        {
@@ -7778,6 +8609,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7785,11 +8617,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{bod po bodu: nejlepší z}\\ m\\ \\text{posunů o}\\ \\delta\\ \\text{zvyšující}\\ A;\\quad \\delta \\leftarrow \\delta/2\\ \\text{až po}\\ \\delta_{\\min}",
       "formulas": [],
       "id": "exact",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_exact",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "cf676542df87449d4a63cd6aa558075caa8b04ad71ca4dfacb996743047bac2d",
       "symbols": [
        {
@@ -7843,6 +8679,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7850,11 +8687,15 @@
         "ref": "AIA-H9"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{kloub s malou rezervou na párech mimo pořadí;}\\ \\text{ponechán jen když}\\ A\\uparrow",
       "formulas": [],
       "id": "repair",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_repair",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "5f563d9afac07b0a38e3fa6abfedc9444629dcd8a1bf5629f53b9536efd1d432",
       "symbols": [],
       "tests": [
@@ -7873,6 +8714,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7880,11 +8722,15 @@
         "ref": "SOMECS-H7"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{vystředit, otočit na hlavní osy, třetí moment} \\ge 0,\\ \\text{měřítko do}\\ [0{,}05;\\ 0{,}95]",
       "formulas": [],
       "id": "frame",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:_frame",
+      "inputs": [],
       "note_cs": "Přesnost A se rámcem nemění.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "09aed091ddb59aa9ea274bc29ed37784d6f7ae6243974ef3523c3df15f4cd6fd",
       "symbols": [],
       "tests": [
@@ -7906,6 +8752,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7928,11 +8775,15 @@
         "ref": "docs/architecture/sociomapping-hmodel.md § 4"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{výsledek} = \\arg\\max_{\\text{starty, větve}} A,\\ \\text{status EXPERIMENTAL\\_AIA}",
       "formulas": [],
       "id": "search",
       "implements": "aia_core.domain.sociomap.hmodel_candidate:fit_hmodel_candidate",
+      "inputs": [],
       "note_cs": "Objekty se zpracují v kanonickém pořadí (podle id), takže jiné pořadí na vstupu dá stejnou mapu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "18d30f799fb56f8be4e8c28ed42303a57cfc180556fd304eabd07b6582cda8d8",
       "symbols": [],
       "tests": [
@@ -7960,6 +8811,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7967,11 +8819,15 @@
         "ref": "RTS-W3"
        }
       ],
+      "feeds": [],
       "formula_latex": "h_j = \\frac{1}{|K|}\\sum_{k \\in K} x_{kj}",
       "formulas": [],
       "id": "heights",
       "implements": "aia_core.domain.sociomap.heights:object_average_answers",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "fb41ccae8efa407c138ce56b940de34836a30564b5aebfb10a3d988b5aaa244e",
       "symbols": [],
       "tests": [
@@ -7981,6 +8837,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -7988,11 +8845,15 @@
         "ref": "RTS-O2"
        }
       ],
+      "feeds": [],
       "formula_latex": "v_{rs} \\in [0, 1]\\ \\text{jen když každá korelace je definovaná a nezáporná}",
       "formulas": [],
       "id": "fuzzy",
       "implements": "aia_core.domain.sociomap.fuzzy:rts_fuzzy_from_correlations",
+      "inputs": [],
       "note_cs": "Jinak se uvede důvod (M12) a záporné páry zůstanou vidět.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "a5821d213d6799adec929c857854886614b864d6ff58f95e9dc4af7d8402cf30",
       "symbols": [],
       "tests": [
@@ -8002,6 +8863,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "register_rule",
@@ -8009,11 +8871,15 @@
         "ref": "SOMECS-C1"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{třídy}\\ \\alpha\\text{-řezů matice 0-1, od nejvyšší úrovně}",
       "formulas": [],
       "id": "coherences",
       "implements": "aia_core.domain.sociomap.coherence:coherences",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "e50ba558dee1b2a40ae742da63d04b8b704e2b8814ac5855cd524afa81bb9b67",
       "symbols": [],
       "tests": [
@@ -8071,6 +8937,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8078,11 +8945,15 @@
         "ref": ".planning/plans/methodology-tab.md, finding D2"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{pravidla} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.evidence.support:SupportSpec",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "2900d6fdd545447e616e849b0b19bd4bdc8d5759f712e34fdccdab040fa71ae1",
       "symbols": [],
       "tests": [
@@ -8102,6 +8973,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8109,11 +8981,15 @@
         "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
       "formulas": [],
       "id": "unit_weights",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "inputs": [],
       "note_cs": "Neplatnou váhu nahradí medián platných (bez platných: všechny 1). Brána AIA takové váhy odmítá místo čištění (nález D1).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
@@ -8123,6 +8999,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8130,11 +9007,15 @@
         "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
       "formulas": [],
       "id": "unit_kish",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
@@ -8144,6 +9025,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8151,11 +9033,15 @@
         "ref": "dotaznik.py agreguj_otazku + fidelity.py donor_support"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_D = |\\{d_k\\}|,\\quad n_{\\mathrm{eff}} = \\min\\!\\left(n_{\\mathrm{Kish}}\\tfrac{n_D}{n},\\ n_{\\mathrm{Kish}},\\ n_D,\\ n_{\\mathrm{core}}\\right),\\quad s_{\\max} = \\max_d \\tfrac{n_d}{n}",
       "formulas": [],
       "id": "unit_donors",
       "implements": "aia_core.domain.research_aggregate:donor_support",
+      "inputs": [],
       "note_cs": "Efektivní n se zaokrouhlí na jedno desetinné místo. Podíl největšího dárce se spočítá a uloží, ale žádné pravidlo ho nečte (nález D4).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [
        {
@@ -8177,6 +9063,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8189,11 +9076,15 @@
         "ref": ".planning/plans/methodology-tab.md, finding D2"
        }
       ],
+      "feeds": [],
       "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{jinak REPORTOVATELNÉ}",
       "formulas": [],
       "id": "unit_status",
       "implements": "aia_core.domain.research_aggregate:donor_support",
+      "inputs": [],
       "note_cs": "V aia-support-1 rozhoduje jen počet dárců (25/50, jednotka 18.6.6): čáry pro surové a efektivní n pravidlo nekontroluje (prázdná hodnota). Čára, kterou pravidlo nekontroluje, se ve vzorci přeskočí. Poznámka k intervalu u každé buňky se píše z pravidla, které platí.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "3a22505e3e8e736044420d46e128ba47c7ab3368517b62d05b8536d8dbfaa9bd",
       "symbols": [],
       "tests": [
@@ -8245,12 +9136,17 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k \\notin (0, \\infty) \\Rightarrow \\text{odmítnuto}",
       "formulas": [],
       "id": "gate_kish",
       "implements": "aia_core.domain.evidence.support:kish_effective_n",
+      "inputs": [],
       "note_cs": "Stejný vzorec jako u jednotky, ale neplatné váhy odmítne (nález D1).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "dd0bd83ed33fce776c48ee8111788ff6418084214626c468c7f8dda0e5d5f08c",
       "symbols": [],
       "tests": [
@@ -8261,6 +9157,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8268,11 +9165,15 @@
         "ref": "methodology ledger M16 (dotaznik.agreguj_otazku, uncertainty.py, fidelity.evidence_rating)"
        }
       ],
+      "feeds": [],
       "formula_latex": "n < n_{\\mathrm{cell}} \\lor n_{\\mathrm{eff}} < n_{\\mathrm{guard}} \\lor n_D < D_{\\min} \\Rightarrow \\text{POTLAČIT};\\ n_{\\mathrm{eff}} < n_{\\mathrm{ind}} \\lor n_D < D_{\\mathrm{ind}} \\Rightarrow \\text{INDIKATIVNÍ};\\ \\text{neznámé} \\Rightarrow \\text{POTLAČIT}",
       "formulas": [],
       "id": "gate_assess",
       "implements": "aia_core.domain.evidence.support:assess_support",
+      "inputs": [],
       "note_cs": "Bez důkazů je stav vždy POTLAČIT; vyšší stav vydá jen tato funkce.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "51fe30afce2c3de516b6405efcae8dac7420840b103250a6470284d7021c1c2d",
       "symbols": [],
       "tests": [
@@ -8326,6 +9227,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8333,11 +9235,15 @@
         "ref": ".planning/plans/methodology-tab.md, finding D2"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{stav}_{\\mathrm{analýza}} = \\text{přísnější z}\\ \\left(\\text{stav}_{\\mathrm{jednotka}},\\ \\text{brána}(n, n_{\\mathrm{eff}}, n_D)\\right)",
       "formulas": [],
       "id": "gate_reassess",
       "implements": "aia_core.domain.analysis.native:reassess_support",
+      "inputs": [],
       "note_cs": "Brána dostává jako efektivní n kombinované efektivní n jednotky zaokrouhlené na jedno místo, ne Kishovo (nález D3). Buňka tak může být ve Výsledcích INDIKATIVNÍ a v analýze potlačená (nález D2).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "89ecd1adeb1e29d417d4120873f4f8fc9149ca07cf2c7592f960fcd7f4252cbc",
       "symbols": [],
       "tests": [
@@ -8425,6 +9331,7 @@
     ],
     "step_details": [
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8432,11 +9339,15 @@
         "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\text{vážení} = \\text{methodology\\_version}",
       "formulas": [],
       "id": "method",
       "implements": "aia_core.domain.population.weights:WeightingSpec",
+      "inputs": [],
       "note_cs": "",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "05e603e0a56e37161e45c9befff606f96861437657564e8d8918293b23bee608",
       "symbols": [],
       "tests": [
@@ -8455,6 +9366,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8467,11 +9379,15 @@
         "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_i = \\text{panel}\\left[i,\\ \\text{sloupec}(r)\\right],\\quad r = \\text{role běhu, jinak výchozí role}",
       "formulas": [],
       "id": "scheme",
       "implements": "aia_core.domain.population.weights:resolve_weight_scheme",
+      "inputs": [],
       "note_cs": "Nedeklarovaná role se odmítne; náhradní sloupec ani váhy 1 neexistují. Výchozí role je sama deklarací smlouvy a vazba populace ji zapisuje, není to záloha.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "c387afd2b0977a0c8d33348890c301cbce620dcbdc0a2fd520880bf4758aecb2",
       "symbols": [
        {
@@ -8538,6 +9454,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8545,11 +9462,15 @@
         "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w = \\text{desetinné číslo},\\quad w \\in [0, \\infty)",
       "formulas": [],
       "id": "parse",
       "implements": "aia_core.domain.population.weights:parse_weight",
+      "inputs": [],
       "note_cs": "Jen prosté desetinné číslo: „nan“, „inf“, podtržítka ani mezery nejsou váha.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "28a3cbf048b457a9cecc10a1a1d73d7c1dbd175c604dd12f957f87a92118c644",
       "symbols": [],
       "tests": [
@@ -8559,6 +9480,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8566,11 +9488,15 @@
         "ref": "population/weights.py (methodology-ledger M01, fixture F11)"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\exists i:\\ w_i \\text{ chybí nebo je neplatná} \\;\\lor\\; \\textstyle\\sum_i w_i \\le 0\\;\\Rightarrow\\; \\text{odmítnuto}",
       "formulas": [],
       "id": "column",
       "implements": "aia_core.domain.population.weights:analysis_weights",
+      "inputs": [],
       "note_cs": "Odmítne se celý sloupec a chyba spočítá každou vadu. Reference prázdnou nebo zápornou váhu nulovala (fillna(0).clip(0)) a respondenta tím tiše vyřadila.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "bd255e3b9db802617439d546d79f7ae92c257534d889534a1b8f85c94e25ed6a",
       "symbols": [],
       "tests": [
@@ -8581,6 +9507,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8588,11 +9515,15 @@
         "ref": "docs/architecture/population.md; population/czech.py CZ_SYNTHETIC_V17"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\left|\\textstyle\\sum_i w_i - T\\right| \\le \\tau",
       "formulas": [],
       "id": "total",
       "implements": "aia_core.domain.population.validation:validate_import",
+      "inputs": [],
       "note_cs": "Kontroluje se jen tam, kde reference součet deklarovala; u ostatních schémat se žádný nevymýšlí.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "d56289c2f42d88c58362e3d70f06b13f04397fb1451aa691cbe673781a971ae0",
       "symbols": [
        {
@@ -8679,6 +9610,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8686,11 +9618,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "w^{0}_i = \\max\\!\\left(w_i,\\ 10^{-12}\\right),\\quad \\textstyle\\sum_{i \\in A} w_i = 0 \\;\\Rightarrow\\; \\text{odmítnuto}",
       "formulas": [],
       "id": "sample_base",
       "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "inputs": [],
       "note_cs": "Řádek s nulovou vahou se vylosuje jen tehdy, když ho jeho buňka potřebuje. Publikum, jehož váhy jsou všechny nulové, se odmítne (18.6.6 mu dalo váhy 1).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
       "symbols": [
        {
@@ -8721,6 +9657,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8728,11 +9665,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "t_{f,c} = \\frac{\\sum_{i \\in A,\\ x_{if} = c} w^{0}_i}{\\sum_{i \\in A} w^{0}_i}",
       "formulas": [],
       "id": "sample_targets",
       "implements": "aia_core.domain.population.sampling:targets",
+      "inputs": [],
       "note_cs": "Pole se použije, jen když má v publiku víc než jednu hodnotu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "c7466c00f095703c196356b9da56a538091e0dcf2026502ca7b4900331e82dd0",
       "symbols": [
        {
@@ -8753,6 +9694,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8760,11 +9702,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_i \\leftarrow w_i \\cdot \\frac{t_{f,c}}{\\sum_{j \\in c} w_j \\,/\\, \\sum_j w_j}\\ \\ (i \\in c),\\quad w_i \\leftarrow \\frac{\\min\\!\\left(\\max(w_i, \\varepsilon),\\ \\max(\\kappa\\, q_{0{,}99}(w), \\varepsilon)\\right)}{\\bar{w}}",
       "formulas": [],
       "id": "rake",
       "implements": "aia_core.domain.population.sampling:rake",
+      "inputs": [],
       "note_cs": "Iterativní proporcionální přizpůsobení (IPF) po polích, v každé iteraci ořez a normalizace na průměr 1; skončí, když se žádná váha nezmění o víc než mez konvergence. Toto je jediná kalibrace v AIA; GREG ani jiné odhady vah tu nejsou.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "271df8674134cc5ee6ac06a574ff273516249d24ed9fc0d3fad565100987077f",
       "symbols": [
        {
@@ -8829,6 +9775,7 @@
       ]
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8836,11 +9783,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_i = \\frac{w^{0}_i}{\\overline{w^{0}}}",
       "formulas": [],
       "id": "sample_without_quotas",
       "implements": "aia_core.domain.population.sampling:representative_draw",
+      "inputs": [],
       "note_cs": "Když publikum nemá žádné použitelné kvótní pole, vylosuje se n řádků podle váhy a raking se nedělá.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "45fcb9c64c6a55b24f3c77cff25abb34b7956ec7501e4630c1c0206098bcfb02",
       "symbols": [],
       "tests": [
@@ -8850,6 +9801,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8857,11 +9809,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "\\max_{f,c} \\left| p^{\\mathrm{váž}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}25,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.},\\quad \\max_{f,c} \\left| p^{\\mathrm{surový}}_{f,c} - t_{f,c} \\right| \\le \\max\\!\\left(0{,}50,\\ \\tfrac{100}{n}\\right)\\ \\text{p. b.}",
       "formulas": [],
       "id": "sample_audit",
       "implements": "aia_core.domain.population.sampling:judge",
+      "inputs": [],
       "note_cs": "Překročení vážené tolerance vzorek odmítne (sampling_unrepresentative); překročení surové jen varuje (PASS_WEIGHTED).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "862a0c9dd814c8eb4fc7a34c326476272adad3a4de84aa326797c3228a6bed6b",
       "symbols": [
        {
@@ -8883,6 +9839,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8890,11 +9847,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "w^{\\mathrm{resp}}_i = w_i\\ \\text{(po rakingu)}",
       "formulas": [],
       "id": "respondent",
       "implements": "aia_core.domain.panel_persona:panel_personas",
+      "inputs": [],
       "note_cs": "Respondent postavený z panelu nese váhu vzorku po rakingu. Zdroj panelu ještě není zapojen do sběru (plán panel-grounded-respondents, část 5); AI respondenti dnes váží 1 a smyšlení respondenti pracovní plochy svou váhu.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "9f68f6e30b141b74b6b67df8969447dc2559c31654b11c2286ee1ac6dd82674a",
       "symbols": [],
       "tests": [
@@ -8904,6 +9865,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8911,11 +9873,15 @@
         "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_i \\notin (0, \\infty) \\;\\Rightarrow\\; \\text{datová sada odmítnuta}",
       "formulas": [],
       "id": "dataset",
       "implements": "aia_core.domain.fieldwork:FieldworkRespondent",
+      "inputs": [],
       "note_cs": "Nula, záporná hodnota, NaN i nekonečno: sběr se odmítne a do agregace nic nedojde. Nekonečno dříve prošlo a agregace ho nahradila mediánem.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "91578619d19f36fee70b32c46f0622d8816df6adba36a4299bbc1389623b8166",
       "symbols": [],
       "tests": [
@@ -8925,6 +9891,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8942,11 +9909,15 @@
         "ref": "fieldwork.py FieldworkRespondent (plán methodology-tab W1b)"
        }
       ],
+      "feeds": [],
       "formula_latex": "w_k \\notin (0, \\infty) \\Rightarrow w_k := \\operatorname{medián}(w)",
       "formulas": [],
       "id": "cleaning",
       "implements": "aia_core.domain.research_aggregate:clean_weights",
+      "inputs": [],
       "note_cs": "Přenos 18.6.6 ponechaný kvůli paritě. Na běhu nenastane: datová sada neplatnou váhu odmítne dřív (krok Váha v datové sadě běhu). Brána důkazů i načítání populace takovou váhu také odmítají (nález D1); volba mezi mediánem a odmítnutím proto není potřeba a z deklarace vážení zmizela (W1b).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "56ef8a81b1df7a44b096d90e1646e52558c4ef132cfccbb6060f27f87f5889ee",
       "symbols": [],
       "tests": [
@@ -8957,6 +9928,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -8964,11 +9936,15 @@
         "ref": "uncertainty.py (clean_weights, kish_effective_n)"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2},\\quad w_k > 0",
       "formulas": [],
       "id": "kish_aggregate",
       "implements": "aia_core.domain.research_aggregate:kish_effective_n",
+      "inputs": [],
       "note_cs": "Čte váhy už vyčištěné; nekladnou nebo neplatnou váhu vynechá. Vzorec lze upravit v modulu Agregace (agg.kish).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "c5e86670bfde71a59b9b4652115f646573f0e6b611407a223b6506b40f5a4565",
       "symbols": [],
       "tests": [
@@ -8978,6 +9954,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -8985,11 +9962,15 @@
         "ref": "evidence/support.py (methodology-ledger M06, M16)"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
       "formulas": [],
       "id": "kish_gate",
       "implements": "aia_core.domain.evidence.support:kish_effective_n",
+      "inputs": [],
       "note_cs": "Zápornou nebo neplatnou váhu odmítne; nulová nic nepřidá.",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "dd0bd83ed33fce776c48ee8111788ff6418084214626c468c7f8dda0e5d5f08c",
       "symbols": [],
       "tests": [
@@ -8999,6 +9980,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "aia_decision",
@@ -9006,11 +9988,15 @@
         "ref": "plan sociomap-signed-relations, rozhodnutí Q6"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_k w_k\\right)^2}{\\sum_k w_k^2}",
       "formulas": [],
       "id": "kish_sociomap",
       "implements": "aia_core.domain.sociomap.relations:kish_effective_n",
+      "inputs": [],
       "note_cs": "Odmítne i nulovou váhu. Na kladných konečných vahách dávají všechna místa totéž číslo, na jakýchkoli jiných se liší (nález D1).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "2d4204cd233819cef21a50c5e473912eb93f6e719c0fc87302c88572bcfa2d20",
       "symbols": [],
       "tests": [
@@ -9020,6 +10006,7 @@
       "values": []
      },
      {
+      "audit": "",
       "evidence": [
        {
         "kind": "legacy_port",
@@ -9027,11 +10014,15 @@
         "ref": "representative_sampling.py (draw_representative, _rake, _audit); pipeline.py:278"
        }
       ],
+      "feeds": [],
       "formula_latex": "n_{\\mathrm{Kish}} = \\frac{\\left(\\sum_i w_i\\right)^2}{\\sum_i w_i^2}",
       "formulas": [],
       "id": "kish_sample",
       "implements": "aia_core.domain.population.sampling:draw_panel_sample",
+      "inputs": [],
       "note_cs": "Čtvrté místo, kde se Kishovo n počítá: z vah po rakingu, zapsané do auditu vzorku (effective_n). Váhy jsou tu kladné z konstrukce (dolní mez rakingu).",
+      "role_cs": "",
+      "source_cs": "",
       "source_sha256": "ef9cbd3be56f9929a65bde5b0be214d42e5133bfd75bb6dc6d52e10ed363bc20",
       "symbols": [],
       "tests": [
@@ -9059,127 +10050,99 @@
      "title_cs": "Metoda"
     },
     {
-     "id": "F1",
-     "note_cs": "",
+     "id": "S1",
+     "note_cs": "Z odpovědí na škálách se stanou čísla 0-1, na kterých stojí vše další.",
      "step_ids": [
-      "f1_declared_scale"
+      "f1_declared_scale",
+      "f2_person_minmax",
+      "f11_not_placed"
      ],
-     "title_cs": "F1 Které položky jsou hodnocení"
+     "title_cs": "Vstupní hodnocení"
     },
     {
-     "id": "F2",
-     "note_cs": "",
-     "step_ids": [
-      "f2_person_minmax"
-     ],
-     "title_cs": "F2 Hodnoticí zvyklosti"
-    },
-    {
-     "id": "F3",
-     "note_cs": "",
+     "id": "S2",
+     "note_cs": "Jak podobně lidé hodnotí každé dva objekty, a jak moc se tomu dá věřit.",
      "step_ids": [
       "f3_correlation",
       "f3_effective_n",
       "f3_interval",
       "f3_status",
-      "f3_effect_floor"
-     ],
-     "title_cs": "F3 Vztah dvou objektů a jeho spolehlivost"
-    },
-    {
-     "id": "F4",
-     "note_cs": "",
-     "step_ids": [
+      "f3_effect_floor",
       "f4_strength"
      ],
-     "title_cs": "F4 Síla vztahu a šipky"
+     "title_cs": "Vztahy mezi objekty"
     },
     {
-     "id": "F5",
-     "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
-     "step_ids": [],
-     "title_cs": "F5 Typ dodané matice"
-    },
-    {
-     "id": "F6",
-     "note_cs": "",
+     "id": "S3",
+     "note_cs": "Ze vztahů se stanou vzdálenosti a z nich polohy objektů na mapě.",
      "step_ids": [
       "f6_mappable",
       "f6_distance",
       "f6_smacof"
      ],
-     "title_cs": "F6 Vzdálenost a rozložení"
+     "title_cs": "Rozložení na mapě"
     },
     {
-     "id": "F7",
-     "note_cs": "",
+     "id": "S4",
+     "note_cs": "Jak věrně mapa v rovině drží vzdálenosti, které měla dodržet.",
      "step_ids": [
       "f7_stress",
       "f7_quality"
      ],
-     "title_cs": "F7 Jedno rozložení a jeho věrohodnost"
+     "title_cs": "Věrohodnost mapy"
     },
     {
-     "id": "F8",
-     "note_cs": "",
+     "id": "S5",
+     "note_cs": "Co mapa o každém objektu říká číslem: souhlasnost, propojenost a výška.",
      "step_ids": [
       "f8_scores",
-      "f8_height"
-     ],
-     "title_cs": "F8 Skóre objektů a výška"
-    },
-    {
-     "id": "F9",
-     "note_cs": "",
-     "step_ids": [
+      "f8_height",
       "f9_k100",
       "f9_quantile",
       "f9_rank"
      ],
-     "title_cs": "F9 Propojenost 0-100"
+     "title_cs": "Skóre a výška objektů"
     },
     {
-     "id": "F10",
-     "note_cs": "",
-     "step_ids": [
-      "f10_placement"
-     ],
-     "title_cs": "F10 Umístění respondentů"
-    },
-    {
-     "id": "F11",
-     "note_cs": "",
-     "step_ids": [
-      "f11_not_placed",
-      "support"
-     ],
-     "title_cs": "F11 Respondenti, které nelze umístit"
-    },
-    {
-     "id": "F12",
-     "note_cs": "",
+     "id": "S6",
+     "note_cs": "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
      "step_ids": [
       "f12_envelope"
      ],
-     "title_cs": "F12-F13 Terén"
+     "title_cs": "Terén"
+    },
+    {
+     "id": "S7",
+     "note_cs": "Kde by leželi respondenti a na kolika lidech mapa stojí.",
+     "step_ids": [
+      "f10_placement",
+      "support"
+     ],
+     "title_cs": "Respondenti a podpora mapy"
+    },
+    {
+     "id": "F5",
+     "note_cs": "Objektová mapa počítá vztahy z hodnocení, dodanou matici nečte. Deklarovaný typ matice platí pro referenční mapu.",
+     "step_ids": [],
+     "title_cs": "Zatím v AIA není: typ dodané matice (F5)"
     },
     {
      "id": "F14",
      "note_cs": "V AIA zatím není (sociomap-formula-corrections.md, krok 4d). Návrh auditu: testovat jen proměnné, které neurčily polohu, a korigovat Holmem: zamítnout H_(k), právě když p_(l) ≤ α / (|V_test| - l + 1) pro všechna l ≤ k, α = 0,05; nejdřív Cohenovo d s intervalem.",
      "step_ids": [],
-     "title_cs": "F14 Testy při porovnání oblastí"
+     "title_cs": "Zatím v AIA není: testy při porovnání oblastí (F14)"
     },
     {
      "id": "F15",
      "note_cs": "V AIA zatím není (krok 4d). Návrh auditu: |d| = |x̄_A - x̄_B| / s_pooled pro čísla, |h| = |2 arcsin √π_A - 2 arcsin √π_B| pro kategorie (maximum přes kategorie).",
      "step_ids": [],
-     "title_cs": "F15 Pořadí hlavních rozdílů"
+     "title_cs": "Zatím v AIA není: pořadí hlavních rozdílů (F15)"
     },
     {
      "id": "F16",
      "note_cs": "Otevřené (krok 4c). Týká se referenční mapy. Návrh auditu: δ_kj = (s_max - a_kj) / (s_max - s_min) a skutečné řádkově podmíněné rozvinutí se sklonem a posunem na respondenta a penalizací proti degeneraci.",
      "step_ids": [],
-     "title_cs": "F16 Cíle rozvinutí po respondentech"
+     "title_cs": "Zatím v AIA není: cíle rozvinutí po respondentech (F16)"
     }
    ],
    "id": "sociomap",

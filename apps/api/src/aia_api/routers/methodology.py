@@ -39,6 +39,7 @@ from aia_core.domain.methodology import (
     MethodologyReferenceError,
     StepView,
     describe,
+    feeds_of,
     module,
 )
 from aia_core.domain.methodology.aggregation_check import (
@@ -188,6 +189,10 @@ class FormulaOut(_Strict):
 
 
 class StepOut(_Strict):
+    """One step. ``role_cs``, ``inputs``, ``source_cs`` and ``audit`` say where it sits in the
+    computation (empty where the module declares none); ``feeds`` are the steps that read it,
+    derived from their inputs."""
+
     id: str
     title_cs: str
     formula_latex: str
@@ -197,6 +202,11 @@ class StepOut(_Strict):
     evidence: list[EvidenceOut]
     tests: list[str]
     note_cs: str
+    role_cs: str
+    inputs: list[str]
+    feeds: list[str]
+    source_cs: str
+    audit: str
     values: list[ValueOut]
     formulas: list[FormulaOut]
 
@@ -469,7 +479,7 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
     )
 
 
-def _step(view: StepView) -> StepOut:
+def _step(found: MethodModule, view: StepView) -> StepOut:
     s = view.step
     return StepOut(
         id=s.id,
@@ -481,6 +491,11 @@ def _step(view: StepView) -> StepOut:
         evidence=[EvidenceOut(kind=e.kind.value, ref=e.ref, note_cs=e.note_cs) for e in s.evidence],
         tests=list(s.tests),
         note_cs=s.note_cs,
+        role_cs=s.role_cs,
+        inputs=list(s.inputs),
+        feeds=list(feeds_of(found, s.id)),
+        source_cs=s.source_cs,
+        audit=s.audit,
         values=[
             ValueOut(
                 reference=v.reference,
@@ -687,7 +702,7 @@ def read_module_detail(module_id: str, preset: str | None = None) -> ModuleDetai
     return ModuleDetail(
         **_summary(found).model_dump(),
         preset=view.preset,
-        step_details=[_step(s) for s in view.steps],
+        step_details=[_step(found, s) for s in view.steps],
     )
 
 

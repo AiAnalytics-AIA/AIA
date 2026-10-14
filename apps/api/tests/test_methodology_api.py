@@ -45,7 +45,8 @@ def test_the_list_is_every_registered_module_in_order(owner: TestClient) -> None
     sociomap = body[0]
     assert sociomap["in_force"] == "aia-sociomap-3"
     assert sociomap["presets"] == ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"]
-    assert [g["id"] for g in sociomap["groups"]][:3] == ["M", "F1", "F2"]
+    # The computation by its stages (product owner, 2026-10-14), no longer the audit's F1-F16.
+    assert [g["id"] for g in sociomap["groups"]][:3] == ["M", "S1", "S2"]
 
 
 def test_a_module_reads_every_value_from_the_preset_in_force(owner: TestClient) -> None:
@@ -83,6 +84,18 @@ def test_a_step_carries_its_formula_evidence_and_tests(owner: TestClient) -> Non
     assert len(step["source_sha256"]) == 64
     assert {"kind": "register_rule", "ref": "AUDIT-F6", "note_cs": ""} in step["evidence"]
     assert step["tests"]
+
+
+def test_a_step_says_where_it_sits_in_the_computation(owner: TestClient) -> None:
+    body = owner.get(f"{METHODOLOGY}/sociomap").json()
+    step = next(s for s in body["step_details"] if s["id"] == "f6_distance")
+    assert step["role_cs"].startswith("Převede korelaci na vzdálenost")
+    assert step["inputs"] == ["f3_correlation", "f3_status"]
+    # The steps that read it are derived, never declared twice.
+    assert step["feeds"] == ["f6_smacof", "f7_stress"]
+    assert step["audit"] == "F6"
+    first = next(s for s in body["step_details"] if s["id"] == "f1_declared_scale")
+    assert first["inputs"] == [] and first["source_cs"].startswith("odpovědi respondentů")
 
 
 def test_a_step_carries_its_editable_formula_written_from_its_expression(

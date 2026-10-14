@@ -386,6 +386,21 @@ describe("guided methodology editing", () => {
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
   });
 
+  it("shows each step's stage, audit point and place in the computation, and moves along it", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    const outline = form.querySelector("[data-methodology-outline]") as HTMLElement;
+    expect(within(outline).getByText("Vztahy mezi objekty")).toBeTruthy();
+    expect(within(outline.querySelector("[data-not-yet]") as HTMLElement).getByText("testy při porovnání oblastí (F14)")).toBeTruthy();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f6_distance"]')!);
+    const step = form.querySelector('[data-edit-step="f6_distance"]') as HTMLElement;
+    expect(step.querySelector("[data-step-stage]")!.textContent).toBe("Rozložení na mapě · audit F6");
+    fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
+    expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
+    expect(step.hidden).toBe(true);
+  });
+
   it("invalidates a previous successful check when the parameter changes", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />);
     await openEditor();

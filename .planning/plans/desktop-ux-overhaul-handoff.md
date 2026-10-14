@@ -211,3 +211,28 @@ aia-sociomap-4)" read as a different starting point. The editor now says "Úprav
 platnosti (…)", one line says why it saves over -4, and the base picker reads "Začít od metodiky
 z kódu" with "Metodika v platnosti" selected (tests: "opens on the editor, with no extra click",
 "opens the next edit on the stored version in force, with its values").
+
+Metodika: the object map grouped by the stages of the computation, with each step's place in it
+(owner, 2026-10-14, from the canvas artboard "Nastavení · Metodika"). The F1-F16 groups were the
+audit's numbering; a methodologist reads the computation in order. The Sociomap module's groups
+are now Metoda, Vstupní hodnocení, Vztahy mezi objekty, Rozložení na mapě, Věrohodnost mapy, Skóre
+a výška objektů, Terén, Respondenti a podpora mapy, then the points AIA does not compute (F5, F14,
+F15, F16) with their notes kept (test: `test_the_groups_follow_the_computation_by_its_stages`).
+Each step declares what it is for (`role_cs`), the steps it reads (`inputs`) or, for a first step,
+its source in words (`source_cs`), and its audit point (`audit`, kept as a small tag). Which steps
+read a step is derived (`feeds_of`), never declared twice; `module_problems` refuses an input that
+names no step, the step itself, or a step twice
+(`test_a_steps_inputs_name_other_steps_of_its_module_once`). The editor and the read-only
+catalogue show "K čemu / Bere z / Předává do" with links that move to the step (in the catalogue,
+opening a closed stage). Measured on the local workbench (next dev): moving along a link 64-173 ms
+at 1440/1710/1920, no overflow; `settings_journey.mjs` PASS.
+
+Finding (this slice, fixed): the context links were first buttons, and the catalogue draws every
+card; two editor tests went from 1.7 s to 5-7 s (over Vitest's 5 s), because Testing Library's
+`getByRole("button")` checks every button's visibility. They are links now (they move within the
+page), rendered in the editor only for the visible step: 1.9 and 2.0 s.
+
+Doc follow-up: ARCHITECTURE/CLAUDE map, `domain/methodology/catalogue.py`: "MethodStep carries
+role_cs, inputs, source_cs and audit; feeds_of derives the steps that read a step"; `sociomap.py`:
+"the object map in the order of its computation (stages S1-S7), each step citing its audit point
+F1-F16" (replacing "in the audit's order F1-F16").
