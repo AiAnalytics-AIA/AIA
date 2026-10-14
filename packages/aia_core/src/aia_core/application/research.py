@@ -721,9 +721,13 @@ class ResearchRuns:
         )
         if spec is not None and fieldwork_source is FieldworkSource.AI_RUNTIME:
             support, _ = self._support(None)
+            # The aggregation a start would pin, compiled as the aggregate reads it: a version
+            # that replaces Kish's formula changes every cell's effective n.
+            pin, _ = self._aggregation(None)
+            _, slots = read_aggregation_pin(pin)
             readiness = with_support_forecast(
                 readiness,
-                forecast_support(spec, support=support, persona_source=persona_source),
+                forecast_support(spec, support=support, persona_source=persona_source, slots=slots),
                 support=support,
             )
         return spec, readiness

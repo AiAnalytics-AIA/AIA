@@ -143,8 +143,18 @@ both under the support rules a start would pin. `ResearchRuns.readiness` adds a
   audience preview shows the selected donors). An unknown count is never scored as good.
 
 A forecast never FAILs. It says what the run will show; whether to pay for that is still
-the person's call. It is an upper bound: an empty answer lowers a question's donors, and a
-methodology version replacing the aggregate's Kish formula is not applied here.
+the person's call. It is an upper bound, because an empty answer lowers a question's donors.
+
+Review (Codex on #416):
+- **The aggregation formulas a start would pin are applied.** `ResearchRuns._aggregation`
+  is compiled with `read_aggregation_pin`, so a version replacing Kish's formula changes
+  the forecast as it changes the aggregate.
+  Test: `test_the_aggregation_formulas_a_start_would_pin_are_applied`.
+- **The search for a sufficient n is bounded.** It draws at most 40,000 respondents over
+  all its candidates, about 1 s, so one readiness read stays bounded whatever rules are in
+  force. Test: `test_the_search_for_a_sufficient_n_is_bounded_whatever_the_rules`.
+- **The test's design is its own.** It is no longer imported from another test module
+  (`AGENTS.md` § pytest).
 
 Tests:
 - `packages/aia_core/tests/test_support_forecast.py`

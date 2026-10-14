@@ -5,18 +5,49 @@ from __future__ import annotations
 
 from typing import Any
 
-from test_run_cost import DESIGN  # type: ignore[import-not-found]
-
 from aia_core.domain.ai_respondent import fictional_roster, fieldwork_seed
 from aia_core.domain.evidence import SupportStatus
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1, SupportSpec, SupportThresholds
 from aia_core.domain.fieldwork import PersonaSource
+from aia_core.domain.methodology.pins import aggregation_pin_for, read_aggregation_pin
 from aia_core.domain.research_design import CheckStatus, assess_readiness, compile_design
 from aia_core.domain.support_forecast import (
     SUPPORT_FORECAST_CHECK,
     forecast_support,
     with_support_forecast,
 )
+
+#: Two questions and a battery: every question is asked of every respondent.
+DESIGN: dict[str, Any] = {
+    "title": "Fiktivní ranní nápoj",
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {
+                    "id": "q1",
+                    "text": "Jak často pijete kávu?",
+                    "typ": "skala",
+                    "skala": [1, 5],
+                },
+                {
+                    "id": "q2",
+                    "text": "Co si ráno koupíte?",
+                    "typ": "vyber",
+                    "kategorie": ["Kávu", "Čaj", "Nic"],
+                },
+            ],
+        },
+        {
+            "type": "object_battery",
+            "title": "Nápoje",
+            "object_family": "nápoje",
+            "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
+            "object_question": "Jak hodnotíte {object}?",
+            "scale": [1, 10],
+        },
+    ],
+}
 
 ROSTER = PersonaSource.FICTIONAL_ROSTER
 
@@ -80,6 +111,31 @@ def test_the_pinned_rule_decides_not_a_copy_of_the_thresholds() -> None:
     )  # fmt: skip
     forecast = forecast_support(_spec(50), support=lenient, persona_source=ROSTER)
     assert forecast.analysis is SupportStatus.REPORTABLE
+
+
+def test_the_aggregation_formulas_a_start_would_pin_are_applied() -> None:
+    """A version replacing Kish's formula changes every cell's effective n; the forecast
+    reads it as the aggregate does (``read_aggregation_pin``), never the code's formula."""
+    _, slots = read_aggregation_pin({**aggregation_pin_for(None), "formulas": {"agg.kish": "3"}})
+    spec = _spec(200)
+    code = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=ROSTER)
+    pinned = forecast_support(spec, support=AIA_SUPPORT_V1, persona_source=ROSTER, slots=slots)
+    assert code.analysis is SupportStatus.REPORTABLE
+    assert pinned.analysis is SupportStatus.SUPPRESS
+
+
+def test_the_search_for_a_sufficient_n_is_bounded_whatever_the_rules() -> None:
+    """Rules no n can meet: the search stops within its budget and finds nothing."""
+    never = SupportSpec(
+        methodology_version="test",
+        results=AIA_SUPPORT_V1.results,
+        analysis=SupportThresholds(
+            min_cell=None, n_guard=None, indicative=None, min_layer_donors=100_000,
+            indicative_layer_donors=100_000,
+        ),
+    )  # fmt: skip
+    forecast = forecast_support(_spec(2500), support=never, persona_source=ROSTER)
+    assert forecast.analysis is SupportStatus.SUPPRESS and forecast.reportable_n is None
 
 
 def test_a_population_drawn_run_is_unknown_never_good() -> None:

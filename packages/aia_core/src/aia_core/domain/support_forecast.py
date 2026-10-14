@@ -17,9 +17,9 @@ conditional question is refused at readiness), so the forecast is one status for
 
 What it cannot know it says so, and never scores as good: a run whose respondents come
 from the population draws its donors at fieldwork (the audience preview counts them),
-so its forecast is unknown. A methodology version that replaced the aggregate's Kish
-formula is not applied here (the code's formula is), and an answer a respondent leaves
-empty lowers a question's donors below the forecast; both make the forecast an upper
+so its forecast is unknown. The aggregation formulas a start
+would pin are applied as the aggregate applies them (``slots``). An answer a respondent
+leaves empty lowers a question's donors below the forecast, so the forecast is an upper
 bound on support, never a promise of more.
 
 Pure: no I/O.
@@ -43,6 +43,7 @@ from .research_design import (
     ReadinessCheck,
     ResearchSpecification,
 )
+from .sociomap.slots import NO_SLOTS, Slots
 
 __all__ = [
     "SUPPORT_FORECAST_CHECK",
@@ -57,6 +58,9 @@ SUPPORT_FORECAST_CHECK: Final = "support_forecast"
 #: How far above the design's n the search for a sufficient n looks: four times n, and
 #: never less than this many respondents above it.
 _SEARCH_FLOOR: Final = 200
+#: The most respondents the search may draw over all its candidates, so one readiness
+#: read stays bounded whatever methodology is in force (about 1 s at 25 ms per 1,000).
+_SEARCH_BUDGET: Final = 40_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,12 +88,15 @@ class SupportForecast:
 
 
 def _statuses(
-    spec: ResearchSpecification, support: SupportSpec
+    spec: ResearchSpecification, support: SupportSpec, slots: Slots
 ) -> tuple[int, SupportStatus, SupportStatus]:
     assert spec.n is not None
     roster = fictional_roster(spec.n, seed=fieldwork_seed(spec))
     cell = donor_support(
-        [p.donor_id for p in roster], [p.weight for p in roster], rule=support.results
+        [p.donor_id for p in roster],
+        [p.weight for p in roster],
+        rule=support.results,
+        slots=slots,
     )
     results = SupportStatus(str(cell["support_status"]))
     # The question result as the aggregate writes it (research_aggregate: n_platnych,
@@ -104,25 +111,37 @@ def _statuses(
     return int(cell["n_unique_layer_donors"]), results, analysis
 
 
-def _reportable_n(spec: ResearchSpecification, support: SupportSpec) -> int | None:
+def _reportable_n(spec: ResearchSpecification, support: SupportSpec, slots: Slots) -> int | None:
     """The smallest n above the design's that the analysis gate admits, the rest unchanged.
 
     Each candidate is compiled as the run would see it: n is part of the specification's
-    fingerprint, so a different n is a different seed and a different roster.
+    fingerprint, so a different n is a different seed and a different roster. The search
+    stops at ``max(4n, n + 200)`` or when it has drawn :data:`_SEARCH_BUDGET` respondents,
+    whichever comes first; ``None`` then says only that none was found within it.
     """
     assert spec.n is not None
     high = min(SAMPLE_SIZE_BOUNDS[1], max(4 * spec.n, spec.n + _SEARCH_FLOOR))
+    drawn = 0
     for n in range(spec.n + 1, high + 1):
-        _, _, analysis = _statuses(spec.model_copy(update={"n": n}), support)
+        drawn += n
+        if drawn > _SEARCH_BUDGET:
+            return None
+        _, _, analysis = _statuses(spec.model_copy(update={"n": n}), support, slots)
         if analysis is not SupportStatus.SUPPRESS:
             return n
     return None
 
 
 def forecast_support(
-    spec: ResearchSpecification, *, support: SupportSpec, persona_source: PersonaSource
+    spec: ResearchSpecification,
+    *,
+    support: SupportSpec,
+    persona_source: PersonaSource,
+    slots: Slots = NO_SLOTS,
 ) -> SupportForecast:
-    """The support a run of ``spec`` will have, under the support rules it will pin."""
+    """The support a run of ``spec`` will have, under the support rules it will pin and the
+    aggregation formulas it will pin (``slots``: the in-force version's replacements, as
+    ``read_aggregation_pin`` compiles them; none, the code's formulas)."""
     if persona_source is not PersonaSource.FICTIONAL_ROSTER or spec.n is None or spec.n < 1:
         return SupportForecast(
             persona_source=persona_source,
@@ -131,14 +150,16 @@ def forecast_support(
             results=None,
             analysis=None,
         )
-    donors, results, analysis = _statuses(spec, support)
+    donors, results, analysis = _statuses(spec, support, slots)
     return SupportForecast(
         persona_source=persona_source,
         respondents=spec.n,
         donors=donors,
         results=results,
         analysis=analysis,
-        reportable_n=_reportable_n(spec, support) if analysis is SupportStatus.SUPPRESS else None,
+        reportable_n=_reportable_n(spec, support, slots)
+        if analysis is SupportStatus.SUPPRESS
+        else None,
     )
 
 
