@@ -760,7 +760,6 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     battery = mapped["batteries"][0]
     assert len(battery["sociomap"]["layout"]["object_xy"]) == 3
     assert battery["sociomap"]["layout"]["respondent_ids"]
-    assert battery["object_scores"]["primary"] == [obj["id"] for obj in battery["objects"]]
     pinned = run["metadata"]["sociomap_methods"]
     assert mapped["methods"] == [
         {"method_id": method["method_id"], "spec_fingerprint": method["spec_fingerprint"]}
@@ -768,6 +767,7 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     ]
     v2 = read_artifact(battery["maps"]["aia-sociomap-3"])
     assert isinstance(v2, SociomapArtifactV3)
+    assert v2.scores["primary"] == [obj["id"] for obj in battery["objects"]]
     assert v2.support.respondents == n
     assert v2.spec.fingerprint() == next(
         method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-3"

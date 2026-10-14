@@ -7556,7 +7556,7 @@
       "note_cs": "Neplatná (nekonečná) váha se v matici vztahů čte jako 1.",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "46b696d92233a00f20d6fd5a0c8ad613f8ab54ffedaf5ab38764c6e447fbe24d",
+      "source_sha256": "da40e7aa1a961d47d191e425dbb923f20af780e718e7fae597138a5d57ccc3db",
       "symbols": [
        {
         "latex": "N",

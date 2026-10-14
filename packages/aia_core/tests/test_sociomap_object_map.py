@@ -533,9 +533,9 @@ def test_the_research_body_stores_the_object_map_beside_the_v1_map() -> None:
     assert body["sociomap"]["kind"] == "sociomap" and body["sociomap"]["contract_version"] == "2"
     art = read_artifact(body["maps"]["aia-sociomap-2"])
     assert isinstance(art, SociomapArtifactV3)
-    # The object map's relations and scores are the body's own over each person's scale.
-    assert [list(r) for r in art.relations.r] == body["relation_rescaled"]["r"]
-    assert art.scores == body["object_scores"]
+    # The relations over each person's scale and the scores are the map's alone (A3d).
+    assert not {"relation_rescaled", "object_scores", "connectedness_100"} & set(body)
+    assert art.scores["primary"] == [o.id for o in a.objects]
     assert art.object_items == tuple(a.question_id(o) for o in a.objects)
     assert {i.item_id for i in art.items} == {x.question_id(o) for x in (a, b) for o in x.objects}
 
@@ -550,7 +550,9 @@ def test_the_object_map_reads_every_set_the_specification_rates() -> None:
     assert one.relations.r != two.relations.r  # F2: the other set moves each person's ends
 
 
-def test_with_the_switch_on_the_bootstrap_is_paid_once_and_matches() -> None:
+def test_with_the_switch_on_the_bootstrap_is_the_maps_and_the_body_keeps_none() -> None:
+    # A3d: the body once copied the map's K100, or paid a second bootstrap of its own where
+    # it could not. It keeps none now; the map's is computed under its own declared draw.
     a, b, data = _study(14, 150)
     on = battery_sociomap(
         a,
@@ -561,20 +563,12 @@ def test_with_the_switch_on_the_bootstrap_is_paid_once_and_matches() -> None:
         object_maps=(AIA_SOCIOMAP_V2,),
         rating_questions=(),
     )
-    alone = battery_sociomap(
-        a,
-        data,  # type: ignore[arg-type]
-        rated_with=(a, b),
-        connectedness_interval=True,
-        map_spec=AIA_SOCIOMAP_V1,
-        object_maps=(),
-        rating_questions=(),
-    )
     art = read_artifact(on["maps"]["aia-sociomap-2"])
     assert isinstance(art, SociomapArtifactV3)
     assert art.spec.connectedness.resamples == CONNECTEDNESS_RESAMPLES
     assert art.spec.connectedness.seed == CONNECTEDNESS_SEED
-    assert on["connectedness_100"] == alone["connectedness_100"] == art.connectedness_100
+    assert art.connectedness_100["status"] == "computed"
+    assert "connectedness_100" not in on
 
 
 def test_research_sociomaps_names_both_pinned_methods() -> None:
@@ -614,7 +608,7 @@ def test_research_sociomaps_names_both_pinned_methods() -> None:
     assert [m["method_id"] for m in body["methods"]] == ["aia-sociomap-1", "aia-sociomap-3"]
     (set_body,) = body["batteries"]
     assert set(set_body["maps"]) == {"aia-sociomap-3"}
-    assert body["sociomap_version"] == "aia-research-sociomap-9"
+    assert body["sociomap_version"] == "aia-research-sociomap-10"
     pins = {m.method_id: m for m in default_methods()}
     assert pins["aia-sociomap-3"] == SociomapMethod.of(AIA_SOCIOMAP_V3)
 

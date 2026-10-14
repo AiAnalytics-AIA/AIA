@@ -202,9 +202,11 @@ def test_a_fictional_study_with_every_declared_input_reaches_its_maps(
         assert art.outcome == MapOutcome.MAPPED and art.layout is not None
         assert art.support.not_placed == 1
         assert art.roles == battery.object_roles()
-        # The map agrees with the body's own relations and scores.
-        assert [list(r) for r in art.relations.r] == set_body["relation_rescaled"]["r"]
-        assert art.scores == set_body["object_scores"]
+        # The map alone holds the relations over each person's scale and the scores (A3d).
+        assert not {"relation_rescaled", "object_scores", "connectedness_100"} & set(set_body)
+        assert art.scores["primary"] == [
+            o.id for o in battery.objects if art.roles[o.id] == "primary"
+        ]
         assert set_body["methodology_status"] == "INTERNAL_ONLY"
     drinks_map = read_artifact(body["batteries"][0]["maps"]["aia-sociomap-3"])
     assert isinstance(drinks_map, SociomapArtifactV3)

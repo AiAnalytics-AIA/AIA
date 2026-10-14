@@ -1579,11 +1579,11 @@
     },
     {
      "kind": "OWN_TEST",
-     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_body_carries_alignment_and_connectedness_over_every_object_as_primary",
-     "what": "the research step stores relation_rescaled and the F8 scores read it"
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_maps_scores_read_every_object_as_primary_over_r_tilde",
+     "what": "the research step's object map carries r~ and the F8 scores read it (the body's own copy is gone since A3d)"
     }
    ],
-   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a). Landed in chunk 2a: research_sociomap stores relation_rescaled (signed r~ and |r~| with n, interval and status) beside the unit's matrix, each rating first on its item's declared 0-1 scale (F1 eq. 3) so items with different ends compare, over every tracked set of the specification; the F8 scores read r~. No layout reads r~ yet (2b); aia-sociomap-1 still lays out over the unit's matrix.",
+   "uncertainty": "Q5 (co-movement versus 'rated alike') is open by the audit's own words (§ 12 F2). The small negative baseline after per-person rescaling (-1/(m - 1) for centring; -0.09 for min-max at m = 6) is stated, not corrected. Whether the per-person rescaling and the weighted Pearson compose as the audit intends is not stated; put to the author with Q5 (plan § 8a). Landed in chunk 2a: research_sociomap stores relation_rescaled (signed r~ and |r~| with n, interval and status) beside the unit's matrix, each rating first on its item's declared 0-1 scale (F1 eq. 3) so items with different ends compare, over every tracked set of the specification; the F8 scores read r~. No layout reads r~ yet (2b); aia-sociomap-1 still lays out over the unit's matrix. Since mvp-workflow-assurance A3d (2026-10-14) the body keeps no copy of relation_rescaled: each pinned contract-3 map holds r~ and the scores that read it.",
    "resolve_by": "sociomap-formula-corrections chunk 2a",
    "question": "Q5 -- what proximity between two objects claims: relative co-movement, similar absolute ratings, or two concepts kept apart (plan sociomap-formula-corrections § 4a; the owner's decision)"
   },
@@ -1942,11 +1942,11 @@
     },
     {
      "kind": "OWN_TEST",
-     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_scores_leave_out_the_pairs_the_status_calls_unknown",
-     "what": "the research step's stored body carries the scores, the excluded pairs and the denominators"
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_maps_scores_leave_out_the_pairs_the_status_calls_unknown",
+     "what": "the research step's object map carries the scores, the excluded pairs and the denominators"
     }
    ],
-   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice (AUDIT_PROVISIONAL_DEFAULT_HEIGHT; spec v3, chunk 2d, declares it). The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a). The SECONDARY boundary is also open beyond scores and terrain: whether SECONDARY objects may affect the PRIMARY layout, respondent placement, Procrustes alignment, Stress-1 or any derived quantity (B11). The audit's C8 numbers come from its demo, which AIA does not have, so the SECONDARY test is synthetic. Landed in chunk 1b: the scores are stored in the research Sociomap body beside the map; every object of a tracked set is PRIMARY until an object manager exists; no height, terrain or Results surface reads them yet (2d, 4b, 5).",
+   "uncertainty": "Q7 (the default terrain height) is open; mean rating is the audit's provisional choice (AUDIT_PROVISIONAL_DEFAULT_HEIGHT; spec v3, chunk 2d, declares it). The audit writes the denominator as m_P - 1 and says UNKNOWN pairs are left out of both sums; with a fixed denominator leaving a pair out equals counting it as 0, which scores unknown as 'no connection' (A4). AIA reads 'left out' as out of the denominator too, and an object with no known pair as unscored; the reading is put to the author with Q7 (plan § 8a). The SECONDARY boundary is also open beyond scores and terrain: whether SECONDARY objects may affect the PRIMARY layout, respondent placement, Procrustes alignment, Stress-1 or any derived quantity (B11). The audit's C8 numbers come from its demo, which AIA does not have, so the SECONDARY test is synthetic. Landed in chunk 1b: the scores are stored in the research Sociomap body beside the map; every object of a tracked set is PRIMARY until an object manager exists; no height, terrain or Results surface reads them yet (2d, 4b, 5). Since mvp-workflow-assurance A3d (2026-10-14) the scores are stored only in each pinned contract-3 map, not again in the body.",
    "resolve_by": "sociomap-formula-corrections chunk 1b",
    "question": "Q7 -- what terrain height claims: absolute evaluation (mean rating), relational connectedness, or selectable with a default (plan § 4a; the owner's decision)"
   },
@@ -2031,11 +2031,11 @@
     },
     {
      "kind": "OWN_TEST",
-     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_stored_body_carries_connectedness_100_with_its_declared_draw",
-     "what": "the research step stores K100, its interval over B = 500 and the declared seed, and the ranking; recomputed bit-identical"
+     "test": "packages/aia_core/tests/test_research_sociomap.py::test_the_maps_connectedness_100_has_its_declared_draw",
+     "what": "the research step's object map carries K100, its interval over B = 500 and the declared seed, and the ranking; recomputed bit-identical"
     }
    ],
-   "uncertainty": "B is 'e.g. 500'; AIA declares 500 (research_sociomap.CONNECTEDNESS_RESAMPLES) with a declared seed, both recorded on every body. The resampling unit is the respondent, every respondent of the sample a cluster. The generator is AIA's own (OI-62), not NumPy's stream; the quantile is aggregation's linear (type 7) rule. Readings where the audit is silent: pair status (F3) is fixed from the full sample, so every resample averages the same known pairs; a resample in which one of them has no correlation does not score that object and is counted (resamples_scored); intervals that touch overlap (tied); since overlap is not transitive the ranking is a relation per pair and a rank range per object, not tie groups. K_i inherits F8's open semantics (Q7, the denominator reading). tscore stays, unchanged, for aia-sociomap-1; nothing reads K100 for a height or a surface yet (chunk 5). The bootstrap (about 90 s per 1,500 x 22 battery) runs only when the worker's AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED is on, off by default; otherwise each set records connectedness_100 as not_computed, and the flag is part of the step's fingerprint. Landed in chunk 4a.",
+   "uncertainty": "B is 'e.g. 500'; AIA declares 500 (research_sociomap.CONNECTEDNESS_RESAMPLES) with a declared seed, both recorded on every body. The resampling unit is the respondent, every respondent of the sample a cluster. The generator is AIA's own (OI-62), not NumPy's stream; the quantile is aggregation's linear (type 7) rule. Readings where the audit is silent: pair status (F3) is fixed from the full sample, so every resample averages the same known pairs; a resample in which one of them has no correlation does not score that object and is counted (resamples_scored); intervals that touch overlap (tied); since overlap is not transitive the ranking is a relation per pair and a rank range per object, not tie groups. K_i inherits F8's open semantics (Q7, the denominator reading). tscore stays, unchanged, for aia-sociomap-1; nothing reads K100 for a height or a surface yet (chunk 5). The bootstrap (about 90 s per 1,500 x 22 battery) runs only when the worker's AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED is on, off by default; otherwise each map records that it was not computed, and the flag is part of the step's fingerprint. Landed in chunk 4a. Since mvp-workflow-assurance A3d (2026-10-14) K100 is computed and stored only in each pinned contract-3 map; the body no longer pays a second bootstrap for its own copy (measured 94 s of a 251 s step at 1,500 x 22).",
    "resolve_by": "sociomap-formula-corrections chunk 4a",
    "question": null
   },

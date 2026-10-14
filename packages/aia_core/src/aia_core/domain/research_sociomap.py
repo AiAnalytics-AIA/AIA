@@ -15,19 +15,18 @@ PR C chunk 6. For each tracked object set of the specification:
    stays in step 1 only, because ``aia-sociomap-1`` is the unit's formula kept
    as a named comparison alternative; the status says where that matrix must
    not be read (plan ``sociomap-formula-corrections``, chunk 1a);
-3. **each object's alignment and connectedness** -- the audit's replacement
-   of the classic score (F8), over the PRIMARY objects with UNKNOWN pairs left
-   out; every object of a tracked set is PRIMARY until AIA has an object
-   manager (chunk 1b). Stored beside the map; the map's height is still the
-   preset's. Beside them, connectedness on 0-100 with a respondent-bootstrap
-   interval and the order those intervals allow (audit F9, chunk 4a);
-4. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
+3. **the map** -- AIA's deterministic engine, ``compute_sociomap``, under the
    spec the run pinned when it was started (:class:`SociomapMethod`), with only the
    rating scale taken from the battery (a property of the data, recorded on the
    artifact). The module's preset is what a *new* run pins; a run executes the spec
    it pinned, whatever the preset has become since, and a run stored before methods
    were pinned is read as ``aia-sociomap-1`` (:data:`LEGACY_METHODS`), the method that
-   computed it (plan ``sociomap-formula-corrections`` § 8.2, I0 and I4).
+   computed it (plan ``sociomap-formula-corrections`` § 8.2, I0 and I4);
+4. **the object maps** -- each pinned contract-3 method's map (:func:`compute_object_map`),
+   stored under ``maps``: the relations over each person's own scale (audit F2), each
+   object's alignment and connectedness over the PRIMARY objects (F8) and, with the
+   worker's switch on, connectedness on 0-100 with its bootstrap interval (F9). The body
+   holds them only there, once (plan ``mvp-workflow-assurance`` A3d).
 
 **Integration is not exposure.** A map's status is the Sociomap register's for the
 method, at the exact specification, that computed it (:mod:`.sociomap_register`,
@@ -75,25 +74,19 @@ from .sociomap import (
 )
 from .sociomap.metrics import (
     CONNECTEDNESS_QUANTILES,
-    connectedness_100,
-    primary_scores,
-    rank_with_ties,
 )
 from .sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
 from .sociomap.pairs import PairRelations, derive_pair_relations, derive_relation_matrix
-from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN, PairStatus, person_minmax
+from .sociomap.relations import AUDIT_PROVISIONAL_N_MIN
 from .sociomap.slots import ENGINE_SLOTS, NO_SLOTS, Slots
-from .sociomap.specification import PairEvidenceBasis
 from .sociomap_register import MethodologyStatus, method_status
 
 __all__ = [
-    "CONNECTEDNESS_NOT_COMPUTED",
     "CONNECTEDNESS_RESAMPLES",
     "CONNECTEDNESS_SEED",
     "LEGACY_METHODS",
     "PAIR_CONFIDENCE",
     "RELATION_SOURCE",
-    "RESCALE_RULE",
     "SOCIOMAP_VERSION",
     "MethodologyStatus",
     "PairRelations",
@@ -110,7 +103,6 @@ __all__ = [
     "rating_universe",
     "read_methods",
     "require_client_facing",
-    "rescaled_battery_ratings",
     "research_sociomaps",
     "side_tables_for",
     "side_tables_of",
@@ -135,15 +127,11 @@ __all__ = [
 #: (``roles``; S3). ``9``: the side tables (``relation``, ``relation_rescaled``,
 #: ``object_scores``) and K100 read n_min, confidence and the bootstrap from the run's
 #: pinned object map, and say which (``side_tables``; plan ``methodology-tab`` S2b).
+#: ``10``: the body keeps no second copy of what each pinned object map holds -- no
+#: ``relation_rescaled``, ``object_scores`` or ``connectedness_100``, and no second K100
+#: bootstrap (plan ``mvp-workflow-assurance`` A3d); a body stored under ``9`` keeps them.
 #: Not the engine preset (``aia-sociomap-<n>``).
-SOCIOMAP_VERSION: Final = "aia-research-sociomap-9"
-#: How ``relation_rescaled`` was made, recorded on every body.
-RESCALE_RULE: Final = (
-    "audit F2: each rating on its item's declared 0-1 scale (audit F1, eq. 3), then each "
-    "respondent's own min-max over every declared rating item of the specification they "
-    "rated, straight-liners excluded, then the weighted Pearson correlation as the unit "
-    "computes it; the weighting is AIA's reading where the audit is silent (register AUDIT-F2)"
-)
+SOCIOMAP_VERSION: Final = "aia-research-sociomap-10"
 RELATION_SOURCE: Final = "DERIVED_FROM_COMMON_RESPONDENT_RATINGS"
 #: The audit's interval (F3): a 95 % Fisher-z interval decides RELIABLE. The side tables of
 #: a run that pinned no object map; a run that pinned one reads its own (:class:`SideTables`).
@@ -158,11 +146,12 @@ CONNECTEDNESS_SEED: Final = 20261007
 
 @dataclass(frozen=True, slots=True)
 class SideTables:
-    """What the body's side tables and its K100 are computed with (plan ``methodology-tab``
-    S2b): the pair status's ``n_min`` and ``confidence`` and K100's bootstrap, read from the
-    run's last pinned object map (``method``), so an edited methodology put in force moves
-    them with the map. The statuses keep reading the respondent count: that is the body's
-    documented rule, whatever basis the map's own pairs read.
+    """What the body's ``relation`` pairs are computed with (plan ``methodology-tab`` S2b):
+    the pair status's ``n_min`` and ``confidence``, read from the run's last pinned object
+    map (``method``), so an edited methodology put in force moves them with the map, and that
+    map's bootstrap, recorded beside them (the body computes no K100 of its own since A3d).
+    The statuses keep reading the respondent count: that is the body's documented rule,
+    whatever basis the map's own pairs read.
 
     A run that pinned no object map (``method`` ``None``) is computed with the values the
     code fixed before the pin carried them (:data:`LEGACY_SIDE_TABLES`).
@@ -416,39 +405,6 @@ def rating_universe(
     return universe
 
 
-def rescaled_battery_ratings(
-    battery: SpecBattery,
-    dataset: FieldworkDataset,
-    rated_with: Sequence[SpecBattery],
-    *,
-    rating_questions: Sequence[SpecQuestion],
-) -> tuple[list[list[float | None]], list[str]]:
-    """``battery``'s ratings on each respondent's own 0-1 scale (audit F2), and who has none.
-
-    Every rating item of the specification (:func:`rating_universe`: the sets in
-    ``rated_with`` and the declared ``rating_questions``) is first put on its own declared
-    0-1 scale, so items with different ends compare; each respondent's lowest is then 0
-    and highest 1 over all of them (:func:`~.sociomap.relations.person_minmax`), and
-    ``battery``'s columns are returned. A respondent whose rated items all share one value
-    is excluded: their row is all ``None`` and their id is listed.
-    """
-    if not any(b.id == battery.id for b in rated_with):
-        raise ValueError(f"battery {battery.id!r} is not among the sets it is rated with")
-    columns = rating_universe(rated_with, rating_questions)
-    mine = {battery.question_id(o) for o in battery.objects}
-    own = [c for c, (qid, _, _) in enumerate(columns) if qid in mine]
-    rows: list[list[float | None]] = []
-    for r in dataset.respondents:
-        row: list[float | None] = []
-        for qid, low, high in columns:
-            value = _rating(r.answers.get(qid))
-            row.append(None if value is None else (value - low) / (high - low))
-        rows.append(row)
-    scaled = person_minmax(rows)
-    ids = [dataset.respondents[k].respondent_id for k in scaled.excluded]
-    return [[scaled.values[k][c] for c in own] for k in range(len(rows))], ids
-
-
 def object_map_inputs(
     battery: SpecBattery,
     dataset: FieldworkDataset,
@@ -480,17 +436,6 @@ def object_map_inputs(
         object_items=tuple(battery.question_id(o) for o in battery.objects),
         roles=battery.object_roles(),
     )
-
-
-#: What the body says where the bootstrap was not asked for (the worker's kill switch,
-#: ``AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED``): not computed, never a 0 or a guess.
-CONNECTEDNESS_NOT_COMPUTED: Final = {
-    "status": "not_computed",
-    "reason": (
-        "the respondent bootstrap (audit F9) is off in this deployment: about 90 s per "
-        "1,500 x 22 set at B = 500; AIA_SOCIOMAP_CONNECTEDNESS_INTERVAL_ENABLED turns it on"
-    ),
-}
 
 
 def battery_sociomap(
@@ -525,32 +470,10 @@ def battery_sociomap(
     side = side_tables_for([spec_v3 for spec_v3, _ in pinned_maps])
     relation, scores = derive_relation_matrix(ratings, weights)
     pairs = derive_pair_relations(ratings, weights, n_min=side.n_min, confidence=side.confidence)
-    rescaled, not_rescaled = rescaled_battery_ratings(
-        battery, dataset, rated_with, rating_questions=rating_questions
-    )
     roles = battery.object_roles()
-    rescaled_pairs = derive_pair_relations(
-        rescaled, weights, n_min=side.n_min, confidence=side.confidence
-    )
-    # Each object's role as the specification declares it (``context_objects``; none
-    # declared: every object PRIMARY, and the body says the roles were not declared). The
-    # scores read the relation after the rating habit is removed (audit F8 reads r~, F2).
-    object_scores = primary_scores(object_ids, rescaled_pairs.r, rescaled_pairs.status, roles)
-
-    def correlate(
-        multiplicities: Sequence[int],
-    ) -> tuple[tuple[tuple[float | None, ...], ...], tuple[tuple[PairStatus | None, ...], ...]]:
-        # A resample: each respondent's rescaled row taken as many times as drawn,
-        # as a weight multiple (the weighted Pearson of duplicated rows). The rows
-        # are rescaled once: each person's min-max is their own (F2).
-        drawn = derive_pair_relations(
-            rescaled,
-            [k * w for k, w in zip(multiplicities, weights, strict=True)],
-            n_min=side.n_min,
-            confidence=side.confidence,
-        )
-        return drawn.r, drawn.status
-
+    # Each pinned object map holds the relations over each person's own scale (audit F2),
+    # the object scores (F8) and K100 (F9). The body keeps no second copy of them (A3d):
+    # nothing read it, and its K100 paid a second bootstrap beside the map's.
     maps = {
         spec_v3.methodology_version: compute_object_map(
             object_map_inputs(
@@ -562,48 +485,6 @@ def battery_sociomap(
         )
         for spec_v3, slots in pinned_maps
     }
-    # A map computed with a replaced formula never lends its numbers to the body, which
-    # the code's formulas compute.
-    code_maps = {spec_v3.methodology_version for spec_v3, slots in pinned_maps if not slots}
-    # K100 is computed once: an object map whose bootstrap is this body's -- the same
-    # universe, rows, weights, roles, n_min, confidence, B, seed and quantiles, and the
-    # same evidence basis (the body's statuses read the respondent count; a map that reads Kish's n
-    # decides other statuses under unequal weights) -- already holds it, so it is copied
-    # rather than paid for twice (about 90 s per large set).
-    same_bootstrap = next(
-        (
-            a
-            for name, a in maps.items()
-            if name in code_maps
-            and a.connectedness_100.get("status") == "computed"
-            and a.spec.connectedness.resamples == side.resamples
-            and a.spec.connectedness.seed == side.seed
-            and a.connectedness_100.get("quantiles") == list(side.quantiles)
-            and a.spec.relation.n_min == side.n_min
-            and a.spec.relation.confidence == side.confidence
-            and a.spec.relation.basis == PairEvidenceBasis.RESPONDENT_COUNT
-            and a.roles == roles
-        ),
-        None,
-    )
-    connectedness: dict[str, Any] = dict(CONNECTEDNESS_NOT_COMPUTED)
-    if connectedness_interval and same_bootstrap is not None:
-        connectedness = dict(same_bootstrap.connectedness_100)
-    elif connectedness_interval:
-        k100 = connectedness_100(
-            object_ids,
-            roles,
-            correlate,
-            respondents=len(rescaled),
-            resamples=side.resamples,
-            seed=side.seed,
-            quantiles=side.quantiles,
-        )
-        connectedness = {
-            "status": "computed",
-            **k100.to_payload(),
-            "ranking": rank_with_ties(k100.intervals()).to_payload(),
-        }
 
     low, high = battery.scale
     spec = map_spec.model_copy(
@@ -653,19 +534,7 @@ def battery_sociomap(
                 "or, with none pinned, the audit's provisional n_min (pending its Q6) and 0.95"
             ),
         },
-        "relation_rescaled": {
-            "rule": RESCALE_RULE,
-            "rated_with": [b.id for b in rated_with],
-            "rating_questions": [q.id for q in rating_questions],
-            "excluded_respondents": not_rescaled,
-            **rescaled_pairs.model_dump(mode="json"),
-            # Audit F4: how strong, whichever its direction, beside the signed r~.
-            "abs_r": [[None if v is None else abs(v) for v in row] for row in rescaled_pairs.r],
-            "status_counts": rescaled_pairs.counts(),
-        },
         "roles": {"declared": battery.roles_declared, "by_object": roles},
-        "object_scores": object_scores.to_payload(),
-        "connectedness_100": connectedness,
         "sociomap": artifact.model_dump(mode="json"),
         "maps": {method_id: a.to_payload() for method_id, a in maps.items()},
     }
@@ -683,8 +552,8 @@ def research_sociomaps(
     ``methods`` are the run's pinned methods (:func:`read_methods`); each is resolved --
     verified and checked computable -- before any number, so a pin this engine cannot
     compute fails here by name. ``connectedness_interval`` is the worker's kill switch for
-    the F9 bootstrap, passed by name: off, each set records
-    :data:`CONNECTEDNESS_NOT_COMPUTED` instead.
+    the F9 bootstrap, passed by name to each object map: off, each map records that it was
+    not computed.
     """
     pinned = read_methods([m.model_dump(mode="json") for m in methods])
     resolved = [(m.resolve(), m.slots()) for m in pinned]
