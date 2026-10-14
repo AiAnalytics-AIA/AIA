@@ -179,6 +179,7 @@ def _env(world: Any, **overrides: str) -> dict[str, str]:
                 {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}},
                 {k: v for k, v in DESIGN.items() if k != "research_plan"},
                 {**DESIGN, "n": 150},
+                {**DESIGN, "n": 50},
             )
         )
         + "]",
@@ -1805,6 +1806,44 @@ def test_ai_respondents_answer_and_the_eight_modules_interpret_them_in_one_run(
     events = [e for e in _ledger(world, run_id) if e.agent_id == "aia.analysis.module"]
     assert len(events) == 16
     assert {e.data_class.value for e in events} == {"CLASS_C_INTERNAL"}
+
+
+@pytest.mark.parametrize("n", [50, 150])
+def test_the_support_forecast_is_what_the_aggregate_then_computes(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], n: int
+) -> None:
+    """Readiness forecasts a run's donors and support from the roster fieldwork will draw
+    (plan run-recovery-and-truth 2a). After the run, every question the respondents all
+    answered carries exactly that: 50 fictional respondents are suppressed, 150 are not."""
+    from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.research_design import ResearchSpecification
+    from aia_core.domain.support_forecast import forecast_support
+
+    models = ScriptedModels()
+    run_id = _start(world, {**DESIGN, "n": n}, source=FieldworkSource.AI_RUNTIME)
+    worker = run_with(models, ai_fieldwork=True)
+    while not {"compile", "aggregate"} <= {
+        s["node_key"]
+        for s in _run(world, run_id)["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED
+    }:
+        assert worker.run_once() is not None, _unfinished(world, run_id)
+    steps = {s["node_key"]: s for s in _run(world, run_id)["steps"]}
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        spec = ResearchSpecification.model_validate(
+            repo.read_json(steps["compile"]["output"]["artifact_id"])["specification"]
+        )
+        aggregate = repo.read_json(steps["aggregate"]["output"]["artifact_id"])["aggregate"]
+    forecast = forecast_support(
+        spec, support=AIA_SUPPORT_V1, persona_source=PersonaSource.FICTIONAL_ROSTER
+    )
+    answered_by_all = [q for q in aggregate["questions"].values() if q["n_chybi"] == 0]
+    assert answered_by_all
+    assert {q["n_unique_layer_donors"] for q in answered_by_all} == {forecast.donors}
+    assert {q["support_status"] for q in answered_by_all} == {forecast.results.value}
+    assert (forecast.results.value == "SUPPRESS") is (n == 50)
 
 
 @pytest.mark.parametrize("how", ["tampered", "missing"])

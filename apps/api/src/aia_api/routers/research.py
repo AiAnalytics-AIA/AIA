@@ -744,7 +744,11 @@ def readiness(
     """
     runs = ResearchRuns(session, scope)
     try:
-        spec, result = runs.readiness(design_revision_id, persona_source=_persona_source(request))
+        spec, result = runs.readiness(
+            design_revision_id,
+            persona_source=_persona_source(request),
+            fieldwork_source=_fieldwork_source(request),
+        )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
     settings = request.app.state.settings

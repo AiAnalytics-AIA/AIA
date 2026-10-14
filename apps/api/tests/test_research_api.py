@@ -892,6 +892,25 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     )
 
 
+def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2a: 50 fictional respondents pass every structural check
+    and still show nothing; readiness says so, as a warning, before anything is paid."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def forecast(n: int) -> Any:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        return body, next(c for c in body["checks"] if c["id"] == "support_forecast")
+
+    small, check = forecast(50)
+    assert small["ready"] is True, "a forecast warns, it never refuses"
+    assert check["status"] == "WARN" and "nevzniknou" in check["message"]
+    _, enough = forecast(450)
+    assert enough["status"] == "PASS"
+
+
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     app: FastAPI,
     researcher: TestClient,

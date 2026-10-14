@@ -4,7 +4,7 @@ chunks:
   - "[x] 1a. Analysis: a schema failure is stored with the fields that failed, and the repair turn shows the model its own rejected answer"
   - "[x] 1b. Analysis: retry failed modules over the run's frozen dataset and aggregate (no new fieldwork), as a new linked run"
   - "[x] 1c. Web: a blocked module is not \"Hotovo\"; the run offers \"Zopakovat neúspěšné moduly\"; no report download that can only fail"
-  - "[ ] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
+  - "[x] 2a. Preflight: donor-cluster and support feasibility from the roster rules, before launch"
   - "[ ] 2b. Readiness: per planned question, answerable / at risk / unanswerable, in the run screen"
   - "[ ] 3. Proposal editor: research question -> measure -> comparison -> external source, unanswered questions flagged before a paid run"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
@@ -121,6 +121,37 @@ Review findings (Codex on #405), both fixed:
   (`ExecutionSteps.tsx` `InternalReport`). The download that could only fail is the
   contextual report's, in `InterpretationResearch.tsx`: chunk 6.
 
+## 2a — support forecast before launch
+
+The 50-respondent run's 15 donors were not bad luck. Fieldwork seeds its roster from the
+specification (`fieldwork_seed`, now in `domain/ai_respondent.py`) and draws donors with
+replacement from `max(3, n // 3)` ids (`domain/ai_respondent.py` `fictional_roster`; the
+Metodika tab already records it as D6, `test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+So the donors a run will have are known from its design.
+
+`domain/support_forecast.py` draws that roster and runs it through the aggregate's own
+`donor_support` (results rule) and the analysis gate's `reassess_support` (analysis rule),
+both under the support rules a start would pin. `ResearchRuns.readiness` adds a
+`support_forecast` check for an `ai_runtime` run:
+
+- **SUPPRESS (analysis)**: WARN. Every number will be suppressed for analysis, so neither
+  the analysis nor the report will be produced. The check names the smallest n, everything
+  else unchanged, that the gate admits; the search goes up to `max(4n, n + 200)`.
+- **INDICATIVE**: WARN, and the numbers will show with weak support.
+- **REPORTABLE**: PASS, as long as respondents do not skip answers.
+- **A panel run**: WARN that the count is unknown until fieldwork draws respondents (the
+  audience preview shows the selected donors). An unknown count is never scored as good.
+
+A forecast never FAILs. It says what the run will show; whether to pay for that is still
+the person's call. It is an upper bound: an empty answer lowers a question's donors, and a
+methodology version replacing the aggregate's Kish formula is not applied here.
+
+Tests:
+- `packages/aia_core/tests/test_support_forecast.py`
+- `test_the_support_forecast_is_what_the_aggregate_then_computes[50|150]`: a real AI-runtime
+  run's aggregate carries exactly the forecast's donors and status.
+- `test_readiness_forecasts_whether_a_runs_numbers_will_be_shown` (API)
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -134,3 +165,13 @@ Review findings (Codex on #405), both fixed:
   dataset (`frozen_dataset`: artifact id + SHA-256, verified, never substituted).
 - `AGENTS.md`: a strict Pydantic validation error's `msg` carries no input value,
   but `str(ValidationError)` does; diagnostics are built from `loc` + `msg` only.
+- (1a–1c above applied by AiAnalytics-AIA/AIA#414.)
+- 2a, `CLAUDE.md` § map, domain (new line after `ai_respondent.py`):
+  "support_forecast.py: a run's evidence support forecast from the roster fieldwork will
+  draw (fieldwork_seed + fictional_roster through donor_support and reassess_support,
+  under the pinned support rules); unknown for a panel run, never good; readiness adds
+  it as the support_forecast check (WARN, never FAIL) for an ai_runtime run".
+- 2a, `CLAUDE.md` § map, `ai_respondent.py`: append "fieldwork_seed: the roster and
+  draw seed from the specification (moved from the executor)".
+- 2a, `CLAUDE.md` § map, `application/research.py`: "readiness(…, fieldwork_source=):
+  with ai_runtime, the support forecast under the support rules a start would pin".

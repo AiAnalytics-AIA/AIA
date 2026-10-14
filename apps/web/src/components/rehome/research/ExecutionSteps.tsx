@@ -306,9 +306,9 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
   );
 }
 
-/** Where a failing readiness check is fixed: the sample on Dimenze, the audience on Audience, the rest on Dotazník. */
+/** Where a failing readiness check is fixed: the sample (and the support it gives) on Dimenze, the audience on Audience, the rest on Dotazník. */
 export function fixStep(checkId: string): StepKey {
-  if (/sample|^n$/.test(checkId)) return "persona";
+  if (/sample|^n$|^support_forecast$/.test(checkId)) return "persona";
   if (/audience/.test(checkId)) return "audience";
   return "questionnaire";
 }

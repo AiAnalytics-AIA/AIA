@@ -1,0 +1,206 @@
+"""Whether a run's evidence will be shown, worked out before anything is paid for.
+
+A 50-respondent fictional run passed readiness, paid for its fieldwork, and then every
+question's evidence was suppressed: the roster had 15 distinct donors against the
+support rule's 25, so every analysis module was blocked. A 200-respondent run of the same
+design had 62 and worked. Nothing about that was uncertain. Fieldwork seeds its roster
+from the specification (:func:`~.ai_respondent.fieldwork_seed`) and draws its donors from
+``max(3, n // 3)`` ids with replacement (:func:`~.ai_respondent.fictional_roster`), so
+the donors a run will have are known from the design alone.
+
+:func:`forecast_support` draws that same roster and puts it through the aggregate's own
+support computation (:func:`~.research_aggregate.donor_support`, under the run's pinned
+``results`` rule) and the analysis gate (:func:`~.analysis.native.reassess_support`,
+under its ``analysis`` rule): the status every question will carry, before the run, by
+the code that will decide it after. Every question is asked of every respondent (a
+conditional question is refused at readiness), so the forecast is one status for all.
+
+What it cannot know it says so, and never scores as good: a run whose respondents come
+from the population draws its donors at fieldwork (the audience preview counts them),
+so its forecast is unknown. A methodology version that replaced the aggregate's Kish
+formula is not applied here (the code's formula is), and an answer a respondent leaves
+empty lowers a question's donors below the forecast; both make the forecast an upper
+bound on support, never a promise of more.
+
+Pure: no I/O.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Final
+
+from .ai_respondent import fictional_roster, fieldwork_seed
+from .analysis.native import reassess_support
+from .evidence import SupportStatus
+from .evidence.support import SupportSpec
+from .fieldwork import PersonaSource
+from .research_aggregate import donor_support
+from .research_design import (
+    SAMPLE_SIZE_BOUNDS,
+    CheckStatus,
+    Readiness,
+    ReadinessCheck,
+    ResearchSpecification,
+)
+
+__all__ = [
+    "SUPPORT_FORECAST_CHECK",
+    "SupportForecast",
+    "forecast_support",
+    "with_support_forecast",
+]
+
+#: The readiness check this module adds.
+SUPPORT_FORECAST_CHECK: Final = "support_forecast"
+
+#: How far above the design's n the search for a sufficient n looks: four times n, and
+#: never less than this many respondents above it.
+_SEARCH_FLOOR: Final = 200
+
+
+@dataclass(frozen=True, slots=True)
+class SupportForecast:
+    """What the run's evidence will be, from the roster fieldwork will draw.
+
+    ``donors`` ``None``: unknown before fieldwork (a population-drawn run). ``results``
+    is the status every question will carry on Results, ``analysis`` the status the
+    analysis gate will give it (the stricter of the two); a question SUPPRESSED for
+    analysis gives the modules nothing to cite. ``reportable_n`` is the smallest n, with
+    everything else in the design as it is, at which the analysis gate admits the
+    evidence; ``None`` when none was found within the search, or when it is already met.
+    """
+
+    persona_source: PersonaSource
+    respondents: int | None
+    donors: int | None
+    results: SupportStatus | None
+    analysis: SupportStatus | None
+    reportable_n: int | None = None
+
+    @property
+    def known(self) -> bool:
+        return self.donors is not None
+
+
+def _statuses(
+    spec: ResearchSpecification, support: SupportSpec
+) -> tuple[int, SupportStatus, SupportStatus]:
+    assert spec.n is not None
+    roster = fictional_roster(spec.n, seed=fieldwork_seed(spec))
+    cell = donor_support(
+        [p.donor_id for p in roster], [p.weight for p in roster], rule=support.results
+    )
+    results = SupportStatus(str(cell["support_status"]))
+    # The question result as the aggregate writes it (research_aggregate: n_platnych,
+    # effective_n from the combined estimate), read by the analysis gate as it reads one.
+    question = {
+        "n_platnych": cell["n"],
+        "effective_n": cell["effective_n_combined"],
+        "n_unique_layer_donors": cell["n_unique_layer_donors"],
+        "support_status": cell["support_status"],
+    }
+    analysis = reassess_support(question, support.analysis).status
+    return int(cell["n_unique_layer_donors"]), results, analysis
+
+
+def _reportable_n(spec: ResearchSpecification, support: SupportSpec) -> int | None:
+    """The smallest n above the design's that the analysis gate admits, the rest unchanged.
+
+    Each candidate is compiled as the run would see it: n is part of the specification's
+    fingerprint, so a different n is a different seed and a different roster.
+    """
+    assert spec.n is not None
+    high = min(SAMPLE_SIZE_BOUNDS[1], max(4 * spec.n, spec.n + _SEARCH_FLOOR))
+    for n in range(spec.n + 1, high + 1):
+        _, _, analysis = _statuses(spec.model_copy(update={"n": n}), support)
+        if analysis is not SupportStatus.SUPPRESS:
+            return n
+    return None
+
+
+def forecast_support(
+    spec: ResearchSpecification, *, support: SupportSpec, persona_source: PersonaSource
+) -> SupportForecast:
+    """The support a run of ``spec`` will have, under the support rules it will pin."""
+    if persona_source is not PersonaSource.FICTIONAL_ROSTER or spec.n is None or spec.n < 1:
+        return SupportForecast(
+            persona_source=persona_source,
+            respondents=spec.n,
+            donors=None,
+            results=None,
+            analysis=None,
+        )
+    donors, results, analysis = _statuses(spec, support)
+    return SupportForecast(
+        persona_source=persona_source,
+        respondents=spec.n,
+        donors=donors,
+        results=results,
+        analysis=analysis,
+        reportable_n=_reportable_n(spec, support) if analysis is SupportStatus.SUPPRESS else None,
+    )
+
+
+def _below(line: int | None, tail: str, *, prefix: str = " Pod ", suffix: str = " dárci") -> str:
+    """A threshold in words, or nothing when the rule does not check that line."""
+    return "" if line is None else f"{prefix}{line}{suffix}{tail}"
+
+
+def _check(forecast: SupportForecast, support: SupportSpec) -> ReadinessCheck:
+    if not forecast.known:
+        return ReadinessCheck(
+            id=SUPPORT_FORECAST_CHECK,
+            status=CheckStatus.WARN,
+            message=(
+                "Kolik různých dárců běh bude mít, se ukáže až při výběru respondentů z "
+                "populace; náhled publika ukazuje dárce vybraného publika."
+                + _below(support.results.min_layer_donors, " se výsledky nezobrazí.")
+                if forecast.persona_source is PersonaSource.PANEL
+                else "Oporu výsledků nelze předem spočítat."
+            ),
+        )
+    lines = support.results
+    head = f"Běh bude mít {forecast.donors} různých dárců na {forecast.respondents} respondentů"
+    if forecast.analysis is SupportStatus.SUPPRESS:
+        more = (
+            f" Při stejném návrhu by stačilo n = {forecast.reportable_n}."
+            if forecast.reportable_n is not None
+            else ""
+        )
+        return ReadinessCheck(
+            id=SUPPORT_FORECAST_CHECK,
+            status=CheckStatus.WARN,
+            message=(
+                f"{head}: čísla všech otázek budou pro AI analýzu potlačená a nebude mít "
+                "co citovat (rozhoduje platná metodika opory). Běh za sběr dat zaplatí, "
+                f"ale analýza ani report nevzniknou.{more}"
+            ),
+        )
+    if forecast.analysis is SupportStatus.INDICATIVE:
+        return ReadinessCheck(
+            id=SUPPORT_FORECAST_CHECK,
+            status=CheckStatus.WARN,
+            message=(
+                f"{head}: čísla budou jen indikativní"
+                + _below(lines.indicative_layer_donors, "", prefix=" (pod ", suffix=" dárci)")
+                + ". Zobrazí se, ale se slabou oporou."
+            ),
+        )
+    return ReadinessCheck(
+        id=SUPPORT_FORECAST_CHECK,
+        status=CheckStatus.PASS,
+        message=f"{head}: opora stačí, pokud respondenti odpovědi nevynechají.",
+    )
+
+
+def with_support_forecast(
+    readiness: Readiness, forecast: SupportForecast, *, support: SupportSpec
+) -> Readiness:
+    """``readiness`` with the forecast's check after its own. A forecast never FAILs: it
+    says what the run will show; whether to pay for that stays the person's call."""
+    return Readiness(
+        rules=readiness.rules,
+        ready=readiness.ready,
+        checks=(*readiness.checks, _check(forecast, support)),
+    )
