@@ -3626,9 +3626,9 @@ beside the basis.
 occurrence, so a file stored as `UNSUPPORTED` / `reader_pending` stays unread after its format
 gains a reader.
 
-**Anchor.** `packages/aia_core/src/aia_core/infrastructure/client_source_repository.py`
-(`ClientSourceRepository.add`: an existing row by (client, sha256) is reused, `_keep` alone reads)
-@ `afc2056`.
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/client_source_repository.py:200-203`
+@ `afc2056` (`add` reuses the row found by (client, sha256) and calls `_keep` only when there is
+none) and `:260` @ `afc2056` (`_keep` is the only place `read_source` runs).
 
 **Reproduction.** Keep a `.xlsx` (read as `reader_pending` until K2c), land the dataset reader,
 add the same file again: `GET /clients/{id}/sources/{source_id}` still answers `UNSUPPORTED`.
