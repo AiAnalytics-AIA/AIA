@@ -240,12 +240,13 @@ describe("which questions a run will answer (run-recovery-and-truth 2b)", () => 
     expect(outlookFixStep(["fidelity_refused", "support_suppressed"])).toBe("questionnaire");
     expect(outlookFixStep(["support_suppressed"])).toBe("persona");
     expect(outlookFixStep(["support_indicative"])).toBe("persona");
+    expect(outlookFixStep(["support_analysis_excluded"])).toBe("persona");
     expect(outlookFixStep(["support_unknown"])).toBeNull();
     expect(outlookFixStep([])).toBeNull();
   });
 
   it("words every reason, and names one it does not know", () => {
-    for (const code of ["conditional", "familiarity", "fidelity_refused", "open_ended", "support_suppressed", "support_indicative", "support_unknown"]) {
+    for (const code of ["conditional", "familiarity", "fidelity_refused", "open_ended", "support_suppressed", "support_analysis_excluded", "support_indicative", "support_unknown"]) {
       expect(outlookReason(code)).not.toContain(code);
     }
     expect(outlookReason("new_rule")).toContain("new_rule");

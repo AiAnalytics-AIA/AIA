@@ -205,6 +205,12 @@ The Run screen's card "Na co běh odpoví":
   support);
 - what it will answer, folded away.
 
+Review (Codex on #419): a version whose results rule is looser than its analysis rule
+shows a question's numbers on Results while the analysis suppresses them. That is now
+`support_analysis_excluded` (AT_RISK, "Results shows them, the analysis may not cite
+them"), and `support_suppressed` stays for numbers Results hides too. Test:
+`test_numbers_results_shows_but_the_analysis_may_not_cite_are_at_risk_not_suppressed`.
+
 Tests:
 
 - `packages/aia_core/tests/test_question_outlook.py`, including
