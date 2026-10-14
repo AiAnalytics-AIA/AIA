@@ -591,6 +591,13 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
                 ))}
               </dl>
             ) : null}
+            {f.kept_cs.length && !hidden ? (
+              <div data-kept className="border-t border-border px-4 py-3">
+                <p className="text-sm font-semibold">{t(`aia.settings.methodology.kept`)}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{t(`${V}.scope`)}</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">{f.kept_cs.map((k) => <li key={k}>{k}</li>)}</ul>
+              </div>
+            ) : null}
             {f.properties.length && !hidden ? (
               <div className="border-t border-border px-4 py-3">
                 <p className="text-sm font-semibold">{t(`${V}.mustHold`)}</p>

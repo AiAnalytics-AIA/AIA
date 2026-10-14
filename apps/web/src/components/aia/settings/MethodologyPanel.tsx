@@ -224,6 +224,12 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
       {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      {formula.kept_cs.length ? (
+        <div data-kept className="text-xs">
+          <p className="text-ink-muted">{t(`${M}.kept`)}:</p>
+          <ul className="mt-1 list-disc pl-5">{formula.kept_cs.map((k) => <li key={k}>{k}</li>)}</ul>
+        </div>
+      ) : null}
       <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[minmax(0,3rem)_minmax(0,4rem)_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
         {formula.variables.map((v) => (
           <div key={v.name} className="contents">

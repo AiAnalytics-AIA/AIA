@@ -109,6 +109,7 @@ def test_a_step_carries_its_editable_formula_written_from_its_expression(
     assert formula["latex"] == r"\sqrt{\max\left(0, 2 \cdot \left(1 - r_{ij}\right)\right)}"
     assert [v["name"] for v in formula["variables"]] == ["r"]
     assert {p["kind"] for p in formula["properties"]} >= {"non_negative", "equals_at"}
+    assert any("známé páry" in line for line in formula["kept_cs"])  # what stays code
     algorithm = next(s for s in body["step_details"] if s["id"] == "f6_smacof")
     assert algorithm["formulas"] == []  # an algorithm, not a formula
 

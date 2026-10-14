@@ -157,6 +157,10 @@ class BuiltinFormula:
     slot: Slot
     expression: str
     note_cs: str = ""
+    #: What the engine keeps around the expression, whatever replaces it: the refusals, the
+    #: sets its variables are read over, the branch it does not cover (product owner,
+    #: 2026-10-14: a reader took the step's whole formula for the editable part).
+    kept_cs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

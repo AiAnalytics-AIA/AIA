@@ -1256,7 +1256,7 @@ export type MethodValue = {
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {
-  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string;
+  slot_id: string; title_cs: string; expression: string; latex: string; note_cs: string; kept_cs: string[];
   variables: { name: string; latex: string; meaning_cs: string; unit: string; vector: boolean }[];
   properties: { kind: string; variable: string | null; description_cs: string }[];
 };

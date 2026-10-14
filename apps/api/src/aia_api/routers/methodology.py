@@ -184,6 +184,8 @@ class FormulaOut(_Strict):
     expression: str
     latex: str
     note_cs: str
+    #: What the engine keeps around the expression whatever replaces it.
+    kept_cs: list[str]
     variables: list[FormulaVariableOut]
     properties: list[FormulaPropertyOut]
 
@@ -464,6 +466,7 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
         expression=f.expression,
         latex=latex(compile_formula(f.slot, f.expression)),
         note_cs=f.note_cs,
+        kept_cs=list(f.kept_cs),
         variables=[
             FormulaVariableOut(
                 name=v.name, latex=v.latex, meaning_cs=v.meaning_cs, unit=v.unit, vector=v.vector

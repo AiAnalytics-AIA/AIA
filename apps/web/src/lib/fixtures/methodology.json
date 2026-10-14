@@ -137,6 +137,7 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -203,6 +204,7 @@
       "formulas": [
        {
         "expression": "100 * sum(w * hit) / sum(w)",
+        "kept_cs": [],
         "latex": "\\frac{100 \\cdot \\left(\\sum w \\cdot [x_k = c]\\right)}{\\sum w}",
         "note_cs": "",
         "properties": [
@@ -282,6 +284,7 @@
       "formulas": [
        {
         "expression": "sum(w * x) / sum(w)",
+        "kept_cs": [],
         "latex": "\\frac{\\sum w \\cdot x}{\\sum w}",
         "note_cs": "",
         "properties": [
@@ -382,6 +385,7 @@
       "formulas": [
        {
         "expression": "sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)",
+        "kept_cs": [],
         "latex": "\\frac{\\sum w \\cdot {\\left(x - \\frac{\\sum w \\cdot x}{\\sum w}\\right)}^{2}}{\\sum w}",
         "note_cs": "Směrodatná odchylka je odmocnina z rozptylu.",
         "properties": [
@@ -450,6 +454,7 @@
       "formulas": [
        {
         "expression": "x >= top - (b - 1)",
+        "kept_cs": [],
         "latex": "x_k \\ge \\max - \\left(b - 1\\right)",
         "note_cs": "",
         "properties": [
@@ -1816,6 +1821,10 @@
       "formulas": [
        {
         "expression": "(a - lo) / (hi - lo)",
+        "kept_cs": [
+         "Hodnocení mimo deklarovanou škálu [s_min, s_max] kód odmítne a výpočet zastaví; výraz ho nikdy nedostane.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c}",
         "note_cs": "",
         "properties": [
@@ -1924,6 +1933,11 @@
       "formulas": [
        {
         "expression": "(a - low) / (high - low)",
+        "kept_cs": [
+         "low a high počítá kód z hodnocení respondenta přes všechny hodnocené položky studie (každá baterie a deklarované hodnoticí otázky), ne jen mapovanou baterii.",
+         "Respondenta, jehož hodnocení se neliší (high = low), kód vyřadí ještě před výrazem: výraz nikdy nedělí nulou.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}}",
         "note_cs": "",
         "properties": [
@@ -2101,6 +2115,10 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Výraz nahrazuje jen Kishovu větev. Kterou větev pár použije, určuje metodika (základ důkazů): při počtu respondentů je n počet společných hodnotitelů a výraz se nepoužije.",
+         "Váhy w jsou jen respondenti s platným hodnocením obou objektů a kladnou vahou; pár bez nich má n podle kódu."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -2176,6 +2194,11 @@
       "formulas": [
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) - z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) - \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "Při |r| = 1 je mez sama korelace.",
         "properties": [
@@ -2223,6 +2246,11 @@
        },
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) + z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) + \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -2393,6 +2421,10 @@
       "formulas": [
        {
         "expression": "abs(r) >= floor",
+        "kept_cs": [
+         "Pár bez korelace výraz nedostane.",
+         "Výsledek se zapíše vedle stavu páru; stav nemění."
+        ],
         "latex": "\\left|r\\right| \\ge r_{\\min}",
         "note_cs": "",
         "properties": [
@@ -2559,6 +2591,10 @@
       "formulas": [
        {
         "expression": "sqrt(max(0, 2 * (1 - r)))",
+        "kept_cs": [
+         "Jen známé páry (spolehlivé nebo slabé); neznámý pár vzdálenost nemá a rozložení netáhne.",
+         "Vzdálenost objektu od sebe je 0."
+        ],
         "latex": "\\sqrt{\\max\\left(0, 2 \\cdot \\left(1 - r_{ij}\\right)\\right)}",
         "note_cs": "",
         "properties": [
@@ -2750,6 +2786,10 @@
       "formulas": [
        {
         "expression": "sqrt(sum((d - delta) ** 2) / sum(delta * delta)) if sum(delta * delta) > 0 else 0",
+        "kept_cs": [
+         "d bere kód z hotového rozložení a δ jen ze známých párů.",
+         "Slovní hodnocení věrohodnosti z výsledku čte kód podle pásem metodiky."
+        ],
         "latex": "\\begin{cases} \\sqrt{\\frac{\\sum {\\left(d - \\delta\\right)}^{2}}{\\sum \\delta \\cdot \\delta}} & \\sum \\delta \\cdot \\delta > 0 \\\\ 0 & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -2887,6 +2927,10 @@
       "formulas": [
        {
         "expression": "sum(r) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum r_{ij}}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -2910,6 +2954,10 @@
        },
        {
         "expression": "sum(abs(r)) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum \\left|r_{ij}\\right|}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -2982,6 +3030,10 @@
       "formulas": [
        {
         "expression": "sum(a * w) / sum(w)",
+        "kept_cs": [
+         "Přes všechny, kdo objekt hodnotili (i neumístěné respondenty), na škále 0-1 z F1, ne z F2.",
+         "Objekt, který nikdo nehodnotil, výšku nemá."
+        ],
         "latex": "\\frac{\\sum \\tilde a_{kj} \\cdot w_k}{\\sum w_k}",
         "note_cs": "",
         "properties": [
@@ -3058,6 +3110,9 @@
       "formulas": [
        {
         "expression": "100 * k",
+        "kept_cs": [
+         "Platí pro K_i z celého vzorku, a je-li bootstrap zapnutý, i z každého jeho vzorku; kvantily intervalu a pořadí počítá kód."
+        ],
         "latex": "100 \\cdot K_i",
         "note_cs": "",
         "properties": [
@@ -3313,6 +3368,9 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Váhy jen umístěných respondentů; bez kladné váhy efektivní n není a výraz se nepoužije."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -3375,6 +3433,10 @@
       "formulas": [
        {
         "expression": "h * exp(-d2 / (2 * sigma * sigma))",
+        "kept_cs": [
+         "Zda kopec v bodě sahá, rozhoduje kód: jádro při výšce 1 proti prahu.",
+         "Z více kopců platí v bodě nejvyšší; objekt bez výšky kopec nemá."
+        ],
         "latex": "h_j \\cdot \\exp\\left(\\frac{-\\lVert q - y_j\\rVert^2}{2 \\cdot \\sigma \\cdot \\sigma}\\right)",
         "note_cs": "",
         "properties": [
@@ -3679,6 +3741,10 @@
       "formulas": [
        {
         "expression": "(a - lo) / (hi - lo)",
+        "kept_cs": [
+         "Hodnocení mimo deklarovanou škálu [s_min, s_max] kód odmítne a výpočet zastaví; výraz ho nikdy nedostane.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c}",
         "note_cs": "",
         "properties": [
@@ -3787,6 +3853,11 @@
       "formulas": [
        {
         "expression": "(a - low) / (high - low)",
+        "kept_cs": [
+         "low a high počítá kód z hodnocení respondenta přes všechny hodnocené položky studie (každá baterie a deklarované hodnoticí otázky), ne jen mapovanou baterii.",
+         "Respondenta, jehož hodnocení se neliší (high = low), kód vyřadí ještě před výrazem: výraz nikdy nedělí nulou.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}}",
         "note_cs": "",
         "properties": [
@@ -3964,6 +4035,10 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Výraz nahrazuje jen Kishovu větev. Kterou větev pár použije, určuje metodika (základ důkazů): při počtu respondentů je n počet společných hodnotitelů a výraz se nepoužije.",
+         "Váhy w jsou jen respondenti s platným hodnocením obou objektů a kladnou vahou; pár bez nich má n podle kódu."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -4039,6 +4114,11 @@
       "formulas": [
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) - z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) - \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "Při |r| = 1 je mez sama korelace.",
         "properties": [
@@ -4086,6 +4166,11 @@
        },
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) + z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) + \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -4256,6 +4341,10 @@
       "formulas": [
        {
         "expression": "abs(r) >= floor",
+        "kept_cs": [
+         "Pár bez korelace výraz nedostane.",
+         "Výsledek se zapíše vedle stavu páru; stav nemění."
+        ],
         "latex": "\\left|r\\right| \\ge r_{\\min}",
         "note_cs": "",
         "properties": [
@@ -4422,6 +4511,10 @@
       "formulas": [
        {
         "expression": "sqrt(max(0, 2 * (1 - r)))",
+        "kept_cs": [
+         "Jen známé páry (spolehlivé nebo slabé); neznámý pár vzdálenost nemá a rozložení netáhne.",
+         "Vzdálenost objektu od sebe je 0."
+        ],
         "latex": "\\sqrt{\\max\\left(0, 2 \\cdot \\left(1 - r_{ij}\\right)\\right)}",
         "note_cs": "",
         "properties": [
@@ -4613,6 +4706,10 @@
       "formulas": [
        {
         "expression": "sqrt(sum((d - delta) ** 2) / sum(delta * delta)) if sum(delta * delta) > 0 else 0",
+        "kept_cs": [
+         "d bere kód z hotového rozložení a δ jen ze známých párů.",
+         "Slovní hodnocení věrohodnosti z výsledku čte kód podle pásem metodiky."
+        ],
         "latex": "\\begin{cases} \\sqrt{\\frac{\\sum {\\left(d - \\delta\\right)}^{2}}{\\sum \\delta \\cdot \\delta}} & \\sum \\delta \\cdot \\delta > 0 \\\\ 0 & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -4750,6 +4847,10 @@
       "formulas": [
        {
         "expression": "sum(r) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum r_{ij}}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -4773,6 +4874,10 @@
        },
        {
         "expression": "sum(abs(r)) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum \\left|r_{ij}\\right|}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -4845,6 +4950,10 @@
       "formulas": [
        {
         "expression": "sum(a * w) / sum(w)",
+        "kept_cs": [
+         "Přes všechny, kdo objekt hodnotili (i neumístěné respondenty), na škále 0-1 z F1, ne z F2.",
+         "Objekt, který nikdo nehodnotil, výšku nemá."
+        ],
         "latex": "\\frac{\\sum \\tilde a_{kj} \\cdot w_k}{\\sum w_k}",
         "note_cs": "",
         "properties": [
@@ -4921,6 +5030,9 @@
       "formulas": [
        {
         "expression": "100 * k",
+        "kept_cs": [
+         "Platí pro K_i z celého vzorku, a je-li bootstrap zapnutý, i z každého jeho vzorku; kvantily intervalu a pořadí počítá kód."
+        ],
         "latex": "100 \\cdot K_i",
         "note_cs": "",
         "properties": [
@@ -5176,6 +5288,9 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Váhy jen umístěných respondentů; bez kladné váhy efektivní n není a výraz se nepoužije."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -5238,6 +5353,10 @@
       "formulas": [
        {
         "expression": "h * exp(-d2 / (2 * sigma * sigma))",
+        "kept_cs": [
+         "Zda kopec v bodě sahá, rozhoduje kód: jádro při výšce 1 proti prahu.",
+         "Z více kopců platí v bodě nejvyšší; objekt bez výšky kopec nemá."
+        ],
         "latex": "h_j \\cdot \\exp\\left(\\frac{-\\lVert q - y_j\\rVert^2}{2 \\cdot \\sigma \\cdot \\sigma}\\right)",
         "note_cs": "",
         "properties": [
@@ -5542,6 +5661,10 @@
       "formulas": [
        {
         "expression": "(a - lo) / (hi - lo)",
+        "kept_cs": [
+         "Hodnocení mimo deklarovanou škálu [s_min, s_max] kód odmítne a výpočet zastaví; výraz ho nikdy nedostane.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{kc} - s^{\\min}_c}{s^{\\max}_c - s^{\\min}_c}",
         "note_cs": "",
         "properties": [
@@ -5650,6 +5773,11 @@
       "formulas": [
        {
         "expression": "(a - low) / (high - low)",
+        "kept_cs": [
+         "low a high počítá kód z hodnocení respondenta přes všechny hodnocené položky studie (každá baterie a deklarované hodnoticí otázky), ne jen mapovanou baterii.",
+         "Respondenta, jehož hodnocení se neliší (high = low), kód vyřadí ještě před výrazem: výraz nikdy nedělí nulou.",
+         "Nehodnocená položka zůstane prázdná."
+        ],
         "latex": "\\frac{a_{ki} - \\min_l a_{kl}}{\\max_l a_{kl} - \\min_l a_{kl}}",
         "note_cs": "",
         "properties": [
@@ -5827,6 +5955,10 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Výraz nahrazuje jen Kishovu větev. Kterou větev pár použije, určuje metodika (základ důkazů): při počtu respondentů je n počet společných hodnotitelů a výraz se nepoužije.",
+         "Váhy w jsou jen respondenti s platným hodnocením obou objektů a kladnou vahou; pár bez nich má n podle kódu."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -5902,6 +6034,11 @@
       "formulas": [
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) - z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) - \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "Při |r| = 1 je mez sama korelace.",
         "properties": [
@@ -5949,6 +6086,11 @@
        },
        {
         "expression": "r if abs(r) == 1 else tanh(atanh(r) + z / sqrt(n - 3))",
+        "kept_cs": [
+         "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+         "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+         "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval vylučuje nulu, jinak slabý."
+        ],
         "latex": "\\begin{cases} r & \\left|r\\right| = 1 \\\\ \\tanh\\left(\\operatorname{atanh}\\left(r\\right) + \\frac{z_c}{\\sqrt{n - 3}}\\right) & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -6119,6 +6261,10 @@
       "formulas": [
        {
         "expression": "abs(r) >= floor",
+        "kept_cs": [
+         "Pár bez korelace výraz nedostane.",
+         "Výsledek se zapíše vedle stavu páru; stav nemění."
+        ],
         "latex": "\\left|r\\right| \\ge r_{\\min}",
         "note_cs": "",
         "properties": [
@@ -6285,6 +6431,10 @@
       "formulas": [
        {
         "expression": "sqrt(max(0, 2 * (1 - r)))",
+        "kept_cs": [
+         "Jen známé páry (spolehlivé nebo slabé); neznámý pár vzdálenost nemá a rozložení netáhne.",
+         "Vzdálenost objektu od sebe je 0."
+        ],
         "latex": "\\sqrt{\\max\\left(0, 2 \\cdot \\left(1 - r_{ij}\\right)\\right)}",
         "note_cs": "",
         "properties": [
@@ -6476,6 +6626,10 @@
       "formulas": [
        {
         "expression": "sqrt(sum((d - delta) ** 2) / sum(delta * delta)) if sum(delta * delta) > 0 else 0",
+        "kept_cs": [
+         "d bere kód z hotového rozložení a δ jen ze známých párů.",
+         "Slovní hodnocení věrohodnosti z výsledku čte kód podle pásem metodiky."
+        ],
         "latex": "\\begin{cases} \\sqrt{\\frac{\\sum {\\left(d - \\delta\\right)}^{2}}{\\sum \\delta \\cdot \\delta}} & \\sum \\delta \\cdot \\delta > 0 \\\\ 0 & \\text{jinak} \\end{cases}",
         "note_cs": "",
         "properties": [
@@ -6617,6 +6771,10 @@
       "formulas": [
        {
         "expression": "sum(r) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum r_{ij}}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -6640,6 +6798,10 @@
        },
        {
         "expression": "sum(abs(r)) / count(r)",
+        "kept_cs": [
+         "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+         "Objekt bez známého páru skóre nemá."
+        ],
         "latex": "\\frac{\\sum \\left|r_{ij}\\right|}{\\#\\left(r_{ij}\\right)}",
         "note_cs": "",
         "properties": [
@@ -6712,6 +6874,10 @@
       "formulas": [
        {
         "expression": "sum(a * w) / sum(w)",
+        "kept_cs": [
+         "Přes všechny, kdo objekt hodnotili (i neumístěné respondenty), na škále 0-1 z F1, ne z F2.",
+         "Objekt, který nikdo nehodnotil, výšku nemá."
+        ],
         "latex": "\\frac{\\sum \\tilde a_{kj} \\cdot w_k}{\\sum w_k}",
         "note_cs": "",
         "properties": [
@@ -6788,6 +6954,9 @@
       "formulas": [
        {
         "expression": "100 * k",
+        "kept_cs": [
+         "Platí pro K_i z celého vzorku, a je-li bootstrap zapnutý, i z každého jeho vzorku; kvantily intervalu a pořadí počítá kód."
+        ],
         "latex": "100 \\cdot K_i",
         "note_cs": "",
         "properties": [
@@ -7046,6 +7215,9 @@
       "formulas": [
        {
         "expression": "sum(w) ** 2 / sum(w * w)",
+        "kept_cs": [
+         "Váhy jen umístěných respondentů; bez kladné váhy efektivní n není a výraz se nepoužije."
+        ],
         "latex": "\\frac{{\\left(\\sum w\\right)}^{2}}{\\sum w \\cdot w}",
         "note_cs": "",
         "properties": [
@@ -7108,6 +7280,10 @@
       "formulas": [
        {
         "expression": "h * exp(-d2 / (2 * sigma * sigma))",
+        "kept_cs": [
+         "Zda kopec v bodě sahá, rozhoduje kód: jádro při výšce 1 proti prahu.",
+         "Z více kopců platí v bodě nejvyšší; objekt bez výšky kopec nemá."
+        ],
         "latex": "h_j \\cdot \\exp\\left(\\frac{-\\lVert q - y_j\\rVert^2}{2 \\cdot \\sigma \\cdot \\sigma}\\right)",
         "note_cs": "",
         "properties": [

@@ -200,32 +200,120 @@ _SUPPORT_N = Slot(
     properties=(Property(_P.NON_NEGATIVE), Property(_P.AT_MOST_VARIABLE, variable="w")),
 )
 
+# What each slot does not cover, as the engine keeps it (the anchor beside each).
+_KEPT_F1: Final = (
+    # engine_v2._scaled
+    (
+        "Hodnocení mimo deklarovanou škálu [s_min, s_max] kód odmítne a výpočet zastaví; výraz ho "
+        "nikdy nedostane."
+    ),
+    "Nehodnocená položka zůstane prázdná.",
+)
+_KEPT_F2: Final = (
+    # relations.person_minmax, over research_sociomap.rating_universe
+    (
+        "low a high počítá kód z hodnocení respondenta přes všechny hodnocené položky studie (každá"
+        " baterie a deklarované hodnoticí otázky), ne jen mapovanou baterii."
+    ),
+    (
+        "Respondenta, jehož hodnocení se neliší (high = low), kód vyřadí ještě před výrazem: výraz "
+        "nikdy nedělí nulou."
+    ),
+    "Nehodnocená položka zůstane prázdná.",
+)
+_KEPT_F3_N: Final = (
+    # pairs.derive_pair_relations
+    (
+        "Výraz nahrazuje jen Kishovu větev. Kterou větev pár použije, určuje metodika (základ "
+        "důkazů): při počtu respondentů je n počet společných hodnotitelů a výraz se nepoužije."
+    ),
+    (
+        "Váhy w jsou jen respondenti s platným hodnocením obou objektů a kladnou vahou; pár bez "
+        "nich má n podle kódu."
+    ),
+)
+_KEPT_INTERVAL: Final = (
+    # relations.slot_interval, status_of_interval
+    "Pod čtyřmi společnými hodnotiteli interval nevzniká.",
+    "z_c spočítá kód z hladiny spolehlivosti metodiky.",
+    (
+        "Stav páru z intervalu čte kód: neznámý bez r nebo pod n_min, spolehlivý, když interval "
+        "vylučuje nulu, jinak slabý."
+    ),
+)
+_KEPT_FLOOR: Final = (
+    # pairs.derive_pair_relations
+    "Pár bez korelace výraz nedostane.",
+    "Výsledek se zapíše vedle stavu páru; stav nemění.",
+)
+_KEPT_F6: Final = (
+    # layout.correlation_distances
+    "Jen známé páry (spolehlivé nebo slabé); neznámý pár vzdálenost nemá a rozložení netáhne.",
+    "Vzdálenost objektu od sebe je 0.",
+)
+_KEPT_F7: Final = (
+    # engine_v2 (stress_terms), metrics.stress_quality
+    "d bere kód z hotového rozložení a δ jen ze známých párů.",
+    "Slovní hodnocení věrohodnosti z výsledku čte kód podle pásem metodiky.",
+)
+_KEPT_F8: Final = (
+    # metrics.primary_scores
+    "r jen ze známých párů hlavních objektů; neznámé páry a kontextové objekty se nečtou.",
+    "Objekt bez známého páru skóre nemá.",
+)
+_KEPT_HEIGHT: Final = (
+    # engine_v2._heights
+    "Přes všechny, kdo objekt hodnotili (i neumístěné respondenty), na škále 0-1 z F1, ne z F2.",
+    "Objekt, který nikdo nehodnotil, výšku nemá.",
+)
+_KEPT_K100: Final = (
+    # metrics (bootstrap of K100)
+    (
+        "Platí pro K_i z celého vzorku, a je-li bootstrap zapnutý, i z každého jeho vzorku; "
+        "kvantily intervalu a pořadí počítá kód."
+    ),
+)
+_KEPT_KERNEL: Final = (
+    # terrain.envelope_at
+    "Zda kopec v bodě sahá, rozhoduje kód: jádro při výšce 1 proti prahu.",
+    "Z více kopců platí v bodě nejvyšší; objekt bez výšky kopec nemá.",
+)
+_KEPT_SUPPORT: Final = (
+    # engine_v2 (support)
+    "Váhy jen umístěných respondentů; bez kladné váhy efektivní n není a výraz se nepoužije.",
+)
+
 SOCIOMAP_FORMULAS: Final[tuple[BuiltinFormula, ...]] = (
-    BuiltinFormula("f1_declared_scale", _F1, "(a - lo) / (hi - lo)"),
-    BuiltinFormula("f2_person_minmax", _F2, "(a - low) / (high - low)"),
-    BuiltinFormula("f3_effective_n", _F3_N, "sum(w) ** 2 / sum(w * w)"),
+    BuiltinFormula("f1_declared_scale", _F1, "(a - lo) / (hi - lo)", kept_cs=_KEPT_F1),
+    BuiltinFormula("f2_person_minmax", _F2, "(a - low) / (high - low)", kept_cs=_KEPT_F2),
+    BuiltinFormula("f3_effective_n", _F3_N, "sum(w) ** 2 / sum(w * w)", kept_cs=_KEPT_F3_N),
     BuiltinFormula(
         "f3_interval",
         _F3_LOW,
         "r if abs(r) == 1 else tanh(atanh(r) - z / sqrt(n - 3))",
         "Při |r| = 1 je mez sama korelace.",
+        kept_cs=_KEPT_INTERVAL,
     ),
     BuiltinFormula(
         "f3_interval",
         _F3_HIGH,
         "r if abs(r) == 1 else tanh(atanh(r) + z / sqrt(n - 3))",
+        kept_cs=_KEPT_INTERVAL,
     ),
-    BuiltinFormula("f3_effect_floor", _F3_FLOOR, "abs(r) >= floor"),
-    BuiltinFormula("f6_distance", _F6, "sqrt(max(0, 2 * (1 - r)))"),
+    BuiltinFormula("f3_effect_floor", _F3_FLOOR, "abs(r) >= floor", kept_cs=_KEPT_FLOOR),
+    BuiltinFormula("f6_distance", _F6, "sqrt(max(0, 2 * (1 - r)))", kept_cs=_KEPT_F6),
     BuiltinFormula(
         "f7_stress",
         _F7,
         "sqrt(sum((d - delta) ** 2) / sum(delta * delta)) if sum(delta * delta) > 0 else 0",
+        kept_cs=_KEPT_F7,
     ),
-    BuiltinFormula("f8_scores", _F8_A, "sum(r) / count(r)"),
-    BuiltinFormula("f8_scores", _F8_K, "sum(abs(r)) / count(r)"),
-    BuiltinFormula("f8_height", _F8_H, "sum(a * w) / sum(w)"),
-    BuiltinFormula("f9_k100", _F9, "100 * k"),
-    BuiltinFormula("f12_envelope", _F12, "h * exp(-d2 / (2 * sigma * sigma))"),
-    BuiltinFormula("support", _SUPPORT_N, "sum(w) ** 2 / sum(w * w)"),
+    BuiltinFormula("f8_scores", _F8_A, "sum(r) / count(r)", kept_cs=_KEPT_F8),
+    BuiltinFormula("f8_scores", _F8_K, "sum(abs(r)) / count(r)", kept_cs=_KEPT_F8),
+    BuiltinFormula("f8_height", _F8_H, "sum(a * w) / sum(w)", kept_cs=_KEPT_HEIGHT),
+    BuiltinFormula("f9_k100", _F9, "100 * k", kept_cs=_KEPT_K100),
+    BuiltinFormula(
+        "f12_envelope", _F12, "h * exp(-d2 / (2 * sigma * sigma))", kept_cs=_KEPT_KERNEL
+    ),
+    BuiltinFormula("support", _SUPPORT_N, "sum(w) ** 2 / sum(w * w)", kept_cs=_KEPT_SUPPORT),
 )

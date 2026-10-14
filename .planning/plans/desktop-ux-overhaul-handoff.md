@@ -232,6 +232,19 @@ card; two editor tests went from 1.7 s to 5-7 s (over Vitest's 5 s), because Tes
 `getByRole("button")` checks every button's visibility. They are links now (they move within the
 page), rendered in the editor only for the visible step: 1.9 and 2.0 s.
 
+Finding (this slice, fixed; raised by the owner's outside review, 2026-10-14): the editor showed a
+step's whole formula and, under it, "Vzorec · <slot>" with an expression covering only part of it.
+F1's refusal of an off-scale rating, F2's exclusion of a respondent with no spread and F3's
+respondent-count branch are all code, untouched by the slot (`engine_v2._scaled`,
+`relations.person_minmax`, `pairs.derive_pair_relations`), but nothing said so: a reader took
+the expression for the whole step. The numbers were never wrong. Every Sociomap formula now
+declares what the engine keeps around it (`BuiltinFormula.kept_cs`, served as `kept_cs`); the
+editor labels the box "Upravitelný výraz" and lists "Co výraz nepokrývá (drží kód)". Tests:
+`test_every_formula_says_what_the_engine_keeps_around_it` and, with each slot replaced,
+`test_a_replaced_scale_still_refuses_a_rating_off_its_scale`,
+`test_a_replaced_person_scale_never_sees_a_row_without_spread`,
+`test_a_replaced_kish_n_is_only_the_kish_branch`.
+
 Doc follow-up: ARCHITECTURE/CLAUDE map, `domain/methodology/catalogue.py`: "MethodStep carries
 role_cs, inputs, source_cs and audit; feeds_of derives the steps that read a step"; `sociomap.py`:
 "the object map in the order of its computation (stages S1-S7), each step citing its audit point

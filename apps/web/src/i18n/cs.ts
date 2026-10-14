@@ -749,6 +749,7 @@ export const cs = {
         editableHelpLater:
           "Tento výraz dává přesně stejná čísla jako kód (ověřeno testem). Nahradit ho půjde, až bude tato oblast upravitelná; náhrada pak bude muset splnit podmínky níže.",
         expression: "Výraz",
+        kept: "Co výraz nepokrývá (drží kód)",
         variables: "Proměnné",
         vector: "vektor",
         properties: "Co musí každá náhrada splnit",
@@ -811,7 +812,8 @@ export const cs = {
             "Celá metodika, pole po poli, a každý vzorec jako výraz. Kontrola je stejná, jakou provede uložení: všechny problémy najednou, u pole, kterého se týkají. Uložení vytvoří novou neměnnou verzi; v platnost ji uvedete zvlášť.",
           base: "Začít od metodiky z kódu",
           changed: "změněno",
-          formula: "Vzorec",
+          formula: "Upravitelný výraz",
+          scope: "Nahradíte jen tento výraz. Zbytek kroku, jak ho ukazuje vzorec výše, drží kód:",
           variables: "Proměnné",
           replaced: "nahrazeno",
           notComputed: "Tento vzorec jde uložit, ale zatím ne uvést v platnost: výpočet ho z uloženého výrazu ještě nepočítá.",

@@ -401,6 +401,17 @@ describe("guided methodology editing", () => {
     expect(step.hidden).toBe(true);
   });
 
+  it("says which part of a step's formula the expression replaces, and what stays code", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f3_effective_n"]')!);
+    const slot = form.querySelector('[data-edit-slot="f3.effective_n"]') as HTMLElement;
+    expect(within(slot).getByRole("textbox", { name: "Upravitelný výraz · Kishovo efektivní n" })).toBeTruthy();
+    const kept = slot.querySelector("[data-kept]") as HTMLElement;
+    expect(within(kept).getByText(/Výraz nahrazuje jen Kishovu větev/)).toBeTruthy();
+  });
+
   it("invalidates a previous successful check when the parameter changes", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />);
     await openEditor();
