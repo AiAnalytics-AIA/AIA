@@ -249,7 +249,8 @@ describe("the knowledge library", () => {
     await screen.findByText("Hlavní konkurenti");
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(nav().queryByRole("button", { name: "Nová složka" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Přidat znalost" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Napsat znalost" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Přidat podklady" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Hlavní konkurenti/ }));
     const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
     expect(panel.queryByRole("textbox")).toBeNull();
@@ -290,44 +291,18 @@ const pick = (label: string, name: string) =>
   fireEvent.change(screen.getByLabelText(label, { selector: "input" }), { target: { files: [new File(["%PDF-1.7"], name, { type: "application/pdf" })] } });
 
 describe("a document's file", () => {
-  it("is stored as the client's source when picked, and the new item names it", async () => {
-    api({
-      [`POST ${SOURCES}`]: () => new Response(JSON.stringify({ ...source(SRC, "Zadání výzkumu.pdf"), created: true }), { status: 201 }),
-      [`GET ${SOURCES}/${SRC}`]: () => detail(SRC, "Zadání výzkumu.pdf"),
-    });
+  it("comes through the intake sheet: the form for a document points there instead of taking a file", async () => {
+    api();
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
-    const form = within(screen.getByRole("region", { name: "Přidat znalost klienta" }));
-    // A fact takes no file; a document does.
-    expect(form.queryByRole("group", { name: "Soubor" })).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
+    const form = within(screen.getByRole("region", { name: "Napsat znalost klienta" }));
+    // A fact takes no file; a document is told where its file goes.
+    expect(form.queryByText(/Soubor přidáte přes Přidat podklady/)).toBeNull();
     fireEvent.change(form.getByRole("combobox", { name: "Druh" }), { target: { value: "DOCUMENT" } });
-    pick("Vybrat soubor", "Zadání výzkumu.pdf");
-
-    expect(await form.findByText("Uloženo jako zdroj klienta.")).toBeTruthy();
-    expect(await form.findByText(/Přečteno: 2 části, 1.200 znaků/)).toBeTruthy();
-    const upload = calls.find((c) => c.method === "POST" && c.url === SOURCES)!;
-    expect((upload.body as { filename: string }).filename).toBe("Zadání výzkumu.pdf");
-    expect((upload.body as { data_b64: string }).data_b64).toBe(btoa("%PDF-1.7"));
-    // The title follows the file's name, as written.
-    expect((form.getByRole("textbox", { name: "Název" }) as HTMLInputElement).value).toBe("Zadání výzkumu");
-
-    fireEvent.click(form.getByRole("button", { name: "Přidat znalost" }));
-    await waitFor(() =>
-      expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "DOCUMENT", title: "Zadání výzkumu", summary: "", content: { source_id: SRC } }),
-    );
-  });
-
-  it("says by name why a file was not kept, and sends no item with it", async () => {
-    api({
-      [`POST ${SOURCES}`]: () => new Response(JSON.stringify({ code: "unsupported_format", message: "AIA does not take 'x.exe'" }), { status: 422 }),
-    });
-    open();
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
-    const form = within(screen.getByRole("region", { name: "Přidat znalost klienta" }));
-    fireEvent.change(form.getByRole("combobox", { name: "Druh" }), { target: { value: "SOURCE" } });
-    pick("Vybrat soubor", "x.exe");
-    expect((await form.findByRole("alert")).textContent).toBe("Soubor nelze přečíst: tento formát AIA nepřijímá");
-    expect(form.queryByRole("group", { name: "Soubor" })?.querySelector("[data-source]")).toBeNull();
+    expect(form.getByText(/Soubor přidáte přes Přidat podklady/)).toBeTruthy();
+    expect(form.queryByLabelText("Vybrat soubor", { selector: "input" })).toBeNull();
+    fireEvent.click(form.getByRole("button", { name: "Přidat podklady" }));
+    expect(screen.getByRole("dialog", { name: "Přidat podklady · Klient A" })).toBeTruthy();
   });
 
   it("shows on the open item with what was read, and a replacement is saved as the next revision", async () => {

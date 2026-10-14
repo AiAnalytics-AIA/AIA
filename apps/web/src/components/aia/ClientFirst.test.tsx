@@ -225,24 +225,26 @@ describe("a client's workspace", () => {
     expect(tabs.getByRole("link", { name: "Data" })).toBeTruthy();
   });
 
-  it("adds knowledge from any area: the button opens the form on Znalosti, once", async () => {
+  it("brings material from any area: Přidat podklady opens the intake sheet there", async () => {
     path = "/app/clients/CLI-a";
     api();
     render(inClient("CLI-a", <ClientOverview />));
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
-    expect(push).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge?add=1");
-    cleanup();
+    fireEvent.click(await screen.findByRole("button", { name: "Přidat podklady" }));
+    expect(screen.getByRole("dialog", { name: "Přidat podklady · Klient A" })).toBeTruthy();
+    expect(push).not.toHaveBeenCalled();
+  });
 
+  it("writes knowledge on Znalosti, also when another page asked for the form", async () => {
     path = "/app/clients/CLI-a/knowledge";
     window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?add=1");
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    const form = (await screen.findByRole("heading", { name: "Přidat znalost klienta" })).closest("section")!;
+    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("section")!;
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
     window.history.pushState({}, "", "/");
     // What is added re-reads the client, so the tabs' counts follow.
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Výroční zpráva 2026" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Přidat znalost" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a").filter((c) => c.url.endsWith("/CLI-a"))).toHaveLength(2));
   });
 
@@ -251,7 +253,7 @@ describe("a client's workspace", () => {
     api({ "GET /api/v1/clients/CLI-a": () => ({ ...A, permissions: ["CREATE_STUDY", "VIEW_CLIENT"] }) });
     render(inClient("CLI-a", <ClientOverview />));
     expect(await screen.findByRole("button", { name: "Nový výzkum" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Přidat znalost" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Přidat podklady" })).toBeNull();
   });
 
   const EDITOR = { ...A, permissions: [...A.permissions, "EDIT_CLIENT_PROFILE"], self_approval_allowed: true, self_approval_source: "default" };
@@ -486,11 +488,11 @@ describe("a client's workspace", () => {
     path = "/app/clients/CLI-a/knowledge";
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    fireEvent.click(await screen.findByRole("button", { name: "Přidat znalost" }));
-    const form = screen.getByRole("heading", { name: "Přidat znalost klienta" }).closest("section")!;
+    fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
+    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("section")!;
     fireEvent.change(within(form).getByRole("combobox"), { target: { value: "SOURCE" } });
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Přidat znalost" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
     await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")[0].body).toMatchObject({ kind: "SOURCE", title: "Starbucks výroční zpráva" }));
     // It lands among the sources, not in the queue of things waiting for someone.
     await waitFor(() => expect(screen.getByRole("button", { name: "Zdroje a dokumenty" }).getAttribute("aria-pressed")).toBe("true"));
