@@ -249,3 +249,13 @@ Doc follow-up: ARCHITECTURE/CLAUDE map, `domain/methodology/catalogue.py`: "Meth
 role_cs, inputs, source_cs and audit; feeds_of derives the steps that read a step"; `sociomap.py`:
 "the object map in the order of its computation (stages S1-S7), each step citing its audit point
 F1-F16" (replacing "in the audit's order F1-F16").
+
+Metodika, Agregace: the same "what stays code" lists (owner, 2026-10-14, after #400). The five
+estimators (`agg.kish`, `agg.share`, `agg.mean`, `agg.variance`, `agg.top_box`) each declare what
+`research_aggregate` keeps around them: weights cleaned to the median before any estimator runs,
+the effective n capped by the donors, the bootstrap and its quantiles, the rounding, and that the
+mean also computes the top box's share and the multi-choice intervals. Tests, with the slot
+replaced: `test_a_replaced_kish_n_sees_cleaned_weights_and_stays_capped_by_the_donors`,
+`test_a_replaced_variance_never_sees_fewer_than_two_answers`; the existing
+`test_a_replaced_estimator_is_what_the_aggregate_computes` already proves the mean drives the top
+box.

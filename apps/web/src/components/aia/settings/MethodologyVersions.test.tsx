@@ -161,6 +161,9 @@ describe("the aggregation's versions (plan G3b)", () => {
     fireEvent.change(quantiles, { target: { value: "[0.05, 0.95]" } });
     const slot = await found('[data-edit-slot="agg.top_box"] textarea', form);
     expect((slot as HTMLTextAreaElement).value).toBe("x >= top - (b - 1)"); // the built-in, as computed
+    // The box is one estimator; what the aggregate keeps around it is said beside it.
+    const kept = form.querySelector('[data-edit-slot="agg.top_box"] [data-kept]') as HTMLElement;
+    expect(within(kept).getByText(/Podíl top boxu a jeho interval počítá vážený průměr/)).toBeTruthy();
     fireEvent.change(slot, { target: { value: "x >= top - b + 1" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
 
