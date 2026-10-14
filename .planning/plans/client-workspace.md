@@ -8,6 +8,7 @@ chunks:
   - "[x] C4. Knowledge library: views, folder tree, label and kind filters, the open item beside the list, revision history, bulk move and label"
   - "[x] C5. Profile: the client record's fields, contacts, brands and competitors as entities, self-approval on the client"
   - "[ ] C6. Review queue: proposals grouped by source, with citation, diff and editable folder/labels; action-named buttons (needs lifecycle K3)"
+  - "[x] C7a. A document's file: Dokument, Zdroj and Datová sada take a file, kept as the client's source; the open item shows what AIA read"
   - "[ ] C7. Intake sheet: one way in for files, links and text; dataset or document; the paying study for AI extraction (needs lifecycle K2)"
   - "[ ] C8. Data area: datasets with column check, personal-data columns dropped, ownership and licence; use in a study says V AIA zatím není (needs lifecycle K2)"
   - "[ ] C9. Retire and restore an item from the library (needs lifecycle K6's contract)"
@@ -320,6 +321,31 @@ Each chunk is its own PR into `develop`, small enough to review in one sitting.
   - when self-approval is off, a person's own proposal says why they cannot accept it;
   - action-named buttons (D6).
 - **Canvas:** update the Ke schválení artboard's labels in the same PR.
+
+### C7a. A document's file (2026-10-14)
+- **Why:** the owner, 2026-10-14: on Znalosti a person can add an item of kind *Dokument*,
+  but cannot give it the document. K2a-K2c's source store and readers have landed; nothing
+  on the web used them.
+- **What it does:**
+  - the add form takes a file when the kind is *Dokument*, *Zdroj* or *Datová sada*. The
+    file is stored at once through `POST /clients/{id}/sources`: one request, its state in
+    words (uploading, stored, what the reading produced, a refusal by name). The title
+    defaults to the file's name;
+  - the item carries the source by reference, `content.source_id`. The original never moves
+    into knowledge, and no model reads it through the item (a source is not knowledge,
+    lifecycle K2);
+  - the open item shows the file: its name, size, the reading's outcome and reason in words,
+    what was read (the first segments with their locators, or a dataset's columns with
+    personal columns masked as the API sends them), the original's download, and a file
+    attached or replaced as a new revision;
+  - an edit of an item now keeps its `content`. Before, the panel's edit sent none, so an
+    edit dropped what a study had proposed with it.
+- **The reference is checked.** `content.source_id` is allowed only on SOURCE, DOCUMENT and
+  DATASET, as an `SRC-` id; the client route answers 422 `unknown_source` for one that is
+  not this client's; a study's proposal may not carry one (a study does not attach a
+  client's file; K2d's proposals cite a source in provenance, not content).
+- **Not here:** the intake sheet (C7: many files, links, text, the paying study), AI
+  proposals from the file (K2d), the Data area's column check (C8).
 
 ### C7. Intake sheet
 - **Depends on:** lifecycle K2's client-level source API.
