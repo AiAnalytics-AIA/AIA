@@ -17,7 +17,15 @@ def test_ekologie_stands_for_the_eko_topic() -> None:
     )
 
 
+def test_komunikace_stands_for_the_osobnost_topic() -> None:
+    """The owner's mapping of 2026-10-15: communication style is a personality trait."""
+    question = ("Jakou máte povahu, když jednáte s lidmi?", ())
+    assert "osobnost" in question_topics(question[0])
+    assert dimension_topic("komunikace") == "osobnost"
+    assert block_topics([question], allowlist=["komunikace"]) == ["osobnost"]
+
+
 def test_a_dimension_that_names_no_topic_still_lets_nothing_through() -> None:
     """18.6.6's set test, kept for every id that is no topic and no mapped dimension."""
-    assert dimension_topic("komunikace") is None
-    assert block_topics([QUESTION], allowlist=["komunikace"]) == []
+    assert dimension_topic("vek_skupina") is None
+    assert block_topics([QUESTION], allowlist=["vek_skupina"]) == []

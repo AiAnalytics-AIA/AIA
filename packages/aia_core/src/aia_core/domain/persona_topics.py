@@ -308,8 +308,9 @@ def question_topics(text: str, max_topics: int = MAX_TOPICS) -> list[str]:
 
 #: A study dimension whose catalogue id is not the persona topic it means (AIA, not 18.6.6:
 #: the unit compared the ids as they were, so these let no topic through there). The product
-#: owner mapped ``ekologie`` to ``eko`` on 2026-10-15 (Codex on #447).
-DIMENSION_TOPICS: Final[Mapping[str, str]] = {"ekologie": "eko"}
+#: owner mapped ``ekologie`` to ``eko`` and ``komunikace`` (communication style) to
+#: ``osobnost`` on 2026-10-15 (Codex on #447).
+DIMENSION_TOPICS: Final[Mapping[str, str]] = {"ekologie": "eko", "komunikace": "osobnost"}
 
 
 def dimension_topic(dimension: str) -> str | None:
@@ -329,7 +330,7 @@ def block_topics(
     (``research_project.py:440``): when it holds any, each question's topics are kept only where
     they are in it, compared stripped and lowercased, before the union (``dotaznik.py:943-945``).
     An empty or absent allowlist filters nothing, as the unit's ``if persona_topic_allowlist``.
-    A dimension in ``DIMENSION_TOPICS`` stands for its topic (AIA's one deviation from the unit).
+    A dimension in ``DIMENSION_TOPICS`` stands for its topic (AIA's deviation from the unit).
     """
     allowed = {
         DIMENSION_TOPICS.get(k, k) for k in (str(x).strip().lower() for x in allowlist or ()) if k

@@ -1474,8 +1474,8 @@ def test_a_panel_runs_filters_are_applied_only_once_its_draw_succeeded() -> None
     none_topics = {
         "selection": {
             **meta["selection"],
-            "dimensions": ["komunikace"],
-            "dimensions_unmatched": ["komunikace"],
+            "dimensions": ["region"],
+            "dimensions_unmatched": ["region"],
         }
     }
     unmatched = _selection(none_topics, fieldwork("SUCCEEDED", "MODELLED_AI_PANEL"), terminal=True)

@@ -486,12 +486,14 @@ person starting a run never saw that a choice existed.
   - The receipt says dimensions await the draw, as filters do, and are applied once the
     population draw has succeeded. The roster has no topic signals, so a roster run says the
     dimensions need a population draw.
-  - **One deviation from 18.6.6** (product owner, 2026-10-15, after Codex on #447): the
-    catalogue's `ekologie` is not a topic key, so in the unit it let nothing through; AIA maps
-    it to `eko` (`persona_topics.DIMENSION_TOPICS`, `test_persona_topics_allowlist.py`). Any
-    other id that is no topic -- `komunikace` today -- still lets nothing through, and the
-    receipt names it (`dimensions_unmatched`); a drawn run with only such ids says
-    `dimensions_not_persona_topics`, never applied. `komunikace` awaits the owner's mapping.
+  - **One deviation from 18.6.6** (product owner, 2026-10-15, after Codex on #447): two
+    catalogue ids are no topic key, so in the unit they let nothing through; AIA maps
+    `ekologie` to `eko` and `komunikace` (communication style) to `osobnost`
+    (`persona_topics.DIMENSION_TOPICS`, `test_persona_topics_allowlist.py`). `komunikace` shapes
+    only blocks whose questions raise personality, as any dimension shapes only the topics its
+    questions raise. Any other id that is no topic still lets nothing through, and the receipt
+    names it (`dimensions_unmatched`); a drawn run with only such ids says
+    `dimensions_not_persona_topics`, never applied.
 - **4 — sign-off.** On 2026-10-15, in session, the product owner signed off on building the
   priced search routes (ADR 0022). Each organization still approves its live settings on
   Settings → Deep Research before a priced route runs.
