@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
 import type { Section } from "./questionnaire";
-import { comparisonOf, danglingLinks, linksOf, researchQuestionsOf, setComparison, toggleQuestionLink, toggleSectionLink } from "./trace";
+import { comparisonOf, danglingLinks, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
 
 const RQ1 = "Jak často lidé pijí kávu?";
 const RQ2 = "Jak lidé vnímají ranní nápoje?";
@@ -67,5 +67,16 @@ describe("how a research question is answered (run-recovery-and-truth 3c)", () =
   it("reads a kind AIA does not know as none declared here; the server names it", () => {
     const odd = project({ research_plan: { research_questions: [RQ1], research_question_comparisons: { [RQ1]: "guess" } } as never });
     expect(comparisonOf(odd, RQ1)).toBeNull();
+  });
+});
+
+describe("a set compared as concepts (an A/B test's set)", () => {
+  it("turns a position map into a concept test and back, and leaves other output types alone", () => {
+    const tested = setConceptTest(project(), 1, true);
+    expect(sections(tested)[1].output_type).toBe("test_konceptu");
+    expect(sections(setConceptTest(tested, 1, false))[1].output_type).toBe("pozicni_mapa");
+    expect(togglesConceptTest(sections(project())[1])).toBe(true); // no output type: a position map
+    expect(togglesConceptTest({ ...sections(project())[1], output_type: "segmentace" })).toBe(false);
+    expect(togglesConceptTest(sections(project())[0])).toBe(false);
   });
 });
