@@ -20,7 +20,8 @@ import threading
 from collections.abc import Mapping
 from typing import Any, Final
 
-from .bedrock import BEDROCK_SIGNING_SERVICE, SigningUnavailable
+from ..http_transport import SigningUnavailable
+from .bedrock import BEDROCK_SIGNING_SERVICE
 
 __all__ = ["ROLE_CREDENTIAL_METHODS", "InstanceRoleSigner"]
 

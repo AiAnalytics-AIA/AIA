@@ -208,7 +208,7 @@ class UrllibPostWire:
     def post(
         self, url: str, *, headers: Mapping[str, str], body: bytes, max_bytes: int
     ) -> PostResponse:
-        from .model_adapters.live_transport import _certificate_refused
+        from .http_transport import certificate_refused
 
         u = self._urllib3
         response: Any = None
@@ -240,7 +240,7 @@ class UrllibPostWire:
                 str(exc), reason="connect_failed", delivery=Delivery.NOT_SENT
             ) from exc
         except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if _certificate_refused(exc) else Delivery.UNKNOWN
+            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
             raise ToolCallFailed(str(exc), reason="tls_failed", delivery=delivery) from exc
         except u.exceptions.HTTPError as exc:
             raise ToolCallFailed(
@@ -325,7 +325,7 @@ class AthenaUrlIndex:
 
     def _call(self, action: str, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         """One signed JSON action. Raises ToolCallFailed (no answer) or _AthenaRefused."""
-        from .model_adapters.bedrock import SigningUnavailable
+        from .http_transport import SigningUnavailable
 
         body = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         unsigned = {

@@ -33,6 +33,7 @@ from .pipeline import ProjectType, stage_ids
 from .workflow import StepDefinition
 
 __all__ = [
+    "CLIENT_SOURCE_PROPOSALS",
     "DEVELOP_SNAPSHOT",
     "POPULATION_MATERIALIZE",
     "REPORT_STEP_KIND",
@@ -61,9 +62,13 @@ SOCIOMAPPING_REPORT_STEP_KIND: Final = "research_sociomapping_report"
 #: dimension over LIVE and registers the owned child version. It never promotes.
 POPULATION_MATERIALIZE: Final = "population_materialize"
 
+#: AI proposals from a client's document (lifecycle K2d): the client's own work, paid by
+#: the client's budget, in its client_sources project.
+CLIENT_SOURCE_PROPOSALS: Final = "client_source_proposals"
+
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
 WORKFLOW_TYPES: Final[frozenset[str]] = frozenset(
-    {DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT, POPULATION_MATERIALIZE}
+    {DEVELOP_SNAPSHOT, RESEARCH, RESEARCH_AGENT, POPULATION_MATERIALIZE, CLIENT_SOURCE_PROPOSALS}
 )
 
 #: The research template's step kinds, by node key -- what an executor registers for.
@@ -127,6 +132,18 @@ def steps_for_workflow(
                 max_attempts=3,
                 # It reads the base: a run cannot be made without the binding it records.
                 consumes_population=True,
+            )
+        ]
+    if workflow_type == CLIENT_SOURCE_PROPOSALS:
+        # One attempt: a retry would ask, and pay for, the same requests again. A run that
+        # fails is said so, and a person asks again.
+        return [
+            StepDefinition(
+                node_key="extract",
+                kind=CLIENT_SOURCE_PROPOSALS,
+                stage_type="BRIEF",
+                artifact_target="client_knowledge_proposals",
+                max_attempts=1,
             )
         ]
     if workflow_type == RESEARCH_AGENT:

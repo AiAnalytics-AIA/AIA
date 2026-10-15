@@ -69,6 +69,7 @@ __all__ = [
     "PanelPersonas",
     "PersonaRefused",
     "panel_personas",
+    "persona_allowlist",
 ]
 
 PANEL_PERSONA_VERSION: Final = "aia-panel-persona-source-1"
@@ -131,14 +132,16 @@ class PanelPersonas:
         return persona_text(row, topics, grounded_text(row, topics, self.catalog, self.labels))
 
     def plan(self, spec: ResearchSpecification, persona: Persona) -> RespondentPlan:
-        """``plan_respondent``, with each block's profile built from that block's topics."""
+        """``plan_respondent``, with each block's profile built from that block's topics,
+        filtered to the study's selected dimensions (``persona_allowlist``) as 18.6.6 did."""
         base = plan_respondent(spec, persona)
+        allowlist = persona_allowlist(spec)
         return RespondentPlan(
             persona=persona,
             facts=base.facts,
             blocks=base.blocks,
             profiles=tuple(
-                self.profile(persona.persona_id, _topics(block)) for block in base.blocks
+                self.profile(persona.persona_id, _topics(block, allowlist)) for block in base.blocks
             ),
         )
 
@@ -153,8 +156,15 @@ class PanelPersonas:
         }
 
 
-def _topics(block: Block) -> list[str]:
-    return block_topics([_item_text(item) for item in block.items])
+def persona_allowlist(spec: ResearchSpecification) -> tuple[str, ...]:
+    """The study's selected dimensions as the run's persona topic allowlist (18.6.6
+    ``research_project.py:440``): ``persona_dimensions.approved``, as the specification
+    recorded it; empty filters nothing."""
+    return spec.selection.dimensions if spec.selection is not None else ()
+
+
+def _topics(block: Block, allowlist: Sequence[str] = ()) -> list[str]:
+    return block_topics([_item_text(item) for item in block.items], allowlist)
 
 
 def _item_text(item: Item) -> tuple[str, Sequence[str]]:

@@ -5,8 +5,9 @@
 // client's source the moment it lands, one request at a time, and its row says what
 // reading produced; a table asks Datová sada or Dokument and names its personal-data
 // columns; pasted text is kept as a text file. Přidat makes one knowledge item per
-// file (C7a's content.source_id) and files them. Links and AI extraction are drawn
-// and say they are not in AIA yet. Nothing here decides what is knowledge: the API does.
+// file (C7a's content.source_id) and files them; with Navrhnout znalosti z textu ticked, it
+// then asks AI for proposals from each document (lifecycle K2d5, paid by the client). Links
+// are drawn and say they are not in AIA yet. Nothing here decides what is knowledge: the API does.
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -15,6 +16,7 @@ import { t, tv } from "@/i18n/t";
 import { ApiError, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { FILE_ACCEPT, FILE_MAX_BYTES, reasonKnown, reasonWords, sizeWords } from "@/lib/client-sources";
+import { plural } from "@/lib/format";
 import {
   type Entry,
   type IntakeKind,
@@ -40,6 +42,7 @@ import {
   summary,
   withDetail,
 } from "@/lib/intake";
+import { canPropose, proposalsReason } from "@/lib/source-proposals";
 import { fileToBase64 } from "@/research/brief";
 import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { useResource } from "../useResource";
@@ -89,6 +92,12 @@ export function IntakeSheet() {
   // files them and never makes them again.
   const made = useRef<Made[]>([]);
   const waiting = useRef(0);
+  // AI proposals (lifecycle K2d5): whether to ask, who may, and the documents whose items
+  // exist and whose proposals are still owed -- asked once their batch is filed, kept for a
+  // retry when filing fails, never asked twice (the API answers a second ask with the same run).
+  const mayExtract = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE") && client.permissions.includes("RUN_CLIENT_WORK");
+  const [extract, setExtract] = useState(false);
+  const owed = useRef<{ sourceId: string; name: string }[]>([]);
   const [unfiled, setUnfiled] = useState(false);
   // The files the page handed over, as of the last render: a drop during a save waits for it.
   const latest = useRef(intake);
@@ -192,6 +201,7 @@ export function IntakeSheet() {
         const row = all.find((e) => e.key === item.key)!;
         if (p.status === "APPROVED" && p.item_id) made.current.push({ itemId: p.item_id, folder: folderOf(row, batchFolder) });
         else waiting.current += 1;
+        if (extract && row.source && canPropose(row.source)) owed.current.push({ sourceId: row.source.source_id, name: row.name });
         // Made: never sent twice, even if a later one fails.
         setEntries((es) => removed(es, item.key));
       }
@@ -213,11 +223,32 @@ export function IntakeSheet() {
     made.current = [];
     waiting.current = 0;
     setUnfiled(false);
+    // The items exist and are filed: ask AI about their documents, each on its own; one
+    // refused says so and stops none of the others.
+    const asking = owed.current;
+    owed.current = [];
+    const refused: string[] = [];
+    for (const doc of asking) {
+      try {
+        await workspace.proposeFromSource(clientId, doc.sourceId);
+      } catch (e) {
+        refused.push(tv("aia.intake.extractFailed", { name: doc.name, reason: e instanceof ApiError ? proposalsReason(e.code) : String(e) }));
+      }
+    }
     setSaving(false);
     noteAdded();
     reload();
-    if (waited) {
-      setNote(t("aia.intake.waitsForApproval"));
+    const asked = asking.length - refused.length;
+    if (refused.length) setError(refused.join(" "));
+    if (waited || asking.length) {
+      setNote(
+        [
+          waited ? t("aia.intake.waitsForApproval") : null,
+          asked ? tv("aia.intake.extractAsked", { n: plural(asked, "dokumentu", "dokumentů", "dokumentů") }) : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
       return;
     }
     // Files dropped on the page during the save stay on the sheet.
@@ -345,11 +376,16 @@ export function IntakeSheet() {
         ) : null}
 
         <div className="flex items-start gap-2.5 rounded-md border border-border bg-surface px-3.5 py-3">
-          <input id="intake-extract" type="checkbox" disabled className="mt-0.5 size-[18px]" />
+          <input
+            id="intake-extract"
+            type="checkbox"
+            disabled={!mayExtract || saving}
+            checked={extract}
+            onChange={(e) => setExtract(e.target.checked)}
+            className="mt-0.5 size-[18px] accent-ai"
+          />
           <label htmlFor="intake-extract" className="flex-1 text-[13px] leading-[18px]">
-            <span className="flex flex-wrap items-center gap-2 font-semibold text-ink-muted">
-              {t("aia.intake.extract")} <Chip tone="neutral">{t("aia.intake.later")}</Chip>
-            </span>
+            <span className="flex flex-wrap items-center gap-2 font-semibold">{t("aia.intake.extract")}</span>
             <span className="mt-0.5 block text-ink-muted">{t("aia.intake.extractText")}</span>
           </label>
         </div>

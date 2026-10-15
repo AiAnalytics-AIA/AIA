@@ -7,7 +7,13 @@ chunks:
   - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
   - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
-  - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
+  - "[x] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
+  - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
+  - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
+  - "[x] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
+  - "[x] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
+  - "[x] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
+  - "[x] K2d6. Burst, latency and money measured; develop activation is the owner's call"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
   - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
@@ -385,16 +391,170 @@ generic historical records without inventing source spans or validated dimension
     - `test_source_datasets.py`, 24 tests, on SQLite and PostgreSQL;
     - `test_client_sources.py::test_every_format_on_the_owners_list_has_a_reader`;
     - two API tests: the dataset's masked columns, and the re-read route.
-- **K2d. AI proposals from a source.**
-  - A new workflow type beneath the chosen study, in a study-owned hidden project, as
-    `population_materialize` does (`application/materialize.py:204-245` @ 362f90e0).
-  - The executor uses `StepModelCaller`; the reservation is held against the study's budget.
-  - A closed output contract: FACT / FINDING / TERM / ENTITY proposals, each with a quote and its
-    locator.
-  - Code grounds every quote in the stored reading.
-  - Off by default behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it, the job parks by
-    name.
-  - Burst, latency and money are measured before merge (CLAUDE.md § 8).
+- **K2d. AI proposals from a source.** *(Re-planned 2026-10-15.)*
+  - **Who pays changed.** The owner decided on 2026-10-15 that the client has a budget of its
+    own for work on the client itself (`client-budget.md`, CB1-CB4 @ f50d2532). K2d runs as the
+    client's own work: a `client_sources` project with no study, a `ClientWorkContext` issued
+    against the lease, every hold and charge on the client's budget. It no longer runs beneath a
+    chosen study. That also makes `:263-265` ("a worker job needs a study") no longer true.
+  - **Documents first** (owner, 2026-10-15). A `DOCUMENT` source (PDF, DOCX, DOC, ODT, PPTX,
+    TXT, MD) is extracted. A `DATASET` is refused by name (`dataset_not_extracted`) until a
+    column-aware slice leaves out its personal-data columns cell by cell: its segments today are
+    whole rows joined with ` | ` (`infrastructure/source_reading.py:575-577` @ f50d2532), so a
+    flagged column cannot be removed from them safely. `IMAGE` / `VIDEO` have no text.
+  - **What is sent.** The stored reading's segments, pinned by the reading's SHA-256 at enqueue
+    (a re-read stores a new reading beside the old, `:374-379`), in batches of whole segments
+    up to a bounded size. Each segment carries its index; the model never sees a locator it
+    could alter. The material is Class A (`domain/residency.py:48-69`), so a route not approved
+    for Class A refuses it at egress before anything leaves, and the step parks by name.
+  - **The contract.** Closed (`extra="forbid"` throughout): a list of proposals, each `kind`
+    (FACT / FINDING / TERM / ENTITY), `title`, `summary`, `quote`, `segment` (the index it
+    quotes). One schema repair, as every agent.
+  - **Grounding, by code.** A quote is kept only when `locate_quote`
+    (`domain/deep_research/grounding.py:116-123`, NFKC and punctuation folded, case kept) finds
+    it in the text of the segment it names. Otherwise it is dropped and counted; a dropped
+    proposal is never shown. The locator written is that segment's, never the model's.
+  - **What is written.** Each kept proposal becomes a client knowledge *proposal* (never an item),
+    through a new `ClientKnowledgeRepository.propose_from_client_work(ClientWorkContext, …)`:
+    `content` holds the quote and its locator (not `source_id`: `source_ref` refuses it on these
+    kinds, `domain/knowledge.py:213-225`); `provenance` names `authored: "ai"`, the source, the
+    occurrence, the reading's SHA-256, the locator, the run, the agent, prompt and harness. A run
+    writes its proposals once: the step's retry finds them by run and writes none twice.
+  - **Off by default** behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it the step parks
+    `client_source_proposals_unconfigured` and calls nothing. A client budget of 0 parks it
+    `AWAITING_BUDGET` until a person lifts it (client-budget CB4).
+  - **Burst, latency and money** measured before merge (CLAUDE.md § 8): requests per document
+    (bounded by the 250,000-character reading cap and the batch size), tokens and the
+    reservation per request at the model's prices; live latency is the owner's activation run.
+  - **K2d1 landed** (2026-10-15): `domain/source_proposals.py`. `require_extractable` (a
+    `DOCUMENT` with segments; `dataset_not_extracted`, `no_text`, `nothing_read` by name);
+    `batches` (whole segments in order, at most `BATCH_MAX_CHARS` = 12,000 characters, a longer
+    segment in pieces keeping its locator; deterministic, so at most 21 requests per document);
+    `proposal_request` (`FAST_EXTRACTION`, Class A, `SourceProposals` closed, one schema repair,
+    the segments numbered and no locator sent); `ground` (a quote kept only when `locate_quote`
+    finds it in the segment it names; its locator is that segment's; `quote_not_found` and
+    `unknown_segment` counted). Tests: `packages/aia_core/tests/test_source_proposals.py` (4).
+  - **K2d2 landed** (2026-10-15): `ClientSourceRepository.reading_pin` (a person's scope, at
+    enqueue: family, reader, the reading's SHA-256) and `pinned_reading` (the worker's
+    `ClientWorkContext`, `RUN_WORKFLOW`: exactly that reading, verified, else
+    `SourceReadingChanged`; another client's source not found);
+    `ClientKnowledgeRepository.propose_from_client_work(ClientWorkContext, run_id=, drafts=)`
+    files `ProposalDraft`s (`domain/knowledge.py`) as proposals with `authored: "ai"` and the
+    run, `proposed_by` the person who started it; once per run (a retry gets back what was
+    filed). `client_knowledge_proposals.run_id` and its index (migration `a9c1e3b5d7f2`,
+    checked on PostgreSQL 16: upgrade, downgrade, upgrade, `alembic check` clean). Tests:
+    `packages/aia_core/tests/test_client_work_proposals.py` (2, SQLite and PostgreSQL).
+  - **K2d3 landed** (2026-10-15): `aia_executors/client_source_proposals.py`, the
+    `client_source_proposals` workflow type (one step, `extract`, `max_attempts=1`;
+    `domain/workflow_templates.py`). The executor takes the worker's `ClientWorkContext` (a
+    study's scope is refused, `not_client_work`), reads the pinned reading (`reading_changed`
+    when it moved), refuses a source it does not extract by name, preflights, then asks batch by
+    batch through `StepModelCaller` (each request held against and charged to the client's
+    budget) and files what `ground` keeps, once per run. Kill switch
+    `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED` (off; with `…_MAX_OUTPUT_TOKENS` and
+    `…_RESERVATION_USD`, which must cover two calls at the model ceilings, as research's), which
+    binds `FAST_EXTRACTION` on the route's model; unset, the step parks
+    `client_source_proposals_unconfigured`. Class A: the route must name
+    `CLASS_A_CLIENT_CONFIDENTIAL` and state its retention, else egress parks it
+    (`egress_route_not_approved_for_class`, `egress_retention_unspecified`) before any call. The
+    develop Compose passes the three keys, off. Tests:
+    `apps/executors/tests/test_client_source_proposals.py` (9: grounded proposals filed and the
+    client charged, the study not; unconfigured; both egress parks; a dataset refused; a $1 client
+    budget waits `AWAITING_BUDGET`, a lift to $5 lets it finish -- client-budget CB5's proof
+    under the real worker loop; the settings' binding and reservation floor).
+  - **K2d4 landed** (2026-10-15): `application/source_proposals.py`:
+    `start_source_proposals(session, client, work, store, source_id)` (the person's
+    `ClientContext` with `PROPOSE_CLIENT_KNOWLEDGE` and their `ClientWorkContext`, the same
+    person and client) pins the current reading and queues the run as the client's own work.
+    One run per reading: its idempotency key is
+    `client_source_proposals:<source>:<reading sha256>:<harness>:<n>`, and asking again returns
+    the newest run for that reading unless it `FAILED` or was `CANCELLED`, when run `n+1` is
+    queued. A dataset, a source without text or a document nothing was read from is refused by
+    the step's own names before anything is queued. `latest_source_proposals`: the newest run
+    about the source, any reading, with `current` (its reading is still the source's), the
+    step's state, `reason` (the step's waiting reason or its last attempt's error reason) and,
+    once it succeeded, its output. `WorkflowRepository.list_runs(key_prefix=)` matches a key's
+    start literally (`_` and `%` are characters). Routes: `POST
+    /clients/{id}/sources/{source_id}/proposals` (202 new, 200 an existing run, 422 by name,
+    404 another client's source) and `GET` the same (the newest run, or null). Tests:
+    `apps/api/tests/test_client_sources_api.py` (3: once per reading, a retry after a failed
+    run, no study named; a dataset refused with nothing queued; another client's source 404) and
+    `test_client_work_start.py::test_runs_are_listed_by_their_keys_prefix_matched_literally`.
+  - **K2d5 landed** (2026-10-15). The web:
+    - `lib/source-proposals.ts` (pure): `canPropose` (a document something was read from; never
+      a table), `proposalsPhase` (the step's state: queued, running, budget, waiting, done,
+      failed; a state it does not know is a wait, never done), `mayAsk`, `proposalsLine` and
+      `proposalsReason` (the step's reasons in words, an unknown one as its code).
+    - `components/aia/clients/SourceProposals.tsx`: Navrhnout znalosti on a document's file on
+      the open item (`SourceCard ai=`, from `KnowledgeArea`: ask with
+      `PROPOSE_CLIENT_KNOWLEDGE` + `RUN_CLIENT_WORK`, lift with `MANAGE_CLIENT_BUDGET`). It uses
+      the AI button with a client-budget title. It reads the run again every 2 s while it is
+      queued or running; it says why a run waits; a run waiting for the budget offers the lift
+      (`workspace.liftClientWork`). A finished run says how many proposals wait and links to Ke
+      schválení, and a run about an older reading says so.
+    - The intake sheet's "Navrhnout znalosti z textu" is live: ticked, it asks about each
+      document once its item is made and the batch filed. Asks still owed are kept for a retry
+      after a failed filing. A refusal is named per file and stops no other. The sheet stays
+      open to say what was asked.
+    - Ke schválení: an AI proposal shows its quote, where the quote stands and the document
+      (`ProposalResponse.from_source`: source, run, quote, locator, only for a proposal with
+      `authored: "ai"` in the shape the step writes), says "Navrhla AI z dokumentu", and drops
+      "Váš návrh".
+    - `latest_source_proposals`' reason is the step's own (its last attempt's error reason)
+      rather than the worker's general `ai_runtime_unavailable`; while waiting for budget it is
+      the budget.
+    - Tests: `source-proposals.test.ts` (7); `KnowledgeLibrary.test.tsx` (5: asked, followed to
+      Ke schválení, paid by the client; the budget lift; a parked reason with nothing offered to
+      a person who may not run; not offered for a table; the review card); `IntakeSheet.test.tsx`
+      (3: documents asked only after their items exist, never a table; a refusal named; nothing
+      asked unticked); the API's `test_an_ai_proposal_shows_its_quote_and_where_it_stands_for_review`;
+      the executor tests now start through `start_source_proposals` and read the parked reason
+      back. `tools/ui_workbench/intake_journey.mjs`: the box starts unticked and no proposals are
+      asked.
+    - In a browser, on the workbench at 1440 and 390 px: a TXT file added with the box ticked;
+      the sheet said "AI navrhne znalosti z 1 dokumentu"; the item said "Čeká: AI návrhy z
+      podkladů nejsou v tomto prostředí zapnuté." (the workbench worker has no gateway); no
+      overflow, no page error.
+  - **K2d6 landed** (2026-10-15). Measured, and two defects found and fixed (F-K4):
+    - **Batches are bounded by the bytes they send**, not characters: `BATCH_MAX_BYTES` =
+      24,000 bytes of the segments' JSON per request, a longer segment in pieces keeping its
+      locator (`domain/source_proposals.py`, harness `aia-source-proposals-2`).
+    - **A document takes at most `MAX_REQUESTS` = 42 requests**, else `too_many_requests`
+      before any is sent. Whole-segment packing leaves at most half a batch empty, so 42 =
+      2 x ceil(500,000 / 24,000) covers 250,000 characters of two-byte text.
+    - **The hold is sized to the request, not the model.** `request_window_tokens(out)` is the
+      fixed part (2,060 bytes) + 24,000 + 5 x out + 2,048, which is 48,588 tokens at 4,096 out.
+      The settings' floor is two calls at that window (`reservation_usd`): **$0.4144** at
+      $3 / $15, down from $1.32 at the model's 200,000. The executor checks every request
+      fits (`window_fits`) before preflight.
+    - Measured at develop-like settings ($3 / $15 per MTok, 4,096 output tokens), at the
+      250,000-character reading cap, fictional Czech text from the reader fixture:
+
+      | Shape | Requests | Largest request | Est. cost* | Ceiling** |
+      |---|---|---|---|---|
+      | 6,976 short paragraphs | 20 | 26,059 B | $0.81 | $2.75 |
+      | 83 pages of 3,000 chars | 12 | 25,649 B | $0.48 | $1.65 |
+      | 41 pages of 6,001 chars | 14 | 22,180 B | $0.51 | $1.77 |
+
+      \* ~3 bytes per input token and 1,000 output tokens per request; the usage ledger records
+      the real counts. \*\* The gateway's own bound: one token per byte and the full 4,096
+      output tokens, no repair.
+    - The absolute ceiling for any document: 42 requests x $0.4144 = **$17.40**.
+    - Requests are sequential, one held at a time, so the client's budget needs **$0.42**
+      free to start.
+    - Local cost per run: batching 5-135 ms and grounding 8-270 ms for a whole document;
+      the step writes once per run.
+    - **Not measured: live latency per request.** It needs Bedrock on develop with
+      `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`, which is the owner's activation. The route
+      must name `CLASS_A_CLIENT_CONFIDENTIAL` and state its retention.
+    - Tests: `test_source_proposals.py` (bytes-bounded batches for short lines and for two-,
+      four- and six-byte characters, every request within its window; the request cap at 42
+      and refused at 43; a reading at the character cap of Czech text within it);
+      `test_client_source_proposals.py`
+      (`test_the_reservation_covers_two_calls_at_the_request_window_not_the_models`: $0.41
+      refused, $0.42 accepted;
+      `test_a_document_over_the_request_cap_is_refused_before_any_call`: 50,000 four-byte
+      paragraphs refused, nothing sent or spent).
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
@@ -476,6 +636,63 @@ dimensions (K5) and retirement (K6).
    draft/non-executable definitions honestly and allow computational selection only when resolved.
 6. Test: disposable `test_a_dimension_can_be_accepted_with_no_definition_or_values` pins the
    current behavior; connected acceptance must refuse execution with an unresolved definition.
+
+**F-K4 — A document's requests were bounded neither in number nor in size** (fixed in K2d6).
+1. Claim: K2d1's batching packed by characters, so the "at most 21 requests per document"
+   it stated did not hold. A request's bytes were not bounded either.
+2. Anchor: `batches` in `domain/source_proposals.py @ 4b15e6f6` (`BATCH_MAX_CHARS` = 12,000,
+   whole segments, a batch closed when the next would pass it).
+3. Reproduction:
+   - 41 pages of 6,001 characters made 41 requests.
+   - 12,000 one-character lines made one request of 338,949 bytes, over the model's 200,000
+     tokens. Each short segment carries ~28 bytes of JSON.
+4. Consequence: the burst and the money a document could cost were not what the plan said.
+   A document of short lines would have been refused by the gateway, after its hold was taken.
+5. Fix: batches bounded by bytes (`BATCH_MAX_BYTES`), a request cap (`MAX_REQUESTS`, refused
+   by name before any call), and the hold sized to the request's window (K2d6).
+6. Tests: `test_a_batch_is_bounded_by_the_bytes_it_sends_whatever_the_text`,
+   `test_a_document_needing_more_than_the_request_cap_is_refused_before_anything_is_sent`.
+
+**F-K5 — A step stopped between batches paid for its answered batches again** (fixed;
+Codex review of #446).
+1. Claim: a document's answers lived only in the attempt's memory. A step parked at the
+   client's budget, or released by its worker, restarted at batch 0 when it resumed and
+   re-sent the batches already paid for.
+2. Anchor: the batch loop in `aia_executors/client_source_proposals.py @ 43e20119`.
+3. Reproduction: `test_a_document_parked_between_batches_resumes_without_paying_twice`
+   makes 3 requests without the journal and 2 with it.
+4. Consequence: every lifted or released multi-batch document billed its first batches
+   twice.
+5. Fix: `client_work_journal` (migration `c5e7a9b1d3f6`) keeps each answer the moment it
+   returns, under the lease. It is keyed by the client and a fingerprint of exactly what
+   was sent (request, policy, output limit, harness), so a resumed step, or a new run over
+   the same reading, replays what was answered and preflights only if something is
+   unanswered. The step reports `sent` and `replayed`.
+6. Tests: the one above; `test_client_work_journal.py` (2).
+
+**F-K6 — A run stopped for recovery could never be asked again** (fixed; Codex review of #446).
+1. Claim: with one attempt, a retryable failure whose outcome is known ends in
+   `RECOVERY_REQUIRED` (`max_attempts_exhausted`), not `FAILED`. Asking again counted only
+   failed and cancelled runs as ended, so it returned the stuck run forever.
+2. Anchor: `_ENDED_WITHOUT_RESULT` in `application/source_proposals.py @ 43e20119`.
+3. Reproduction:
+   `test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain`.
+4. Consequence: a document could not be proposed from again until an operator intervened.
+5. Fix:
+   - A run is `restartable` when it failed, was cancelled, or stopped for recovery with
+     every paid call's outcome known; asking again then starts a new run, which replays
+     the journal.
+   - A run left with a paid call of unknown outcome
+     (`paid_external_call_side_effect_uncertain`) is never restarted from here.
+   - The API answers `restartable`, and the web's ask-again follows it.
+6. Test: the API test above; `source-proposals.test.ts`.
+
+**F-K3 (hypothesis) — A web test failed once under the full suite.**
+`ExecutionSteps.test.tsx` › "offers the report's PDF when the run stored one, and says why when
+it could not" failed once in `npx vitest run` (1 of 1511, 2026-10-15, while K2d5 was written).
+It passed alone twice and in the next full run. There is no reproduction, so it is a
+hypothesis. The file is not touched by K2d. Next step: run the full suite repeatedly and, if it
+recurs, capture the assertion and its timing.
 
 ## Doc follow-up
 

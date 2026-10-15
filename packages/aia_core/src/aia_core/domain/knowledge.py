@@ -40,6 +40,7 @@ Pure: stdlib and Pydantic only.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, Final
@@ -64,6 +65,7 @@ __all__ = [
     "KnowledgeSummary",
     "LabelColour",
     "OrganizerNameTaken",
+    "ProposalDraft",
     "ProposalOrigin",
     "ProposalStatus",
     "StaleKnowledgeProposal",
@@ -298,6 +300,18 @@ class KnowledgeRevision(BaseModel):
     proposal_id: str | None = None
     approved_by: str
     approved_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalDraft:
+    """One proposal a run of the client's own work offers (lifecycle K2d2), before it is
+    filed: what it is, and where it came from. Filed as a proposal, never as knowledge."""
+
+    kind: KnowledgeKind
+    title: str
+    summary: str
+    content: dict[str, Any]
+    provenance: dict[str, Any]
 
 
 class KnowledgeProposal(BaseModel):

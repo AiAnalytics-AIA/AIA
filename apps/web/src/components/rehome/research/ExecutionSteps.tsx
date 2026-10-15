@@ -180,7 +180,9 @@ function RespondentsReceipt({ run }: { run: ResearchRun }) {
     [t(`${R}.population`), populationNote(run) ?? t(`${R}.populationNone`)],
   ];
   if (sel) {
-    rows.push([t(`${R}.dimensions`), sel.dimensions.length ? `${sel.dimensions.map((d) => labels[d] ?? d).join(", ")} · ${applied(sel.dimensions_applied, sel.dimensions_reason)}` : t(`${R}.none`)]);
+    const unmatched = sel.dimensions_unmatched ?? [];
+    const unmatchedNote = unmatched.length ? ` · ${tv(`${R}.unmatched`, { list: unmatched.map((d) => labels[d] ?? d).join(", ") })}` : "";
+    rows.push([t(`${R}.dimensions`), sel.dimensions.length ? `${sel.dimensions.map((d) => labels[d] ?? d).join(", ")} · ${applied(sel.dimensions_applied, sel.dimensions_reason)}${unmatchedNote}` : t(`${R}.none`)]);
     rows.push([t(`${R}.filters`), filters.length ? `${filters.join(", ")} · ${applied(sel.filters_applied, sel.filters_reason)}` : t(`${R}.none`)]);
   }
   return (

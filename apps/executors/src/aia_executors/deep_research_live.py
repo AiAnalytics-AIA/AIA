@@ -60,8 +60,8 @@ from aia_core.infrastructure.dataset_nkod import NKOD_HOST, NkodConnector
 from aia_core.infrastructure.dataset_openalex import OPENALEX_HOST, OpenAlexConnector
 from aia_core.infrastructure.dataset_wayback import WAYBACK_HOST, WaybackCdxConnector
 from aia_core.infrastructure.host_pacing import HostPacer, PacedTransport
+from aia_core.infrastructure.http_transport import CredentialSource
 from aia_core.infrastructure.model_adapters.aws_signing import InstanceRoleSigner
-from aia_core.infrastructure.model_adapters.transport import CredentialSource
 from aia_core.infrastructure.web_retrieval import FetchTransport, Resolver, WebFetcher
 from aia_core.infrastructure.web_retrieval_brave import (
     BRAVE_CREDENTIAL_REF,

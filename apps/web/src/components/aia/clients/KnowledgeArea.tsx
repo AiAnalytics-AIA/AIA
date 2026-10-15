@@ -22,7 +22,7 @@ import {
   workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { takesFile } from "@/lib/client-sources";
+import { locatorWords, takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, staleEdit } from "@/lib/knowledge-library";
 import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
@@ -87,12 +87,28 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                           <SourceCard clientId={clientId} sourceId={p.source_id} compact />
                         </div>
                       ) : null}
+                      {p.from_source ? (
+                        // What an AI proposal rests on: the words, found by code where it says.
+                        <figure className="mt-2 flex flex-col gap-1.5">
+                          <blockquote className="border-l-2 border-ai-edge pl-2 text-sm">„{p.from_source.quote}“</blockquote>
+                          <figcaption className="text-xs text-ink-faint">
+                            {t("aia.sources.ai.quote")} · {locatorWords(p.from_source.locator)}
+                          </figcaption>
+                          <SourceCard clientId={clientId} sourceId={p.from_source.source_id} compact />
+                        </figure>
+                      ) : null}
                       <p className="mt-2 text-xs text-ink-faint">
-                        {p.study_name ? tv("aia.knowledge.fromStudy", { name: p.study_name }) : t("aia.knowledge.fromClient")} · {relative(p.proposed_at)}
+                        {p.from_source
+                          ? t("aia.sources.ai.fromAi")
+                          : p.study_name
+                            ? tv("aia.knowledge.fromStudy", { name: p.study_name })
+                            : t("aia.knowledge.fromClient")}{" "}
+                        · {relative(p.proposed_at)}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      {p.yours ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
+                      {/* An AI proposal is the AI's words, not its starter's. */}
+                      {p.yours && !p.from_source ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
                       {mayApprove ? (
                         <>
                           <Button small variant="primary" onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
@@ -244,6 +260,11 @@ export function KnowledgeArea() {
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
   const mayPropose = client.permissions.includes("PROPOSE_CLIENT_KNOWLEDGE");
   const mayApprove = client.permissions.includes("APPROVE_CLIENT_KNOWLEDGE");
+  // AI proposals from a document, paid by the client (lifecycle K2d5).
+  const ai = {
+    ask: mayPropose && client.permissions.includes("RUN_CLIENT_WORK"),
+    lift: client.permissions.includes("MANAGE_CLIENT_BUDGET"),
+  };
   // What another page asked for (?add=1, ?view=…), from the router: after an in-app navigation
   // window.location is not yet the new URL when this first renders.
   const params = useSearchParams();
@@ -510,6 +531,7 @@ export function KnowledgeArea() {
                     folders={folderList}
                     labels={labelList}
                     mayPropose={mayPropose}
+                    ai={ai}
                     version={version}
                     onChanged={changed}
                   />
