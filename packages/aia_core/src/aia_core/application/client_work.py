@@ -124,6 +124,9 @@ def lift_client_budget_wait(
     if step["status"] is not StepRunStatus.AWAITING_BUDGET:
         raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
     scopes = ScopeRepository(session)
+    # The run, then the client: the order a completing step takes them in (run, then
+    # the payer it charges), so the two never wait on each other.
+    workflows.lock_run(run_id)
     # Locked before it is compared: a concurrent lift waits here, then reads what the
     # first committed, so a raise is never overwritten by a smaller one decided earlier.
     current = scopes.client_budget(client, for_update=True).budget_usd

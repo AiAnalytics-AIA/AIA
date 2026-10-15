@@ -219,7 +219,13 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
   - `lift_client_budget_wait` compared the offer with an unlocked read and only then
     locked to write (`application/client_work.py:113-118 @ 80dc2167`). One lift raised to
     $10; another, decided on the old value, then wrote $8.
-  - Fixed: the comparison reads the budget under the client row's lock.
+  - Fixed: the comparison reads the budget under the client row's lock, taken after the
+    run's lock. That is the order a completing step takes them in (run, then the payer
+    it charges). Locking the client first deadlocked with a step of the same run
+    finishing (reproduced on PostgreSQL: `DeadlockDetected` on `workflow_runs`; Codex
+    review of #445).
+  - Test for the order:
+    `test_client_budget_lift.py::test_a_lift_takes_the_run_before_the_client_as_a_completing_step_does`.
   - Test: `test_client_budget_lift.py::test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile`
     (PostgreSQL; $8 without the lock, $10 with it).
 - **F-CB5. Two first requests could each create the client's work project** (same fix
@@ -230,6 +236,19 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
     losing insert is rolled back to a savepoint and answered with the project the other
     made.
   - Test: `test_client_work_start.py::test_a_client_has_one_work_project_even_when_two_first_requests_race`.
+
+- **F-CB6 (hypothesis). The study lift has the same two defects** (found here, not fixed:
+  another plan's code, which predates client budgets).
+  1. `ResearchRuns.lift_budget_wait` compares with an unlocked read of the study's budget.
+     `set_study_budget` then updates the study row before `resume_budget_wait` locks the
+     run.
+  2. Anchor: `application/research.py:713-746 @ 80dc2167`.
+  3. Reproduction (not yet run): the two PostgreSQL tests above, ported to a study.
+  4. Consequence: two concurrent lifts can lower a study's budget, and a lift can
+     deadlock with a step of the same run completing.
+  5. Smallest fix: the same as the client's: `lock_run`, then read the study budget
+     locked.
+  6. Test: the ported pair.
 
 ## Doc follow-up
 
