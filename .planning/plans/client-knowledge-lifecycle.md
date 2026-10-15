@@ -9,7 +9,7 @@ chunks:
   - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
   - "[ ] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
   - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
-  - "[ ] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
+  - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
   - "[ ] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
   - "[ ] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
   - "[ ] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
@@ -434,6 +434,16 @@ generic historical records without inventing source spans or validated dimension
     the segments numbered and no locator sent); `ground` (a quote kept only when `locate_quote`
     finds it in the segment it names; its locator is that segment's; `quote_not_found` and
     `unknown_segment` counted). Tests: `packages/aia_core/tests/test_source_proposals.py` (4).
+  - **K2d2 landed** (2026-10-15): `ClientSourceRepository.reading_pin` (a person's scope, at
+    enqueue: family, reader, the reading's SHA-256) and `pinned_reading` (the worker's
+    `ClientWorkContext`, `RUN_WORKFLOW`: exactly that reading, verified, else
+    `SourceReadingChanged`; another client's source not found);
+    `ClientKnowledgeRepository.propose_from_client_work(ClientWorkContext, run_id=, drafts=)`
+    files `ProposalDraft`s (`domain/knowledge.py`) as proposals with `authored: "ai"` and the
+    run, `proposed_by` the person who started it; once per run (a retry gets back what was
+    filed). `client_knowledge_proposals.run_id` and its index (migration `a9c1e3b5d7f2`,
+    checked on PostgreSQL 16: upgrade, downgrade, upgrade, `alembic check` clean). Tests:
+    `packages/aia_core/tests/test_client_work_proposals.py` (2, SQLite and PostgreSQL).
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.

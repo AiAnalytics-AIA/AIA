@@ -1104,6 +1104,9 @@ class ClientKnowledgeProposalRow(Base):
     # The item revision a revising proposal was written from (F-K1); null for a new item and
     # for a revision filed before this column, which an approval treats as stale.
     base_revision: Mapped[int | None] = mapped_column(Integer)
+    # The run of the client's own work that proposed it (lifecycle K2d2): an AI proposal from a
+    # client's document. A run writes its proposals once; null for every other proposal.
+    run_id: Mapped[str | None] = mapped_column(String(64))
 
     __table_args__ = (
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
@@ -1114,6 +1117,7 @@ class ClientKnowledgeProposalRow(Base):
             "status in ('PROPOSED','APPROVED','REJECTED')", name="knowledge_proposal_status_known"
         ),
         Index("ix_client_knowledge_proposals_client", "client_id", "status"),
+        Index("ix_client_knowledge_proposals_run", "run_id"),
     )
 
 
