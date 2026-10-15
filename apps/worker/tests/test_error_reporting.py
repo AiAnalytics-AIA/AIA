@@ -15,7 +15,9 @@ import pytest
 from aia_core.domain.workflow import FailureClass, StepRunStatus
 from aia_core.infrastructure import error_tracking
 from aia_core.infrastructure.error_tracking import ErrorTrackingSettings
+from aia_core.infrastructure.tables import ProjectRow, WorkflowRunRow
 from aia_worker.worker import Worker
+from sqlalchemy.orm import Session, sessionmaker
 
 pytest.importorskip("sentry_sdk")
 from sentry_sdk.transport import Transport
@@ -76,6 +78,31 @@ def test_a_step_left_failed_is_one_issue_grouped_by_kind_class_and_cause(
     )
     assert tags["worker_id"] == "worker-a"
     assert event["contexts"]["failure"]["error"] == {"attempt": 1}
+
+
+def test_the_clients_own_work_is_reported_with_its_client_and_no_study(
+    study: Any,
+    make_worker: MakeWorker,
+    sessions: sessionmaker[Session],
+    reported: list[dict[str, Any]],
+) -> None:
+    """A run on the client itself has no study (client-budget): its events name the client,
+    and tagging it never reads a study it does not have."""
+    run_id = study.create_run({"fail": FailureClass.AUTHENTICATION.value}, key="client-own")
+    with sessions() as session:
+        run = session.get(WorkflowRunRow, run_id)
+        assert run is not None
+        project = session.get(ProjectRow, run.project_id)
+        assert project is not None
+        project.owner, project.study_id, run.study_id = "client_sources", None, None
+        session.commit()
+
+    result = make_worker().run_once()
+
+    assert result is not None and result.step_status is StepRunStatus.FAILED
+    (event,) = reported
+    assert event["tags"]["client_id"] == study.client_id
+    assert "study_id" not in event["tags"]
 
 
 def test_an_unclassified_exception_is_reported_once_with_its_stack_and_no_secret(
