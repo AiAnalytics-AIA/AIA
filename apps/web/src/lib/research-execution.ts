@@ -8,7 +8,7 @@
 // * anything computed from the fictional dataset says so, every time.
 
 import { t, tv } from "@/i18n/t";
-import type { ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
+import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchQuestionTrace, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/lib/tone";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
@@ -39,7 +39,12 @@ export function stepLabel(nodeKey: string): string {
   return label.startsWith("research.") ? nodeKey : label;
 }
 
+/** An analysis step whose module was stored BLOCKED: finished as a step, not as a result. */
+export const needsRepair = (step: ResearchStep): boolean =>
+  step.status === "SUCCEEDED" && step.analysis_outcome === "BLOCKED";
+
 export function stepTone(step: ResearchStep): Tone {
+  if (needsRepair(step)) return "fault";
   if (step.status === "SUCCEEDED") return "done";
   if (step.status === "RUNNING" || step.status === "RUNNABLE") return "running";
   if (step.status === "FAILED") return "fault";
@@ -48,8 +53,17 @@ export function stepTone(step: ResearchStep): Tone {
 }
 
 export function stepStatusLabel(step: ResearchStep): string {
+  if (needsRepair(step)) return t("research.exec.stepStatus.ANALYSIS_BLOCKED");
   const label = t(`research.exec.stepStatus.${step.status}`);
   return label.startsWith("research.") ? step.status : label;
+}
+
+/** Whether a finished run may have analysis modules to ask again: worth asking the API. */
+export function mayRetryAnalysis(run: ResearchRun): boolean {
+  return (
+    run.is_terminal &&
+    run.steps.some((s) => s.node_key.startsWith("analysis_") && (needsRepair(s) || s.status === "FAILED" || s.status === "CANCELLED"))
+  );
 }
 
 /** Keep reading while something can still change on its own; a parked run cannot. */
@@ -79,6 +93,30 @@ export function waitingDetail(step: ResearchStep): string | null {
   }
   if (reason.startsWith("gate:")) return t("research.exec.wait.approval_required");
   return null;
+}
+
+/** A step that holds the internal report back, and why, in the words the step recorded. */
+export type ReportHold = { step: ResearchStep; detail: string | null };
+
+/**
+ * What keeps a run's report from being ready (run-gate-visibility chunk 2): every analysis
+ * module's step that has not succeeded, then the report step itself when it waits or failed, in
+ * the run's order. Each carries what it recorded: the wait's reason (`waitingDetail`) or a failed
+ * step's message. A step that only has not started yet has no detail: unknown, never invented.
+ */
+export function reportHolds(run: ResearchRun): ReportHold[] {
+  const holds: ReportHold[] = [];
+  for (const step of run.steps) {
+    const analysis = step.kind === "research_analysis";
+    if (!analysis && step.kind !== "research_report") continue;
+    // A module stored BLOCKED succeeded as a step and still holds the report.
+    if (step.status === "SUCCEEDED" && !needsRepair(step)) continue;
+    const detail = needsRepair(step)
+      ? t("research.exec.analysisRetry.held")
+      : (waitingDetail(step) ?? (step.status === "FAILED" ? step.error_message : null));
+    if (analysis || detail !== null) holds.push({ step, detail });
+  }
+  return holds;
 }
 
 /** Origins that are never evidence: the fictional fixture, and AI respondents on fictional personas. */
@@ -303,4 +341,84 @@ export function sociomapObjects(battery: SociomapBattery): SociomapObject[] {
     const [x, y] = xy.get(o.id) ?? [0, 0];
     return { id: o.id, label: o.label, score: battery.relation.scores[i] ?? null, x, y };
   });
+}
+
+// --------------------------------------------------------------------------- //
+// Before a run: which questions it will answer (plan run-recovery-and-truth 2b)
+// --------------------------------------------------------------------------- //
+
+/** Worst first: what a run will not answer is read before what it will. */
+export const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
+
+export function verdictTone(verdict: OutlookVerdict): Tone {
+  if (verdict === "UNANSWERABLE") return "fault";
+  if (verdict === "AT_RISK") return "you";
+  if (verdict === "UNKNOWN") return "neutral";
+  return "done";
+}
+
+/** How many items carry each verdict; every verdict present, zero when none. */
+export function outlookCounts(items: readonly QuestionOutlook[]): Record<OutlookVerdict, number> {
+  const counts: Record<OutlookVerdict, number> = { UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 };
+  for (const item of items) counts[item.verdict] += 1;
+  return counts;
+}
+
+/** The items worst first, questionnaire order kept within a verdict. */
+export function outlookByVerdict(items: readonly QuestionOutlook[]): QuestionOutlook[] {
+  const rank = (v: OutlookVerdict) => VERDICT_ORDER.indexOf(v);
+  return items.map((item, i) => [item, i] as const).sort((a, b) => rank(a[0].verdict) - rank(b[0].verdict) || a[1] - b[1]).map(([item]) => item);
+}
+
+/** A reason in words; a code this client does not know is named, never hidden. */
+export function outlookReason(code: string): string {
+  const key = `research.exec.outlook.reason.${code}`;
+  const words = t(key);
+  return words === key ? tv("research.exec.outlook.reason.other", { code }) : words;
+}
+
+/** Where an item's reason is fixed: support (n) on Dimenze, everything else in the questionnaire. */
+export function outlookFixStep(reasons: readonly string[]): "persona" | "questionnaire" | null {
+  if (reasons.some((r) => r !== "support_unknown" && !r.startsWith("support_"))) return "questionnaire";
+  if (reasons.some((r) => r === "support_suppressed" || r === "support_analysis_excluded" || r === "support_indicative")) return "persona";
+  return null;
+}
+
+/** One measure of a research question as it reads: a question by its wording, a tracked set once. */
+export type TraceMeasure = { key: string; text: string; verdict: OutlookVerdict };
+
+/**
+ * A research question's measures in words (run-recovery-and-truth 3b): each question by its
+ * wording with its verdict; a tracked set once, by its first object's wording and how many
+ * objects it rates, with its best verdict. An id the outlook does not list reads unknown.
+ */
+export function traceMeasures(question: ResearchQuestionTrace, outlook: readonly QuestionOutlook[]): TraceMeasure[] {
+  const byId = new Map(outlook.map((o) => [o.question_id, o]));
+  const best = (a: OutlookVerdict, b: OutlookVerdict) => (VERDICT_ORDER.indexOf(a) >= VERDICT_ORDER.indexOf(b) ? a : b);
+  const out: TraceMeasure[] = [];
+  const sets = new Map<string, { measure: TraceMeasure; count: number }>();
+  for (const id of question.measures) {
+    const item = byId.get(id);
+    if (!item) {
+      out.push({ key: id, text: id, verdict: "UNKNOWN" });
+      continue;
+    }
+    if (item.battery_id === null) {
+      out.push({ key: id, text: item.text, verdict: item.verdict });
+      continue;
+    }
+    const seen = sets.get(item.battery_id);
+    if (seen) {
+      seen.count += 1;
+      seen.measure.verdict = best(seen.measure.verdict, item.verdict);
+      continue;
+    }
+    const measure: TraceMeasure = { key: item.battery_id, text: item.text, verdict: item.verdict };
+    sets.set(item.battery_id, { measure, count: 1 });
+    out.push(measure);
+  }
+  for (const { measure, count } of sets.values()) {
+    if (count > 1) measure.text = tv("research.exec.trace.set", { first: measure.text, count });
+  }
+  return out;
 }

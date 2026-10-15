@@ -27,11 +27,19 @@ most one folder and carries any number of labels. They are organization, not
 knowledge: no model sees them, and moving or labelling an item writes no
 revision and leaves the client's knowledge revision where it was.
 
+A **file** reaches knowledge by reference (client-workspace C7a). A SOURCE, DOCUMENT or
+DATASET item may name one of its client's sources as ``content["source_id"]``; the
+original and its reading stay the client's source (lifecycle K2), so the item says what
+the file is and the source keeps what it holds. :func:`source_ref` is the shape's rule;
+that the source is the item's own client's is the caller's check, against the source
+store.
+
 Pure: stdlib and Pydantic only.
 """
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any, Final
@@ -42,6 +50,8 @@ from pydantic import BaseModel, ConfigDict, Field
 __all__ = [
     "KNOWLEDGE_SECTIONS",
     "ORGANIZER_NAME_MAX",
+    "SOURCE_BACKED_KINDS",
+    "SOURCE_REF",
     "STALE_AFTER",
     "KnowledgeFolder",
     "KnowledgeHealth",
@@ -63,6 +73,7 @@ __all__ = [
     "new_knowledge_proposal_id",
     "organizer_key",
     "organizer_name",
+    "source_ref",
 ]
 
 
@@ -187,6 +198,31 @@ KNOWLEDGE_SECTIONS: Final[dict[str, tuple[KnowledgeKind, ...]]] = {
     "audiences": (KnowledgeKind.AUDIENCE,),
     "data": (KnowledgeKind.DATASET, KnowledgeKind.ARTIFACT),
 }
+
+
+#: The key under which an item's content names its client's source (C7a).
+SOURCE_REF: Final = "source_id"
+#: The kinds that may carry a source: the material itself, never a fact drawn from it.
+SOURCE_BACKED_KINDS: Final = frozenset(
+    {KnowledgeKind.SOURCE, KnowledgeKind.DOCUMENT, KnowledgeKind.DATASET}
+)
+# A source's id as the source store mints it (``client_sources.new_source_id``).
+_SOURCE_ID: Final = re.compile(r"^SRC-[0-9a-f]{16}$")
+
+
+def source_ref(kind: KnowledgeKind, content: dict[str, Any]) -> str | None:
+    """The source an item's content names, or ``None``; ``ValueError`` for a wrong shape.
+
+    Only a SOURCE, DOCUMENT or DATASET item names one, and only as a source's id.
+    """
+    if SOURCE_REF not in content:
+        return None
+    ref = content[SOURCE_REF]
+    if kind not in SOURCE_BACKED_KINDS:
+        raise ValueError(f"a {kind.value} item does not carry a source")
+    if not isinstance(ref, str) or not _SOURCE_ID.fullmatch(ref):
+        raise ValueError("source_id is not a source's id")
+    return ref
 
 
 class ProposalStatus(StrEnum):

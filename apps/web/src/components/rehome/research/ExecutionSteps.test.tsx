@@ -7,7 +7,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import type { ResearchRun } from "@/lib/api";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { RunResults } from "./ExecutionSteps";
@@ -29,6 +29,7 @@ const READY = {
     { id: "sample_size", status: "PASS", message: "n = 450." },
     { id: "audience", status: "WARN", message: "AIA zatím nepoužije filtry." },
   ],
+  question_outlook: [] as unknown[],
 };
 const step = (node: string, status: string, extra: Record<string, unknown> = {}) => ({
   step_id: `STEP-${node}`, node_key: node, kind: `research_${node}`, stage_type: "BRIEF", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
@@ -292,6 +293,70 @@ describe("Run", () => {
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(t("research.exec.readOnly"))).toBeTruthy();
+  });
+});
+
+describe("Run: which questions the run will answer (run-recovery-and-truth 2b)", () => {
+  const item = (id: string, text: string, verdict: string, reasons: string[]) => ({ question_id: id, text, section_id: "s1", battery_id: null, verdict, reasons });
+  const OUTLOOK = {
+    ...READY,
+    question_outlook: [
+      item("q1", "Jak často pijete kávu?", "ANSWERABLE", []),
+      item("q2", "Kolik Kč byste maximálně zaplatili?", "UNANSWERABLE", ["fidelity_refused"]),
+      item("q3", "Co vás ráno probudí?", "AT_RISK", ["open_ended"]),
+    ],
+  };
+
+  it("lists what the run will not answer first, by its wording, with the reason and where to fix it", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => OUTLOOK });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.outlook.title") });
+    expect(within(card).getByText("1 bez odpovědi · 1 s rizikem · 0 neznámo · 1 zodpoví")).toBeTruthy();
+    const flagged = within(card).getByRole("list", { name: t("research.exec.outlook.title") });
+    const rows = within(flagged).getAllByRole("listitem").filter((li) => li.parentElement === flagged);
+    expect(rows.map((r) => r.querySelector("p")?.textContent)).toEqual(["Kolik Kč byste maximálně zaplatili?", "Co vás ráno probudí?"]);
+    expect(within(rows[0]).getByText(t("research.exec.outlook.reason.fidelity_refused"))).toBeTruthy();
+    expect(within(rows[0]).getByRole("link", { name: t("research.exec.fix") })).toBeTruthy();
+    // What it will answer is there, folded away.
+    expect(within(card).getByText(tv("research.exec.outlook.answerable", { count: 1 }))).toBeTruthy();
+  });
+
+  it("traces each research question to its measures, and says when nothing measures one", async () => {
+    const traced = {
+      ...OUTLOOK,
+      research_trace: {
+        linked: true,
+        dangling: [{ question_id: "q1", research_question: "Stará otázka?" }],
+        questions: [
+          { text: "Jak často lidé pijí kávu?", measures: ["q1"], verdict: "ANSWERABLE", reasons: [] },
+          { text: "Co lidé snídají?", measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+        ],
+      },
+    };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => traced });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.trace.title") });
+    const rows = within(card).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
+    expect(within(rows[0]).getByText("Jak často pijete kávu?")).toBeTruthy(); // its measure, by its wording
+    expect(within(rows[0]).queryByRole("link")).toBeNull();
+    expect(within(rows[1]).getByText(t("research.exec.trace.reason.unmeasured"))).toBeTruthy();
+    expect(within(rows[1]).getByRole("link", { name: t("research.exec.fix") })).toBeTruthy();
+    expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
+  });
+
+  it("keeps the card for stale links when the plan states no research question", async () => {
+    const stale = { ...OUTLOOK, research_trace: { linked: true, questions: [], dangling: [{ question_id: "q1", research_question: "Stará otázka?" }] } };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => stale });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.trace.title") });
+    expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
+  });
+
+  it("shows no card for a design with no items", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.ready"))).toBeTruthy();
+    expect(screen.queryByRole("region", { name: t("research.exec.outlook.title") })).toBeNull();
   });
 });
 
@@ -1127,8 +1192,11 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     const report = await card();
-    fireEvent.click(await report.findByRole("radio", { name: "Pro klienta" }));
-    expect(report.getByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
+    // The client option is there from the first render but disabled until the run's report
+    // status says its data is modelled: click it only once that has loaded.
+    await waitFor(() => expect(report.getByRole("radio", { name: "Pro klienta" }).getAttribute("aria-disabled")).not.toBe("true"));
+    fireEvent.click(report.getByRole("radio", { name: "Pro klienta" }));
+    expect(await report.findByText(t("research.exec.results.reportClientHint"))).toBeTruthy();
     // The client version is DOCX only.
     expect(report.getByRole("radio", { name: "PDF" }).getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(report.getByRole("button", { name: t("research.exec.results.reportDownloadClient") }));
@@ -1210,6 +1278,35 @@ describe("Results", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText(t("research.exec.results.reportInputsRefused"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.results.reportDownload") })).toBeNull();
+  });
+
+  it("names the module that holds the report back, why, and the way to Progress", async () => {
+    const reportRun = run({
+      ...COMPLETED,
+      status: "WAITING", phase: "WAITING",
+      steps: [...COMPLETED.steps,
+        step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", stage_type: "ANALYSIS", artifact_id: "ART-a" }),
+        step("analysis_audience", "WAITING_PROVIDER", { kind: "research_analysis", stage_type: "ANALYSIS",
+          waiting_reason: "analysis_unconfigured", error_message: "AI analýza není pro tento běh zapnuta." }),
+        step("report", "PENDING", { kind: "research_report", stage_type: "REPORT" })],
+    });
+    api({
+      ...listed(reportRun),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ run_id: "RUN-1", internal_only: true, synthetic: true, modules: {}, pending: {} }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/report": () => ({ run_id: "RUN-1", state: "PENDING", internal_only: true, reason: null }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
+    expect(await screen.findByText(t("research.exec.results.reportHeldBy"))).toBeTruthy();
+    const hold = document.querySelector('[data-hold="analysis_audience"]');
+    expect(hold?.textContent).toContain("Cílová skupina");
+    expect(hold?.textContent).toContain("AI analýza není pro tento běh zapnuta.");
+    expect(document.querySelector('[data-hold="analysis_executive"]')).toBeNull();
+    expect(document.querySelector('[data-hold="report"]')).toBeNull();
+    const link = screen.getByRole("link", { name: t("research.exec.results.reportSeeProgress") });
+    expect(link.getAttribute("href")).toContain("?run=RUN-1");
   });
 
   it("leaves the Sociomap out for a person the API refuses it to", async () => {

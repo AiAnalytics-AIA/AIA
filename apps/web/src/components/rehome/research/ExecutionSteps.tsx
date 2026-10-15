@@ -18,7 +18,9 @@ import {
   type Artifact,
   type ResearchAnalysis,
   type ResearchReport,
+  type QuestionOutlook,
   type Readiness,
+  type ResearchTrace,
   type ResearchRun,
   type ResearchRunSummary,
   type ResearchStep,
@@ -37,7 +39,14 @@ import {
   hasUnknownOrigin,
   isModelled,
   isSynthetic,
+  mayRetryAnalysis,
+  outlookByVerdict,
+  outlookCounts,
+  outlookFixStep,
+  outlookReason,
   parkedForRuntime,
+  traceMeasures,
+  reportHolds,
   resultOriginKind,
   stepOriginKind,
   type OriginKind,
@@ -58,6 +67,7 @@ import {
   type AggregateDeviation,
   type QuestionResult as AggregateResult,
   type ResultTable,
+  verdictTone,
 } from "@/lib/research-execution";
 import { CONFLICT_MESSAGE } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
@@ -307,9 +317,9 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
   );
 }
 
-/** Where a failing readiness check is fixed: the sample on Dimenze, the audience on Audience, the rest on Dotazník. */
+/** Where a failing readiness check is fixed: the sample (and the support it gives) on Dimenze, the audience on Audience, the rest on Dotazník. */
 export function fixStep(checkId: string): StepKey {
-  if (/sample|^n$/.test(checkId)) return "persona";
+  if (/sample|^n$|^support_forecast$/.test(checkId)) return "persona";
   if (/audience/.test(checkId)) return "audience";
   return "questionnaire";
 }
@@ -345,6 +355,106 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
           </div>
         ))}
       </dl>
+    </Card>
+  );
+}
+
+/** "Výzkumné otázky a jejich měření": each research question of the plan, the questions that
+ * measure it and what the run will make of them (plan run-recovery-and-truth 3b). */
+function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[] }) {
+  const { stepHref } = useResearch();
+  // Stale links stay visible even when the plan states no research question any more.
+  if (!trace.questions.length && !trace.dangling.length) return null;
+  return (
+    <Card title={t("research.exec.trace.title")} region>
+      <p className="text-[13px] text-ink-muted">{t("research.exec.trace.help")}</p>
+      <ol className="mt-3 flex flex-col gap-3">
+        {trace.questions.map((q, i) => {
+          const measures = traceMeasures(q, outlook);
+          return (
+            <li key={`${i}-${q.text}`} className="flex items-start gap-2 text-sm">
+              <Chip tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</Chip>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{q.text}</p>
+                {q.reasons.map((r) => (
+                  <p key={r} className="text-[13px] text-ink-muted">{t(`research.exec.trace.reason.${r}`)}</p>
+                ))}
+                {measures.length ? (
+                  <ul className="mt-1 flex flex-col gap-1">
+                    {measures.map((m) => (
+                      <li key={m.key} className="flex items-start gap-2 text-[13px]">
+                        <Chip tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</Chip>
+                        <span className="min-w-0 flex-1">{m.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              {q.verdict !== "ANSWERABLE" ? (
+                <Link href={stepHref("questionnaire")} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+                  {t("research.exec.fix")}
+                </Link>
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+      {trace.dangling.length ? (
+        <p className="mt-3 text-[13px] text-status-you-ink">
+          {tv("research.exec.trace.dangling", { list: [...new Set(trace.dangling.map((d) => d.research_question))].join("; ") })}
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+/** "Na co běh odpoví": every item a respondent will answer, worst first, as they read it, with
+ * the reasons in words; what the run will answer folds away (plan run-recovery-and-truth 2b). */
+function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
+  const { stepHref } = useResearch();
+  if (!items.length) return null;
+  const counts = outlookCounts(items);
+  const sorted = outlookByVerdict(items);
+  const flagged = sorted.filter((i) => i.verdict !== "ANSWERABLE");
+  const answerable = sorted.filter((i) => i.verdict === "ANSWERABLE");
+  const row = (item: QuestionOutlook) => {
+    const fix = outlookFixStep(item.reasons);
+    return (
+      <li key={item.question_id} className="flex items-start gap-2 text-sm">
+        <Chip tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</Chip>
+        <div className="min-w-0 flex-1">
+          <p>{item.text}</p>
+          {item.reasons.length ? (
+            <ul className="mt-0.5 text-[13px] text-ink-muted">
+              {item.reasons.map((r) => (
+                <li key={r}>{outlookReason(r)}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        {fix && item.verdict !== "ANSWERABLE" ? (
+          <Link href={stepHref(fix)} className="whitespace-nowrap text-xs text-signal no-underline hover:underline">
+            {t("research.exec.fix")}
+          </Link>
+        ) : null}
+      </li>
+    );
+  };
+  return (
+    <Card title={t("research.exec.outlook.title")} region>
+      <p className="text-[13px] text-ink-muted">{t("research.exec.outlook.help")}</p>
+      <p className="mt-2 text-sm font-medium">{tv("research.exec.outlook.summary", counts)}</p>
+      {flagged.length ? (
+        <ul className="mt-3 flex flex-col gap-2" aria-label={t("research.exec.outlook.title")}>
+          {flagged.map(row)}
+        </ul>
+      ) : null}
+      {answerable.length ? (
+        <details className="mt-3">
+          <summary className="cursor-pointer text-sm">{tv("research.exec.outlook.answerable", { count: answerable.length })}</summary>
+          <ul className="mt-2 flex flex-col gap-2">{answerable.map(row)}</ul>
+        </details>
+      ) : null}
     </Card>
   );
 }
@@ -486,6 +596,8 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
+          {prepared.readiness.research_trace ? <ResearchTraceCard trace={prepared.readiness.research_trace} outlook={prepared.readiness.question_outlook ?? []} /> : null}
+          <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
           <Receipt revision={prepared.revision} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={rereadReadiness} />
           {children.length ? <PopulationChoice choices={children} value={childId} onChange={setChildId} disabled={!frame.canEdit || starting} /> : null}
@@ -698,9 +810,70 @@ function BudgetLift({ run, step, act, busy }: { run: ResearchRun; step: Research
 
 // ------------------------------------------------------------ Progress -------
 
+/**
+ * The modules of a finished run a person may ask again (`GET …/analysis/retryable`), or `null` while
+ * there is nothing to ask about. Read once per finished run, not on every poll.
+ */
+function useRetryableModules(run: ResearchRun | null | undefined): string[] | null {
+  const frame = useFrame();
+  const runId = run?.run_id ?? null;
+  const possible = !!run && mayRetryAnalysis(run);
+  const [modules, setModules] = useState<{ runId: string; list: string[] } | null>(null);
+  useEffect(() => {
+    if (!possible || !runId) return;
+    let live = true;
+    research
+      .retryableModules(frame.studyId, runId)
+      .then((list) => live && setModules({ runId, list }))
+      .catch(() => live && setModules({ runId, list: [] }));
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId, runId, possible]);
+  return possible && modules && modules.runId === runId && modules.list.length ? modules.list : null;
+}
+
+/** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
+function AnalysisRepair({ run, modules, act, busy }: { run: ResearchRun; modules: string[]; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
+  const { confirm } = useResearch();
+  const frame = useFrame();
+  return (
+    <Card title={t("research.exec.analysisRetry.title")} tone="notice" region>
+      <p className="text-sm">{tv("research.exec.analysisRetry.body", { n: modules.length })}</p>
+      <p className="mt-1 text-sm">{tv("research.exec.analysisRetry.modules", { list: modules.map((m) => stepLabel(`analysis_${m}`)).join(", ") })}</p>
+      <p className="mt-1 text-xs text-ink-muted">{t("research.exec.analysisRetry.how")}</p>
+      {frame.canEdit ? (
+        <Button
+          className="mt-3"
+          variant="primary"
+          disabled={busy}
+          onClick={() =>
+            act(async () => {
+              try {
+                return await research.retryAnalysis(frame.studyId, run.run_id);
+              } catch (e) {
+                // The retry asks a model again, so the study's limit asks again over what it may cost.
+                const asked = confirmationAsked(e);
+                if (!asked) throw e;
+                const yes = await confirm(tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }));
+                if (!yes) return run;
+                return research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
+              }
+            })
+          }
+        >
+          {t("research.exec.analysisRetry.action")}
+        </Button>
+      ) : null}
+    </Card>
+  );
+}
+
 /** The run's state and what a person can do with it, in the inspector beside its steps. */
-function ProgressActions({ run, act, busy, refresh, actionError }: {
+function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   run: ResearchRun; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean; refresh: () => void; actionError: string | null;
+  /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
+  repairable: string[] | null;
 }) {
   const { confirm, stepHref } = useResearch();
   const frame = useFrame();
@@ -726,7 +899,7 @@ function ProgressActions({ run, act, busy, refresh, actionError }: {
         ) : null}
         {frame.canEdit && run.retryable ? (
           <Button
-            variant="primary"
+            variant={repairable ? undefined : "primary"}
             disabled={busy}
             onClick={() =>
               act(async () => {
@@ -743,7 +916,7 @@ function ProgressActions({ run, act, busy, refresh, actionError }: {
               })
             }
           >
-            {t("research.exec.retry")}
+            {repairable ? t("research.exec.retryWhole") : t("research.exec.retry")}
           </Button>
         ) : null}
         <Button variant="quiet" onClick={refresh}>{t("research.exec.refresh")}</Button>
@@ -758,6 +931,7 @@ export function ProgressStep() {
   const [run, refresh, setRun, error] = useRun();
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const repairable = useRetryableModules(run);
   // The run's feed, read live while one of its steps runs (lib/step-activity.ts).
   const running = !!run && !run.is_terminal && run.steps.some((s) => s.status === "RUNNING");
   const activity = useStepActivity(run?.run_id ?? null, (since) => research.events(frame.studyId, run!.run_id, since), running);
@@ -787,7 +961,7 @@ export function ProgressStep() {
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       <InspectorSlot>
-        <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} />
+        <ProgressActions run={run} act={act} busy={busy} refresh={refresh} actionError={actionError} repairable={repairable} />
       </InspectorSlot>
       <OriginBanners run={run} />
       <PopulationNote run={run} />
@@ -819,6 +993,7 @@ export function ProgressStep() {
         ) : null}
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
+      {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
       <Card title={t("aia.stages.progress")}>
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
           {listed.map((s) => (
@@ -964,7 +1139,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
   const sociomap = useArtifact(run, "sociomap");
   const sociomapping = useArtifact(run, "sociomapping");
   const report = run?.steps.some((step) => step.kind === "research_report")
-    ? <InternalReport key={run.run_id} run={run} />
+    ? <InternalReport key={run.run_id} run={run} progressHref={progressHref} />
     : <p className="text-sm text-ink-muted">{t("research.exec.results.reportNotInAia")}</p>;
 
   if (run === null || !stepOf(run, "aggregate")?.artifact_id) {
@@ -1025,7 +1200,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     ]} />;
 }
 
-function InternalReport({ run }: { run: ResearchRun }) {
+function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
   const frame = useFrame();
   const step = stepOf(run, "report");
   // What the last read answered, and for which state of the report step: a read for an
@@ -1082,6 +1257,7 @@ function InternalReport({ run }: { run: ResearchRun }) {
             : t("research.exec.results.reportWaiting")}
         </p>
       ) : null}
+      {status && status.state !== "READY" ? <ReportHolds run={run} progressHref={progressHref} /> : null}
     </Card>
   );
 }
@@ -1107,6 +1283,34 @@ function CitedNumbers({ ids, outcome, spec }: { ids: readonly string[]; outcome:
         );
       })}
     </ul>
+  );
+}
+
+/** Which module or step keeps the report from being ready, and why, with the way to Progress. */
+function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: string | null }) {
+  const holds = reportHolds(run);
+  if (!holds.length && !progressHref) return null;
+  return (
+    <div className="mt-2 text-sm">
+      {holds.length ? (
+        <>
+          <p className="font-medium">{t("research.exec.results.reportHeldBy")}</p>
+          <ul className="mt-1 flex flex-col gap-1">
+            {holds.map(({ step, detail }) => (
+              <li key={step.node_key} data-hold={step.node_key} data-status={step.status}>
+                <span className="font-medium">{stepLabel(step.node_key)}</span>
+                {" · "}
+                {stepStatusLabel(step)}
+                {detail ? <span className="text-ink-muted">{`: ${detail}`}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      {progressHref ? (
+        <a className="mt-2 inline-block underline" href={progressHref}>{t("research.exec.results.reportSeeProgress")}</a>
+      ) : null}
+    </div>
   );
 }
 

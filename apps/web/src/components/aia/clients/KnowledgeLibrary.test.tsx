@@ -22,7 +22,7 @@ const item = (id: string, title: string, extra: Record<string, unknown> = {}) =>
   item_id: id, kind: "FACT", title, summary: "", content: {}, revision: 1, modified_at: "2026-10-01T10:00:00Z", folder_id: null, label_ids: [], ...extra,
 });
 const ITEMS = [
-  item("KNW-1", "Hlavní konkurenti", { kind: "ENTITY", revision: 2, folder_id: "KNF-1", label_ids: ["KNL-1"], summary: "Dva hlavní." }),
+  item("KNW-1", "Hlavní konkurenti", { kind: "ENTITY", revision: 2, folder_id: "KNF-1", label_ids: ["KNL-1"], summary: "Dva hlavní.", content: { aliases: ["Konkurent A"] } }),
   item("KNW-2", "Výroční zpráva", { kind: "SOURCE" }),
   item("KNW-3", "Pobočky se zmenší", { modified_at: "2024-03-01T10:00:00Z" }),
 ];
@@ -161,7 +161,7 @@ describe("the knowledge library", () => {
     fireEvent.change(panel.getByRole("textbox", { name: "Název" }), { target: { value: "Hlavní konkurenti v retailu" } });
     fireEvent.click(save);
     await waitFor(() =>
-      expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "ENTITY", title: "Hlavní konkurenti v retailu", summary: "Dva hlavní.", item_id: "KNW-1", base_revision: 2 }),
+      expect(sent("POST", "/proposals")[0].body).toEqual({ kind: "ENTITY", title: "Hlavní konkurenti v retailu", summary: "Dva hlavní.", content: { aliases: ["Konkurent A"] }, item_id: "KNW-1", base_revision: 2 }),
     );
 
     fireEvent.change(panel.getByRole("combobox", { name: "Složka" }), { target: { value: "none" } });
@@ -249,10 +249,89 @@ describe("the knowledge library", () => {
     await screen.findByText("Hlavní konkurenti");
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(nav().queryByRole("button", { name: "Nová složka" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Přidat znalost" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Napsat znalost" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Přidat podklady" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Hlavní konkurenti/ }));
     const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
     expect(panel.queryByRole("textbox")).toBeNull();
     expect((panel.getByRole("combobox", { name: "Složka" }) as HTMLSelectElement).disabled).toBe(true);
+  });
+});
+
+// ---- a document's file (client-workspace C7a) -------------------------------------------
+
+const SRC = "SRC-0123456789abcdef";
+const NEWER = "SRC-fedcba9876543210";
+const source = (id: string, filename: string, extra: Record<string, unknown> = {}) => ({
+  source_id: id, sha256: "a".repeat(64), size_bytes: 2048, media_type: "application/pdf", family: "DOCUMENT", filename,
+  outcome: "READ", reason: null, reader: "pdf/1", characters: 1200, segments: 2,
+  occurrences: [{ occurrence_id: "SOC-1", filename, origin: "upload", added_by: "USR-1", added_at: "2026-10-14T08:00:00Z" }],
+  created_at: "2026-10-14T08:00:00Z", ...extra,
+});
+const detail = (id: string, filename: string) => ({
+  ...source(id, filename),
+  reading: {
+    outcome: "READ", reader: "pdf/1", reason: null, notes: [], dataset: null,
+    segments: [{ locator: { page: 1 }, text: "Cílová skupina: lidé 18–65 let." }, { locator: { page: 2 }, text: "Závěr." }],
+  },
+});
+const SOURCES = "/api/v1/clients/CLI-a/sources";
+// jsdom's Blob has no arrayBuffer() (every current browser has); read it through FileReader. AGENTS.md § jsdom.
+if (!Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function (this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as ArrayBuffer);
+      r.onerror = () => reject(r.error);
+      r.readAsArrayBuffer(this);
+    });
+  };
+}
+const pick = (label: string, name: string) =>
+  fireEvent.change(screen.getByLabelText(label, { selector: "input" }), { target: { files: [new File(["%PDF-1.7"], name, { type: "application/pdf" })] } });
+
+describe("a document's file", () => {
+  it("comes through the intake sheet: the form for a document points there instead of taking a file", async () => {
+    api();
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
+    const form = within(screen.getByRole("region", { name: "Napsat znalost klienta" }));
+    // A fact takes no file; a document is told where its file goes.
+    expect(form.queryByText(/Soubor přidáte přes Přidat podklady/)).toBeNull();
+    fireEvent.change(form.getByRole("combobox", { name: "Druh" }), { target: { value: "DOCUMENT" } });
+    expect(form.getByText(/Soubor přidáte přes Přidat podklady/)).toBeTruthy();
+    expect(form.queryByLabelText("Vybrat soubor", { selector: "input" })).toBeNull();
+    fireEvent.click(form.getByRole("button", { name: "Přidat podklady" }));
+    expect(screen.getByRole("dialog", { name: "Přidat podklady · Klient A" })).toBeTruthy();
+  });
+
+  it("shows on the open item with what was read, and a replacement is saved as the next revision", async () => {
+    const doc = item("KNW-4", "Brief", { kind: "DOCUMENT", content: { source_id: SRC, note: "od klienta" } });
+    api({
+      "GET /api/v1/clients/CLI-a/knowledge": () => [...ITEMS, doc],
+      "GET /api/v1/clients/CLI-a/knowledge/items/KNW-4/revisions": () => [],
+      [`GET ${SOURCES}/${SRC}`]: () => detail(SRC, "Brief.pdf"),
+      [`GET ${SOURCES}/${NEWER}`]: () => detail(NEWER, "Brief v2.pdf"),
+      [`POST ${SOURCES}`]: () => new Response(JSON.stringify({ ...source(NEWER, "Brief v2.pdf"), created: true }), { status: 201 }),
+    });
+    open();
+    fireEvent.click(await screen.findByRole("button", { name: /Brief/ }));
+    const panel = within(await screen.findByRole("complementary", { name: "Otevřená znalost" }));
+    expect(await panel.findByText("Brief.pdf")).toBeTruthy();
+    expect(panel.getByText("2 kB", { exact: false })).toBeTruthy();
+    expect(panel.getByText("Cílová skupina: lidé 18–65 let.")).toBeTruthy();
+    expect(panel.getByText("str. 1")).toBeTruthy();
+
+    const save = panel.getByRole("button", { name: "Uložit jako revizi 2" }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    pick("Nahradit soubor", "Brief v2.pdf");
+    expect(await panel.findByText("Brief v2.pdf")).toBeTruthy();
+    expect(panel.getByText("Soubor se uloží jako nová revize.")).toBeTruthy();
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(sent("POST", "/proposals")[0].body).toEqual({
+        kind: "DOCUMENT", title: "Brief", summary: "", content: { note: "od klienta", source_id: NEWER }, item_id: "KNW-4", base_revision: 1,
+      }),
+    );
   });
 });

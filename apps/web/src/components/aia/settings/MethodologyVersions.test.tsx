@@ -161,6 +161,9 @@ describe("the aggregation's versions (plan G3b)", () => {
     fireEvent.change(quantiles, { target: { value: "[0.05, 0.95]" } });
     const slot = await found('[data-edit-slot="agg.top_box"] textarea', form);
     expect((slot as HTMLTextAreaElement).value).toBe("x >= top - (b - 1)"); // the built-in, as computed
+    // The box is one estimator; what the aggregate keeps around it is said beside it.
+    const kept = form.querySelector('[data-edit-slot="agg.top_box"] [data-kept]') as HTMLElement;
+    expect(within(kept).getByText(/Podíl top boxu a jeho interval počítá vážený průměr/)).toBeTruthy();
     fireEvent.change(slot, { target: { value: "x >= top - b + 1" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
 
@@ -384,6 +387,51 @@ describe("guided methodology editing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
     expect(await screen.findByRole("heading", { name: "Sociomapa: referenční mapa (18.6.6)" })).toBeTruthy();
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
+  });
+
+  it("shows each step's stage, audit point and place in the computation, and moves along it", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    const outline = form.querySelector("[data-methodology-outline]") as HTMLElement;
+    expect(within(outline).getByText("Vztahy mezi objekty")).toBeTruthy();
+    expect(within(outline.querySelector("[data-not-yet]") as HTMLElement).getByText("testy při porovnání oblastí (F14)")).toBeTruthy();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f6_distance"]')!);
+    const step = form.querySelector('[data-edit-step="f6_distance"]') as HTMLElement;
+    expect(step.querySelector("[data-step-stage]")!.textContent).toBe("Rozložení na mapě · audit F6");
+    fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
+    expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
+    expect(step.hidden).toBe(true);
+    // A step with nothing to edit is named, never a link that would empty the pane.
+    fireEvent.click(form.querySelector('[data-edit-step-link="f1_declared_scale"]')!);
+    const first = form.querySelector('[data-edit-step="f1_declared_scale"] [data-context="to"]') as HTMLElement;
+    expect(first.querySelector('[data-context-name="f11_not_placed"]')).not.toBeNull();
+    expect(first.querySelector('[data-context-link="f11_not_placed"]')).toBeNull();
+    expect(first.querySelector('[data-context-link="f2_person_minmax"]')).not.toBeNull();
+  });
+
+  it("says which part of a step's formula the expression replaces, and what stays code", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openEditor();
+    const form = await editor();
+    fireEvent.click(form.querySelector('[data-edit-step-link="f3_effective_n"]')!);
+    const slot = form.querySelector('[data-edit-slot="f3.effective_n"]') as HTMLElement;
+    expect(within(slot).getByRole("textbox", { name: "Upravitelný výraz · Kishovo efektivní n" })).toBeTruthy();
+    const kept = slot.querySelector("[data-kept]") as HTMLElement;
+    expect(within(kept).getByText(/Výraz nahrazuje jen Kishovu větev/)).toBeTruthy();
+  });
+
+  it("numbers each stage by its place in the computation, also when a stage has nothing to edit", async () => {
+    fakeApi(); render(<MethodologyPanel />);
+    await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    await versionsSection();
+    await openEditor();
+    const form = await editor();
+    const heads = [...form.querySelectorAll("[data-outline-stage] > p")].map((p) => p.textContent);
+    // Pravděpodobnosti od modelu (1) and Losování (3) have nothing to edit; counting only what is
+    // shown would read 1 and 2.
+    expect(heads).toEqual(expect.arrayContaining(["2Mechanismy odpovědi", "4Styly respondenta"]));
+    expect(heads.some((h) => h?.endsWith("Pravděpodobnosti od modelu"))).toBe(false);
   });
 
   it("invalidates a previous successful check when the parameter changes", async () => {

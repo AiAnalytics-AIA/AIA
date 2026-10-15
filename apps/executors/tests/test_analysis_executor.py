@@ -32,14 +32,18 @@ from aia_core.application.analysis_results import (
     AGGREGATE_ARTIFACT,
     DATASET_ARTIFACT,
     SPECIFICATION_ARTIFACT,
+    AnalysisNotRetryable,
     DatasetMaterial,
+    ReconstructionRefused,
     SourcesRefused,
     reconstruct_run,
+    retry_failed_modules,
+    stored_analysis,
 )
 from aia_core.application.contextual_report import contextual_report, stored_contextual_report
 from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.report import ReportCompositionRefused
-from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.application.research import FrozenDataset, ResearchRuns, research_artifacts
 from aia_core.domain.ai_contracts import Delivery, UsageOutcome
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.analysis import AnalysisModuleId
@@ -175,6 +179,7 @@ def _env(world: Any, **overrides: str) -> dict[str, str]:
                 {**DESIGN, "research_plan": {"research_questions": ["Proč lidé pijí čaj?"]}},
                 {k: v for k, v in DESIGN.items() if k != "research_plan"},
                 {**DESIGN, "n": 150},
+                {**DESIGN, "n": 50},
             )
         )
         + "]",
@@ -760,7 +765,6 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     battery = mapped["batteries"][0]
     assert len(battery["sociomap"]["layout"]["object_xy"]) == 3
     assert battery["sociomap"]["layout"]["respondent_ids"]
-    assert battery["object_scores"]["primary"] == [obj["id"] for obj in battery["objects"]]
     pinned = run["metadata"]["sociomap_methods"]
     assert mapped["methods"] == [
         {"method_id": method["method_id"], "spec_fingerprint": method["spec_fingerprint"]}
@@ -768,6 +772,7 @@ def test_native_ai_study_connects_a_populated_map_to_admitted_report_inputs(
     ]
     v2 = read_artifact(battery["maps"]["aia-sociomap-3"])
     assert isinstance(v2, SociomapArtifactV3)
+    assert v2.scores["primary"] == [obj["id"] for obj in battery["objects"]]
     assert v2.support.respondents == n
     assert v2.spec.fingerprint() == next(
         method["spec_fingerprint"] for method in pinned if method["method_id"] == "aia-sociomap-3"
@@ -1247,6 +1252,197 @@ def test_a_module_whose_drafts_cite_nothing_is_blocked_after_three_calls_and_str
     assert len(answered) == 10
 
 
+def _started_with_analysis(world: Any) -> str:
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        revision, _ = StudyDesignRepository(session, scope).submit(
+            content=DESIGN, source_stage="run"
+        )
+        started = ResearchRuns(session, scope).start(
+            design_revision_id=revision.revision_id,
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+        )
+        session.commit()
+    return started.run_id
+
+
+def _retry_analysis(world: Any, store: InMemoryArtifactStore, run_id: str) -> Any:
+    with world.sessions() as session:
+        started = retry_failed_modules(session, world.lead_scope(session), store, run_id=run_id)
+        session.commit()
+    return started
+
+
+def test_retrying_failed_modules_asks_only_them_over_the_same_data(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """The live failure: data collected, a module blocked after three paid turns, the report
+    refused. A retry collects nothing, reuses every completed module, asks the blocked one
+    again in a new round, and the report composes once all eight complete."""
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    original = _run(world, first)
+    assert original["status"] is WorkflowRunStatus.FAILED, "the report refused, as it must"
+    assert _reconstruct(world, store, first).retryable == (AnalysisModuleId.OBJECTS,)
+    dataset = next(s for s in original["steps"] if s["node_key"] == "run")["output"]
+    asked_before = list(models.asked)
+
+    models.invent.clear()  # the model now answers within the evidence
+    retry = _retry_analysis(world, store, first)
+    assert retry.created
+    assert _retry_analysis(world, store, first).run_id == retry.run_id, "idempotent"
+    _drain(worker)
+
+    second = _run(world, retry.run_id)
+    assert second["status"] is WorkflowRunStatus.COMPLETED, _unfinished(world, retry.run_id)
+    assert models.asked[len(asked_before) :] == [("objects", 4)], "only the failed module, once"
+    steps = {s["node_key"]: s for s in second["steps"]}
+    assert steps["run"]["output"]["artifact_id"] == dataset["artifact_id"]
+    assert steps["run"]["output"]["frozen_from_run"] == first
+    assert steps["run"]["output"]["reused"] is True
+    assert second["metadata"]["retry_of"] == first
+    assert second["metadata"]["analysis_retry"]["round"] == 1
+    assert second["metadata"]["analysis_retry"]["modules"] == ["objects"]
+    reused = [m for m, step in _analysis(second).items() if step["output"]["reused"]]
+    assert sorted(reused) == sorted(m for m in MODULES if m != "objects")
+    assert _reconstruct(world, store, retry.run_id).complete
+    assert steps["report"]["status"] is StepRunStatus.SUCCEEDED
+
+    with pytest.raises(AnalysisNotRetryable) as nothing:
+        _retry_analysis(world, store, retry.run_id)
+    assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_a_retry_round_asks_again_what_the_model_refused_and_replays_nothing_old(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)  # still inventing: three new turns, blocked again
+    assert models.calls("objects") == [1, 2, 3, 4, 5, 6]
+    assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.FAILED
+    again = _retry_analysis(world, store, retry.run_id)
+    assert _run(world, again.run_id)["metadata"]["analysis_retry"]["round"] == 2
+
+
+def test_a_run_stored_under_the_previous_harness_can_still_be_repaired(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The runs this repairs were stored under harness 1, which reconstruct_run refuses to
+    re-admit. The retry reads their outcomes as stored, and asks again every module whose
+    reuse key the harness change moved."""
+    import aia_core.application.analysis_results as analysis_results
+
+    today = analysis_results.harness_summary
+
+    def earlier(**kw: Any) -> Any:
+        return today(**kw).model_copy(update={"harness_version": "aia-analysis-harness-1"})
+
+    monkeypatch.setattr(analysis_results, "harness_summary", earlier)
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    monkeypatch.undo()
+    models.invent.clear()
+    with pytest.raises(ReconstructionRefused) as old:
+        _reconstruct(world, store, first)
+    assert old.value.reason == "fingerprint_mismatch"
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    assert stored.retryable == (AnalysisModuleId.OBJECTS,)
+
+    asked_before = len(models.asked)
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
+    assert sorted(m for m, _ in models.asked[asked_before:]) == sorted(MODULES)
+    assert _reconstruct(world, store, retry.run_id).complete
+
+
+def test_a_run_cancelled_after_fieldwork_has_its_cancelled_modules_asked_over_its_data(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels()
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    while not any(
+        s["node_key"] == "aggregate" and s["status"] is StepRunStatus.SUCCEEDED
+        for s in _run(world, first)["steps"]
+    ):
+        assert worker.run_once() is not None, _unfinished(world, first)
+    with world.sessions() as session:
+        ResearchRuns(session, world.lead_scope(session)).cancel(first)
+        session.commit()
+    _drain(worker)
+    assert _run(world, first)["status"] is WorkflowRunStatus.CANCELLED
+    asked_before = len(models.asked)
+
+    retry = _retry_analysis(world, store, first)
+    _drain(worker)
+    assert _run(world, retry.run_id)["status"] is WorkflowRunStatus.COMPLETED
+    before = {m for m, _ in models.asked[:asked_before]}
+    after = [m for m, _ in models.asked[asked_before:]]
+    # Each module asked once over the frozen data: the cancelled ones now, none twice.
+    assert sorted(after) == sorted(set(MODULES) - before)
+    assert _reconstruct(world, store, retry.run_id).complete
+
+
+def test_a_retry_whose_dataset_does_not_match_its_bytes_is_refused_not_collected_again(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels(invent={"objects"})
+    worker = run_with(models)
+    first = _started_with_analysis(world)
+    _drain(worker)
+    original = _run(world, first)
+    dataset = next(s for s in original["steps"] if s["node_key"] == "run")["output"]
+    with world.sessions() as session:
+        started = ResearchRuns(session, world.lead_scope(session)).start(
+            design_revision_id=original["metadata"]["design_revision_id"],
+            fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE,
+            analysis_enabled=True,
+            retry_of=first,
+            frozen_dataset=FrozenDataset(
+                run_id=first,
+                artifact_id=dataset["artifact_id"],
+                sha256="0" * 64,
+                analysis_round=1,
+                retried=("objects",),
+                modules_asked=1,
+            ),
+        )
+        session.commit()
+    _drain(worker)
+    steps = {s["node_key"]: s for s in _run(world, started.run_id)["steps"]}
+    assert steps["run"]["status"] is StepRunStatus.FAILED
+    assert steps["run"]["attempts"][-1]["error"]["reason"] == "frozen_dataset_mismatch"
+    assert not any(s["attempts"] for s in _analysis(_run(world, started.run_id)).values())
+
+
+def test_a_retry_refuses_a_run_that_has_not_finished_or_ran_no_analysis(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    first = _started_with_analysis(world)
+    with pytest.raises(AnalysisNotRetryable) as early:
+        _retry_analysis(world, store, first)
+    assert early.value.reason == "run_not_finished"
+    plain = _start(world)
+    _drain(run_with(ScriptedModels()))
+    with pytest.raises(AnalysisNotRetryable) as none:
+        _retry_analysis(world, store, plain)
+    assert none.value.reason == "analysis_not_in_run"
+
+
 def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_repairs(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
@@ -1255,8 +1451,9 @@ def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_rep
     assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
     assert models.calls("executive") == [1, 2], "no schema repair hidden inside the turn"
     _payload, previous, repair = models.messages("executive", 2)
-    assert previous.startswith("(no draft")
+    assert json.loads(previous)["confidence"] == "high", "the repair shows the refused answer"
     assert "output schema check of the previous answer reported" in repair
+    assert "confidence" in repair, "and names the field it broke"
 
     output = _analysis(_run(world, run_id))["executive"]["output"]
     assert (output["outcome"], output["calls_sent"]) == ("COMPLETED", 2)
@@ -1265,6 +1462,27 @@ def test_an_answer_off_the_output_contract_is_one_counted_turn_that_the_next_rep
     assert record.calls[0].cost_usd == pytest.approx(ANALYSIS_CALL_USD), "the refused answer cost"
     terminal = [e for e in _ledger(world, run_id) if e.outcome.is_terminal]
     assert len(terminal) == 9 and {e.purpose.value for e in terminal} == {"PRIMARY"}
+
+
+def test_a_module_off_the_contract_every_turn_is_blocked_naming_the_field_and_replays_free(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    models = ScriptedModels(off_contract={("executive", n) for n in (1, 2, 3)})
+    run_id = _start(world)
+    assert _drain(run_with(models)) == ["completed"] * 13, _unfinished(world, run_id)
+    assert models.calls("executive") == [1, 2, 3]
+    _payload, previous, _repair = models.messages("executive", 3)
+    assert json.loads(previous)["confidence"] == "high"
+
+    output = _analysis(_run(world, run_id))["executive"]["output"]
+    assert (output["outcome"], output["calls_sent"]) == ("BLOCKED", 3)
+    record = _record(world, store, output["artifact_id"])
+    assert [c.answer for c in record.calls] == ["SCHEMA_INVALID"] * 3
+    # The stored outcome says which field failed, not "the draft is not a JSON object".
+    assert [(v.code, v.subject) for v in record.violations] == [
+        (ViolationCode.SCHEMA_INVALID, "confidence")
+    ]
+    assert "high" not in record.violations[0].detail, "a path and a reason, never a value"
 
 
 def test_the_research_questions_module_without_a_question_is_blocked_while_the_rest_run(
@@ -1588,6 +1806,44 @@ def test_ai_respondents_answer_and_the_eight_modules_interpret_them_in_one_run(
     events = [e for e in _ledger(world, run_id) if e.agent_id == "aia.analysis.module"]
     assert len(events) == 16
     assert {e.data_class.value for e in events} == {"CLASS_C_INTERNAL"}
+
+
+@pytest.mark.parametrize("n", [50, 150])
+def test_the_support_forecast_is_what_the_aggregate_then_computes(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], n: int
+) -> None:
+    """Readiness forecasts a run's donors and support from the roster fieldwork will draw
+    (plan run-recovery-and-truth 2a). After the run, every question the respondents all
+    answered carries exactly that: 50 fictional respondents are suppressed, 150 are not."""
+    from aia_core.domain.evidence.support import AIA_SUPPORT_V1
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.research_design import ResearchSpecification
+    from aia_core.domain.support_forecast import forecast_support
+
+    models = ScriptedModels()
+    run_id = _start(world, {**DESIGN, "n": n}, source=FieldworkSource.AI_RUNTIME)
+    worker = run_with(models, ai_fieldwork=True)
+    while not {"compile", "aggregate"} <= {
+        s["node_key"]
+        for s in _run(world, run_id)["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED
+    }:
+        assert worker.run_once() is not None, _unfinished(world, run_id)
+    steps = {s["node_key"]: s for s in _run(world, run_id)["steps"]}
+    with world.sessions() as session:
+        repo = research_artifacts(session, world.lead_scope(session), store)
+        spec = ResearchSpecification.model_validate(
+            repo.read_json(steps["compile"]["output"]["artifact_id"])["specification"]
+        )
+        aggregate = repo.read_json(steps["aggregate"]["output"]["artifact_id"])["aggregate"]
+    forecast = forecast_support(
+        spec, support=AIA_SUPPORT_V1, persona_source=PersonaSource.FICTIONAL_ROSTER
+    )
+    answered_by_all = [q for q in aggregate["questions"].values() if q["n_chybi"] == 0]
+    assert answered_by_all
+    assert {q["n_unique_layer_donors"] for q in answered_by_all} == {forecast.donors}
+    assert {q["support_status"] for q in answered_by_all} == {forecast.results.value}
+    assert (forecast.results.value == "SUPPRESS") is (n == 50)
 
 
 @pytest.mark.parametrize("how", ["tampered", "missing"])

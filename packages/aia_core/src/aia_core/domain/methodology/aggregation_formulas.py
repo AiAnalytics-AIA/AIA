@@ -115,15 +115,59 @@ _VARIANCE = Slot(
     ),
 )
 
+# What each slot does not cover, as research_aggregate keeps it (the function beside each).
+_KEPT_ROWS: Final = (
+    "Nevyplněné odpovědi se vynechají; neplatnou váhu (chybí, nula, záporná) kód předem nahradí "
+    "mediánem platných vah, a když žádná platná není, dá všem váhu 1."
+)
+_KEPT_KISH: Final = (
+    # aggregate_question -> donor_support -> kish_effective_n(clean_weights(...))
+    _KEPT_ROWS,
+    "Bez kladné váhy je n 0 a výraz se nepoužije.",
+    "Efektivní n otázky kód dál omezí počtem dárců: nejvýš Kishovo n krát podíl dárců na "
+    "odpovědích a nejvýš počet dárců. O stavu podpory a potlačení rozhoduje pravidlo podpory.",
+)
+_KEPT_SHARE: Final = (
+    # bootstrap_weighted_distribution; aggregate_question (typ multi)
+    _KEPT_ROWS,
+    "Bez kladné váhy je podíl 0 a výraz se nepoužije.",
+    "U otázky s jednou odpovědí počítá výraz bod i každý bootstrapový vzorek; převzorkování po "
+    "dárcích a meze intervalu z kvantilů počítá kód.",
+    "U otázky s více odpověďmi počítá výraz jen bod; interval jde přes vážený průměr.",
+    "Zaokrouhlení na 0,1 % provede kód.",
+)
+_KEPT_MEAN: Final = (
+    # bootstrap_weighted_mean
+    _KEPT_ROWS,
+    "Pod dvěma platnými odpověďmi průměr ani interval není; s jediným dárcem je interval bod sám.",
+    "Výraz počítá bod i každý bootstrapový vzorek (váhy vynásobené počtem tažení dárce); "
+    "převzorkování po dárcích a meze intervalu z kvantilů počítá kód.",
+    "Tentýž výraz dává i podíl top boxu a intervaly u otázek s více odpověďmi (průměr jedniček "
+    "a nul).",
+    "Zaokrouhlení na dvě desetinná místa provede kód.",
+)
+_KEPT_VARIANCE: Final = (
+    # weighted_variance
+    _KEPT_ROWS,
+    "Pod dvěma platnými odpověďmi rozptyl není a výraz se nepoužije.",
+    "Směrodatnou odchylku jako odmocninu z výsledku a její zaokrouhlení počítá kód.",
+)
+_KEPT_TOP_BOX: Final = (
+    # aggregate_question (typ skala)
+    "Jen u otázek na škále; horní konec bere kód z otázky a šířku top boxu z metodiky.",
+    "Podíl top boxu a jeho interval počítá vážený průměr z těchto jedniček a nul.",
+)
+
 AGGREGATION_FORMULAS: Final[tuple[BuiltinFormula, ...]] = (
-    BuiltinFormula("kish", _KISH, "sum(w) ** 2 / sum(w * w)"),
-    BuiltinFormula("share", _SHARE, "100 * sum(w * hit) / sum(w)"),
-    BuiltinFormula("mean", _MEAN, "sum(w * x) / sum(w)"),
+    BuiltinFormula("kish", _KISH, "sum(w) ** 2 / sum(w * w)", kept_cs=_KEPT_KISH),
+    BuiltinFormula("share", _SHARE, "100 * sum(w * hit) / sum(w)", kept_cs=_KEPT_SHARE),
+    BuiltinFormula("mean", _MEAN, "sum(w * x) / sum(w)", kept_cs=_KEPT_MEAN),
     BuiltinFormula(
         "sd",
         _VARIANCE,
         "sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)",
         "Směrodatná odchylka je odmocnina z rozptylu.",
+        kept_cs=_KEPT_VARIANCE,
     ),
-    BuiltinFormula("top_box", _TOP_BOX, "x >= top - (b - 1)"),
+    BuiltinFormula("top_box", _TOP_BOX, "x >= top - (b - 1)", kept_cs=_KEPT_TOP_BOX),
 )

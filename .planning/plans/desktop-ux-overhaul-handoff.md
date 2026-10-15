@@ -211,3 +211,64 @@ aia-sociomap-4)" read as a different starting point. The editor now says "Úprav
 platnosti (…)", one line says why it saves over -4, and the base picker reads "Začít od metodiky
 z kódu" with "Metodika v platnosti" selected (tests: "opens on the editor, with no extra click",
 "opens the next edit on the stored version in force, with its values").
+
+Metodika: the object map grouped by the stages of the computation, with each step's place in it
+(owner, 2026-10-14, from the canvas artboard "Nastavení · Metodika"). The F1-F16 groups were the
+audit's numbering; a methodologist reads the computation in order. The Sociomap module's groups
+are now Metoda, Vstupní hodnocení, Vztahy mezi objekty, Rozložení na mapě, Věrohodnost mapy, Skóre
+a výška objektů, Terén, Respondenti a podpora mapy, then the points AIA does not compute (F5, F14,
+F15, F16) with their notes kept (test: `test_the_groups_follow_the_computation_by_its_stages`).
+Each step declares what it is for (`role_cs`), the steps it reads (`inputs`) or, for a first step,
+its source in words (`source_cs`), and its audit point (`audit`, kept as a small tag). Which steps
+read a step is derived (`feeds_of`), never declared twice; `module_problems` refuses an input that
+names no step, the step itself, or a step twice
+(`test_a_steps_inputs_name_other_steps_of_its_module_once`). The editor and the read-only
+catalogue show "K čemu / Bere z / Předává do" with links that move to the step (in the catalogue,
+opening a closed stage). Measured on the local workbench (next dev): moving along a link 64-173 ms
+at 1440/1710/1920, no overflow; `settings_journey.mjs` PASS.
+
+Finding (this slice, fixed): the context links were first buttons, and the catalogue draws every
+card; two editor tests went from 1.7 s to 5-7 s (over Vitest's 5 s), because Testing Library's
+`getByRole("button")` checks every button's visibility. They are links now (they move within the
+page), rendered in the editor only for the visible step: 1.9 and 2.0 s.
+
+Finding (this slice, fixed; raised by the owner's outside review, 2026-10-14): the editor showed a
+step's whole formula and, under it, "Vzorec · <slot>" with an expression covering only part of it.
+F1's refusal of an off-scale rating, F2's exclusion of a respondent with no spread and F3's
+respondent-count branch are all code, untouched by the slot (`engine_v2._scaled`,
+`relations.person_minmax`, `pairs.derive_pair_relations`), but nothing said so: a reader took
+the expression for the whole step. The numbers were never wrong. Every Sociomap formula now
+declares what the engine keeps around it (`BuiltinFormula.kept_cs`, served as `kept_cs`); the
+editor labels the box "Upravitelný výraz" and lists "Co výraz nepokrývá (drží kód)". Tests:
+`test_every_formula_says_what_the_engine_keeps_around_it` and, with each slot replaced,
+`test_a_replaced_scale_still_refuses_a_rating_off_its_scale`,
+`test_a_replaced_person_scale_never_sees_a_row_without_spread`,
+`test_a_replaced_kish_n_is_only_the_kish_branch`.
+
+Doc follow-up: ARCHITECTURE/CLAUDE map, `domain/methodology/catalogue.py`: "MethodStep carries
+role_cs, inputs, source_cs and audit; feeds_of derives the steps that read a step"; `sociomap.py`:
+"the object map in the order of its computation (stages S1-S7), each step citing its audit point
+F1-F16" (replacing "in the audit's order F1-F16").
+
+Metodika, Agregace: the same "what stays code" lists (owner, 2026-10-14, after #400). The five
+estimators (`agg.kish`, `agg.share`, `agg.mean`, `agg.variance`, `agg.top_box`) each declare what
+`research_aggregate` keeps around them: weights cleaned to the median before any estimator runs,
+the effective n capped by the donors, the bootstrap and its quantiles, the rounding, and that the
+mean also computes the top box's share and the multi-choice intervals. Tests, with the slot
+replaced: `test_a_replaced_kish_n_sees_cleaned_weights_and_stays_capped_by_the_donors`,
+`test_a_replaced_variance_never_sees_fewer_than_two_answers`; the existing
+`test_a_replaced_estimator_is_what_the_aggregate_computes` already proves the mean drives the top
+box.
+
+Metodika editor outline, hierarchy (owner, 2026-10-15: "better visual hierarchy and text sizing to
+have more readable labels in the formula selector menu"). The code had drifted from the canvas
+(stage headings 12 px faint, unnumbered). Now, as the canvas draws it and a step larger:
+- each stage is a heading: 14 px semibold ink with its number (mono, faint), a rule between stages;
+  "Metoda" carries no number; "Zatím v AIA není" reads as the last heading;
+- its steps 14 px, indented under the heading, the audit tag 12 px mono;
+- the column 13 rem -> 19 rem; five long titles still take two lines at 1440 and 1710;
+- rows 32 px. The Settings workspace forces every button to 44 px; the outline's buttons opt out
+  with `data-dense` (ControlPanel's selector `[&_button:not([data-dense])]`), 32 px being above
+  WCAG 2.5.8's 24 px. The rest of Settings keeps 44 px.
+Measured on the workbench (next dev): a step opens in 48-90 ms at 1440/1710, no overflow;
+`settings_journey.mjs` and `methodology_journey.mjs` PASS; web 1484 tests pass.

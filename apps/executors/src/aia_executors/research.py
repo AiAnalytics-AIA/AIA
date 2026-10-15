@@ -69,9 +69,9 @@ from aia_core.domain.sociomap import (
 from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
-from aia_core.infrastructure.artifact_repository import ArtifactRepository
+from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
-from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
@@ -342,6 +342,8 @@ class FieldworkExecutor(_Step):
 
     def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
         context.checkpoint()
+        if "frozen_dataset" in step.payload:
+            return self._frozen(step, context, step.payload["frozen_dataset"])
         try:
             source = FieldworkSource(str(step.payload.get("fieldwork_source")))
         except ValueError:
@@ -441,6 +443,77 @@ class FieldworkExecutor(_Step):
             FIELDWORK_DATASET,
             data_origin=origin,
             respondents=len(dataset.respondents),
+        )
+
+    def _frozen(self, step: StepInput, context: StepContext, frozen: object) -> StepOutcome:
+        """An analysis retry: the dataset another run of this Study already collected.
+
+        Nothing is asked of anyone. The dataset is named by artifact id *and* SHA-256 at
+        the retry's start; one that is not this project's, not a dataset, has other bytes
+        or does not fit the compiled specification is refused, never substituted.
+        """
+        named = frozen if isinstance(frozen, Mapping) else {}
+        artifact_id, sha256 = named.get("artifact_id"), named.get("sha256")
+        if not isinstance(artifact_id, str) or not isinstance(sha256, str):
+            return Failed(
+                FailureClass.MISSING_CONFIGURATION,
+                error={
+                    "reason": "frozen_dataset_unnamed",
+                    "message": "the retry does not name the dataset it reuses",
+                },
+            )
+        mismatch = Failed(
+            FailureClass.SCHEMA_VIOLATION,
+            error={
+                "reason": "frozen_dataset_mismatch",
+                "message": f"dataset {artifact_id} is not the one the retry was started over",
+                "artifact_id": artifact_id,
+            },
+        )
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            try:
+                artifact = repo.get(artifact_id)
+            except ArtifactNotFound:
+                return mismatch
+            if (
+                artifact.artifact_type != FIELDWORK_DATASET
+                or artifact.project_id != step.project_id
+                or artifact.sha256 != sha256
+            ):
+                return mismatch
+            try:
+                dataset = _read_dataset(repo, artifact_id)
+            except (IntegrityError, ObjectNotFound):
+                # Returned, not raised: the CORRUPT mark the read made must commit (OI-77).
+                return Failed(
+                    FailureClass.SCHEMA_VIOLATION,
+                    error={"reason": "frozen_dataset_corrupt", "artifact_id": artifact_id},
+                )
+        try:
+            validate_dataset(spec, dataset)
+        except InvalidDataset as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "frozen_dataset_mismatch", "message": str(exc)},
+            )
+        context.progress(
+            "data z původního běhu převzata, nic se znovu nesbírá",
+            artifact_id=artifact_id,
+            respondents=len(dataset.respondents),
+        )
+        return _produced(
+            step,
+            artifact,
+            False,
+            FIELDWORK_DATASET,
+            data_origin=dataset.origin.value if dataset.origin else None,
+            respondents=len(dataset.respondents),
+            frozen_from_run=named.get("run_id"),
         )
 
 

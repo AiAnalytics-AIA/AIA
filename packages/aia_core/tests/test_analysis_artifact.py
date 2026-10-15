@@ -256,6 +256,23 @@ def test_the_reuse_key_moves_with_the_module_the_sources_and_the_harness() -> No
     )
 
 
+def test_a_retry_round_is_its_own_turn_key_and_round_zero_keeps_the_old_one() -> None:
+    def key(**kw: Any) -> str:
+        return turn_fingerprint(reuse_fingerprint=SHA, turn=1, request_sha256=SHA, **kw)
+
+    assert key() == key(analysis_round=0)
+    assert len({key(), key(analysis_round=1), key(analysis_round=2)}) == 3
+    with pytest.raises(ValueError):
+        key(analysis_round=-1)
+
+
+def test_only_a_retry_tells_its_steps_their_round() -> None:
+    plain = analysis_step_inputs(ClaimSurface.INTERNAL)
+    assert all("analysis_round" not in step for step in plain.values())
+    retried = analysis_step_inputs(ClaimSurface.INTERNAL, analysis_round=2)
+    assert {step["analysis_round"] for step in retried.values()} == {2}
+
+
 # --- the graph ------------------------------------------------------------------------------
 
 

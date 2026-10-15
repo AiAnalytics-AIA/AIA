@@ -21,6 +21,7 @@ from aia_core.domain.knowledge import (
     OrganizerNameTaken,
     ProposalStatus,
     StaleKnowledgeProposal,
+    source_ref,
 )
 from aia_core.domain.scope import (
     ClientContext,
@@ -723,3 +724,38 @@ def test_an_edit_filed_before_its_base_was_recorded_is_treated_as_stale(
         reviewer, proposal_id=edit.proposal_id, approve=True, reviewed_revision=1
     )
     assert decided.revision == 2
+
+
+# ---- a file by reference (client-workspace C7a) -----------------------------------------
+
+
+def test_only_a_source_document_or_dataset_names_a_source_and_only_by_its_id() -> None:
+    ref = {"source_id": "SRC-0123456789abcdef"}
+    for kind in (KnowledgeKind.SOURCE, KnowledgeKind.DOCUMENT, KnowledgeKind.DATASET):
+        assert source_ref(kind, ref) == "SRC-0123456789abcdef"
+        assert source_ref(kind, {}) is None
+    with pytest.raises(ValueError, match="does not carry a source"):
+        source_ref(KnowledgeKind.FACT, ref)
+    for bad in ("SRC-XYZ", "src-0123456789abcdef", " SRC-0123456789abcdef", None, 7):
+        with pytest.raises(ValueError, match="not a source's id"):
+            source_ref(KnowledgeKind.DOCUMENT, {"source_id": bad})
+
+
+def test_a_malformed_reference_is_refused_on_every_way_in_and_a_study_names_none(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    lead = client_scope(scoped, "lead")
+    with pytest.raises(ValueError):
+        knowledge.add(
+            lead, kind=KnowledgeKind.FACT, title="F", content={"source_id": "SRC-0123456789abcdef"}
+        )
+    with pytest.raises(ValueError):
+        knowledge.propose(lead, kind=KnowledgeKind.DOCUMENT, title="D", content={"source_id": "x"})
+    with pytest.raises(ValueError, match="does not attach"):
+        knowledge.propose_from_study(
+            scoped.scope(user="researcher"),
+            kind=KnowledgeKind.DOCUMENT,
+            title="D",
+            content={"source_id": "SRC-0123456789abcdef"},
+        )
+    assert knowledge.proposals(lead) == []

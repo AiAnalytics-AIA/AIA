@@ -750,6 +750,35 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
 
 
+def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The route's refusals; the retry itself runs end to end in the executor suite
+    (test_retrying_failed_modules_asks_only_them_over_the_same_data)."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    early = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert early.status_code == 409, early.text
+    assert early.json()["code"] == "analysis_not_retryable"
+    assert early.json()["details"]["reason"] == "run_not_finished"
+    worker = _worker(app, FailureClass.PERMISSION)
+    while worker.run_once() is not None:
+        pass
+    none = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert none.status_code == 409
+    assert none.json()["details"]["reason"] == "analysis_not_in_run"
+    assert "AI analýzu" in none.json()["message"]
+    missing = researcher.post(f"{_runs(world)}/RUN-0000000000000000/analysis/retry")
+    assert missing.status_code == 404
+    retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
+    assert retryable.status_code == 200, retryable.text
+    assert retryable.json() == {"run_id": run_id, "modules": []}
+    assert (
+        researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
+    )
+
+
 def test_any_member_may_cancel_a_run_with_or_without_a_grant(
     researcher: TestClient, viewer: TestClient, outsider: TestClient, world: Any
 ) -> None:
@@ -861,6 +890,84 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     assert (
         other_client_lead.get(other, params={"design_revision_id": revision_id}).status_code == 404
     )
+
+
+def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2a: 50 fictional respondents pass every structural check
+    and still show nothing; readiness says so, as a warning, before anything is paid."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def forecast(n: int) -> Any:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        return body, next(c for c in body["checks"] if c["id"] == "support_forecast")
+
+    small, check = forecast(50)
+    assert small["ready"] is True, "a forecast warns, it never refuses"
+    assert check["status"] == "WARN" and "nevzniknou" in check["message"]
+    _, enough = forecast(450)
+    assert enough["status"] == "PASS"
+
+
+def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2b: each item, as the respondent reads it, with its
+    verdict and the reasons; the support forecast decides the verdict of every one."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def outlook(n: int) -> list[dict[str, Any]]:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        items: list[dict[str, Any]] = body["question_outlook"]
+        assert len(items) == body["questions"] + body["objects"]
+        return items
+
+    small = outlook(50)
+    assert {i["verdict"] for i in small} == {"UNANSWERABLE"}
+    assert all("support_suppressed" in i["reasons"] for i in small)
+    assert all(i["text"] for i in small)
+    enough = outlook(450)
+    assert "support_suppressed" not in {r for i in enough for r in i["reasons"]}
+    assert any(i["verdict"] == "ANSWERABLE" for i in enough)
+    assert any(i["battery_id"] is not None for i in enough)
+
+
+def test_readiness_traces_each_research_question_to_the_questions_that_measure_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 3a: a research question nothing measures is named before
+    anything is paid for; a design that declares no link is unknown, never covered."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def readiness(content: dict[str, Any]) -> Any:
+        revision_id = submit(researcher, world, content).json()["revision_id"]
+        return viewer.get(url, params={"design_revision_id": revision_id}).json()
+
+    plain = readiness(DESIGN)
+    assert plain["research_trace"]["linked"] is False
+    assert [q["verdict"] for q in plain["research_trace"]["questions"]] == ["UNKNOWN"]
+
+    habit, other = "Jak často lidé pijí kávu?", "Co lidé snídají?"
+    sections = [dict(s) for s in DESIGN["sections"]]
+    sections[0] = {
+        **sections[0],
+        "questions": [
+            {**sections[0]["questions"][0], "research_questions": [habit]},
+            sections[0]["questions"][1],
+        ],
+    }
+    linked = readiness(
+        {**DESIGN, "research_plan": {"research_questions": [habit, other]}, "sections": sections}
+    )
+    trace = {q["text"]: q for q in linked["research_trace"]["questions"]}
+    assert trace[habit]["measures"] == ["q1"] and trace[habit]["verdict"] == "ANSWERABLE"
+    assert trace[other]["verdict"] == "UNANSWERABLE" and trace[other]["reasons"] == ["unmeasured"]
+    check = next(c for c in linked["checks"] if c["id"] == "research_question_coverage")
+    assert check["status"] == "WARN" and other in check["message"]
+    assert linked["ready"] is True, "a trace warns, it never refuses"
 
 
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(

@@ -38,6 +38,7 @@ from aia_core.domain.research_aggregate import (
     aggregate_dataset,
     bootstrap_weighted_distribution,
     bootstrap_weighted_mean,
+    donor_support,
     kish_effective_n,
     weighted_variance,
 )
@@ -165,3 +166,37 @@ def test_a_replaced_estimator_is_what_the_aggregate_computes() -> None:
     # Who answered and how they were weighted did not move.
     for key in ("n_platnych", "effective_n", "n_unique_layer_donors", "support_status"):
         assert largest[key] == code[key] == one_point[key], key
+
+
+# --------------------------------------------------------------------------- what stays code
+# A slot replaces one estimator, never the aggregate around it (product owner, 2026-10-14: the
+# object map's reader took the step's whole formula for the editable part; the same holds here).
+
+
+@pytest.mark.parametrize("formula", AGGREGATION_FORMULAS, ids=lambda f: f.slot.id)
+def test_every_estimator_says_what_the_aggregate_keeps_around_it(formula: Any) -> None:
+    assert formula.kept_cs, f"{formula.slot.id} does not say what stays code"
+    assert all(line.strip() and line.endswith(".") for line in formula.kept_cs)
+
+
+def test_a_replaced_kish_n_sees_cleaned_weights_and_stays_capped_by_the_donors() -> None:
+    seen: list[tuple[float, ...]] = []
+
+    def huge(w: tuple[float, ...]) -> float:
+        seen.append(w)
+        return 1000.0
+
+    support = donor_support(
+        ["d1", "d1", "d2"], [1.0, -2.0, math.nan], rule=AIA_SUPPORT_V1.results, slots={KISH: huge}
+    )
+    assert seen == [(1.0, 1.0, 1.0)]  # invalid weights became the median of the valid ones
+    assert support["effective_n_kish"] == 1000.0
+    assert support["effective_n_combined"] == 2.0  # never above the two donors
+
+
+def test_a_replaced_variance_never_sees_fewer_than_two_answers() -> None:
+    def never(**_: Any) -> float:
+        raise AssertionError("called")
+
+    assert weighted_variance([3.0], [1.0], {VARIANCE: never}) is None
+    assert weighted_variance([3.0, math.nan], [1.0, 1.0], {VARIANCE: never}) is None

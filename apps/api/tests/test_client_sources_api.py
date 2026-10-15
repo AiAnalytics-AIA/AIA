@@ -151,3 +151,77 @@ def test_reading_a_source_again_answers_it_as_read_now(lead: TestClient, world: 
     assert (
         lead.post(f"{API}/clients/{other}/sources/{kept['source_id']}/reading").status_code == 404
     )
+
+
+# ---- a document item carries its file (client-workspace C7a) ---------------------------
+
+
+def propose(c: TestClient, client_id: str, kind: str, content: dict[str, Any]) -> Any:
+    return c.post(
+        f"{API}/clients/{client_id}/knowledge/proposals",
+        json={"kind": kind, "title": "Zadání výzkumu", "content": content},
+    )
+
+
+def test_a_document_item_names_its_clients_source_and_keeps_it_through_an_edit(
+    lead: TestClient, world: Any
+) -> None:
+    client = world.client_id("primary")
+    kept = upload(lead, client, "Zadání.md", b"# Zadani\n\nFakt.").json()
+    added = propose(lead, client, "DOCUMENT", {"source_id": kept["source_id"]})
+    assert added.status_code == 201, added.text
+    assert added.json()["source_id"] == kept["source_id"]
+    item_id = added.json()["item_id"]
+    edited = lead.post(
+        f"{API}/clients/{client}/knowledge/proposals",
+        json={
+            "kind": "DOCUMENT",
+            "title": "Zadání výzkumu, verze 2",
+            "content": {"source_id": kept["source_id"]},
+            "item_id": item_id,
+            "base_revision": 1,
+        },
+    )
+    assert edited.status_code == 201, edited.text
+    item = next(
+        i for i in lead.get(f"{API}/clients/{client}/knowledge").json() if i["item_id"] == item_id
+    )
+    assert (item["revision"], item["content"]) == (2, {"source_id": kept["source_id"]})
+
+
+def test_another_clients_source_cannot_be_named(
+    lead: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    kept = upload(lead, world.client_id("primary"), "a.txt", b"Fakt.").json()
+    got = propose(
+        other_client_lead, world.client_id("other"), "DOCUMENT", {"source_id": kept["source_id"]}
+    )
+    assert got.status_code == 422 and got.json()["code"] == "unknown_source"
+    # An id no source has is the same answer.
+    got = propose(
+        lead, world.client_id("primary"), "DOCUMENT", {"source_id": "SRC-0000000000000000"}
+    )
+    assert got.status_code == 422 and got.json()["code"] == "unknown_source"
+
+
+def test_only_the_material_kinds_carry_a_source_and_only_by_its_id(
+    lead: TestClient, world: Any
+) -> None:
+    client = world.client_id("primary")
+    kept = upload(lead, client, "a.txt", b"Fakt.").json()
+    for kind, content in (
+        ("FACT", {"source_id": kept["source_id"]}),
+        ("DOCUMENT", {"source_id": "../../etc"}),
+        ("DOCUMENT", {"source_id": 7}),
+    ):
+        got = propose(lead, client, kind, content)
+        assert got.status_code == 422 and got.json()["code"] == "invalid_proposal", (kind, content)
+
+
+def test_a_studys_proposal_does_not_attach_a_clients_source(lead: TestClient, world: Any) -> None:
+    kept = upload(lead, world.client_id("primary"), "a.txt", b"Fakt.").json()
+    got = lead.post(
+        f"{API}/studies/{world.study_id('primary')}/knowledge-proposals",
+        json={"kind": "DOCUMENT", "title": "Zadání", "content": {"source_id": kept["source_id"]}},
+    )
+    assert got.status_code == 422 and got.json()["code"] == "invalid_proposal"

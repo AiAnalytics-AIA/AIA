@@ -10,7 +10,7 @@
 
 import { useCallback, useState } from "react";
 
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, methodology } from "@/lib/api";
 import { groupSteps, showValue } from "@/lib/methodology";
 import { Button, Tag, TextInput } from "../../rehome/ui";
@@ -18,6 +18,7 @@ import { InlineConfirm } from "../../rehome/step";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { Formula } from "./MethodologyFormula";
+import { StepContext } from "./MethodologyContext";
 import { MethodologyVersions, type People } from "./MethodologyVersions";
 
 const M = "aia.settings.methodology";
@@ -111,6 +112,7 @@ function ModuleView({ summary, people, onDirty, onOpen }: { summary: MethodModul
 
 function Steps({ detail }: { detail: MethodModuleDetail }) {
   const groups = groupSteps(detail);
+  const titles = Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs]));
   const [query, setQuery] = useState("");
   const shown = groups.map((item) => ({ ...item, steps: item.steps.filter((step) => `${step.title_cs} ${step.note_cs} ${step.values.map((v) => `${v.label_cs} ${v.reference} ${String(v.value)}`).join(" ")} ${step.formulas.map((f) => `${f.title_cs} ${f.note_cs}`).join(" ")}`.toLocaleLowerCase("cs").includes(query.trim().toLocaleLowerCase("cs"))) }));
   return <div className="flex min-w-0 flex-col gap-3">
@@ -126,7 +128,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
             <span className="shrink-0 text-xs text-ink-muted">{steps.length} {t(`${M}.steps`)} <span aria-hidden="true">⌄</span></span>
           </summary>
           <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} editable={detail.editable} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
+            {steps.length ? steps.map((step) => <StepCard key={step.id} step={step} editable={detail.editable} titles={titles} />) : <p className="text-sm text-ink-muted">{t(`${M}.noSteps`)}</p>}
           </div>
         </details>
       </section>;
@@ -135,12 +137,25 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
   </div>;
 }
 
-function StepCard({ step, editable }: { step: MethodStepOut; editable: boolean }) {
+/** Moves to a step's card: its stage opens if it was closed, then the card scrolls into view. */
+function showStep(stepId: string) {
+  const heading = document.getElementById(`ms-${stepId}`);
+  if (!heading) return;
+  const stage = heading.closest("details");
+  if (stage) stage.open = true;
+  heading.scrollIntoView({ block: "start" });
+}
+
+function StepCard({ step, editable, titles }: { step: MethodStepOut; editable: boolean; titles: Record<string, string> }) {
   return (
     <article aria-labelledby={`ms-${step.id}`} className="flex min-w-0 flex-col gap-3 rounded-md border border-border bg-surface-raised p-4">
-      <h4 id={`ms-${step.id}`} className="text-sm font-semibold">{step.title_cs}</h4>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h4 id={`ms-${step.id}`} className="scroll-mt-4 text-sm font-semibold">{step.title_cs}</h4>
+        {step.audit ? <span data-audit-point className="shrink-0 font-mono text-xs text-ink-faint">{tv(`${M}.audit`, { point: step.audit })}</span> : null}
+      </div>
       <div className="text-ink"><Formula latex={step.formula_latex} /></div>
       {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
+      <StepContext step={step} titles={titles} onPick={showStep} />
       {step.symbols.length ? (
         <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
           {step.symbols.map((y) => (
@@ -209,6 +224,12 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
       {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      {formula.kept_cs.length ? (
+        <div data-kept className="text-xs">
+          <p className="text-ink-muted">{t(`${M}.kept`)}:</p>
+          <ul className="mt-1 list-disc pl-5">{formula.kept_cs.map((k) => <li key={k}>{k}</li>)}</ul>
+        </div>
+      ) : null}
       <dl aria-label={t(`${M}.variables`)} className="grid grid-cols-[minmax(0,3rem)_minmax(0,4rem)_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
         {formula.variables.map((v) => (
           <div key={v.name} className="contents">

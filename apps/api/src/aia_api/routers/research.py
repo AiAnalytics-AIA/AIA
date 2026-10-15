@@ -12,9 +12,15 @@ from __future__ import annotations
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
-from aia_core.application.analysis_results import ReconstructionRefused, reconstruct_run
+from aia_core.application.analysis_results import (
+    AnalysisNotRetryable,
+    ReconstructionRefused,
+    reconstruct_run,
+    retry_failed_modules,
+    stored_analysis,
+)
 from aia_core.application.client_report import ClientReportRefused, stored_client_report
 from aia_core.application.contextual_report import stored_contextual_report
 from aia_core.application.deep_research import (
@@ -47,6 +53,7 @@ from aia_core.application.research import (
 )
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
+from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.design import DesignRejected, DesignRevision
 from aia_core.domain.design_reuse import DesignSource
 from aia_core.domain.fieldwork import (
@@ -60,6 +67,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ResearchAction
+from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -239,6 +247,10 @@ class ResearchStepResponse(BaseModel):
     artifact_id: str | None
     #: ``SYNTHETIC_FIXTURE`` when the step's output came from fictional fieldwork.
     data_origin: str | None = None
+    #: An analysis step's stored outcome, ``COMPLETED`` or ``BLOCKED``; ``None`` for any
+    #: other step. A BLOCKED module's step SUCCEEDED (the outcome is stored), and this is
+    #: what tells it apart from a finished one.
+    analysis_outcome: str | None = None
     #: How a label reads ``data_origin``: ``SIMULATED``, ``MODELLED`` or ``UNKNOWN``; ``None``
     #: when the step stamped no origin.
     data_origin_kind: OriginKind | None = None
@@ -331,6 +343,53 @@ class ReadinessCheckResponse(BaseModel):
     message: str
 
 
+class QuestionOutlookResponse(BaseModel):
+    """One item a respondent will answer, and whether the run will answer it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    text: str
+    section_id: str
+    #: The tracked set an object's rating belongs to; ``None`` for a question.
+    battery_id: str | None
+    #: ANSWERABLE, AT_RISK, UNANSWERABLE or UNKNOWN (``domain.question_outlook``).
+    verdict: str
+    reasons: list[str]
+
+
+class ResearchQuestionTraceResponse(BaseModel):
+    """One stated research question and the items that measure it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    text: str
+    #: Item ids (``question_outlook[].question_id``) that declare they measure it.
+    measures: list[str]
+    #: The best verdict among its measures; UNANSWERABLE or UNKNOWN with a reason when none.
+    verdict: str
+    reasons: list[str]
+
+
+class DanglingLinkResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    research_question: str
+
+
+class ResearchTraceResponse(BaseModel):
+    """Each stated research question traced to its measures (``domain.research_trace``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    questions: list[ResearchQuestionTraceResponse]
+    #: Items naming a research question the plan does not state.
+    dangling: list[DanglingLinkResponse]
+    #: Whether any item declares a link; without one, coverage is unknown.
+    linked: bool
+
+
 class ReadinessResponse(BaseModel):
     """Whether a Design Revision can run in AIA: AIA's structural checks, by name."""
 
@@ -356,6 +415,11 @@ class ReadinessResponse(BaseModel):
     #: The study's limit, and whether this run's start will ask for confirmation against it.
     spend_confirm_usd: float | None = None
     confirmation_required: bool = False
+    #: Every item, in questionnaire order, with its verdict; empty when the design does not
+    #: compile.
+    question_outlook: list[QuestionOutlookResponse] = []
+    #: ``None`` when the design does not compile.
+    research_trace: ResearchTraceResponse | None = None
 
 
 def _reservations(request: Request) -> RunReservations:
@@ -619,6 +683,9 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         artifact_id=str(output["artifact_id"]) if output.get("artifact_id") else None,
         data_origin=str(output["data_origin"]) if output.get("data_origin") else None,
         data_origin_kind=origin_kind(output["data_origin"]) if output.get("data_origin") else None,
+        analysis_outcome=str(output["outcome"])
+        if s.get("kind") == ANALYSIS_STEP_KIND and output.get("outcome") in _ANALYSIS_OUTCOMES
+        else None,
     )
 
 
@@ -630,6 +697,9 @@ def _methodology(meta: Mapping[str, Any]) -> ResearchRunMethodology:
         },
         response_deviates=response_deviates(meta),
     )
+
+
+_ANALYSIS_OUTCOMES: Final = frozenset({"COMPLETED", "BLOCKED"})
 
 
 def _run(
@@ -727,9 +797,14 @@ def readiness(
     """
     runs = ResearchRuns(session, scope)
     try:
-        spec, result = runs.readiness(design_revision_id, persona_source=_persona_source(request))
+        outlook = runs.outlook(
+            design_revision_id,
+            persona_source=_persona_source(request),
+            fieldwork_source=_fieldwork_source(request),
+        )
     except DesignRevisionNotFound as exc:
         raise _not_found("design_revision") from exc
+    spec, result = outlook.spec, outlook.readiness
     settings = request.app.state.settings
     ceiling = (
         runs.cost_ceiling(
@@ -767,6 +842,37 @@ def readiness(
             and ceiling.total_usd is not None
             and ceiling.total_usd >= limit
         ),
+        question_outlook=[
+            QuestionOutlookResponse(
+                question_id=q.question_id,
+                text=q.text,
+                section_id=q.section_id,
+                battery_id=q.battery_id,
+                verdict=q.verdict.value,
+                reasons=[r.value for r in q.reasons],
+            )
+            for q in outlook.questions
+        ],
+        research_trace=_trace(outlook.trace) if outlook.trace is not None else None,
+    )
+
+
+def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
+    return ResearchTraceResponse(
+        questions=[
+            ResearchQuestionTraceResponse(
+                text=q.text,
+                measures=list(q.measures),
+                verdict=q.verdict.value,
+                reasons=[r.value for r in q.reasons],
+            )
+            for q in trace.questions
+        ],
+        dangling=[
+            DanglingLinkResponse(question_id=d.question_id, research_question=d.research_question)
+            for d in trace.dangling
+        ],
+        linked=trace.linked,
     )
 
 
@@ -1015,6 +1121,98 @@ def retry_run(
             },
         ) from exc
     return _started(runs, started, response)
+
+
+@router.get(
+    "/research/runs/{run_id}/analysis/retryable",
+    response_model=dict[str, Any],
+    summary="The analysis modules of a run a person may ask again over its collected data",
+)
+def run_analysis_retryable(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any]:
+    """Read from the stored outcomes as they are, under whichever harness stored them, so a
+    run made before a harness change can still be repaired (``…/analysis`` re-judges and
+    refuses those)."""
+    try:
+        scope.require(Permission.EDIT_STUDY)
+        analysis = stored_analysis(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    return {"run_id": run_id, "modules": [module.value for module in analysis.retryable]}
+
+
+_NOT_RETRYABLE_MESSAGES: Final = {
+    "run_not_finished": "Běh ještě neskončil; neúspěšné moduly lze zopakovat až po jeho konci.",
+    "analysis_not_in_run": "Tento běh neobsahoval AI analýzu.",
+    "dataset_missing": "Běh nemá sebraná data, nad kterými by šlo analýzu zopakovat.",
+    "nothing_to_retry": "Žádný modul analýzy v tomto běhu neselhal.",
+}
+
+
+@router.post(
+    "/research/runs/{run_id}/analysis/retry",
+    response_model=ResearchRunResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Ask a finished run's failed analysis modules again, over its collected data",
+    responses={
+        200: {"description": "This run's analysis was already retried: that retry"},
+        409: {
+            "model": ErrorResponse,
+            "description": "Nothing to retry, the run has not finished, or the limit asks first",
+        },
+    },
+)
+def retry_analysis(
+    run_id: RunIdPath,
+    request: Request,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    response: Response,
+    body: RunRetry | None = None,
+) -> ResearchRunResponse:
+    """A new run linked to this one: the same respondents' answers, no new fieldwork; only
+    the modules a model failed (or whose step failed) are asked again."""
+    try:
+        started = retry_failed_modules(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            reservations=_reservations(request),
+            confirm_cost_usd=body.confirm_cost_usd if body else None,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except DesignNotReady as exc:
+        raise _not_ready(exc.readiness) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
+    except AnalysisNotRetryable as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "analysis_not_retryable",
+                "message": _NOT_RETRYABLE_MESSAGES.get(exc.reason, str(exc)),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    return _started(ResearchRuns(session, scope), started, response)
 
 
 @router.get(

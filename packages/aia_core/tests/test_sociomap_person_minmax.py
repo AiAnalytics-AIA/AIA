@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 
 from aia_core.domain.research_design import SpecBattery, SpecObject
-from aia_core.domain.research_sociomap import derive_pair_relations, rescaled_battery_ratings
+from aia_core.domain.research_sociomap import derive_pair_relations, object_map_inputs
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V1, compute_sociomap
 from aia_core.domain.sociomap.engine import SociomapInputError
 from aia_core.domain.sociomap.models import RatingsMatrix, RelationMatrix, SociomapInputs
@@ -117,6 +117,7 @@ def _battery(bid: str, n: int, scale: tuple[int, int]) -> SpecBattery:
 class _Respondent:
     def __init__(self, rid: str, answers: dict[str, int]) -> None:
         self.respondent_id, self.answers, self.weight = rid, answers, 1.0
+        self.donor_id = f"D-{rid}"
 
 
 class _Dataset:
@@ -128,30 +129,59 @@ def _answers(battery: SpecBattery, values: list[int]) -> dict[str, int]:
     return {battery.question_id(o): v for o, v in zip(battery.objects, values, strict=True)}
 
 
+def _own_scale(inputs: Any) -> Any:
+    """What the object map does first (audit F1 then F2): each item on its declared 0-1
+    scale, then each person's own min-max over every item in the inputs."""
+    rows = [
+        [
+            None if v is None else (v - i.scale_min) / (i.scale_max - i.scale_min)
+            for v, i in zip(row, inputs.items, strict=True)
+        ]
+        for row in inputs.values
+    ]
+    return person_minmax(rows)
+
+
 def test_a_persons_scale_spans_every_item_they_rated_not_only_the_family_mapped() -> None:
+    # Since A3d the research step's F2 lives in each object map: its inputs carry every set
+    # the specification rates, so a person's own scale spans all of them.
     a, b = _battery("a", 2, (1, 10)), _battery("b", 2, (1, 5))
     # 5 and 5 in family a would be a straight-liner alone; family b spans the scale.
     # On the declared 0-1 scale a's 5 is 4/9 and b's ends are 0 and 1, so a's ratings sit
     # at 4/9 of this person's own range.
     person = _Respondent("R1", {**_answers(a, [5, 5]), **_answers(b, [1, 5])})
     flat = _Respondent("R2", {**_answers(a, [7, 7]), **_answers(b, [4, 4])})
-    rows, excluded = rescaled_battery_ratings(
-        a, _Dataset([person, flat]), (a, b), rating_questions=()
-    )  # type: ignore[arg-type]
-    assert rows[0] == [pytest.approx(4 / 9), pytest.approx(4 / 9)]
+    both = object_map_inputs(
+        a,
+        _Dataset([person, flat]),
+        (a, b),
+        [1.0, 1.0],
+        rating_questions=(),  # type: ignore[arg-type]
+    )
+    assert [i.item_id for i in both.items] == [
+        *(a.question_id(o) for o in a.objects),
+        *(b.question_id(o) for o in b.objects),
+    ]
+    scaled = _own_scale(both)
+    assert list(scaled.values[0][:2]) == [pytest.approx(4 / 9), pytest.approx(4 / 9)]
     # 7 on 1-10 is 2/3 and 4 on 1-5 is 3/4: different, so R2 is not a straight-liner
     # over everything they rated, though they are within each family.
-    assert excluded == []
-    only_a, excluded_a = rescaled_battery_ratings(
-        a, _Dataset([person, flat]), (a,), rating_questions=()
-    )  # type: ignore[arg-type]
-    assert excluded_a == ["R1", "R2"] and only_a == [[None, None], [None, None]]
+    assert scaled.excluded == ()
+    only_a = object_map_inputs(
+        a,
+        _Dataset([person, flat]),
+        (a,),
+        [1.0, 1.0],
+        rating_questions=(),  # type: ignore[arg-type]
+    )
+    assert [i.item_id for i in only_a.items] == [a.question_id(o) for o in a.objects]
+    assert _own_scale(only_a).excluded == (0, 1)
 
 
 def test_the_set_mapped_must_be_one_of_the_sets_it_is_rated_with() -> None:
     a, b = _battery("a", 2, (1, 10)), _battery("b", 2, (1, 10))
     with pytest.raises(ValueError, match="not among"):
-        rescaled_battery_ratings(a, _Dataset([]), (b,), rating_questions=())  # type: ignore[arg-type]
+        object_map_inputs(a, _Dataset([]), (b,), [], rating_questions=())  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------- F5: declared matrix types

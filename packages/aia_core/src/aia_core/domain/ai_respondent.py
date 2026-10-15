@@ -91,6 +91,7 @@ __all__ = [
     "classify_material",
     "dataset_origin",
     "fictional_roster",
+    "fieldwork_seed",
     "interpret_block",
     "plan_items",
     "plan_respondent",
@@ -257,6 +258,14 @@ _REGIONS: Final = (
     "Zlínský kraj",
     "Moravskoslezský kraj",
 )
+
+
+def fieldwork_seed(spec: ResearchSpecification) -> int:
+    """The run's roster and draw seed: from the specification, so a rerun is the same.
+
+    The same seed lets readiness forecast the roster fieldwork will draw
+    (``domain.support_forecast``) before anything is paid for."""
+    return int(hashlib.sha256(spec.fingerprint().encode()).hexdigest()[:12], 16)
 
 
 def fictional_roster(

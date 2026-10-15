@@ -22,13 +22,15 @@ import {
   workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, staleEdit } from "@/lib/knowledge-library";
 import { type Ask, AskDialog, Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
-import { ClientPage, useClient } from "./ClientContext";
+import { ClientPage, IntakeButton, useClient } from "./ClientContext";
 import { KnowledgeLibrary, said } from "./KnowledgeLibrary";
+import { SourceCard } from "./SourceFile";
 
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
 const KINDS: (KnowledgeSection | "all")[] = ["all", "sources", "knowledge", "dimensions", "audiences", "data"];
@@ -80,6 +82,11 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       <div className={EYEBROW}>{t(`aia.knowledge.kinds.${p.kind}`)}</div>
                       <div className="mt-1 font-medium">{p.title}</div>
                       {p.summary ? <p className="mt-1 text-sm text-ink-muted">{p.summary}</p> : null}
+                      {p.source_id ? (
+                        <div className="mt-2">
+                          <SourceCard clientId={clientId} sourceId={p.source_id} compact />
+                        </div>
+                      ) : null}
                       <p className="mt-2 text-xs text-ink-faint">
                         {p.study_name ? tv("aia.knowledge.fromStudy", { name: p.study_name }) : t("aia.knowledge.fromClient")} · {relative(p.proposed_at)}
                       </p>
@@ -121,6 +128,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
 }
 
 function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Proposal) => void }) {
+  const { openIntake } = useClient();
   const [kind, setKind] = useState<string>("FACT");
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -144,12 +152,18 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
           <TextInput value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
       </div>
+      {takesFile(kind) ? (
+        <p className="mt-3 flex flex-wrap items-center gap-2 text-xs leading-5 text-ink-muted">
+          <span>{t("aia.knowledge.fileByIntake")}</span>
+          <Button small icon="attach" onClick={() => openIntake()}>{t("aia.client.addKnowledge")}</Button>
+        </p>
+      ) : null}
       <Field label={t("aia.knowledge.proposeSummary")} className="mt-3">
         <TextArea value={summary} onChange={(e) => setSummary(e.target.value)} />
       </Field>
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
       <div className="mt-3 flex gap-2">
-        <Button variant="primary" disabled={!title.trim()} onClick={submit}>{t("aia.knowledge.propose")}</Button>
+        <Button variant="primary" disabled={!title.trim()} onClick={submit}>{t("aia.knowledge.proposeSubmit")}</Button>
         <Button variant="quiet" onClick={() => onDone()}>{t("aia.cancel")}</Button>
       </div>
     </section>
@@ -224,7 +238,7 @@ function NewLabel({ onCreate }: { onCreate: (name: string, colour: LabelColour) 
 
 export function KnowledgeArea() {
   // `reload` re-reads the client, so the tabs' counts follow an addition or a decision.
-  const { client, reload } = useClient();
+  const { client, reload, added } = useClient();
   const router = useRouter();
   const clientId = client.client_id;
   const mayView = client.permissions.includes("VIEW_CLIENT_KNOWLEDGE");
@@ -240,7 +254,9 @@ export function KnowledgeArea() {
   const [section, setSection] = useState<KnowledgeSection | "all">("all");
   // "Přidat znalost" on any other area of the client lands here with ?add=1: the form opens.
   const [proposing, setProposing] = useState(() => mayPropose && mayView && addRequested);
-  const [version, setVersion] = useState(0);
+  const [edits, setVersion] = useState(0);
+  // What the intake sheet added is read again here, wherever the sheet was opened.
+  const version = edits + added;
   const [ask, setAsk] = useState<Ask | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [folders, retryFolders] = useResource(() => (mayView ? workspace.folders(clientId) : Promise.resolve([])), [clientId, mayView, version]);
@@ -333,7 +349,14 @@ export function KnowledgeArea() {
   return (
     <ClientPage
       sub={t("aia.knowledge.sub")}
-      actions={mayPropose ? <Button variant="primary" icon="plus" onClick={() => setProposing(true)}>{t("aia.knowledge.propose")}</Button> : null}
+      actions={
+        mayPropose ? (
+          <>
+            <IntakeButton variant="primary" />
+            <Button icon="plus" onClick={() => setProposing(true)}>{t("aia.knowledge.propose")}</Button>
+          </>
+        ) : null
+      }
     >
       {!mayView ? (
         <Empty>{t("aia.knowledge.noAccess")}</Empty>

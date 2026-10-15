@@ -847,6 +847,20 @@ Contract.model_validate_json(text, strict=True)
 The model gateway, the tool registry and `parse_model_config` all validate this
 way; a dict is re-serialised with `canonical_json` first.
 
+**A validation error's `msg` carries no input value; its `str()` does.** Building a
+diagnostic that is stored or shown from `str(exc)` copies the refused values into it
+(a model's answer, a person's input). Build it from each error's `loc` and `msg`
+(checked on Pydantic 2 for extra keys and type errors; `analysis/draft.py`,
+`test_a_gateway_schema_failure_is_refused_once_per_failed_path`).
+
+```python
+# WRONG -- the stored diagnostic quotes the input
+violations = (str(exc),)
+
+# RIGHT -- the path and the reason, never the value
+violations = tuple(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors())
+```
+
 ## Pydantic settings
 
 **Invalid production configuration fails at startup, not at first use.**
@@ -1330,6 +1344,20 @@ code calls `file.arrayBuffer()` directly (`fileToBase64` in
 an error the screen then shows, not a thrown one, which reads as a rendering
 bug. Polyfill it in the test through `FileReader`, never in app code
 (`BriefStep.test.tsx`).
+
+**Testing Library normalizes the page's text, never the string you ask for.** A cs-CZ
+number (`toLocaleString("cs-CZ")`) groups thousands with a non-breaking space (U+00A0).
+The default normalizer collapses whitespace in the *rendered* text to a plain space and
+compares the matcher string unchanged (`@testing-library/dom` 10.4.2, `matches`), so an
+expected string written with the very character the page renders never matches. Write
+the plain space; a regex wildcard would also pass but hides a formatting regression:
+
+```ts
+// WRONG: the rendered U+00A0 is normalized to " "; this expected one is not
+await findByText("Přečteno: 2 části, 1\u00a0200 znaků");
+// RIGHT
+await findByText("Přečteno: 2 části, 1 200 znaků");
+```
 
 **jsdom has no `URL.createObjectURL`, and a clicked `<a download>` goes nowhere.**
 A download that needs the bearer token cannot be a plain link: the app fetches the
@@ -1861,6 +1889,21 @@ assert any(dep_spec.fingerprint() == spec.fingerprint() for dep_spec in aggregat
 Anything that stores a result over a run's artifacts and reads it back -- an analysis
 outcome, a report -- compares sources by content (`ModuleSources.content()`), keeping the
 ids only as provenance of where it was computed.
+
+**The same reuse hands back an old result when a step means to replace it.** An analysis
+retry round stored its COMPLETED outcome under the module's reuse fingerprint and `put`
+returned the earlier BLOCKED artifact under that key, while the step's own output said
+COMPLETED (#405, `test_retrying_failed_modules_asks_only_them_over_the_same_data`). A
+step that decides afresh over the same inputs stores with `reuse=False`; `find_reusable`
+is newest first within a revision, so the newer outcome is the one a later read finds.
+
+```python
+# WRONG -- a retry round gets the refusal it was asked to replace
+repo.put_json(payload=completed, input_fingerprint=reuse_key, ...)
+
+# RIGHT -- stored beside it; the newest is what find_reusable returns
+repo.put_json(payload=completed, input_fingerprint=reuse_key, reuse=False, ...)
+```
 
 ## A tool journal proves what was sent, not what came back (Deep Research recovery, #166)
 

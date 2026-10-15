@@ -2,8 +2,8 @@
 // execution stages share, without React.
 import { describe, expect, it } from "vitest";
 
-import type { ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, MODELLED_DISCLOSURE, originKind, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, resultTable, shouldPoll, stepLabel, supportNote, topBoxWidth, waitingDetail } from "./research-execution";
+import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -150,5 +150,126 @@ describe("aggregateDeviation (methodology-tab G2c)", () => {
     const scale = { typ: "skala", ...base, prumer: 3.1, top2box_pct: 40 };
     expect(resultTable("t", scale).rows[1].label).toBe("Horní dva body");
     expect(resultTable("t", scale, 3).rows[1].label).toBe("Horní body (3)");
+  });
+});
+
+describe("an analysis module a model could not complete", () => {
+  const analysisStep = (extra: Partial<ResearchStep>) =>
+    ({ node_key: "analysis_objects", kind: "research_analysis", status: "SUCCEEDED", analysis_outcome: "COMPLETED", ...extra }) as ResearchStep;
+
+  it("is not \"Hotovo\": its step succeeded, its module needs repair", () => {
+    const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
+    expect(needsRepair(blocked)).toBe(true);
+    expect(stepStatusLabel(blocked)).toBe("Potřebuje opravu");
+    expect(stepTone(blocked)).toBe("fault");
+    expect(stepStatusLabel(analysisStep({}))).toBe("Hotovo");
+    expect(stepTone(analysisStep({}))).toBe("done");
+    expect(needsRepair(analysisStep({ status: "RUNNING", analysis_outcome: null }))).toBe(false);
+  });
+
+  it("makes a finished run worth asking about a retry, and only a finished one", () => {
+    const blocked = analysisStep({ analysis_outcome: "BLOCKED" });
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [blocked] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: false, steps: [blocked] }))).toBe(false);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({ status: "FAILED", analysis_outcome: null })] }))).toBe(true);
+    expect(mayRetryAnalysis(run({ is_terminal: true, steps: [analysisStep({})] }))).toBe(false);
+  });
+});
+
+describe("reportHolds (run-gate-visibility chunk 2)", () => {
+  const step = (node_key: string, kind: string, status: string, extra: Partial<ResearchStep> = {}) =>
+    ({ step_id: `S-${node_key}`, node_key, kind, stage_type: "ANALYSIS", status, waiting_reason: null, attempts_recorded: 1, max_attempts: 3,
+      started_at: null, finished_at: null, failure_class: null, error_message: null, artifact_id: null, data_origin: null, ...extra }) as ResearchStep;
+  const runOf = (steps: ResearchStep[]) => ({ steps }) as unknown as ResearchRun;
+
+  it("names each analysis module that has not succeeded, with what it recorded, in the run's order", () => {
+    const held = reportHolds(runOf([
+      step("aggregate", "research_aggregate", "SUCCEEDED"),
+      step("analysis_executive", "research_analysis", "SUCCEEDED"),
+      step("analysis_audience", "research_analysis", "WAITING_PROVIDER", { waiting_reason: "analysis_unconfigured", error_message: "AI analýza není zapnuta." }),
+      step("analysis_segments", "research_analysis", "AWAITING_BUDGET", { waiting_reason: "budget_exceeded" }),
+      step("analysis_hypotheses", "research_analysis", "FAILED", { error_message: "Model odpověděl mimo schéma." }),
+      step("analysis_limitations", "research_analysis", "PENDING"),
+      step("report", "research_report", "PENDING"),
+    ]));
+    expect(held.map((h) => h.step.node_key)).toEqual(["analysis_audience", "analysis_segments", "analysis_hypotheses", "analysis_limitations"]);
+    expect(held[0].detail).toBe("AI analýza není zapnuta.");
+    expect(held[1].detail).toMatch(/rozpočet/);
+    expect(held[2].detail).toBe("Model odpověděl mimo schéma.");
+    // Not started yet: unknown, never an invented reason; and a report merely not started holds nothing itself.
+    expect(held[3].detail).toBeNull();
+  });
+
+  it("names the report step itself when it failed or waits, with its message", () => {
+    const held = reportHolds(runOf([
+      step("analysis_executive", "research_analysis", "SUCCEEDED"),
+      step("report", "research_report", "FAILED", { error_message: "audience: no admitted result" }),
+    ]));
+    expect(held).toEqual([{ step: expect.objectContaining({ node_key: "report" }), detail: "audience: no admitted result" }]);
+    expect(reportHolds(runOf([step("report", "research_report", "SUCCEEDED")]))).toEqual([]);
+  });
+
+  it("names a module stored BLOCKED, whose step succeeded, as holding the report", () => {
+    const held = reportHolds(runOf([
+      step("analysis_executive", "research_analysis", "SUCCEEDED", { analysis_outcome: "COMPLETED" }),
+      step("analysis_objects", "research_analysis", "SUCCEEDED", { analysis_outcome: "BLOCKED" }),
+    ]));
+    expect(held.map((h) => h.step.node_key)).toEqual(["analysis_objects"]);
+    expect(held[0].detail).toMatch(/zopakovat/);
+  });
+});
+
+describe("which questions a run will answer (run-recovery-and-truth 2b)", () => {
+  const item = (id: string, verdict: QuestionOutlook["verdict"], reasons: string[] = []): QuestionOutlook => ({ question_id: id, text: id, section_id: "s", battery_id: null, verdict, reasons });
+
+  it("reads worst first and keeps questionnaire order within a verdict", () => {
+    const items = [item("a", "ANSWERABLE"), item("b", "AT_RISK"), item("c", "UNANSWERABLE"), item("d", "UNKNOWN"), item("e", "UNANSWERABLE")];
+    expect(outlookByVerdict(items).map((i) => i.question_id)).toEqual(["c", "e", "b", "d", "a"]);
+    expect(outlookCounts(items)).toEqual({ UNANSWERABLE: 2, AT_RISK: 1, UNKNOWN: 1, ANSWERABLE: 1 });
+    expect(outlookCounts([])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 });
+  });
+
+  it("never gives unknown the tone of an answer", () => {
+    expect(verdictTone("UNKNOWN")).toBe("neutral");
+    expect(verdictTone("ANSWERABLE")).toBe("done");
+    expect(verdictTone("AT_RISK")).toBe("you");
+    expect(verdictTone("UNANSWERABLE")).toBe("fault");
+  });
+
+  it("sends a question's own fault to the questionnaire and a support fault to the sample", () => {
+    expect(outlookFixStep(["fidelity_refused", "support_suppressed"])).toBe("questionnaire");
+    expect(outlookFixStep(["support_suppressed"])).toBe("persona");
+    expect(outlookFixStep(["support_indicative"])).toBe("persona");
+    expect(outlookFixStep(["support_analysis_excluded"])).toBe("persona");
+    expect(outlookFixStep(["support_unknown"])).toBeNull();
+    expect(outlookFixStep([])).toBeNull();
+  });
+
+  it("words every reason, and names one it does not know", () => {
+    for (const code of ["conditional", "familiarity", "fidelity_refused", "open_ended", "support_suppressed", "support_analysis_excluded", "support_indicative", "support_unknown"]) {
+      expect(outlookReason(code)).not.toContain(code);
+    }
+    expect(outlookReason("new_rule")).toContain("new_rule");
+  });
+});
+
+describe("a research question's measures in words (run-recovery-and-truth 3b)", () => {
+  const item = (id: string, text: string, verdict: QuestionOutlook["verdict"], battery_id: string | null = null): QuestionOutlook => ({ question_id: id, text, section_id: battery_id ?? "s", battery_id, verdict, reasons: [] });
+  const outlook = [
+    item("q1", "Jak často pijete kávu?", "ANSWERABLE"),
+    item("set_obj_a", "Jak hodnotíte Káva?", "AT_RISK", "set"),
+    item("set_obj_b", "Jak hodnotíte Čaj?", "ANSWERABLE", "set"),
+  ];
+
+  it("names a question by its wording and a tracked set once, with its best verdict", () => {
+    const measures = traceMeasures({ text: "RQ", measures: ["q1", "set_obj_a", "set_obj_b"], verdict: "ANSWERABLE", reasons: [] }, outlook);
+    expect(measures.map((m) => [m.text, m.verdict])).toEqual([
+      ["Jak často pijete kávu?", "ANSWERABLE"],
+      ["Jak hodnotíte Káva? a další položky sady (2 celkem)", "ANSWERABLE"],
+    ]);
+  });
+
+  it("reads a measure the outlook does not list as unknown, never answerable", () => {
+    expect(traceMeasures({ text: "RQ", measures: ["gone"], verdict: "UNKNOWN", reasons: [] }, outlook)).toEqual([{ key: "gone", text: "gone", verdict: "UNKNOWN" }]);
   });
 });

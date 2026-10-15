@@ -16,6 +16,12 @@ one. A module therefore makes at most ``1 + MAX_REPAIRS`` calls, and each of the
 is a turn the runner counted; a gateway repair inside each turn would have doubled
 that without anyone seeing it.
 
+**A repair shows what it repairs** (harness 2). After a schema failure the repair turn
+replays the model's refused answer as its assistant message, with every failed path,
+so the model corrects those fields instead of drafting again blind; after a truncated
+answer it asks for a shorter one. Harness 1 sent a placeholder there, and a module
+could spend its three turns failing the same way.
+
 **Class C only for nothing of a client's.** The payload holds the Study's research
 questions and its questionnaire wording. It is internal material only when the
 operator declared the Study's client fictional *and* every respondent is simulated;
@@ -36,10 +42,10 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping
-from dataclasses import dataclass
 from typing import Any, Final
 
 from ..ai_contracts import (
+    OUTPUT_TRUNCATED,
     AgentDefinition,
     Message,
     ModelRequest,
@@ -51,7 +57,7 @@ from ..evidence import ClaimSurface
 from ..fieldwork import MODELLED_DISCLOSURE, DataOrigin, OriginKind, origin_kind
 from ..licence import DataLineage
 from ..residency import DataClass
-from .draft import AnalysisDraft
+from .draft import AnalysisDraft, InvalidStructuredOutput
 from .prompt import PROMPT_TEMPLATE_VERSION
 
 __all__ = [
@@ -70,7 +76,7 @@ __all__ = [
     "request_sha256",
 ]
 
-ANALYSIS_HARNESS_VERSION: Final = "aia-analysis-harness-1"
+ANALYSIS_HARNESS_VERSION: Final = "aia-analysis-harness-2"
 AGENT_ID: Final = "aia.analysis.module"
 AGENT_VERSION: Final = "1"
 PROMPT_ID: Final = "aia.analysis.module"
@@ -99,6 +105,15 @@ as what respondents said, or as what a survey found. Each evidence row names its
 
 _PREVIOUS_INVALID: Final = "(no draft: the previous answer did not match the output schema)"
 
+#: After a truncated answer: the same content cannot fit, so the repair asks for less.
+_TRUNCATED_REPORT: Final = """\
+
+The previous answer was cut off at the output token limit and could not be read. Write a
+shorter answer that fits: a summary of a few sentences, at most five key findings, one or
+two sentences per answer, and only the numeric claims those texts cite. Return one
+complete JSON object.
+"""
+
 _SCHEMA_REPORT: Final = """\
 
 The output schema check of the previous answer reported:
@@ -107,18 +122,6 @@ The output schema check of the previous answer reported:
 
 #: A repair turn lists at most this many schema violations; the rest are counted.
 _SCHEMA_VIOLATIONS_SHOWN: Final = 20
-
-
-@dataclass(frozen=True, slots=True)
-class InvalidStructuredOutput:
-    """What a turn produced when the answer failed the output contract at the gateway.
-
-    Not a draft: the evidence check refuses it as ``SCHEMA_INVALID`` ("the draft is not
-    a JSON object"), and the next turn shows the model these violations. The call that
-    produced it was made, ledgered and paid for like any other.
-    """
-
-    violations: tuple[str, ...]
 
 
 def analysis_agent(*, max_output_tokens: int) -> AgentDefinition:
@@ -170,6 +173,7 @@ def harness_sha256() -> str:
             _FRAME_MODELLED,
             _PREVIOUS_INVALID,
             _SCHEMA_REPORT,
+            _TRUNCATED_REPORT,
             str(_SCHEMA_VIOLATIONS_SHOWN),
             agent.agent_id,
             agent.version,
@@ -199,8 +203,24 @@ def classify_analysis_material(
     return DataClass.CLASS_C_INTERNAL if internal else DataClass.CLASS_A_CLIENT_CONFIDENTIAL
 
 
+def _truncated(previous: InvalidStructuredOutput) -> bool:
+    return OUTPUT_TRUNCATED in previous.violations
+
+
 def _previous_text(previous: object) -> str:
+    """The assistant turn a repair answers: the model's own answer, as it gave it.
+
+    A refused answer is shown as the gateway returned it, so the model fixes the
+    fields it got wrong instead of drafting again from nothing. A truncated one is not:
+    it is a fragment, and the repair asks for a shorter answer instead.
+    """
     if isinstance(previous, InvalidStructuredOutput):
+        if (
+            previous.rejected_output
+            and previous.rejected_output.strip()
+            and not _truncated(previous)
+        ):
+            return previous.rejected_output
         return _PREVIOUS_INVALID
     if isinstance(previous, Mapping):
         return canonical_json(dict(previous))
@@ -215,7 +235,8 @@ def _repair_text(repair: str, previous: object) -> str:
     hidden = len(previous.violations) - len(shown)
     if hidden:
         listed += f"\n- ... and {hidden} more"
-    return repair + _SCHEMA_REPORT.format(violations=listed)
+    text = repair + _SCHEMA_REPORT.format(violations=listed)
+    return text + _TRUNCATED_REPORT if _truncated(previous) else text
 
 
 def analysis_request(

@@ -1,4 +1,4 @@
-"""The body's side tables and K100 read the run's pinned object map (plan ``methodology-tab``,
+"""The body's side tables read the run's pinned object map (plan ``methodology-tab``,
 chunk S2b).
 
 Before S2b the reference set's side tables -- ``relation``, ``relation_rescaled``,
@@ -7,6 +7,10 @@ and bootstrap (B 500, seed, 2.5 / 97.5 %), whatever the run pinned: an edited me
 in force moved the object map and left the tables beside it on the old values. They now read
 the run's last pinned object map, and the body says which. A run that pinned none keeps the
 code's values. The statuses keep reading the respondent count, the body's documented rule.
+
+Since ``mvp-workflow-assurance`` A3d the body keeps only ``relation``: ``relation_rescaled``,
+``object_scores`` and K100 are each pinned map's own, and an edited bootstrap moving a map's
+K100 is ``test_sociomap_object_map_v4.py::test_the_k100_interval_reads_the_declared_quantiles``.
 """
 
 from __future__ import annotations
@@ -146,8 +150,7 @@ def test_no_run_path_reads_the_codes_constants() -> None:
 
 def test_the_default_pin_computes_the_tables_it_always_did() -> None:
     before, after = _body(()), _body((AIA_SOCIOMAP_V3,))
-    for key in ("relation", "relation_rescaled", "object_scores"):
-        assert after[key] == before[key], key
+    assert after["relation"] == before["relation"]
     assert before["side_tables"]["method"] is None
     assert after["side_tables"] == {**before["side_tables"], "method": "aia-sociomap-3"}
 
@@ -157,24 +160,10 @@ def test_an_edited_n_min_moves_every_side_table() -> None:
     before = _body((AIA_SOCIOMAP_V3,), respondents=40)
     after = _body((_edited(n_min=41),), respondents=40)
     assert after["side_tables"]["method"] == "aia-sociomap-4+e1"
-    assert after["relation"]["n_min"] == after["relation_rescaled"]["n_min"] == 41
+    assert after["relation"]["n_min"] == 41
     assert before["relation"]["status_counts"]["unknown"] == 0
-    for key in ("relation", "relation_rescaled"):
-        counts = after[key]["status_counts"]
-        assert counts["unknown"] == sum(counts.values()), key
-    assert after["object_scores"] != before["object_scores"]
-
-
-def test_an_edited_bootstrap_moves_the_bodys_k100() -> None:
-    small = {"resamples": 40}
-    wide = _body((_edited(**small),), interval=True)["connectedness_100"]
-    narrow = _body((_edited(**small, quantiles=(0.25, 0.75)),), interval=True)["connectedness_100"]
-    assert wide["resamples"] == narrow["resamples"] == 40
-    assert wide["quantiles"] == [0.025, 0.975]
-    assert narrow["quantiles"] == [0.25, 0.75]
-    pairs = list(zip(wide["objects"], narrow["objects"], strict=True))
-    assert all(w["k100"] == n["k100"] for w, n in pairs)
-    assert any(w["low"] is not None and w["low"] < n["low"] for w, n in pairs)
+    counts = after["relation"]["status_counts"]
+    assert counts["unknown"] == sum(counts.values())
 
 
 def test_a_runs_pinned_methods_give_its_side_tables() -> None:

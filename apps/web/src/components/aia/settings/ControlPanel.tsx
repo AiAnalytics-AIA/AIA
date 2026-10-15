@@ -887,7 +887,7 @@ export function PanelView({ panel, reload }: { panel: Panel; reload: () => void 
   };
   return (
     <TechnicalProvider on={technical}>
-    <div data-settings-workspace className="flex flex-col gap-4 [&_button]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
+    <div data-settings-workspace className="flex flex-col gap-4 [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
       <div className="grid min-w-0 gap-5 xl:grid-cols-[12rem_minmax(0,1fr)]">
       <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
         {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
