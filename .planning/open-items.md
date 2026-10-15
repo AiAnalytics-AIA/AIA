@@ -3676,3 +3676,46 @@ raises `StaleKnowledgeProposal` (409 `knowledge_proposal_stale`, both revisions 
 reviewer names the current revision as `reviewed_revision`, which the new revision's provenance
 records. A pending edit filed before the column has an unknown base and is treated as stale. The
 API test is `test_client_api.py::test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current`.
+
+## OI-112 · Finding, closed · A retry's run froze on Průběh
+
+**Claim.** After an action, Průběh showed the run the API answered (a retry's new run) without
+reading it again, so the poll, stopped when the old run finished, never restarted, and `?run=` still
+named the old run.
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.tsx:621` @ `1879783` (a poll is
+scheduled only inside `read`) and `:638` (`useRun` handed out the bare `setRun`).
+
+**Reproduction.** `ExecutionSteps.test.tsx` "follows the run a retry starts and keeps reading it, so
+its steps move on screen" fails on `1879783`: `?run=RUN-1`, the step stays RUNNING.
+
+**Consequence.** Reported by the product owner 2026-10-14: "Znovu spustit" left the new run's first
+step on "Běží" while the worker went on; a reload went back to the old run, and a second click looked
+like a resume. It was the same run: a retry's idempotency key carries the run it retries
+(`packages/aia_core/src/aia_core/application/research.py:464` @ `1879783`), so nothing was started or
+paid twice.
+
+**Smallest fix.** `useRun`'s setter follows the run it is given: `?run=` rewritten, read again at
+once, the poll restarted; every action goes through it.
+
+**Test.** The reproduction above.
+
+**Status.** Fixed in #423 (progress-follows-retry F1).
+
+## OI-113 · Finding, closed · The report card's tests clicked an option before it was offered
+
+**Claim.** "offers the client report only for modelled data…" and the PDF test clicked a radio that
+is disabled until the report's status is read.
+
+**Anchor.** `apps/web/src/components/rehome/research/ExecutionSteps.test.tsx` @ `1879783`, both tests.
+
+**Reproduction.** The client-report test alone: 1 failure in 3 runs.
+
+**Consequence.** A red web suite unrelated to the change under test (also seen in #417).
+
+**Smallest fix.** Wait until the option is offered (`offered`) before clicking it.
+
+**Test.** Both tests, now waiting.
+
+**Status.** Fixed in #423 (progress-follows-retry F2); develop carried the same wait independently.
+
