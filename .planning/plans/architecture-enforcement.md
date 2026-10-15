@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. Make tools/layer_check.sh honest: a missing path fails, exemptions match by path from the root, a self-test"
-  - "[ ] 1. Close the second model-call path: import-linter contract on model_adapters, grep rules for GovernedModelGateway( and gateway .invoke( (blocked: see Findings F1, F2)"
+  - "[x] 1. Close the second model-call path: the web routes' helpers out of model_adapters; an import-linter contract on model_adapters; grep rules for GovernedModelGateway( and the gateway's .invoke("
   - "[ ] 2. Not recorded in this file yet: the chunks after 1 come from the exploration report and are written here when they are taken up"
 ---
 # Architecture enforcement — the layering guard says what it checks
@@ -45,16 +45,40 @@ What changed:
   population-tables rule over `$CORE`, exempted every package `__init__` in the
   core; it now names `infrastructure/__init__.py` alone.
 
-## Chunk 1 — close the second model-call path (blocked)
+## Chunk 1 — close the second model-call path (done)
 
-Planned: import-linter as a dev dependency, `lint-imports` in `make layer_check`,
-one forbidden contract allowing only `aia_core.application.model_gateway`,
-`aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
-`aia_executors.deep_research_runtime` (plus `model_adapters` itself) to import
-`aia_core.infrastructure.model_adapters`; grep rules `GovernedModelGateway(` only
-in `ai_runtime.py` and gateway `.invoke(` only in `ai_step.py`.
+Two commits.
 
-Stopped before writing code, on F1 and F2. The decision is the owner's.
+**1. The helpers the web routes borrowed leave `model_adapters`** (pure move, F1).
+`infrastructure/http_transport.py` (new) holds `certificate_refused` (was
+`model_adapters/live_transport._certificate_refused`), `CredentialSource` (was
+`model_adapters/transport.py`) and `SigningUnavailable` (was
+`model_adapters/bedrock.py`). None had a home outside the package:
+`model_adapters/aws_signing.py`, where signing lives, is itself inside `model_adapters`.
+`model_adapters` imports them from there and re-exports none (`CredentialSource`
+left `model_adapters.__all__`). Afterwards the AST graph of the four source trees
+names exactly `aia_executors.ai_runtime`, `aia_executors.deep_research_live` and
+`aia_executors.deep_research_runtime` as importers outside the package.
+
+**2. Enforcement.**
+
+- `import-linter` (`packages/aia_core[dev]`), `[tool.importlinter]` in the root
+  `pyproject.toml`: one forbidden contract, sources `aia_core.domain`,
+  `aia_core.application`, `aia_core.infrastructure.*`, `aia_api`, `aia_worker`,
+  `aia_executors`; the three compositions and `model_adapters`' own imports
+  ignored. Direct imports only (`allow_indirect_imports`): the registry reaches
+  the adapters through a composition, which is the design. An ignore that matches
+  nothing fails the run.
+- `make layer_check` runs `tools/layer_check.sh` then `lint-imports --no-cache`,
+  both always, failing if either fails. CI's Backend job runs `make layer_check`
+  (`.github/workflows/ci.yml`); the docs-only job keeps the script (F6).
+- `tools/layer_check.sh`: `GovernedModelGateway(` only in
+  `aia_executors/ai_runtime.py`; the gateway's `.invoke(` (receiver named
+  `*gateway*` / `*Gateway*`, so `StepModelCaller`'s `caller.invoke(` is not it) only
+  in `aia_executors/ai_step.py`, over each of the four source trees; and the two
+  `__init__` modules above `model_adapters` never name it (F5). 121 rules.
+  `test_layer_check_tool.py` runs both gateway patterns from the script itself.
+- Each rule shown to bite with a temporary violation (PR description).
 
 ## Findings
 
@@ -81,3 +105,57 @@ Stopped before writing code, on F1 and F2. The decision is the owner's.
   a step of its own); the docs-only job installs nothing and keeps the script.
 - **F4. ARCHITECTURE.md is a shared file** (CLAUDE.md §1): the two grep rules'
   rows in §3 go under Doc follow-up, not into the feature PR.
+- **F5. A forbidden contract whose source contains the forbidden package reports
+  nothing.** With `aia_core.infrastructure` as a source, an added
+  `from aia_core.infrastructure.model_adapters.transport import HttpRequest` in
+  `web_retrieval_live.py` raised the graph from 1667 to 1668 dependencies and the
+  contract stayed KEPT. `aia_core.infrastructure.*` reports it; that wildcard leaves
+  out `aia_core/__init__.py` and `aia_core/infrastructure/__init__.py`, now a grep
+  rule. Belongs in AGENTS.md (below).
+  *Not the 2.12 overlap limitation.* Codex's later finding (the minimum raised to
+  2.12, `packages/aia_core/pyproject.toml`) looked like the same problem, so the
+  plain source was re-tested with the same probe: still `1 kept, 0 broken` under
+  import-linter 2.12 and 2.15 (clean venvs, 2026-10-15), and an
+  `infrastructure/__init__.py` import of `.model_adapters` is missed too. 2.12 made
+  the overlapping configuration *valid* (2.11 rejects even the clean tree:
+  `0 kept, 1 broken`, flagging model_adapters' own imports); it did not make an
+  import from the source package into its own descendant *visible*. The likely
+  mechanism (hypothesis, not read in import-linter's source): an import between
+  two modules of the same source package is treated as internal to that source.
+  The wildcard and the `__init__` grep rule stay.
+- **F6. A docs-only PR cannot change what lint-imports or the grep rules read.**
+  The `changes` job (`.github/workflows/ci.yml:62-66 @ 5d545eb`) sets `code=false`
+  only when every changed path matches `.planning/*`, `docs/architecture/adr/*`,
+  `CLAUDE.md`, `AGENTS.md` or `ARCHITECTURE.md`. A `case` `*` crosses `/`, so such a
+  PR *can* carry a `.py` file -- one exists,
+  `.planning/evidence/client-knowledge-review/test_client_knowledge_review_probe.py`
+  -- but only under `.planning/` or `docs/architecture/adr/`, outside every
+  import-linter root package and every layer_check rule path. `pyproject.toml`
+  (where the contract lives) is not on the list, so changing it runs Backend. A push
+  to `develop` always runs everything.
+
+## Doc follow-up
+
+For the next docs-only PR:
+
+- **ARCHITECTURE.md §3**, intro: "`make layer_check` runs two halves:
+  `tools/layer_check.sh` (grep rules) and `lint-imports` (import contracts,
+  `[tool.importlinter]` in `pyproject.toml`). CI's Backend job runs the target; the
+  docs-only job runs the script alone."
+- **ARCHITECTURE.md §3**, rule table, three rows:
+  | only the executor compositions import the model adapters (import contract) | A second model-call path: an adapter driven without the gateway's retry, budget, egress and provenance (ADR 0005) |
+  | only the AI runtime composition builds the model gateway | A gateway nobody configured: a route, policy or registry outside `ai_runtime.py`'s validated settings |
+  | only the step's model caller invokes the model gateway | A model call with no reservation, no settle and no journal under the lease (`ai_step.py`, StepModelCaller) |
+- **ARCHITECTURE.md §3**, exemptions bullet (from chunk 0): "An exempt path is
+  the file's path from the repository root, never a basename; a rule whose path or
+  exempt path does not exist fails rather than skipping."
+- **CLAUDE.md §2 map**: `infrastructure/http_transport.py  What every outbound HTTP
+  adapter shares: certificate_refused, CredentialSource, SigningUnavailable (model
+  adapters and web routes alike; nothing outside the compositions imports
+  model_adapters)`. §3 commands: "Layering | `make layer_check` (grep rules +
+  `lint-imports`)".
+- **AGENTS.md**, import-linter: WRONG `source_modules = ["aia_core.infrastructure"]`
+  with `forbidden_modules = ["aia_core.infrastructure.model_adapters"]` -- KEPT
+  with a violating import present (F5). RIGHT
+  `source_modules = ["aia_core.infrastructure.*"]`, plus a check of the
+  containing packages' `__init__` modules, which the wildcard leaves out.

@@ -73,6 +73,12 @@ forbid() {
   fi
 }
 
+# Patterns the self-test runs as they are, so a weakened pattern fails a test.
+# The model gateway built, and invoked (matched by the receiver's name, so
+# StepModelCaller's own .invoke( is not it). Their rules are below.
+GATEWAY_BUILT='^[^#]*\bGovernedModelGateway\('
+GATEWAY_INVOKED='^[^#]*[Gg]ateway[A-Za-z0-9_]*\.invoke\('
+
 # Sourced (packages/aia_core/tests/test_layer_check_tool.py), the file defines
 # `forbid` and stops: the rule engine is tested on a scratch tree, apart from the
 # rules, which only make sense against this repository.
@@ -186,6 +192,41 @@ forbid "only the AI runtime composition builds the Bedrock adapter" \
   'BedrockConverseAdapter\(' \
   "$EXECUTORS" \
   "$EXECUTORS/ai_runtime.py"
+# The same composition is the one place the gateway is built, and the step's model
+# caller (aia_executors/ai_step.py, StepModelCaller) the one place it is invoked:
+# one reservation per request, settled once, the dispatch journaled under the
+# lease. A gateway built elsewhere is a route nobody configured; a gateway invoked
+# elsewhere is a model call with no reservation and no journal. Which modules may
+# import the adapters at all is the import contract in pyproject.toml
+# ([tool.importlinter]), run by `make layer_check`. The .invoke( rule matches the
+# receiver by name (gateway, _gateway, model_gateway, GovernedModelGateway), so
+# StepModelCaller's own .invoke( is not it -- and an alias would hide one, which is
+# why the construction rule above is the one that matters.
+# The import contract's one blind spot: its sources are aia_core.domain,
+# .application and every child of .infrastructure, never a package that contains
+# model_adapters (import-linter finds no chain from a package to its own
+# descendant). The two __init__ modules above it are checked here instead.
+for init in "$CORE/__init__.py" "$CORE/infrastructure/__init__.py"; do
+  forbid "the package above the model adapters does not import them ($init)" \
+    'model_adapters' \
+    "$init"
+done
+for tree in "$CORE" "$API" "$WORKER"; do
+  forbid "only the AI runtime composition builds the model gateway ($tree)" \
+    "$GATEWAY_BUILT" \
+    "$tree"
+  forbid "only the step's model caller invokes the model gateway ($tree)" \
+    "$GATEWAY_INVOKED" \
+    "$tree"
+done
+forbid "only the AI runtime composition builds the model gateway ($EXECUTORS)" \
+  "$GATEWAY_BUILT" \
+  "$EXECUTORS" \
+  "$EXECUTORS/ai_runtime.py"
+forbid "only the step's model caller invokes the model gateway ($EXECUTORS)" \
+  "$GATEWAY_INVOKED" \
+  "$EXECUTORS" \
+  "$EXECUTORS/ai_step.py"
 
 # --- Layer 4: the worker executes; it does not serve, and it does not know ---
 #

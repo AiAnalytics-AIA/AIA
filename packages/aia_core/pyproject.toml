@@ -52,6 +52,12 @@ dev = [
     "ruff>=0.7,<1",
     "mypy>=1.13,<2",
     "types-lxml>=2024.11",
+    # The import contracts in the root pyproject.toml ([tool.importlinter]), run by
+    # `make layer_check`: the import-graph half of the layering rules. 2.12 is the
+    # first that allows a forbidden contract's sources to overlap the forbidden
+    # package (aia_core.infrastructure.* holds model_adapters); 2.11 reports
+    # model_adapters' own imports as BROKEN.
+    "import-linter>=2.12,<3",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -68,17 +74,10 @@ markers = [
 ]
 
 [tool.ruff]
-line-length = 100
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF"]
-# N818 requires an "Error" suffix on every exception. Our exception names are
-# domain vocabulary that reads better as-is -- `raise ScopeDenied(...)`,
-# `except ExpiredToken` -- and they match the terms used in the architecture
-# docs. Renaming them to ScopeDeniedError / ExpiredTokenError would make the
-# code read worse for no safety gain.
-ignore = ["N818"]
+# One lint configuration for every Python tree: the root pyproject.toml's. Ruff reads
+# the nearest [tool.ruff], so a copy here would silently shadow a rule added there
+# (the network-egress ban, TID251, is the one that made this matter).
+extend = "../../pyproject.toml"
 
 [tool.mypy]
 python_version = "3.12"

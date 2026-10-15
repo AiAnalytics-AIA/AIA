@@ -173,8 +173,10 @@ typecheck: python-version ## Type-check Python and the web client
 	@$(BIN)mypy packages/aia_core/src apps/api/src apps/worker/src apps/executors/src
 	@cd apps/web && npx tsc --noEmit
 
-layer_check: ## Enforce the layering rules in ARCHITECTURE.md
-	@./tools/layer_check.sh
+layer_check: ## Enforce the layering rules in ARCHITECTURE.md (grep rules + import contracts)
+	@status=0; ./tools/layer_check.sh || status=1; \
+	  $(BIN)lint-imports --no-cache || status=1; \
+	  exit $$status
 
 exposure_check: ## Fail if detailed reference material reached this repository
 	@./tools/exposure_check.sh
