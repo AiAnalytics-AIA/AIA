@@ -10,9 +10,12 @@ must be ``aia.example.test``, and ``AIA_LEGACY_HOSTNAME`` is set to
 here rather than as an empty address. Stdlib only. What it asserts, and why each
 line must never go missing:
 
-* The product hostname is the only site: NPC Panel 18.6.6's oracle hostname is not
-  served by the product (ADR 0018 decision 5); the unit runs, when a comparison
-  needs it, from ``deploy/reference`` on the host's loopback.
+* The product hostname is the only site but one: NPC Panel 18.6.6's oracle hostname
+  is not served by the product (ADR 0018 decision 5); the unit runs, when a
+  comparison needs it, from ``deploy/reference`` on the host's loopback. The one
+  other is ``errors.<product hostname>``, GlitchTip (plan error-tracking), and it
+  reaches GlitchTip and nothing else -- never the API or the web client, so it
+  shares nothing of AIA's origin.
 * ``/`` is a redirect to ``/app/clients`` and nothing else: the product's front
   door is AIA, never the 18.6.6 document (ADR 0015).
 * The 18.6.6 interface is not served (ADR 0018 decision 4): no route rewrites to
@@ -36,6 +39,8 @@ from collections.abc import Iterator
 from typing import Any
 
 PRODUCT = "aia.example.test"
+ERRORS = f"errors.{PRODUCT}"
+GLITCHTIP = "glitchtip:8000"
 LEGACY = "legacy.example.test"
 UNIT = "legacy-panel:8765"
 WEB = "web:3000"
@@ -121,12 +126,19 @@ def paths_of(route: dict[str, Any]) -> list[str]:
 def check(config: dict[str, Any]) -> list[str]:
     """Every problem found; empty when the routing is as the ADRs say."""
     problems: list[str] = []
-    others = sorted(hosts(config) - {PRODUCT})
+    others = sorted(hosts(config) - {PRODUCT, ERRORS})
     if others:
         problems.append(
             f"the product Caddyfile serves another hostname: {others} (the 18.6.6 oracle is "
             "deploy/reference's, on the host's loopback)"
         )
+    if ERRORS in hosts(config):
+        upstreams = {d for r in site(config, ERRORS) for d in dials(r)}
+        if upstreams != {GLITCHTIP}:
+            problems.append(
+                f"{ERRORS} must reach GlitchTip ({GLITCHTIP}) and nothing else; got "
+                f"{sorted(upstreams)}"
+            )
     routes = site(config, PRODUCT)
 
     def only(path: str) -> dict[str, Any] | None:
@@ -181,8 +193,8 @@ def main(argv: list[str]) -> int:
     if problems:
         return 1
     print(
-        "caddy routes: one hostname, AIA's; / -> /app/clients; /app behind AIA's gate; "
-        "the API and the web client only, nothing of 18.6.6"
+        "caddy routes: AIA's hostname, and errors.<it> to GlitchTip alone; / -> /app/clients; "
+        "/app behind AIA's gate; the API and the web client only, nothing of 18.6.6"
     )
     return 0
 

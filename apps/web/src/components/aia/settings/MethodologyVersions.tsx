@@ -18,6 +18,7 @@ import {
   type MethodCompare,
   type MethodModuleDetail,
   type MethodModuleSummary,
+  type MethodPreviewLine,
   type MethodStepOut,
   type MethodVersion,
   type MethodVersions,
@@ -29,6 +30,7 @@ import {
   type EditField,
   changedPaths,
   editableSteps,
+  fillReading,
   fromInput,
   problemsFor,
   readPath,
@@ -484,6 +486,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
             const formulas = Object.fromEntries(slots.map((slot) => [slot, exprs[slot]]));
             const written = Object.fromEntries(slots.filter((slot) => check?.formulas_latex[slot]).map((slot) => [slot, check!.formulas_latex[slot]]));
             const notComputed = slots.filter((slot) => check?.not_computed.includes(slot));
+            const stepPreview = (check?.valid ? check.preview ?? [] : []).filter((line) => line.step_id === step.id);
             return (
               <StepEditor
                 key={step.id}
@@ -505,7 +508,9 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                 titles={titles}
                 linkable={editableIds}
                 onPick={setSelectedStep}
-                signature={JSON.stringify([selectedStep === step.id, busy, values, formulas, own, written, notComputed])}
+                checked={check ? check.valid : null}
+                preview={stepPreview}
+                signature={JSON.stringify([selectedStep === step.id, busy, values, formulas, own, written, notComputed, check?.valid ?? null, stepPreview])}
               />
             );
           })}
@@ -557,10 +562,13 @@ function stageNumbers(groups: readonly { id: string }[]): Map<string, string> {
 /** One step of the editor, redrawn only when its own values, problems or visibility change:
  *  every keystroke would otherwise re-typeset every step's formulas (measured: the guided test
  *  went from 3.7 s to 5.4 s before this split). */
-const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, linkable, onPick }: {
+const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start, currentSpec, values, formulas, problems, written, notComputed, setRaw, setExprs, clearPreview, stage, titles, linkable, onPick, checked, preview }: {
   step: MethodStepOut; fields: EditField[]; hidden: boolean; busy: boolean; start: Start; currentSpec?: Record<string, unknown>;
   values: Record<string, string>; formulas: Record<string, string>; problems: Record<string, string>;
   written: Record<string, string>; notComputed: string[];
+  /** Whether the draft as it stands passed the domain's check (`null`: not checked since the
+   *  last change), and the lines the code writes under it for this step. */
+  checked: boolean | null; preview: MethodPreviewLine[];
   setRaw: Dispatch<SetStateAction<Record<string, string>>>; setExprs: Dispatch<SetStateAction<Record<string, string>>>; clearPreview: () => void;
   /** The step's stage, every step's title and the move to another step: its place in the computation. */
   stage: string; titles: Record<string, string>; linkable: ReadonlySet<string>; onPick: (stepId: string) => void;
@@ -573,7 +581,12 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
       {stage || step.audit ? <p data-step-stage className="text-xs text-ink-faint">{stage}{stage && step.audit ? " · " : ""}{step.audit ? <span className="font-mono">{tv(`${M}.audit`, { point: step.audit })}</span> : null}</p> : null}
       {step.note_cs ? <p className="max-w-3xl text-sm leading-6 text-ink-muted">{step.note_cs}</p> : null}
       {hidden ? null : <StepContext step={step} titles={titles} linkable={linkable} onPick={onPick} />}
-      {step.formula_latex && !hidden ? <div className="min-w-0 max-w-full overflow-x-auto rounded-card border border-border bg-surface-raised px-6 py-5 text-center text-lg text-ink"><Formula latex={step.formula_latex} /></div> : null}
+      {step.reading_cs && !hidden ? (
+        <div data-step-reading className="rounded-card border border-border bg-surface-raised px-6 py-5">
+          <p className="text-xs font-medium text-ink-faint">{t(`${V}.reading`)}</p>
+          <p className="mt-1 font-mono text-xl text-ink">{fillReading(step.reading_cs, (path) => values[path] ?? toInput(readPath(start.spec, path)))}</p>
+        </div>
+      ) : step.formula_latex && !hidden ? <div className="min-w-0 max-w-full overflow-x-auto rounded-card border border-border bg-surface-raised px-6 py-5 text-center text-lg text-ink"><Formula latex={step.formula_latex} /></div> : null}
 
       {step.formulas.map((f) => {
         const own = problemsFor(problems, `formula.${f.slot_id}`);
@@ -638,7 +651,10 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
             const live = currentSpec ? readPath(currentSpec, f.reference) : undefined;
             return (
               <div key={f.reference} className={`grid items-start gap-x-4 gap-y-1 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] ${i ? "border-t border-border" : ""}`}>
-                <label htmlFor={`mf-${f.reference}`} className="pt-2 text-sm font-medium">{f.label_cs}{f.unit ? <span className="font-normal text-ink-muted"> · {f.unit}</span> : null}</label>
+                <div className="flex flex-col items-start gap-1 pt-2">
+                  <label htmlFor={`mf-${f.reference}`} className="text-sm font-medium">{f.label_cs}{f.unit ? <span className="font-normal text-ink-muted"> · {f.unit}</span> : null}</label>
+                  {f.effect ? <span data-effect={f.effect} className={`rounded-sm px-1.5 text-xs font-medium leading-5 ${f.effect === "warns" ? "bg-status-you-wash text-status-you-ink" : "bg-status-fault-wash text-status-fault"}`}>{t(`${V}.effect.${f.effect}`)}</span> : null}
+                </div>
                 <div className="flex flex-col gap-1">
                   <TextInput
                     id={`mf-${f.reference}`}
@@ -657,6 +673,36 @@ const StepEditor = memo(function StepEditor({ step, fields, hidden, busy, start,
               </div>
             );
           })}
+        </section>
+      ) : null}
+
+      {step.keeps_cs.length && !hidden ? (
+        <section data-step-keeps aria-label={t(`${V}.keeps`)} className="rounded-card border border-border bg-surface-raised px-4 py-3">
+          <p className="text-sm font-semibold">{t(`${V}.keeps`)}</p>
+          <ul className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            {step.keeps_cs.map((k) => (
+              <li key={k} className="flex items-start gap-2">
+                <span aria-hidden className={`mt-0.5 inline-flex size-4 flex-none items-center justify-center rounded-full text-[10px] ${checked ? "bg-ink/10 text-ink" : "bg-surface-sunken text-ink-faint"}`}>{checked ? "✓" : "·"}</span>
+                <span>{k}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {step.keeps_cs.length && !hidden ? (
+        <section data-step-preview aria-label={t(`${V}.preview`)} className="rounded-card border border-border bg-surface-raised px-4 py-3">
+          <p className="text-sm font-semibold">{t(`${V}.preview`)}</p>
+          {preview.length ? (
+            <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+              {preview.map((line, i) => (
+                <li key={i} data-preview-status={line.status} className="flex items-start gap-3">
+                  <span className={`w-24 flex-none rounded-sm px-1.5 text-center text-xs font-medium leading-5 ${line.status === "FAIL" ? "bg-status-fault-wash text-status-fault" : line.status === "WARN" ? "bg-status-you-wash text-status-you-ink" : "bg-ink/10 text-ink"}`}>{t(`${V}.previewStatus.${line.status}`)}</span>
+                  <span>{line.message_cs}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="mt-1 text-xs text-ink-muted">{t(`${V}.previewHint`)}</p>}
         </section>
       ) : null}
     </fieldset>

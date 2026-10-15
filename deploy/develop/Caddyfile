@@ -89,3 +89,27 @@
 		format json
 	}
 }
+
+# GlitchTip, the error tracker (deploy/develop/errors, .planning/plans/error-tracking.md):
+# its own name, so nothing of it shares AIA's origin, cookies or gate. GlitchTip has its
+# own sign-in, and no one can register (an operator makes the accounts). Browsers send
+# their events here; the API and the worker send theirs to glitchtip:8000 inside. When
+# GlitchTip is not running this answers 502 and AIA is unaffected.
+errors.{$AIA_PUBLIC_HOSTNAME} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy glitchtip:8000
+
+	log {
+		output stdout
+		format json
+	}
+}

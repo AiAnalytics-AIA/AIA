@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildIdentity } from "@/lib/build";
-import { AI_SWITCHES, approvedClasses, runtimeSwitch, type PublicConfig } from "@/lib/public-config";
+import { AI_SWITCHES, approvedClasses, errorTrackingDsn, runtimeSwitch, type PublicConfig } from "@/lib/public-config";
 
 // Runtime configuration for the browser. Read from the server's environment at
 // request time, so one image serves any environment: NEXT_PUBLIC_* values would
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 export function GET() {
   const switches = Object.fromEntries(AI_SWITCHES.map((name) => [name, runtimeSwitch(process.env[name])])) as PublicConfig["aiRuntime"]["switches"];
   const runtime = switches.AIA_AI_RUNTIME_ENABLED;
+  const build = buildIdentity();
   const config: PublicConfig = {
     cognitoDomain: process.env.AIA_COGNITO_DOMAIN?.trim() || null,
     cognitoClientId: process.env.AIA_COGNITO_CLIENT_ID?.trim() || null,
@@ -27,7 +28,12 @@ export function GET() {
       approvedClasses: approvedClasses(process.env.AIA_AI_ROUTE_APPROVED_FOR),
       switches,
     },
-    build: buildIdentity(),
+    build,
+    errorTracking: {
+      dsn: errorTrackingDsn(process.env.AIA_WEB_ERROR_TRACKING_DSN),
+      environment: process.env.AIA_ENV?.trim() || null,
+      release: build.sha,
+    },
   };
   return NextResponse.json(config, { headers: { "Cache-Control": "no-store" } });
 }

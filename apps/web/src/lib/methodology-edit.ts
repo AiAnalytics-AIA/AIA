@@ -5,10 +5,21 @@
 // What this module does is keep the specification exact -- a value keeps its own type, a
 // field the base omits is not invented, and nothing but the changed fields moves.
 
-import type { MethodModuleDetail, MethodStepOut } from "./api";
+import type { MethodModuleDetail, MethodStepOut, MethodValue } from "./api";
+
+/** A rule's reading with each `{dotted.path}` replaced by its draft value: a whole number in
+ *  Czech groups (10 000), anything else as typed; a path with no value stays as written. */
+export function fillReading(reading: string, value: (path: string) => string | undefined): string {
+  return reading.replace(/\{([^{}]+)\}/g, (whole, path: string) => {
+    const raw = value(path);
+    if (raw === undefined || raw.trim() === "") return whole;
+    const n = Number(raw.trim());
+    return Number.isInteger(n) ? n.toLocaleString("cs-CZ") : raw.trim();
+  });
+}
 
 /** One editable field: a specification leaf a step reads, as the catalogue names it. */
-export type EditField = { reference: string; label_cs: string; unit: string };
+export type EditField = { reference: string; label_cs: string; unit: string; effect: MethodValue["effect"] };
 
 /** The fields and formula slots of each step that has any, in computation order. */
 export function editableSteps(detail: MethodModuleDetail): { step: MethodStepOut; fields: EditField[] }[] {
@@ -17,7 +28,7 @@ export function editableSteps(detail: MethodModuleDetail): { step: MethodStepOut
       step,
       fields: step.values
         .filter((v) => v.origin === "specification" && !v.absent)
-        .map(({ reference, label_cs, unit }) => ({ reference, label_cs, unit })),
+        .map(({ reference, label_cs, unit, effect }) => ({ reference, label_cs, unit, effect: effect ?? "" })),
     }))
     .filter(({ step, fields }) => fields.length > 0 || step.formulas.length > 0);
 }

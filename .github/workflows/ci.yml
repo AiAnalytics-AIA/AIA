@@ -139,7 +139,7 @@ jobs:
         # drives a real worker), so those install first.
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents,errors]"
           pip install -e "apps/worker[dev]"
           pip install -e "apps/executors[dev]"
           pip install -e "apps/api[dev]"
@@ -574,11 +574,13 @@ jobs:
 
           # A client-derived resource outside a study prefix would mean scope is
           # no longer carried in the path, which is how isolation gets lost.
+          # The one other scope: the client's own work (client-budget), which by
+          # design names no study and carries its client in the path instead.
           unscoped = [
               p
               for p in paths
               if any(k in p for k in ("/projects", "/runs", "/artifacts", "/agent-jobs"))
-              and not p.startswith("/api/v1/studies/")
+              and not p.startswith(("/api/v1/studies/", "/api/v1/clients/{client_id}/work/"))
           ]
           if unscoped:
               sys.exit(f"project routes must sit under a study scope: {unscoped}")
@@ -663,7 +665,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents]"
+          pip install -e "packages/aia_core[dev,postgres,report,bedrock,documents,errors]"
           pip install -e "apps/worker[dev]"
           pip install -e "apps/executors[dev]"
           pip install -e "apps/api[dev]"
@@ -824,6 +826,28 @@ jobs:
           # ADR 0018 decision 5: the product stack is AIA's five services, nothing else.
           services="$(docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --services | sort | tr '\n' ' ')"
           test "$services" = "api caddy postgres web worker " || { echo "::error::product services: $services"; exit 1; }
+
+      - name: Validate GlitchTip's Compose project
+        run: |
+          # deploy/develop/errors: GlitchTip and its own database, a project of its own on
+          # the product's network (plan error-tracking). Its two secrets are required.
+          if docker compose --env-file placeholder.env -f deploy/develop/errors/docker-compose.yml config -q 2>/dev/null; then
+            echo "::error::GlitchTip's project starts without its secrets"; exit 1
+          fi
+          printf 'GLITCHTIP_DB_PASSWORD=placeholder\nGLITCHTIP_SECRET_KEY=placeholder\n' > errors.env
+          cat placeholder.env >> errors.env
+          docker compose --env-file errors.env -f deploy/develop/errors/docker-compose.yml config -q
+          # The product's services are told where to report only through these two keys.
+          AIA_ERROR_TRACKING_DSN=http://k@glitchtip:8000/1 AIA_WEB_ERROR_TRACKING_DSN=https://k@errors.aia.example.test/2 \
+            docker compose --env-file placeholder.env -f deploy/develop/docker-compose.yml config --format json > composed.json
+          python3 - <<'PY'
+          import json
+          env = {name: s["environment"] for name, s in json.load(open("composed.json"))["services"].items()}
+          assert env["api"]["AIA_ERROR_TRACKING_DSN"] == "http://k@glitchtip:8000/1"
+          assert env["worker"]["AIA_ERROR_TRACKING_DSN"] == "http://k@glitchtip:8000/1"
+          assert env["web"]["AIA_WEB_ERROR_TRACKING_DSN"] == "https://k@errors.aia.example.test/2"
+          assert "AIA_ERROR_TRACKING_DSN" not in env["web"], "the backend DSN stays inside"
+          PY
 
       - name: Caddy loads through Compose
         run: |

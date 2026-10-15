@@ -14,6 +14,8 @@
 #                        a failure stops here and the running services are untouched
 #   switch               AIA_IMAGE_TAG=<sha> written to .env, then compose up; waits
 #                        until every service is healthy
+#   errors               GlitchTip (bin/errors.sh up) when AIA_ERRORS_ENABLED is true;
+#                        optional, a failure does not stop the deploy
 #   smoke                bin/smoke.sh against the public hostname
 #
 # Nothing of NPC Panel 18.6.6 is pulled, synced, started or waited on (ADR 0018
@@ -137,6 +139,17 @@ case "$catalogue_status" in
   *) log "WARNING: an audience catalogue could not be kept (above); the deploy goes on" ;;
 esac
 
+
+# GlitchTip, the error tracker (errors/docker-compose.yml), when SSM aia_errors_enabled is
+# true: started or updated after AIA is healthy, in a project of its own, so a change to
+# AIA's network is picked up. Optional: a failure is said and the deploy goes on, since AIA
+# runs the same without it. Bounded like the catalogue above.
+if [ "${AIA_ERRORS_ENABLED:-false}" = "true" ]; then
+  log "starting GlitchTip"
+  if ! timeout --kill-after=30 360 "$DEPLOY_DIR/bin/errors.sh" up; then
+    log "WARNING: GlitchTip did not start (above); errors are not tracked; the deploy goes on"
+  fi
+fi
 
 log "smoke tests"
 "$DEPLOY_DIR/bin/smoke.sh" "$SHA"
