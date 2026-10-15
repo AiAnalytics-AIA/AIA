@@ -93,4 +93,20 @@ describe("public AI configuration", () => {
     vi.stubEnv("AIA_AI_RESEARCH_AGENTS_ENABLED", "ture");
     expect((await GET().json()).aiRuntime.researchAgentsEnabled).toBeNull();
   });
+
+  it("hands the browser its error-tracking DSN, environment and release, or none", async () => {
+    vi.stubEnv("AIA_WEB_ERROR_TRACKING_DSN", "https://0123abcd@errors.aia.example.test/3");
+    vi.stubEnv("AIA_ENV", "develop");
+    vi.stubEnv("AIA_BUILD_SHA", "f6f88cb9");
+    expect((await GET().json()).errorTracking).toEqual({
+      dsn: "https://0123abcd@errors.aia.example.test/3", environment: "develop", release: "f6f88cb9",
+    });
+    vi.stubEnv("AIA_WEB_ERROR_TRACKING_DSN", "");
+    expect((await GET().json()).errorTracking.dsn).toBeNull();
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubEnv("AIA_WEB_ERROR_TRACKING_DSN", "errors.aia.example.test");
+    expect((await GET().json()).errorTracking.dsn).toBeNull();
+    expect(errorLog).toHaveBeenCalledWith(expect.stringContaining("AIA_WEB_ERROR_TRACKING_DSN"));
+    errorLog.mockRestore();
+  });
 });

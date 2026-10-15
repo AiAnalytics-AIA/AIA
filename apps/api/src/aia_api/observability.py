@@ -6,7 +6,8 @@ same id is returned to the client in the ``X-Request-ID`` header and in every er
 body.
 
 Secret redaction happens here rather than at each call site, because the one thing
-worse than no logs is logs containing an API key.
+worse than no logs is logs containing an API key. The patterns are
+``aia_core.infrastructure.redaction``'s, shared with the worker and the error reporter.
 """
 
 from __future__ import annotations
@@ -21,66 +22,17 @@ from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
 from typing import Any
 
+from aia_core.infrastructure import error_tracking
+from aia_core.infrastructure.redaction import REDACTED, redact
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
+__all__ = ["REDACTED", "redact", "request_id_var"]
+
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
-
-# Values that must never reach a log sink. Matched on the *key*, so a nested
-# payload carrying `{"api_key": "sk-ant-..."}` is redacted regardless of depth.
-_SECRET_KEY_PATTERN = re.compile(
-    r"(api[_-]?key|secret|token|password|passwd|credential|authorization|cookie|"
-    r"anthropic_api_key|openai_api_key)",
-    re.IGNORECASE,
-)
-
-# Provider key shapes, redacted even when they appear inside a free-text message.
-# The `sk-` pattern must allow interior hyphens: current Anthropic and OpenAI keys
-# are `sk-ant-api03-...` and `sk-proj-...`, so a character class without `-` stops
-# matching at the first separator and leaks the remainder of the key.
-_SECRET_VALUE_PATTERNS = (
-    re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_\-]{15,}"),
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{10,}", re.IGNORECASE),
-    # Generic long opaque tokens in an explicit assignment, e.g. `token=...`.
-    re.compile(
-        r"((?:api[_-]?key|token|secret|password)\s*[=:]\s*)[A-Za-z0-9._\-]{12,}",
-        re.IGNORECASE,
-    ),
-)
-
-REDACTED = "[redacted]"
-
-
-def redact(value: Any, *, _depth: int = 0) -> Any:
-    """Return ``value`` with anything secret-looking replaced.
-
-    Recursion is depth-limited so a cyclic or pathologically nested payload cannot
-    hang the logger.
-    """
-    if _depth > 8:
-        return "[truncated]"
-
-    if isinstance(value, dict):
-        return {
-            key: (
-                REDACTED if _SECRET_KEY_PATTERN.search(str(key)) else redact(val, _depth=_depth + 1)
-            )
-            for key, val in value.items()
-        }
-    if isinstance(value, (list, tuple)):
-        return [redact(item, _depth=_depth + 1) for item in value]
-    if isinstance(value, str):
-        out = value
-        for pattern in _SECRET_VALUE_PATTERNS:
-            # A pattern with a capture group keeps its prefix (e.g. "token=") so the
-            # log line stays readable; the secret itself is replaced.
-            replacement = r"\1" + REDACTED if pattern.groups else REDACTED
-            out = pattern.sub(replacement, out)
-        return out
-    return value
 
 
 class JsonFormatter(logging.Formatter):
@@ -146,6 +98,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         inbound = request.headers.get("X-Request-ID", "")
         rid = self._SAFE_ID.sub("", inbound)[:64] or uuid.uuid4().hex
         token = request_id_var.set(rid)
+        # Every event this request raises names it, so an issue opens its log lines.
+        error_tracking.set_tags(request_id=rid)
         logger = logging.getLogger("aia.request")
         started = time.perf_counter()
 
@@ -280,6 +234,11 @@ def install_exception_handlers(app: FastAPI) -> None:
         logging.getLogger("aia.error").exception(
             "unhandled exception",
             extra={"context": {"path": request.url.path, "type": type(exc).__name__}},
+        )
+        # The 500 a person saw, with the route it came from (the template, not the ids).
+        route = getattr(request.scope.get("route"), "path", None)
+        error_tracking.report_exception(
+            exc, tags={"request_id": request_id_var.get() or None, "route": route}
         )
         return _error(
             500,

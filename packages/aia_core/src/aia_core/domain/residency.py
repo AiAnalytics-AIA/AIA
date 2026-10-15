@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Final
 
-from .scope import ScopeGrant, StudyContext
+from .scope import ClientWorkContext, ScopeGrant, StudyContext, WorkScope, payer_study_id
 
 __all__ = [
     "DataClass",
@@ -135,14 +135,15 @@ class EgressDecision:
 
     organization_id: str
     client_id: str
-    study_id: str
+    #: None: the client's own work, which its budget pays for (client-budget).
+    study_id: str | None
     actor_id: str
     data_class: DataClass
     route_id: str
     provider: str
     zone: ResidencyZone
 
-    def audit_fields(self) -> dict[str, str]:
+    def audit_fields(self) -> dict[str, str | None]:
         """The fields an egress record must carry."""
         return {
             "organization_id": self.organization_id,
@@ -177,7 +178,7 @@ _EU_ONLY_CLASSES: Final = frozenset(
 
 def evaluate_egress(
     *,
-    scope: StudyContext,
+    scope: WorkScope,
     data_class: DataClass | None,
     route: ProviderRoute | None,
 ) -> EgressDecision:
@@ -212,9 +213,12 @@ def evaluate_egress(
     and cost attribution are owed for every paid call regardless of what it
     carried.
     """
-    if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
+    if not isinstance(scope, StudyContext | ClientWorkContext) or not isinstance(
+        scope.grant, ScopeGrant
+    ):
         raise EgressDenied(
-            "egress requires an authorised study context", reason="unauthorised_scope"
+            "egress requires an authorised study or client work context",
+            reason="unauthorised_scope",
         )
 
     if data_class is None:
@@ -253,7 +257,7 @@ def evaluate_egress(
     return EgressDecision(
         organization_id=scope.organization_id,
         client_id=scope.client_id,
-        study_id=scope.study_id,
+        study_id=payer_study_id(scope),
         actor_id=scope.actor_id,
         data_class=data_class,
         route_id=route.route_id,
@@ -288,7 +292,7 @@ class EgressPolicy:
     def authorise(
         self,
         *,
-        scope: StudyContext,
+        scope: WorkScope,
         data_class: DataClass | None,
         route_id: str | None,
     ) -> EgressDecision:

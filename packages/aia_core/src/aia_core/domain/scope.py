@@ -34,13 +34,16 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validat
 
 __all__ = [
     "CLIENT_ROLE_PERMISSIONS",
+    "CLIENT_WORK_PROJECT_OWNER",
     "DEFAULT_SELF_APPROVAL_ALLOWED",
     "ROLE_PERMISSIONS",
     "ApprovalIndependence",
     "Client",
+    "ClientBudget",
     "ClientContext",
     "ClientPermission",
     "ClientStatus",
+    "ClientWorkContext",
     "Organization",
     "OrganizationMembership",
     "OrganizationRole",
@@ -55,12 +58,14 @@ __all__ = [
     "StudyContext",
     "StudyKind",
     "StudyStatus",
+    "WorkScope",
     "client_permissions_for",
     "new_client_id",
     "new_organization_id",
     "new_study_id",
     "new_user_id",
     "observe_approval_independence",
+    "payer_study_id",
     "permissions_for",
     "require_approval_independence",
     "resolve_self_approval_policy",
@@ -231,6 +236,8 @@ class ClientPermission(StrEnum):
     #: The client's own budget and spend: what its client-level AI work may cost (client-budget).
     VIEW_CLIENT_COSTS = "VIEW_CLIENT_COSTS"
     MANAGE_CLIENT_BUDGET = "MANAGE_CLIENT_BUDGET"
+    #: Start work on the client itself, paid by its budget (client-budget CB3b).
+    RUN_CLIENT_WORK = "RUN_CLIENT_WORK"
 
 
 # Client role -> client permissions. A Researcher holds all of them (ADR 0019).
@@ -760,6 +767,63 @@ class StudyContext:
             f"StudyContext(org={self.organization_id}, client={self.client_id}, "
             f"study={self.study_id}, role={self.role.value})"
         )
+
+
+@dataclass(frozen=True, slots=True)
+class ClientWorkContext:
+    """The scope a worker runs one attempt of the client's own work under (client-budget).
+
+    A run on the client itself -- AI proposals from its documents -- has no study; the
+    client's own budget pays for it. Issued only by ``ScopeResolver.execution_context``
+    against a held lease, exactly as a worker's :class:`StudyContext` is, with the same
+    worker permissions (no approval, no budget management). It has no study, so nothing
+    that needs one can be handed it: every study repository and executor takes a
+    :class:`StudyContext` and refuses this by type.
+    """
+
+    organization_id: str
+    client_id: str
+    actor_id: str
+    permissions: frozenset[Permission]
+    grant: ScopeGrant
+    request_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.grant, ScopeGrant):
+            raise ScopeDenied("client work context requires an issued grant", reason="forged_scope")
+        for name in ("organization_id", "client_id", "actor_id"):
+            if not getattr(self, name):
+                raise ScopeDenied(
+                    f"{name} is required in a client work context", reason="incomplete"
+                )
+
+    def has(self, permission: Permission) -> bool:
+        """True when this scope confers ``permission``."""
+        return permission in self.permissions
+
+    def require(self, permission: Permission) -> None:
+        """Raise :class:`ScopeDenied` unless this scope confers ``permission``."""
+        if permission not in self.permissions:
+            raise ScopeDenied(
+                f"client work does not permit {permission.value}", reason="insufficient_role"
+            )
+
+    def __repr__(self) -> str:
+        return f"ClientWorkContext(org={self.organization_id}, client={self.client_id})"
+
+
+#: ``projects.owner`` of the client's own project: the one project with no study, where the
+#: client's own work runs (client-budget). The schema holds it to that (CHECK).
+CLIENT_WORK_PROJECT_OWNER: Final = "client_sources"
+
+#: The scope a paid call runs under: a study's, or the client's own work (client-budget).
+#: Its payer is the study, or, for a :class:`ClientWorkContext`, the client.
+WorkScope = StudyContext | ClientWorkContext
+
+
+def payer_study_id(scope: WorkScope) -> str | None:
+    """The study that pays for work under ``scope``; None when the client pays."""
+    return scope.study_id if isinstance(scope, StudyContext) else None
 
 
 @dataclass(frozen=True, slots=True)

@@ -101,7 +101,9 @@ class ProjectRow(Base):
     # how cross-tenant leaks happen.
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    # NULL only for a client-owned project (``client_sources``, client-budget CB2): work on
+    # the client itself, paid by the client's own budget; never an ordinary project.
+    study_id: Mapped[str | None] = mapped_column(String(64))
     created_by: Mapped[str | None] = mapped_column(String(64))
     # The repository that owns this project, when it is not an ordinary one:
     # ``study_design`` for a Study's design project (ADR 0016). NULL is an ordinary
@@ -140,6 +142,11 @@ class ProjectRow(Base):
         CheckConstraint("current_revision >= 0", name="current_revision_non_negative"),
         CheckConstraint("max_api_cost_usd >= 0", name="budget_non_negative"),
         CheckConstraint("project_type in ('research','simulation')", name="project_type_known"),
+        # A project belongs to a study, except the client's own (client-budget CB2).
+        CheckConstraint(
+            "(study_id is null) = (coalesce(owner, '') = 'client_sources')",
+            name="project_study_unless_client_owned",
+        ),
         # Portfolio listing is the hottest read path: newest first, within a
         # study, excluding archived and trashed rows.
         Index("ix_projects_study_modified", "study_id", "modified_at"),
@@ -1135,7 +1142,8 @@ class WorkflowRunRow(Base):
     # for projects.
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    # The payer: the study, or, when NULL, the client (client-budget CB2).
+    study_id: Mapped[str | None] = mapped_column(String(64))
     project_id: Mapped[str] = mapped_column(String(64), nullable=False)
     project_revision: Mapped[int] = mapped_column(Integer, nullable=False)
 
@@ -1319,7 +1327,7 @@ class StepAttemptRow(Base):
 
 
 class BudgetReservationRow(Base):
-    """A hold against a study's budget for one attempt.
+    """A hold against a study's budget, or the client's own, for one attempt.
 
     Reservations count as spent so that concurrent workers cannot each pass the
     budget check and collectively overspend. ``SETTLED_UNCERTAIN`` is the state a
@@ -1329,7 +1337,10 @@ class BudgetReservationRow(Base):
     __tablename__ = "budget_reservations"
 
     reservation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    # The payer: the study, or, when NULL, the client (client-budget CB2). ``client_id``
+    # is always the hold's client, denormalised as everywhere else.
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str | None] = mapped_column(String(64))
     run_id: Mapped[str | None] = mapped_column(String(64))
     step_id: Mapped[str | None] = mapped_column(String(64))
     attempt_id: Mapped[str | None] = mapped_column(String(64))
@@ -1351,6 +1362,7 @@ class BudgetReservationRow(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
         CheckConstraint("amount_usd >= 0", name="reservation_amount_non_negative"),
         CheckConstraint(
             "status in ('RESERVED','SETTLED','RELEASED','SETTLED_UNCERTAIN')",
@@ -1358,6 +1370,7 @@ class BudgetReservationRow(Base):
         ),
         # The outstanding-reservation sum, used by every budget check.
         Index("ix_reservations_study_status", "study_id", "status"),
+        Index("ix_reservations_client_status", "client_id", "status"),
         Index("ix_reservations_attempt", "attempt_id"),
     )
 
@@ -1421,10 +1434,11 @@ class ApprovalDecisionRow(Base):
 
     decision_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
-    # Scope. Denormalised so an audit query needs no join, as everywhere else.
+    # Scope. Denormalised so an audit query needs no join, as everywhere else. A NULL
+    # study is a decision about the client's own work (client-budget CB2).
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str | None] = mapped_column(String(64))
 
     # What was decided on: a workflow gate, an artifact sign-off, a budget lift, a spend
     # confirmation, the accept of an AI proposal (subject_id = the agent job's run id), or the
@@ -1527,7 +1541,8 @@ class AIUsageEventRow(Base):
 
     organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
     client_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    # NULL: a call the client's own budget paid for (client-budget CB2).
+    study_id: Mapped[str | None] = mapped_column(String(64))
     actor_id: Mapped[str] = mapped_column(String(64), nullable=False)
     run_id: Mapped[str | None] = mapped_column(String(64))
     step_id: Mapped[str | None] = mapped_column(String(64))

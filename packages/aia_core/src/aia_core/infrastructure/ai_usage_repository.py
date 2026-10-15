@@ -34,7 +34,14 @@ from aia_core.domain.ai_contracts import (
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass
-from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
+from aia_core.domain.scope import (
+    ClientWorkContext,
+    Permission,
+    ScopeDenied,
+    StudyContext,
+    WorkScope,
+    payer_study_id,
+)
 from aia_core.domain.workflow import FailureClass, as_utc
 
 from .tables import AIUsageEventRow, utcnow
@@ -184,17 +191,19 @@ class AIUsageRepository:
     record -- is the journal's responsibility, not this repository's.
     """
 
-    def __init__(self, session: Session, scope: StudyContext) -> None:
-        if not isinstance(scope, StudyContext):
+    def __init__(self, session: Session, scope: WorkScope) -> None:
+        if not isinstance(scope, StudyContext | ClientWorkContext):
             raise TypeError(
-                "AIUsageRepository requires a StudyContext issued by the authorization layer"
+                "AIUsageRepository requires a StudyContext or ClientWorkContext issued by the "
+                "authorization layer"
             )
         self._session = session
-        self._scope = scope
+        self._scope: WorkScope = scope
 
     @property
-    def scope(self) -> StudyContext:
-        """The authorised scope this repository operates in."""
+    def scope(self) -> WorkScope:
+        """The authorised scope this repository operates in: a study's, or the client's
+        own work, whose entries name no study (client-budget)."""
         return self._scope
 
     # --------------------------------------------------------------- writes --
@@ -210,7 +219,7 @@ class AIUsageRepository:
         if (event.organization_id, event.client_id, event.study_id) != (
             scope.organization_id,
             scope.client_id,
-            scope.study_id,
+            payer_study_id(scope),
         ):
             raise ScopeDenied(
                 "usage entry is attributed to a different scope", reason="cross_scope_ledger_write"
@@ -293,10 +302,13 @@ class AIUsageRepository:
     # ---------------------------------------------------------------- reads --
 
     def _scoped(self) -> tuple[ColumnElement[bool], ...]:
+        study_id = payer_study_id(self._scope)
         return (
             AIUsageEventRow.organization_id == self._scope.organization_id,
             AIUsageEventRow.client_id == self._scope.client_id,
-            AIUsageEventRow.study_id == self._scope.study_id,
+            AIUsageEventRow.study_id == study_id
+            if study_id is not None
+            else AIUsageEventRow.study_id.is_(None),
         )
 
     def events(
