@@ -4,6 +4,7 @@ run-recovery-and-truth 3a)."""
 from __future__ import annotations
 
 import copy
+import dataclasses
 from typing import Any
 
 from aia_core.domain.analysis.native import research_questions_of
@@ -256,3 +257,31 @@ def test_an_unknown_comparison_is_never_answerable_and_an_undeclared_one_is_not_
     assert habit.reasons == (TraceReason.COMPARISON_UNKNOWN,)
     plain = next(q for q in _trace(DESIGN).questions if q.text == RQ_HABIT)
     assert plain.verdict is Verdict.ANSWERABLE and plain.comparison is None
+
+
+def test_a_set_ranks_only_whole_one_refused_object_of_two_leaves_nothing_to_rank() -> None:
+    """Review (Codex on #426): the best single object's verdict must not stand for the set."""
+    design = _with_comparisons(DESIGN, {RQ_IMAGE: "rank_objects"})
+    design["sections"][1]["objects"] = ["Káva", "Čaj", "Voda"]
+    design["sections"][1]["context_objects"] = ["Voda"]  # two primary objects to rank
+    spec = _compile(design)
+    outlook = question_outlook(
+        spec,
+        forecast_support(
+            spec, support=AIA_SUPPORT_V1, persona_source=PersonaSource.FICTIONAL_ROSTER
+        ),
+    )
+    kava, _caj, voda = spec.battery_questions()
+
+    def image(refuse: str | None) -> Any:
+        items = [
+            dataclasses.replace(o, verdict=Verdict.UNANSWERABLE) if o.question_id == refuse else o
+            for o in outlook
+        ]
+        trace = trace_research(spec, research_questions_of(design), items, comparisons_of(design))
+        return next(q for q in trace.questions if q.text == RQ_IMAGE)
+
+    assert image(None).verdict is Verdict.ANSWERABLE
+    assert image(kava).verdict is Verdict.UNANSWERABLE  # one primary object left: no ranking
+    # A context object takes no part in the ranking; its verdict does not hold it back.
+    assert image(voda).verdict is Verdict.ANSWERABLE

@@ -28,9 +28,11 @@ question, the comparison that answers it (``research_plan.research_question_comp
 its text -> a :class:`Comparison`). The trace then checks that its measures can carry it:
 
 * ``describe``: any measure;
-* ``rank_objects``: a tracked set among its measures, with at least two primary objects; the
-  research question is as answerable as that set;
+* ``rank_objects``: a tracked set among its measures, with at least two primary objects;
 * ``ab_test``: a concept-test set (``test_konceptu``) of at least two concepts among them;
+
+  a set carries its comparison only whole: it is as answerable as the worst object it
+  compares, and the research question as its best carrying set;
 * ``compare_segments``: no AIA run gives its analysis segment evidence yet (the segments
   module says segmentation cannot be assessed without it), so it is unanswerable, by name;
 * a kind AIA does not know is unknown, never answerable.
@@ -178,22 +180,40 @@ def _judge(
         return Verdict.UNANSWERABLE, (TraceReason.SEGMENTS_UNAVAILABLE,)
     if comparison is Comparison.DESCRIBE:
         return verdict, ()
-    if comparison is Comparison.RANK_OBJECTS:
-        carrying = [m for m in measures if m in batteries and _primary(batteries[m]) >= 2]
-        missing = TraceReason.COMPARISON_NEEDS_TRACKED_SET
-    else:
-        carrying = [
-            m
-            for m in measures
-            if m in batteries
-            and batteries[m].output_type == _CONCEPT_TEST
-            and len(batteries[m].objects) >= 2
-        ]
-        missing = TraceReason.COMPARISON_NEEDS_CONCEPT_SET
+    rank = comparison is Comparison.RANK_OBJECTS
+    carrying: dict[str, SpecBattery] = {}
+    for m in measures:
+        battery = batteries.get(m)
+        if battery is None or battery.id in carrying:
+            continue
+        carries = (
+            _primary(battery) >= 2
+            if rank
+            else battery.output_type == _CONCEPT_TEST and len(battery.objects) >= 2
+        )
+        if carries:
+            carrying[battery.id] = battery
     if not carrying:
+        missing = (
+            TraceReason.COMPARISON_NEEDS_TRACKED_SET
+            if rank
+            else TraceReason.COMPARISON_NEEDS_CONCEPT_SET
+        )
         return Verdict.UNANSWERABLE, (missing,)
-    # Only the measures that can carry the comparison answer it.
-    return min((verdicts.get(m, Verdict.UNKNOWN) for m in carrying), key=_BEST.index), ()
+
+    # A set answers the comparison only as a whole: every object it compares (a ranking's
+    # primary objects, a test's concepts) must be answerable, so a set is as good as its
+    # worst such object; the question, as good as its best carrying set (review, Codex
+    # on #426: one refused object of two left nothing to rank).
+    def whole(battery: SpecBattery) -> Verdict:
+        compared = [
+            battery.question_id(o)
+            for o in battery.objects
+            if not rank or o.id not in battery.context_objects
+        ]
+        return max((verdicts.get(q, Verdict.UNKNOWN) for q in compared), key=_BEST.index)
+
+    return min((whole(b) for b in carrying.values()), key=_BEST.index), ()
 
 
 def _links(spec: ResearchSpecification) -> dict[str, tuple[str, ...]]:
