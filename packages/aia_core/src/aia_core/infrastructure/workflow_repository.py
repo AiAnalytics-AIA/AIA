@@ -42,6 +42,7 @@ from ..domain.population import (
 )
 from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
+    CLIENT_WORK_PROJECT_OWNER,
     ApprovalIndependence,
     ClientWorkContext,
     Permission,
@@ -49,6 +50,7 @@ from ..domain.scope import (
     StudyContext,
     WorkScope,
     observe_approval_independence,
+    payer_study_id,
     require_approval_independence,
 )
 from ..domain.workflow import (
@@ -83,6 +85,7 @@ from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
     ClientRow,
+    ProjectRow,
     RunPopulationBindingRow,
     StepAttemptRow,
     StepDependencyRow,
@@ -289,6 +292,19 @@ class WorkflowRepository:
             raise ScopeDenied("client work has no study", reason="client_work_scope")
         return self._scope
 
+    def _require_client_work_project(self, scope: ClientWorkContext, project_id: str) -> None:
+        project = self._session.scalar(
+            select(ProjectRow).where(
+                ProjectRow.project_id == project_id,
+                ProjectRow.organization_id == scope.organization_id,
+                ProjectRow.client_id == scope.client_id,
+                ProjectRow.study_id.is_(None),
+                ProjectRow.owner == CLIENT_WORK_PROJECT_OWNER,
+            )
+        )
+        if project is None:
+            raise WorkflowNotFound(project_id)
+
     @property
     def _work_scope(self) -> WorkScope:
         """The scope an attempt's own writes run under: a study's, or the client's work."""
@@ -465,8 +481,13 @@ class WorkflowRepository:
         refused rather than handed the old run: that would silently substitute
         the recorded population for the one the caller asked for.
         """
-        self.scope.require(Permission.RUN_WORKFLOW)
-        self.scope.require_open_study()
+        scope = self._work_scope
+        scope.require(Permission.RUN_WORKFLOW)
+        if isinstance(scope, StudyContext):
+            scope.require_open_study()
+        else:
+            # The client's own work runs only in the client's own project.
+            self._require_client_work_project(scope, project_id)
 
         existing = self._session.scalar(
             select(WorkflowRunRow).where(
@@ -490,16 +511,16 @@ class WorkflowRepository:
         self._session.add(
             WorkflowRunRow(
                 run_id=run_id,
-                organization_id=self.scope.organization_id,
-                client_id=self.scope.client_id,
-                study_id=self.scope.study_id,
+                organization_id=scope.organization_id,
+                client_id=scope.client_id,
+                study_id=payer_study_id(scope),
                 project_id=project_id,
                 project_revision=int(project_revision),
                 workflow_type=workflow_type,
                 status=WorkflowRunStatus.PENDING.value,
                 priority=int(priority),
                 idempotency_key=idempotency_key,
-                triggered_by=self.scope.actor_id,
+                triggered_by=scope.actor_id,
                 metadata_json=metadata or {},
             )
         )

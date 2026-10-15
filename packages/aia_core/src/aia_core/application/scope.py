@@ -391,6 +391,28 @@ class ScopeResolver:
             request_id=f"{run.run_id}/{attempt.attempt_id}",
         )
 
+    def client_work_context(
+        self, principal: AuthenticatedPrincipal, *, client_id: str
+    ) -> ClientWorkContext:
+        """Issue the scope a person starts the client's own work under (client-budget).
+
+        The client is resolved exactly as :meth:`client_context` resolves it -- active
+        member, the client in the organization, not archived -- and the person must hold
+        ``RUN_CLIENT_WORK``. The context carries the worker's permissions, the same set a
+        run of it executes under: it starts and follows work and approves nothing.
+        """
+        client = self.client_context(
+            principal, client_id=client_id, require=ClientPermission.RUN_CLIENT_WORK
+        )
+        return ClientWorkContext(
+            organization_id=client.organization_id,
+            client_id=client.client_id,
+            actor_id=client.actor_id,
+            permissions=WORKER_PERMISSIONS,
+            grant=ScopeGrant._issue(),
+            request_id=client.request_id,
+        )
+
     def client_context(
         self,
         principal: AuthenticatedPrincipal,

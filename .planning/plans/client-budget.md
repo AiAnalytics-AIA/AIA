@@ -4,7 +4,7 @@ chunks:
   - "[x] CB1. The client's budget: clients.budget_usd / spent_usd, VIEW_CLIENT_COSTS and MANAGE_CLIENT_BUDGET, GET/PUT /clients/{id}/budget audited, shown and set on Profil"
   - "[x] CB2. Client-paid runs in the schema: one payer per project, run, hold, usage row and approval (study or, when none, the client), the client_sources owner; the repository's hold, charge and close paths read the payer"
   - "[x] CB3. A run's payer in the worker: ScopeResolver issues a ClientWorkContext against a held lease; reserve, settle and charge the client; the gateway, egress and usage ledger take either payer"
-  - "[ ] CB3b. Starting the client's own work: a client_sources project and a run created by a person under a ClientContext with RUN_CLIENT_WORK"
+  - "[x] CB3b. Starting the client's own work: a client_sources project and a run created by a person under a ClientWorkContext issued for RUN_CLIENT_WORK"
   - "[ ] CB4. Over budget: a client run parks AWAITING_BUDGET and a person lifts it from the client, recorded in the approval ledger"
   - "[ ] CB5. Proof: a scripted paid step charged to a client end to end on SQLite and PostgreSQL; Doc follow-up (lifecycle K2d pays from the client)"
 ---
@@ -139,6 +139,21 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
     `apps/worker/tests/test_worker_loop.py`: a paid call on the client's work charged to
     the client under the real worker loop, and one too large for its budget parked
     `AWAITING_BUDGET` while the study's $100 stood untouched.
+
+### CB3b. Starting the client's own work
+
+- **Landed** (2026-10-15):
+  - `ClientPermission.RUN_CLIENT_WORK` (the Researcher holds it, ADR 0019);
+    `ScopeResolver.client_work_context(principal, client_id)` issues a `ClientWorkContext` to a
+    member who holds it, resolving the client exactly as `client_context` does; the worker's
+    permissions, so the person starts and follows work and approves nothing.
+  - `CLIENT_WORK_PROJECT_OWNER = "client_sources"` (`domain/scope.py`). `ProjectRepository` takes
+    a `ClientWorkContext` only with that owner (`TypeError` otherwise); its isolation predicate
+    is the client's projects with no study. `WorkflowRepository.create_run` under a client scope
+    runs only in that project (`WorkflowNotFound` for any other) and records no study.
+  - `application/client_work.py`: `client_work_project` (one per client, created on first use)
+    and `start_client_work` over `start_workflow`, which now takes either scope.
+  - Tests: `packages/aia_core/tests/test_client_work_start.py` (3, SQLite and PostgreSQL).
 
 ### CB4. Over budget
 

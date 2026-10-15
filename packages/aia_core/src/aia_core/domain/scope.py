@@ -34,6 +34,7 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validat
 
 __all__ = [
     "CLIENT_ROLE_PERMISSIONS",
+    "CLIENT_WORK_PROJECT_OWNER",
     "DEFAULT_SELF_APPROVAL_ALLOWED",
     "ROLE_PERMISSIONS",
     "ApprovalIndependence",
@@ -235,6 +236,8 @@ class ClientPermission(StrEnum):
     #: The client's own budget and spend: what its client-level AI work may cost (client-budget).
     VIEW_CLIENT_COSTS = "VIEW_CLIENT_COSTS"
     MANAGE_CLIENT_BUDGET = "MANAGE_CLIENT_BUDGET"
+    #: Start work on the client itself, paid by its budget (client-budget CB3b).
+    RUN_CLIENT_WORK = "RUN_CLIENT_WORK"
 
 
 # Client role -> client permissions. A Researcher holds all of them (ADR 0019).
@@ -808,6 +811,10 @@ class ClientWorkContext:
     def __repr__(self) -> str:
         return f"ClientWorkContext(org={self.organization_id}, client={self.client_id})"
 
+
+#: ``projects.owner`` of the client's own project: the one project with no study, where the
+#: client's own work runs (client-budget). The schema holds it to that (CHECK).
+CLIENT_WORK_PROJECT_OWNER: Final = "client_sources"
 
 #: The scope a paid call runs under: a study's, or the client's own work (client-budget).
 #: Its payer is the study, or, for a :class:`ClientWorkContext`, the client.

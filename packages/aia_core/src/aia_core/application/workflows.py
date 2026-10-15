@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session
 
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.population import PopulationBinding
-from aia_core.domain.scope import StudyContext
+from aia_core.domain.scope import WorkScope
 from aia_core.domain.workflow_templates import (
     WORKFLOW_TYPES,
     UnknownWorkflowType,
@@ -47,7 +47,7 @@ class StartedRun:
 
 def start_workflow(
     session: Session,
-    scope: StudyContext,
+    scope: WorkScope,
     *,
     project_id: str,
     workflow_type: str,
