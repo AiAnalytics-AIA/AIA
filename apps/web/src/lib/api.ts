@@ -845,6 +845,17 @@ export type DesignRevision = {
 };
 
 export type CheckStatus = "PASS" | "WARN" | "FAIL";
+export type OutlookVerdict = "ANSWERABLE" | "UNKNOWN" | "AT_RISK" | "UNANSWERABLE";
+/** One item a respondent will answer, as they read it, and whether the run will answer it. */
+export type QuestionOutlook = {
+  question_id: string;
+  text: string;
+  section_id: string;
+  /** The tracked set an object's rating belongs to; `null` for a question. */
+  battery_id: string | null;
+  verdict: OutlookVerdict;
+  reasons: string[];
+};
 export type Readiness = {
   design_revision_id: string;
   rules: string;
@@ -865,6 +876,9 @@ export type Readiness = {
   /** The study's limit, and whether starting this run will ask for confirmation against it. */
   spend_confirm_usd: number | null;
   confirmation_required: boolean;
+  /** Every item, in questionnaire order, with its verdict; empty when the design does not compile,
+   * absent from an API that predates it (no card is shown then). */
+  question_outlook?: QuestionOutlook[];
 };
 
 export type ResearchPhase = "QUEUED" | "RUNNING" | "WAITING" | "COMPLETED" | "FAILED" | "CANCELLED";

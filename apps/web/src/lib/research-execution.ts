@@ -8,7 +8,7 @@
 // * anything computed from the fictional dataset says so, every time.
 
 import { t, tv } from "@/i18n/t";
-import type { ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
+import type { OutlookVerdict, QuestionOutlook, ResearchPhase, ResearchRun, ResearchRunSummary, ResearchStep } from "@/lib/api";
 import type { Tone } from "@/lib/tone";
 
 export const RUNTIME_UNAVAILABLE = "ai_runtime_unavailable";
@@ -340,4 +340,45 @@ export function sociomapObjects(battery: SociomapBattery): SociomapObject[] {
     const [x, y] = xy.get(o.id) ?? [0, 0];
     return { id: o.id, label: o.label, score: battery.relation.scores[i] ?? null, x, y };
   });
+}
+
+// --------------------------------------------------------------------------- //
+// Before a run: which questions it will answer (plan run-recovery-and-truth 2b)
+// --------------------------------------------------------------------------- //
+
+/** Worst first: what a run will not answer is read before what it will. */
+export const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
+
+export function verdictTone(verdict: OutlookVerdict): Tone {
+  if (verdict === "UNANSWERABLE") return "fault";
+  if (verdict === "AT_RISK") return "you";
+  if (verdict === "UNKNOWN") return "neutral";
+  return "done";
+}
+
+/** How many items carry each verdict; every verdict present, zero when none. */
+export function outlookCounts(items: readonly QuestionOutlook[]): Record<OutlookVerdict, number> {
+  const counts: Record<OutlookVerdict, number> = { UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 };
+  for (const item of items) counts[item.verdict] += 1;
+  return counts;
+}
+
+/** The items worst first, questionnaire order kept within a verdict. */
+export function outlookByVerdict(items: readonly QuestionOutlook[]): QuestionOutlook[] {
+  const rank = (v: OutlookVerdict) => VERDICT_ORDER.indexOf(v);
+  return items.map((item, i) => [item, i] as const).sort((a, b) => rank(a[0].verdict) - rank(b[0].verdict) || a[1] - b[1]).map(([item]) => item);
+}
+
+/** A reason in words; a code this client does not know is named, never hidden. */
+export function outlookReason(code: string): string {
+  const key = `research.exec.outlook.reason.${code}`;
+  const words = t(key);
+  return words === key ? tv("research.exec.outlook.reason.other", { code }) : words;
+}
+
+/** Where an item's reason is fixed: support (n) on Dimenze, everything else in the questionnaire. */
+export function outlookFixStep(reasons: readonly string[]): "persona" | "questionnaire" | null {
+  if (reasons.some((r) => r !== "support_unknown" && !r.startsWith("support_"))) return "questionnaire";
+  if (reasons.some((r) => r === "support_suppressed" || r === "support_analysis_excluded" || r === "support_indicative")) return "persona";
+  return null;
 }
