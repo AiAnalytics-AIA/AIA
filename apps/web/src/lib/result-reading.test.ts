@@ -117,6 +117,10 @@ describe("citedMeasure", () => {
     expect(share.format(38.4)).toBe("38,4 %");
     expect(citedMeasure("q2.n", spec)!.format(140)).toBe("140");
     expect(citedMeasure("q2.effective_n", spec)!.format(110.25)).toBe("110,3");
+    // At the places the claim was admitted at, when it says (V1b): never rounded again.
+    expect(share.format(38, 0)).toBe("38 %");
+    expect(share.format(38.462, 3)).toBe("38,462 %");
+    expect(citedMeasure("q2.n", spec)!.format(140, 0)).toBe("140");
   });
 
   it("resolves a set object's rating to its object card", () => {

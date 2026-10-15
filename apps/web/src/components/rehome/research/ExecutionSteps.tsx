@@ -63,6 +63,8 @@ import {
   stepStatusLabel,
   stepTone,
   supportNote,
+  storedPlaces,
+  type StoredPlaces,
   topBoxWidth,
   type AggregateDeviation,
   type QuestionResult as AggregateResult,
@@ -1298,7 +1300,7 @@ function CitedNumbers({ ids, outcome, spec }: { ids: readonly string[]; outcome:
         return (
           <li key={claim.claim_id} data-cited-number className="max-w-full rounded-control border border-border bg-surface-sunken px-2.5 py-1 text-xs leading-5">
             {measure
-              ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value)}</span> {measure.what} · {measure.title}</a>
+              ? <a href={`#${measureAnchor(measure.measureId)}`} className="no-underline hover:underline"><span className="font-semibold tabular-nums">{measure.format(claim.value, claim.decimals)}</span> {measure.what} · {measure.title}</a>
               : <span><span className="font-semibold tabular-nums">{claim.value.toLocaleString("cs-CZ")}</span> <code>{claim.evidence_ref}</code></span>}
             {claim.indicative ? <span className="text-status-you-ink"> · orientační</span> : null}
           </li>
@@ -1471,7 +1473,7 @@ function pinnedSpecification(specification: Artifact | null): CompiledSpecificat
 }
 
 /** Every measure of the aggregate, in the questionnaire's order where the specification gives one. */
-function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecification | null, box: number): AggregateMeasure[] {
+function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecification | null, box: number, at: StoredPlaces): AggregateMeasure[] {
   const { questions, batteries } = payload.aggregate;
   const specQuestions = new Map((pinned?.questions ?? []).map((q) => [q.id, q]));
   const specBatteries = new Map((pinned?.batteries ?? []).map((b) => [b.id, b]));
@@ -1481,7 +1483,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
   return [
     ...questionIds.map((id) => {
       const q = specQuestions.get(id);
-      return { id, title: q?.text || `Otázka ${id}`, group: null, result: questions[id], table: resultTable(id, questions[id], box), scale: q?.scale ?? null };
+      return { id, title: q?.text || `Otázka ${id}`, group: null, result: questions[id], table: resultTable(id, questions[id], box, at), scale: q?.scale ?? null };
     }),
     ...batteryIds.flatMap((id) => {
       const battery = batteries[id];
@@ -1489,7 +1491,7 @@ function aggregateMeasures(payload: AggregatePayload, pinned: CompiledSpecificat
       const objectIds = inOrder<string>(Object.keys(battery.objects), (spec?.objects ?? []).map((o) => o.id));
       return objectIds.map((oid) => {
         const result = battery.objects[oid];
-        return { id: `${id}:${oid}`, title: result.label || `Objekt ${oid}`, group: battery.title || `Sada ${id}`, result, table: resultTable(oid, result, box), scale: spec?.scale ?? null };
+        return { id: `${id}:${oid}`, title: result.label || `Objekt ${oid}`, group: battery.title || `Sada ${id}`, result, table: resultTable(oid, result, box, at), scale: spec?.scale ?? null };
       });
     }),
   ];
@@ -1536,7 +1538,8 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
   const pinned = pinnedSpecification(specification);
   const deviation = payload?.aggregate ? aggregateDeviation(payload.aggregate) : null;
   const box = topBoxWidth(deviation);
-  const measures = payload?.aggregate ? aggregateMeasures(payload, pinned, box) : [];
+  const at = storedPlaces(payload?.aggregate as Record<string, unknown> | undefined);
+  const measures = payload?.aggregate ? aggregateMeasures(payload, pinned, box, at) : [];
   const anchors = measures.map((m) => measureAnchor(m.id)).join(",");
   // A link to one measure (#measure-<id>, from the analysis or a comparison) shows that card:
   // the filters that could hide it are cleared, and its detail is open.
@@ -1600,7 +1603,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
       <div className="flex flex-col gap-3" aria-live="polite">
         {matching.length ? matching.map((measure) => {
           const anchor = measureAnchor(measure.id);
-          const reading = readMeasure(measure.result, measure.scale, box);
+          const reading = readMeasure(measure.result, measure.scale, box, at);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-focused={focused === anchor ? "true" : undefined}
             className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">

@@ -637,3 +637,25 @@ def test_a_half_written_draft_is_not_assessed_and_never_stops_the_comparison(
     assert [s["study_id"] for s in impact["studies"]] == [world.study_id("primary")]
     # The broken draft and the other client's empty study: nothing a check can read.
     assert impact["not_assessed"] == 2
+
+
+# ------------------------------------------------------- rounding (V1b): stored places
+
+
+def test_the_rounding_stage_says_what_it_changes_and_previews_results_lines(
+    owner: TestClient,
+) -> None:
+    body = owner.get(AGGREGATION).json()
+    values = _values(body)
+    assert values["rounding.share_decimals"]["value"] == 1
+    assert values["rounding.mean_decimals"]["effect"] == "changes_stored"
+    assert body["preview_title_cs"] == "Jak to uvidí výzkumník ve Výsledcích a ve zprávě"
+    checked = owner.post(
+        f"{AGGREGATION}/check",
+        json=_aggregation_edit(rounding__share_decimals=0, rounding__mean_decimals=3),
+    ).json()
+    assert checked["valid"] is True
+    lines = [(p["step_id"], p["status"], p["message_cs"]) for p in checked["preview"]]
+    assert lines[0] == ("round_share", "", "Ranní nápoj: Kávu: 38 % (34\u201343 %)")
+    refused = owner.post(f"{AGGREGATION}/check", json=_aggregation_edit(rounding__share_decimals=4))
+    assert refused.json()["valid"] is False and refused.json()["preview"] == []

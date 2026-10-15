@@ -39,6 +39,7 @@ from typing import Final
 
 from pydantic import BaseModel
 
+from ..report.numbers import number
 from ..research_aggregate import AIA_AGGREGATE_V1, AggregationSpec
 from .aggregation_formulas import AGGREGATION_FORMULAS
 from .catalogue import (
@@ -47,8 +48,10 @@ from .catalogue import (
     EvidenceKind,
     MethodModule,
     MethodStep,
+    ParameterEffect,
     ParameterRef,
     Preset,
+    PreviewLine,
     StepGroup,
     Symbol,
 )
@@ -93,6 +96,10 @@ _FORMULAS: Final = (
     f"{_T}/test_methodology_aggregation_formulas.py"
     "::test_every_fixture_aggregates_identically_through_its_built_in_expressions"
 )
+_ROUNDED: Final = (
+    f"{_T}/test_methodology_rounding.py"
+    "::test_the_aggregate_stores_its_numbers_at_the_versions_places"
+)
 _DECLARED: Final = (
     f"{_T}/test_methodology_aggregation.py::test_the_preset_is_the_units_literals_bit_for_bit"
 )
@@ -109,7 +116,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Pojmenování agregace",
         formula_latex=r"\text{agregace} = \text{methodology\_version}",
         implements=f"{_A}:AggregationSpec",
-        source_sha256="b4a5fabda39765ee5338208acc77f25674896dea4aaa59d71dd3cb7ef9d0540d",
+        source_sha256="0366231c59589dc23ae7c9f7aaa9f81038147f8ec1a942e32bef7dbf5766cf31",
         parameters=(ParameterRef("methodology_version", "Verze agregace"),),
         evidence=(_AGG,),
         tests=(
@@ -154,7 +161,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\quad\text{(na 1 desetinné místo)}"
         ),
         implements=f"{_A}:bootstrap_weighted_distribution",
-        source_sha256="753ecee5c57b695210093700b35cef706bd195a57c3810f9db68b73a634e46b9",
+        source_sha256="ccbf0a5f0ad9a737ed5ae6e741a9ddee5cbe183015a658f7a22abdb276f4e25a",
         symbols=(Symbol("p_c", "podíl možnosti c", "%"),),
         evidence=(_UNC, _CAPTURES),
         tests=(
@@ -219,7 +226,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         title_cs="Top box škály",
         formula_latex=(r"T = 100\,\frac{\sum_k w_k\,[x_k \ge \max - (b - 1)]}{\sum_k w_k}"),
         implements=f"{_A}:aggregate_question",
-        source_sha256="cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+        source_sha256="d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
         symbols=(Symbol("b", "šířka top boxu", "bodů škály"),),
         parameters=(
             ParameterRef("top_box", "Šířka top boxu", "bodů škály"),
@@ -237,7 +244,7 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\text{semínko}_i = \text{semínko} + i"
         ),
         implements=f"{_A}:aggregate_question",
-        source_sha256="cc5a38c8a135ede7d140dad91814cd57bf2270d7dcd8d85ee9fe2cbd43134ff4",
+        source_sha256="d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
         parameters=(ParameterRef("bootstrap.reps_multi", "Replikace bootstrapu na možnost"),),
         evidence=(_AGG, _CAPTURES),
         tests=(_EXACT, _DECLARED),
@@ -334,23 +341,128 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
     ),
 )
 
+_ROUNDING_KEEPS: Final = (
+    "celé číslo od 0 do 3",
+    "meze intervalu na stejný počet míst jako odhad",
+    "analýza a zpráva převezmou uložené číslo, znovu nezaokrouhlují",
+    "jiný počet míst než 18.6.6 se u běhu uvede jako odchylka",
+)
+
+_ROUNDING_STEPS: Final[tuple[MethodStep, ...]] = (
+    MethodStep(
+        id="round_share",
+        title_cs="Podíly v procentech",
+        formula_latex=r"p^{*} = \operatorname{round}(p,\ d_p)",
+        implements=f"{_A}:aggregate_question",
+        source_sha256="d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
+        symbols=(Symbol("d_p", "počet desetinných míst podílu", "míst"),),
+        parameters=(
+            ParameterRef(
+                "rounding.share_decimals",
+                "Desetinná místa podílů",
+                "místa",
+                ParameterEffect.CHANGES_STORED,
+            ),
+        ),
+        evidence=(_AGG,),
+        tests=(_EXACT, _ROUNDED),
+        role_cs=(
+            "Na kolik desetinných míst se uloží podíl odpovědi a podíl top boxu. Uloží se "
+            "s výsledkem běhu; analýza a zpráva číslo převezmou a znovu ho nezaokrouhlují."
+        ),
+        source_cs="podíly odpovědí (jedna i více odpovědí), podíl top boxu, meze intervalu",
+        effect_cs="Výsledky: tabulky a grafy otázek · Analýza: čísla, která smí převzít · Zpráva",
+        note_cs="Na nejbližší hodnotu. Meze intervalu na stejný počet míst jako odhad.",
+        reading_cs="desetinná místa podílu = {rounding.share_decimals}",
+        keeps_cs=_ROUNDING_KEEPS,
+    ),
+    MethodStep(
+        id="round_mean",
+        title_cs="Průměry a směrodatná odchylka",
+        formula_latex=r"\bar{x}^{*} = \operatorname{round}(\bar{x},\ d_m),\quad "
+        r"s^{*} = \operatorname{round}(s,\ d_m)",
+        implements=f"{_A}:aggregate_question",
+        source_sha256="d028b86b424ef08f51a1ab7adb400bb2f6b828a39fc4a0d84ca35044a6f448c9",
+        symbols=(Symbol("d_m", "počet desetinných míst průměru a SD", "míst"),),
+        parameters=(
+            ParameterRef(
+                "rounding.mean_decimals",
+                "Desetinná místa průměrů a SD",
+                "místa",
+                ParameterEffect.CHANGES_STORED,
+            ),
+        ),
+        evidence=(_AGG,),
+        tests=(_EXACT, _ROUNDED),
+        role_cs=(
+            "Na kolik desetinných míst se uloží průměr škálové otázky, meze jeho intervalu "
+            "a směrodatná odchylka."
+        ),
+        source_cs="průměr škály, meze jeho 95% intervalu, směrodatná odchylka",
+        effect_cs="Výsledky: řádek škálové otázky · Analýza: čísla, která smí převzít · Zpráva",
+        note_cs="Medián se nezaokrouhluje: je to vždy bod škály.",
+        reading_cs="desetinná místa průměru a SD = {rounding.mean_decimals}",
+        keeps_cs=_ROUNDING_KEEPS,
+    ),
+)
+
+#: Fictional numbers the preview rounds: each as the aggregate computes it, unrounded.
+_SHARES: Final = (
+    ("Ranní nápoj: Kávu", 38.461538, 34.082117, 42.937746),
+    ("Ranní nápoj: Čaj", 27.272727, 23.041208, 31.763891),
+)
+_MEANS: Final = (("Spokojenost (škála 1\u201310)", 7.432187, 7.209143, 7.651227, 1.817669),)
+
+
+def _preview(spec: BaseModel) -> tuple[PreviewLine, ...]:
+    """How Results and the report write fictional numbers under ``spec``: rounded by the
+    aggregate's ``round`` at the draft's places, written as the report writes them."""
+    if not isinstance(spec, AggregationSpec):
+        raise TypeError(f"not an aggregation specification: {type(spec).__name__}")
+    d_p, d_m = spec.rounding.share_decimals, spec.rounding.mean_decimals
+
+    def at(value: float, d: int) -> str:
+        return number(round(value, d), d)
+
+    lines = [
+        PreviewLine(
+            "round_share",
+            "",
+            f"{label}: {at(p, d_p)} % ({at(lo, d_p)}\u2013{at(hi, d_p)} %)",
+        )
+        for label, p, lo, hi in _SHARES
+    ]
+    lines += [
+        PreviewLine(
+            "round_mean",
+            "",
+            f"{label}: průměr {at(m, d_m)} ({at(lo, d_m)}\u2013{at(hi, d_m)}), SD {at(sd, d_m)}",
+        )
+        for label, m, lo, hi, sd in _MEANS
+    ]
+    return tuple(lines)
+
+
 _GROUPS: Final = (
     StepGroup("M", "Agregace", ("method",)),
     StepGroup("V", "Váhy", ("weights", "kish")),
     StepGroup("O", "Odhady", ("share", "mean", "median", "sd", "top_box", "multi")),
     StepGroup("B", "Interval: bootstrap dárců", ("resample", "interval")),
     StepGroup("F", "Věrohodnost otázky", ("classify", "fidelity")),
+    StepGroup("Z", "Zobrazení čísel", ("round_share", "round_mean")),
 )
 
 AGGREGATION: Final = MethodModule(
     id="aggregation",
     title_cs="Agregace: z odpovědí odhad s intervalem",
-    steps=_STEPS,
+    steps=_STEPS + _ROUNDING_STEPS,
     presets=(Preset("aia-aggregate-1", AIA_AGGREGATE_V1, _validate),),
     in_force="aia-aggregate-1",
     groups=_GROUPS,
     formulas=AGGREGATION_FORMULAS,
     editable=True,
+    preview=_preview,
+    preview_title_cs="Jak to uvidí výzkumník ve Výsledcích a ve zprávě",
     note_cs=(
         "Přesný přenos agregace 18.6.6: odhady, Kishovo n, podpora a potlačení jsou shodné "
         "s jednotkou, meze intervalů leží v jejím rozptylu mezi semínky (generátor AIA, "

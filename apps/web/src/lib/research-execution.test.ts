@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { QuestionOutlook, ResearchRun, ResearchStep } from "@/lib/api";
-import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
+import { aggregateDeviation, hasUnknownOrigin, isModelled, isSynthetic, mayRetryAnalysis, MODELLED_DISCLOSURE, needsRepair, originKind, outlookByVerdict, traceMeasures, outlookCounts, outlookFixStep, outlookReason, resultOriginKind, stepOriginKind, parkedForRuntime, phaseTone, populationNote, reportHolds, resultTable, shouldPoll, storedPlaces, UNIT_PLACES, stepLabel, stepStatusLabel, stepTone, supportNote, topBoxWidth, verdictTone, waitingDetail } from "./research-execution";
 
 const run = (extra: Partial<ResearchRun>): ResearchRun =>
   ({ phase: "RUNNING", is_terminal: false, steps: [], fieldwork_source: "ai_runtime", ...extra }) as ResearchRun;
@@ -28,6 +28,18 @@ describe("research execution", () => {
     expect(phaseTone("COMPLETED")).toBe("done");
     expect(stepLabel("sociomap")).toBe("Sociomapa (interní)");
     expect(stepLabel("something_new")).toBe("something_new");
+  });
+
+  it("shows each number at the places the aggregate stored it, never rounded again (V1b)", () => {
+    expect(storedPlaces({ questions: {} })).toEqual(UNIT_PLACES);
+    expect(storedPlaces({ rounding: { share_decimals: 0, mean_decimals: 3 } })).toEqual({ share: 0, mean: 3 });
+    expect(storedPlaces({ rounding: { share_decimals: 9, mean_decimals: "2" } })).toEqual(UNIT_PLACES);
+    const base = { n_platnych: 300, effective_n: 250, n_unique_layer_donors: 200, support_status: "REPORTABLE" as const };
+    const share = resultTable("q", { typ: "vyber", ...base, celkem_pct: { Kávu: 38 }, intervaly_95: { Kávu: { low: 34, high: 43 } } }, 2, { share: 0, mean: 3 });
+    expect(share.rows[0]).toMatchObject({ value: "38 %", interval: "34–43" });
+    const scale = resultTable("q", { typ: "skala", ...base, prumer: 7.432, prumer_interval_95: { low: 7.209, high: 7.651 }, top2box_pct: 61.804, top2box_interval_95: { low: 55.1, high: 68.25 } }, 2, { share: 3, mean: 3 });
+    expect(scale.rows[0]).toMatchObject({ value: "7,432", interval: "7,209–7,651" });
+    expect(scale.rows[1].value).toBe("61,804 %");
   });
 
   it("shows no number for a suppressed cell, and says why", () => {

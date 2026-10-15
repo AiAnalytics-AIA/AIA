@@ -264,6 +264,22 @@ export function aggregateDeviation(aggregate: Record<string, unknown> | null | u
   return { version: typeof d.methodology_version === "string" ? d.methodology_version : null, changed, formulas };
 }
 
+/** How many decimal places an aggregate stored its numbers at (plan methodology-tab V1b):
+ *  shares (with the top box) and means (with the SD). A number is shown as stored, never
+ *  rounded again, so the page reads the same places the aggregate wrote. */
+export type StoredPlaces = { share: number; mean: number };
+export const UNIT_PLACES: StoredPlaces = { share: 1, mean: 2 };
+const places = (v: unknown, fallback: number) => (typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 3 ? v : fallback);
+
+/** The aggregate's `rounding` block, or 18.6.6's places when it has none (the unit's values,
+ *  and every aggregate stored before V1b). */
+export function storedPlaces(aggregate: Record<string, unknown> | null | undefined): StoredPlaces {
+  const raw = aggregate?.rounding;
+  if (typeof raw !== "object" || raw === null) return UNIT_PLACES;
+  const r = raw as Record<string, unknown>;
+  return { share: places(r.share_decimals, UNIT_PLACES.share), mean: places(r.mean_decimals, UNIT_PLACES.mean) };
+}
+
 /** How many top points the aggregate's top box holds: the unit's two, unless a version changed it. */
 export function topBoxWidth(deviation: AggregateDeviation | null): number {
   const used = deviation?.changed.find((c) => c.path === "top_box")?.used;
@@ -272,7 +288,7 @@ export function topBoxWidth(deviation: AggregateDeviation | null): number {
 
 /** One question's aggregate as rows. A suppressed cell has rows but no values. `topBox` is how
  *  many top points its top box holds (2 unless the aggregate's methodology changed it). */
-export function resultTable(id: string, result: QuestionResult, topBox = 2): ResultTable {
+export function resultTable(id: string, result: QuestionResult, topBox = 2, at: StoredPlaces = UNIT_PLACES): ResultTable {
   const suppressed = result.support_status === "SUPPRESS";
   const hide = (value: string | null) => (suppressed ? null : value);
   const rows: ResultRow[] = [];
@@ -283,8 +299,8 @@ export function resultTable(id: string, result: QuestionResult, topBox = 2): Res
       const iv = intervals[label];
       rows.push({
         label,
-        value: hide(`${num(value, 1)} %`),
-        interval: hide(range(iv, 1)),
+        value: hide(`${num(value, at.share)} %`),
+        interval: hide(range(iv, at.share)),
         ...(suppressed || typeof value !== "number" ? {} : { bar: { value, low: iv?.low ?? null, high: iv?.high ?? null } }),
       });
     }
@@ -292,15 +308,15 @@ export function resultTable(id: string, result: QuestionResult, topBox = 2): Res
     const mean = result.prumer as number | null;
     rows.push({
       label: t("research.exec.results.mean"),
-      value: hide(mean === null || mean === undefined ? null : num(mean, 2)),
-      interval: hide(range(result.prumer_interval_95 as Interval, 2)),
+      value: hide(mean === null || mean === undefined ? null : num(mean, at.mean)),
+      interval: hide(range(result.prumer_interval_95 as Interval, at.mean)),
     });
     const top = result.top2box_pct as number | null;
     const topIv = result.top2box_interval_95 as Interval;
     rows.push({
       label: topBox === 2 ? t("research.exec.results.top2") : tv("research.exec.results.topN", { n: topBox }),
-      value: hide(top === null || top === undefined ? null : `${num(top, 1)} %`),
-      interval: hide(range(topIv, 1)),
+      value: hide(top === null || top === undefined ? null : `${num(top, at.share)} %`),
+      interval: hide(range(topIv, at.share)),
       ...(suppressed || typeof top !== "number" ? {} : { bar: { value: top, low: topIv?.low ?? null, high: topIv?.high ?? null } }),
     });
   }

@@ -916,11 +916,11 @@ export const cs = {
         },
         versions: {
           versionChangeCount: "{fields} parametrů a {formulas} vzorců", changeDetails: "Která pole se změnila",
-          effect: { blocks_run: "zablokuje běh", blocks_design: "zablokuje návrh", warns: "jen upozorní" },
+          effect: { blocks_run: "zablokuje běh", blocks_design: "zablokuje návrh", warns: "jen upozorní", changes_stored: "změní uložená čísla" },
           reading: "Pravidlo",
           keeps: "Co musí každá verze splnit",
           preview: "Jak to uvidí výzkumník v Kontrole a spuštění",
-          previewHint: "Po kontrole tu uvidíte řádky, které kód napíše pro ukázkové studie pod upravenými mezemi.",
+          previewHint: "Po kontrole tu uvidíte ukázkové řádky tak, jak je kód napíše pod upravenými hodnotami.",
           previewStatus: { PASS: "v pořádku", WARN: "upozorní", FAIL: "blokuje" },
           workflow: "1. Upravte → 2. Zkontrolujte a porovnejte → 3. Uložte verzi → 4. Uveďte v platnost",
           flowLabel: "Postup změny",

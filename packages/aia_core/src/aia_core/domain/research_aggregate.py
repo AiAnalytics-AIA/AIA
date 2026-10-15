@@ -34,10 +34,10 @@ import math
 import operator
 import random
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, StrictInt, field_validator, model_validator
 
 from .evidence.support import (
     UNIT_DONOR_THRESHOLDS,
@@ -57,12 +57,14 @@ __all__ = [
     "BOOTSTRAP_GENERATOR",
     "DEVIATION_NOTE",
     "KISH",
+    "MAX_DECIMALS",
     "MEAN",
     "SHARE",
     "TOP_BOX",
     "VARIANCE",
     "AggregationSpec",
     "BootstrapSpec",
+    "RoundingSpec",
     "aggregate_dataset",
     "aggregate_question",
     "aggregation_deviation",
@@ -73,6 +75,7 @@ __all__ = [
     "donor_support",
     "evidence_rating",
     "kish_effective_n",
+    "stored_decimals",
     "uncertainty_note",
     "weighted_distribution",
     "weighted_mean",
@@ -135,14 +138,40 @@ class BootstrapSpec(_Declared):
         return self
 
 
+#: The most places a stored number may carry: more than three adds noise, not precision.
+MAX_DECIMALS: Final = 3
+
+
+class RoundingSpec(_Declared):
+    """How many decimal places the aggregate stores (plan ``methodology-tab`` V1b).
+
+    ``share_decimals`` rounds every percentage -- an option's share, the top box -- and its
+    interval; ``mean_decimals`` a scale's mean, its interval and its standard deviation. The
+    number is stored rounded, and analysis and the report read it as stored, never rounding it
+    again. 18.6.6 stores 1 and 2 (``dotaznik.py`` ``agreguj_otazku``)."""
+
+    share_decimals: StrictInt = 1
+    mean_decimals: StrictInt = 2
+
+    @model_validator(mode="after")
+    def _places(self) -> RoundingSpec:
+        for name in ("share_decimals", "mean_decimals"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or not 0 <= value <= MAX_DECIMALS:
+                raise ValueError(f"{name} must be a whole number from 0 to {MAX_DECIMALS}")
+        return self
+
+
 class AggregationSpec(_Declared):
     """How a question is aggregated (plan ``methodology-tab`` G2a). ``top_box`` is how many of
     a scale's top points count as its top box: an answer ``x`` counts when
-    ``x >= max - (top_box - 1)``."""
+    ``x >= max - (top_box - 1)``. ``rounding`` is how many places it stores (V1b); a pin
+    stored before it was declared computed 18.6.6's, which is its default."""
 
     methodology_version: str
     bootstrap: BootstrapSpec
     top_box: int
+    rounding: RoundingSpec = RoundingSpec()
 
     @field_validator("top_box")
     @classmethod
@@ -169,6 +198,7 @@ AIA_AGGREGATE_V1: Final = AggregationSpec(
         quantiles=(0.025, 0.975),
     ),
     top_box=2,
+    rounding=RoundingSpec(share_decimals=1, mean_decimals=2),
 )
 
 # dotaznik.py agreguj_otazku: the unit's note, verbatim, around the lines of the rule.
@@ -527,6 +557,7 @@ def bootstrap_weighted_distribution(
     donors: Sequence[str] | None,
     quantiles: tuple[float, float],
     slots: Slots = NO_SLOTS,
+    decimals: int = 1,
 ) -> dict[str, dict[str, float]]:
     """``bootstrap_weighted_distribution``: a share per category, each with its interval
     between ``quantiles`` of the resampled shares. A replaced ``agg.share`` computes the point
@@ -584,9 +615,9 @@ def bootstrap_weighted_distribution(
             lo, hi = _quantile(vals, quantiles[0]), _quantile(vals, quantiles[1])
             rr = reps
         out[c] = {
-            "estimate": round(point, 1),
-            "low": round(lo, 1),
-            "high": round(hi, 1),
+            "estimate": round(point, decimals),
+            "low": round(lo, decimals),
+            "high": round(hi, decimals),
             "reps": rr,
         }
     return out
@@ -654,6 +685,8 @@ def aggregate_question(
     decided by ``support_rule`` and its intervals and top box by ``method``. ``slots`` are the
     estimators a methodology version replaced (none: the code computes every one)."""
     boot = method.bootstrap
+    places = method.rounding
+    pd, md = places.share_decimals, places.mean_decimals
     rows = [(a, w, d) for a, w, d in zip(answers, weights, donors, strict=True) if a is not None]
     ok_answers = [r[0] for r in rows]
     w = clean_weights([r[1] for r in rows])
@@ -688,6 +721,7 @@ def aggregate_question(
                 donors=ok_donors,
                 quantiles=boot.quantiles,
                 slots=slots,
+                decimals=places.share_decimals,
             )
             if rows
             else {}
@@ -706,7 +740,7 @@ def aggregate_question(
                 point = float(slots[SHARE](hit=tuple(hit), w=tuple(w)))
             else:
                 point = 100.0 * math.fsum(h * x for h, x in zip(hit, w, strict=True)) / denom
-            pct[choice] = round(point, 1)
+            pct[choice] = round(point, pd)
             bci = (
                 bootstrap_weighted_mean(
                     hit,
@@ -721,7 +755,7 @@ def aggregate_question(
                 else None
             )
             intervals[choice] = (
-                {"low": round(100.0 * bci["low"], 1), "high": round(100.0 * bci["high"], 1)}
+                {"low": round(100.0 * bci["low"], pd), "high": round(100.0 * bci["high"], pd)}
                 if bci
                 else {"low": 0.0, "high": 0.0}
             )
@@ -769,20 +803,20 @@ def aggregate_question(
             counts[x] = counts.get(x, 0) + 1
         out.update(
             {
-                "prumer": round(float(ci["estimate"]), 2) if ci else None,
+                "prumer": round(float(ci["estimate"]), md) if ci else None,
                 "prumer_interval_95": (
-                    {"low": round(float(ci["low"]), 2), "high": round(float(ci["high"]), 2)}
+                    {"low": round(float(ci["low"]), md), "high": round(float(ci["high"]), md)}
                     if ci
                     else None
                 ),
                 "median": weighted_quantile(v, w, 0.5) if v else None,
-                "sd": round(float(var**0.5), 2) if var is not None else None,
+                "sd": round(float(var**0.5), md) if var is not None else None,
                 "rozlozeni": {str(k): counts[k] for k in sorted(counts)},
-                "top2box_pct": round(100.0 * float(top_ci["estimate"]), 1) if top_ci else None,
+                "top2box_pct": round(100.0 * float(top_ci["estimate"]), pd) if top_ci else None,
                 "top2box_interval_95": (
                     {
-                        "low": round(100.0 * float(top_ci["low"]), 1),
-                        "high": round(100.0 * float(top_ci["high"]), 1),
+                        "low": round(100.0 * float(top_ci["low"]), pd),
+                        "high": round(100.0 * float(top_ci["high"]), pd),
                     }
                     if top_ci
                     else None
@@ -872,4 +906,18 @@ def aggregate_dataset(
     departure = aggregation_deviation(method, slots)
     if departure is not None:
         out["deviation"] = departure
+    if method.rounding != AIA_AGGREGATE_V1.rounding:
+        # Only when it is not 18.6.6's: the unit's aggregate stays byte for byte what it was,
+        # and a reader with no block reads the unit's places (:func:`stored_decimals`).
+        out["rounding"] = method.rounding.model_dump(mode="json")
     return out
+
+
+def stored_decimals(aggregate: Mapping[str, Any]) -> RoundingSpec:
+    """The places an aggregate's numbers were stored at: its ``rounding`` block, or 18.6.6's
+    when it has none (every aggregate computed before V1b, and every one under the unit's
+    values). A block that does not read raises ``ValueError``; nothing guesses."""
+    block = aggregate.get("rounding")
+    if block is None:
+        return AIA_AGGREGATE_V1.rounding
+    return RoundingSpec.model_validate(block)
