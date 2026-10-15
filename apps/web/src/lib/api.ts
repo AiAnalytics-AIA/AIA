@@ -848,7 +848,14 @@ export type CheckStatus = "PASS" | "WARN" | "FAIL";
 export type OutlookVerdict = "ANSWERABLE" | "UNKNOWN" | "AT_RISK" | "UNANSWERABLE";
 /** One item a respondent will answer, as they read it, and whether the run will answer it. */
 /** One stated research question and the items (`QuestionOutlook.question_id`) that measure it. */
-export type ResearchQuestionTrace = { text: string; measures: string[]; verdict: OutlookVerdict; reasons: string[] };
+export type ResearchQuestionTrace = {
+  text: string;
+  measures: string[];
+  verdict: OutlookVerdict;
+  reasons: string[];
+  /** The comparison the plan declares for it; `null` when none is declared or it is unknown. */
+  comparison?: string | null;
+};
 export type ResearchTrace = {
   questions: ResearchQuestionTrace[];
   /** Items naming a research question the plan does not state. */
@@ -1106,11 +1113,11 @@ export type DeepResearchRun = {
 };
 export type DeepResearchBundle = {
   quality_status: string; fictional_client: boolean; client_facing: false;
-  accepted: { evidence: { claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
-  quarantined: { reason: string; detail?: string }[];
+  accepted: { evidence: { evidence_id?: string; claim: string; quote: string; source_ref: string }; score: { score: number; source_class: string } }[];
+  quarantined: { reason: string; detail?: string; claim?: string }[];
   snapshots: { snapshot_id: string; url: string; title: string; retrieval_mode: string }[];
   counts: Record<string, number>; sha256: string;
-  synthesis?: { check: { summary: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
+  synthesis?: { check: { summary: string | null; summary_withheld?: string | null; findings: { subject_key: string; text: string; evidence_ids: string[] }[]; excluded?: { subject_key: string; text: string; reason: string; detail?: string }[]; gaps: string[]; limitations: string[]; status: string }; brief?: { gaps: { need: string; reason: string }[] } | null } | null;
   origins?: string[];
 };
 const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;

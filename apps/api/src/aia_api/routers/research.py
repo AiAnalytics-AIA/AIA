@@ -369,6 +369,9 @@ class ResearchQuestionTraceResponse(BaseModel):
     #: The best verdict among its measures; UNANSWERABLE or UNKNOWN with a reason when none.
     verdict: str
     reasons: list[str]
+    #: The comparison the plan declares for it (describe, rank_objects, compare_segments,
+    #: ab_test); ``None`` when none is declared or the declared one is unknown.
+    comparison: str | None = None
 
 
 class DanglingLinkResponse(BaseModel):
@@ -865,6 +868,7 @@ def _trace(trace: ResearchTrace) -> ResearchTraceResponse:
                 measures=list(q.measures),
                 verdict=q.verdict.value,
                 reasons=[r.value for r in q.reasons],
+                comparison=q.comparison.value if q.comparison else None,
             )
             for q in trace.questions
         ],

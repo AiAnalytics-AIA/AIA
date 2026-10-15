@@ -63,7 +63,12 @@ from ..domain.research_sociomap import (
     read_methods,
     side_tables_of,
 )
-from ..domain.research_trace import ResearchTrace, trace_research, with_research_trace
+from ..domain.research_trace import (
+    ResearchTrace,
+    comparisons_of,
+    trace_research,
+    with_research_trace,
+)
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
@@ -768,7 +773,9 @@ class ResearchRuns:
             readiness = with_support_forecast(readiness, forecast, support=support)
         questions = question_outlook(spec, forecast)
         # The research questions as the analysis will read them, each traced to its measures.
-        trace = trace_research(spec, research_questions_of(content), questions)
+        trace = trace_research(
+            spec, research_questions_of(content), questions, comparisons_of(content)
+        )
         return RunOutlook(
             spec=spec,
             readiness=with_research_trace(readiness, trace),
