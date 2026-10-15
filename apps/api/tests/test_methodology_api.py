@@ -615,3 +615,25 @@ def test_readiness_compare_lists_the_studies_whose_verdict_the_draft_moves(
     assert again["readiness"]["not_assessed"] == 0
     # Nothing was written: the study's content and the limits in force are as they were.
     assert lead.get(f"{READINESS}/versions").json()["versions"] == []
+
+
+def test_a_half_written_draft_is_not_assessed_and_never_stops_the_comparison(
+    world: Any, as_user: Any
+) -> None:
+    lead = as_user("lead")
+    broken = lead.put(
+        f"{API}/studies/{world.study_id('sibling')}/workspace/content",
+        json={"content": {"sections": 1}, "base_revision": None},
+    )
+    assert broken.status_code == 200, broken.text
+    saved = lead.put(
+        f"{API}/studies/{world.study_id('primary')}/workspace/content",
+        json=_readiness_draft(15, 5),
+    )
+    assert saved.status_code == 200, saved.text
+    compared = lead.post(f"{READINESS}/compare", json=_readiness_edit(sample_size__min=10))
+    assert compared.status_code == 200, compared.text
+    impact = compared.json()["readiness"]
+    assert [s["study_id"] for s in impact["studies"]] == [world.study_id("primary")]
+    # The broken draft and the other client's empty study: nothing a check can read.
+    assert impact["not_assessed"] == 2

@@ -62,7 +62,8 @@ class ReadinessImpact:
     studies: tuple[StudyImpact, ...]
     #: Assessed studies the draft changes nothing for.
     unchanged: int
-    #: Open research studies with neither working content nor a Design Revision.
+    #: Open research studies with nothing a check can read: no working content and no Design
+    #: Revision, or a half-written draft the compiler cannot read.
     not_assessed: int
 
 
@@ -125,8 +126,14 @@ def readiness_impact(
             if not content:
                 not_assessed += 1
                 continue
-            before = _checks(content, in_force, pair_n_min)
-            after = _checks(content, draft, pair_n_min)
+            try:
+                before = _checks(content, in_force, pair_n_min)
+                after = _checks(content, draft, pair_n_min)
+            except (TypeError, ValueError, AttributeError, KeyError):
+                # A half-written draft the compiler cannot read: this study cannot be
+                # assessed, and one such draft never stops the organization's comparison.
+                not_assessed += 1
+                continue
             moves = _moves(before, after)
             if not moves and before.ready == after.ready:
                 unchanged += 1
