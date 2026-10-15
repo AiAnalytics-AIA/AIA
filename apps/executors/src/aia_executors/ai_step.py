@@ -162,7 +162,7 @@ class StepModelCaller:
             else None
         )
         return ExecutionContext(
-            scope=self._context.scope,
+            scope=self._context.work_scope,
             runtime_version=self._runtime_version,
             journal=journal,  # type: ignore[arg-type]
             run_id=step.run_id,

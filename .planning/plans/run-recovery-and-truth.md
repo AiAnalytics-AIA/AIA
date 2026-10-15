@@ -10,7 +10,7 @@ chunks:
   - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
   - "[x] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
-  - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
+  - "[x] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
@@ -354,6 +354,43 @@ Tests:
 - `QuestionnaireStep.test.tsx` ("declares how each research question is answered").
 - `ExecutionSteps.test.tsx` (the trace card's comparison row).
 
+## 3e — the questionnaire agent proposes the links
+
+3a–3c let a person link each item to the research questions it measures and declare how
+each research question is answered. The agent that writes the questionnaire knew which
+research question each question was for, and said nothing. Every link was typed by hand.
+
+- **The contract** (`domain/research_agents.py`, harness 3). Every field stays required,
+  so the contract stays strict-compatible (`schema_supports_strict`):
+  - `Question.research_questions` and `BatterySection.research_questions`: the research
+    questions the item measures, by text.
+  - `BatterySection.output_type`: `pozicni_mapa` or `test_konceptu`. Without it, the
+    agent cannot propose the set an A/B answer needs.
+  - `QuestionnaireProposal.comparisons`: one `{research_question, comparison}` per research
+    question, from the closed set of 3c.
+- **The mapping** (`proposal_result`). Code keeps a link only when it names a research
+  question the design states (`research_questions_of`, compared as links compare). Any other
+  link is dropped and named in the result (`dropped_links`): an agent never invents a
+  research question by linking to it. An empty list is no declaration, so the key is left
+  out. Proposed comparisons replace the declared ones for the research questions they name;
+  the rest stay.
+- **The prompt.** The build and optimize task wording says to link every item to the stated
+  research questions and to declare each comparison. Those two prompts move to baseline
+  version 3; the others stay at 2. A stored edit keeps its own wording, and its model still
+  sees the fields in the schema.
+- **The review.** The inline proposal review lists each research question with what the
+  proposal measures it by and how it would be answered. It names any research question
+  the proposal leaves unmeasured. Accepting the proposal accepts the links with it: the
+  same one decision, recorded once (ADR 0019 gate 1).
+
+Tests:
+
+- `test_research_agents.py`: links kept by text, an unstated link dropped and named,
+  comparisons merged, the contract strict-compatible.
+- `test_prompt_upgrade.py`: each action's baseline version.
+- `trace.test.ts` (`proposedTrace`).
+- `ProposalReview` test: the research questions in the review.
+
 ## Doc follow-up
 
 - `CLAUDE.md` § map, `analysis.py`: "a schema failure is stored per field; the
@@ -406,3 +443,10 @@ Tests:
   measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
   unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
   setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".
+- 3e, `CLAUDE.md` § map, `research_agents.py`: "Eight closed Research task contracts …";
+  append "; the questionnaire contract (harness 3) proposes each item's research_questions,
+  a set's output_type and each research question's comparison; proposal_result keeps only
+  links to stated research questions (dropped_links names the rest); prompt_version_for:
+  build/optimize at 3, the rest at 2". Web `trace.ts`: append "proposedTrace (a proposal's
+  links, read on the inline review)"; `ProposalReview`: "a questionnaire proposal's research
+  questions, their measures and answers, before it is accepted".

@@ -23,7 +23,7 @@ import threading
 import time
 from collections.abc import Callable
 
-from aia_core.domain.scope import StudyContext
+from aia_core.domain.scope import WorkScope
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -41,7 +41,7 @@ class Heartbeat(threading.Thread):
         self,
         *,
         session_factory: sessionmaker[Session],
-        scope: StudyContext,
+        scope: WorkScope,
         attempt_id: str,
         step_id: str,
         worker_id: str,

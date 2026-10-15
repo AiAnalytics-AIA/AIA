@@ -10,8 +10,11 @@
 
 import { useLayoutEffect, useRef } from "react";
 
+import { t, tv } from "@/i18n/t";
 import type { ResearchAgentResult } from "@/lib/api";
+import type { ResearchProject } from "@/research/model";
 import { proposalDiff } from "@/research/proposal-diff";
+import { proposedTrace } from "@/research/trace";
 import { proposalAnalysis } from "@/research/plan-edit";
 import type { ResearchState } from "@/research/store";
 import { Sparkle } from "../icons";
@@ -44,6 +47,10 @@ export function ProposalReview({ result, state, onDecision }: {
   }, []);
   const diff = proposalDiff(proposalAnalysis(state), result.result.proposal);
   const changedSets = diff.sets.filter((s) => s.status !== "same");
+  // A questionnaire proposal brings its research-question links (3e); accepting it accepts them.
+  const questionnaire = Array.isArray(result.result.proposal.sections);
+  const traced = questionnaire ? proposedTrace(result.result.project as unknown as ResearchProject) : [];
+  const dropped = Array.isArray(result.result.dropped_links) ? result.result.dropped_links.length : 0;
   return (
     <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border border-ai-edge bg-surface-raised">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
@@ -89,6 +96,23 @@ export function ProposalReview({ result, state, onDecision }: {
                 </li>
               ))}
             </ul>
+          </div>
+        ) : null}
+        {traced.length ? (
+          <div>
+            <h3 className="text-xs font-medium text-ink-muted">{t("research.questionnaire.proposed.title")}</h3>
+            <ul className="mt-1 flex flex-col gap-2">
+              {traced.map((l) => (
+                <li key={l.researchQuestion} className="text-[13px] leading-5">
+                  <span className="font-semibold">{l.researchQuestion}</span>
+                  <span className={`block ${l.measures.length ? "text-ink-muted" : "text-status-you-ink"}`}>
+                    {l.measures.length ? tv("research.questionnaire.proposed.measures", { list: l.measures.join(" · ") }) : t("research.questionnaire.proposed.unmeasured")}
+                  </span>
+                  {l.comparison ? <span className="block text-ink-muted">{tv("research.questionnaire.proposed.answer", { kind: t(`research.questionnaire.comparisons.kind.${l.comparison}`) })}</span> : null}
+                </li>
+              ))}
+            </ul>
+            {dropped ? <p className="mt-1 text-xs text-ink-muted">{tv("research.questionnaire.proposed.dropped", { count: dropped })}</p> : null}
           </div>
         ) : null}
         <details className="text-sm">

@@ -7,46 +7,23 @@ is answerable from the log stream alone.
 Redaction applies to log lines **and** to exception text the worker writes into
 an attempt's ``error_json``: an executor's exception message is exactly where a
 provider key or a bearer token ends up. The patterns are the provider-key shapes
-the API redacts (``apps/api/src/aia_api/observability.py``). The worker cannot
-import the API, so the shapes are restated here; moving them into ``aia_core`` so
-both import one definition is ``.planning/open-items.md`` OI-23.
+the API redacts, defined once in ``aia_core.infrastructure.redaction`` (OI-23).
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import re
 import sys
 from contextvars import ContextVar
-from typing import Any, Final
+from typing import Any
+
+from aia_core.infrastructure.redaction import redact_text
 
 __all__ = ["attempt_context", "configure_logging", "redact_text"]
 
 # Fields bound to the attempt being executed, added to every line logged meanwhile.
 attempt_context: ContextVar[dict[str, str] | None] = ContextVar("attempt_context", default=None)
-
-_SECRET_VALUE_PATTERNS: Final = (
-    re.compile(r"sk-[A-Za-z0-9][A-Za-z0-9_\-]{15,}"),
-    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{10,}", re.IGNORECASE),
-    re.compile(
-        r"((?:api[_-]?key|token|secret|password)\s*[=:]\s*)[A-Za-z0-9._\-]{12,}",
-        re.IGNORECASE,
-    ),
-)
-REDACTED: Final = "[redacted]"
-_MAX_RECORDED_MESSAGE: Final = 500
-
-
-def redact_text(value: str, *, limit: int = _MAX_RECORDED_MESSAGE) -> str:
-    """Return ``value`` with secret-looking substrings replaced, truncated to ``limit``."""
-    text = str(value)
-    for pattern in _SECRET_VALUE_PATTERNS:
-        text = pattern.sub(
-            lambda m: (m.group(1) + REDACTED) if m.groups() else REDACTED,
-            text,
-        )
-    return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
 class _JsonFormatter(logging.Formatter):

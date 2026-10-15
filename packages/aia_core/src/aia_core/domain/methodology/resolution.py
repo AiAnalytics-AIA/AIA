@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import importlib
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum, StrEnum
@@ -30,7 +31,7 @@ from typing import Any, Final
 
 from pydantic import BaseModel
 
-from .catalogue import BuiltinFormula, MethodModule, MethodStep, Preset
+from .catalogue import BuiltinFormula, MethodModule, MethodStep, ParameterEffect, Preset
 from .expressions import ExpressionRefused, check_properties, compile_formula
 
 __all__ = [
@@ -258,6 +259,9 @@ def _step_problems(step: MethodStep, presets: tuple[Preset, ...]) -> dict[str, s
             continue
         if not any(_resolves(p.spec, parameter.path) for p in presets):
             problems[f"{where}:{parameter.path}"] = "no preset has this path"
+    for placeholder in re.findall(r"\{([^{}]+)\}", step.reading_cs):
+        if not any(_resolves(p.spec, placeholder) for p in presets):
+            problems[f"{where}:reading:{placeholder}"] = "the reading names a path no preset has"
     for constant in step.constants:
         try:
             read_constant(constant.symbol)
@@ -340,6 +344,7 @@ class ValueView:
     unit: str
     origin: ValueOrigin
     value: Any  # ABSENT where the preset omits the part
+    effect: ParameterEffect = ParameterEffect.NONE
 
 
 @dataclass(frozen=True, slots=True)
@@ -381,6 +386,7 @@ def describe(module: MethodModule, preset: str | None = None) -> ModuleView:
                     parameter.unit,
                     ValueOrigin.SPECIFICATION,
                     value,
+                    parameter.effect,
                 )
             )
         for constant in step.constants:

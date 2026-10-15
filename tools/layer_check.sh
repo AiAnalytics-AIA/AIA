@@ -138,6 +138,27 @@ forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
   "$CORE/infrastructure/storage.py" "$CORE/infrastructure/model_adapters/aws_signing.py"
+# The error reporter (plan error-tracking) is one module: it decides what may leave
+# (redaction, no bodies, no locals) for every process. A second import site is a
+# second client that sends without those hooks. Named exemptions: the tests that drive
+# the real client over a capturing transport (test_error_tracking.py in the core,
+# test_error_reporting.py in the API and the worker) import its Transport base class.
+SENTRY_IMPORT='^\s*(from|import)\s+sentry_sdk\b'
+forbid "sentry_sdk is imported only by the error reporter (packages)" \
+  "$SENTRY_IMPORT" \
+  packages \
+  "$CORE/infrastructure/error_tracking.py" packages/aia_core/tests/test_error_tracking.py
+forbid "sentry_sdk is imported only by the error reporter (apps/api)" \
+  "$SENTRY_IMPORT" \
+  apps/api \
+  apps/api/tests/test_error_reporting.py
+forbid "sentry_sdk is imported only by the error reporter (apps/worker)" \
+  "$SENTRY_IMPORT" \
+  apps/worker \
+  apps/worker/tests/test_error_reporting.py
+forbid "sentry_sdk is imported only by the error reporter (apps/executors)" \
+  "$SENTRY_IMPORT" \
+  apps/executors
 forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
   '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
   "$CORE/infrastructure/model_adapters/"

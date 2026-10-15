@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
 import type { Section } from "./questionnaire";
-import { comparisonOf, danglingLinks, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
+import { comparisonOf, danglingLinks, linksOf, proposedTrace, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
 
 const RQ1 = "Jak často lidé pijí kávu?";
 const RQ2 = "Jak lidé vnímají ranní nápoje?";
@@ -78,5 +78,17 @@ describe("a set compared as concepts (an A/B test's set)", () => {
     expect(togglesConceptTest(sections(project())[1])).toBe(true); // no output type: a position map
     expect(togglesConceptTest({ ...sections(project())[1], output_type: "segmentace" })).toBe(false);
     expect(togglesConceptTest(sections(project())[0])).toBe(false);
+  });
+});
+
+describe("what a proposed design links each research question to (run-recovery-and-truth 3e)", () => {
+  it("names each research question's measures by their wording, its comparison, and an unmeasured one", () => {
+    let p = toggleQuestionLink(project(), 0, 0, RQ1);
+    p = toggleSectionLink(p, 1, ` ${RQ1}`);
+    p = setComparison(p, RQ1, "describe");
+    expect(proposedTrace(p)).toEqual([
+      { researchQuestion: RQ1, measures: ["Jak často pijete kávu?", "Nápoje"], comparison: "describe" },
+      { researchQuestion: RQ2, measures: [], comparison: null },
+    ]);
   });
 });
