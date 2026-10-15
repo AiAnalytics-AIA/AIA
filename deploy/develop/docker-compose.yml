@@ -42,6 +42,10 @@ x-app-env: &app-env
   AIA_STORAGE_KMS_KEY_ID: ${AIA_STORAGE_KMS_KEY_ID:-}
   AWS_REGION: ${AWS_REGION}
   AWS_DEFAULT_REGION: ${AWS_REGION}
+  # Where the API's 500s and the worker's broken runs are reported: GlitchTip's backend
+  # project, on this network as glitchtip:8000 (errors/docker-compose.yml, bin/errors.sh).
+  # From SSM aia_error_tracking_dsn; unset, nothing is reported or installed.
+  AIA_ERROR_TRACKING_DSN: ${AIA_ERROR_TRACKING_DSN:-}
   # Credentials are deliberately absent: boto3 finds the instance role through
   # IMDS. The containers reach 169.254.169.254 through the host's default route.
 
@@ -102,6 +106,11 @@ services:
       AIA_COGNITO_DOMAIN: ${AIA_COGNITO_DOMAIN}
       AIA_COGNITO_CLIENT_ID: ${AIA_COGNITO_CLIENT_ID}
       AIA_PUBLIC_ORIGIN: https://${AIA_PUBLIC_HOSTNAME}
+      # The browser's error reporting (lib/error-tracking.ts): GlitchTip's web project at
+      # https://errors.<hostname>, from SSM aia_web_error_tracking_dsn. A DSN's key can only
+      # send events; unset, the browser loads nothing. AIA_ENV labels the events.
+      AIA_WEB_ERROR_TRACKING_DSN: ${AIA_WEB_ERROR_TRACKING_DSN:-}
+      AIA_ENV: develop
     expose: ["3000"]
     networks: [internal]
     read_only: true

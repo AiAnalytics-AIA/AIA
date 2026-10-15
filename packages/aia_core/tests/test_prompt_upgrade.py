@@ -64,9 +64,11 @@ def test_catalogue_reports_the_actual_role_version(role: AgentRole) -> None:
 def test_every_live_editable_task_passes_the_same_store_validation() -> None:
     editable = [s for s in slots() if s.wired]
     assert len(editable) == len(ResearchAction)
+    # The questionnaire prompts name the research-question links and comparisons (plan 3e).
+    moved = {"aia.research.build_questionnaire", "aia.research.optimize_questionnaire"}
     for slot in editable:
         assert slot.check(slot.baseline_text) == slot.baseline_text.strip()
-        assert slot.baseline_version == "2"
+        assert slot.baseline_version == ("3" if slot.prompt_id in moved else "2")
 
 
 def test_wikipedia_guidance_names_its_scope_and_requires_reading_original_sources() -> None:

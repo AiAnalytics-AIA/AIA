@@ -459,6 +459,17 @@ resource "aws_route53_record" "host" {
   records = [aws_eip.host.public_ip]
 }
 
+# GlitchTip, the error tracker, at errors.<public hostname> on the same host
+# (deploy/develop/errors; Caddy serves it).
+resource "aws_route53_record" "errors" {
+  count   = var.route53_zone_id != "" ? 1 : 0
+  zone_id = var.route53_zone_id
+  name    = "errors.${var.public_hostname}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.host.public_ip]
+}
+
 # ----------------------------------------------------------------------------- #
 # Snapshots: the second copy of the database, behind the nightly pg_dump.
 # ----------------------------------------------------------------------------- #

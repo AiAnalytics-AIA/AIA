@@ -18,7 +18,7 @@ from typing import Any
 
 from aia_core.domain.ai_contracts import AIUsageEvent
 from aia_core.domain.providers import Provider, is_paid
-from aia_core.domain.scope import StudyContext
+from aia_core.domain.scope import ScopeDenied, StudyContext, WorkScope
 from aia_core.infrastructure.ai_usage_repository import AIUsageRepository, LedgerConflict
 from aia_core.infrastructure.workflow_repository import LeaseLost, WorkflowRepository
 from sqlalchemy.exc import DBAPIError, OperationalError
@@ -59,7 +59,7 @@ def _is_transient(error: BaseException) -> bool:
 
 def in_transaction[T](
     session_factory: sessionmaker[Session],
-    scope: StudyContext,
+    scope: WorkScope,
     work: Callable[[WorkflowRepository], T],
     *,
     attempts: int = 3,
@@ -99,7 +99,7 @@ class AttemptContext:
         self,
         *,
         session_factory: sessionmaker[Session],
-        scope: StudyContext,
+        scope: WorkScope,
         step: StepInput,
         worker_id: str,
         signals: AttemptSignals,
@@ -114,6 +114,14 @@ class AttemptContext:
 
     @property
     def scope(self) -> StudyContext:
+        """The claimed study's scope; refused by name on the client's own work, which has
+        none, so an executor written for a study fails closed there (client-budget)."""
+        if not isinstance(self._scope, StudyContext):
+            raise ScopeDenied("client work has no study", reason="client_work_scope")
+        return self._scope
+
+    @property
+    def work_scope(self) -> WorkScope:
         return self._scope
 
     @property

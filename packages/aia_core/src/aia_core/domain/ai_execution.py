@@ -36,7 +36,7 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from .ai_contracts import AIUsageEvent, ModelCallFailed, ModelRequest, ModelResult
-from .scope import ScopeDenied, ScopeGrant, StudyContext
+from .scope import ClientWorkContext, ScopeDenied, ScopeGrant, StudyContext, WorkScope
 from .workflow import FailureClass
 
 __all__ = [
@@ -105,14 +105,15 @@ def _never_cancelled() -> bool:
 class ExecutionContext:
     """Everything the gateway needs that a request must not be able to supply.
 
-    ``scope`` is an issued :class:`StudyContext`. ``reservation`` comes from the
+    ``scope`` is an issued :class:`StudyContext`, or a :class:`ClientWorkContext` for the
+    client's own work, which its budget pays for (client-budget). ``reservation`` comes from the
     workflow repository, not the caller. ``journal`` is the durable record.
     ``is_cancelled`` is polled at checkpoints (cooperative cancellation, as the
     workflow engine already does between steps). ``clock`` is injectable so
     ledger timestamps are testable.
     """
 
-    scope: StudyContext
+    scope: WorkScope
     runtime_version: str
     journal: CallJournal
     run_id: str | None = None
@@ -126,7 +127,9 @@ class ExecutionContext:
         # By type, not by shape: a dict with the right keys, or any object a model
         # could have produced, is refused. Only the authorization layer can issue
         # a StudyContext, and layer_check keeps it that way.
-        if not isinstance(self.scope, StudyContext) or not isinstance(self.scope.grant, ScopeGrant):
+        if not isinstance(self.scope, StudyContext | ClientWorkContext) or not isinstance(
+            self.scope.grant, ScopeGrant
+        ):
             raise ScopeDenied(
                 "model calls require an issued study context", reason="unauthorised_scope"
             )

@@ -10,6 +10,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
+from aia_core.infrastructure import error_tracking
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -68,6 +69,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     resolved = settings or get_settings()
     resolved.validate_for_production()
     configure_logging(level=resolved.log_level, fmt=resolved.log_format)
+    # After logging: the reporter adds its handler beside the JSON one. Off without a DSN.
+    error_tracking.init(resolved.error_tracking)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:

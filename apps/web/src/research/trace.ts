@@ -118,3 +118,26 @@ export function setConceptTest(p: ResearchProject, si: number, on: boolean): Res
     sectionsOf(p).map((s, i) => (i !== si ? s : { ...s, output_type: on ? CONCEPT_TEST : POSITION_MAP })),
   );
 }
+
+/** One stated research question in a proposed design: what measures it, how it is answered. */
+export type ProposedLink = { researchQuestion: string; measures: string[]; comparison: Comparison | null };
+
+/**
+ * What a proposed design links each stated research question to (3e): its measures by the
+ * wording a respondent reads (a question's text, a set's title), and its declared comparison.
+ * Only reads; the server checks the chain on the Run stage.
+ */
+export function proposedTrace(p: ResearchProject): ProposedLink[] {
+  return researchQuestionsOf(p).map((rq) => {
+    const names = (item: Question | Section) => linksOf(item).some((l) => linkKey(l) === linkKey(rq));
+    const measures: string[] = [];
+    for (const s of sectionsOf(p)) {
+      if (s.type === "object_battery") {
+        if (names(s)) measures.push(s.title || s.id || "");
+        continue;
+      }
+      for (const q of s.questions || []) if (names(q)) measures.push(q.text || q.id || "");
+    }
+    return { researchQuestion: rq, measures, comparison: comparisonOf(p, rq) };
+  });
+}

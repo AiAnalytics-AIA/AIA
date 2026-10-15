@@ -324,10 +324,12 @@ def test_a_source_is_not_knowledge_and_no_study_reads_it(
     scoped: Any, sources: ClientSourceRepository, session: Any
 ) -> None:
     lead = client_scope(scoped, "lead")
-    sources.add(lead, filename="tajne.md", data="Tajný obsah zdroje 7319.".encode())
+    # The marker has letters no generated id can hold (ids are a prefix and hex): a digit
+    # marker once flaked when a fresh item id happened to contain it.
+    sources.add(lead, filename="tajne.md", data="Tajný obsah zdroje qzxw.".encode())
     knowledge = ClientKnowledgeRepository(session)
     assert knowledge.items(lead) == []
     knowledge.add(lead, kind=KnowledgeKind.FACT, title="Fakt")
     consumed = knowledge.for_study(scoped.scope(user="researcher"))
     snapshot = json.dumps(context_snapshot({"title": "Studie"}, consumed), ensure_ascii=False)
-    assert "7319" not in snapshot and "tajne" not in snapshot
+    assert "qzxw" not in snapshot and "tajne" not in snapshot

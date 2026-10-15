@@ -101,6 +101,17 @@ forbid "AWS SDK stays behind the storage adapter and the Bedrock signer" \
   '^\s*(from|import)\s+(boto3|botocore)\b' \
   "$CORE" \
   storage.py aws_signing.py
+# The error reporter (plan error-tracking) is one module: it decides what may leave
+# (redaction, no bodies, no locals) for every process. A second import site is a
+# second client that sends without those hooks. Named exemptions: the tests that drive
+# the real client over a capturing transport (test_error_tracking.py in the core,
+# test_error_reporting.py in the API and the worker) import its Transport base class.
+for tree in packages apps/api apps/worker apps/executors; do
+  forbid "sentry_sdk is imported only by the error reporter ($tree)" \
+    '^\s*(from|import)\s+sentry_sdk\b' \
+    "$tree" \
+    error_tracking.py test_error_tracking.py test_error_reporting.py
+done
 forbid "no botocore client is built for Bedrock (signing only, ADR 0010)" \
   '(boto3|botocore\.session\.get_session\(\))\.client\(|create_client\(' \
   "$CORE/infrastructure/model_adapters/"
