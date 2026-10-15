@@ -259,3 +259,16 @@ replaced: `test_a_replaced_kish_n_sees_cleaned_weights_and_stays_capped_by_the_d
 `test_a_replaced_variance_never_sees_fewer_than_two_answers`; the existing
 `test_a_replaced_estimator_is_what_the_aggregate_computes` already proves the mean drives the top
 box.
+
+Metodika editor outline, hierarchy (owner, 2026-10-15: "better visual hierarchy and text sizing to
+have more readable labels in the formula selector menu"). The code had drifted from the canvas
+(stage headings 12 px faint, unnumbered). Now, as the canvas draws it and a step larger:
+- each stage is a heading: 14 px semibold ink with its number (mono, faint), a rule between stages;
+  "Metoda" carries no number; "Zatím v AIA není" reads as the last heading;
+- its steps 14 px, indented under the heading, the audit tag 12 px mono;
+- the column 13 rem -> 19 rem; five long titles still take two lines at 1440 and 1710;
+- rows 32 px. The Settings workspace forces every button to 44 px; the outline's buttons opt out
+  with `data-dense` (ControlPanel's selector `[&_button:not([data-dense])]`), 32 px being above
+  WCAG 2.5.8's 24 px. The rest of Settings keeps 44 px.
+Measured on the workbench (next dev): a step opens in 48-90 ms at 1440/1710, no overflow;
+`settings_journey.mjs` and `methodology_journey.mjs` PASS; web 1484 tests pass.
