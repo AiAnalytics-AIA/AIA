@@ -229,7 +229,7 @@ forbid "executors never touch the client knowledge tables" \
 forbid "client contacts are touched only by their repository" \
   'ClientContactRow' \
   "$CORE" \
-  tables.py client_profile_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_profile_repository.py"
 forbid "the API never touches the client contacts table" \
   'ClientContactRow' \
   "$API"
@@ -247,7 +247,7 @@ forbid "executors never touch the client contacts table" \
 forbid "client sources are touched only by their repository" \
   'ClientSource(Occurrence)?Row' \
   "$CORE" \
-  tables.py client_source_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/client_source_repository.py"
 forbid "the API never touches the client sources tables" \
   'ClientSource(Occurrence)?Row' \
   "$API"
@@ -345,7 +345,7 @@ forbid "the API, worker and executors never touch the study design table" \
 forbid "the design source table is touched only by the design repository" \
   'StudyDesignSourceRow|study_design_sources' \
   "$CORE" \
-  tables.py study_design_repository.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_design_repository.py"
 forbid "the API, worker and executors never touch the design source table" \
   'StudyDesignSourceRow|study_design_sources' \
   apps
@@ -404,7 +404,7 @@ forbid "the worker never builds a validation arm" \
 forbid "among the executors, only the validation executor builds a validation arm" \
   '^\s*(from|import)\s+\S*holdout\.arms' \
   "$EXECUTORS" \
-  validation.py
+  "$EXECUTORS/validation.py"
 # Recorded web retrieval (Deep Research, plan decision I-9) replays captured
 # exchanges and is never a production fallback: it is defined only beside the web
 # adapters, built only by the recorded composition, imported by nothing in the
@@ -671,7 +671,7 @@ forbid "the API never parses a population panel" \
 forbid "population version and extension tables are touched only by their repository" \
   'Population(DatasetVersion|ContractExtension)Row' \
   "$CORE" \
-  tables.py population_repository.py __init__.py
+  "$CORE/infrastructure/tables.py" "$CORE/infrastructure/population_repository.py" "$CORE/infrastructure/__init__.py"
 forbid "the API never touches the population version tables" \
   'Population(DatasetVersion|ContractExtension)Row' \
   "$API"
