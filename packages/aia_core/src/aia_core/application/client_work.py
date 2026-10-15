@@ -15,12 +15,23 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from aia_core.domain.pipeline import ProjectType
-from aia_core.domain.scope import CLIENT_WORK_PROJECT_OWNER, ClientWorkContext, Permission
+from aia_core.domain.scope import (
+    CLIENT_WORK_PROJECT_OWNER,
+    ClientContext,
+    ClientPermission,
+    ClientWorkContext,
+    Permission,
+    ScopeDenied,
+)
+from aia_core.domain.workflow import StepRunStatus
 from aia_core.infrastructure.repositories import ProjectRepository
+from aia_core.infrastructure.scope_repository import ScopeRepository
+from aia_core.infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 
+from .research import BudgetNotRaised, ResearchStepNotFound
 from .workflows import StartedRun, start_workflow
 
-__all__ = ["client_work_project", "start_client_work"]
+__all__ = ["client_work_project", "lift_client_budget_wait", "start_client_work"]
 
 
 def client_work_project(session: Session, scope: ClientWorkContext) -> str:
@@ -64,3 +75,48 @@ def start_client_work(
         metadata=metadata,
         owner=CLIENT_WORK_PROJECT_OWNER,
     )
+
+
+def lift_client_budget_wait(
+    session: Session,
+    client: ClientContext,
+    work: ClientWorkContext,
+    run_id: str,
+    node_key: str,
+    *,
+    budget_usd: float,
+    note: str = "",
+) -> dict[str, Any]:
+    """Raise the client's budget to ``budget_usd`` and let its waiting step go on (CB4).
+
+    A step of the client's own work whose hold would pass the client's budget stops in
+    ``AWAITING_BUDGET`` without spending an attempt. A person who holds
+    ``MANAGE_CLIENT_BUDGET`` lifts it: the budget is raised (audited) and the decision is
+    a ``budget`` approval naming the client and no study. ``client`` and ``work`` are the
+    same person's scopes on the same client. Equal to the current budget lifts the wait
+    without changing it; below it is refused. Checked before anything is written.
+    """
+    if (client.organization_id, client.client_id, client.actor_id) != (
+        work.organization_id,
+        work.client_id,
+        work.actor_id,
+    ):
+        raise ScopeDenied("not found", reason="scope_mismatch")
+    client.require(ClientPermission.MANAGE_CLIENT_BUDGET)
+    workflows = WorkflowRepository(session, work)
+    run = workflows.get_run(run_id)
+    step = next((s for s in run["steps"] if s["node_key"] == node_key), None)
+    if step is None:
+        raise ResearchStepNotFound(node_key)
+    if step["status"] is not StepRunStatus.AWAITING_BUDGET:
+        raise BudgetWaitNotLiftable("only a step waiting for budget can be lifted")
+    scopes = ScopeRepository(session)
+    current = scopes.client_budget(client).budget_usd
+    if budget_usd < current:
+        raise BudgetNotRaised(offered=budget_usd, current=current)
+    if budget_usd > current:
+        scopes.set_client_budget(client, budget_usd)
+    workflows.resume_client_budget_wait(
+        client, step["step_id"], note=note, budget_before=current, budget_after=budget_usd
+    )
+    return workflows.get_run(run_id)

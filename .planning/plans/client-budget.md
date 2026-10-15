@@ -5,7 +5,7 @@ chunks:
   - "[x] CB2. Client-paid runs in the schema: one payer per project, run, hold, usage row and approval (study or, when none, the client), the client_sources owner; the repository's hold, charge and close paths read the payer"
   - "[x] CB3. A run's payer in the worker: ScopeResolver issues a ClientWorkContext against a held lease; reserve, settle and charge the client; the gateway, egress and usage ledger take either payer"
   - "[x] CB3b. Starting the client's own work: a client_sources project and a run created by a person under a ClientWorkContext issued for RUN_CLIENT_WORK"
-  - "[ ] CB4. Over budget: a client run parks AWAITING_BUDGET and a person lifts it from the client, recorded in the approval ledger"
+  - "[x] CB4. Over budget: a client run parks AWAITING_BUDGET and a person lifts it from the client, recorded in the approval ledger"
   - "[ ] CB5. Proof: a scripted paid step charged to a client end to end on SQLite and PostgreSQL; Doc follow-up (lifecycle K2d pays from the client)"
 ---
 # A client's own budget
@@ -159,6 +159,23 @@ Mapped 2026-10-15 on `origin/develop` @ 7d4f1ef5. Paths under `packages/aia_core
 
 - A client run parks `AWAITING_BUDGET`; `lift_client_budget_wait` raises the client's budget
   and resumes the step, as a person, recorded as a `budget` approval naming the client.
+- **Landed** (2026-10-15):
+  - `WorkflowRepository.resume_client_budget_wait(approver: ClientContext, …)` over the same
+    `_resume_budget_wait` as the study's lift (whose behaviour is unchanged): the repository's
+    scope is the client's work, the approver must hold `MANAGE_CLIENT_BUDGET` on that client,
+    and the `budget` approval names the client and no study.
+  - `application/client_work.py`: `lift_client_budget_wait(session, client, work, run, node,
+    budget_usd=, note=)`: one person's two scopes on one client; below the current budget
+    refused (`BudgetNotRaised`), equal lifts without a change; checked before anything is
+    written.
+  - `POST /clients/{id}/work/runs/{run_id}/steps/{node_key}/budget` (`routers/workspace.py`):
+    404 for a run of a study or another client, 409 `not_waiting_for_budget`, 422
+    `budget_not_raised`.
+  - Tests: `packages/aia_core/tests/test_client_budget_lift.py` (2);
+    `test_client_api.py::test_a_member_lifts_the_clients_budget_for_its_own_waiting_work`;
+    `apps/worker/tests/test_worker_loop.py::test_a_person_lifts_the_clients_budget_and_the_waiting_step_finishes_on_it`
+    (parked at $1, lifted to $5, the next worker finishes it: $1.50 to the client, $0 to the
+    study).
 
 ### CB5. Proof
 

@@ -844,6 +844,50 @@ def test_a_member_sets_the_clients_own_budget_and_the_directory_does_not_carry_i
     assert researcher.get(f"{API}/clients/CLI-0000000000ffff/budget").status_code == 404
 
 
+def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
+    researcher: TestClient, other_client_lead: TestClient, world: Any, app: Any
+) -> None:
+    """client-budget CB4: the client's own work, parked at its budget, lifted by a person."""
+    from aia_core.application.client_work import start_client_work
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.workflow import StepRunStatus
+    from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import StepRunRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        work = ScopeResolver(session).client_work_context(principal, client_id=world.client_id())
+        started = start_client_work(
+            session, work, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="api-lift"
+        )
+        step = session.scalars(
+            select(StepRunRow).where(StepRunRow.run_id == started.run_id)
+        ).first()
+        assert step is not None
+        step.status, node = StepRunStatus.AWAITING_BUDGET.value, step.node_key
+        session.commit()
+
+    url = f"{API}/clients/{world.client_id()}/work/runs/{started.run_id}/steps/{node}/budget"
+    researcher.put(f"{API}/clients/{world.client_id()}/budget", json={"budget_usd": 3})
+    lowered = researcher.post(url, json={"budget_usd": 1})
+    assert lowered.status_code == 422 and lowered.json()["code"] == "budget_not_raised"
+    # Another client's work is not found from there.
+    elsewhere = f"{API}/clients/{world.client_id('other')}/work/runs/{started.run_id}"
+    assert other_client_lead.post(
+        f"{elsewhere}/steps/{node}/budget", json={"budget_usd": 9}
+    ).status_code == 404
+    lifted = researcher.post(url, json={"budget_usd": 8, "note": "víc"})
+    assert lifted.status_code == 200, lifted.text
+    assert lifted.json()["steps"] == [{"node_key": node, "status": "RUNNABLE"}]
+    assert researcher.get(f"{API}/clients/{world.client_id()}/budget").json()["budget_usd"] == 8
+    again = researcher.post(url, json={"budget_usd": 8})
+    assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"
+
+
 def test_contacts_are_kept_per_client_and_checked(researcher: TestClient, world: Any) -> None:
     base = f"{API}/clients/{world.client_id()}/contacts"
     added = researcher.post(

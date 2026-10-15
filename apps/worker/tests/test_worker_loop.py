@@ -638,3 +638,37 @@ def test_the_clients_own_work_waits_when_its_budget_cannot_hold_the_call(
     make_worker().run_once()
 
     assert _client_run(sessions, run_id) == (StepRunStatus.AWAITING_BUDGET.value, 0.0, 0.0)
+
+
+def test_a_person_lifts_the_clients_budget_and_the_waiting_step_finishes_on_it(
+    study: Any, make_worker: MakeWorker, sessions: sessionmaker[Session]
+) -> None:
+    """Parked at the client's $1, lifted to $5 by the person: the next worker finishes the
+    step and the call is charged to the client; the study's ledger never moves."""
+    from aia_core.application.client_work import lift_client_budget_wait
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+
+    run_id = study.create_run({"paid": {"reserve": 2.0, "cost": 1.5}}, key="client-lift")
+    _client_paid(sessions, study, run_id, budget=1.0)
+    make_worker().run_once()
+    assert _client_run(sessions, run_id)[0] == StepRunStatus.AWAITING_BUDGET.value
+
+    with sessions() as session:
+        resolver = ScopeResolver(session)
+        principal = AuthenticatedPrincipal(
+            user_id=study.lead_id, organization_id=study.organization_id
+        )
+        lift_client_budget_wait(
+            session,
+            resolver.client_context(principal, client_id=study.client_id),
+            resolver.client_work_context(principal, client_id=study.client_id),
+            run_id,
+            "s0",
+            budget_usd=5.0,
+        )
+        session.commit()
+
+    result = make_worker().run_once()
+
+    assert result is not None and result.ending == "completed"
+    assert _client_run(sessions, run_id) == (StepRunStatus.SUCCEEDED.value, 1.5, 0.0)

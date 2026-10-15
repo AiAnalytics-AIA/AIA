@@ -44,9 +44,12 @@ from ..domain.providers import Provider, is_paid
 from ..domain.scope import (
     CLIENT_WORK_PROJECT_OWNER,
     ApprovalIndependence,
+    ClientContext,
+    ClientPermission,
     ClientWorkContext,
     Permission,
     ScopeDenied,
+    SelfApprovalPolicy,
     StudyContext,
     WorkScope,
     observe_approval_independence,
@@ -2122,6 +2125,63 @@ class WorkflowRepository:
         makes a second lift a no-op, and when the run is being cancelled.
         """
         self.scope.require(Permission.APPROVE_BUDGET)
+        self._resume_budget_wait(
+            step_id,
+            note=note,
+            budget_before=budget_before,
+            budget_after=budget_after,
+            actor_id=self.scope.actor_id,
+            study_id=self.scope.study_id,
+            policy=self.scope.self_approval,
+            request_id=self.scope.request_id,
+        )
+
+    def resume_client_budget_wait(
+        self,
+        approver: ClientContext,
+        step_id: str,
+        *,
+        note: str = "",
+        budget_before: float,
+        budget_after: float,
+    ) -> None:
+        """:meth:`resume_budget_wait` for the client's own work (client-budget CB4).
+
+        The repository's scope is the client's work; the person lifting is ``approver``,
+        who must hold ``MANAGE_CLIENT_BUDGET`` on the same client. The decision is the
+        same ``budget`` approval, naming the client and no study.
+        """
+        scope = self._work_scope
+        if not isinstance(scope, ClientWorkContext) or (
+            approver.organization_id,
+            approver.client_id,
+        ) != (scope.organization_id, scope.client_id):
+            raise ScopeDenied("not found", reason="scope_mismatch")
+        approver.require(ClientPermission.MANAGE_CLIENT_BUDGET)
+        self._resume_budget_wait(
+            step_id,
+            note=note,
+            budget_before=budget_before,
+            budget_after=budget_after,
+            actor_id=approver.actor_id,
+            study_id=None,
+            policy=approver.self_approval,
+            request_id=approver.request_id,
+        )
+
+    def _resume_budget_wait(
+        self,
+        step_id: str,
+        *,
+        note: str,
+        budget_before: float,
+        budget_after: float,
+        actor_id: str,
+        study_id: str | None,
+        policy: SelfApprovalPolicy,
+        request_id: str | None,
+    ) -> None:
+        """The lift itself, once the caller has established who may lift and for whom."""
         step = self._step(step_id)
         self._lock_run_for(step)
         run = self._run(step.run_id)
@@ -2133,14 +2193,14 @@ class WorkflowRepository:
 
         independence = observe_approval_independence(
             producer_user_id=run.triggered_by,
-            approving_user_id=self.scope.actor_id,
-            policy=self.scope.self_approval,
+            approving_user_id=actor_id,
+            policy=policy,
         )
         self._session.add(
             ApprovalDecisionRow(
-                organization_id=self.scope.organization_id,
-                client_id=self.scope.client_id,
-                study_id=self.scope.study_id,
+                organization_id=run.organization_id,
+                client_id=run.client_id,
+                study_id=study_id,
                 subject_type="budget",
                 subject_id=step_id,
                 run_id=step.run_id,
@@ -2148,7 +2208,7 @@ class WorkflowRepository:
                 gate_type="budget",
                 decision="lift",
                 comment=note,
-                request_id=self.scope.request_id,
+                request_id=request_id,
                 **independence.audit_fields(),
             )
         )
@@ -2164,7 +2224,7 @@ class WorkflowRepository:
             ),
             payload={
                 "from": StepRunStatus.AWAITING_BUDGET.value,
-                "actor_id": self.scope.actor_id,
+                "actor_id": actor_id,
                 "budget_before_usd": budget_before,
                 "budget_after_usd": budget_after,
                 "note": note,
