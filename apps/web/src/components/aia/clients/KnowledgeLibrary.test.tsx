@@ -341,7 +341,7 @@ describe("a document's file", () => {
 const MAY_RUN = { ...CLIENT, permissions: [...ALL, "RUN_CLIENT_WORK", "MANAGE_CLIENT_BUDGET"] };
 const proposalsRun = (extra: Record<string, unknown> = {}) => ({
   run_id: "RUN-1", source_id: SRC, reading_sha256: "b".repeat(64), status: "RUNNING", step_status: "RUNNABLE",
-  reason: null, current: true, created_at: null, finished_at: null, output: {}, created: true, ...extra,
+  reason: null, current: true, created_at: null, finished_at: null, output: {}, created: true, restartable: false, ...extra,
 });
 const docItem = item("KNW-4", "Brief", { kind: "DOCUMENT", content: { source_id: SRC } });
 const openDoc = async (client: typeof CLIENT, routes: Record<string, (body: unknown, url: string) => unknown>) => {

@@ -6,9 +6,11 @@ reading as it stands, so the worker reads exactly that reading or refuses
 (``reading_changed``).
 
 **One run per reading.** Asking again while a run for the same reading is queued,
-running, waiting or finished returns that run; nothing is paid twice. Only after a run
-for it has failed or been cancelled does asking again start another. A source read again
-since is a new reading, and asking about it starts a new run.
+running, waiting or finished returns that run. Only after a run for it has failed, been
+cancelled, or stopped for recovery with every paid call's outcome known does asking again
+start another; what that run already answered is replayed from the client's journal, not
+paid again. A run left with a paid call of unknown outcome is never restarted from here.
+A source read again since is a new reading, and asking about it starts a new run.
 
 A source this work does not extract is refused before anything is queued, by the same
 names the step uses (``dataset_not_extracted``, ``no_text``, ``nothing_read``), so a person
@@ -43,8 +45,12 @@ __all__ = [
 
 #: The run's one step (``workflow_templates.steps_for_workflow``).
 STEP: Final = "extract"
-#: Runs after which asking again starts another; any other run is the answer.
+#: Runs after which asking again starts another; any other run is the answer, except one
+#: whose step stopped for recovery with every outcome known (``_restartable``).
 _ENDED_WITHOUT_RESULT: Final = frozenset({WorkflowRunStatus.FAILED, WorkflowRunStatus.CANCELLED})
+#: A paid call left with its outcome unknown: it may have been billed, so nothing restarts
+#: the run; an operator settles it first.
+UNCERTAIN: Final = "paid_external_call_side_effect_uncertain"
 #: The runs read for one source; a person asks again only after a run fails.
 _SCAN: Final = 200
 
@@ -70,6 +76,9 @@ class ProposalsRun:
     output: dict[str, Any] = field(default_factory=dict)
     #: False when an existing run answered the request and nothing was queued.
     created: bool = False
+    #: Whether asking again starts a new run: this one ended without a result and left no
+    #: paid call with its outcome unknown. What it answered is replayed, not paid again.
+    restartable: bool = False
 
 
 def _same(client: ClientContext, work: ClientWorkContext) -> None:
@@ -118,12 +127,29 @@ def _reason(step: dict[str, Any]) -> str | None:
     """
     if step["status"].value == "AWAITING_BUDGET" and step["waiting_reason"]:
         return str(step["waiting_reason"])
+    if step["status"].value == "RECOVERY_REQUIRED":
+        # Recovery keeps no waiting reason; the attempts say whether a call may be billed.
+        return UNCERTAIN if _uncertain(step) else "max_attempts_exhausted"
     if step["status"].value != "SUCCEEDED":
         for attempt in reversed(step["attempts"]):
             error = attempt.get("error") or {}
             if error.get("reason"):
                 return str(error["reason"])
     return str(step["waiting_reason"]) if step["waiting_reason"] else None
+
+
+def _uncertain(step: dict[str, Any]) -> bool:
+    """Whether an attempt sent a paid call whose outcome is not known."""
+    return any(
+        a["paid_call_dispatched"] and not a["paid_call_outcome_known"] for a in step["attempts"]
+    )
+
+
+def _restartable(run: dict[str, Any], step: dict[str, Any]) -> bool:
+    """Whether asking again may start a new run in place of this one."""
+    if run["status"] in _ENDED_WITHOUT_RESULT:
+        return True
+    return step["status"].value == "RECOVERY_REQUIRED" and not _uncertain(step)
 
 
 def _follow(
@@ -144,6 +170,7 @@ def _follow(
         finished_at=run["finished_at"],
         output=step["output"] if step["status"].value == "SUCCEEDED" else {},
         created=created,
+        restartable=_restartable(run, step),
     )
 
 
@@ -168,8 +195,9 @@ def start_source_proposals(
     prefix = _key_prefix(pin.source_id, reading_sha256)
     same_reading = _runs(session, work, prefix)
     for run in same_reading:
-        if run["status"] not in _ENDED_WITHOUT_RESULT:
-            return _follow(session, work, run["run_id"], current=reading_sha256, created=False)
+        followed = _follow(session, work, run["run_id"], current=reading_sha256, created=False)
+        if not followed.restartable:
+            return followed
     started = start_client_work(
         session,
         work,

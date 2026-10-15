@@ -409,6 +409,9 @@ class ProposalsRunResponse(_Model):
     output: dict[str, Any]
     #: False when a run for this reading already existed and was returned.
     created: bool
+    #: Whether asking again starts a new run: this one ended without a result and left no
+    #: paid call of unknown outcome (what it answered is replayed, not paid again).
+    restartable: bool
 
 
 def _proposals_run(run: ProposalsRun) -> ProposalsRunResponse:
@@ -424,6 +427,7 @@ def _proposals_run(run: ProposalsRun) -> ProposalsRunResponse:
         finished_at=run.finished_at,
         output=run.output,
         created=run.created,
+        restartable=run.restartable,
     )
 
 

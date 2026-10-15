@@ -41,7 +41,7 @@ export function proposalsPhase(run: ProposalsRun | null): ProposalsPhase {
     return { phase: "done", proposed: run.output.proposed ?? 0, dropped };
   }
   if (s === "AWAITING_BUDGET") return { phase: "budget", runId: run.run_id };
-  if (s === "FAILED" || s === "CANCELLED" || s === "SKIPPED") return { phase: "failed", reason: run.reason };
+  if (s === "FAILED" || s === "CANCELLED" || s === "SKIPPED" || s === "RECOVERY_REQUIRED") return { phase: "failed", reason: run.reason };
   if (QUEUED.has(s)) return { phase: "queued" };
   if (RUNNING.has(s)) return { phase: "running" };
   // WAITING_PROVIDER, WAITING_CAPACITY, RECOVERY_REQUIRED, and any state AIA does not know.
@@ -51,11 +51,11 @@ export function proposalsPhase(run: ProposalsRun | null): ProposalsPhase {
 /** Whether the screen reads the run again: it is still moving on its own. */
 export const isMoving = (p: ProposalsPhase): boolean => p.phase === "queued" || p.phase === "running";
 
-/** Whether asking again would start a new run: none asked, the last one ended without a
- *  result, or the document has been read again since. */
+/** Whether asking again would start a new run: none asked, the API says the last one may be
+ *  restarted (it ended without a result and left no paid call of unknown outcome), or the
+ *  document has been read again since. */
 export function mayAsk(run: ProposalsRun | null): boolean {
-  const p = proposalsPhase(run);
-  return p.phase === "none" || p.phase === "failed" || (run !== null && !run.current);
+  return run === null || run.restartable || !run.current;
 }
 
 /** Whether AIA has words for a proposals reason. */

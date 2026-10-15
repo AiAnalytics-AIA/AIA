@@ -344,3 +344,56 @@ def test_an_ai_proposal_shows_its_quote_and_where_it_stands_for_review(
         "locator": {"line": 3},
     }
     assert ai["study_id"] is None and ai["source_id"] is None
+
+
+def _recovering(app: Any, run_id: str, *, uncertain: bool) -> None:
+    """The run's step stopped for recovery; ``uncertain``: a paid call's outcome unknown."""
+    from aia_core.domain.workflow import StepRunStatus
+    from aia_core.infrastructure.db import create_session_factory
+    from aia_core.infrastructure.tables import StepAttemptRow, StepRunRow
+    from sqlalchemy import select
+
+    with create_session_factory(app.state.engine)() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        step.status = StepRunStatus.RECOVERY_REQUIRED.value
+        session.add(
+            StepAttemptRow(
+                attempt_id=f"ATT-{run_id[-12:]}",
+                step_id=step.step_id,
+                attempt_number=1,
+                status="FAILED",
+                paid_call_dispatched=uncertain,
+                paid_call_outcome_known=False,
+            )
+        )
+        session.commit()
+
+
+def test_a_run_stopped_for_recovery_restarts_only_when_no_paid_call_is_uncertain(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    """A run whose single attempt ran out with every outcome known is restarted by
+    asking again (what it answered is replayed from the journal). A run that left a paid
+    call of unknown outcome is not: that call may have been billed."""
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    url = f"{API}/clients/{client}/sources/{source}/proposals"
+
+    first = lead.post(url).json()["run_id"]
+    _recovering(app, first, uncertain=False)
+    followed = lead.get(url).json()
+    assert (followed["step_status"], followed["reason"], followed["restartable"]) == (
+        "RECOVERY_REQUIRED",
+        "max_attempts_exhausted",
+        True,
+    )
+    second = lead.post(url)
+    assert second.status_code == 202 and second.json()["run_id"] != first
+
+    _recovering(app, second.json()["run_id"], uncertain=True)
+    held = lead.post(url)
+    assert held.status_code == 200 and held.json()["run_id"] == second.json()["run_id"]
+    assert (held.json()["reason"], held.json()["restartable"]) == (
+        "paid_external_call_side_effect_uncertain",
+        False,
+    )
