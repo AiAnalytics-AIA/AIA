@@ -360,7 +360,8 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
  * measure it and what the run will make of them (plan run-recovery-and-truth 3b). */
 function ResearchTraceCard({ trace, outlook }: { trace: ResearchTrace; outlook: readonly QuestionOutlook[] }) {
   const { stepHref } = useResearch();
-  if (!trace.questions.length) return null;
+  // Stale links stay visible even when the plan states no research question any more.
+  if (!trace.questions.length && !trace.dangling.length) return null;
   return (
     <Card title={t("research.exec.trace.title")} region>
       <p className="text-[13px] text-ink-muted">{t("research.exec.trace.help")}</p>

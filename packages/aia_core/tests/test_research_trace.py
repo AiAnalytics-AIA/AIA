@@ -171,3 +171,14 @@ def test_coverage_is_unknown_without_links_and_passes_only_when_every_question_i
     nothing.pop("title")
     assert research_questions_of(nothing) == ()
     assert _check(nothing).status is CheckStatus.WARN
+
+
+def test_a_question_whose_id_is_a_set_items_id_is_refused_not_merged() -> None:
+    """Review (Codex on #421): a question with a set item's id would share that item's
+    answers and its links; the compiler refuses it by name instead."""
+    design = copy.deepcopy(DESIGN)
+    design["sections"][1]["id"] = "set"
+    design["sections"][0]["questions"][0]["id"] = "set_obj_kava"
+    spec, problems = compile_design(design)
+    assert spec is None
+    assert [(p.code, p.where) for p in problems] == [("item_id_collision", "set_obj_kava")]

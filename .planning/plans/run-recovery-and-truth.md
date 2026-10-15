@@ -268,6 +268,17 @@ module.
 - **`ResearchRuns.outlook`** returns the trace beside the outlook, and
   `GET …/research/readiness` carries `research_trace`.
 
+Review (Codex on #421), both fixed:
+
+- **A question whose id equals a set item's generated id** (`<set>_obj_<object>`) took that
+  item's links in the trace. Worse, it shared the item's column in fieldwork, because a
+  respondent's answers are kept by item id (`ai_respondent.py` `answers[item.item_id]`).
+  The compiler now refuses such a design (`item_id_collision`, the question named).
+  Test: `test_a_question_whose_id_is_a_set_items_id_is_refused_not_merged`.
+- **The Run card hid dangling links** when the plan stated no research question. It now
+  shows while either list has entries. Test: `ExecutionSteps.test.tsx` ("keeps the card
+  for stale links").
+
 Tests:
 
 - `packages/aia_core/tests/test_research_trace.py`
@@ -343,7 +354,7 @@ Tests:
   readiness's research_question_coverage (WARN, never FAIL)".
 - 3a, `CLAUDE.md` § map, `research_design.py`: append "a question's or set's
   research_questions: the research questions it measures, by text; out of the fingerprint
-  when empty".
+  when empty; a question whose id is a set item's id refused (item_id_collision)".
 - 3a, `CLAUDE.md` § map, routers/research: "GET …/research/readiness carries
   research_trace".
 - 3b, `CLAUDE.md` § map, web `src/research/`: "trace.ts: which research question each

@@ -344,6 +344,14 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
     expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
   });
 
+  it("keeps the card for stale links when the plan states no research question", async () => {
+    const stale = { ...OUTLOOK, research_trace: { linked: true, questions: [], dangling: [{ question_id: "q1", research_question: "Stará otázka?" }] } };
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => stale });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const card = await screen.findByRole("region", { name: t("research.exec.trace.title") });
+    expect(within(card).getByText(/Stará otázka\?/)).toBeTruthy();
+  });
+
   it("shows no card for a design with no items", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);

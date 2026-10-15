@@ -519,6 +519,21 @@ def compile_design(
             battery = _battery(sec, section_id=sid, title=title, problems=problems)
             if battery is not None:
                 batteries.append(battery)
+    # A respondent's answers are kept by item id, a set's objects under
+    # "<set>_obj_<object>": a question whose id is one of those would share its column.
+    item_ids = {b.question_id(o) for b in batteries for o in b.objects}
+    for q in questions:
+        if q.id in item_ids:
+            problems.append(
+                CompileProblem(
+                    code="item_id_collision",
+                    where=q.id,
+                    message=(
+                        f"{q.id}: otázka má stejné id jako položka sledované sady; "
+                        "přejmenujte ji, jinak by se jejich odpovědi slily."
+                    ),
+                )
+            )
     if not questions and not batteries and not problems:
         problems.append(
             CompileProblem(
