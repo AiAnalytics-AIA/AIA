@@ -10,7 +10,7 @@ chunks:
   - "[x] 3b. Dotazník: link each question and tracked set to research questions; the Run screen shows the chain"
   - "[x] 3c. Comparison: each research question declares its comparison, and readiness checks its measures can carry it"
   - "[ ] 3d. External source: the Deep Research evidence and gaps cited against each research question, shown in the chain"
-  - "[ ] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
+  - "[x] 3e. The questionnaire agent proposes the links; a person accepts them with the proposal"
   - "[ ] 4. Deep Research: source diversity beyond Wikipedia, the exact supporting passage per claim, and every rejection's reason shown"
   - "[ ] 5. Population: a study-scoped, governed source choice; the source and dimensions actually used on the run receipt"
   - "[ ] 6. Desktop UX: one state vocabulary (ready, running, needs repair, evidence unavailable, report ready), plain reasons, question text, cost remaining"
@@ -443,3 +443,10 @@ Tests:
   measures: ranking needs a tracked set, A/B a concept-test set, segments unavailable,
   unknown never answerable (comparisons_of)"; web `trace.ts`: "comparisonOf /
   setComparison"; Dotazník: "Jak výzkumné otázky zodpovíme".
+- 3e, `CLAUDE.md` § map, `research_agents.py`: "Eight closed Research task contracts …";
+  append "; the questionnaire contract (harness 3) proposes each item's research_questions,
+  a set's output_type and each research question's comparison; proposal_result keeps only
+  links to stated research questions (dropped_links names the rest); prompt_version_for:
+  build/optimize at 3, the rest at 2". Web `trace.ts`: append "proposedTrace (a proposal's
+  links, read on the inline review)"; `ProposalReview`: "a questionnaire proposal's research
+  questions, their measures and answers, before it is accepted".
