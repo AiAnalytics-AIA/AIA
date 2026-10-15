@@ -302,3 +302,45 @@ def test_another_clients_source_has_no_proposals_here(
     url = f"{API}/clients/{other}/sources/{source}/proposals"
     assert other_client_lead.post(url).status_code == 404
     assert other_client_lead.get(url).status_code == 404
+
+
+def test_an_ai_proposal_shows_its_quote_and_where_it_stands_for_review(
+    lead: TestClient, world: Any, app: Any
+) -> None:
+    """What the step filed reaches Ke schválení with the words it rests on."""
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.knowledge import KnowledgeKind, ProposalDraft
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+    from aia_core.infrastructure.db import create_session_factory
+
+    client = world.client_id("primary")
+    source = upload(lead, client, "lupinek.txt", DOCUMENT).json()["source_id"]
+    run_id = lead.post(f"{API}/clients/{client}/sources/{source}/proposals").json()["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["lead"], organization_id=world.organization_id
+        )
+        work = ScopeResolver(session).client_work_context(principal, client_id=client)
+        ClientKnowledgeRepository(session).propose_from_client_work(
+            work,
+            run_id=run_id,
+            drafts=[
+                ProposalDraft(
+                    kind=KnowledgeKind.FINDING,
+                    title="Znalost značky 41 %",
+                    summary="",
+                    content={"quote": "Značku zná 41 %", "locator": {"line": 3}},
+                    provenance={"source_id": source, "segment": 1},
+                )
+            ],
+        )
+        session.commit()
+    pending = lead.get(f"{API}/clients/{client}/knowledge/proposals?status=PROPOSED").json()
+    ai = next(p for p in pending if p["title"] == "Znalost značky 41 %")
+    assert ai["from_source"] == {
+        "source_id": source,
+        "run_id": run_id,
+        "quote": "Značku zná 41 %",
+        "locator": {"line": 3},
+    }
+    assert ai["study_id"] is None and ai["source_id"] is None
