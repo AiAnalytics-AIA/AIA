@@ -424,12 +424,16 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
           requestAnimationFrame(() => { const target = [...document.querySelectorAll<HTMLElement>("[data-field], [data-edit-slot] textarea")].find((node) => path.includes(node.getAttribute("data-field") ?? node.closest("[data-edit-slot]")?.getAttribute("data-edit-slot") ?? "____")); target?.focus(); });
         }}>{owner.step.title_cs}: {message}</button> : <span>{path}: {message}</span>}</li>)}</ul></div> : null}
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[13rem_minmax(0,1fr)] 2xl:grid-cols-[13rem_minmax(0,1fr)_17rem]">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-[19rem_minmax(0,1fr)] 2xl:grid-cols-[19rem_minmax(0,1fr)_17rem]">
         {/* The calculation in its order: a group, then its steps. */}
         <nav aria-label={t(`${V}.outline`)} data-methodology-outline className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto">
-          {grouped.map(({ group, items }) => (
-            <div key={group?.id ?? "other"}>
-              <p className="px-2 pb-1 text-xs font-semibold text-ink-faint">{group?.title_cs ?? "Další kroky"}</p>
+          {grouped.map(({ group, items }, i) => (
+            <div key={group?.id ?? "other"} data-outline-stage className={i ? "border-t border-border pt-3" : undefined}>
+              {/* The stage reads as a heading, its steps beneath it (product owner, 2026-10-15). */}
+              <p className="flex items-baseline gap-2 px-2 pb-1.5 text-sm font-semibold leading-5 text-ink">
+                <span aria-hidden="true" className="w-4 shrink-0 font-mono text-xs font-normal text-ink-faint">{stageNumber(grouped, i)}</span>
+                <span className="min-w-0">{group?.title_cs ?? "Další kroky"}</span>
+              </p>
               <ul className="flex flex-col gap-0.5">
                 {items.map((item) => {
                   const state = stepState(item);
@@ -439,12 +443,15 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
                       <button
                         type="button"
                         data-edit-step-link={item.step.id}
+                        // A dense desktop outline: 32 px rows, above the 24 px minimum target (WCAG 2.5.8),
+                        // where the rest of Settings keeps 44 px.
+                        data-dense
                         aria-current={on ? "step" : undefined}
                         onClick={() => setSelectedStep(item.step.id)}
-                        className={`flex min-h-9 w-full items-center gap-2 rounded-sm px-2 py-1 text-left text-[13px] leading-[18px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold text-signal" : "text-ink hover:bg-surface-sunken"}`}
+                        className={`flex min-h-8 w-full items-center gap-2 rounded-sm py-1 pl-8 pr-2 text-left text-sm leading-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold text-signal" : "text-ink hover:bg-surface-sunken"}`}
                       >
                         <span className="min-w-0 flex-1">{item.step.title_cs}</span>
-                        {item.step.audit ? <span className="shrink-0 font-mono text-[11px] font-normal text-ink-faint">{item.step.audit}</span> : null}
+                        {item.step.audit ? <span className="shrink-0 font-mono text-xs font-normal text-ink-faint">{item.step.audit}</span> : null}
                         {state.problems ? <span className="shrink-0 rounded-sm bg-status-fault-wash px-1 text-[11px] font-semibold text-status-fault">{t(`${V}.stepProblems`)}</span>
                           : state.changes ? <span className="size-2 shrink-0 rounded-full bg-signal" aria-label={tv(`${V}.stepChanges`, { count: state.changes })} /> : null}
                       </button>
@@ -456,8 +463,11 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
           ))}
           {notYet.length ? (
             <div data-not-yet className="border-t border-border pt-3">
-              <p className="px-2 pb-1 text-xs font-semibold text-ink-faint">{t(`${M}.notYet`)}</p>
-              <ul className="flex flex-col gap-0.5 px-2 text-xs leading-5 text-ink-muted">
+              <p className="flex items-baseline gap-2 px-2 pb-1.5 text-sm font-semibold leading-5 text-ink">
+                <span aria-hidden="true" className="w-4 shrink-0 font-mono text-xs font-normal text-ink-faint">–</span>
+                <span>{t(`${M}.notYet`)}</span>
+              </p>
+              <ul className="flex flex-col gap-1 pl-8 pr-2 text-sm leading-5 text-ink-muted">
                 {notYet.map((title) => <li key={title}>{title}</li>)}
               </ul>
             </div>
@@ -534,6 +544,13 @@ function EditorForm({ summary, start, presets, detail, currentSpec, onBase, onDi
       </div>
     </form>
   );
+}
+
+/** A stage's number in the outline: the computation's stages count from 1; a module's opening
+ *  "Metoda" group, which only names the method, has none. */
+function stageNumber(grouped: readonly { group: { id: string } | null }[], index: number): string {
+  if (grouped[index].group?.id === "M") return "";
+  return String(grouped.slice(0, index + 1).filter(({ group }) => group?.id !== "M").length);
 }
 
 /** One step of the editor, redrawn only when its own values, problems or visibility change:
