@@ -26,14 +26,21 @@ from typing import Final
 
 from pydantic import BaseModel
 
-from ..research_design import AIA_READINESS_V1, ReadinessSpec, readiness_problems
+from ..research_design import (
+    AIA_READINESS_V1,
+    ReadinessSpec,
+    prepare,
+    readiness_problems,
+)
 from .catalogue import (
     Evidence,
     EvidenceKind,
     MethodModule,
     MethodStep,
+    ParameterEffect,
     ParameterRef,
     Preset,
+    PreviewLine,
     StepGroup,
     Symbol,
 )
@@ -95,8 +102,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="854f32cf534861872d21d325a78ef21c9e4056fb5fe4cfb43fcf831e3c8e0181",
         symbols=(Symbol("n", "velikost vzorku zadaná v návrhu", "respondenti"),),
         parameters=(
-            ParameterRef("sample_size.min", "Nejmenší vzorek", "respondenti"),
-            ParameterRef("sample_size.max", "Největší vzorek", "respondenti"),
+            ParameterRef(
+                "sample_size.min", "Nejmenší vzorek", "respondenti", ParameterEffect.BLOCKS_RUN
+            ),
+            ParameterRef(
+                "sample_size.max", "Největší vzorek", "respondenti", ParameterEffect.BLOCKS_RUN
+            ),
         ),
         evidence=(_POLICY,),
         tests=(
@@ -115,6 +126,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             "Obě meze zahrnuté. Bez zadaného n studii spustit nelze nikdy. Sociomapa "
             "upozorní, je-li n pod nejmenším n páru; to pravidlo patří Sociomapě."
         ),
+        reading_cs="{sample_size.min} ≤ n ≤ {sample_size.max}",
+        keeps_cs=(
+            "nejmenší je menší než největší",
+            "celá čísla, nejméně 1",
+            "chybějící n blokuje vždy",
+        ),
     ),
     MethodStep(
         id="tracked_set",
@@ -127,10 +144,24 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
         source_sha256="4e0f062fc16ec99db8f57043bd32f5651d6eec1d68c978abcd366aa2e1b0bf92",
         symbols=(Symbol("k", "počet srovnatelných položek jedné sledované sady", "položky"),),
         parameters=(
-            ParameterRef("tracked_set.min", "Nejméně položek", "položky"),
-            ParameterRef("tracked_set.max", "Nejvíce položek", "položky"),
-            ParameterRef("tracked_set.recommended_min", "Doporučeno nejméně", "položky"),
-            ParameterRef("tracked_set.recommended_max", "Doporučeno nejvíce", "položky"),
+            ParameterRef(
+                "tracked_set.min", "Nejméně položek", "položky", ParameterEffect.BLOCKS_DESIGN
+            ),
+            ParameterRef(
+                "tracked_set.max", "Nejvíce položek", "položky", ParameterEffect.BLOCKS_DESIGN
+            ),
+            ParameterRef(
+                "tracked_set.recommended_min",
+                "Doporučeno nejméně",
+                "položky",
+                ParameterEffect.WARNS,
+            ),
+            ParameterRef(
+                "tracked_set.recommended_max",
+                "Doporučeno nejvíce",
+                "položky",
+                ParameterEffect.WARNS,
+            ),
         ),
         evidence=(_POLICY,),
         tests=(
@@ -146,12 +177,65 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             "Návrh: sestavení se zastaví s chybou u sady · Kontrola a spuštění: upozornění u sady"
         ),
         note_cs=(
-            "Pevné meze čte sestavení návrhu, doporučené kontrola připravenosti "
-            "(assess_readiness). Doporučený rozsah leží uvnitř pevného; méně než 3 položky "
-            "mapu nedají."
+            "Pevné meze čte sestavení návrhu, doporučené kontrola připravenosti. Doporučený "
+            "rozsah leží uvnitř pevného."
+        ),
+        reading_cs=(
+            "{tracked_set.min} ≤ počet ≤ {tracked_set.max}, doporučeno "
+            "{tracked_set.recommended_min}\u2013{tracked_set.recommended_max}"
+        ),
+        keeps_cs=(
+            "nejméně 3 položky: méně mapu nedá",
+            "doporučený rozsah uvnitř pevného",
+            "nejmenší je menší než největší",
+            "celá čísla",
         ),
     ),
 )
+
+#: The fictional designs the preview checks: a sample of 12 and of 450, a tracked set of 18
+#: items and of 41, each line exactly as Kontrola a spuštění or the compile writes it.
+_PREVIEW_SAMPLES: Final = (12, 450)
+_PREVIEW_SETS: Final = (18, 41)
+
+
+def _preview_design(n: int, items: int) -> dict[str, object]:
+    return {
+        "title": "Ukázka (fiktivní)",
+        "n": n,
+        "sections": [
+            {
+                "type": "object_battery",
+                "title": "Značky",
+                "object_family": "značky",
+                "objects": [f"Značka {i}" for i in range(1, items + 1)],
+            }
+        ],
+    }
+
+
+def _preview(spec: BaseModel) -> tuple[PreviewLine, ...]:
+    """What a person meets under ``spec`` in Kontrola a spuštění: the code's own checks of
+    fixed fictional designs, never a message written here."""
+    if not isinstance(spec, ReadinessSpec):
+        raise TypeError(f"not a readiness specification: {type(spec).__name__}")
+    lines: list[PreviewLine] = []
+    for n in _PREVIEW_SAMPLES:
+        # A set the draft's own hard limits keep, so the sample's line never depends on them.
+        items = spec.tracked_set.recommended_min
+        _, readiness = prepare(_preview_design(n, items), pair_n_min=1, limits=spec)
+        check = next(c for c in readiness.checks if c.id == "sample_size")
+        lines.append(PreviewLine("sample_size", check.status.value, check.message))
+    for items in _PREVIEW_SETS:
+        _, readiness = prepare(_preview_design(450, items), pair_n_min=1, limits=spec)
+        check = next(
+            c
+            for c in readiness.checks
+            if c.id.startswith(("compile:", "battery_size:")) or c.id == "sociomap_input"
+        )
+        lines.append(PreviewLine("tracked_set", check.status.value, check.message))
+    return tuple(lines)
+
 
 _GROUPS: Final = (
     StepGroup("M", "Meze připravenosti", ("method",)),
@@ -167,6 +251,7 @@ READINESS: Final = MethodModule(
     in_force="aia-readiness-1",
     editable=True,
     groups=_GROUPS,
+    preview=_preview,
     note_cs=(
         "Meze, které kontrola připravenosti čte: velikost vzorku a počet položek ve "
         "sledované sadě. Základ z kódu jsou hodnoty 18.6.6. Verze v platnosti platí pro "

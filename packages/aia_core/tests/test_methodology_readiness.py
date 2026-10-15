@@ -167,3 +167,17 @@ def test_a_runs_pin_reads_back_or_refuses() -> None:
         read_readiness_pin(_limits(sample_size__max=10))
     with pytest.raises(ValueError):
         read_readiness_pin({"sample_size": {"min": 1, "max": 2}})
+
+
+def test_the_preview_shows_the_sample_line_whatever_set_size_the_draft_allows() -> None:
+    """A draft that rules out the sample preview's set must still preview the sample."""
+    from aia_core.domain.methodology.readiness import _preview
+
+    version = _validate(
+        _limits(tracked_set__min=6, tracked_set__recommended_min=6, tracked_set__recommended_max=15)
+    )
+    lines = _preview(version.spec)
+    assert [(line.step_id, line.status) for line in lines][:2] == [
+        ("sample_size", "FAIL"),
+        ("sample_size", "PASS"),
+    ]
