@@ -30,12 +30,13 @@ import unicodedata
 from enum import StrEnum
 from typing import Any, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, StrictInt, model_validator
 
 from .pipeline import fingerprint
 from .sociomap.metrics import ObjectRole
 
 __all__ = [
+    "AIA_READINESS_V1",
     "COMPILER_VERSION",
     "DONT_KNOW",
     "SAMPLE_SIZE_BOUNDS",
@@ -45,14 +46,19 @@ __all__ = [
     "CompileProblem",
     "Readiness",
     "ReadinessCheck",
+    "ReadinessSpec",
     "ResearchSpecification",
+    "SampleSizeLimits",
     "SpecBattery",
     "SpecObject",
     "SpecQuestion",
     "SpecSelection",
+    "TrackedSetLimits",
     "assess_readiness",
     "compile_design",
     "prepare",
+    "readiness_problems",
+    "readiness_values",
 ]
 
 #: The compiler's own version: part of the specification's fingerprint.
@@ -67,6 +73,105 @@ SAMPLE_SIZE_BOUNDS: Final = (20, 10000)
 #: ``PRODUCT_POLICY.json`` ``research_design.tracked_set`` for a position map:
 #: hard (min, max) and recommended (min, max).
 TRACKED_SET_LIMITS: Final = ((3, 40), (4, 15))
+
+#: The fewest items a tracked set may ever have: fewer give no map (an object map needs
+#: three objects). A version may raise the hard minimum, never lower it below this.
+_TRACKED_SET_FLOOR: Final = 3
+
+
+class SampleSizeLimits(BaseModel):
+    """The sample sizes a run may start with, both bounds included."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    min: StrictInt
+    max: StrictInt
+
+
+class TrackedSetLimits(BaseModel):
+    """How many items one tracked set may have: outside ``min``-``max`` the design does not
+    compile; outside the recommended range readiness warns."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    min: StrictInt
+    max: StrictInt
+    recommended_min: StrictInt
+    recommended_max: StrictInt
+
+
+class ReadinessSpec(BaseModel):
+    """The limits AIA's readiness checks read (plan ``methodology-tab`` V1a), declared so a
+    methodologist can store a version of them. The preset :data:`AIA_READINESS_V1` is the
+    18.6.6 product policy above, bit for bit.
+
+    A run pins the limits in force when it starts; its compile and preflight steps read the
+    pin. They decide whether a run may start, never what it computes, so they are not part of
+    a run's identity. A missing n always blocks, whatever the limits: that is code.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    methodology_version: str
+    sample_size: SampleSizeLimits
+    tracked_set: TrackedSetLimits
+
+
+AIA_READINESS_V1: Final = ReadinessSpec(
+    methodology_version="aia-readiness-1",
+    sample_size=SampleSizeLimits(min=SAMPLE_SIZE_BOUNDS[0], max=SAMPLE_SIZE_BOUNDS[1]),
+    tracked_set=TrackedSetLimits(
+        min=TRACKED_SET_LIMITS[0][0],
+        max=TRACKED_SET_LIMITS[0][1],
+        recommended_min=TRACKED_SET_LIMITS[1][0],
+        recommended_max=TRACKED_SET_LIMITS[1][1],
+    ),
+)
+
+
+def readiness_problems(spec: ReadinessSpec) -> dict[str, str]:
+    """Every rule a set of limits breaks, by the field it is read at; empty when none.
+
+    Whole numbers of at least 1; each minimum below its maximum; a tracked set never under
+    three items; the recommended range inside the hard one."""
+    problems: dict[str, str] = {}
+    n, s = spec.sample_size, spec.tracked_set
+    for path, value in (
+        ("sample_size.min", n.min),
+        ("sample_size.max", n.max),
+        ("tracked_set.recommended_min", s.recommended_min),
+        ("tracked_set.recommended_max", s.recommended_max),
+    ):
+        if value < 1:
+            problems[path] = "musí být celé číslo, nejméně 1"
+    if s.min < _TRACKED_SET_FLOOR:
+        problems["tracked_set.min"] = (
+            f"sada potřebuje nejméně {_TRACKED_SET_FLOOR} položky: méně mapu nedá"
+        )
+    if n.max <= n.min:
+        problems["sample_size.max"] = "největší vzorek musí být větší než nejmenší"
+    if s.max <= s.min:
+        problems["tracked_set.max"] = "nejvíce položek musí být víc než nejméně"
+    if s.recommended_max < s.recommended_min:
+        problems["tracked_set.recommended_max"] = (
+            "doporučené nejvíce nesmí být méně než doporučené nejméně"
+        )
+    if not s.min <= s.recommended_min:
+        problems.setdefault(
+            "tracked_set.recommended_min", "doporučený rozsah musí ležet uvnitř pevného"
+        )
+    if not s.recommended_max <= s.max:
+        problems.setdefault(
+            "tracked_set.recommended_max", "doporučený rozsah musí ležet uvnitř pevného"
+        )
+    return problems
+
+
+def readiness_values(spec: ReadinessSpec) -> dict[str, Any]:
+    """The limits' values without their name: two versions with the same values check the
+    same, so this, not the name, is what a step's input fingerprint carries."""
+    return spec.model_dump(mode="json", exclude={"methodology_version"})
+
 
 QuestionType = Literal["vyber", "multi", "skala", "otevrena"]
 _QUESTION_TYPES: Final = frozenset({"vyber", "multi", "skala", "otevrena"})
@@ -393,7 +498,12 @@ def _question(
 
 
 def _battery(
-    raw: dict[str, Any], *, section_id: str, title: str, problems: list[CompileProblem]
+    raw: dict[str, Any],
+    *,
+    section_id: str,
+    title: str,
+    problems: list[CompileProblem],
+    limits: TrackedSetLimits,
 ) -> SpecBattery | None:
     family = _text(raw.get("object_family") or raw.get("object_type"))  # research_project.py:318
     if not family:
@@ -406,7 +516,7 @@ def _battery(
         )
         return None
     labels = list(dict.fromkeys(_text(x) for x in (raw.get("objects") or []) if _text(x)))
-    (hard_min, hard_max), _ = TRACKED_SET_LIMITS
+    hard_min, hard_max = limits.min, limits.max
     if not hard_min <= len(labels) <= hard_max:
         problems.append(
             CompileProblem(
@@ -488,9 +598,13 @@ def _battery(
 
 
 def compile_design(
-    content: dict[str, Any],
+    content: dict[str, Any], *, limits: ReadinessSpec = AIA_READINESS_V1
 ) -> tuple[ResearchSpecification | None, tuple[CompileProblem, ...]]:
-    """Compile a design, or say exactly what stops it. Never both a spec and a problem."""
+    """Compile a design, or say exactly what stops it. Never both a spec and a problem.
+
+    ``limits`` gives the hard size of a tracked set: a run compiles under the limits it
+    pinned. The default, the preset, is the code's; a caller compiling for a run passes the
+    run's pin."""
     problems: list[CompileProblem] = []
     questions: list[SpecQuestion] = []
     batteries: list[SpecBattery] = []
@@ -516,7 +630,9 @@ def compile_design(
                 if compiled is not None:
                     questions.append(compiled)
         else:
-            battery = _battery(sec, section_id=sid, title=title, problems=problems)
+            battery = _battery(
+                sec, section_id=sid, title=title, problems=problems, limits=limits.tracked_set
+            )
             if battery is not None:
                 batteries.append(battery)
     # A respondent's answers are kept by item id, a set's objects under
@@ -611,9 +727,17 @@ READINESS_RULES: Final = "aia-structural-readiness-1"
 
 
 def assess_readiness(
-    spec: ResearchSpecification, *, pair_n_min: int, filters_applied: bool = False
+    spec: ResearchSpecification,
+    *,
+    pair_n_min: int,
+    filters_applied: bool = False,
+    limits: ReadinessSpec = AIA_READINESS_V1,
 ) -> Readiness:
     """AIA's structural readiness checks. Ready means no check FAILed.
+
+    ``limits`` are the sample size and recommended set size the checks hold the design to
+    (plan ``methodology-tab`` V1a): a run's pin, the version in force for a check now, the
+    preset by default.
 
     ``pair_n_min`` is how many respondents each pair of a tracked set needs, as the run
     will compute it: the side tables' ``n_min`` of the methods it pins
@@ -625,7 +749,7 @@ def assess_readiness(
     def check(check_id: str, status: CheckStatus, message: str) -> None:
         checks.append(ReadinessCheck(id=check_id, status=status, message=message))
 
-    low, high = SAMPLE_SIZE_BOUNDS
+    low, high = limits.sample_size.min, limits.sample_size.max
     if spec.n is None:
         check("sample_size", CheckStatus.FAIL, "Velikost vzorku (n) není zadaná.")
     elif not low <= spec.n <= high:
@@ -664,7 +788,7 @@ def assess_readiness(
             CheckStatus.FAIL,
             "Sady s povinnou znalostí položek AIA zatím neumí: " + ", ".join(familiarity) + ".",
         )
-    (_, _), (rec_min, rec_max) = TRACKED_SET_LIMITS
+    rec_min, rec_max = limits.tracked_set.recommended_min, limits.tracked_set.recommended_max
     for b in spec.batteries:
         if not rec_min <= len(b.objects) <= rec_max:
             check(
@@ -745,11 +869,16 @@ def assess_readiness(
 
 
 def prepare(
-    content: dict[str, Any], *, pair_n_min: int, filters_applied: bool = False
+    content: dict[str, Any],
+    *,
+    pair_n_min: int,
+    filters_applied: bool = False,
+    limits: ReadinessSpec = AIA_READINESS_V1,
 ) -> tuple[ResearchSpecification | None, Readiness]:
     """Compile and assess in one call. A design that does not compile is not ready.
-    ``pair_n_min`` and ``filters_applied`` as :func:`assess_readiness` takes them."""
-    spec, problems = compile_design(content)
+    ``pair_n_min``, ``filters_applied`` and ``limits`` as :func:`assess_readiness` takes
+    them; the design compiles under the same ``limits``."""
+    spec, problems = compile_design(content, limits=limits)
     if spec is None:
         return None, Readiness(
             rules=READINESS_RULES,
@@ -761,4 +890,6 @@ def prepare(
                 for p in problems
             ),
         )
-    return spec, assess_readiness(spec, pair_n_min=pair_n_min, filters_applied=filters_applied)
+    return spec, assess_readiness(
+        spec, pair_n_min=pair_n_min, filters_applied=filters_applied, limits=limits
+    )

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ResearchProject } from "./model";
 import type { Section } from "./questionnaire";
-import { danglingLinks, linksOf, researchQuestionsOf, toggleQuestionLink, toggleSectionLink } from "./trace";
+import { comparisonOf, danglingLinks, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "./trace";
 
 const RQ1 = "Jak často lidé pijí kávu?";
 const RQ2 = "Jak lidé vnímají ranní nápoje?";
@@ -48,5 +48,35 @@ describe("research questions an item measures", () => {
     expect(danglingLinks(q, researchQuestionsOf(linked))).toEqual(["Stará otázka?"]);
     const dropped = toggleQuestionLink(linked, 0, 0, "Stará otázka?");
     expect(danglingLinks(sections(dropped)[0].questions![0], [RQ1])).toEqual([]);
+  });
+});
+
+describe("how a research question is answered (run-recovery-and-truth 3c)", () => {
+  it("declares a comparison by the question's text, replaces it and clears it", () => {
+    const ranked = setComparison(project(), RQ2, "rank_objects");
+    expect(comparisonOf(ranked, RQ2)).toBe("rank_objects");
+    expect(comparisonOf(ranked, `  ${RQ2} `)).toBe("rank_objects");
+    expect(comparisonOf(ranked, RQ1)).toBeNull();
+    const ab = setComparison(ranked, ` ${RQ2}`, "ab_test");
+    expect(Object.keys(ab.research_plan.research_question_comparisons as object)).toEqual([` ${RQ2}`]);
+    const cleared = setComparison(ab, RQ2, null);
+    expect(cleared.research_plan).not.toHaveProperty("research_question_comparisons");
+    expect(cleared.research_plan.research_questions).toEqual([RQ1, RQ2]);
+  });
+
+  it("reads a kind AIA does not know as none declared here; the server names it", () => {
+    const odd = project({ research_plan: { research_questions: [RQ1], research_question_comparisons: { [RQ1]: "guess" } } as never });
+    expect(comparisonOf(odd, RQ1)).toBeNull();
+  });
+});
+
+describe("a set compared as concepts (an A/B test's set)", () => {
+  it("turns a position map into a concept test and back, and leaves other output types alone", () => {
+    const tested = setConceptTest(project(), 1, true);
+    expect(sections(tested)[1].output_type).toBe("test_konceptu");
+    expect(sections(setConceptTest(tested, 1, false))[1].output_type).toBe("pozicni_mapa");
+    expect(togglesConceptTest(sections(project())[1])).toBe(true); // no output type: a position map
+    expect(togglesConceptTest({ ...sections(project())[1], output_type: "segmentace" })).toBe(false);
+    expect(togglesConceptTest(sections(project())[0])).toBe(false);
   });
 });

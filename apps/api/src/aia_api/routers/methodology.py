@@ -193,7 +193,7 @@ class FormulaOut(_Strict):
 class StepOut(_Strict):
     """One step. ``role_cs``, ``inputs``, ``source_cs`` and ``audit`` say where it sits in the
     computation (empty where the module declares none); ``feeds`` are the steps that read it,
-    derived from their inputs."""
+    derived from their inputs, and ``effect_cs`` where its result shows outside the module."""
 
     id: str
     title_cs: str
@@ -209,6 +209,7 @@ class StepOut(_Strict):
     feeds: list[str]
     source_cs: str
     audit: str
+    effect_cs: str
     values: list[ValueOut]
     formulas: list[FormulaOut]
 
@@ -499,6 +500,7 @@ def _step(found: MethodModule, view: StepView) -> StepOut:
         feeds=list(feeds_of(found, s.id)),
         source_cs=s.source_cs,
         audit=s.audit,
+        effect_cs=s.effect_cs,
         values=[
             ValueOut(
                 reference=v.reference,

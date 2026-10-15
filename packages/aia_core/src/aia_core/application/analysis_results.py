@@ -101,7 +101,7 @@ from ..domain.fieldwork import (
 )
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
-from ..domain.methodology.pins import read_support_pin
+from ..domain.methodology.pins import read_readiness_pin, read_support_pin
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
@@ -347,7 +347,15 @@ def native_sources(
     # and a run parked across a deploy must still be read, so it is held to the revision
     # it records, above.
     if spec.compiler_version == COMPILER_VERSION:
-        recompiled, _ = compile_design(content)
+        # Under the limits the run compiled with (plan methodology-tab V1a): a set the run's
+        # version let by would not compile under the preset.
+        try:
+            limits = read_readiness_pin((run.get("metadata") or {}).get("readiness"))
+        except ValueError as exc:
+            raise SourcesRefused(
+                "readiness_pin", f"the run's readiness pin does not read: {exc}"
+            ) from None
+        recompiled, _ = compile_design(content, limits=limits)
         if recompiled is None or recompiled.fingerprint() != spec.fingerprint():
             raise SourcesRefused(
                 "design_revision", "the specification is not the run's Design Revision compiled"
