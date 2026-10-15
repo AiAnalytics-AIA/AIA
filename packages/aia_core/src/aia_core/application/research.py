@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from ..domain.ai_contracts import canonical_json
+from ..domain.analysis.native import research_questions_of
 from ..domain.analysis.steps import analysis_step_inputs
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected, DesignRevision
 from ..domain.evidence import ClaimSurface
@@ -62,6 +63,7 @@ from ..domain.research_sociomap import (
     read_methods,
     side_tables_of,
 )
+from ..domain.research_trace import ResearchTrace, trace_research, with_research_trace
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
@@ -205,12 +207,14 @@ class FrozenDataset:
 @dataclass(frozen=True, slots=True)
 class RunOutlook:
     """What a run of a revision would be, before it starts: its specification (``None``: it
-    does not compile), its readiness, and every item's verdict (empty when it does not
-    compile)."""
+    does not compile), its readiness, every item's verdict (empty when it does not
+    compile) and each stated research question traced to its measures."""
 
     spec: ResearchSpecification | None
     readiness: Readiness
     questions: tuple[QuestionOutlook, ...]
+    #: Each stated research question traced to its measures; ``None`` when it does not compile.
+    trace: ResearchTrace | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -743,13 +747,14 @@ class ResearchRuns:
         designs = self._designs()
         revision = designs.get(design_revision_id)
         methods, _ = self._methods(None)
+        content = designs.content(revision.revision_id)
         spec, readiness = prepare(
-            designs.content(revision.revision_id),
+            content,
             pair_n_min=side_tables_of(methods).n_min,
             filters_applied=persona_source is PersonaSource.PANEL,
         )
         if spec is None:
-            return RunOutlook(spec=None, readiness=readiness, questions=())
+            return RunOutlook(spec=None, readiness=readiness, questions=(), trace=None)
         forecast: SupportForecast | None = None
         if fieldwork_source is FieldworkSource.AI_RUNTIME:
             support, _ = self._support(None)
@@ -761,8 +766,14 @@ class ResearchRuns:
                 spec, support=support, persona_source=persona_source, slots=slots
             )
             readiness = with_support_forecast(readiness, forecast, support=support)
+        questions = question_outlook(spec, forecast)
+        # The research questions as the analysis will read them, each traced to its measures.
+        trace = trace_research(spec, research_questions_of(content), questions)
         return RunOutlook(
-            spec=spec, readiness=readiness, questions=question_outlook(spec, forecast)
+            spec=spec,
+            readiness=with_research_trace(readiness, trace),
+            questions=questions,
+            trace=trace,
         )
 
     def _support(self, support: SupportSpec | None) -> tuple[SupportSpec, dict[str, Any] | None]:

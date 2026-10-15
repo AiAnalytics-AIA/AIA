@@ -1919,6 +1919,13 @@ export const cs = {
       removeSetConfirm: "Odstranit tuto sadu?",
       range: "Rozsah",
       openNote: "Respondent odpoví vlastními slovy.",
+      // Plan run-recovery-and-truth 3b: which research question an item measures.
+      links: {
+        label: "Odpovídá na výzkumné otázky",
+        none: "Plán zatím neuvádí výzkumné otázky, takže otázku není k čemu přiřadit.",
+        dangling: "Tento odkaz míří na výzkumnou otázku, kterou plán už neuvádí: nic neměří. Odeberte ho, nebo otázku v plánu vraťte.",
+        removeDangling: "Odebrat odkaz na „{rq}“",
+      },
       optionN: "Možnost {n}",
       optionRemove: "Odebrat možnost {n}",
       optionAdd: "Přidat možnost",
@@ -2225,6 +2232,17 @@ export const cs = {
       },
       receiptTitle: "Co spustíte",
       receiptDims: "{d} dimenzí · N={n}",
+      // Plan run-recovery-and-truth 3b: each research question and what measures it.
+      trace: {
+        title: "Výzkumné otázky a jejich měření",
+        help: "Každá výzkumná otázka z plánu a otázky, které na ni podle dotazníku odpovídají. Výzkumná otázka je zodpověditelná tak, jak její nejlepší měření.",
+        set: "{first} a další položky sady ({count} celkem)",
+        dangling: "Odkazy na výzkumnou otázku, kterou plán neuvádí: {list}",
+        reason: {
+          unmeasured: "Žádná otázka dotazníku na ni neodpovídá: analýza ji bude muset nechat bez odpovědi.",
+          unlinked_design: "U otázek dotazníku není uvedeno, na co odpovídají, takže nelze ověřit, že ji běh zodpoví.",
+        },
+      },
       // Plan run-recovery-and-truth 2b: each item, and whether the run will answer it.
       outlook: {
         title: "Na co běh odpoví",
