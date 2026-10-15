@@ -1,0 +1,33 @@
+{
+  "project": "AIA design system access",
+  "url": "https://claude.ai/design/p/a63bd61e-56c8-46f9-9e20-536b60286e61",
+  "export_date": "2026-10-13",
+  "files": [
+    {
+      "file": "research/design-contract.json",
+      "sha256": "0c7623aa56a48d67ef17f2a4b2798b209e004109d308ca52ef5a2d994ea00e09"
+    },
+    {
+      "file": "research/component-layouts.html",
+      "sha256": "1164c94a400c41fbd98648bad532b7c46dd56c7c10b62d548f1aa33b1b133b90"
+    },
+    {
+      "file": "research/README.md",
+      "sha256": "62f6f622fdc98296021586534e862261d66a722ae617d249de6658eef9c47113"
+    },
+    {
+      "file": "settings/design-contract.json",
+      "sha256": "88861c2ad72660fac50660f8b798e76f1ebd290486dbbb3317be1927e59013c5"
+    },
+    {
+      "file": "settings/component-layouts.html",
+      "sha256": "67dde8ed16ea43b8b0cfc1b88d2293a12ae4b0ebe0c2215e18c54496b75f79dd"
+    },
+    {
+      "file": "settings/README.md",
+      "sha256": "45681023b08209dffcd36722bd9ef1d2835be42d48e376bc7db7f62df4e77c03"
+    }
+  ],
+  "foundation_files_checked": 118,
+  "foundation_changes": 0
+}

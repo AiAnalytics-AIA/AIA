@@ -4,6 +4,13 @@ chunks:
   - "[x] K0. Audit current client knowledge intake, payloads, decisions and consumers at 67af44e"
   - "[x] K1. Draft the client knowledge structure, intake and acceptance contracts for review"
   - "[ ] K2. Deliver document, dataset and web intake through one source-to-reviewed-knowledge journey"
+  - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
+  - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
+  - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
+  - "[ ] K2d. AI proposals from a source, beneath a chosen study and its budget, every quote grounded"
+  - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
+  - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
+  - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
   - "[ ] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
@@ -221,6 +228,198 @@ records, locators and scoped retrieval over existing infrastructure; add indexin
 representative retrieval task demonstrates the need. Migration must preserve existing ids and
 generic historical records without inventing source spans or validated dimensions for them.
 
+## K2 slicing (2026-10-13)
+
+**Owner decisions, 2026-10-13:**
+- **Formats.** The wider set:
+  - documents: PDF, DOCX, DOC, ODT, TXT, MD and PPTX;
+  - datasets: CSV, XLSX, XLS and ODS;
+  - web: one public URL (HTML or PDF), plus import from a finished Deep Research run.
+  - Images and video are stored with the named outcome *AI cannot read this*. Anything else
+    is refused by name.
+- **AI proposals are in K2.** They are paid by a study the person picks, under client-workspace
+  D1. Nothing is accepted automatically.
+- **URL capture runs beneath a chosen study.** It uses the existing `RetrievalGate`
+  (`application/web_retrieval.py:529-560` @ 362f90e0) unchanged: fee-free, public Class C only.
+  No client-level gate.
+
+**Shape:**
+- A **source** is the client's stored material: the original bytes, the hash, the occurrence
+  (who added it, when, under what name) and what reading it produced.
+- A source is **not knowledge**:
+  - storing it accepts nothing (§ Acceptance actions, "Add source");
+  - `for_study` never reads it;
+  - knowledge comes from it only as proposals a person accepts.
+- **Storage:**
+  - bytes live in the `ArtifactStore` under a client prefix,
+    `org/<org>/client/<client>/sources/<sha256>`, so a client-wide deletion stays a prefix
+    operation (`storage.py:123-158` @ 362f90e0);
+  - rows live in their own tables, read and written only by `ClientSourceRepository`
+    (`make layer_check`);
+  - the same bytes added twice are one source with two occurrences.
+- **Deterministic reading** runs in the API at upload, bounded:
+  - this is the precedent of a study brief's attachment
+    (`study_workspace_repository.py:492` @ 362f90e0) and the questionnaire import;
+  - it deviates from "keep parsing in the worker" (§ Implementation slices) because a worker job
+    needs a study (`workflow_repository.py:248-255` @ 362f90e0), and D1 stores files without
+    one;
+  - the reading is a pure function over bytes, so moving it to a worker later changes no
+    contract.
+- **The reading's outcome** is `READ` / `PARTIAL` / `UNREADABLE` / `UNSUPPORTED` / `REFUSED`,
+  each with its reason. Every readable segment carries a locator: page, paragraph, slide, sheet
+  and row, or column.
+- **Model-backed work** (K2d) and **outbound fetching** (K2e) run in the worker beneath the
+  chosen study.
+  - Each proposal's provenance names the source, the occurrence, the locator, the paying study
+    and the run.
+  - A quote is checked by code against the stored reading. One that is not there is dropped and
+    counted, never shown.
+
+**Slices.** Each is one PR-sized change with its tests.
+- **K2a. The client source store.** *(Landed.)*
+  - **Domain**, `domain/client_sources.py`:
+    - `SourceFamily` by suffix, with the owner's list exactly; anything else is `UNKNOWN`
+      and refused at upload;
+    - `Locator`, which must place something; `Segment`;
+    - `ReadingNote`, a code the page puts into words;
+    - `SourceReading`, which refuses a complete reading that explains anything, an
+      incomplete one without a reason, and segments on an unread outcome;
+    - `reading_of_segments`: empty parts dropped, 250,000 characters kept, a scan named
+      `no_text`;
+    - `display_name`.
+  - **Reader**, `infrastructure/source_reading.py`:
+    - PDF through `document_text.read_pdf`: pages and its tables by row;
+    - DOCX in body order: paragraphs numbered as a reader counts them, empty ones included,
+      and tables by row;
+    - TXT and MD by paragraph, at their first line;
+    - an image or video `UNREADABLE`; DOC, ODT, PPTX and every dataset `UNSUPPORTED` /
+      `reader_pending` until K2b and K2c.
+    - `document_text.check_zip_bounds` (formerly `_zip_within_web_bounds`, now with the
+      file's kind) runs before an Office ZIP is inflated.
+  - **Storage:**
+    - `client_sources` and `client_source_occurrences`, migration `b3d5f7a9c1e2`. Checked on
+      PostgreSQL 16: upgrade, `alembic check`, downgrade, re-upgrade.
+    - `ClientSourceRepository` is their only reader and writer (layer_check, four rules).
+    - Bytes and reading go under `org/<org>/client/<client>/sources/<sha256>/`, read back
+      against the kept hash.
+    - The unique (client, sha256) constraint settles two requests racing with the same
+      bytes: one source.
+  - **Routes** (`routers/client_sources.py`):
+    - `POST /clients/{id}/sources`: 201 when new, 200 with `created: false` for another
+      occurrence;
+    - `GET` the list, one source with its reading, and `…/original` as an
+      `application/octet-stream` attachment with an RFC 5987 name.
+  - **A name is kept as written.** The brief's `safe_filename` (18.6.6's rule) reduced
+    "Zadání.pdf" to "Zad_n_.pdf". A source's name is only displayed, since its key is the
+    hash, so `display_name` keeps accents and removes only the path and control characters.
+  - **Tests:**
+    - `test_client_sources.py`, 22 tests, on SQLite and PostgreSQL. Among them:
+      `test_a_source_is_kept_once_by_its_bytes_with_every_occurrence`,
+      `test_a_source_is_found_only_within_its_client`,
+      `test_a_reading_altered_in_storage_is_refused`,
+      `test_the_same_bytes_kept_by_another_request_first_is_one_source`,
+      `test_a_source_is_not_knowledge_and_no_study_reads_it`;
+    - `apps/api/tests/test_client_sources_api.py`, 5 tests.
+- **K2b. PPTX, ODT, DOC.** *(Landed.)*
+  - **PPTX:** read slide by slide in `presentation.xml`'s own order, a paragraph a line.
+    An empty slide is left out and the others keep their numbers.
+  - **ODT:** headings and paragraphs numbered in body order, including inside lists and
+    sections; tables by row. `text:s`, tabs and line breaks are kept; footnotes and comments
+    are not part of a paragraph.
+  - **XML parts:** PPTX and ODT parts are read with the stdlib after
+    `document_text.check_zip_bounds`. A part over 50 MiB, or one that declares a DTD or
+    entity, is refused before it is parsed; neither format ever has one.
+  - **DOC:** `olefile` (BSD, pure Python, now in the `documents` extra) opens the compound
+    file. `piece_text`, AIA's own code, reads the main text from the FIB and the CLX piece
+    table ([MS-DOC] 2.5, 2.9.38): compressed pieces as cp1252, the rest as UTF-16LE, up to
+    `ccpText`.
+    - A field's code is dropped and its result kept.
+    - An encrypted file is `document_encrypted`, anything before Word 97 is
+      `document_too_old`, and anything out of bounds is `document_malformed`.
+    - **A DOC's table is read as Word counts it:** each cell and each row-end mark is a
+      paragraph. An empty cell and a row's end are the same `\x07`, told apart only by
+      paragraph properties, so no row number is guessed.
+  - **Fixtures:** `tools/source_fixtures.py write` has LibreOffice convert one fictional
+    OpenDocument text into DOC, ODT and DOCX, and one presentation into PPTX. The outputs
+    are pinned by SHA-256 in `fixtures/client_sources/index.json`, and `verify` checks them.
+  - **Tests:** `test_source_readers.py`, 14 tests, on SQLite and PostgreSQL. Among them:
+    - `test_an_odt_reads_as_its_docx_does`;
+    - `test_a_doc_reads_its_cells_as_the_paragraphs_word_counts`;
+    - `test_compressed_and_unicode_pieces_are_read_in_order_up_to_the_main_text`
+      (a synthetic piece table, since LibreOffice writes only UTF-16 pieces);
+    - `test_a_part_declaring_a_dtd_is_refused_before_it_is_parsed`;
+    - `test_a_zip_that_inflates_far_past_its_size_is_refused`.
+- **K2c. Datasets.** *(Landed.)*
+  - **Readers.** CSV and XLSX use `document_text.read_csv` / `read_xlsx`. XLS uses `xlrd`
+    (BSD, pure Python, in the `documents` extra); a date cell becomes its ISO date, and an
+    encrypted workbook is `document_encrypted`. ODS uses the stdlib, a DTD refused as in K2b.
+    - In ODS, repeated rows and cells are counted, never materialized past the grid bounds: an
+      empty repeat (the rest of a sheet) only moves the numbering.
+    - All four go through `document_text.grid_from_rows`, so every format has the same bounds
+      and the same cell text.
+  - **Segments.** One per row, located by sheet and row; a row ends at its last filled cell.
+  - **Preview.** `domain/client_datasets.py` builds the `DatasetPreview` on
+    `SourceReading.dataset`.
+    - Per column: the header, the kind (NUMBER / DATE / TEXT / MIXED / EMPTY), how many cells
+      are filled, the distinct values (counted up to 1,000), and five samples.
+    - **The header rule:** row 1 is the header when it is all text and a number or a date is
+      below it; otherwise the columns go by their letters.
+    - A phone number reads as TEXT: it is an identifier.
+  - **Personal data.** A column is flagged from its header (e-mail, phone, birth number, name,
+    address; accent-folded, a five-letter stem matching Czech endings) or when a third of its
+    values look like an e-mail, a Czech phone or a birth number (date and mod-11 checked).
+    - Its samples are masked.
+    - The patterns are pinned by fictional values in `fixtures/client_datasets/personal.json`.
+    - **For K2d:** a flagged column is never sent to a model.
+  - **OI-110, closed here.** `ClientSourceRepository.reread` and
+    `POST /clients/{id}/sources/{source_id}/reading` read a source again when its format's current
+    reader is not the one that read it.
+    - So does adding the same bytes again.
+    - The original never changes, and the new reading is stored beside the old one.
+    - Audited as `CLIENT_SOURCE_REREAD`.
+  - **Fixtures:** `tools/source_fixtures.py write <name …>` now writes only the named
+    outputs and merges their pins, so the K2b fixtures keep theirs. One fictional export goes to
+    ODS, XLSX and XLS (with a date style), plus a Czech CSV (BOM, semicolons, decimal comma,
+    fictional phones).
+  - **Tests:**
+    - `test_source_datasets.py`, 24 tests, on SQLite and PostgreSQL;
+    - `test_client_sources.py::test_every_format_on_the_owners_list_has_a_reader`;
+    - two API tests: the dataset's masked columns, and the re-read route.
+- **K2d. AI proposals from a source.**
+  - A new workflow type beneath the chosen study, in a study-owned hidden project, as
+    `population_materialize` does (`application/materialize.py:204-245` @ 362f90e0).
+  - The executor uses `StepModelCaller`; the reservation is held against the study's budget.
+  - A closed output contract: FACT / FINDING / TERM / ENTITY proposals, each with a quote and its
+    locator.
+  - Code grounds every quote in the stored reading.
+  - Off by default behind `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`; without it, the job parks by
+    name.
+  - Burst, latency and money are measured before merge (CLAUDE.md § 8).
+- **K2e. Web intake.**
+  - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
+    stored as a client source with `origin=web`, the URL and the retrieval time.
+  - Deep Research import: from a finished run of a study of the same client, the person picks
+    accepted evidence. Each becomes a proposal whose locator is the snapshot and the quote.
+    There is no model call.
+  - A run of another client's study is refused (404).
+- **K2f. Review and acceptance.**
+  - The review payload: the proposal beside its source excerpt at the locator, its origin and the
+    paying study.
+  - Batch accept names exact proposal ids.
+  - The connected acceptance test at API, worker and PostgreSQL level covers documents, a dataset
+    and web, and the plan's failure cases:
+    - partial parse;
+    - duplicate source;
+    - unavailable extraction runtime;
+    - wrong-client source;
+    - interrupted processing;
+    - a quote not found.
+  - The screens are client-workspace C6, C7 and C8 on the client-workspace plan. K2 is complete
+    when they pass the same journey in a browser.
+
+**Not in K2:** typed revisions and base-revision checks (K3), study context selection (K4),
+dimensions (K5) and retirement (K6).
+
 ## Findings
 
 **F-K1 — A pending item revision can replace a newer accepted correction.**
@@ -237,6 +436,33 @@ generic historical records without inventing source spans or validated dimension
 6. Test: disposable `test_a_pending_edit_can_replace_a_newer_accepted_correction` reproduces
    current behavior. Implementation must add an ordinary regression expecting refusal and a
    separate explicit rebase/accept case, with a PostgreSQL contention case where required.
+
+**Disposition (K3a, 2026-10-14).** Fixed as the smallest fix above, ahead of the rest of K3:
+- A revising proposal records `base_revision`, the item revision it was written from
+  (`client_knowledge_proposals.base_revision`, migration `d4f6a8c0e2b5`). An edit sent with an
+  older `base_revision` is refused before it is filed; without one it is written from the
+  revision current then.
+- An approval locks the item and compares (`_require_current_base`). A base that is not the
+  current revision raises `StaleKnowledgeProposal` and changes nothing; the API answers 409
+  `knowledge_proposal_stale` with `item_id`, `base_revision` and `current_revision`.
+- The explicit accept: a reviewer who names the current revision as `reviewed_revision` approves
+  the edit over it, and the new revision's provenance records `base_revision` and
+  `accepted_over_revision`. A rejection needs neither.
+- A pending edit filed before the column has a null base: unknown, so stale, never current.
+- The web: an item edit sends the revision it showed; a refused save says the item changed; the
+  pending card, on a refused approval, says which revision the edit came from and which is
+  current, and offers "Schválit místo revize N".
+- Tests: `test_an_edit_written_before_a_newer_correction_is_refused_and_changes_nothing`,
+  `test_a_reviewer_who_names_the_current_revision_accepts_the_edit_over_it`,
+  `test_a_stale_edit_can_still_be_rejected`,
+  `test_a_persons_edit_from_an_older_revision_is_refused_before_it_is_filed`,
+  `test_an_edit_filed_before_its_base_was_recorded_is_treated_as_stale` (core);
+  `test_an_edit_written_from_an_older_revision_is_a_409_until_the_reviewer_names_the_current`
+  (API); `staleEdit` and two KnowledgeLibrary tests (web). On PostgreSQL the item row is locked
+  with `FOR UPDATE` across the check and the write; no separate contention test was added,
+  since the lock is the same one `_apply` already took.
+- Not done here: typed revisions, rebase with a merge view, and conflict notices to dependent
+  studies stay in K3 and K6.
 
 **F-K2 — Knowledge classification is being used as a dimension catalogue entry.**
 1. Claim: a title-only DIMENSION can be accepted and offered as a selectable client dimension.

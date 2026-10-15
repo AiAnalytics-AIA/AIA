@@ -19,8 +19,13 @@ implementation narrative; the current tracker is each plan's front-matter
 
 **2026-09-27:** PRs #57, #58, #59, #61, #54 and #62 have merged since the paragraph
 above, and #63 (the Bedrock design assistants, off by default) and #64–#71 followed the
-same day. PROGRESS § *Where the code is* is the current picture. Below, "mock-backed", "Bedrock adapter still to be written",
+same day. The current picture is each plan's front-matter (`python tools/progress.py`;
+`PROGRESS.md` was retired on 2026-09-28). Below, "mock-backed", "Bedrock adapter still to be written",
 "first green deploy still owed" and "In progress: Nothing" are history, not state.
+
+**2026-10-12:** `src/server.js`, `src/views/` and the root `package.json` /
+`package-lock.json` were removed (#307, `mvp-workflow-assurance.md` A3b). Every mention
+of them below ("retained", "still there", step 3 of the order) is history.
 
 > **This document is the narrative, not the tracker.** What is done, in
 > progress and next lives in the plans' front-matter and

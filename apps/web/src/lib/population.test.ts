@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import type { PopulationField, PopulationRegistry, PopulationVersion } from "./api";
-import { defaultVersionId, filterFields, labelOf, reasonKey, shortSha, subpanelFilterText, summarize, usability } from "./population";
+import {
+  children,
+  defaultVersionId,
+  filterFields,
+  labelOf,
+  outcomeValue,
+  reasonKey,
+  sharedVersions,
+  shortSha,
+  subpanelFilterText,
+  summarize,
+  targetVerdict,
+  usability,
+} from "./population";
 
 const version = (label: string, status: PopulationVersion["status"]): PopulationVersion => ({
   version_id: `DSV-${label}`,
@@ -16,6 +29,8 @@ const version = (label: string, status: PopulationVersion["status"]): Population
   imported_at: "2026-10-10T09:00:00Z",
   imported_by: "USR-operator",
   provenance: "fictional",
+  owner_client_id: null,
+  extension_sha256: null,
 });
 
 const registry: PopulationRegistry = {
@@ -88,6 +103,7 @@ describe("characteristics (P7d)", () => {
     is_weight: false,
     derived: false,
     uses: [],
+    materialized: false,
   });
 
   it("filters fields by search and block", () => {
@@ -103,6 +119,40 @@ describe("characteristics (P7d)", () => {
     expect(reasonKey("grade_C_not_client_facing")).toEqual({ key: "grade_not_client_facing", values: { grade: "C" } });
     expect(reasonKey("rule_internal_only")).toEqual({ key: "rule", values: { rule: "internal_only" } });
     expect(reasonKey("something_new")).toEqual({ key: "raw", values: { code: "something_new" } });
+  });
+});
+
+describe("materialized children (P4d4)", () => {
+  const child = (label: string, at: string, materialized: PopulationVersion["materialized"]): PopulationVersion => ({
+    ...version(label, "REGISTERED"),
+    imported_at: at,
+    parent_version_id: "DSV-v_5",
+    owner_client_id: "CLI-acme",
+    extension_sha256: "e".repeat(64),
+    materialized,
+  });
+  const scale = { dimension_id: "ochota", kind: "scale_1_10" as const, definition_sha256: "d".repeat(64), method: "m@1", target: 2.0, achieved: 2.68, target_met: false, usable_predictors: ["vek"] };
+  const older = child("v_5+kava", "2026-10-11T09:00:00Z", { ...scale, dimension_id: "kava", kind: "binary", target: 0.4, achieved: 0.4002, target_met: true });
+  const newer = child("v_5+ochota", "2026-10-12T09:00:00Z", scale);
+  const withChildren: PopulationRegistry = { ...registry, versions: [...registry.versions, older, newer] };
+
+  it("keeps a client's children out of the shared versions and the unused candidates", () => {
+    expect(sharedVersions(withChildren).map((v) => v.label)).toEqual(["v_BASE", "v_1", "v_4", "v_5"]);
+    expect(summarize(withChildren).candidates).toBe(1);
+    expect(children(withChildren).map((v) => v.label)).toEqual(["v_5+ochota", "v_5+kava"]);
+  });
+
+  it("says a target the derivation left unmet, and never calls an unknown outcome met", () => {
+    expect(targetVerdict(newer.materialized)).toBe("unmet");
+    expect(targetVerdict(older.materialized)).toBe("met");
+    expect(targetVerdict(null)).toBe("unknown");
+    expect(targetVerdict(undefined)).toBe("unknown");
+  });
+
+  it("reads a binary target as a share and a scale to two decimals", () => {
+    expect(outcomeValue("binary", 0.4)).toBe("40 %");
+    expect(outcomeValue("scale_1_10", 2.68)).toBe("2,68");
+    expect(outcomeValue("scale_1_10", 2)).toBe("2,00");
   });
 });
 

@@ -12,6 +12,7 @@ import type { Template } from "@/research/model";
 import type { ResearchState, ResearchStore } from "@/research/store";
 import type { StepKey } from "@/research/steps";
 import type { StudyFrame } from "./frame";
+import type { AdviceAction } from "./ResearchAssistance";
 
 export type RunJob = (
   endpoint: ResearchJobKey,
@@ -29,6 +30,8 @@ export type ResearchContextValue = {
   /** confirm() and prompt(), with the classic words, as the rebuilt interface's dialog. */
   confirm: (message: string) => Promise<boolean>;
   prompt: (message: string, initial?: string) => Promise<string | null>;
+  /** Contextual help opens an editor; prefilling a question never sends it. */
+  askAssistance?: (action: AdviceAction, question?: string) => void;
   /** The project session's page memory: what the classic interface keeps in globals, never saved. */
   memory: Map<string, unknown>;
   /** The URL of one of this study's stages (ADR 0015): steps never build one themselves. */

@@ -89,16 +89,23 @@ def run_cost_ceiling(
     analysis_enabled: bool,
     analysis_reservation_usd: float | None,
     analysis_calls_per_module: int,
+    fieldwork_frozen: bool = False,
+    analysis_modules: int | None = None,
 ) -> RunCostCeiling:
     """The ceiling for running ``spec``: fieldwork requests plus analysis calls, each reserved.
 
     Fieldwork is one request per respondent block for an AI-runtime source and nothing for the
     fixture, which answers by code. Analysis is each module's calls (a draft and its repairs)
     when analysis is switched on, and nothing when it is off.
+
+    An analysis retry reuses another run's dataset (``fieldwork_frozen``: no request) and
+    asks only ``analysis_modules`` of the eight; ``None`` counts all eight.
     """
+    if analysis_modules is not None and not 0 <= analysis_modules <= len(ANALYSIS_MODULES):
+        raise ValueError(f"analysis_modules must be 0..{len(ANALYSIS_MODULES)}")
     requests = 0
     fieldwork_usd = 0.0
-    if fieldwork_source is FieldworkSource.AI_RUNTIME:
+    if fieldwork_source is FieldworkSource.AI_RUNTIME and not fieldwork_frozen:
         if spec.n is None:
             return _unknown(CeilingUnknown.SAMPLE_SIZE_MISSING)
         requests = spec.n * max_blocks_per_respondent(spec)
@@ -109,7 +116,8 @@ def run_cost_ceiling(
     calls = 0
     analysis_usd = 0.0
     if analysis_enabled:
-        calls = len(ANALYSIS_MODULES) * analysis_calls_per_module
+        modules = len(ANALYSIS_MODULES) if analysis_modules is None else analysis_modules
+        calls = modules * analysis_calls_per_module
         if analysis_reservation_usd is None or not analysis_reservation_usd > 0:
             return _unknown(
                 CeilingUnknown.ANALYSIS_RESERVATION_MISSING, requests=requests, calls=calls

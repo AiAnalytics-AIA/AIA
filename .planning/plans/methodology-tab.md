@@ -22,16 +22,29 @@ chunks:
   - "[ ] S4d. Draft check: the audit's printed checks C1-C16/P4-P14 run on the draft (blocked: their inputs are with the audit's author, sociomap-formula-corrections 0a)"
   - "[x] S4c. The engine computes a stored formula expression (COMPUTED_SLOTS), slot by slot, bit-identical when unchanged"
   - "[x] G1a. Support documented: both rule sets side by side, read-only (the unit's donor rule as Results shows it; AIA's evidence gate as analysis applies it), D1-D4 named on their steps"
-  - "[ ] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
-  - "[ ] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
-  - "[ ] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
-  - "[ ] G2. Aggregation documented and declared: estimators, Kish, donors, bootstrap reps/seeds/level, top-2-box; slots; 18.6.6 deviation label"
-  - "[ ] G3. Support + aggregation editable, with the draft check (status changes, estimates, intervals)"
-  - "[ ] W1. Weighting documented and declared: schemes, default role, expected totals and tolerances; weight cleaning as a choice"
-  - "[ ] R1. Response process documented, declared and editable: betas, satisficing, style links, noise floor, temperature"
-  - "[ ] V1. Validation tiers, admission tolerances, readiness bounds, presentation rounding: documented, declared, editable"
+  - "[x] G1b. Support declared: a specification with both rule sets as presets, bit-identical; each surface reads its own preset"
+  - "[x] G1c. One rule set: Results and analysis read the support version in force (the default is the owner's call, finding D2)"
+  - "[x] G1d. Support editable both ways, with the draft check listing every row a change newly reports or suppresses (ADR 0023 decision 10)"
+  - "[x] G2a. Aggregation documented and declared: estimators, Kish, bootstrap reps/seeds/quantiles, top-2-box in AggregationSpec (aia-aggregate-1, the unit's literals bit for bit); D1, D5, D7 named on their steps"
+  - "[x] G2b. Aggregation slots: the estimators as formula expressions, bit-identical on every aggregate fixture"
+  - "[x] G2c. The 18.6.6 deviation label: an aggregate computed under any version but aia-aggregate-1 says it is no longer the unit's port"
+  - "[x] G3a. Aggregation pinned: a run pins the aggregation version in force (spec + replaced formulas), a retry keeps it, the aggregate computes under it and its deviation label is reachable"
+  - "[x] G3b. Aggregation editable, with the draft check on fictional panels (estimates, intervals, status changes); support is editable since G1d"
+  - "[x] G3c. The 18.6.6 deviation carried past Results: analysis and the report say when the aggregate they read is no longer the unit's port"
+  - "[x] W1a. Weighting documented and declared: schemes, default role, expected totals and tolerances, the aggregate's weight cleaning (aia-weighting-1, the import contract's declaration exactly); D1 reproduced on its steps"
+  - "[x] W1b. Weighting tells the truth: a run's dataset refuses every invalid weight (infinity passed), the inert median/refuse switch dropped, the sampler's floor, raking and audit shown as the code's constants, Kish's n in four places"
+  - "[ ] W1c. Weighting a run's choice and editable, once the panel source reaches fieldwork (panel-grounded-respondents 5): the weighting pinned per run, the sampler's values and the default role, with the draft check on fictional panels; the contract's columns, totals and tolerances stay its facts"
+  - "[x] R1a. Response process documented and declared: aia-response-1 is the unit's coefficients (betas, satisficing, reweighting limit, style links, noise floor, describe threshold), read by the code so the declaration cannot drift (EXACT captures unchanged); D6 reproduced"
+  - "[x] R1b. A run pins its response process, a retry keeps it; AI fieldwork reads the pin; the dataset's provenance names the process and whether it is the unit's"
+  - "[x] R1c. Response process editable, with the draft check on fixed fictional questions and respondents"
+  - "[x] R1d. Results name the run's response process and say when it is not 18.6.6's, on Z1a's Metodika běhu"
+  - "[x] V1a1. Readiness bounds (sample size 20-10 000, tracked set 3-40, recommended 4-15) declared as a module of their own (ReadinessSpec, aia-readiness-1), editable as a version, pinned by a run and read by its compile and preflight steps (owner, 2026-10-14)"
+  - "[ ] V1a2. The readiness area as the canvas board MethodologyReadiness draws it: each limit's effect, the rule as read, what every version keeps, the Kontrola a spuštění preview, and Porovnat as the impact on the organization's studies"
+  - "[ ] V1b. Presentation rounding (shares 0.1 %, means 2 dp) declared and editable as a version; the code's preset keeps 18.6.6's decimals, so parity holds under it (owner, 2026-10-14)"
+  - "[ ] V1c. Evidence tiers shown read-only: what tier A, B and C each permit, from TIER_PERMITS; a change stays a reviewed code change (owner, 2026-10-14)"
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
-  - "[ ] Z1. Workbench journeys per module (edit, check, activate, run, see the pin on Results); Doc follow-up"
+  - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
+  - "[x] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
 ---
 # The Metodika tab — every formula and statistic in AIA, shown from the code and editable by the methodologist
 
@@ -647,11 +660,274 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   difference. Such cases are named, not hidden.
 - **G1, split four ways.** G1a documents; G1b declares both rule sets, bit-identical; G1c makes
   one rule govern both Results and analysis; G1d makes it editable with the draft check.
-  - **G1c needs one decision first: which rule is in force before the methodologist activates
-    a version.** Each option changes what people see:
-    - AIA's gate everywhere: Results suppresses more cells.
-    - The unit's rule everywhere: analysis admits more.
-    - The two as today, until a version is put in force.
+  - **Decided (owner, 2026-10-12): both rules as today until a version is in force.** Before
+    any version, Results keeps 18.6.6's donor rule and analysis keeps AIA's gate: that is
+    `aia-support-1`. A version the methodologist puts in force replaces both, and can make them
+    one rule by giving `results` and `analysis` the same lines.
+  - **G1b. Landed.** `evidence/support.py`:
+    - `SupportThresholds` is now a frozen model whose `None` means a line the rule does not
+      check. It refuses a boolean, a negative or non-finite line, and an indicative line below
+      its suppression line.
+    - `SupportSpec` holds two rules, `results` and `analysis`. `AIA_SUPPORT_V1`
+      (`aia-support-1`) is today: `UNIT_DONOR_THRESHOLDS` (donors 25/50, nothing else) for
+      Results, and `REFERENCE_THRESHOLDS` for analysis.
+    - One decision function serves both `assess_support` and the new `support_status`.
+      `research_aggregate.donor_support` reads its status from the `results` rule, and its
+      recorded thresholds from the same rule.
+    - Bit-identical: the unit's exact-parity aggregate tests pass unchanged, and
+      `test_the_results_rule_is_the_units_donor_lines_whatever_n` checks 81 donor counts at two
+      (n, effective n) pairs each.
+    - The module `support` now has the preset `aia-support-1` in force, a `method` step, and
+      every line as a specification parameter. It was not yet editable (G1d).
+  - **G1c. Landed.**
+    - **Pin.** `ResearchRuns.start` pins the organization's support version in force
+      (`methodology_in_force_for_study(…, "support")`). With nothing stored that is
+      `aia-support-1` (`pins.support_spec_for`). The pin goes in the run's metadata and the
+      aggregate step's input, with `support_methodology` naming a stored version.
+    - **Retry and identity.** A retry keeps the original's pin, and a run stored before the pin
+      reads as `aia-support-1` (`pins.read_support_pin`). A stored version, or a set the caller
+      chooses over the code's, is part of the run's identity, like the Sociomap's methods.
+    - **Aggregate.** `aggregate_dataset(…, support=)` decides every cell by the pinned
+      `results` rule. `donor_support` and `aggregate_question` take the rule as a required
+      keyword, so no run path has a default.
+    - **Analysis.** `native_sources` reads the pin into `NativeSources.support`, and
+      `native_evidence(…, support=)` gates by its `analysis` rule. A pin that does not read is
+      refused by name (`support_pin`).
+    - **Fingerprints.** Only a rule other than today's enters a fingerprint (the aggregate
+      artifact's input and the native evidence's system fingerprint), so a run under today's
+      rules keeps the keys and validations it always had.
+    - Tests: `test_support_pin.py`; `test_methodology_run_pins.py`, the support tests through
+      the real worker (a strict pin suppresses every object; a retry keeps its pin);
+      `test_analysis_results.py`, `test_a_runs_pinned_support_rules_reach_its_analysis`.
+  - **G1d. Landed.**
+    - **Editable both ways.** Module `support` is `editable`. Any line of either rule may move
+      up or down, become checked or stop being checked, so a version can make the two rules one
+      (`test_the_two_rules_may_be_made_one`). The model's own checks still hold: no boolean, a
+      finite non-negative number, and an indicative line never below its suppression line.
+    - **Refused.** A rule that suppresses nothing is refused by the module
+      (`support._validate`, `SupportRuleRefused`, problem key `spec.results` or
+      `spec.analysis`). Such a rule has none of `min_cell`, `n_guard`, `min_layer_donors`, so
+      it would show every cell however thin.
+    - **The draft check.** `domain/methodology/support_check.py` decides 16 fixed fictional
+      cells: four panels (60–400 respondents, 24–120 donors, equal to strongly unequal
+      weights), each with four answer rates.
+      - Each cell is decided under the rules in force and under the draft, through the run's
+        own functions: `donor_support` for Results and `analysis.native.reassess_support`
+        (renamed from `_support`, now public) for analysis.
+      - The check lists every cell and surface the draft newly reports or newly suppresses,
+        then every cell with both statuses.
+      - Under `aia-support-1` the cells span all three statuses and include D2's disagreement
+        (`nevyvazeny.q3`: REPORTABLE in Results, INDICATIVE in analysis).
+      - `POST /methodology/support/compare` returns it as `support`, with `panels` empty.
+        The tab's comparison lists it (`MethodologyComparison.tsx`, `SupportCheck`).
+    - **The editor clears a line.** A number field now also takes `null`
+      (`methodology-edit.ts` `fromInput`), so a line can stop being checked from the tab. Before
+      this, only a line already `null` could change, in one direction. Whether `null` is allowed
+      stays the domain's to say. Proven by `MethodologyVersions.test.tsx`, "the support rules'
+      versions".
+    - **The note.** Every cell's `uncertainty_note` is now written from the rule that decided
+      it (`research_aggregate.uncertainty_note`). Under 18.6.6's rule it is the unit's text,
+      verbatim (`UNCERTAINTY_NOTE`, unchanged), so the parity tests hold.
+    - Tests: `test_methodology_support.py` (both ways, made one, the refusals),
+      `test_methodology_support_check.py`, `test_support_pin.py` (the note follows the pin),
+      `test_methodology_api.py` (store and put in force, refusal, the check), and
+      `MethodologyComparison.test.tsx`.
+  - **Finding (for G1d), resolved by G1d.** The aggregate's `UNCERTAINTY_NOTE`
+    (`research_aggregate.py:60`, on the G1b branch) is the unit's text, verbatim: "<25 se nereportuje;
+    25–49 je INDIKATIVNÍ". Once the Results rule is editable, the note must be written from the
+    rule in force, or it will state lines the rule no longer uses.
+  - **G2 splits into G2a-G2c.** The unit wrote the bootstrap's values inline
+    (`research_aggregate.py`, `reps=400`, `seed=20260816`, …), so unlike G1a there is no module
+    constant for the tab to read. Documenting them means declaring them, so G2a does both.
+  - **G2a. Landed.**
+    - **Declared.** `research_aggregate.AggregationSpec`: `bootstrap` (`reps` 400, `reps_multi`
+      350, `seed` 20260816, `seed_top_box` 20260818, `quantiles` (0.025, 0.975)) and `top_box`
+      2. Its preset `AIA_AGGREGATE_V1` (`aia-aggregate-1`) holds the unit's literals.
+      - The quantiles are declared, not derived from a level: `(1 - 0.95) / 2` is
+        0.025000000000000022, and a derived bound would move every interval in its last bit.
+      - A multiple choice's seed stays `seed + i` (the option's index). That is the method, so
+        it is not a parameter.
+      - Refused: zero replicates, a negative seed, quantiles outside 0 < low < high < 1, an
+        empty top box, a boolean, an unknown field.
+    - **Read.** `aggregate_question(…, method=)` takes the specification, and
+      `bootstrap_weighted_mean` and `bootstrap_weighted_distribution` take `quantiles`; none of
+      them holds a literal any more (`test_the_preset_is_the_units_literals_bit_for_bit`).
+      `aggregate_dataset` passes `AIA_AGGREGATE_V1`. A run does not pin it yet (G3).
+    - **Bit-identical.** The exact-parity aggregate tests, the seed-spread tests and AIA's own
+      pinned bounds pass unchanged.
+    - **Module.** `domain/methodology/aggregation.py` is module `aggregation`, read-only, in
+      force `aia-aggregate-1`, registered after `support`. Its groups:
+      - M, the method;
+      - V, weights: cleaning (D1) and Kish;
+      - O, estimates: share, mean, median, sd, top box, multiple choice;
+      - B, the donor bootstrap: resampling and the percentile interval (D5);
+      - F, fidelity: the keyword lists (D7, shown as code constants) and the rating.
+    - **D7, tested.** `test_the_keyword_lists_decide_what_is_refused`: "Kolik byste zaplatili…"
+      is refused, while "Jakou částku … považujete za přiměřenou?" passes as AMBER. The refusal
+      is only as good as the lists.
+  - **G3 splits into G3a-G3c.** Support has been editable since G1d, so G3 is aggregation's.
+    It follows support's order: pin (G1c), then editing with its draft check (G1d). The
+    label's reach past Results is its own chunk.
+  - **G3c. Landed.** The deviation G2c records on the aggregate now reaches everything that
+    reads the aggregate's numbers.
+    - **Analysis evidence.** `native_evidence` puts the deviation (method name, changed values,
+      replaced formulas) into the system fingerprint, only when there is one, the way a
+      non-reference support rule enters it.
+      - A validation recorded for 18.6.6's method never vouches for numbers another method
+        computed.
+      - Every analysis under the port keeps the fingerprint its validations are bound to.
+      - A deviation that cannot be read is refused (`NativeEvidenceRefused`), never taken for
+        the port.
+    - **Reconstruction and API.** `RunAnalysis.aggregation_deviation` is read once from the
+      verified sources by `reconstruct_run`. `GET …/analysis` returns it as
+      `aggregation_deviation` (`null` for the port).
+    - **The web.** The AI analysis card shows G2c's "Odchylka od 18.6.6" banner above the
+      modules, naming each change and each replaced formula.
+    - **The internal report** (`compose_internal_report`), following the synthetic-respondents
+      disclosure it already makes:
+      - a LIMITATION callout titled "Odchylka od 18.6.6" in the introduction;
+      - a paragraph in "Metodika a způsob interpretace" naming the version, each changed value
+        ("top_box (18.6.6: 2, zde 1)") and each replaced formula;
+      - a limitation callout in the limitations chapter;
+      - "Metodika agregace" in the audit appendix.
+
+      None of it appears for the port. The DOCX still lints clean.
+    - Tests:
+      - `test_analysis_results.py::test_an_aggregate_that_is_not_the_units_port_says_so_in_analysis_and_the_report`
+        (fingerprint moves; garbled refused; reconstruct carries it; every report place),
+        with the negative added to the existing composition test;
+      - `test_research_api.py` (the key, `null` before any module read an aggregate);
+      - `ExecutionSteps.test.tsx` (the banner on the analysis, and none on the port).
+  - **G3 complete.** Support has been editable since G1d, and aggregation since G3b. Both are
+    pinned by every run, and any departure from 18.6.6 is said wherever the numbers go.
+  - **G3b. Landed.**
+    - **Editable.** Module `aggregation` is `editable`. A version may change any declared value
+      and replace any of the five estimator slots. `validate_version` checks both: the
+      specification's own refusals (zero replicates, quantiles out of order) and each slot's
+      properties on its grid (a share above 100 % is refused by name).
+    - **The draft check.** `domain/methodology/aggregation_check.py` aggregates three fixed
+      fictional panels through `aggregate_dataset` itself, under the aggregation in force and
+      under the draft:
+      - a small unweighted panel (60 respondents, 24 donors), SUPPRESS;
+      - a strongly weighted panel (240, 40, weights 0.2-4), INDICATIVE;
+      - a large panel (500, 160), REPORTABLE.
+
+      Each panel answers two scales, a single choice and a multiple choice: 11 estimates.
+      - It compares every estimate with its 95 % interval, each question's support status
+        under the support rules in force, and each question's effective n.
+      - It names every estimate that moved and every status that changed.
+      - Computed in memory only: nothing is stored or reaches a run. About 1 s per side.
+    - **What it shows, measured on the panels.**
+      - A one-point top box moves exactly the two top boxes, downward.
+      - Fewer replicates move intervals, never estimates.
+      - Kish replaced by `count(w)` lifts the weighted panel's effective n from about 31 to
+        its 40 donors (the combined n is capped by them). Under a rule suppressing below an
+        effective n of 35, that turns all four of its questions from SUPPRESS to REPORTABLE.
+    - **API.** `POST /methodology/aggregation/compare` returns `aggregation` (panels, rows,
+      `status_changes` as `QuestionStatusOut`, `effective_n`). Statuses are decided by the
+      organization's support rules in force, as a run started now would decide them.
+    - **Web.** `MethodologyComparison.tsx`, `AggregationPanel`, following the settings
+      workspace (#290):
+      - one collapsible panel each, the first open;
+      - every moved estimate as "value (low-high) → value (low-high)";
+      - status and effective-n changes;
+      - "Žádný odhad se nemění." where nothing moved.
+
+      The version editor needed no change: the quantiles are a JSON field, and each slot shows
+      its built-in expression.
+    - **End to end.** An aggregation version stored and put in force as the tab does is pinned
+      by the next run (`aggregation_methodology` names it), computed under, and labelled. A
+      run started before keeps the unit's port
+      (`test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so`).
+  - **G3a. Landed.**
+    - **The pin.** `ResearchRuns.start(…, aggregation=)` pins the organization's aggregation
+      version in force (`methodology_in_force_for_study(…, "aggregation")`). With nothing
+      stored, that is `UNIT_AGGREGATION_PIN`: `aia-aggregate-1`, no formula replaced.
+      - The pin is `{"spec", "formulas"}`, in the run's metadata (`aggregation`, with
+        `aggregation_methodology` naming a stored version) and the aggregate step's input.
+      - A retry keeps the original's pin (`_aggregation_of`). A run stored before the pin
+        retries as 18.6.6's port.
+      - A stored version, or a pin the caller chooses over the unit's, is part of the run's
+        identity, like the support rules.
+    - **Refused before any run.** A pin is read at start exactly as the aggregate will read it
+      (`pins.read_aggregation_pin`): a formula that does not compile, or a slot the aggregate
+      does not read, never reaches a run. `aggregation_pin_for` refuses a stored version
+      replacing a formula outside `COMPUTED_SLOTS`. `COMPUTED_SLOTS` is now
+      `ENGINE_SLOTS | AGGREGATE_SLOTS`, and the two sets are disjoint.
+    - **The step.** The aggregate step computes `aggregate_dataset(…, method=, slots=)` under
+      the pin. A pin that does not read fails as `aggregation_pin_invalid`. Only a pin other
+      than the unit's enters the artifact's reuse key, so every earlier aggregate is reused as
+      it was.
+    - **The label is reachable.** A run under an edited pin stores an aggregate whose
+      `deviation` names the changed value and the replaced formula
+      (`test_a_run_aggregates_under_the_aggregation_it_pinned_and_says_so`, through the real
+      worker).
+    - Tests: `test_aggregation_pin.py`; `test_methodology_run_pins.py`, four aggregation
+      tests; `test_methodology_engine_slots.py` restates the computed set for both modules.
+  - **G2c. Landed.**
+    - **When an aggregate departs.** `research_aggregate.aggregation_deviation(method, slots)`
+      is `None` for 18.6.6's port. Otherwise it names every value of `aia-aggregate-1` the
+      method changed (path, the unit's value, the one used) and every replaced formula.
+      - A version that only renames changes no number and claims nothing.
+      - A replaced formula counts even when its expression equals the built-in: an edit is
+        an edit.
+    - **The artifact.** `aggregate_dataset(…, method=, slots=)` adds a `deviation` block only
+      when there is one. The port's artifact is byte for byte what it was: the parity
+      self-fixture, which compares whole artifacts, passes unchanged.
+    - **Results.** Above the numbers, "Odchylka od 18.6.6", the version, each changed value
+      ("top_box: 2 v 18.6.6, zde 3") and each replaced formula (`ExecutionSteps.tsx`,
+      `Deviation`).
+      - The top box is named by the width the aggregate used ("Horní body (3)"), no longer
+        always "Horní dva body".
+      - A deviation the page cannot read is still shown as a deviation, with nothing named;
+        it never passes as the port (`research-execution.ts`, `aggregateDeviation`).
+    - **Reachable from G3 (now G3a).** No run passed a method or slots yet, so no stored aggregate can
+      deviate until a run pins the aggregation version in force. Analysis and the report read
+      the aggregate's numbers; carrying the label into them belongs with that pin.
+    - Tests: `test_aggregate_deviation.py`; `research-execution.test.ts`
+      (`aggregateDeviation`, `topBoxWidth`, the top-box label); `ExecutionSteps.test.tsx`
+      (the label above the numbers, and none on the port).
+  - **G2b. Landed.**
+    - **The obstacle.** A built-in expression must give the code's exact bits, and the
+      formula language's `sum` is `math.fsum`. The aggregate summed with plain `sum`, so an
+      expression and the code differed in the last bit.
+      - The sociomap engine already sums with `fsum`, which is why S3's slots could be
+        bit-identical.
+      - Plain `sum` was never the unit's bits either: 18.6.6 sums with NumPy.
+      - So the aggregate now sums with `fsum` (exactly rounded), not the expressions with
+        something looser.
+    - **Nothing visible moved.** The exact-parity tests against the unit, the seed-spread tests
+      and AIA's pinned bounds pass unchanged. A 1,000-respondent × 18-question fictional
+      aggregate hashes identically before and after (`62d3fe29…`).
+    - **Cost.** That aggregate takes 2.54 s before and 2.84 s after (+12 %), median of three
+      runs. A first cut cost +35 %; most of it was won back by computing each replicate's
+      weights once with `map` and grouping a distribution's rows by label outside the
+      replicate loop. `_multipliers` (the random draws) still dominates the profile.
+    - **The slots** (`domain/methodology/aggregation_formulas.py`, ids in
+      `research_aggregate`, `AGGREGATE_SLOTS`):
+
+      | Slot | Built-in | Step |
+      |---|---|---|
+      | `agg.kish` | `sum(w) ** 2 / sum(w * w)` | kish |
+      | `agg.share` | `100 * sum(w * hit) / sum(w)` | share |
+      | `agg.mean` | `sum(w * x) / sum(w)` | mean |
+      | `agg.variance` | `sum(w * (x - sum(w * x) / sum(w)) ** 2) / sum(w)` | sd |
+      | `agg.top_box` | `x >= top - (b - 1)` | top_box |
+
+      - Weight cleaning, the weighted median, the resampling and the linear quantile are
+        algorithms, so they stay code without a slot.
+    - **The engine.** Every estimator function takes `slots` (default none: the code, bit for
+      bit). A replaced slot computes the point and every bootstrap replicate.
+      `aggregate_dataset(…, slots=)` passes them through; no run pins any yet (G3).
+    - **One estimator, used consistently.** The top box's share and each multiple-choice
+      option's share are weighted means of 0/1 indicators, so they follow `agg.mean`. The
+      mean step says so: editing the mean edits them too.
+    - **Proof** (`test_methodology_aggregation_formulas.py`):
+      - every fixture, aggregated with all five slots replaced by their own built-ins, is
+        identical to the code's aggregate;
+      - unrounded points, bounds, Kish n and variances are equal as floats on random inputs;
+      - the top-box rule matches the code's for every width;
+      - a replaced estimator moves what the aggregate reports and nothing else.
   - **G1a. Landed.** `domain/methodology/support.py` is module `support`, read-only. It has no
     specification yet, so every value is a code constant read where it is used.
     - Group U, the unit's rule (what Results shows): weight cleaning, Kish n, donors with the
@@ -665,10 +941,189 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
       share is stored and never read).
     - Checked before writing: `max_donor_share` is written at `research_aggregate.py:270, 438`
       and read nowhere; `effective_n` is `effective_n_combined` at `:433` (@ ca56fd00).
+- **W1, split three ways** like G1-G3: W1a documents and declares, W1b makes the cleaning a
+  choice a run reads, W1c makes it editable.
+  - **W1a. Landed.** `domain/methodology/weighting.py` is module `weighting`, read-only,
+    registered after `aggregation`.
+    - **Declared.** `WeightingSpec` (`population/weights.py`): `contract_id`, `default_role`,
+      `schemes` keyed by role (column, expected total, tolerance) and `aggregate_cleaning`
+      (`median`, the unit's; `refuse`). Its preset `aia-weighting-1` is built by
+      `weighting_spec(CZ_SYNTHETIC_V17, ...)`, so it is the contract's declaration exactly,
+      never a copy that can drift
+      (`test_methodology_weighting.py::test_the_preset_is_the_contracts_declaration_exactly`).
+      A default role that is not a scheme, a total without its tolerance, a negative tolerance
+      and two schemes on one column are refused.
+    - **Nothing reads it yet.** The loader still resolves through the contract and the
+      aggregate still cleans with the median; the module says so, and that a run reads it
+      from W1b.
+    - **Steps, in five groups:** the method; the scheme (role to column, one weight's parse,
+      the column refused whole); the import's totals; the aggregate's cleaning; Kish's n in its
+      three places. There is no calibration, raking or GREG step, and the module says that too.
+    - **Finding D1, reproduced.**
+      - Three cleaning rules for one weight: `clean_weights([1, nan, 3, 5])` gives
+        `[1, 3, 3, 5]`; `evidence.support.kish_effective_n` raises; `analysis_weights`
+        raises `unusable_weight` (`::test_three_cleaning_rules_impute_or_refuse_the_same_weight`).
+      - Kish's n is computed in three places, not two: `research_aggregate`, `evidence.support`
+        and `sociomap.relations`. All three give the same float on 200 random positive weight
+        vectors. On a zero, the Sociomap's pair refuses while the other two agree. On a
+        negative, the aggregate drops it (1.8 for `[1, -1, 2]`) while the other two refuse
+        (`::test_kish_is_computed_three_times_and_agrees_only_on_valid_weights`).
+      - D1 is a fact, not a defect, until W1b makes the cleaning a choice.
+  - **W1b. Re-scoped, then landed.** The cleaning was never going to be a choice a run reads:
+    a run's aggregate receives only `FieldworkDataset` weights, and making a switch of a rule
+    that cannot fire would have been a control that does nothing. What W1b did instead:
+    - **Finding: infinity reached the aggregate.** `FieldworkRespondent.weight` was
+      `Field(gt=0)` (`fieldwork.py:132 @ a19af14d`): 0, negatives and NaN were refused but
+      `inf` passed, and `clean_weights` then replaced it by the median. Now
+      `allow_inf_nan=False`; the dataset refuses every weight that is not a positive finite
+      number (`test_methodology_weighting.py::test_a_runs_dataset_refuses_every_weight_that_is_not_positive_and_finite`).
+      With that, `clean_weights`' median never fires on a run: it is the unit's port, kept
+      for parity, and its step says so.
+    - **The switch is gone.** `WeightCleaning` and `WeightingSpec.aggregate_cleaning` are
+      removed; a payload naming it is refused
+      (`::test_a_cleaning_choice_is_no_longer_part_of_a_weighting`).
+    - **W1a's "no raking" was wrong.** The sampler (`population/sampling.py`, panel-grounded
+      chunk 2e) floors the base weight at `1e-12` (`_WEIGHT_FLOOR`), targets the audience's
+      weighted shares, rakes the sample to them (`rake`: IPF, 60 iterations, floor `1e-6`, cap
+      `8 x q0.99`, mean 1, converged below `1e-8`) and audits it (`judge`: weighted
+      `max(0.25, 100/n)` pp refuses, raw `max(0.50, 100/n)` warns). The panel persona carries
+      the raked weight (`panel_persona.py:276 @ a19af14d`). A new group, *Váha respondenta
+      běhu*, shows each step; its values are `ConstantRef`s, shown as the code's and never
+      offered, because no run reads them yet: the panel source is not wired to fieldwork
+      (panel-grounded-respondents chunk 5), AI respondents weigh 1
+      (`ai_respondent.py:284 @ a19af14d`). GREG and other calibration do not exist; the
+      module says that instead.
+    - **Kish's n in four places**, the sample's audit `effective_n` the fourth
+      (`sampling.py:draw_panel_sample`); its weights are positive by construction.
 - **G1.** One rule set, not two (finding D2). The decision of what the single rule is goes to the
   methodologist and is made in the tab, as the first activated support version. The thresholds
   are editable both ways, with no floor (owner, 2026-10-11; ADR 0023 decision 10). The draft
   check lists every row a lowered threshold would newly report.
+
+- **Z1a. Landed.** Walked on the UI workbench at `develop @ a19af14d`.
+  - **Through the API, per module.** Edit, `/check`, `/compare`, store as a version, activate
+    with a reason: the Sociomap (`relation.n_min` 30 → 20), support (Results' lower donor line
+    25 → 20) and aggregation (`top_box` 2 → 1). Every step 200/201. The draft checks moved what
+    the edits should: the top boxes (small panel 52.7 % → 5.5 %, means unchanged) and one small-panel
+    cell SUPPRESS → INDICATIVE. The balanced panel's map did not move under n_min 20, as
+    expected at 120 raters.
+  - **The run.** A research run through the browser (`tools/ui_workbench/research_journey.mjs`)
+    pinned all three stored versions by name and hash, with the edited values. Results show the
+    map as `aia-sociomap-3+e1`, and the Data tab opens with the 18.6.6 deviation naming
+    `aia-aggregate-1+e1` and `top_box: 2 v 18.6.6, zde 1`, the top boxes reading "Horní body (1)".
+    The support edit cannot show on that run: every cell has 141 donors.
+  - **In the browser, as the methodologist clicks it.** Nastavení → Metodika → Podpora a
+    potlačení → Upravit metodiku → one field → Porovnat → Zkontrolovat a uložit → Uvést v
+    platnost with a reason: stored `aia-support-1+e2`, in force, no error.
+  - **Fixed here.** Results never said which methods a run used: the run API did not return
+    them, the run's provenance showed only its ids, and the support version appeared nowhere.
+    The run now carries `methodology` (each module's name, stored or the code's preset), read
+    from its metadata by `methodology.pins.run_methods` (the domain: layer_check keeps the
+    Sociomap preset's name out of the API; no pin reads as the preset, a pin that cannot be read as `null`, never a guess,
+    `test_run_methods.py`), and Results show it as "Metodika běhu"
+    (`test_research_api.py::test_a_run_names_the_methods_it_computed_under`). A retry kept its
+    original's pins but not where they came from: `retry` passes them explicitly, so the new
+    run had no `methodology` / `support_methodology` / `aggregation_methodology` records and
+    read as the code's (found in review on #338). A retry now keeps them, as metadata only,
+    never in its key
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`). Every editable
+    module also introduced itself as "Postup výpočtu mapy"; now "Postup výpočtu".
+  - **Not fixed (minor).** A line a rule does not check is edited as the text `null`; the
+    Metodika tab has no link of its own (`/app/settings?tab=` is not read).
+  - **Workbench in a git worktree.** The API and worker ran the main checkout's code through
+    the editable install until `PYTHONPATH` named the worktree's sources, and `next dev`
+    (Turbopack) refuses a symlinked `node_modules`. Doc follow-up for AGENTS.md.
+- **R1a. Landed.** `domain/methodology/response.py` is module `response`, read-only,
+  registered after `weighting`.
+  - **Declared and read.** `ResponseProcessSpec` (`respondent_behavior.py`): social
+    desirability's base and slope, acquiescence, extremity, "don't know", satisficing's base,
+    slope and cap, the reweighting limit, the six style links in the unit's order, the noise
+    floor and the describe threshold. `aia-response-1` holds the unit's values, and
+    `adjust_probabilities`, `assign_styles` and `describe_style` now read them: the inline
+    literals (`respondent_behavior.py:67-74, 132, 174-207, 315 @ 8e70d7d2`,
+    `ai_respondent.py:226 @ 8e70d7d2`) are gone, so the declaration cannot drift from
+    what computes. The EXACT captures are unchanged and pass
+    (`test_respondent_behavior.py::test_adjust_probabilities_matches_the_unit`,
+    `::test_styles_match_the_unit`); the default is the preset bit for bit, and changing any
+    one value changes what is computed
+    (`test_methodology_response.py::test_the_preset_is_the_units_values_and_the_code_reads_it`).
+  - **Not declared: the dispersion temperature.** 18.6.6's `dispersion_calibration` is not
+    ported; the temperature is 1, the identity. A value that nothing reads is not offered;
+    the step says so. The model is asked at temperature 0 (`ai_respondent.py:614 @ 8e70d7d2`).
+  - **Steps, in six groups:** the method; the model's probabilities and their normalisation;
+    the mechanisms (the soft reweighting, then social desirability, acquiescence, extremity,
+    "don't know", satisficing); the draw by code; the styles (the links, the stable noise,
+    the threshold that puts a style into words); the fictional roster.
+  - **Finding D6, reproduced.** A fictional roster draws its donors with replacement from a
+    pool of `max(3, n // 3)` ids (`ai_respondent.py:278 @ 8e70d7d2`), so it has fewer
+    distinct donors than the pool. Under `aia-support-1`'s 25 donors every run below 75
+    fictional respondents suppresses every donor-layer value; at 75 only about a quarter of
+    rosters reach 25 donors, from 90 every one tried does
+    (`test_methodology_response.py::test_d6_a_fictional_roster_draws_too_few_distinct_donors_for_support`).
+    The fictional roster carries every AI run that does not take its respondents from the panel.
+  - **Corrected in review (#342):** the pool is not the donor count; only a respondent's hash
+    noise is their own, the style depends on the roster
+    (`::test_only_the_noise_is_the_respondents_own_the_style_depends_on_the_roster`); a
+    missing sex where the column exists counts as not male, as in 18.6.6
+    (`::test_a_missing_sex_counts_as_not_male_as_in_the_unit`). The notes said otherwise.
+  - **Found by CI on #344:** a pin read back from PostgreSQL's JSONB has its keys reordered,
+    and the specification refused six style links that were not in the unit's order, so
+    every retry failed there (SQLite keeps the order; the local suites passed). The links
+    are now put back in the unit's order on read; each style is computed on its own, so the
+    order moves no value
+    (`test_methodology_response.py::test_a_pin_read_back_with_its_keys_reordered_is_the_same_process`).
+
+- **R1b. Landed.** A run pins its response process like its support rules.
+  - `ResearchRuns.start` pins the organization's `response` version in force, else
+    `aia-response-1`, into the run's metadata (`response`, `response_methodology` when stored)
+    and the fieldwork step's input; a stored version or a caller's process other than the
+    unit's is part of the run's key, and a retry keeps the original's
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_response_process_its_run_pinned`).
+  - AI fieldwork reads the pin (`methodology.pins.read_response_pin`; a pin that does not read
+    fails `response_pin_invalid` before any call, never the code's values instead) and
+    assigns styles, words them and adjusts the model's probabilities under it. The dataset's
+    provenance carries `response_process`: its name, the SHA256 of its specification and
+    whether it is the unit's
+    (`test_ai_fieldwork.py::test_ai_respondents_answer_under_the_response_process_their_run_pinned`:
+    a threshold of 10 keeps every style out of the requests the unit's 0.7 puts them in).
+  - A panel run (panel-grounded-respondents 5a/5b) is styled under the same pin:
+    `panel_source.panel_plans` passes it to `panel_personas`; who is sampled does not depend
+    on it (`test_panel_source.py::test_panel_personas_are_styled_under_the_runs_response_process`).
+    The panel's profile has its own wording and no describe threshold.
+  - Results do not say yet when a run's process is not the unit's: nothing can be stored
+    until R1c, which adds that sentence with the editor.
+
+- **R1c. Landed.** `response` is editable: a version is any `ResponseProcessSpec` the domain
+  validates (`versions.validate_version`, no formula slot), stored and put in force as for
+  support; a run started afterwards pins it under its own name
+  (`test_methodology_run_pins.py::test_a_run_pins_the_response_version_in_force_and_one_started_before_keeps_the_units`).
+  - **Draft check** (`methodology/response_check.py`, `POST /methodology/response/compare`):
+    four fixed fictional questions (a 1-5 scale with "nevím" and declared agreement, a choice
+    with a declared desirable answer, a plain 1-7 scale, a choice satisficing toward the first
+    option), each with a fixed probability vector standing in for the model, answered by a
+    fixed roster of 80 under the process in force and the draft. Shown: each option's mean
+    share, the largest move in points, and each respondent's mean shift from the model's
+    vector -- styles are centred, so the mean alone hides what a style does (extremity 0.22 to
+    1.0 moves the 1-7 scale's mean by 0.64 pp, each respondent by 3.49 to 9.78 pp); and how
+    many profiles put a style into words. No model is called, nothing is drawn.
+  - **R1d split out:** Results naming the process and the deviation sentence belong on the
+    "Metodika běhu" line Z1a adds; they follow once #338 is merged, not stacked on it.
+
+- **R1d. Landed** (on Z1a's "Metodika běhu", #338).
+  - The run's `methodology` names its response process like the other three
+    (`run_methods`: the stored version, else the pin's own name, else `aia-response-1` for a
+    run from before the pin, `null` for a pin that cannot be read) and carries
+    `response_deviates`: `true` when the process is not 18.6.6's, `null` when its pin cannot
+    be read, never guessed (`test_run_methods.py::test_a_response_process_says_whether_it_is_the_units`).
+  - The coefficients decide, not the name: a stored version holding the unit's values is the
+    unit's process (`methodology.pins.is_units_process`). R1b's dataset provenance `unit` flag
+    compared whole specifications, names included, and now uses the same function.
+  - Results show "Odpověď <name> (uložená verze | z kódu)" and, when it deviates, that the
+    answers came from another response process than 18.6.6's and are not directly comparable
+    with its results; when it cannot be read, that this cannot be told
+    (`ResultsWorkspace.test.tsx`).
+  - A retry keeps `response_methodology` with the other stored-version records
+    (`test_methodology_run_pins.py::test_a_retry_keeps_the_stored_versions_its_pins_came_from`).
 
 ## Findings (hypotheses until reproduced; each names the chunk that tests it)
 
@@ -685,7 +1140,8 @@ It is already ADR 0022's settings. The tab links to it and does not duplicate it
   - refusal (`evidence/support.py:244-257`);
   - refusal (`population/weights.py:85-118`).
 
-  Kish n is computed twice. Tested in W1.
+  Kish n is computed twice. Tested in W1. **Reproduced in W1a:** three times, not twice
+  (`test_methodology_weighting.py`); equal on positive finite weights only.
 - **D2.** There are two suppression rule sets: the unit's (donors 25/50) and AIA's (raw n 50,
   n_eff 25/50). Results shows the unit's (`apps/web/src/lib/research-execution.ts:134-177`), so a
   cell can read INDICATIVE on screen while its evidence row is suppressed. Tested in G1, and
@@ -715,3 +1171,71 @@ To be written as chunks land:
   paths;
 - the ADR index entry for 0023;
 - `AGENTS.md` if Temml under Next 16 or the expression compiler needs a note.
+
+- **Z1b. Landed.** `tools/ui_workbench/methodology_journey.mjs`, `make ui-methodology` (needs
+  `make ui-workbench` and `make ui-fixtures`). Z1a's walk, committed, over every module the API
+  lists:
+  - an editable module (sociomap, support, aggregation, response) opens on its editor; every
+    outline step shows itself alone, and every link of a step's place in the computation lands
+    on a step the editor shows; one edit is compared, stored and put in force, and the API
+    agrees;
+  - a read-only module (sociomap_reference, sociomapping, weighting) opens on its catalogue,
+    every stage with its steps or saying none is computed;
+  - with `--run` (the make target), one research run through `research_journey.mjs` pins every
+    stored version by name (`methodology` on the run);
+  - every module it touched goes back to what was in force before it, pass or fail.
+  - Measured on the workbench (next dev, fictional data): PASS, 8 checks; the Sociomap's 19
+    steps and 50 context links walked; the run pinned `aia-sociomap-4+e5`, `aia-support-1+e3`,
+    `aia-aggregate-1+e3`, `aia-response-1+e3`; afterwards all four read `code` again.
+  - Proved to catch #400's review finding: with the editor's `linkable` guard switched off, it
+    fails "the link f1_declared_scale -> f11_not_placed left 0 steps shown".
+  - Fixed on the way: `research_journey.mjs` waited for a *visible* table on Results' Data tab,
+    but the research-lane redesign renders each question's table inside a closed section, so
+    it failed on plain develop ("Results show no aggregate table") with the tables present. It
+    now waits for the table to be attached.
+  - Doc follow-up: CLAUDE.md § 3 Commands, a row "**The Metodika tab, every module** |
+    `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright +
+    Chromium): every module's steps and links, one edit compared, stored and activated per
+    editable module, a run that pins them; every module restored afterwards".
+
+
+
+- **V1, decided (owner, 2026-10-14).** Asked one question per area, with the code's values:
+  - Readiness bounds (`research_design.SAMPLE_SIZE_BOUNDS` (20, 10 000), `TRACKED_SET_LIMITS`
+    ((3, 40), (4, 15))): **editable** by the methodologist, as a version. They are study-design
+    judgements, not safety gates. V1a.
+  - Presentation rounding (the aggregate's 0.1 % shares, 2-decimal means): **editable**, as a
+    version. The code's preset keeps 18.6.6's decimals, so the parity fixtures run under it
+    unchanged; a stored version that changes them names the deviation, as `top_box` does. V1b.
+  - Evidence tiers (`evidence.validation.TIER_PERMITS`: A everything; B aggregate, demographic
+    breakdown, internal; C internal only): **shown, not editable**. What may reach a client
+    stays a reviewed code change. V1c.
+  - Admission rules (`evidence.admission`: the decimal cap, an interval that must contain its
+    value, the holdout before a modelled panel leaves INTERNAL_ONLY): **left in code**, not
+    shown as editable. They are the fail-closed gates every number passes. No chunk.
+  - Each chunk is designed on the canvas first, then built (owner, 2026-10-13).
+- **V1a1, built.** The limits are `research_design.ReadinessSpec` (`sample_size`: min, max;
+  `tracked_set`: min, max, recommended_min, recommended_max), preset `AIA_READINESS_V1`
+  (`aia-readiness-1`), built from `SAMPLE_SIZE_BOUNDS` and `TRACKED_SET_LIMITS`, which stay
+  as 18.6.6's policy. `compile_design`, `assess_readiness` and `prepare` take `limits` (the
+  preset by default); the module is `methodology/readiness.py` (groups Meze připravenosti,
+  Vzorek, Sledovaná sada). What every version keeps (`readiness_problems`, reported at the
+  field): whole numbers of at least 1, each minimum below its maximum, a set never under three
+  items, the recommended range inside the hard one. A missing n always blocks: code.
+  - A run pins the limits in force (`metadata.readiness`, `readiness_methodology` when stored;
+    `compile` and `preflight` step inputs); `pins.read_readiness_pin` reads it back and refuses
+    a pin that breaks the rules, never falling back. A retry keeps the original's.
+  - The limits are **not** part of a run's identity: they decide whether a run may start, not
+    what it computes, and a design that compiles under two sets of limits compiles to the same
+    specification (`test_a_set_compiles_under_the_limits_it_is_given`). A step's input
+    fingerprint carries the limits' values only when they differ from the preset's, so every
+    artifact stored before the pin keeps its key.
+  - The analysis lineage check recompiles a run's specification under the run's pin
+    (`test_the_specification_is_recompiled_under_the_readiness_limits_the_run_pinned`).
+  - `MethodStep.effect_cs` (new): where a step's result shows outside its module when no step
+    reads it; the context row "Předává do" reads it before its map-reader fallback.
+  - Not in V1a1: `Porovnat` answers 422 `no_comparison` for this module until V1a2 builds the
+    impact on the organization's studies; `run_methods` and the report's method table do not
+    list readiness (it computes nothing a result carries); `support_forecast` still caps its
+    search at the preset's largest sample.
+

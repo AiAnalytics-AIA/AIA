@@ -38,9 +38,12 @@ What changed:
   `packages/aia_core/tests/test_layer_check_tool.py` (a violation is caught, an
   exempted path passes, a same-basename file elsewhere is not exempt, a bare
   basename exempts nothing, a missing rule or exempt path fails).
-- 111 rules pass before and after. (The exploration report counted 131; the
-  script at `5d545eb` runs 111 `forbid` calls, including the three in the
-  dataset-connector loop.)
+- 111 rules pass before and after at `5d545eb`. After merging `develop` (CI runs
+  the merge), 131 pass, which is the exploration report's count: it was taken
+  against the newer `develop`. That merge brought five more basename exemptions,
+  converted the same way. One was the widest found: `__init__.py`, on the
+  population-tables rule over `$CORE`, exempted every package `__init__` in the
+  core; it now names `infrastructure/__init__.py` alone.
 
 ## Chunk 1 — close the second model-call path (done)
 

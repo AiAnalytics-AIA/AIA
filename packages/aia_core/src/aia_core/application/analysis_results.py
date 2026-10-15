@@ -30,6 +30,7 @@ internal interpretation, as they see the internal Sociomap (ADR 0016 decision 6)
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Final
@@ -82,19 +83,29 @@ from ..domain.analysis.native import (
 )
 from ..domain.analysis.steps import analysis_node_key, module_of_node
 from ..domain.evidence import (
-    INSTRUMENT_POLICY_VERSION,
     ClaimSurface,
     InstrumentPolicyRefused,
     Violation,
+    instrument_policy_version,
     method_status,
+    respondent_system_fingerprint,
 )
-from ..domain.fieldwork import DataOrigin, FieldworkSource
+from ..domain.evidence.support import SupportSpec
+from ..domain.fieldwork import (
+    JOINT_CERTIFICATE_METADATA,
+    RESPONDENT_SYSTEM_METADATA,
+    DataOrigin,
+    FieldworkSource,
+    OriginKind,
+    origin_kind,
+)
 from ..domain.licence import DataLineage
 from ..domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
+from ..domain.methodology.pins import read_readiness_pin, read_support_pin
 from ..domain.pipeline import fingerprint
 from ..domain.research_design import COMPILER_VERSION, ResearchSpecification, compile_design
 from ..domain.scope import Permission, StudyContext
-from ..domain.workflow import StepRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..infrastructure.artifact_repository import (
     Artifact,
     ArtifactNotFound,
@@ -107,12 +118,20 @@ from ..infrastructure.study_design_repository import (
     StudyDesignRepository,
 )
 from .analysis import MAX_REPAIRS, AnalysisInputs, ModuleOutcomeKind, input_fingerprint
-from .research import ResearchRunNotFound, ResearchRuns, research_artifacts
+from .research import (
+    FrozenDataset,
+    ResearchRunNotFound,
+    ResearchRuns,
+    RunReservations,
+    research_artifacts,
+)
+from .workflows import StartedRun
 
 __all__ = [
     "AGGREGATE_ARTIFACT",
     "DATASET_ARTIFACT",
     "SPECIFICATION_ARTIFACT",
+    "AnalysisNotRetryable",
     "DatasetMaterial",
     "NativeSources",
     "PreparedModule",
@@ -120,6 +139,7 @@ __all__ = [
     "ReconstructionRefused",
     "RunAnalysis",
     "SourcesRefused",
+    "StoredAnalysis",
     "dataset_material",
     "harness_summary",
     "module_artifact",
@@ -127,6 +147,8 @@ __all__ = [
     "prepare_module",
     "reconstruct_module",
     "reconstruct_run",
+    "retry_failed_modules",
+    "stored_analysis",
 ]
 
 #: The research steps' artifact types (``aia_executors.research``: SPECIFICATION,
@@ -135,6 +157,10 @@ __all__ = [
 SPECIFICATION_ARTIFACT: Final = "research_specification"
 DATASET_ARTIFACT: Final = "research_fieldwork_dataset"
 AGGREGATE_ARTIFACT: Final = "research_aggregate"
+
+
+#: A step that ended without an outcome a person can ask for again.
+_RETRYABLE_STEP_STATES: Final = frozenset({"FAILED", "CANCELLED"})
 
 
 class SourcesRefused(Exception):
@@ -169,6 +195,15 @@ class NativeSources:
     dataset_origin: DataOrigin | None
     fieldwork_source: str | None
     research_questions: tuple[str, ...]
+    #: The support rules the run pinned (plan ``methodology-tab`` G1c); its ``analysis`` rule
+    #: gates every number this run's analysis admits.
+    support: SupportSpec
+    #: A modelled dataset's respondent system (ADR 0024 §4), fingerprinted from what the dataset
+    #: recorded; ``None`` for every other origin, or when it recorded none.
+    respondent_system: str | None = None
+    #: A modelled dataset's population certificate and the panel SHA-256 it was verified
+    #: against (complete-study-report B5a); ``None`` for every other origin or when none.
+    joint_certificate: tuple[bytes, str] | None = None
 
 
 def _upstream_ids(run: Mapping[str, Any]) -> dict[str, str]:
@@ -312,7 +347,15 @@ def native_sources(
     # and a run parked across a deploy must still be read, so it is held to the revision
     # it records, above.
     if spec.compiler_version == COMPILER_VERSION:
-        recompiled, _ = compile_design(content)
+        # Under the limits the run compiled with (plan methodology-tab V1a): a set the run's
+        # version let by would not compile under the preset.
+        try:
+            limits = read_readiness_pin((run.get("metadata") or {}).get("readiness"))
+        except ValueError as exc:
+            raise SourcesRefused(
+                "readiness_pin", f"the run's readiness pin does not read: {exc}"
+            ) from None
+        recompiled, _ = compile_design(content, limits=limits)
         if recompiled is None or recompiled.fingerprint() != spec.fingerprint():
             raise SourcesRefused(
                 "design_revision", "the specification is not the run's Design Revision compiled"
@@ -327,11 +370,19 @@ def native_sources(
     if not isinstance(aggregate, Mapping):
         raise SourcesRefused("aggregate_shape", "the aggregate artifact holds no aggregate")
 
+    try:
+        support = read_support_pin((run.get("metadata") or {}).get("support"))
+    except ValueError as exc:
+        raise SourcesRefused("support_pin", f"the run's support pin does not read: {exc}") from None
+
     raw_origin = dataset_row.metadata.get("data_origin")
     try:
         origin = DataOrigin(raw_origin) if raw_origin is not None else None
     except ValueError:
         raise SourcesRefused("dataset_origin", f"unknown data origin {raw_origin!r}") from None
+
+    respondent_system = _respondent_system(origin, dataset_row.metadata)
+    joint_certificate = _joint_certificate(origin, dataset_row.metadata)
 
     return NativeSources(
         run_id=str(run["run_id"]),
@@ -347,7 +398,59 @@ def native_sources(
         dataset_origin=origin,
         fieldwork_source=dataset_row.metadata.get("fieldwork_source"),
         research_questions=research_questions_of(content),
+        support=support,
+        respondent_system=respondent_system,
+        joint_certificate=joint_certificate,
     )
+
+
+def _joint_certificate(
+    origin: DataOrigin | None, metadata: Mapping[str, Any]
+) -> tuple[bytes, str] | None:
+    """The population certificate a modelled dataset recorded, re-hashed; else ``None``.
+
+    Read for a modelled origin only. A record that does not hash to its recorded SHA-256 is
+    refused, never read as no certificate: the gate must not be judged on altered bytes.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(JOINT_CERTIFICATE_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(raw.get(k), str) for k in ("certificate", "sha256", "panel_sha256")
+    ):
+        raise SourcesRefused("joint_certificate", "the dataset's certificate is not a record")
+    data = str(raw["certificate"]).encode("utf-8")
+    if hashlib.sha256(data).hexdigest() != raw["sha256"]:
+        raise SourcesRefused(
+            "joint_certificate", "the dataset's certificate does not hash to its recorded SHA-256"
+        )
+    return data, str(raw["panel_sha256"])
+
+
+def _respondent_system(origin: DataOrigin | None, metadata: Mapping[str, Any]) -> str | None:
+    """The respondent system a modelled dataset recorded, fingerprinted; else ``None``.
+
+    Read for a modelled origin only: a simulated one is never validated. A record that does not
+    fingerprint (a missing or blank component, a name it does not bind) is refused, never read
+    as no system.
+    """
+    if origin_kind(origin) is not OriginKind.MODELLED:
+        return None
+    raw = metadata.get(RESPONDENT_SYSTEM_METADATA)
+    if raw is None:
+        return None
+    if not isinstance(raw, Mapping) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in raw.items()
+    ):
+        raise SourcesRefused(
+            "respondent_system", "the dataset's respondent system is not a record of names"
+        )
+    try:
+        return respondent_system_fingerprint(raw)
+    except ValueError as exc:
+        raise SourcesRefused("respondent_system", str(exc)) from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -456,6 +559,12 @@ def prepare_module(
         sources.aggregate,
         dataset_sha256=sources.refs.dataset.sha256,
         origin=sources.dataset_origin,
+        support=sources.support.analysis,
+        respondent_system=sources.respondent_system,
+        joint_certificate=sources.joint_certificate,
+        # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
+        # modelled run's evidence stays internal.
+        validation=None,
     )
     inputs = AnalysisInputs(
         table=evidence.table,
@@ -526,7 +635,7 @@ def module_artifact(
             data_origin=evidence.origin,
         ),
         authority=AuthoritySummary(
-            field_policy_version=INSTRUMENT_POLICY_VERSION,
+            field_policy_version=instrument_policy_version(evidence.origin),
             field_policy_sha256=evidence.book.source_sha256,
             joint_status_fingerprint=joint.fingerprint(),
             joint_degradation=joint.degradation.value if joint.degradation else None,
@@ -569,6 +678,9 @@ class RunAnalysis:
     modules: Mapping[AnalysisModuleId, ReconstructedModule]
     #: Modules with no stored outcome, and the status of their step.
     pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+    #: How the aggregate every module read departs from 18.6.6's port (plan
+    #: ``methodology-tab`` G3c); ``None`` when it is the port, or nothing was read yet.
+    aggregation_deviation: Mapping[str, Any] | None = None
 
     @property
     def complete(self) -> bool:
@@ -578,6 +690,46 @@ class RunAnalysis:
             and len(self.modules) == len(AnalysisModuleId)
             and all(m.outcome is ModuleOutcomeKind.COMPLETED for m in self.modules.values())
         )
+
+    @property
+    def retryable(self) -> tuple[AnalysisModuleId, ...]:
+        """The modules a person may ask again over this run's frozen data (:func:`_retryable`)."""
+        return _retryable({m: o.record for m, o in self.modules.items()}, self.pending)
+
+
+def _retryable(
+    records: Mapping[AnalysisModuleId, ModuleArtifact], pending: Mapping[AnalysisModuleId, str]
+) -> tuple[AnalysisModuleId, ...]:
+    """The modules a person may ask again over a run's frozen data, in module order.
+
+    A module a model's drafts left ``BLOCKED`` (it took turns), and a module whose step
+    ended ``FAILED`` or ``CANCELLED`` without an outcome. Never a module the preflight
+    blocked before any turn: code refused it, and the same data would refuse it again.
+    """
+    return tuple(
+        m
+        for m in AnalysisModuleId
+        if (m in records and records[m].outcome == "BLOCKED" and records[m].attempts > 0)
+        or pending.get(m) in _RETRYABLE_STEP_STATES
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class StoredAnalysis:
+    """A run's module outcomes as stored, read without re-judging them.
+
+    For deciding what a retry asks again, never for showing a result: an outcome stored
+    under an earlier harness is still exactly what it says (BLOCKED after N turns), even
+    though :func:`reconstruct_run` refuses to re-admit it under today's.
+    """
+
+    run_id: str
+    records: Mapping[AnalysisModuleId, ModuleArtifact]
+    pending: Mapping[AnalysisModuleId, str] = field(default_factory=dict)
+
+    @property
+    def retryable(self) -> tuple[AnalysisModuleId, ...]:
+        return _retryable(self.records, self.pending)
 
 
 def _run(session: Session, scope: StudyContext, run_id: str) -> dict[str, Any]:
@@ -601,29 +753,7 @@ def _reconstruct(
     module_id: AnalysisModuleId,
     artifact_id: str,
 ) -> ReconstructedModule:
-    repo = research_artifacts(session, scope, store)
-    try:
-        artifact = repo.get(artifact_id)
-    except ArtifactNotFound as exc:
-        raise ReconstructionRefused("outcome_not_found", str(exc)) from exc
-    if artifact.artifact_type != ANALYSIS_MODULE_ARTIFACT or not artifact.is_reusable:
-        raise ReconstructionRefused(
-            "outcome_invalid", f"{artifact_id} is a {artifact.status} {artifact.artifact_type}"
-        )
-    try:
-        stored = repo.read_json(artifact_id)
-    except (IntegrityError, ObjectNotFound) as exc:
-        raise ReconstructionRefused("outcome_corrupt", f"{artifact_id}: {exc}") from exc
-    try:
-        record = parse_module_artifact(stored)
-    except ValueError as exc:
-        raise ReconstructionRefused(
-            "contract", f"{artifact_id} breaks its contract: {exc}"
-        ) from exc
-    if record.module_id is not module_id:
-        raise ReconstructionRefused("module", f"{artifact_id} is the {record.module_id} module")
-    if record.surface is ClaimSurface.INTERNAL:
-        scope.require(Permission.EDIT_STUDY)
+    record, artifact = _stored_record(session, scope, store, module_id, artifact_id)
     if record.sources.content() != sources.refs.content():
         raise ReconstructionRefused(
             "sources_moved", "the run's sources are not the ones this outcome was judged on"
@@ -735,11 +865,10 @@ def reconstruct_module(
     )
 
 
-def reconstruct_run(
-    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
-) -> RunAnalysis:
-    """Every analysis module of one run, each re-checked; the sources are read once."""
-    run = _run(session, scope, run_id)
+def _split(
+    run: Mapping[str, Any],
+) -> tuple[dict[AnalysisModuleId, str], dict[AnalysisModuleId, str]]:
+    """Each module's stored outcome id, and the step status of each module without one."""
     steps = {
         module: step
         for step in run.get("steps") or []
@@ -755,12 +884,185 @@ def reconstruct_run(
             pending[module] = str(getattr(step.get("status"), "value", step.get("status")))
         else:
             outcomes[module] = artifact_id
+    return outcomes, pending
+
+
+def _stored_record(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    module_id: AnalysisModuleId,
+    artifact_id: str,
+) -> tuple[ModuleArtifact, Artifact]:
+    """One stored outcome, its bytes verified and its contract parsed; nothing re-judged."""
+    repo = research_artifacts(session, scope, store)
+    try:
+        artifact = repo.get(artifact_id)
+    except ArtifactNotFound as exc:
+        raise ReconstructionRefused("outcome_not_found", str(exc)) from exc
+    if artifact.artifact_type != ANALYSIS_MODULE_ARTIFACT or not artifact.is_reusable:
+        raise ReconstructionRefused(
+            "outcome_invalid", f"{artifact_id} is a {artifact.status} {artifact.artifact_type}"
+        )
+    try:
+        record = parse_module_artifact(repo.read_json(artifact_id))
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise ReconstructionRefused("outcome_corrupt", f"{artifact_id}: {exc}") from exc
+    except ValueError as exc:
+        raise ReconstructionRefused(
+            "contract", f"{artifact_id} breaks its contract: {exc}"
+        ) from exc
+    if record.module_id is not module_id:
+        raise ReconstructionRefused("module", f"{artifact_id} is the {record.module_id} module")
+    if record.surface is ClaimSurface.INTERNAL:
+        scope.require(Permission.EDIT_STUDY)
+    return record, artifact
+
+
+def stored_analysis(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
+) -> StoredAnalysis:
+    """Every analysis module of one run as stored, under any harness it was stored by."""
+    run = _run(session, scope, run_id)
+    outcomes, pending = _split(run)
+    return StoredAnalysis(
+        run_id=run_id,
+        records={
+            m: _stored_record(session, scope, store, m, outcomes[m])[0]
+            for m in AnalysisModuleId
+            if m in outcomes
+        },
+        pending=pending,
+    )
+
+
+def reconstruct_run(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str
+) -> RunAnalysis:
+    """Every analysis module of one run, each re-checked; the sources are read once."""
+    run = _run(session, scope, run_id)
+    outcomes, pending = _split(run)
     modules: dict[AnalysisModuleId, ReconstructedModule] = {}
+    deviation: Mapping[str, Any] | None = None
     if outcomes:
         sources = _sources(session, scope, store, run)
+        raw = sources.aggregate.get("deviation")
+        deviation = raw if isinstance(raw, Mapping) else None
         for module in AnalysisModuleId:
             if module in outcomes:
                 modules[module] = _reconstruct(
                     session, scope, store, sources, module, outcomes[module]
                 )
-    return RunAnalysis(run_id=run_id, modules=modules, pending=pending)
+    return RunAnalysis(
+        run_id=run_id, modules=modules, pending=pending, aggregation_deviation=deviation
+    )
+
+
+# --------------------------------------------------------------------------- #
+# asking failed modules again, over the run's frozen data
+# --------------------------------------------------------------------------- #
+
+#: Runs whose analysis a person may ask again: the run has stopped moving.
+_FINISHED: Final = frozenset(
+    {WorkflowRunStatus.COMPLETED, WorkflowRunStatus.FAILED, WorkflowRunStatus.CANCELLED}
+)
+
+
+class AnalysisNotRetryable(Exception):
+    """The run's analysis cannot be asked again; ``reason`` says why, for the API."""
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def _reused(record: ModuleArtifact) -> bool:
+    """True when a retry will reuse this outcome: a completed module under today's harness."""
+    if record.outcome != "COMPLETED":
+        return False
+    return record.harness == harness_summary(
+        language=record.harness.language, max_repairs=record.harness.max_repairs
+    )
+
+
+def retry_failed_modules(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    reservations: RunReservations | None = None,
+    confirm_cost_usd: float | None = None,
+) -> StartedRun:
+    """Ask a finished run's failed analysis modules again, without collecting data again.
+
+    A new run, linked to ``run_id`` (``retry_of``), over the same Design Revision and every
+    pin the run recorded (:meth:`~.research.ResearchRuns.retry_analysis`): its fieldwork
+    step takes this run's dataset by artifact id and SHA-256
+    (:class:`~.research.FrozenDataset`), so the specification, the dataset and the
+    aggregate are the same bytes and every completed module is reused by its reuse key at
+    no cost. The modules in :attr:`RunAnalysis.retryable` are asked again in a new round;
+    a module the preflight blocked is not, because code would refuse it again. The report
+    then composes only if all eight complete -- its gate is unchanged.
+
+    The spend limit works as it does for any start, over a ceiling that counts only the
+    modules that will ask a model. Idempotent: asking twice returns the same retry.
+    A cancelled run counts as finished: its unstarted modules were cancelled with it, and
+    the data it collected stands. Raises :class:`AnalysisNotRetryable` with ``run_not_finished``,
+    ``analysis_not_in_run``, ``dataset_missing`` or ``nothing_to_retry``.
+    """
+    runs = ResearchRuns(session, scope)
+    run = runs.get(run_id)
+    metadata = run["metadata"]
+    if run["status"] not in _FINISHED:
+        raise AnalysisNotRetryable(
+            "run_not_finished", f"run {run_id} is {run['status']}; it has not finished"
+        )
+    if not metadata.get("analysis_enabled"):
+        raise AnalysisNotRetryable("analysis_not_in_run", f"run {run_id} ran no analysis")
+    fieldwork = next((s for s in run.get("steps") or [] if s.get("node_key") == "run"), None)
+    output = (fieldwork or {}).get("output") or {}
+    if (
+        fieldwork is None
+        or fieldwork.get("status") is not StepRunStatus.SUCCEEDED
+        or output.get("artifact_type") != DATASET_ARTIFACT
+        or not isinstance(output.get("artifact_id"), str)
+        or not isinstance(output.get("sha256"), str)
+    ):
+        raise AnalysisNotRetryable(
+            "dataset_missing", f"run {run_id} has no collected dataset to analyse again"
+        )
+    # Read as stored, not re-judged: the runs this repairs were stored under an earlier
+    # harness, which reconstruct_run refuses to re-admit (and need not: none is shown here).
+    analysis = stored_analysis(session, scope, store, run_id=run_id)
+    retried = analysis.retryable
+    if not retried:
+        raise AnalysisNotRetryable(
+            "nothing_to_retry", f"run {run_id} has no analysis module a model failed"
+        )
+    asked = sum(
+        1
+        for m in AnalysisModuleId
+        if m in retried
+        or (
+            m in analysis.records
+            and not _reused(analysis.records[m])
+            and analysis.records[m].attempts > 0
+        )
+        or (m not in analysis.records and m not in retried)
+    )
+    previous = metadata.get("analysis_retry") or {}
+    frozen = FrozenDataset(
+        run_id=run_id,
+        artifact_id=output["artifact_id"],
+        sha256=output["sha256"],
+        analysis_round=int(previous.get("round", 0)) + 1,
+        retried=tuple(m.value for m in retried),
+        modules_asked=asked,
+    )
+    return runs.retry_analysis(
+        run_id,
+        frozen_dataset=frozen,
+        reservations=reservations,
+        confirm_cost_usd=confirm_cost_usd,
+    )

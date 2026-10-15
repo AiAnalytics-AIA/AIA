@@ -140,9 +140,11 @@ try {
   await page.getByRole("button", { name: "Pokračovat v úpravách" }).click();
   assert.equal(await page.getByLabel("Instrukce", { exact: true }).inputValue(), text + " Unsaved important addition.");
   await page.getByRole("button", { name: "Vrátit neuložené změny" }).click();
-  await version.getByRole("button", { name: `Zapnout ${label}`, exact: true }).click();
+  // The saved version is switched on from the next step beside the editor: one button for it.
+  assert.equal(await version.getByRole("button", { name: `Zapnout verzi ${created.version_number}`, exact: true }).count(), 0);
+  await page.locator("[data-next-step]").getByRole("button", { name: `Zapnout verzi ${created.version_number}`, exact: true }).click();
   await page.locator("[data-activation]").getByRole("button", { name: "Potvrdit", exact: true }).click();
-  await page.getByText(`Teď běží: ${label}.`, { exact: true }).waitFor();
+  await page.getByText(`Teď běží: verze ${created.version_number}.`, { exact: true }).waitFor();
   await page.reload(); await page.getByLabel("Instrukce", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Instrukce", { exact: true }).inputValue(), text);
   assert.equal(await page.locator(`[data-version="${versionKey}"]`).getAttribute("data-running"), "yes");

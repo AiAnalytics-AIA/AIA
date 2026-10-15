@@ -1,0 +1,35 @@
+{
+  "about": "Fictional values pinning the personal-data detector (lifecycle K2c, client-workspace C8). Every e-mail is on example.test, every phone in a fictional 600 000 00x block, every birth number invented and only checked for its form.",
+  "values": [
+    {"value": "jana.fikt@example.test", "hint": "EMAIL"},
+    {"value": "  petr.novak+studie@example.test ", "hint": "EMAIL"},
+    {"value": "+420 600 000 001", "hint": "PHONE"},
+    {"value": "00420600000002", "hint": "PHONE"},
+    {"value": "600 000 003", "hint": "PHONE"},
+    {"value": "905226/0019", "hint": "BIRTH_NUMBER"},
+    {"value": "0462152009", "hint": "BIRTH_NUMBER"},
+    {"value": "010101/3330", "hint": "BIRTH_NUMBER"},
+    {"value": "855110/1230", "hint": "BIRTH_NUMBER"},
+    {"value": "855110/123", "hint": "BIRTH_NUMBER"},
+    {"value": "905226/0018", "hint": null},
+    {"value": "123456/7890", "hint": null},
+    {"value": "600000003", "hint": null},
+    {"value": "1 250,50", "hint": null},
+    {"value": "Praha", "hint": null},
+    {"value": "jana@", "hint": null},
+    {"value": "2026-09-01", "hint": null}
+  ],
+  "headers": [
+    {"header": "E-mail", "hint": "EMAIL"},
+    {"header": "Telefonní číslo", "hint": "PHONE"},
+    {"header": "Rodné číslo", "hint": "BIRTH_NUMBER"},
+    {"header": "Jméno", "hint": "PERSON_NAME"},
+    {"header": "Příjmení", "hint": "PERSON_NAME"},
+    {"header": "Last name", "hint": "PERSON_NAME"},
+    {"header": "Adresa bydliště", "hint": "ADDRESS"},
+    {"header": "Název značky", "hint": null},
+    {"header": "Kraj", "hint": null},
+    {"header": "ID respondenta", "hint": null},
+    {"header": "Spokojenost", "hint": null}
+  ]
+}

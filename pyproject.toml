@@ -51,6 +51,19 @@ ignore_missing_imports = true
 module = ["openpyxl", "openpyxl.*"]
 ignore_missing_imports = true
 
+# olefile ships no type stubs; it is used in one function
+# (aia_core.infrastructure.source_reading._doc_text), only to open a compound file and
+# read two streams as bytes.
+[[tool.mypy.overrides]]
+module = ["olefile", "olefile.*"]
+ignore_missing_imports = true
+
+# xlrd ships no type stubs; it is read in one function
+# (aia_core.infrastructure.source_reading._xls), whose cells become str.
+[[tool.mypy.overrides]]
+module = ["xlrd", "xlrd.*"]
+ignore_missing_imports = true
+
 # Import contracts, checked by `lint-imports` from `make layer_check`
 # (tools/layer_check.sh is the grep half; this is the import-graph half, for a rule
 # a grep cannot state exactly). ARCHITECTURE.md §3.

@@ -58,6 +58,33 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+function AdviceContinuation({ waiting = true }: { waiting?: boolean }) {
+  const agents = useResearchAgents("STU-1", store, onUpdate, true);
+  return <><button onClick={() => { running = agents.continueAdvice({ ...job, action: "answer_memory", status: waiting ? "WAITING_PROVIDER" : "RUNNING", is_terminal: false,
+    steps: waiting ? [{ waiting_reason: "ai_runtime_unavailable" }] as ResearchAgentJob["steps"] : [],
+  }); }}>Continue stored advice</button>{agents.adviceReview ? <><p>{String(agents.adviceReview.result.result.proposal.problem_summary)}</p><button onClick={() => agents.adviceReview?.decide(false)}>Close advice</button></> : null}{agents.dialog}</>;
+}
+
+it("explicitly resumes the existing advice id without creating a revision, paid job or design acceptance", async () => {
+  vi.mocked(researchAgents.job).mockResolvedValue({ ...job, action: "answer_memory" });
+  render(<AdviceContinuation />); fireEvent.click(screen.getByText("Continue stored advice"));
+  await screen.findByText("Proposed summary");
+  expect(researchAgents.resume).toHaveBeenCalledExactlyOnceWith("STU-1", "RUN-1");
+  expect(researchAgents.start).not.toHaveBeenCalled(); expect(research.submitDesign).not.toHaveBeenCalled();
+  expect(screen.queryByRole("dialog")).toBeNull(); fireEvent.click(screen.getByText("Close advice"));
+  await act(async () => { await running; });
+  expect(researchAgents.accept).not.toHaveBeenCalled(); expect(project).toEqual({ goal: "Original" });
+});
+
+it("refreshes following of an uncertain running advice job without a resume mutation or resubmission", async () => {
+  vi.mocked(researchAgents.job).mockResolvedValue({ ...job, action: "answer_memory" });
+  render(<AdviceContinuation waiting={false} />); fireEvent.click(screen.getByText("Continue stored advice"));
+  await screen.findByText("Proposed summary");
+  expect(researchAgents.resume).not.toHaveBeenCalled(); expect(researchAgents.start).not.toHaveBeenCalled();
+  expect(research.submitDesign).not.toHaveBeenCalled(); fireEvent.click(screen.getByText("Close advice"));
+  await act(async () => { await running; }); expect(researchAgents.accept).not.toHaveBeenCalled();
+});
+
 it("freezes a Study revision, follows the job, and writes nothing until review", async () => {
   render(<Harness />); fireEvent.click(screen.getByText("Run"));
   await screen.findByRole("dialog");

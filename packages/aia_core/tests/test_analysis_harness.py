@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from aia_core.domain.ai_contracts import validate_structured_output
+from aia_core.domain.ai_contracts import OUTPUT_TRUNCATED, validate_structured_output
 from aia_core.domain.ai_models import ModelCapability
 from aia_core.domain.analysis import (
     PROMPT_TEMPLATE_VERSION,
@@ -99,6 +99,24 @@ def test_a_schema_failure_reaches_the_next_turn_as_its_violations() -> None:
     assert "and 3 more" in text
 
 
+def test_a_repair_after_a_schema_failure_shows_the_refused_answer() -> None:
+    rejected = '{"module": "executive", "summary": "s", "confidence": "high"}'
+    failed = InvalidStructuredOutput(
+        ("confidence: Extra inputs are not permitted",), rejected_output=rejected
+    )
+    repair = request(repair="Fix every problem below.", previous=failed)
+    assert repair.messages[1].content == rejected
+    assert "confidence: Extra inputs are not permitted" in repair.messages[2].content
+    assert "shorter answer" not in repair.messages[2].content
+
+
+def test_a_truncated_answer_is_not_replayed_and_the_repair_asks_for_less() -> None:
+    failed = InvalidStructuredOutput((OUTPUT_TRUNCATED,), rejected_output='{"module": "exec')
+    repair = request(repair="Fix every problem below.", previous=failed)
+    assert repair.messages[1].content.startswith("(no draft")
+    assert "shorter answer" in repair.messages[2].content
+
+
 def test_the_contract_is_closed_and_strict() -> None:
     contract = analysis_agent(max_output_tokens=10).output_contract
     assert contract is not None
@@ -147,16 +165,39 @@ def test_labels_say_what_every_reader_is_looking_at() -> None:
         "surface": "INTERNAL",
         "data_origin": "SYNTHETIC_AI_FICTIONAL",
         "simulated_respondents": True,
+        "modelled_respondents": False,
         "internal_only": True,
     }
     assert "CLIENT_FACING" in harness_frame(origin=FICTIONAL, surface=ClaimSurface.CLIENT_FACING)
+
+
+def test_a_modelled_origin_is_framed_as_modelled_never_fictional_or_measured() -> None:
+    modelled = DataOrigin.MODELLED_AI_PANEL
+    labels = harness_labels(origin=modelled, surface=ClaimSurface.INTERNAL)
+    assert labels["modelled_respondents"] is True
+    assert labels["simulated_respondents"] is False
+    frame = harness_frame(origin=modelled, surface=ClaimSurface.INTERNAL)
+    assert "modelováno: AI respondenti z populace" in frame
+    assert "fictional" not in frame and "MODELLED_AI_PANEL" in frame
+    assert "fictional personas" in harness_frame(origin=FICTIONAL, surface=ClaimSurface.INTERNAL)
+
+
+def test_modelled_respondents_are_client_material_never_class_c() -> None:
+    assert (
+        classify_analysis_material(
+            client_declared_fictional=True,
+            origin=DataOrigin.MODELLED_AI_PANEL,
+            respondents_fictional=True,
+        )
+        is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+    )
 
 
 def test_the_harness_has_its_own_identity_beside_the_domain_prompt() -> None:
     assert harness_sha256() == harness_sha256()
     assert len(harness_sha256()) == 64
     assert harness_sha256() != prompt_template_sha256()
-    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-1"
+    assert ANALYSIS_HARNESS_VERSION == "aia-analysis-harness-2"
 
 
 def test_an_undeclared_lineage_is_sent_as_undeclared_for_the_licence_gate_to_refuse() -> None:

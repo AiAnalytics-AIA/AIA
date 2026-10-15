@@ -16,14 +16,17 @@ import pytest
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
+    INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
 )
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.domain.fieldwork import FieldworkSource
+from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import (
+    ApprovalDecisionRow,
     ProjectArtifactRow,
     ProjectRow,
     StudyRow,
@@ -270,6 +273,11 @@ def test_a_run_starts_once_per_design_revision_and_is_read_by_its_study(
     assert [r["run_id"] for r in listed] == [run["run_id"]]
     events = viewer.get(f"{_runs(world)}/{run['run_id']}/events").json()
     assert events[0]["event_type"] == "RUN_CREATED"
+    # Each step names the id its events carry, so a reader can tell which step said what.
+    step_ids = {s["step_id"] for s in run["steps"]}
+    assert len(step_ids) == len(run["steps"])
+    named = {e["step_id"] for e in events if e["step_id"]}
+    assert named <= step_ids
 
 
 def test_analysis_results_are_study_scoped_and_internal(
@@ -293,6 +301,8 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert internal.json()["internal_only"] is True
     assert len(internal.json()["pending"]) == 8
     assert internal.json()["modules"] == {}
+    # No module has read an aggregate yet, so none is said to depart from 18.6.6 (G3c).
+    assert internal.json()["aggregation_deviation"] is None
     # ADR 0019: the "viewer" label holds the Researcher role and reads it too.
     assert viewer.get(url).status_code == 200
     # So do a member with no grant and another client's lead (ADR 0019); what bounds it is the
@@ -303,24 +313,18 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
-def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
+def _store_internal_report(
     app: FastAPI,
-    researcher: TestClient,
-    viewer: TestClient,
-    outsider: TestClient,
-    other_client_lead: TestClient,
     world: Any,
-    damage_artifact: Any,
-    artifact_status: Any,
-) -> None:
-    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
-    revision = submit(researcher, world).json()["revision_id"]
-    run_id = start(researcher, world, revision).json()["run_id"]
-    url = f"{_runs(world)}/{run_id}/report"
-    assert researcher.get(url).json()["state"] == "BLOCKED"
-    assert researcher.get(f"{url}/download").status_code == 404
-
-    document = b"PK\x03\x04internal-draft-test"
+    run_id: str,
+    document: bytes,
+    *,
+    pdf: bytes | None = None,
+    pdf_of: str | None = None,
+) -> str:
+    """Drive the run's steps to the end, the report step storing ``document`` as the
+    researcher's internal report (and ``pdf`` as its rendering, of ``pdf_of`` when given);
+    return its artifact id."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
         principal = AuthenticatedPrincipal(
@@ -341,7 +345,7 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
                     artifact_type=INTERNAL_REPORT_ARTIFACT_TYPE,
                     data=document,
                     content_type=INTERNAL_REPORT_MEDIA_TYPE,
-                    input_fingerprint="report-route-test",
+                    input_fingerprint=f"report-route-test-{run_id}",
                     produced_by_job_id=work.attempt_id,
                     metadata={
                         "run_id": run_id,
@@ -352,15 +356,53 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
                 )
                 report_id = artifact.artifact_id
                 output = {"artifact_id": report_id}
+                if pdf is not None:
+                    rendering, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+                        project_id=work.project_id,
+                        revision=work.project_revision,
+                        stage_type="REPORT",
+                        artifact_type=INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
+                        data=pdf,
+                        content_type="application/pdf",
+                        input_fingerprint=f"report-pdf-route-test-{run_id}",
+                        metadata={"run_id": run_id, "rendering_of": pdf_of or report_id},
+                        depends_on=[report_id],
+                    )
+                    output["pdf"] = {"state": "READY", "artifact_id": rendering.artifact_id}
             workflow.complete_attempt(work.attempt_id, worker_id="report-fixture", output=output)
         session.commit()
     assert report_id is not None
+    return report_id
+
+
+def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(url).json()["state"] == "BLOCKED"
+    assert researcher.get(f"{url}/download").status_code == 404
+
+    document = b"PK\x03\x04internal-draft-test"
+    report_id = _store_internal_report(app, world, run_id, document)
 
     listed = viewer.get(url)
     assert listed.status_code == 200, listed.text
     assert listed.json()["artifact_id"] == report_id
     assert listed.json()["review_state"] == "DRAFT_UNAPPROVED"
     assert listed.json()["synthetic"] is True
+    # Written before reports recorded data_origin: synthetic alone reads as simulated.
+    assert listed.json()["data_origin_kind"] == "SIMULATED"
+    assert listed.json()["modelled"] is False
     downloaded = researcher.get(f"{url}/download")
     assert downloaded.status_code == 200 and downloaded.content == document
     assert downloaded.headers["content-type"] == INTERNAL_REPORT_MEDIA_TYPE
@@ -375,6 +417,120 @@ def test_internal_report_is_listed_and_downloaded_only_through_its_study_run(
     damaged = researcher.get(f"{url}/download")
     assert damaged.status_code == 409 and damaged.json()["code"] == "artifact_corrupt"
     assert artifact_status(report_id) == "CORRUPT"
+
+
+def test_the_reports_pdf_is_read_only_as_the_rendering_of_its_stored_docx(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Complete-study-report B3: the status says whether a PDF exists; the download serves it
+    only through the run, and only as the rendering of that run's report."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx", pdf=b"%PDF-1.7 test")
+    url = f"{_runs(world)}/{run_id}/report"
+    status = researcher.get(url).json()
+    assert status["pdf"]["state"] == "READY" and status["pdf"]["size_bytes"] == 13
+    downloaded = researcher.get(f"{url}/pdf/download")
+    assert downloaded.status_code == 200 and downloaded.content == b"%PDF-1.7 test"
+    assert downloaded.headers["content-type"] == "application/pdf"
+    assert "internal-draft.pdf" in downloaded.headers["content-disposition"]
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/pdf/download"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
+def test_a_report_without_a_pdf_says_none_and_a_pdf_of_another_document_is_refused(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report"
+    assert researcher.get(url).json()["pdf"] is None
+    assert researcher.get(f"{url}/pdf/download").status_code == 404
+
+    other_revision = submit(researcher, world, {**DESIGN, "title": "Jiná"}).json()["revision_id"]
+    other_run = start(researcher, world, other_revision).json()["run_id"]
+    _store_internal_report(
+        app, world, other_run, b"PK\x03\x04other", pdf=b"%PDF x", pdf_of="ART-0000000000000000"
+    )
+    other_url = f"{_runs(world)}/{other_run}/report"
+    # The report still reads; only its PDF is said to be unusable.
+    assert researcher.get(other_url).json()["pdf"] == {"state": "INVALID", "reason": None}
+    refused = researcher.get(f"{other_url}/pdf/download")
+    assert refused.status_code == 409 and refused.json()["code"] == "report_artifact_invalid"
+
+
+def test_a_run_without_modelled_data_has_no_client_report_and_says_why(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """Complete-study-report B5c: the client report is refused by name (409), never printed
+    with a caveat, and another client's study cannot reach the run at all."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_internal_report(app, world, run_id, b"PK\x03\x04docx")
+    url = f"{_runs(world)}/{run_id}/report/client/download"
+    refused = researcher.get(url)
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "client_report_refused"
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/client/download"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
+def test_the_sociomap_register_is_read_through_a_study(researcher: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/research/sociomap-register"
+    (entry,) = researcher.get(url).json()["entries"]
+    assert entry["method_id"] == "aia-sociomap-3" and entry["status"] == "CLIENT_FACING"
+    assert entry["decided_on"] == "2026-10-13" and len(entry["spec_fingerprint"]) == 64
+
+
+def test_a_person_approves_a_runs_stored_report_once_and_only_that(
+    app: FastAPI,
+    owner: TestClient,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """Complete-study-report B2: the approval is the ledger's, of a report of this run."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04approve-test")
+    url = f"{_runs(world)}/{run_id}/report"
+    approve = f"{url}/approve"
+
+    # No such report in the study, and another client's study cannot see the run.
+    unknown = researcher.post(approve, json={"artifact_id": "ART-0000000000000000"})
+    assert unknown.status_code == 404
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/approve"
+    assert other_client_lead.post(foreign, json={"artifact_id": report_id}).status_code == 404
+
+    # Independent review turned on for this client: the producer may not clear it.
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    own = researcher.post(approve, json={"artifact_id": report_id})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    assert researcher.get(url).json()["review_state"] == "DRAFT_UNAPPROVED"
+
+    approved = outsider.post(approve, json={"artifact_id": report_id, "note": "Přečteno."})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["review_state"] == "APPROVED_INTERNAL"
+    assert approved.json()["internal_only"] is True
+    assert researcher.get(url).json()["review_state"] == "APPROVED_INTERNAL"
+    again = outsider.post(approve, json={"artifact_id": report_id})
+    assert again.status_code == 200
+
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        decisions = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
+        ).all()
+    assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
 
 
 def test_experimental_sociomapping_is_read_and_downloaded_only_through_its_run(
@@ -510,6 +666,20 @@ def test_starting_needs_a_revision_of_this_study_not_a_grant(
     assert start(other_client_lead, world, revision_id).status_code in (200, 201)
 
 
+def test_a_selected_population_that_is_not_the_clients_child_is_404_and_nothing_starts(
+    researcher: TestClient, world: Any
+) -> None:
+    """P4e2: a run may name its client's child; any other id reads as not there."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    refused = researcher.post(
+        _runs(world),
+        json={"design_revision_id": revision_id, "population_version_id": "no-such-version"},
+    )
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "population_version_not_found"
+    assert researcher.get(_runs(world)).json()["items"] == []
+
+
 def test_a_run_never_crosses_studies(
     lead: TestClient, other_client_lead: TestClient, outsider: TestClient, world: Any
 ) -> None:
@@ -578,6 +748,35 @@ def test_a_failed_run_is_retried_as_a_new_run_linked_to_it(
     assert body["design_revision_id"] == failed["design_revision_id"]
     again = researcher.post(f"{_runs(world)}/{run_id}/retry")
     assert again.status_code == 200 and again.json()["run_id"] == body["run_id"]
+
+
+def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """The route's refusals; the retry itself runs end to end in the executor suite
+    (test_retrying_failed_modules_asks_only_them_over_the_same_data)."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    early = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert early.status_code == 409, early.text
+    assert early.json()["code"] == "analysis_not_retryable"
+    assert early.json()["details"]["reason"] == "run_not_finished"
+    worker = _worker(app, FailureClass.PERMISSION)
+    while worker.run_once() is not None:
+        pass
+    none = researcher.post(f"{_runs(world)}/{run_id}/analysis/retry")
+    assert none.status_code == 409
+    assert none.json()["details"]["reason"] == "analysis_not_in_run"
+    assert "AI analýzu" in none.json()["message"]
+    missing = researcher.post(f"{_runs(world)}/RUN-0000000000000000/analysis/retry")
+    assert missing.status_code == 404
+    retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
+    assert retryable.status_code == 200, retryable.text
+    assert retryable.json() == {"run_id": run_id, "modules": []}
+    assert (
+        researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
+    )
 
 
 def test_any_member_may_cancel_a_run_with_or_without_a_grant(
@@ -693,6 +892,101 @@ def test_readiness_says_what_would_stop_a_run_before_anything_starts(
     )
 
 
+def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2a: 50 fictional respondents pass every structural check
+    and still show nothing; readiness says so, as a warning, before anything is paid."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def forecast(n: int) -> Any:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        return body, next(c for c in body["checks"] if c["id"] == "support_forecast")
+
+    small, check = forecast(50)
+    assert small["ready"] is True, "a forecast warns, it never refuses"
+    assert check["status"] == "WARN" and "nevzniknou" in check["message"]
+    _, enough = forecast(450)
+    assert enough["status"] == "PASS"
+
+
+def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 2b: each item, as the respondent reads it, with its
+    verdict and the reasons; the support forecast decides the verdict of every one."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def outlook(n: int) -> list[dict[str, Any]]:
+        revision_id = submit(researcher, world, {**DESIGN, "n": n}).json()["revision_id"]
+        body = viewer.get(url, params={"design_revision_id": revision_id}).json()
+        items: list[dict[str, Any]] = body["question_outlook"]
+        assert len(items) == body["questions"] + body["objects"]
+        return items
+
+    small = outlook(50)
+    assert {i["verdict"] for i in small} == {"UNANSWERABLE"}
+    assert all("support_suppressed" in i["reasons"] for i in small)
+    assert all(i["text"] for i in small)
+    enough = outlook(450)
+    assert "support_suppressed" not in {r for i in enough for r in i["reasons"]}
+    assert any(i["verdict"] == "ANSWERABLE" for i in enough)
+    assert any(i["battery_id"] is not None for i in enough)
+
+
+def test_readiness_traces_each_research_question_to_the_questions_that_measure_it(
+    researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """Plan run-recovery-and-truth 3a: a research question nothing measures is named before
+    anything is paid for; a design that declares no link is unknown, never covered."""
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def readiness(content: dict[str, Any]) -> Any:
+        revision_id = submit(researcher, world, content).json()["revision_id"]
+        return viewer.get(url, params={"design_revision_id": revision_id}).json()
+
+    plain = readiness(DESIGN)
+    assert plain["research_trace"]["linked"] is False
+    assert [q["verdict"] for q in plain["research_trace"]["questions"]] == ["UNKNOWN"]
+
+    habit, other = "Jak často lidé pijí kávu?", "Co lidé snídají?"
+    sections = [dict(s) for s in DESIGN["sections"]]
+    sections[0] = {
+        **sections[0],
+        "questions": [
+            {**sections[0]["questions"][0], "research_questions": [habit]},
+            sections[0]["questions"][1],
+        ],
+    }
+    linked = readiness(
+        {**DESIGN, "research_plan": {"research_questions": [habit, other]}, "sections": sections}
+    )
+    trace = {q["text"]: q for q in linked["research_trace"]["questions"]}
+    assert trace[habit]["measures"] == ["q1"] and trace[habit]["verdict"] == "ANSWERABLE"
+    assert trace[other]["verdict"] == "UNANSWERABLE" and trace[other]["reasons"] == ["unmeasured"]
+    check = next(c for c in linked["checks"] if c["id"] == "research_question_coverage")
+    assert check["status"] == "WARN" and other in check["message"]
+    assert linked["ready"] is True, "a trace warns, it never refuses"
+
+    # 3c: the comparison the plan declares is checked against what measures it.
+    ranked = readiness(
+        {
+            **DESIGN,
+            "research_plan": {
+                "research_questions": [habit, other],
+                "research_question_comparisons": {habit: "rank_objects"},
+            },
+            "sections": sections,
+        }
+    )
+    trace = {q["text"]: q for q in ranked["research_trace"]["questions"]}
+    assert trace[habit]["comparison"] == "rank_objects"
+    assert trace[habit]["verdict"] == "UNANSWERABLE"
+    assert trace[habit]["reasons"] == ["comparison_needs_tracked_set"]
+    assert trace[other]["comparison"] is None
+
+
 def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     app: FastAPI,
     researcher: TestClient,
@@ -721,6 +1015,7 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
     run = researcher.get(f"{_runs(world)}/{run_id}").json()
     steps = {s["node_key"]: s for s in run["steps"]}
     assert steps["run"]["data_origin"] == "SYNTHETIC_FIXTURE"
+    assert steps["run"]["data_origin_kind"] == "SIMULATED"
     spec_id, dataset_id = steps["compile"]["artifact_id"], steps["run"]["artifact_id"]
 
     spec = researcher.get(f"{_runs(world)}/{run_id}/artifacts/{spec_id}")
@@ -900,3 +1195,144 @@ def test_a_run_says_which_population_it_recorded_and_that_fieldwork_did_not_read
         session.commit()
     read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
     assert read["population"] == note
+
+
+def test_a_run_names_the_methods_it_computed_under(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Methodology-tab Z1, R1d: Results say which Sociomap, support, aggregation and response
+    process a run pinned, and whether its response process is 18.6.6's."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    assert run["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+
+    def version(module: str, name: str) -> dict[str, Any]:
+        return {"module": module, "version": 1, "name": name, "payload_sha256": "0" * 64}
+
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {
+            **row.metadata_json,
+            "methodology": version("sociomap", "aia-sociomap-3+e1"),
+            "support_methodology": version("support", "aia-support-1+e2"),
+            "aggregation_methodology": version("aggregation", "aia-aggregate-1+e1"),
+            "response": {
+                **AIA_RESPONSE_V1.model_dump(mode="json"),
+                "methodology_version": "aia-response-1+e1",
+                "extremity": 0.5,
+            },
+            "response_methodology": version("response", "aia-response-1+e1"),
+        }
+        session.commit()
+    read = researcher.get(f"{_runs(world)}/{run['run_id']}").json()
+    assert read["methodology"] == {
+        "sociomap": {"name": "aia-sociomap-3+e1", "stored": True},
+        "support": {"name": "aia-support-1+e2", "stored": True},
+        "aggregation": {"name": "aia-aggregate-1+e1", "stored": True},
+        "response": {"name": "aia-response-1+e1", "stored": True},
+        "response_deviates": True,
+    }
+    listed = researcher.get(_runs(world)).json()["items"]
+    assert listed[0]["methodology"] == read["methodology"]
+
+
+def test_a_run_from_before_the_pins_reads_as_the_presets_it_was_computed_under() -> None:
+    from aia_api.routers.research import _methodology
+
+    assert _methodology({}).model_dump() == {
+        "sociomap": {"name": "aia-sociomap-1", "stored": False},
+        "support": {"name": "aia-support-1", "stored": False},
+        "aggregation": {"name": "aia-aggregate-1", "stored": False},
+        "response": {"name": "aia-response-1", "stored": False},
+        "response_deviates": False,
+    }
+    unreadable = _methodology({"response": {"extremity": "much"}}).model_dump()
+    assert unreadable["response"] == {"name": None, "stored": False}
+    assert unreadable["response_deviates"] is None  # never a guess
+
+
+def test_a_report_artifact_reads_its_origin_kind_and_an_unknown_one_is_never_real() -> None:
+    from aia_core.domain.fieldwork import OriginKind
+
+    from aia_api.routers.research import _artifact_origin_kind, _origin_flags
+
+    assert _artifact_origin_kind({"data_origin": "MODELLED_AI_PANEL"}) is OriginKind.MODELLED
+    assert _artifact_origin_kind({"synthetic": True}) is OriginKind.SIMULATED
+    assert _artifact_origin_kind({"synthetic": False}) is OriginKind.UNKNOWN
+    assert _artifact_origin_kind({"data_origin": "PANEL"}) is OriginKind.UNKNOWN
+    assert _origin_flags({OriginKind.MODELLED}) == {
+        "modelled": True,
+        "data_origin_kind": "MODELLED",
+    }
+    assert _origin_flags({OriginKind.MODELLED, OriginKind.SIMULATED})["data_origin_kind"] == (
+        "UNKNOWN"
+    )
+    assert _origin_flags(set()) == {"modelled": False, "data_origin_kind": None}
+
+
+def test_a_run_says_who_its_respondents_are_and_a_panel_start_needs_a_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 5c: the switch decides what a new run pins; with it on
+    and no population established, nothing starts -- never a fictional run instead."""
+    revision_id = submit(researcher, world).json()["revision_id"]
+    roster = start(researcher, world, revision_id).json()
+    assert roster["persona_source"] == "fictional_roster"
+
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    refused = researcher.post(f"{_runs(world)}", json={"design_revision_id": revision_id})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "population_not_established"
+    # The fictional run is untouched and still reads as what it pinned.
+    read = researcher.get(f"{_runs(world)}/{roster['run_id']}").json()
+    assert read["persona_source"] == "fictional_roster"
+
+
+def test_readiness_says_the_filters_apply_only_where_a_new_run_would_draw_from_the_population(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """Plan panel-grounded-respondents 6d: readiness reads the pin a start would make now."""
+    filtered = {
+        **DESIGN,
+        "audience": {"source_mode": "population", "filters": {"vek": {"min": 30, "max": 59}}},
+    }
+    revision_id = submit(researcher, world, filtered).json()["revision_id"]
+    url = f"{API}/studies/{world.study_id()}/research/readiness"
+
+    def audience() -> dict[str, Any]:
+        body = researcher.get(url, params={"design_revision_id": revision_id}).json()
+        return next(c for c in body["checks"] if c["id"] == "audience")
+
+    assert audience()["status"] == "WARN"
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    assert audience() == {
+        "id": "audience",
+        "status": "PASS",
+        "message": "Filtry se uplatní při výběru respondentů z populace.",
+    }
+
+
+def test_a_run_stored_before_the_pin_reads_as_the_fictional_roster(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    revision_id = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision_id).json()
+    with create_session_factory(app.state.engine)() as session:
+        row = session.get(WorkflowRunRow, run["run_id"])
+        assert row is not None
+        row.metadata_json = {k: v for k, v in row.metadata_json.items() if k != "persona_source"}
+        session.commit()
+    assert researcher.get(f"{_runs(world)}/{run['run_id']}").json()["persona_source"] == (
+        "fictional_roster"
+    )

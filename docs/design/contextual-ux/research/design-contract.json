@@ -1,0 +1,66 @@
+{
+  "name": "AIA Research · contextual AI assistance",
+  "round": "R1",
+  "variant": "ui_kits/aia-develop/contextual-ux/Research Context.dc.html",
+  "baseline": { "file": "ui_kits/aia-develop/AIA Develop.dc.html", "repo": "AiAnalytics-AIA/AIA", "branch": "develop", "commit": "33959ec3022b", "sources": ["apps/web/src/components/rehome/research/ResearchScreen.tsx", "apps/web/src/components/rehome/research/useResearchAgents.tsx", "apps/web/src/components/rehome/research/AgentProposalDialog.tsx", "apps/web/src/lib/research-agent-jobs.ts", "apps/web/src/research/jobs.ts", "apps/web/src/i18n/cs.ts"] },
+  "data": "Fictional prototype data only. No client data, no live calls.",
+  "hierarchy": {
+    "shell": ["Sidebar (>=1280px)", "Header: breadcrumbs + save status", "Research rail (7 stages; vertical >=1280px unless the panel is open below 1600px)", "Workspace"],
+    "workspace": ["Stage heading row: eyebrow, h1#stage-title, lead | AI context card", "Active stage editor (baseline component, kept mounted after first visit)", "AI panel: side (>=1024px) or dialog (<1024px)"],
+    "results": ["Run header with pinned methodology", "Origin banner", "Section nav (sticky)", "1 Zjištění: finding | client knowledge + Deep Research context", "2 Důkazy: aggregation tables; Sociomap | read-only legend & method aside", "3 Limity", "4 Další krok: researcher review note, internal exports"]
+  },
+  "tokens": {
+    "source": "apps/web/src/app/tokens.css + tokens-theme.css (light & dark), copied verbatim into the helmet",
+    "aiAccent": { "fill": "--ai", "fillHover": "--ai-strong", "onFill": "--on-ai", "ink": "--ai-ink", "wash": "--ai-wash", "edge": "--ai-edge" },
+    "status": { "waiting/refused": "--status-you-wash / --status-you-ink", "failed/cancel": "--status-fault-wash / --status-fault", "done": "--status-done", "modelled": "--status-world-wash" },
+    "clientKnowledge": "--hue-violet at 6% wash / 35% edge",
+    "deepResearch": "--surface-raised / --border (neutral, cited)",
+    "type": { "sans": "IBM Plex Sans", "mono": "IBM Plex Mono", "h1": "24/32 600", "h2": "18/28 600", "card": "13/20", "meta": "12/16 mono" },
+    "radius": { "control": "6px", "card": "8px", "chip": "999px" }
+  },
+  "actions": {
+    "critique_design": { "label": "AI zkontroluje návrh", "jobTitle": "Kontrola návrhu", "stages": [2, 3, 4, 5, 6], "instruction": "Zkontroluj současný návrh.", "start": "one click from card or panel; no question", "result": "advice (Odpověď AI · Zavřít); the design is not changed", "sees": ["saved design revision"] },
+    "design_copilot": { "label": "Zeptat se na návrh", "jobTitle": "Pomoc s návrhem", "stages": [2, 3, 4, 5], "start": "opens panel with question field; sends only on explicit submit", "result": "advice", "sees": ["saved design revision", "the typed question"] },
+    "answer_memory": { "label": "Zeptat se na klientské znalosti", "jobTitle": "Klientské znalosti", "stages": "all", "start": "opens panel with question field; sends only on explicit submit", "result": "advice with knowledge sources", "sees": ["approved client knowledge", "saved design revision", "the typed question"], "doesNotSee": ["unapproved knowledge proposals", "result or sociomap values unless the user types them into the question"] },
+    "analyze_brief": { "label": "Vytvořit návrh s AI", "stage": 1, "note": "Existing baseline action; its job state uses the same panel. Proposal applies only after review in stage 2." },
+    "cardRules": { "primary": "critique_design where offered, else answer_memory", "secondaryMax": 2, "suggestions": "stage-specific, prefill only, never send", "scope": "always visible on card and in panel ('Co AI uvidí')" },
+    "concurrency": "One AI job per study. While a job is active every AI start control is disabled with 'Jiný AI krok ještě běží.'",
+    "beforeSend": "Pending edits are saved and a new design revision is created (submitDesign).",
+    "cost": "Spustí AI úlohu na pozadí · platí se z rozpočtu studie; reservation shown while running, actual cost after completion."
+  },
+  "states": {
+    "idle": "Card shows actions + scope.",
+    "saving": "Ukládám rozpracované změny a vytvářím revizi návrhu.",
+    "running": "AI zpracovává návrh · real elapsed time · no percentage or ETA · cancel armed after 3 s",
+    "waiting": "WAITING_PROVIDER / ai_runtime_unavailable: job is stored, nothing sent; only an explicit 'Pokračovat v úloze' resumes the same job id",
+    "failed": "HTTP 504 while polling: status unknown, job may still run; only 'Obnovit stav' (refresh, no resubmit)",
+    "refused": "Runtime switch off: nothing sent, nothing billed; dismiss only",
+    "cancelConfirm": "Opravdu chcete tento běh zrušit? Rozpracovaný krok se bezpečně ukončí.",
+    "cancelling": "Běh se bezpečně ukončuje…",
+    "cancelled": "AI krok byl zrušen. Zadání zůstává uložené.",
+    "done": "Answer opens in panel and is added to 'Uložené návrhy AI'; reopening a saved answer never calls the model",
+    "readOnly": "Viewer: no AI start controls; saved answers readable; review note disabled",
+    "export": "Immediate 'Žádost přijata…' → completion message with file name; no fake progress",
+    "save": "Header status 'Ukládám…' → 'Uloženo HH:MM'"
+  },
+  "persistence": { "key": "aia-research-context-r1", "kept": ["active stage", "brief draft", "typed questions per action", "saved answers", "panel open + action", "design revision counter"], "stageEditors": "mounted on first visit and kept mounted (hidden) so in-editor drafts survive navigation", "resultsKey": "aia-research-context-r1-results (review note)" },
+  "preserved": ["data origin banners (synthetic / modelled)", "pinned run methodology + response-process deviation", "intervals and support on every number", "suppression (pairs.min_support)", "internal-only Sociomap notice (PROGRESS D6)", "Deep Research kept separate from run data"],
+  "accessibility": {
+    "targets": "Main actions >= 44px; suggestion chips 32px (secondary)",
+    "focus": "Global :focus-visible 2px --signal outline; stage change focuses h1#stage-title; panel open focuses heading or question; completion focuses the answer",
+    "escape": "Escape closes the panel and returns focus to the invoking control (fallback: card primary)",
+    "dialog": "<1024px panel is role=dialog aria-modal with backdrop and Tab trap",
+    "sidePanel": ">=1024px panel is role=complementary, nonmodal; workspace and maps remain interactive",
+    "live": "Job phase and save/export status use role=status / aria-live=polite",
+    "reducedMotion": "No animations; prefers-reduced-motion disables transitions and smooth scrolling",
+    "contrast": "Ink on wash/raised surfaces; no alpha-muted text on accents",
+    "themes": ["light", "dark"]
+  },
+  "responsive": {
+    "1440": "Sidebar 240 + rail 224 (horizontal while panel open) + main + 380 side panel",
+    "768": "No sidebar; horizontal rail; card wraps under heading; panel as right-anchored dialog min(440px, 100vw)",
+    "390": "16px padding; card full width; panel full-screen dialog; findings and map aside stack"
+  },
+  "timing": { "localFeedback": "< 400 ms (navigation, panel open, prefill, saved-answer reopen)", "serverModelWork": "shown as pending with real elapsed time until the job reports a terminal state" },
+  "methodologyNote": "Next round (Settings → Metodika): the latest methodology supports multiple editable modules. The version editor must not be limited to the object map."
+}

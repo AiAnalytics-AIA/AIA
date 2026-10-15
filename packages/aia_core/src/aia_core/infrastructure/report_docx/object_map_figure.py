@@ -11,7 +11,7 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 from matplotlib.tri import Triangulation
 
 from aia_core.domain.report.print_tokens import COLORS
-from aia_core.domain.sociomap import SociomapArtifactV3
+from aia_core.domain.sociomap import SociomapArtifactV3, read_object_maps
 from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 from aia_core.infrastructure.report_docx.plotting import drawing, export, new_figure
 
@@ -109,17 +109,10 @@ def draw_object_map_snapshot(
 
 def object_map_snapshots(result: Mapping[str, object]) -> dict[tuple[str, str, str], bytes]:
     """Render every stored contract-3 map's available views, with integrity checked first."""
-    from typing import Any, cast
-
-    from aia_core.domain.sociomap import read_artifact
-
     images: dict[tuple[str, str, str], bytes] = {}
     for battery in cast(list[dict[str, Any]], result.get("batteries", [])):
         labels = {o["id"]: o["label"] for o in battery["objects"]}
-        for method, payload in battery.get("maps", {}).items():
-            artifact = read_artifact(payload)
-            if not isinstance(artifact, SociomapArtifactV3):
-                raise ValueError("an object map must use contract 3")
+        for method, artifact in read_object_maps(battery):
             if artifact.layout is None:
                 continue
             images[(battery["battery_id"], method, "top")] = draw_object_map_snapshot(

@@ -61,8 +61,9 @@ export function nativeAgentFixture(
 // OI-76's 15 s failures were a /config failure an earlier test had cached (above).
 export const NATIVE_JOB_WAIT = { timeout: 15_000 } as const;
 export const NATIVE_TEST_TIMEOUT_MS = 30_000;
+/** The proposal under review: inline at the top of the stage in the workspace (research-lane-redesign). */
 export function findProposalDialog() {
-  return screen.findByRole("dialog", {}, NATIVE_JOB_WAIT);
+  return screen.findByRole("region", { name: /Zkontrolujte návrh AI/ }, NATIVE_JOB_WAIT);
 }
 export async function approveProposal() {
   fireEvent.click(await screen.findByRole("button", { name: "Použít návrh" }, NATIVE_JOB_WAIT));

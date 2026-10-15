@@ -48,7 +48,7 @@ const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.js
 const { client, study } = fixtures.persona;
 const clientPath = `/app/clients/${client}`;
 const studyPath = `${clientPath}/research/${study}`;
-const routes = ["/app/clients", clientPath, ...["research", "simulations", "knowledge", "data"].map(s => `${clientPath}/${s}`), "/app/intelligence", "/app/memory", "/app/settings", ...["brief", "plan", "questionnaire", "audience", "dimensions", "run", "progress", "results"].map(s => `${studyPath}/${s}`)];
+const routes = ["/app/clients", clientPath, ...["research", "simulations", "knowledge", "data", "profile"].map(s => `${clientPath}/${s}`), "/app/intelligence", "/app/memory", "/app/settings", ...["brief", "plan", "questionnaire", "audience", "dimensions", "run", "progress", "results"].map(s => `${studyPath}/${s}`)];
 const visit = async path => {
   await page.goto(base + path);
   await page.locator("main h1, header h1").waitFor();
@@ -92,6 +92,8 @@ try {
   const terrain = map.getByTestId("object-map-3d");
   await terrain.waitFor();
   const initial = await terrain.getAttribute("data-camera");
+  // The camera controls sit in a disclosure since the approved composition (1eb36ab).
+  await map.locator("details summary").filter({ hasText: "Ovládání 3D pohledu" }).first().click();
   await map.getByRole("button", { name: "Otočit vpravo", exact: true }).click();
   const rotated = await terrain.getAttribute("data-camera");
   assert.notEqual(rotated, initial, "3D rotation must change the view");
@@ -119,9 +121,11 @@ try {
   checks.push("Result sections, keyboard focus, reload and mobile menu");
   checks.push("Canonical 3D map rotation and camera preserved across sections");
   assert.equal(errors.length, 0, errors.join("\n"));
-  assert.equal(consoleErrors.length, 0, consoleErrors.join("\n"));
+  // A 404 the browser logs is judged by its request below, where the expected ones are named.
+  const consoleProblems = consoleErrors.filter(e => !/status of 404/.test(e));
+  assert.equal(consoleProblems.length, 0, consoleProblems.join("\n"));
   assert.equal(failedRequests.length, 0, JSON.stringify(failedRequests));
-  const unexpected = httpErrors.filter(e => !(e.status === 404 && /\/(workspace\/content|knowledge|agent-jobs|analysis|report)\b/.test(e.path)));
+  const unexpected = httpErrors.filter(e => !(e.status === 404 && /\/(workspace\/content|knowledge|agent-jobs|analysis|report|design\/source)\b/.test(e.path)));
   assert.equal(unexpected.length, 0, JSON.stringify(unexpected));
   const riskyWrites = writes.filter(r => r.method !== "PUT" || !r.path.endsWith("/workspace/stage"));
   // Opening Run freezes the existing design through the normal API; it never starts paid work.

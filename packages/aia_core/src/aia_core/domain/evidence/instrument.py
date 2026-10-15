@@ -11,14 +11,20 @@ dictionary and never by a caller's choice of status:
 
 * the item is one the Design Revision compiled to (the caller passes the compiled
   items; nothing here invents one);
-* its answers came from **simulated** respondents -- an origin in
-  :data:`~aia_core.domain.fieldwork.NON_EVIDENCE_ORIGINS`: the fictional fixture, or
-  AI respondents on the fictional roster. Any other origin -- including none -- has
-  no policy here and is refused (:class:`InstrumentPolicyRefused`): what observed
-  fieldwork may support is a decision nobody has made yet.
+* its answers' origin has a policy. There are two, each fixed and versioned, chosen by the
+  origin and never by a caller:
 
-There is one policy, fixed and versioned (:data:`INSTRUMENT_POLICY_VERSION`), and it
-is the most restrictive the gate can express short of refusing the item outright:
+  - **simulated** respondents (:data:`~aia_core.domain.fieldwork.NON_EVIDENCE_ORIGINS`: the
+    fictional fixture, or AI respondents on the fictional roster) -> ``-1``
+    (:data:`INSTRUMENT_POLICY_VERSION`), below;
+  - **modelled** respondents (``MODELLED_AI_PANEL``: AI respondents built from the run's own
+    population, ADR 0024) -> ``-2`` (:data:`MODELLED_INSTRUMENT_POLICY_VERSION`), after it.
+
+  Any other origin -- including none -- has no policy here and is refused
+  (:class:`InstrumentPolicyRefused`): what observed fieldwork may support is a decision
+  nobody has made yet.
+
+``-1`` is the most restrictive the gate can express short of refusing the item outright:
 
 * a simulated answer is a **modelled** value, never a measured fact
   (``NEVER_MEASURED_FACT``; provenance ``MODELLED``; no measured-claim eligibility);
@@ -33,6 +39,13 @@ The first three rules are exactly what the reference derivation
 so the stated phrase and the enforced rules cannot drift apart; ``INTERNAL_ONLY`` is
 added because no dictionary phrase says it.
 
+``-2`` (ADR 0024 §3) keeps every rule of ``-1`` that is about the number -- never a measured
+fact, aggregate only, never one person's -- and adds what a client-facing modelled claim must
+carry: a scope disclosure (``REQUIRES_SCOPE``) and the modelled-value disclosure on every claim,
+not only a measured one (``MODELED_DISCLOSURE_ALWAYS``). It is internal only (``INTERNAL_ONLY``)
+until a ``HOLDOUT_VALIDATED`` validation earned on the current respondent system lifts that
+(ADR 0024 §4, :func:`.validation.lifts_internal_only`); nothing records one yet.
+
 Two refusals already stand between these items and a client before this one: the
 data-origin gate refuses every simulated origin client-facing (``admission``), and a
 run with no population panel has no ``CORE_JOINT_STATUS`` certificate, on which no
@@ -45,11 +58,12 @@ Pure: no I/O.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
 
-from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin
+from ..fieldwork import NON_EVIDENCE_ORIGINS, DataOrigin, OriginKind, origin_kind
 from ..pipeline import fingerprint
 from .field_policy import (
     ClaimRule,
@@ -61,18 +75,23 @@ from .field_policy import (
     ProvenanceClass,
     claim_rules_for,
 )
+from .report_lift import ModelledReportLift
+from .validation import ValidationState, lifts_internal_only
 
 __all__ = [
     "INSTRUMENT_BLOCK",
     "INSTRUMENT_FIELD_PREFIX",
     "INSTRUMENT_POLICY_VERSION",
     "INSTRUMENT_RECOMMENDED_USE",
+    "MODELLED_INSTRUMENT_POLICY_VERSION",
+    "MODELLED_INSTRUMENT_RECOMMENDED_USE",
     "InstrumentItem",
     "InstrumentPolicyRefused",
     "instrument_declaration_sha256",
     "instrument_field",
     "instrument_policy",
     "instrument_policy_book",
+    "instrument_policy_version",
 ]
 
 #: Identifies the policy below. Part of every fingerprint computed on it, so a
@@ -92,6 +111,16 @@ INSTRUMENT_FIELD_PREFIX: Final = "instrument:"
 INSTRUMENT_RECOMMENDED_USE: Final = (
     "study instrument item answered by simulated respondents; aggregate internal "
     "analysis only; individual value modeled; never measured fact"
+)
+
+#: ``-2``: the policy of answers from AI respondents built from the run's population.
+MODELLED_INSTRUMENT_POLICY_VERSION: Final = "aia-instrument-evidence-2"
+
+#: ``-2``'s declared use; its claim rules are extracted from it as ``-1``'s are.
+MODELLED_INSTRUMENT_RECOMMENDED_USE: Final = (
+    "study instrument item answered by AI respondents built from the population; aggregate "
+    "or segmentation analysis WITH_SCOPE; individual value modeled; never measured fact; "
+    "modeled value disclosure"
 )
 
 _ELIGIBILITY: Final = FieldEligibility(
@@ -129,57 +158,178 @@ def instrument_field(question_id: str) -> str:
     return f"{INSTRUMENT_FIELD_PREFIX}{question_id}"
 
 
-def _require_simulated(origin: DataOrigin | None) -> DataOrigin:
-    if origin is None or origin not in NON_EVIDENCE_ORIGINS:
-        raise InstrumentPolicyRefused(
-            f"no instrument evidence policy covers answers of origin "
-            f"{origin.value if origin else 'unknown'!r}; only simulated respondents "
-            f"({', '.join(sorted(o.value for o in NON_EVIDENCE_ORIGINS))}) are declared"
-        )
-    return origin
+@dataclass(frozen=True, slots=True)
+class _Declared:
+    version: str
+    recommended_use: str
+    status: InstrumentStatus
+    #: AIA's own rules, after the ones the declared use extracts.
+    aia_rules: tuple[ClaimRule, ...]
+
+
+_SIMULATED: Final = _Declared(
+    INSTRUMENT_POLICY_VERSION,
+    INSTRUMENT_RECOMMENDED_USE,
+    InstrumentStatus.SIMULATED_RESPONSE,
+    (ClaimRule.INTERNAL_ONLY,),
+)
+_MODELLED: Final = _Declared(
+    MODELLED_INSTRUMENT_POLICY_VERSION,
+    MODELLED_INSTRUMENT_RECOMMENDED_USE,
+    InstrumentStatus.MODELLED_PANEL_RESPONSE,
+    (ClaimRule.MODELED_DISCLOSURE_ALWAYS, ClaimRule.INTERNAL_ONLY),
+)
+
+
+def _declared(origin: DataOrigin | None) -> tuple[DataOrigin, _Declared]:
+    """The policy ``origin``'s answers are declared under, by the origin's kind; else refused."""
+    kind = origin_kind(origin)
+    if origin is not None and kind is OriginKind.SIMULATED:
+        return origin, _SIMULATED
+    if origin is not None and kind is OriginKind.MODELLED:
+        return origin, _MODELLED
+    raise InstrumentPolicyRefused(
+        f"no instrument evidence policy covers answers of origin "
+        f"{origin.value if origin else 'unknown'!r}; only simulated respondents "
+        f"({', '.join(sorted(o.value for o in NON_EVIDENCE_ORIGINS))}) and modelled "
+        f"respondents ({DataOrigin.MODELLED_AI_PANEL.value}) are declared"
+    )
+
+
+def instrument_policy_version(origin: DataOrigin | None) -> str:
+    """The version of the policy ``origin``'s answers are declared under; else refused."""
+    return _declared(origin)[1].version
+
+
+_SHA256: Final = re.compile(r"[0-9a-f]{64}")
+
+
+@dataclass(frozen=True, slots=True)
+class _Judged:
+    origin: DataOrigin
+    declared: _Declared
+    #: ``-2`` only: the respondent system the answers came from, and whether a current holdout
+    #: validation on it lifts ``INTERNAL_ONLY``.
+    respondent_system: str | None
+    lifted: bool
+    #: The owner lift that lifted ``INTERNAL_ONLY`` instead of a holdout, if one did (B5b).
+    lift_id: str | None = None
+
+    @property
+    def rules(self) -> tuple[ClaimRule, ...]:
+        aia = self.declared.aia_rules
+        if self.lifted:
+            aia = tuple(r for r in aia if r is not ClaimRule.INTERNAL_ONLY)
+        return (*claim_rules_for(self.declared.recommended_use), *aia)
+
+
+def _judge(
+    origin: DataOrigin | None,
+    respondent_system: str | None,
+    validation: ValidationState | None,
+    report_lift: ModelledReportLift | None = None,
+) -> _Judged:
+    """The policy ``origin``'s answers are declared under, and what a validation does to it.
+
+    A simulated origin is never validated: passing a system or a validation for it is refused.
+    A modelled origin leaves ``INTERNAL_ONLY`` only under :func:`.validation.lifts_internal_only`.
+    """
+    declared_origin, declared = _declared(origin)
+    if respondent_system is not None and not _SHA256.fullmatch(respondent_system):
+        raise ValueError("a respondent system is named by its fingerprint (a SHA-256)")
+    if declared is _SIMULATED:
+        if respondent_system is not None or validation is not None or report_lift is not None:
+            raise InstrumentPolicyRefused(
+                "simulated answers are never validated: no respondent system or validation "
+                "applies to them"
+            )
+        return _Judged(declared_origin, declared, None, False)
+    if validation is not None and respondent_system is None:
+        raise ValueError("a validation is judged against the current respondent system; none given")
+    lifted = lifts_internal_only(validation, respondent_system)
+    # The owner's client-report lift (B5b): only a modelled run that recorded its respondent
+    # system, and only where a holdout has not already lifted it.
+    by_owner = not lifted and report_lift is not None and respondent_system is not None
+    return _Judged(
+        declared_origin,
+        declared,
+        respondent_system,
+        lifted or by_owner,
+        report_lift.lift_id if by_owner and report_lift is not None else None,
+    )
 
 
 def instrument_policy(
-    item: InstrumentItem, *, origin: DataOrigin | None, source: str
+    item: InstrumentItem,
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> FieldPolicy:
-    """The fixed policy of one instrument item whose answers came from ``origin``."""
-    _require_simulated(origin)
+    """The fixed policy of one instrument item whose answers came from ``origin``.
+
+    ``respondent_system`` and ``validation`` apply to a modelled origin only (ADR 0024 §4);
+    ``report_lift`` only to a modelled origin judged for the client report (B5b).
+    """
+    judged = _judge(origin, respondent_system, validation, report_lift)
     if not source.strip():
         raise ValueError("an instrument policy names the source of its answers")
-    rules = (*claim_rules_for(INSTRUMENT_RECOMMENDED_USE), ClaimRule.INTERNAL_ONLY)
     return FieldPolicy(
         field=instrument_field(item.question_id),
         block=INSTRUMENT_BLOCK,
         source=source.strip(),
-        evidence_status=InstrumentStatus.SIMULATED_RESPONSE,
+        evidence_status=judged.declared.status,
         provenance_class=ProvenanceClass.MODELLED,
         production_grade=None,
-        recommended_use_verbatim=INSTRUMENT_RECOMMENDED_USE,
+        recommended_use_verbatim=judged.declared.recommended_use,
         description=item.text.strip(),
         persona_eligible=False,
-        claim_rules=rules,
+        claim_rules=judged.rules,
         eligibility=_ELIGIBILITY,
         mandated_weight_scheme=None,
     )
 
 
 def instrument_declaration_sha256(
-    items: Sequence[InstrumentItem], *, origin: DataOrigin | None, source: str
+    items: Sequence[InstrumentItem],
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> str:
-    """Identity of a declaration: the policy version, the origin, the source, the items."""
-    declared = _require_simulated(origin)
-    return fingerprint(
-        {
-            "policy": INSTRUMENT_POLICY_VERSION,
-            "origin": declared.value,
-            "source": source.strip(),
-            "items": [[i.question_id, i.text.strip()] for i in items],
-        }
-    )
+    """Identity of a declaration: the policy version, the origin, the source, the items.
+
+    A modelled declaration also binds the respondent system and whether a validation lifted
+    ``INTERNAL_ONLY``, so a module judged under one validation is never reused under another.
+    A simulated declaration's identity is ``-1``'s, unchanged.
+    """
+    judged = _judge(origin, respondent_system, validation, report_lift)
+    material: dict[str, object] = {
+        "policy": judged.declared.version,
+        "origin": judged.origin.value,
+        "source": source.strip(),
+        "items": [[i.question_id, i.text.strip()] for i in items],
+    }
+    if judged.declared is _MODELLED:
+        material["respondent_system"] = judged.respondent_system
+        material["internal_only_lifted"] = judged.lifted
+        if judged.lift_id is not None:
+            material["lifted_by"] = judged.lift_id
+    return fingerprint(material)
 
 
 def instrument_policy_book(
-    items: Sequence[InstrumentItem], *, origin: DataOrigin | None, source: str
+    items: Sequence[InstrumentItem],
+    *,
+    origin: DataOrigin | None,
+    source: str,
+    respondent_system: str | None = None,
+    validation: ValidationState | None = None,
+    report_lift: ModelledReportLift | None = None,
 ) -> FieldPolicyBook:
     """The policy book of one run's instrument: every item it asked, and nothing else.
 
@@ -188,13 +338,27 @@ def instrument_policy_book(
     """
     fields: dict[str, FieldPolicy] = {}
     for item in items:
-        policy = instrument_policy(item, origin=origin, source=source)
+        policy = instrument_policy(
+            item,
+            origin=origin,
+            source=source,
+            respondent_system=respondent_system,
+            validation=validation,
+            report_lift=report_lift,
+        )
         if policy.field in fields:
             raise FieldPolicyError(f"instrument item {item.question_id!r} is declared twice")
         fields[policy.field] = policy
     if not fields:
         raise InstrumentPolicyRefused("the instrument declares no item")
     return FieldPolicyBook(
-        source_sha256=instrument_declaration_sha256(items, origin=origin, source=source),
+        source_sha256=instrument_declaration_sha256(
+            items,
+            origin=origin,
+            source=source,
+            respondent_system=respondent_system,
+            validation=validation,
+            report_lift=report_lift,
+        ),
         fields=fields,
     )

@@ -16,26 +16,27 @@ import { type ReactNode, createContext, useCallback, useContext, useEffect, useM
 import { t, tv } from "@/i18n/t";
 import { CANCEL_CONFIRM, JobError, type JobUpdate } from "@/research/jobs";
 import type { Template } from "@/research/model";
-import { RAIL_STEPS, type StepKey, stepEyebrow } from "@/research/steps";
-import { ResearchStore, loadResearch, newResearch } from "@/research/store";
+import { RAIL_STEPS, type StepKey } from "@/research/steps";
+import { type ResearchState, ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AiButton, AskDialog, Button, Toast } from "../ui";
-import { Sparkle } from "../icons";
+import { type Ask, AskDialog, Button, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
-import { ResearchRail } from "./ResearchRail";
+import { StageTrack, TRACK_STEPS } from "./StageTrack";
+import { Blockers, InspectorProvider } from "./Inspector";
+import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
 import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
-import { researchAgents, type ResearchAgentAction } from "@/lib/api";
+import { researchAgents, type ResearchAgentAction, type WorkingContent } from "@/lib/api";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
+import { DesignSourceNote } from "./DesignSourceNote";
 import { STEP_SCREENS } from "./steps";
+import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 
-// The "AI pomoc" bar (Studio v3) offers an action only where it helps: the plan can be
-// reviewed from Návrh to Kontrola (2–6), asked about while it is designed (2–5), and the
-// client's knowledge on every step. Each action, its handler and its dialog are unchanged.
+// Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
   { action: "critique_design", label: "research.aiCritique", title: "Kontrola návrhu", rail: [2, 3, 4, 5, 6] },
   { action: "design_copilot", label: "research.aiCopilot", title: "Pomoc s návrhem", rail: [2, 3, 4, 5] },
@@ -61,7 +62,7 @@ const SessionContext = createContext<Session | null>(null);
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
-export function ResearchSession({ studyId, children }: { studyId: string; children: ReactNode }) {
+export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
@@ -69,7 +70,7 @@ export function ResearchSession({ studyId, children }: { studyId: string; childr
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    loadResearch(studyId).then(
+    (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent)) : loadResearch(studyId)).then(
       (r) => {
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
@@ -84,7 +85,7 @@ export function ResearchSession({ studyId, children }: { studyId: string; childr
       live = false;
       store?.dispose();
     };
-  }, [studyId, version]);
+  }, [studyId, version, initialContent]);
 
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
@@ -99,9 +100,13 @@ export function ResearchSession({ studyId, children }: { studyId: string; childr
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-/** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its rail. */
-function StageChrome({ frame, step, status, children }: { frame: StudyFrame; step: StepKey; status?: ReactNode; children: ReactNode }) {
-  const eyebrow = stepEyebrow(step);
+/** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
+function StageChrome({ frame, step, state, status, help, children }: {
+  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode; children: ReactNode;
+}) {
+  const onTrack = TRACK_STEPS.includes(step);
+  // The track carries the order: a stage on it is named without its number.
+  const title = t(`research.steps.${step}.0`);
   return (
     <AppShell
       crumbs={[
@@ -111,26 +116,14 @@ function StageChrome({ frame, step, status, children }: { frame: StudyFrame; ste
         { label: frame.studyName, href: frame.stepHref("brief") },
         { label: t(`aia.stages.${step}`) },
       ]}
-      title={t(`research.steps.${step}.0`)}
+      title={onTrack ? title.replace(/^\d+\.\s*/, "") : title}
       sub={t(`research.steps.${step}.1`)}
       client={{ id: frame.clientId, name: frame.clientName }}
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
-      eyebrow={
-        eyebrow.total ? (
-          <>
-            {eyebrow.text}
-            <span aria-hidden="true" className="inline-flex gap-0.5">
-              {Array.from({ length: eyebrow.total }, (_, i) => (
-                <i key={i} className={`block h-0.5 w-4 ${i < eyebrow.done ? "bg-signal" : "bg-border"}`} />
-              ))}
-            </span>
-          </>
-        ) : (
-          t("aia.kind.RESEARCH")
-        )
-      }
+      eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      aside={<ResearchRail stepHref={frame.stepHref} current={step} studyName={frame.studyName} />}
+      action={help}
+      track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
@@ -206,7 +199,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     return () => clearTimeout(id);
   }, [toast]);
 
-  const agents = useResearchAgents(frame.studyId, store, setJob);
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -244,37 +237,40 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     () => ({ store, template, runJob, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
     [store, template, runJob, job, confirm, prompt, memory, stepHref, frame],
   );
-  const askAgent = async (action: ResearchAgentAction, title: string) => {
-    const instruction = action === "critique_design" ? "Zkontroluj současný návrh." : await prompt("Co chcete zjistit?");
-    if (!instruction) return;
-    try { await agents.run(action, { instruction }, title); }
-    catch (e) { setToast(message(e)); }
-  };
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
 
   return (
-    <ResearchContext.Provider value={value}>
-      <StageChrome frame={frame} step={step} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+    <ResearchAssistance step={step} studyName={frame.studyName} canEdit={frame.canEdit} memory={memory} actions={aiHelp} agents={agents} job={job} onCancel={onCancel} studyId={frame.studyId}>
+    {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, askAssistance }}>
+      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+        <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
         {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
-        {Screen ? <Screen /> : <StepPlaceholder step={step} />}
-        {frame.canEdit && aiHelp.length ? <section className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-4" aria-label={t("research.aiHelpLabel")}>
-          <span className="mr-1 inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold text-ai-ink"><Sparkle size={13} />{t("research.aiHelp")}</span>
-          {aiHelp.map((h) => (
-            <AiButton key={h.action} small disabled={agents.busy} onClick={() => void askAgent(h.action, h.title)}>{t(h.label)}</AiButton>
-          ))}
-        </section> : null}
+        <InspectorProvider>{(column) => (
+          <div data-research-workspace className="grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+            <div className="flex min-w-0 flex-col gap-4">
+              {agents.proposalReview ? <ProposalReview result={agents.proposalReview.result} state={state} onDecision={agents.proposalReview.decide} /> : null}
+              {Screen ? <Screen /> : <StepPlaceholder step={step} />}
+            </div>
+            {column(<>
+              {expanded ? panel : card}
+              {TRACK_STEPS.includes(step) && step !== "run" && step !== "progress" && step !== "results" ? <Blockers state={state} stepHref={stepHref} /> : null}
+            </>)}
+            {expanded ? null : panel}
+          </div>
+        )}</InspectorProvider>
       {agents.notice ? <p role="status" className="my-3 text-sm text-ink-muted">{agents.notice}</p> : null}
-      {agents.recent.some((j) => j.status === "COMPLETED") ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
+      {agents.recent.some((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)) ? <section className="my-4 rounded-md border border-border p-4"><h2 className="mb-2 font-semibold">{t("research.aiSaved")}</h2>
         <div className="flex flex-wrap gap-2">
-          {agents.recent.filter((j) => j.status === "COMPLETED").slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
+          {agents.recent.filter((j) => j.status === "COMPLETED" && !isAdviceAction(j.action)).slice(0, 5).map((j) => <Button key={j.run_id} disabled={agents.busy} onClick={() => void agents.open(j)}>{ACTION_LABELS[j.action]} · {j.created_at ? new Date(j.created_at).toLocaleString("cs-CZ") : ""}</Button>)}
         </div>
       </section> : null}
       </StageChrome>
-      {job ? <JobPanel job={job} onCancel={onCancel} /> : null}
+      {job && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
       <Toast message={toast} />
-    </ResearchContext.Provider>
+    </ResearchContext.Provider>}
+    </ResearchAssistance>
   );
 }

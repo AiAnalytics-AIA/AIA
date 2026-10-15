@@ -240,3 +240,59 @@ def test_the_built_in_expression_gives_the_engines_exact_bits(formula: Any) -> N
         if compiled(**values) != engine
     ]
     assert mismatches[:3] == []
+
+
+# --------------------------------------------------------------------------- what stays code
+# A slot replaces one expression, never the step around it (product owner, 2026-10-14: a reader
+# took the step's whole formula for the editable part). Each formula says what the engine keeps,
+# and the three a reviewer questioned are proved here with the slot replaced.
+
+
+def _replaced(slot_id: str, expression: str) -> dict[str, Any]:
+    formula = next(f for f in SOCIOMAP_FORMULAS if f.slot.id == slot_id)
+    return {slot_id: compile_formula(formula.slot, expression)}
+
+
+@pytest.mark.parametrize("formula", SOCIOMAP_FORMULAS, ids=lambda f: f.slot.id)
+def test_every_formula_says_what_the_engine_keeps_around_it(formula: Any) -> None:
+    assert formula.kept_cs, f"{formula.slot.id} does not say what stays code"
+    assert all(line.strip() and line.endswith(".") for line in formula.kept_cs)
+
+
+def test_a_replaced_scale_still_refuses_a_rating_off_its_scale() -> None:
+    slots = _replaced("f1.scale", "(a - lo) / (hi - lo)")
+    with pytest.raises(ValueError, match="outside its declared scale"):
+        _scaled(_inputs([[11.0]], [(1.0, 10.0)], [1.0]), slots)
+
+
+def test_a_replaced_person_scale_never_sees_a_row_without_spread() -> None:
+    slots = _replaced("f2.person", "(a - low) / (high - low)")
+    out = person_minmax([[0.4, 0.4, None], [0.2, 0.8, 0.5]], slots=slots)
+    assert out.excluded == (0,)
+    assert out.values[0] == (None, None, None)
+    assert out.values[1] == (0.0, 1.0, (0.5 - 0.2) / (0.8 - 0.2))
+
+
+def test_a_replaced_kish_n_is_only_the_kish_branch() -> None:
+    from aia_core.domain.sociomap.pairs import derive_pair_relations
+
+    ratings = [[0.1, 0.2], [0.5, 0.4], [0.9, 0.7], [0.3, 0.6]]
+    slots = _replaced("f3.effective_n", "0 * sum(w)")
+    counted = derive_pair_relations(
+        ratings,
+        [1.0, 2.0, 1.0, 1.0],
+        n_min=4,
+        confidence=0.95,
+        basis="respondent_count",
+        slots=slots,
+    )
+    assert counted.n[0][1] == 4 and counted.n_effective is None
+    kish = derive_pair_relations(
+        ratings,
+        [1.0, 2.0, 1.0, 1.0],
+        n_min=4,
+        confidence=0.95,
+        basis="kish_effective_n",
+        slots=slots,
+    )
+    assert kish.n_effective is not None and kish.n_effective[0][1] == 0.0

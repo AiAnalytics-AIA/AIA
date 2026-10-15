@@ -129,6 +129,23 @@ compared with the unit by `packages/aia_core/tests/test_research_aggregate.py`.
 What the develop host does instead -- the same run parks at fieldwork -- is in
 `tools/develop_routing_proof.py`.
 
+## The audience step from a population
+
+The workbench's API holds a fictional LIVE population (`fictional_population.py`: the
+sampler's 3,000 invented rows on 400 invented donors, under a contract of its own, its
+catalogue kept), and points the audience routes at it through the composition root's one
+seam (`app.state.audience_population`, `app.state.audience_previewer`); research runs still
+record the Czech LIVE, which the workbench never establishes. The first start takes about
+15 s more for it; `api_standin.py --no-audience-population` leaves it out.
+
+`make ui-audience` (`audience_journey.mjs`, needs `make ui-fixtures`) chooses ČR 18+ → narrow
+on a new study, picks a region and an age from the catalogue and checks they are saved as
+chosen (an empty bound left out) and read back; asks the preview and reads its count and
+verdict; then picks a built-in subpanel on Special Audience and checks that one the policy
+refuses cannot be chosen. It fails on a request to a path the unit served, a 502 or a page
+error. Screenshots go to `tmp/ui-workbench/shots/audience-<time>/`. Every count is of
+fictional rows.
+
 ## Requirements
 
 Python 3.11+ (the unit's runtime requirements go into `tmp/ui-workbench/venv`,

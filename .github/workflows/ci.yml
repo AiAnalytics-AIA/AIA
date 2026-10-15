@@ -864,6 +864,9 @@ jobs:
       - name: Shell scripts parse
         run: for f in deploy/develop/bin/*.sh deploy/reference/bin/*.sh; do bash -n "$f"; done
 
+      - name: Host Python scripts parse
+        run: python3 -m py_compile deploy/develop/bin/*.py
+
   security:
     name: Security and dependency scan
     runs-on: ubuntu-latest

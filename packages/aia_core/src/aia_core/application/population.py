@@ -33,11 +33,12 @@ operator's verified user id. Not here yet, deliberately: a process-wide cache.
 
 from __future__ import annotations
 
+import json
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from sqlalchemy.orm import Session
 
@@ -53,10 +54,14 @@ from ..domain.population import (
     JointState,
     JointStatus,
     LineageError,
+    MaterializedField,
+    MaterializedKind,
+    OwnedVersionNotShared,
     ParsedDictionary,
     ParsedPanel,
     Population,
     PopulationBinding,
+    PopulationContractExtension,
     PopulationError,
     PopulationImportContract,
     PopulationKind,
@@ -65,32 +70,57 @@ from ..domain.population import (
     PopulationPermission,
     PopulationSelector,
     PopulationView,
+    ResolutionMode,
     RuntimePopulation,
     UnknownDatasetVersion,
     VersionIntegrityError,
+    VersionOwner,
     VersionStatus,
     WeightResolutionError,
     analysis_weights,
     build_field_policy,
+    check_child_version,
     companion_set_sha256,
     content_sha256,
     dataset_version_id,
     evaluate_joint_certificate,
+    field_names_fingerprint,
+    owned_version_id,
     plan_establish,
     plan_promotion,
     require_operator,
+    require_runtime_eligible,
     resolve_binding,
     resolve_weight_scheme,
     validate_companions,
     validate_import,
     version_status,
+    with_materialized_fields,
 )
-from ..infrastructure.population_parser import parse_dictionary, parse_panel
+from ..domain.population.audience_catalogue import AUDIENCE_CATALOGUE_VERSION, catalogue_of
+from ..domain.population.definition import DimensionDefinition
+from ..domain.population.derivation import (
+    DERIVATION_METHOD_ID,
+    DERIVATION_METHOD_VERSION,
+    DerivationRefused,
+    derive_dimension,
+    numeric_column,
+)
+from ..domain.population.policy import FieldUse
+from ..infrastructure.population_parser import parse_dictionary, parse_panel, write_panel
 from ..infrastructure.population_repository import PopulationRegistryRepository
 from ..infrastructure.population_source import PopulationAssetMissing, PopulationAssetSource
 from ..infrastructure.workflow_repository import WorkflowRepository
 
-__all__ = ["Enricher", "PopulationRuntime", "live_binding"]
+__all__ = [
+    "ChildStore",
+    "Enricher",
+    "MaterializedChild",
+    "PopulationRuntime",
+    "child_binding",
+    "kept_audience_catalogue",
+    "live_binding",
+]
 
 Cell = str | None
 
@@ -116,6 +146,59 @@ class Enricher(Protocol):
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+class ChildStore(Protocol):
+    """Where a materialized child's bytes are written once (``S3PopulationStore``)."""
+
+    def put_once(self, key: str, data: bytes) -> str:
+        """Write ``data`` at ``key`` unless it is already there; return its location."""
+        ...
+
+
+@dataclass(frozen=True, slots=True)
+class MaterializedChild:
+    """A registered child, and what its derivation asked for and achieved."""
+
+    version: DatasetVersion
+    #: False when the same owner's same bytes were already registered (a retry).
+    created: bool
+    target: float
+    achieved: float
+    usable_predictors: tuple[str, ...]
+
+
+def _child_outcome(outcome: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "target": float(outcome["target"]),
+        "achieved": float(outcome["achieved"]),
+        "usable_predictors": tuple(outcome["usable_predictors"]),
+    }
+
+
+def _holds(kind: MaterializedKind, cell: str | None) -> bool:
+    """Whether ``cell`` is a value a materialized field of ``kind`` may hold (never missing)."""
+    if cell is None:
+        return False
+    if kind is MaterializedKind.BINARY:
+        return cell in ("0", "1")
+    try:
+        value = float(cell)
+    except ValueError:
+        return False
+    return 1.0 <= value <= 10.0
+
+
+def _refuse_owned(version: DatasetVersion) -> None:
+    """Refuse an owned child before anything else is checked (P4c, M5).
+
+    The registry's planning reads shared versions only, so without this an owned child
+    would be refused as unknown, or for its companions, rather than for what it is.
+    """
+    if not version.shared:
+        raise OwnedVersionNotShared(
+            f"{version.version_id} belongs to one organization; STATIC and LIVE are shared"
+        )
 
 
 class PopulationRuntime:
@@ -280,6 +363,40 @@ class PopulationRuntime:
         )
         return True
 
+    def record_audience_catalogue(self, version_id: str, *, recorded_by: str) -> bool:
+        """Compute and keep a version's audience factor catalogue (panel-grounded 6b).
+
+        Loads the version's ANALYSIS view exactly as a run would (every hash re-verified, the
+        enricher's derived dimensions attached), computes
+        :func:`~..domain.population.audience_catalogue.catalogue_of` and keeps it as canonical
+        JSON with its SHA-256. ``False`` when this catalogue version is already kept for it,
+        ``True`` when this stored it. Nothing is judged, so nobody's permission is asked; the
+        catalogue holds counts and ranges, never a row.
+        """
+        if self._registry.get_version(version_id) is None:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if self._registry.audience_catalogue(version_id, AUDIENCE_CATALOGUE_VERSION) is not None:
+            return False
+        population = self.load(
+            self.resolve(PopulationSelector.pinned(version_id), view=PopulationView.ANALYSIS)
+        )
+        content = json.dumps(
+            catalogue_of(population), ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
+        self._registry.insert_audience_catalogue(
+            version_id,
+            catalogue_version=AUDIENCE_CATALOGUE_VERSION,
+            sha256=content_sha256(content.encode("utf-8")),
+            content=content,
+            recorded_at=self._clock(),
+            recorded_by=recorded_by,
+        )
+        return True
+
+    def audience_catalogue(self, version_id: str) -> dict[str, Any] | None:
+        """A version's kept audience catalogue, re-hashed on read, or ``None`` when none is."""
+        return kept_audience_catalogue(self._registry, version_id)
+
     def attach_companions(
         self, *, version_id: str, companion_locations: Mapping[str, str], attached_by: str
     ) -> CompanionSet:
@@ -396,6 +513,7 @@ class PopulationRuntime:
         version = self._registry.get_version(version_id)
         if version is None:
             raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        _refuse_owned(version)
         self._require_usable(version_id)
         population, record = plan_establish(
             population_id=population_id,
@@ -431,7 +549,9 @@ class PopulationRuntime:
         population = self._registry.population(population_id, for_update=True)
         if population is None:
             raise PopulationNotEstablished(f"population {population_id} has not been established")
-        if self._registry.get_version(target_version_id) is not None:
+        target = self._registry.get_version(target_version_id)
+        if target is not None:
+            _refuse_owned(target)
             self._require_usable(target_version_id)
         promoted, record = plan_promotion(
             population=population,
@@ -489,6 +609,63 @@ class PopulationRuntime:
             joint_state=companions.joint_state if companions is not None else JointState.MISSING,
         )
 
+    def resolve_child(
+        self,
+        version_id: str,
+        *,
+        organization_id: str,
+        view: PopulationView = PopulationView.ANALYSIS,
+        weight_role: str | None = None,
+    ) -> PopulationBinding:
+        """Resolve an owned child a study selected to the binding its run records (P4e).
+
+        Only ``organization_id``'s own child resolves; any other answers as an unknown version.
+        A child is never a population's version, so it is eligible when its shared base is (a
+        version a run may be resolved against) and its base is usable. The binding pins the
+        child (``PINNED``); its companions and certificate are the base's.
+        """
+        version = self._registry.visible_version(version_id, organization_id=organization_id)
+        if version is None or version.shared or version.dataset_id != self._contract.dataset_id:
+            raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+        if version.contract_id != self._contract.contract_id:
+            raise PopulationError(
+                f"{version_id} was made under {version.contract_id}, not "
+                f"{self._contract.contract_id}",
+                reason="contract_mismatch",
+            )
+        base = self._joint_version(version)
+        dataset = self._contract.dataset_id
+        require_runtime_eligible(
+            base.version_id,
+            version_status(
+                base.version_id,
+                self._registry.populations(dataset),
+                self._registry.promotions(dataset),
+            ),
+        )
+        self._require_usable(base.version_id)
+        companions = self._registry.companion_set(base.version_id)
+        weight = resolve_weight_scheme(self._contract, weight_role)
+        return PopulationBinding(
+            dataset_id=version.dataset_id,
+            version_id=version.version_id,
+            version_label=version.label,
+            content_sha256=version.content_sha256,
+            contract_id=self._contract.contract_id,
+            population_id=None,
+            resolution=ResolutionMode.PINNED,
+            weight_role=weight.role,
+            weight_column=weight.column,
+            view=view,
+            resolved_at=self._clock(),
+            dictionary_sha256=version.dictionary_sha256,
+            field_policy_version=FIELD_POLICY_VERSION,
+            companion_set_sha256=(
+                companions.set_sha256 if companions is not None else companion_set_sha256({})
+            ),
+            joint_state=companions.joint_state if companions is not None else JointState.MISSING,
+        )
+
     # ------------------------------------------------------------------- load --
 
     def load_for_run(self, workflow: WorkflowRepository, run_id: str) -> RuntimePopulation:
@@ -523,7 +700,11 @@ class PopulationRuntime:
                 f"{contract.contract_id} declares {weight.column}",
                 reason="weight_mismatch",
             )
-        companions = self._registry.companion_set(version.version_id)
+        # An owned child carries its shared base's companions and certificate: the certificate
+        # is bound to the base panel's hash, and the child's base columns are verified equal to
+        # the base's on every load (``_verified_child``).
+        joint_version = self._joint_version(version)
+        companions = self._registry.companion_set(joint_version.version_id)
         if contract.companions and companions is None:
             raise CompanionsIncomplete(f"{version.version_id} has no validated companion set")
         recorded_set = companions.set_sha256 if companions is not None else companion_set_sha256({})
@@ -567,16 +748,32 @@ class PopulationRuntime:
                 joint_status=cached.joint_status,
                 columns=cached._columns,
                 analysis_weight=cached._analysis_weight,
+                companions=cached._companions,
+                joint_certificate=cached.joint_certificate,
             )
 
-        panel, dictionary = self._verified_panel(version)
-        joint = self._verified_joint(version, companions)
+        extension: PopulationContractExtension | None = None
+        if version.shared:
+            panel, dictionary = self._verified_panel(version)
+        else:
+            panel, dictionary, extension = self._verified_child(version)
+        joint, companion_bytes = self._verified_joint(joint_version, companions)
+        certificate = next(
+            (
+                companion_bytes[spec.asset_id]
+                for spec in self._contract.companions
+                if spec.kind is CompanionKind.CORE_JOINT_STATUS and spec.asset_id in companion_bytes
+            ),
+            None,
+        )
         policy = build_field_policy(
             dictionary.rows,
             dictionary_sha256=version.dictionary_sha256,
             weight_columns=contract.weight_columns,
             derived_fields=contract.derived_policy_fields,
         )
+        if extension is not None:
+            policy = with_materialized_fields(policy, extension)
         columns: dict[str, tuple[Cell, ...]] = {
             name: panel.columns[position] for position, name in enumerate(panel.header)
         }
@@ -596,19 +793,205 @@ class PopulationRuntime:
             joint_status=joint,
             columns=columns,
             analysis_weight=weights,
+            companions=companion_bytes,
+            joint_certificate=(
+                None if certificate is None else (certificate, joint_version.content_sha256)
+            ),
         )
         self._cache[key] = population
         while len(self._cache) > self._cache_size:
             self._cache.popitem(last=False)
         return population
 
+    # ------------------------------------------------------------ materialize --
+
+    def materialize_child(
+        self,
+        *,
+        base_version_id: str,
+        definition: DimensionDefinition,
+        owner: VersionOwner,
+        store: ChildStore,
+        actor_id: str,
+    ) -> MaterializedChild:
+        """Derive ``definition`` over the base and register the owned child. Never promotes.
+
+        The base is read and verified as every load is (bytes and dictionary against their
+        pins, the contract re-applied). Before anything is derived, every predictor is asked
+        again of the base's policy (``PERSONA_CONSTRUCTION``) and the name must be free, so a
+        policy that moved since the request was checked refuses here (``DerivationRefused``).
+        The child is the base's columns in order plus the new one, written once to ``store``
+        under its content hash, then checked against the base (``check_child_version``) and
+        registered with its extension. The same owner's same bytes are one version: a retry
+        finds the child, a retry after the write but before registration finds the object.
+        """
+        base = self._registry.get_version(base_version_id)
+        if base is None:
+            raise UnknownDatasetVersion(f"unknown dataset version {base_version_id}")
+        if not base.shared:
+            raise OwnedVersionNotShared(f"{base_version_id} is owned; a child extends a shared one")
+        panel, dictionary = self._verified_panel(base)
+        policy = build_field_policy(
+            dictionary.rows,
+            dictionary_sha256=base.dictionary_sha256,
+            weight_columns=self._contract.weight_columns,
+            derived_fields=self._contract.derived_policy_fields,
+        )
+        name = definition.dimension_id
+        if name in policy.entries or name in panel.header:
+            raise DerivationRefused(
+                f"{name} is already a field of {base.label}", reason="name_taken"
+            )
+        for predictor in definition.predictors:
+            decision = policy.decide(predictor.field, FieldUse.PERSONA_CONSTRUCTION)
+            if not decision.allowed:
+                raise DerivationRefused(
+                    f"predictor {predictor.field} may not build a persona ({decision.reason})",
+                    reason="predictor_not_permitted",
+                )
+        numeric: dict[str, Sequence[float | None]] = {}
+        for predictor in definition.predictors:
+            if predictor.field in panel.header:
+                values = numeric_column(panel.column(predictor.field))
+                if values is not None:
+                    numeric[predictor.field] = values
+        weight = resolve_weight_scheme(self._contract, self._contract.default_weight_role)
+        weights = numeric_column(panel.column(weight.column)) or [None] * panel.row_count
+        row_ids = tuple(str(cell or "") for cell in panel.column(self._contract.primary_key))
+        derived = derive_dimension(
+            row_ids, numeric, weights, dimension_id=name, spec=definition.evidence_spec()
+        )
+        if derived.kind is MaterializedKind.BINARY:
+            cells: tuple[str, ...] = tuple("1" if v else "0" for v in derived.values)
+        else:
+            cells = tuple(format(v, ".2f") for v in derived.values)
+        data = write_panel((*panel.header, name), (*panel.columns, cells))
+        sha = content_sha256(data)
+
+        extension = PopulationContractExtension(
+            base_contract_id=base.contract_id,
+            base_field_names_sha256=base.field_names_sha256,
+            base_dictionary_sha256=base.dictionary_sha256,
+            fields=(
+                MaterializedField(
+                    name=name,
+                    kind=definition.kind,
+                    definition_sha256=definition.sha256,
+                    method_id=DERIVATION_METHOD_ID,
+                    method_version=DERIVATION_METHOD_VERSION,
+                ),
+            ),
+        )
+        outcome = {
+            "definition_sha256": definition.sha256,
+            "method": f"{DERIVATION_METHOD_ID}@{DERIVATION_METHOD_VERSION}",
+            "target": derived.target,
+            "achieved": derived.achieved,
+            "usable_predictors": [p.column for p in derived.usable],
+        }
+        version_id = owned_version_id(base.dataset_id, sha, owner)
+        existing = self._registry.get_version(version_id)
+        if existing is not None:
+            return MaterializedChild(version=existing, created=False, **_child_outcome(outcome))
+        location = store.put_once(f"{base.dataset_id}/{sha}.csv.gz", data)
+        child = DatasetVersion(
+            version_id=version_id,
+            dataset_id=base.dataset_id,
+            label=f"{base.label}+{name}@{definition.sha256[:12]}",
+            content_sha256=sha,
+            byte_size=len(data),
+            row_count=panel.row_count,
+            column_count=len(panel.header) + 1,
+            contract_id=base.contract_id,
+            dictionary_sha256=base.dictionary_sha256,
+            field_names_sha256=field_names_fingerprint(extension.field_names(panel.header)),
+            parent_version_id=base.version_id,
+            storage_location=location,
+            dictionary_location=base.dictionary_location,
+            provenance=(
+                f"materialized {name} v{definition.version} over {base.label} by "
+                f"{DERIVATION_METHOD_ID}@{DERIVATION_METHOD_VERSION}; every value modelled"
+            ),
+            imported_at=self._clock(),
+            imported_by=actor_id,
+            owner=owner,
+            extension_sha256=extension.sha256,
+        )
+        check_child_version(
+            base=base, child=child, extension=extension, base_field_names=panel.header
+        )
+        self._registry.insert_extension(extension, recorded_at=self._clock(), recorded_by=actor_id)
+        self._registry.insert_version(child, validation={"materialized": outcome})
+        return MaterializedChild(version=child, created=True, **_child_outcome(outcome))
+
+    def _joint_version(self, version: DatasetVersion) -> DatasetVersion:
+        """Whose companions and certificate apply: a child's shared base, else the version."""
+        if version.shared:
+            return version
+        base = self._registry.get_version(version.parent_version_id or "")
+        if base is None or not base.shared:
+            raise VersionIntegrityError(f"{version.version_id} does not extend a shared version")
+        return base
+
+    def _verified_child(
+        self, child: DatasetVersion
+    ) -> tuple[ParsedPanel, ParsedDictionary, PopulationContractExtension]:
+        """An owned child's panel, re-verified against its base and its extension.
+
+        The base contract judges the base, read and verified as any load; the child's bytes
+        must hash to their pin, the child must be exactly its base extended
+        (``check_child_version``), every base column must be the base's cell for cell, and every
+        added cell must be a value its kind holds. Anything else refuses the load.
+        """
+        base = self._joint_version(child)
+        base_panel, dictionary = self._verified_panel(base)
+        if child.extension_sha256 is None:  # pragma: no cover - an owned version names one
+            raise VersionIntegrityError(f"{child.version_id} names no extension")
+        extension = self._registry.extension(child.extension_sha256)
+        if extension is None:
+            raise VersionIntegrityError(f"{child.version_id} names an extension that is not stored")
+        check_child_version(
+            base=base, child=child, extension=extension, base_field_names=base_panel.header
+        )
+        data = self._source.read(child.storage_location)
+        if content_sha256(data) != child.content_sha256:
+            raise VersionIntegrityError(
+                f"the bytes at {child.storage_location} are not {child.label}; refusing to load "
+                "a swapped or altered child"
+            )
+        panel = parse_panel(data)
+        width = len(base_panel.header)
+        if (
+            panel.header != extension.field_names(base_panel.header)
+            or panel.row_count != base_panel.row_count
+            or panel.columns[:width] != base_panel.columns
+        ):
+            raise VersionIntegrityError(
+                f"{child.label} is not {base.label}'s rows and columns followed by its added fields"
+            )
+        for offset, added in enumerate(extension.fields):
+            cells = panel.columns[width + offset]
+            if not all(_holds(added.kind, cell) for cell in cells):
+                raise VersionIntegrityError(
+                    f"{child.label}: {added.name} holds a value a {added.kind.value} field cannot"
+                )
+        return panel, dictionary, extension
+
     def _verified_joint(
         self, version: DatasetVersion, companions: CompanionSet | None
-    ) -> JointStatus:
-        """Re-verify every companion's bytes and re-evaluate the certificate."""
+    ) -> tuple[JointStatus, dict[str, bytes]]:
+        """Re-verify every companion's bytes and re-evaluate the certificate.
+
+        Returns the certificate's verdict and the verified bytes of every companion, which the
+        loaded population hands out (``RuntimePopulation.companion``): one read, one check.
+        """
         if companions is None:
-            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+            return (
+                JointStatus.fallback(JointState.MISSING, "the contract declares no certificate"),
+                {},
+            )
         certificate: bytes | None = None
+        verified: dict[str, bytes] = {}
         for spec in self._contract.companions:
             sha, location = companions.assets[spec.asset_id]
             data = self._source.read(location)
@@ -617,17 +1000,21 @@ class PopulationRuntime:
                     f"companion {spec.asset_id} at {location} is not the one attached to "
                     f"{version.label}; refusing to load a swapped companion"
                 )
+            verified[spec.asset_id] = data
             if spec.kind is CompanionKind.CORE_JOINT_STATUS:
                 certificate = data
         if certificate is None:
-            return JointStatus.fallback(JointState.MISSING, "the contract declares no certificate")
+            return (
+                JointStatus.fallback(JointState.MISSING, "the contract declares no certificate"),
+                verified,
+            )
         joint = evaluate_joint_certificate(certificate, panel_sha256=version.content_sha256)
         if joint.state is not companions.joint_state:
             raise VersionIntegrityError(
                 f"{version.label}'s certificate now evaluates to {joint.state.value}, "
                 f"not the recorded {companions.joint_state.value}"
             )
-        return joint
+        return joint, verified
 
     def _verified_panel(self, version: DatasetVersion) -> tuple[ParsedPanel, ParsedDictionary]:
         panel_bytes = self._source.read(version.storage_location)
@@ -730,3 +1117,47 @@ def live_binding(
     return runtime.resolve(
         PopulationSelector.population(population_id), view=PopulationView.ANALYSIS
     )
+
+
+def child_binding(
+    session: Session,
+    *,
+    contract: PopulationImportContract,
+    version_id: str,
+    owner: VersionOwner,
+    clock: Callable[[], datetime] = _utcnow,
+) -> PopulationBinding:
+    """The binding a run records when its study selects ``owner``'s child ``version_id`` (P4e2).
+
+    A child is its client's (P4d): another client's child, even in the same organization, and
+    any shared version answer as unknown (:class:`UnknownDatasetVersion`), as a scope miss
+    does. Resolution reads the registry, never a panel; the run's load verifies the child
+    against its base (P4e1).
+    """
+    version = PopulationRegistryRepository(session).visible_version(
+        version_id, organization_id=owner.organization_id
+    )
+    if version is None or version.owner != owner:
+        raise UnknownDatasetVersion(f"unknown dataset version {version_id}")
+    runtime = PopulationRuntime(
+        session, contract=contract, source=_ResolutionReadsNoAssets(), clock=clock
+    )
+    return runtime.resolve_child(version_id, organization_id=owner.organization_id)
+
+
+def kept_audience_catalogue(
+    registry: PopulationRegistryRepository, version_id: str
+) -> dict[str, Any] | None:
+    """The audience catalogue kept for ``version_id``, re-hashed on read; ``None`` if none is.
+
+    Reads the kept JSON, never the panel; a catalogue that does not hash to what was
+    recorded with it raises :class:`VersionIntegrityError`.
+    """
+    kept = registry.audience_catalogue(version_id, AUDIENCE_CATALOGUE_VERSION)
+    if kept is None:
+        return None
+    sha256, content = kept
+    if content_sha256(content.encode("utf-8")) != sha256:
+        raise VersionIntegrityError(f"the audience catalogue of {version_id} does not hash")
+    catalogue: dict[str, Any] = json.loads(content)
+    return catalogue

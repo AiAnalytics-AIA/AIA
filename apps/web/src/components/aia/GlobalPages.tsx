@@ -12,7 +12,7 @@ import { useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type ClientCard, type PopulationRegistry, population, workspace } from "@/lib/api";
-import { labelOf, shortSha, summarize } from "@/lib/population";
+import { children, labelOf, outcomeValue, sharedVersions, shortSha, summarize, targetVerdict } from "@/lib/population";
 import { appRoutes } from "@/lib/app-routes";
 import { useSession } from "@/lib/auth";
 import { relative } from "@/lib/format";
@@ -41,6 +41,7 @@ export function IntelligencePage() {
           {(registry) => (
             <>
               <PopulationRegistryView registry={registry} />
+              {children(registry).length ? <MaterializedChildren registry={registry} /> : null}
               <PopulationCharacteristicsSection registry={registry} />
             </>
           )}
@@ -81,7 +82,7 @@ function PopulationRegistryView({ registry }: { registry: PopulationRegistry }) 
       <div>
         <h3 className="mb-2 text-sm font-semibold">{t(`${P}.versions`)}</h3>
         <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
-          {registry.versions.map((v) => (
+          {sharedVersions(registry).map((v) => (
             <li key={v.version_id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
               <span className="font-semibold text-ink">{v.label}</span>
               <Tag>{t(`${P}.status.${v.status}`)}</Tag>
@@ -111,6 +112,50 @@ function PopulationRegistryView({ registry }: { registry: PopulationRegistry }) 
           <p className="text-sm text-ink-muted">{t(`${P}.noHistory`)}</p>
         )}
       </div>
+    </div>
+  );
+}
+
+// The organization's materialized dimensions (P4d4): each child with the target it was asked
+// for beside what its derivation achieved. A target the derivation left unmet says so; a child
+// without a recorded outcome says that, never "met".
+function MaterializedChildren({ registry }: { registry: PopulationRegistry }) {
+  const owned = children(registry);
+  const [clientsRes] = useResource(() => workspace.clients(), []);
+  const P = "aia.intelligence.population.children";
+  const clientName = (id: string | null) =>
+    (clientsRes.state === "ready" ? clientsRes.data.find((c) => c.client_id === id)?.name : undefined) ?? id ?? "—";
+  return (
+    <div className="mt-5">
+      <h3 className="mb-1 text-sm font-semibold">{t(`${P}.title`)}</h3>
+      <p className="mb-2 text-sm leading-6 text-ink-muted">{t(`${P}.text`)}</p>
+      <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
+        {owned.map((v) => {
+          const m = v.materialized ?? null;
+          const verdict = targetVerdict(m);
+          return (
+            <li key={v.version_id} className="flex flex-col gap-1 px-4 py-2 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-semibold text-ink">{m?.dimension_id ?? v.label}</span>
+                <Tag>{t(`${P}.verdict.${verdict}`)}</Tag>
+                <span className="text-xs text-ink-muted">{tv(`${P}.client`, { client: clientName(v.owner_client_id) })}</span>
+                <span className="ml-auto text-xs text-ink-faint">{relative(v.imported_at)}</span>
+              </div>
+              {m ? (
+                <p className="text-ink">
+                  {tv(`${P}.outcome`, { target: outcomeValue(m.kind, m.target), achieved: outcomeValue(m.kind, m.achieved) })}
+                  {verdict === "unmet" ? <span className="text-ink-muted"> · {t(`${P}.unmetNote`)}</span> : null}
+                </p>
+              ) : (
+                <p className="text-ink-muted">{t(`${P}.noOutcome`)}</p>
+              )}
+              <p className="text-xs text-ink-faint">
+                {tv(`${P}.over`, { base: labelOf(registry, v.parent_version_id) })} · <span className="font-mono">{shortSha(v.content_sha256)}</span>
+              </p>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -158,17 +203,12 @@ export function SettingsPage() {
   const [me] = useResource(() => workspace.me(), []);
   return (
     <AppShell title={t("aia.settings.title")} sub={t("aia.settings.sub")}>
-      <div>
-        <section className={`${CARD} flex flex-wrap items-start justify-between gap-3`} aria-labelledby="set-account">
-          <div><h2 id="set-account" className="text-base font-semibold">{t("aia.settings.account")}</h2>
-          {session?.email ? <p className="mt-2 text-sm">{tv("aia.settings.signedInAs", { email: session.email })}</p> : null}
-          {me.state === "ready" ? <p className="mt-1 text-sm text-ink-muted">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
-          </div><details className="max-w-xl text-sm text-ink-muted"><summary className="cursor-pointer">{t("aia.settings.accessHelp")}</summary><p className="mt-2 leading-6">{t("aia.settings.accessNote")}</p></details>
-        </section>
-      </div>
-      <div className="mt-6">
-        <ControlPanel />
-      </div>
+      <ControlPanel />
+      <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
+        <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
+        {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
+        <p className="mt-1">{t("aia.settings.accessNote")}</p>
+      </details>
     </AppShell>
   );
 }

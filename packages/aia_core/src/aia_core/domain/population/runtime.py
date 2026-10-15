@@ -57,6 +57,13 @@ class RuntimePopulation:
     _columns: Mapping[str, tuple[Cell, ...]] = field(repr=False)
     _analysis_weight: tuple[float, ...] | None = field(repr=False)
     _issuer: Any = field(repr=False, compare=False)
+    #: Each attached companion's bytes, re-verified against its recorded SHA256 at load.
+    _companions: Mapping[str, bytes] = field(
+        default=MappingProxyType({}), repr=False, compare=False
+    )
+    #: The ``CORE_JOINT_STATUS`` certificate's verified bytes and the panel SHA-256 it was
+    #: checked against at load; None when the version carries none.
+    _joint_certificate: tuple[bytes, str] | None = field(default=None, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if self._issuer is not _LOADER_ISSUER:
@@ -77,6 +84,8 @@ class RuntimePopulation:
         joint_status: JointStatus,
         columns: Mapping[str, tuple[Cell, ...]],
         analysis_weight: tuple[float, ...] | None,
+        companions: Mapping[str, bytes] | None = None,
+        joint_certificate: tuple[bytes, str] | None = None,
     ) -> RuntimePopulation:
         """Issue a loaded population. Internal to the canonical loader.
 
@@ -96,6 +105,8 @@ class RuntimePopulation:
             else MappingProxyType(dict(columns)),
             _analysis_weight=analysis_weight,
             _issuer=_LOADER_ISSUER,
+            _companions=MappingProxyType(dict(companions or {})),
+            _joint_certificate=joint_certificate,
         )
 
     @property
@@ -149,6 +160,28 @@ class RuntimePopulation:
             raise PopulationError(
                 f"{name!r} is not a text field of this view", reason="unknown_field"
             ) from None
+
+    def companion(self, asset_id: str) -> bytes:
+        """The bytes of a companion this version carries, as verified when it was loaded.
+
+        A consumer reads a companion only here, never from the asset source: the loader has
+        already checked these bytes against the SHA256 recorded when the set was attached.
+        """
+        try:
+            return self._companions[asset_id]
+        except KeyError:
+            raise PopulationError(
+                f"{asset_id!r} is not a companion of {self.binding.version_label}",
+                reason="companion_missing",
+            ) from None
+
+    @property
+    def joint_certificate(self) -> tuple[bytes, str] | None:
+        """The ``CORE_JOINT_STATUS`` certificate's bytes as verified at load, and the SHA-256 of
+        the panel it was checked against; None when the version carries none. What a run whose
+        respondents were drawn from this population records, so its numbers are judged under
+        the certificate that covered them (complete-study-report B5a)."""
+        return self._joint_certificate
 
     @property
     def analysis_weight(self) -> tuple[float, ...]:

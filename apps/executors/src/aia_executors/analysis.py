@@ -29,6 +29,11 @@ executor moves data between them and the worker, and keeps four promises:
 * **Reuse only on the complete reuse key.** An outcome is reused when its key -- the
   module fingerprint, the run's sources by content and the harness -- is the same;
   the model that drafted it is provenance, not validity (``module_input_fingerprint``).
+* **A person's retry is a new round.** An analysis retry
+  (``application.analysis_results.retry_failed_modules``) names its round in the step
+  input (``analysis_round``). The round is part of every turn key, so a new round asks
+  again and a retried attempt inside it still replays; an outcome a model left
+  ``BLOCKED`` is not reused in a round, and the round stores its own outcome beside it.
 
 What it never does: build a field policy or a certificate (``make layer_check``),
 construct a claim, call a provider except through :class:`StepModelCaller`, repair a
@@ -157,6 +162,8 @@ class AnalysisConfig:
     #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
     material_approvals: tuple[MaterialApproval, ...] = ()
+    #: Each model request writes a "sent" and an "answered" event (``AIA_AI_STEP_EVENTS``).
+    step_events: bool = False
 
     def __post_init__(self) -> None:
         if not self.policy_version:
@@ -211,6 +218,7 @@ class AnalysisConfig:
             reservation_usd=reservation_usd,
             fictional_client_ids=settings.fictional_client_ids,
             material_approvals=settings.material_approvals,
+            step_events=settings.step_events,
         )
 
 
@@ -219,6 +227,20 @@ def _request_bytes(request: ModelRequest) -> int:
     parts = [request.system, *(m.content for m in request.messages)]
     parts.append(canonical_json(request.agent.schema or {}))
     return sum(len(p.encode("utf-8")) for p in parts)
+
+
+def _round(step: StepInput) -> int | Failed:
+    """The retry round a person asked for: 0 for the run's own analysis."""
+    named = step.payload.get("analysis_round", 0)
+    if isinstance(named, bool) or not isinstance(named, int) or named < 0:
+        return Failed(
+            FailureClass.MISSING_CONFIGURATION,
+            error={
+                "reason": "analysis_step_unnamed",
+                "message": f"step {step.node_key!r} names no valid analysis round ({named!r})",
+            },
+        )
+    return int(named)
 
 
 def _target(step: StepInput) -> tuple[AnalysisModuleId, ClaimSurface] | Failed:
@@ -272,8 +294,10 @@ class _Turns:
         config: AnalysisConfig,
         data_class: DataClass,
         lineage: DataLineage | None,
+        analysis_round: int = 0,
     ) -> None:
         self._executor, self._step, self._context = executor, step, context
+        self._round = analysis_round
         self._prepared, self._caller, self._config = prepared, caller, config
         self._data_class, self._lineage = data_class, lineage
         self._frame = harness_frame(
@@ -307,6 +331,7 @@ class _Turns:
             reuse_fingerprint=self._prepared.reuse_fingerprint,
             turn=turn.attempt,
             request_sha256=sent,
+            analysis_round=self._round,
         )
         replayed = self._executor.stored_turn(self._step, self._context, key)
         if replayed is not None:
@@ -415,6 +440,7 @@ class _Turns:
                 policy_version=last.policy_version if last else None,
                 cost_usd=sum(e.cost_usd for e in terminal),
                 cost_basis=last.cost_basis.value if last else None,
+                rejected_output=cause.rejected_output,
             )
         assert result.output is not None  # a structured agent's result has one
         return TurnArtifact(
@@ -454,7 +480,7 @@ class _Turns:
 
     def _answer(self, answer: TurnArtifact) -> object:
         if answer.draft is None:
-            self.last = InvalidStructuredOutput(answer.schema_violations)
+            self.last = InvalidStructuredOutput(answer.schema_violations, answer.rejected_output)
         else:
             self.last = answer.draft.model_dump(mode="json")
         return self.last
@@ -494,6 +520,9 @@ class AnalysisModuleExecutor:
         if isinstance(target, Failed):
             return target
         module, surface = target
+        analysis_round = _round(step)
+        if isinstance(analysis_round, Failed):
+            return analysis_round
         with context.transaction() as (session, workflow):
             try:
                 sources = native_sources(
@@ -510,7 +539,7 @@ class AnalysisModuleExecutor:
                     error={"reason": "evidence_refused", "message": str(refused)},
                 )
             repo = research_artifacts(session, context.scope, self._store)
-            reused = self._reusable(repo, step, prepared)
+            reused = self._reusable(repo, step, prepared, analysis_round=analysis_round)
             if reused is not None:
                 return reused
             if prepared.preflight:
@@ -560,6 +589,7 @@ class AnalysisModuleExecutor:
             runtime_version=self._build.sha or "",
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
+            announce=cfg.step_events,
         )
         turns = _Turns(
             executor=self,
@@ -570,6 +600,7 @@ class AnalysisModuleExecutor:
             config=cfg,
             data_class=data_class,
             lineage=material.lineage,
+            analysis_round=analysis_round,
         )
         outcome = run_analysis_module(
             module, prepared.inputs, turns, max_repairs=prepared.harness.max_repairs
@@ -589,6 +620,7 @@ class AnalysisModuleExecutor:
                 draft=turns.last if completed and isinstance(turns.last, Mapping) else None,
                 violations=outcome.violations,
                 turns=turns,
+                analysis_round=analysis_round,
             )
 
     # -- storage ---------------------------------------------------------------------
@@ -604,9 +636,11 @@ class AnalysisModuleExecutor:
         input_fingerprint: str,
         depends_on: list[str],
         metadata: dict[str, Any],
+        reuse: bool = True,
     ) -> tuple[Artifact, bool]:
         refs = prepared.sources.refs
         return repo.put_json(
+            reuse=reuse,
             payload=payload,
             project_id=step.project_id,
             revision=step.project_revision,
@@ -684,7 +718,12 @@ class AnalysisModuleExecutor:
         return artifact.artifact_id
 
     def _reusable(
-        self, repo: ArtifactRepository, step: StepInput, prepared: PreparedModule
+        self,
+        repo: ArtifactRepository,
+        step: StepInput,
+        prepared: PreparedModule,
+        *,
+        analysis_round: int = 0,
     ) -> Succeeded | Failed | None:
         found = repo.find_reusable(
             project_id=step.project_id,
@@ -711,6 +750,10 @@ class AnalysisModuleExecutor:
                 FailureClass.SCHEMA_VIOLATION,
                 error={"reason": "outcome_mismatch", "message": found.artifact_id},
             )
+        if analysis_round and record.outcome == "BLOCKED" and record.attempts > 0:
+            # A person asked for this module again: a model's refusal is not reused.
+            # The preflight's (no turn taken) is code's, and stays.
+            return None
         return self._succeeded(found, record.outcome, prepared, reused=True, sent=0, replayed=0)
 
     def _stored(
@@ -723,6 +766,7 @@ class AnalysisModuleExecutor:
         draft: Mapping[str, Any] | None,
         violations: Sequence[Violation],
         turns: _Turns | None,
+        analysis_round: int = 0,
     ) -> Succeeded:
         calls = tuple(turns.calls) if turns is not None else ()
         record = module_artifact(
@@ -743,6 +787,9 @@ class AnalysisModuleExecutor:
             input_fingerprint=prepared.reuse_fingerprint,
             depends_on=list(turns.turn_ids) if turns is not None else [],
             metadata={"outcome": record.outcome, "surface": record.surface.value},
+            # A retry round stores what it decided, beside the refusal it was asked to
+            # replace; reusing by fingerprint would hand back that refusal.
+            reuse=not analysis_round,
         )
         return self._succeeded(
             artifact,

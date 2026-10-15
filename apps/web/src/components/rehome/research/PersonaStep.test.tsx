@@ -175,7 +175,8 @@ describe("Dimenze", () => {
       content: { source_strategy: "document_or_research", spec: { predictors: [] }, origin: "user", requested_from: "research_dimensions" },
     });
     expect(screen.getByText("Vztah k AI ve zdravotnictví · čeká na schválení")).toBeTruthy();
-    expect((input as HTMLInputElement).value).toBe("");
+    // The input clears on the render after the request resolves, not with the toast.
+    await waitFor(() => expect((input as HTMLInputElement).value).toBe(""));
     await savedWith("requested_dimension_1793");
     expect(lastSave().content).toMatchObject({ requested_dimensions: [{ label: "Vztah k AI ve zdravotnictví", proposal_id: "KNP-1", status: "needs_evidence" }], persona_dimensions: { approved: ["zdravi", "media"] } });
     noUnitCalls();

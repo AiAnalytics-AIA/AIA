@@ -185,17 +185,22 @@ def _body(spec: Any, data: _Dataset) -> dict[str, Any]:
     )
 
 
+def _map(body: dict[str, Any]) -> SociomapArtifactV3:
+    """The set's object map: since A3d it alone holds r~ and the scores (F2, F8)."""
+    art = read_artifact(body["maps"]["aia-sociomap-2"])
+    assert isinstance(art, SociomapArtifactV3)
+    return art
+
+
 def test_a_declared_rating_question_enters_every_persons_scale() -> None:
     plain, rated = _compile(DESIGN), _compile(_with(rating=0))
     data = _data(plain, 1)
     without, with_q = _body(plain, data), _body(rated, data)
-    assert without["relation_rescaled"]["rating_questions"] == []
-    assert with_q["relation_rescaled"]["rating_questions"] == ["q1"]
+    plain_map, art = _map(without), _map(with_q)
+    assert "q1" not in [i.item_id for i in plain_map.items]
     # q1 moves people's bounds (F2), so the family's r~ moves; the unit's raw matrix does not.
-    assert with_q["relation_rescaled"]["r"] != without["relation_rescaled"]["r"]
+    assert art.relations.r != plain_map.relations.r
     assert with_q["relation"]["r"] == without["relation"]["r"]
-    art = read_artifact(with_q["maps"]["aia-sociomap-2"])
-    assert isinstance(art, SociomapArtifactV3)
     assert [i.item_id for i in art.items][-1] == "q1"
     assert (art.items[-1].scale_min, art.items[-1].scale_max) == (1.0, 5.0)
 
@@ -207,7 +212,6 @@ def test_an_undeclared_numeric_question_never_enters_the_universe() -> None:
     for r in data.respondents:
         r.answers["q1"] = 1 if r.answers["q1"] > 2 else 5
     after = _body(plain, data)
-    assert after["relation_rescaled"] == before["relation_rescaled"]
     assert after["maps"] == before["maps"]
 
 
@@ -234,10 +238,11 @@ def test_a_context_object_has_no_score_and_scores_nobody() -> None:
             "voda": "secondary",
         },
     }
-    scores = body["object_scores"]
+    art = _map(body)
+    scores = art.scores
     assert scores["secondary"] == ["voda"] and "voda" not in scores["primary"]
     # The PRIMARY scores are the primaries' own relations: voda's pairs are not read.
-    r, status = body["relation_rescaled"]["r"], body["relation_rescaled"]["status"]
+    r, status = art.relations.r, art.relations.status
     keep = [0, 1, 2, 3]
     sub = primary_scores(
         ["kava", "caj", "kakao", "dzus"],
@@ -246,10 +251,7 @@ def test_a_context_object_has_no_score_and_scores_nobody() -> None:
         dict.fromkeys(["kava", "caj", "kakao", "dzus"], "primary"),
     ).to_payload()
     assert scores["objects"] == sub["objects"]
-    art = read_artifact(body["maps"]["aia-sociomap-2"])
-    assert isinstance(art, SociomapArtifactV3)
     assert art.roles["voda"] == "secondary"
-    assert art.scores == scores
     # A context object is still placed on the map: it is mapped and related.
     assert art.layout is not None and len(art.layout.points) == 5
 
@@ -263,5 +265,7 @@ def test_research_sociomaps_reads_the_specifications_declarations() -> None:
         connectedness_interval=False,
     )
     (battery,) = body["batteries"]
-    assert battery["relation_rescaled"]["rating_questions"] == ["q1"]
+    art = read_artifact(battery["maps"]["aia-sociomap-3"])
+    assert isinstance(art, SociomapArtifactV3)
+    assert [i.item_id for i in art.items][-1] == "q1"
     assert battery["roles"]["by_object"]["voda"] == "secondary"

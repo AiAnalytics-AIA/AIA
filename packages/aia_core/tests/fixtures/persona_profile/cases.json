@@ -1,0 +1,1651 @@
+{
+ "profiles": [
+  {
+   "id": "P001",
+   "row": 0,
+   "topics": []
+  },
+  {
+   "id": "P002",
+   "row": 1,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P003",
+   "row": 2,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P004",
+   "row": 3,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P005",
+   "row": 4,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P006",
+   "row": 5,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P007",
+   "row": 6,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P008",
+   "row": 7,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P009",
+   "row": 8,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P010",
+   "row": 9,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P011",
+   "row": 10,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P012",
+   "row": 11,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P013",
+   "row": 12,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P014",
+   "row": 13,
+   "topics": []
+  },
+  {
+   "id": "P015",
+   "row": 14,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P016",
+   "row": 15,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P017",
+   "row": 16,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P018",
+   "row": 17,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P019",
+   "row": 18,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P020",
+   "row": 19,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P021",
+   "row": 20,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P022",
+   "row": 21,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P023",
+   "row": 22,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P024",
+   "row": 23,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P025",
+   "row": 24,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P026",
+   "row": 25,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P027",
+   "row": 26,
+   "topics": []
+  },
+  {
+   "id": "P028",
+   "row": 27,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P029",
+   "row": 28,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P030",
+   "row": 29,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P031",
+   "row": 30,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P032",
+   "row": 31,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P033",
+   "row": 32,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P034",
+   "row": 33,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P035",
+   "row": 34,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P036",
+   "row": 35,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P037",
+   "row": 36,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P038",
+   "row": 37,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P039",
+   "row": 38,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P040",
+   "row": 39,
+   "topics": []
+  },
+  {
+   "id": "P041",
+   "row": 40,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P042",
+   "row": 41,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P043",
+   "row": 42,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P044",
+   "row": 43,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P045",
+   "row": 44,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P046",
+   "row": 45,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P047",
+   "row": 46,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P048",
+   "row": 47,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P049",
+   "row": 48,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P050",
+   "row": 49,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P051",
+   "row": 50,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P052",
+   "row": 51,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P053",
+   "row": 52,
+   "topics": []
+  },
+  {
+   "id": "P054",
+   "row": 53,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P055",
+   "row": 54,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P056",
+   "row": 55,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P057",
+   "row": 56,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P058",
+   "row": 57,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P059",
+   "row": 58,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P060",
+   "row": 59,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P061",
+   "row": 60,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P062",
+   "row": 61,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P063",
+   "row": 62,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P064",
+   "row": 63,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P065",
+   "row": 64,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P066",
+   "row": 65,
+   "topics": []
+  },
+  {
+   "id": "P067",
+   "row": 66,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P068",
+   "row": 67,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P069",
+   "row": 68,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P070",
+   "row": 69,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P071",
+   "row": 70,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P072",
+   "row": 71,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P073",
+   "row": 72,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "P074",
+   "row": 73,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "P075",
+   "row": 74,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P076",
+   "row": 75,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "P077",
+   "row": 76,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "P078",
+   "row": 77,
+   "topics": [
+    "nakup"
+   ]
+  },
+  {
+   "id": "P079",
+   "row": 78,
+   "topics": []
+  },
+  {
+   "id": "P080",
+   "row": 79,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "P081",
+   "row": 80,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "P082",
+   "row": 81,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "P083",
+   "row": 82,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "P084",
+   "row": 83,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "P085",
+   "row": 84,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "P086",
+   "row": 85,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "T01",
+   "row": 3,
+   "topics": []
+  },
+  {
+   "id": "T02",
+   "row": 3,
+   "topics": [
+    "finance"
+   ]
+  },
+  {
+   "id": "T03",
+   "row": 3,
+   "topics": [
+    "zdravi"
+   ]
+  },
+  {
+   "id": "T04",
+   "row": 3,
+   "topics": [
+    "mentalni_zdravi",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "T05",
+   "row": 3,
+   "topics": [
+    "vztahy",
+    "bydleni"
+   ]
+  },
+  {
+   "id": "T06",
+   "row": 3,
+   "topics": [
+    "auto",
+    "doprava"
+   ]
+  },
+  {
+   "id": "T07",
+   "row": 3,
+   "topics": [
+    "potraviny",
+    "nakup"
+   ]
+  },
+  {
+   "id": "T08",
+   "row": 3,
+   "topics": [
+    "znacka"
+   ]
+  },
+  {
+   "id": "T09",
+   "row": 3,
+   "topics": [
+    "reklama",
+    "energie"
+   ]
+  },
+  {
+   "id": "T10",
+   "row": 3,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "id": "T11",
+   "row": 3,
+   "topics": [
+    "doprava"
+   ]
+  },
+  {
+   "id": "T12",
+   "row": 3,
+   "topics": [
+    "energie"
+   ]
+  },
+  {
+   "id": "T13",
+   "row": 3,
+   "topics": [
+    "nakup"
+   ]
+  }
+ ],
+ "prose": [
+  {
+   "id": "F01_prefixes",
+   "lines": [
+    "Pohlaví: žena",
+    "Věk: 31 let",
+    "Vzdělání: VOŠ/VŠ",
+    "Kraj: Zlínský kraj",
+    "Příjmové pásmo: 20–30 tisíc Kč čistého měsíčně",
+    "Socioekonomický kontext (odhad): střední vrstva",
+    "Komplexní behaviorální profil:",
+    "  Mediální chování [modelovaná intenzita]: TV 8/10 (hodně)",
+    "  Nákupní a značkový profil [1–10]: slevy 9/10",
+    "  Co typicky rozhoduje při reakci na značku [1–10; predispozice, ne výsledek konkrétního testu]: cena 8/10",
+    "  Hodnoty a postoje [1–10]: tradice 7/10",
+    "  Životní/digitální chování [1–10]: online 9/10",
+    "  Poznámka k profilu: interní",
+    "Povaha: klidný; pečlivý",
+    "Jak odpovídá v dotaznících: odpovídá rychle",
+    ""
+   ]
+  },
+  {
+   "id": "F02_no_sex",
+   "lines": [
+    "Pohlaví: neuvedeno",
+    "Věk: neuvedeno"
+   ]
+  },
+  {
+   "id": "F03_long",
+   "lines": [
+    "Pohlaví: muž",
+    "Věk: 52 let",
+    "Signál 0: cena sport nákup značka značka,",
+    "Signál 1: nákup kvalita nákup značka sport sport značka.",
+    "Signál 2: sport nákup značka.",
+    "Signál 3: nákup sport nákup kvalita nákup cena zpráva sport.",
+    "Signál 4: značka zpráva cena značka kvalita televize značka;",
+    "Signál 5: nákup kvalita rodina sport televize rodina rodina,",
+    "Signál 6: kvalita cena kvalita značka zpráva",
+    "Signál 7: rodina zpráva značka značka sport.",
+    "Signál 8: televize cena rodina sport nákup značka televize televize televize",
+    "Signál 9: rodina značka značka zpráva rodina značka nákup,",
+    "Signál 10: rodina zpráva sport televize nákup rodina televize cena;",
+    "Signál 11: nákup kvalita zpráva cena kvalita sport",
+    "Signál 12: rodina značka cena rodina sport zpráva cena sport zpráva",
+    "Signál 13: sport kvalita cena značka cena.",
+    "Signál 14: kvalita nákup rodina cena,",
+    "Signál 15: nákup cena sport televize televize.",
+    "Signál 16: nákup rodina sport sport sport sport značka rodina",
+    "Signál 17: kvalita značka kvalita",
+    "Signál 18: značka televize nákup značka;",
+    "Signál 19: cena značka televize nákup značka kvalita sport.",
+    "Signál 20: zpráva televize televize rodina značka značka rodina rodina",
+    "Signál 21: zpráva značka cena značka televize zpráva",
+    "Signál 22: cena nákup kvalita televize cena nákup zpráva značka zpráva,",
+    "Signál 23: televize kvalita televize kvalita.",
+    "Signál 24: kvalita sport kvalita kvalita rodina televize nákup nákup zpráva",
+    "Signál 25: kvalita televize rodina televize televize;",
+    "Signál 26: značka kvalita rodina kvalita,",
+    "Signál 27: rodina nákup rodina televize;",
+    "Signál 28: značka sport kvalita rodina cena sport televize značka sport",
+    "Signál 29: značka cena cena cena nákup cena",
+    "Signál 30: cena rodina televize cena cena nákup nákup značka cena",
+    "Signál 31: kvalita kvalita nákup zpráva kvalita zpráva kvalita televize zpráva",
+    "Signál 32: cena nákup televize rodina sport cena cena nákup rodina.",
+    "Signál 33: nákup cena cena cena rodina značka nákup,",
+    "Signál 34: rodina značka nákup kvalita kvalita zpráva nákup značka",
+    "Signál 35: nákup značka rodina televize kvalita zpráva rodina",
+    "Signál 36: kvalita zpráva kvalita rodina cena sport značka",
+    "Signál 37: televize značka kvalita sport značka kvalita,",
+    "Signál 38: značka cena televize cena zpráva cena rodina kvalita značka",
+    "Signál 39: cena kvalita cena sport sport televize"
+   ]
+  },
+  {
+   "id": "F04_long_no_clause",
+   "lines": [
+    "Pohlaví: muž",
+    "Věk: 52 let",
+    "Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo"
+   ]
+  },
+  {
+   "id": "F05_clause_below_the_floor",
+   "lines": [
+    "Pohlaví: muž",
+    "Věk: 52 let",
+    "Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo; slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo"
+   ]
+  },
+  {
+   "id": "F06_clause_above_the_floor",
+   "lines": [
+    "Pohlaví: muž",
+    "Věk: 52 let",
+    "Dlouhé: slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo; slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo slovo"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "text": "Kolik korun měsíčně utratíte za potraviny a nápoje?",
+   "options": [
+    "do 3000",
+    "3000 a více"
+   ]
+  },
+  {
+   "text": "Jak často nakupujete v supermarketu nebo diskontní prodejně?",
+   "options": [
+    "denně",
+    "týdně"
+   ]
+  },
+  {
+   "text": "Objednáváte zboží přes e-shop nebo mobilní aplikaci?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Jak důležité je pro vás doručení kurýrem domů?",
+   "options": []
+  },
+  {
+   "text": "Která značka kávy je vaše nejoblíbenější?",
+   "options": [
+    "Značka A",
+    "Značka B"
+   ]
+  },
+  {
+   "text": "Viděl(a) jste v poslední době reklamní spot nebo kampaň s influencerem?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Kolik času denně trávíte u televize, rádia nebo na YouTube?",
+   "options": []
+  },
+  {
+   "text": "Jak hodnotíte svůj zdravotní stav a péči lékaře?",
+   "options": [
+    "dobře",
+    "špatně"
+   ]
+  },
+  {
+   "text": "Jak často sportujete, cvičíte nebo jezdíte na kole?",
+   "options": []
+  },
+  {
+   "text": "Třídíte odpad a záleží vám na udržitelnosti a klimatu?",
+   "options": []
+  },
+  {
+   "text": "Kupujete nápoje v plastových nebo zálohovaných obalech?",
+   "options": []
+  },
+  {
+   "text": "Kolik platíte za elektřinu, plyn a teplo?",
+   "options": []
+  },
+  {
+   "text": "Jezdíte do práce autem, vlakem nebo MHD?",
+   "options": [
+    "autem",
+    "vlakem",
+    "MHD"
+   ]
+  },
+  {
+   "text": "Automaticky obnovujete předplatné?",
+   "options": [
+    "ano",
+    "ne"
+   ]
+  },
+  {
+   "text": "Bydlíte v bytě nebo v rodinném domě?",
+   "options": [
+    "byt",
+    "dům"
+   ]
+  },
+  {
+   "text": "Může se to být stát kdykoli?",
+   "options": []
+  },
+  {
+   "text": "Máte hypotéku, úvěr nebo spoříte?",
+   "options": []
+  },
+  {
+   "text": "Důvěřujete vládě, parlamentu a politickým stranám?",
+   "options": []
+  },
+  {
+   "text": "Jaká je role státu v ekonomice?",
+   "options": []
+  },
+  {
+   "text": "Jaké hodnoty a tradice jsou pro vás důležité?",
+   "options": []
+  },
+  {
+   "text": "Jak hodnotíte služby obecního úřadu ve vašem městě?",
+   "options": []
+  },
+  {
+   "text": "Obecně řečeno, souhlasíte s novým zákonem o daních?",
+   "options": []
+  },
+  {
+   "text": "Využíváte prémiové nebo luxusní služby a zákaznický servis?",
+   "options": []
+  },
+  {
+   "text": "Kolik utratíte za oblečení, obuv a kosmetiku?",
+   "options": []
+  },
+  {
+   "text": "Pracujete z domova (home office) nebo v kanceláři?",
+   "options": []
+  },
+  {
+   "text": "Co děláte ve volném čase: kino, koncert, divadlo, četba?",
+   "options": []
+  },
+  {
+   "text": "Máte psa nebo kočku?",
+   "options": [
+    "pes",
+    "kočka",
+    "nemám"
+   ]
+  },
+  {
+   "text": "Jste firemní zákazník s rozhodovací pravomocí o nákupu pro firmu?",
+   "options": []
+  },
+  {
+   "text": "Doporučil(a) byste nás přátelům? Jak hodnotíte věrnostní program?",
+   "options": []
+  },
+  {
+   "text": "Používáte umělou inteligenci, AI nebo chytré technologie?",
+   "options": []
+  },
+  {
+   "text": "Jak snadné je pro vás vyplnění formuláře a porozumění textu?",
+   "options": []
+  },
+  {
+   "text": "Sdílíte příspěvky na sociálních sítích, Facebooku nebo TikToku?",
+   "options": []
+  },
+  {
+   "text": "Jak spokojený(á) jste ve vztahu s partnerem a rodinou?",
+   "options": []
+  },
+  {
+   "text": "Cítil(a) jste v posledních týdnech úzkost, stres nebo depresi?",
+   "options": []
+  },
+  {
+   "text": "Důvěřujete soudům, policii a dalším institucím?",
+   "options": []
+  },
+  {
+   "text": "Jak vnímáte migraci a uprchlíky?",
+   "options": []
+  },
+  {
+   "text": "Cítíte se ve svém okolí bezpečně? Bojíte se kriminality?",
+   "options": []
+  },
+  {
+   "text": "Jak se vyvíjí inflace a životní úroveň v ČR?",
+   "options": []
+  },
+  {
+   "text": "Kolik máte dětí a jak často vídáte rodiče?",
+   "options": []
+  },
+  {
+   "text": "Zapojujete se do komunity, se sousedy nebo dobrovolnictví?",
+   "options": []
+  },
+  {
+   "text": "Podle čeho se rozhodujete, kterou možnost vybrat?",
+   "options": []
+  },
+  {
+   "text": "Jak byste popsal(a) svou povahu a osobnost?",
+   "options": []
+  },
+  {
+   "text": "Používáte mobilní bankovnictví a platby kartou?",
+   "options": []
+  },
+  {
+   "text": "Jaký význam má pro vás víra a náboženství?",
+   "options": []
+  },
+  {
+   "text": "Víte, co je RPSN a máte finanční rezervu?",
+   "options": []
+  },
+  {
+   "text": "Co si myslíte o slogan a claim nové kampaně?",
+   "options": []
+  },
+  {
+   "text": "Kupujete stavební materiál pro stavby?",
+   "options": []
+  },
+  {
+   "text": "Jednal(a) jste s realitním makléřem o nemovitosti?",
+   "options": []
+  },
+  {
+   "text": "Používáte zdravotnický materiál nebo zdravotnické pomůcky?",
+   "options": []
+  },
+  {
+   "text": "Účastníte se jako nákupčí výběrového řízení nebo tendru?",
+   "options": []
+  },
+  {
+   "text": "Hlásíte se k národnostní menšině?",
+   "options": [
+    "moravská",
+    "slezská",
+    "romská"
+   ]
+  },
+  {
+   "text": "Romantický film nebo seriál?",
+   "options": []
+  },
+  {
+   "text": "Jaké je počasí?",
+   "options": [
+    "hezky",
+    "ošklivě"
+   ]
+  },
+  {
+   "text": "Kdy máte volný den?",
+   "options": []
+  },
+  {
+   "text": "Kolik korun utratíte online za potraviny v obchodě, za auto, bydlení, zdraví a sport?",
+   "options": []
+  },
+  {
+   "text": "",
+   "options": []
+  }
+ ],
+ "blocks": [
+  [
+   0,
+   1,
+   2
+  ],
+  [
+   12,
+   13,
+   14,
+   15
+  ],
+  [
+   52,
+   53
+  ],
+  [
+   5,
+   45,
+   4,
+   5
+  ]
+ ],
+ "signal_cases": [
+  {
+   "row": 0,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 1,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 2,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 3,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 4,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 5,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 6,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 7,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 8,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 9,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 10,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 11,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 12,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 13,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 14,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 15,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 16,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 17,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 18,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 19,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 20,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 21,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 22,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 23,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 24,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 25,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 26,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 27,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 28,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 29,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 30,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 31,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 32,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 33,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 34,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 35,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 36,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 37,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 38,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 39,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 0,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 1,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 2,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 3,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 4,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 5,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 6,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 7,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 8,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  },
+  {
+   "row": 9,
+   "topics": [
+    "prace",
+    "rozhodovani"
+   ]
+  },
+  {
+   "row": 10,
+   "topics": [
+    "online",
+    "technologie"
+   ]
+  },
+  {
+   "row": 11,
+   "topics": [
+    "kampan",
+    "zdravi",
+    "bydleni",
+    "auto",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 12,
+   "topics": [
+    "cena"
+   ]
+  },
+  {
+   "row": 13,
+   "topics": [
+    "politika",
+    "instituce",
+    "duvera",
+    "bezpecnost",
+    "media"
+   ]
+  },
+  {
+   "row": 14,
+   "topics": [
+    "online",
+    "media",
+    "vztahy"
+   ]
+  },
+  {
+   "row": 15,
+   "topics": [
+    "politika"
+   ]
+  },
+  {
+   "row": 16,
+   "topics": [
+    "instituce",
+    "duvera",
+    "bezpecnost"
+   ]
+  },
+  {
+   "row": 17,
+   "topics": [
+    "zdravi",
+    "mentalni_zdravi"
+   ]
+  },
+  {
+   "row": 18,
+   "topics": [
+    "finance",
+    "nakup"
+   ]
+  },
+  {
+   "row": 19,
+   "topics": [
+    "vztahy",
+    "media",
+    "volny_cas",
+    "sport",
+    "znacka",
+    "bankovnictvi"
+   ]
+  }
+ ],
+ "anchors": [
+  [
+   "vliv na vládu",
+   "0 = vůbec nesouhlasí",
+   "10 = zcela souhlasí",
+   "vyšší hodnota = více"
+  ],
+  [
+   "souhlas",
+   "0 = rozhodně ne souhlas",
+   "10 = rozhodně ne souhlas",
+   ""
+  ],
+  [
+   "důvěra",
+   "0 = žádná důvěra",
+   "10 = plná důvěra",
+   "obrácená škála: nižší je lepší"
+  ],
+  [
+   "x",
+   "",
+   "10 = hodně",
+   "opačný směr škály"
+  ],
+  [
+   "hodnocení zdraví",
+   "1 = výborné zdraví",
+   "5 = špatné zdraví",
+   "jedna dva tři čtyři pět šest sedm"
+  ],
+  [
+   "stres",
+   "0=nikdy",
+   "10=neustále v práci i doma a o víkendech a svátcích",
+   "méně je lépe"
+  ]
+ ]
+}

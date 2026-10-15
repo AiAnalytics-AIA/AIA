@@ -138,8 +138,9 @@ describe("Zadání", () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Soubory k zadání");
     fireEvent.change(input, { target: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
+    // A file shows while it is on its way, and its stored detail once AIA has it.
     expect(await screen.findByText("zadani.txt")).toBeTruthy();
-    expect(screen.getByText("2 KB · text načten")).toBeTruthy();
+    expect(await screen.findByText("2 KB · text načten")).toBeTruthy();
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
     // Nothing reaches 18.6.6.
     expect(calls.filter((c) => c.url.startsWith("/api/project"))).toEqual([]);
@@ -151,7 +152,7 @@ describe("Zadání", () => {
     unitStub(null, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     fireEvent.change(await screen.findByLabelText("Soubory k zadání"), { target: { files: [new File(["ahoj"], "zadani.txt")] } });
-    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    await waitFor(() => expect(posted(ATTACH_PATH)).toHaveLength(1));
     const order = calls.filter((c) => c.body !== null && (c.url === ATTACH_PATH || c.url.endsWith("/workspace/content"))).map((c) => c.url.split("/").at(-1));
     expect(order[0]).toBe("content");
     expect(order[1]).toBe("attachments");
@@ -271,12 +272,13 @@ describe("Zadání", () => {
     await waitFor(() => expect((ws.saves.at(-1)?.content.briefing as { situation?: string })?.situation ?? "").toBe(""), { timeout: 4000 });
   });
 
-  it("takes dropped files the way it takes picked ones", async () => {
+  it("takes files dropped anywhere on the stage the way it takes picked ones", async () => {
     unitStub({}, { [ATTACH_PATH]: (b) => record(b) });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    const zone = await screen.findByRole("button", { name: "Přidat soubory z počítače" });
-    fireEvent.drop(zone, { dataTransfer: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })] } });
-    expect(await screen.findByText("zadani.txt")).toBeTruthy();
+    // Dropped on the goal, far from the files section (research-lane-redesign).
+    const goal = await screen.findByLabelText("Cíl výzkumu");
+    fireEvent.drop(goal, { dataTransfer: { files: [new File(["ahoj"], "zadani.txt", { type: "text/plain" })], types: ["Files"] } });
+    expect(await screen.findByText("2 KB · text načten")).toBeTruthy();
     expect(posted(ATTACH_PATH).map((c) => c.body)).toEqual([{ filename: "zadani.txt", data_b64: btoa("ahoj") }]);
   });
 });
