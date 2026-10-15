@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from ..domain.scope import (
     Client,
+    ClientBudget,
     ClientContext,
     ClientPermission,
     ClientStatus,
@@ -438,6 +439,50 @@ class ScopeRepository:
         if row is None:
             raise ScopeDenied("not found", reason="unknown_client")
         return _client_to_domain(row)
+
+    def _client_row(self, scope: ClientContext) -> ClientRow:
+        row = self._session.scalar(
+            select(ClientRow).where(
+                ClientRow.client_id == scope.client_id,
+                ClientRow.organization_id == scope.organization_id,
+            )
+        )
+        if row is None:
+            raise ScopeDenied("not found", reason="unknown_client")
+        return row
+
+    def client_budget(self, scope: ClientContext) -> ClientBudget:
+        """What the client's own AI work may cost and where it stands (client-budget CB1).
+
+        Nothing holds against it yet, so ``reserved_usd`` is 0 until client-paid runs
+        reserve (CB3). Never the studies' budgets: those are theirs.
+        """
+        scope.require(ClientPermission.VIEW_CLIENT_COSTS)
+        row = self._client_row(scope)
+        return ClientBudget(budget_usd=row.budget_usd, spent_usd=row.spent_usd)
+
+    def set_client_budget(self, scope: ClientContext, budget_usd: float) -> ClientBudget:
+        """Set what the client's own AI work may cost; audited with the old and new value.
+
+        Lowering it below what is spent is allowed: nothing new may then be held until it
+        is raised again, and nothing spent is undone.
+        """
+        scope.require(ClientPermission.MANAGE_CLIENT_BUDGET)
+        if budget_usd < 0:
+            raise ValueError("budget_usd must not be negative")
+        row = self._client_row(scope)
+        previous = row.budget_usd
+        if previous != float(budget_usd):
+            row.budget_usd = float(budget_usd)
+            self._session.add(
+                AccessAuditRow(
+                    **scope.audit_fields(),
+                    action="CLIENT_BUDGET_CHANGED",
+                    reason=f"{previous} -> {float(budget_usd)}",
+                )
+            )
+            self._session.flush()
+        return self.client_budget(scope)
 
     def client_of_study(self, scope: StudyContext) -> Client:
         """The client of the study in scope: from the context, never from an argument."""
