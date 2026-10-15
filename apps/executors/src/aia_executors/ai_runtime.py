@@ -57,6 +57,7 @@ from aia_core.domain.deployment import fictional_material_problem, parse_environ
 from aia_core.domain.licence_determinations import recorded_policy
 from aia_core.domain.providers import Provider
 from aia_core.domain.residency import DataClass, EgressPolicy, ProviderRoute, ResidencyZone
+from aia_core.domain.source_proposals import request_window_tokens as source_request_window
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.model_adapters import (
     BedrockConverseAdapter,
@@ -399,9 +400,16 @@ class AIRuntimeSettings:
         if settings.client_source_proposals_enabled:
             if settings.client_source_max_output_tokens > settings.max_output_tokens:
                 raise AIRuntimeConfigError("client source output limit exceeds the model limit")
+            window = source_request_window(settings.client_source_max_output_tokens)
+            if window > settings.context_window_tokens:
+                raise AIRuntimeConfigError(
+                    "a client source request and its repair do not fit the model's window"
+                )
+            # Two calls at what one request can take (lifecycle K2d6), never the model's whole
+            # window: a document's requests are bounded by bytes (source_proposals).
             worst = reservation_usd(
                 settings.model_prices(),
-                window_tokens=settings.context_window_tokens,
+                window_tokens=window,
                 output_tokens=settings.client_source_max_output_tokens,
             )
             if settings.client_source_reservation_usd < worst:

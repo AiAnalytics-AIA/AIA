@@ -7,13 +7,13 @@ chunks:
   - "[x] K2a. Client source store: immutable originals, dedupe per client, PDF/DOCX/TXT/MD read with locators"
   - "[x] K2b. Presentation and open/legacy document readers: PPTX, ODT, DOC"
   - "[x] K2c. Dataset intake: CSV, XLSX, XLS, ODS schema preview with row/column locators"
-  - "[ ] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
+  - "[x] K2d. AI proposals from a document source, paid by the client's budget, every quote grounded"
   - "[x] K2d1. Extraction in the domain: closed contract, Czech prompt, segment batches, every quote grounded in its segment"
   - "[x] K2d2. Persistence: a client-work reading pinned by its SHA-256; AI-authored proposals written once per run"
   - "[x] K2d3. The client_source_proposals step: executor, workflow type, kill switch, parks by name; recorded-gateway tests under the real worker loop, charged to the client"
   - "[x] K2d4. Start and follow: POST /clients/{id}/sources/{source_id}/proposals, idempotent per reading; the run's state"
   - "[x] K2d5. Web: Navrhnout znalosti on a document's item and the intake sheet; waiting for budget with the lift; proposals land in Ke schválení"
-  - "[ ] K2d6. Burst, latency and money measured; develop activation is the owner's call"
+  - "[x] K2d6. Burst, latency and money measured; develop activation is the owner's call"
   - "[ ] K2e. Web intake beneath a chosen study: one public URL captured, Deep Research evidence imported"
   - "[ ] K2f. Review payload with evidence beside each proposal; connected acceptance over all three families"
   - "[x] K3a. Refuse an edit written from an item revision that is no longer current (F-K1)"
@@ -515,6 +515,46 @@ generic historical records without inventing source spans or validated dimension
       the sheet said "AI navrhne znalosti z 1 dokumentu"; the item said "Čeká: AI návrhy z
       podkladů nejsou v tomto prostředí zapnuté." (the workbench worker has no gateway); no
       overflow, no page error.
+  - **K2d6 landed** (2026-10-15). Measured, and two defects found and fixed (F-K4):
+    - **Batches are bounded by the bytes they send**, not characters: `BATCH_MAX_BYTES` =
+      24,000 bytes of the segments' JSON per request, a longer segment in pieces keeping its
+      locator (`domain/source_proposals.py`, harness `aia-source-proposals-2`).
+    - **A document takes at most `MAX_REQUESTS` = 42 requests**, else `too_many_requests`
+      before any is sent. Whole-segment packing leaves at most half a batch empty, so 42 =
+      2 x ceil(500,000 / 24,000) covers 250,000 characters of two-byte text.
+    - **The hold is sized to the request, not the model.** `request_window_tokens(out)` is the
+      fixed part (2,060 bytes) + 24,000 + 5 x out + 2,048, which is 48,588 tokens at 4,096 out.
+      The settings' floor is two calls at that window (`reservation_usd`): **$0.4144** at
+      $3 / $15, down from $1.32 at the model's 200,000. The executor checks every request
+      fits (`window_fits`) before preflight.
+    - Measured at develop-like settings ($3 / $15 per MTok, 4,096 output tokens), at the
+      250,000-character reading cap, fictional Czech text from the reader fixture:
+
+      | Shape | Requests | Largest request | Est. cost* | Ceiling** |
+      |---|---|---|---|---|
+      | 6,976 short paragraphs | 20 | 26,059 B | $0.81 | $2.75 |
+      | 83 pages of 3,000 chars | 12 | 25,649 B | $0.48 | $1.65 |
+      | 41 pages of 6,001 chars | 14 | 22,180 B | $0.51 | $1.77 |
+
+      \* ~3 bytes per input token and 1,000 output tokens per request; the usage ledger records
+      the real counts. \*\* The gateway's own bound: one token per byte and the full 4,096
+      output tokens, no repair.
+    - The absolute ceiling for any document: 42 requests x $0.4144 = **$17.40**.
+    - Requests are sequential, one held at a time, so the client's budget needs **$0.42**
+      free to start.
+    - Local cost per run: batching 5-135 ms and grounding 8-270 ms for a whole document;
+      the step writes once per run.
+    - **Not measured: live latency per request.** It needs Bedrock on develop with
+      `AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`, which is the owner's activation. The route
+      must name `CLASS_A_CLIENT_CONFIDENTIAL` and state its retention.
+    - Tests: `test_source_proposals.py` (bytes-bounded batches for short lines and for two-,
+      four- and six-byte characters, every request within its window; the request cap at 42
+      and refused at 43; a reading at the character cap of Czech text within it);
+      `test_client_source_proposals.py`
+      (`test_the_reservation_covers_two_calls_at_the_request_window_not_the_models`: $0.41
+      refused, $0.42 accepted;
+      `test_a_document_over_the_request_cap_is_refused_before_any_call`: 50,000 four-byte
+      paragraphs refused, nothing sent or spent).
 - **K2e. Web intake.**
   - URL capture is one fetch through `RetrievalGate` beneath the chosen study. The snapshot is
     stored as a client source with `origin=web`, the URL and the retrieval time.
@@ -596,6 +636,22 @@ dimensions (K5) and retirement (K6).
    draft/non-executable definitions honestly and allow computational selection only when resolved.
 6. Test: disposable `test_a_dimension_can_be_accepted_with_no_definition_or_values` pins the
    current behavior; connected acceptance must refuse execution with an unresolved definition.
+
+**F-K4 — A document's requests were bounded neither in number nor in size** (fixed in K2d6).
+1. Claim: K2d1's batching packed by characters, so the "at most 21 requests per document"
+   it stated did not hold. A request's bytes were not bounded either.
+2. Anchor: `batches` in `domain/source_proposals.py @ 4b15e6f6` (`BATCH_MAX_CHARS` = 12,000,
+   whole segments, a batch closed when the next would pass it).
+3. Reproduction:
+   - 41 pages of 6,001 characters made 41 requests.
+   - 12,000 one-character lines made one request of 338,949 bytes, over the model's 200,000
+     tokens. Each short segment carries ~28 bytes of JSON.
+4. Consequence: the burst and the money a document could cost were not what the plan said.
+   A document of short lines would have been refused by the gateway, after its hold was taken.
+5. Fix: batches bounded by bytes (`BATCH_MAX_BYTES`), a request cap (`MAX_REQUESTS`, refused
+   by name before any call), and the hold sized to the request's window (K2d6).
+6. Tests: `test_a_batch_is_bounded_by_the_bytes_it_sends_whatever_the_text`,
+   `test_a_document_needing_more_than_the_request_cap_is_refused_before_anything_is_sent`.
 
 **F-K3 (hypothesis) — A web test failed once under the full suite.**
 `ExecutionSteps.test.tsx` › "offers the report's PDF when the run stored one, and says why when

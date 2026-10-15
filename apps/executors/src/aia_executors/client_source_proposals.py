@@ -9,9 +9,11 @@ never as knowledge. A person accepts or not.
 
 Off unless ``AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED`` composes the gateway; unconfigured,
 the step parks (``client_source_proposals_unconfigured``) without spending an attempt.
-One attempt (``max_attempts=1``): a step that lost its answers is started again by a
-person, never re-sent by the worker. Filing is once per run, so a recovered step that
-had already filed files nothing twice.
+A document takes at most ``MAX_REQUESTS`` requests, each within a stated window its hold is
+sized to (K2d6); one over is refused by name before any is sent. One attempt
+(``max_attempts=1``): a step that lost its answers is started again by a person, never
+re-sent by the worker. Filing is once per run, so a recovered step that had already filed
+files nothing twice.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ from typing import Any, Final
 
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_contracts import ModelCallFailed
+from aia_core.domain.deep_research.request_limits import window_fits
 from aia_core.domain.knowledge import ProposalDraft
 from aia_core.domain.providers import Provider
 from aia_core.domain.scope import ClientWorkContext
@@ -34,7 +37,10 @@ from aia_core.domain.source_proposals import (
     batches,
     ground,
     proposal_request,
+    request_bytes,
+    request_window_tokens,
     require_extractable,
+    require_within_requests,
 )
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
@@ -128,6 +134,17 @@ class ClientSourceProposalsExecutor:
                 },
             )
         work = batches(reading)
+        try:
+            # The burst and the money have a ceiling whatever the text is made of (K2d6).
+            require_within_requests(work)
+        except NotExtractable as exc:
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={
+                    "reason": exc.reason,
+                    "message": f"z podkladu nelze navrhovat: {exc.reason}",
+                },
+            )
         caller = StepModelCaller(
             gateway=self._gateway,
             context=context,
@@ -142,6 +159,18 @@ class ClientSourceProposalsExecutor:
             )
             for batch in work
         ]
+        # Every request fits the window its hold was sized to; by construction, checked anyway.
+        window = request_window_tokens(cfg.max_output_tokens)
+        if any(
+            not window_fits(
+                request_bytes(r), window_tokens=window, output_tokens=cfg.max_output_tokens
+            )
+            for r in requests
+        ):
+            return Failed(
+                FailureClass.SCHEMA_VIOLATION,
+                error={"reason": "request_too_large", "message": "a request exceeds its window"},
+            )
         try:
             caller.preflight(requests[0])
         except ModelCallFailed as exc:

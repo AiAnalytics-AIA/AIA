@@ -461,6 +461,8 @@ export const cs = {
           no_text: "v souboru není text",
           nothing_read: "z dokumentu se nic nepřečetlo",
           harness_changed: "AIA mezitím změnila způsob návrhů",
+          too_many_requests: "dokument je na návrhy příliš dlouhý (víc než 42 požadavků na AI)",
+          request_too_large: "požadavek na AI by byl větší, než AIA dovoluje",
         },
       },
       at: {

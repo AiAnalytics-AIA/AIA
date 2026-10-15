@@ -136,7 +136,7 @@ def settings(**overrides: str) -> AIRuntimeSettings:
         "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
         "AIA_AI_CLIENT_SOURCE_PROPOSALS_ENABLED": "true",
         "AIA_AI_CLIENT_SOURCE_MAX_OUTPUT_TOKENS": "4096",
-        "AIA_AI_CLIENT_SOURCE_RESERVATION_USD": "1.5",
+        "AIA_AI_CLIENT_SOURCE_RESERVATION_USD": "0.5",
         **overrides,
     }
     result = AIRuntimeSettings.from_env(env)
@@ -373,7 +373,7 @@ def test_a_dataset_is_refused_by_name_before_any_call(
 def test_a_budget_that_cannot_hold_the_call_waits_and_a_lift_lets_it_finish(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
-    run_id, _ = start(world, store, budget=1.0)  # the hold is $1.50
+    run_id, _ = start(world, store, budget=0.25)  # the hold is $0.50
     transport = RecordedBedrock()
     w = worker(world, database_url, store, build, transport)
     w.run_once()
@@ -411,8 +411,30 @@ def test_settings_bind_extraction_only_when_enabled(enabled: str) -> None:
     assert "FAST_EXTRACTION" not in off.model_document()["policies"][0]["bindings"]
 
 
-def test_a_reservation_below_two_calls_at_the_ceilings_stops_the_worker() -> None:
+def test_the_reservation_covers_two_calls_at_the_request_window_not_the_models() -> None:
+    """K2d6: a request is bounded by bytes, so its hold is two calls at its own window
+    (48,588 tokens at 4,096 out: $0.4144 at $3 / $15), not at the model's 200,000 ($1.32)."""
     from aia_executors.ai_runtime import AIRuntimeConfigError
 
     with pytest.raises(AIRuntimeConfigError, match="client source reservation"):
-        settings(AIA_AI_CLIENT_SOURCE_RESERVATION_USD="0.01")
+        settings(AIA_AI_CLIENT_SOURCE_RESERVATION_USD="0.41")
+    assert (
+        settings(AIA_AI_CLIENT_SOURCE_RESERVATION_USD="0.42").client_source_reservation_usd == 0.42
+    )
+
+
+def test_a_document_over_the_request_cap_is_refused_before_any_call(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """Short lines of four-byte characters: within the reading's character cap, far over
+    the requests a document may take. Refused by name; nothing sent, nothing spent."""
+    text = ("😀😀😀😀\n\n" * 50_000).encode()
+    run_id, _ = start(world, store, filename="emoji.txt", data=text)
+    transport = RecordedBedrock()
+    w = worker(world, database_url, store, build, transport)
+    w.run_once()
+    run = run_state(world, run_id)
+    assert run["status"] is WorkflowRunStatus.FAILED
+    assert run["steps"][0]["attempts"][-1]["error"]["reason"] == "too_many_requests"
+    assert transport.requests == []
+    assert spent(world) == (0.0, 0.0)
