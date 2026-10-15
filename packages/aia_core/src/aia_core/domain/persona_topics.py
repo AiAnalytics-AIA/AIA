@@ -22,7 +22,14 @@ import unicodedata
 from collections.abc import Mapping, Sequence
 from typing import Final
 
-__all__ = ["MAX_TOPICS", "TOPIC_KEYS", "block_topics", "question_topics"]
+__all__ = [
+    "DIMENSION_TOPICS",
+    "MAX_TOPICS",
+    "TOPIC_KEYS",
+    "block_topics",
+    "dimension_topic",
+    "question_topics",
+]
 
 #: ``odvod_temata(text, max_temat=5)``.
 MAX_TOPICS: Final = 5
@@ -299,11 +306,41 @@ def question_topics(text: str, max_topics: int = MAX_TOPICS) -> list[str]:
     return [topic for topic, _ in sorted(score.items(), key=lambda x: (-x[1], x[0]))[:max_topics]]
 
 
-def block_topics(questions: Sequence[tuple[str, Sequence[str]]]) -> list[str]:
-    """One request's topics: each question's (text and options) in order, first seen first."""
+#: A study dimension whose catalogue id is not the persona topic it means (AIA, not 18.6.6:
+#: the unit compared the ids as they were, so these let no topic through there). The product
+#: owner mapped ``ekologie`` to ``eko`` and ``komunikace`` (communication style) to
+#: ``osobnost`` on 2026-10-15 (Codex on #447).
+DIMENSION_TOPICS: Final[Mapping[str, str]] = {"ekologie": "eko", "komunikace": "osobnost"}
+
+
+def dimension_topic(dimension: str) -> str | None:
+    """The persona topic a selected dimension lets through, or None when it names none."""
+    key = str(dimension).strip().lower()
+    key = DIMENSION_TOPICS.get(key, key)
+    return key if key in TOPIC_KEYS else None
+
+
+def block_topics(
+    questions: Sequence[tuple[str, Sequence[str]]],
+    allowlist: Sequence[str] | None = None,
+) -> list[str]:
+    """One request's topics: each question's (text and options) in order, first seen first.
+
+    ``allowlist`` is the study's selected dimensions, the run's ``persona_topic_allowlist``
+    (``research_project.py:440``): when it holds any, each question's topics are kept only where
+    they are in it, compared stripped and lowercased, before the union (``dotaznik.py:943-945``).
+    An empty or absent allowlist filters nothing, as the unit's ``if persona_topic_allowlist``.
+    A dimension in ``DIMENSION_TOPICS`` stands for its topic (AIA's deviation from the unit).
+    """
+    allowed = {
+        DIMENSION_TOPICS.get(k, k) for k in (str(x).strip().lower() for x in allowlist or ()) if k
+    }
     union: list[str] = []
     for text, options in questions:
-        for topic in question_topics(text + " " + " ".join(options)):
+        topics = question_topics(text + " " + " ".join(options))
+        if allowed:
+            topics = [t for t in topics if str(t).strip().lower() in allowed]
+        for topic in topics:
             if topic not in union:
                 union.append(topic)
     return union

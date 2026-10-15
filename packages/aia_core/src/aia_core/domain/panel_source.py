@@ -29,7 +29,7 @@ from typing import Any, Final
 
 from .ai_respondent import PROMPT_SHA256, RespondentPlan
 from .fieldwork import PersonaSource
-from .panel_persona import PANEL_PERSONA_VERSION, PanelPersonas, panel_personas
+from .panel_persona import PANEL_PERSONA_VERSION, PanelPersonas, panel_personas, persona_allowlist
 from .persona_profile import PERSONA_MODE, PROFILE_VERSION
 from .population.runtime import RuntimePopulation
 from .population.sampling import SAMPLER_VERSION, PanelSample, draw_panel_sample
@@ -58,6 +58,8 @@ class PanelPlans:
     sample: PanelSample
     personas: PanelPersonas
     plans: tuple[RespondentPlan, ...]
+    #: The study's selected dimensions the profiles were filtered to (5c); empty: none.
+    topic_allowlist: tuple[str, ...] = ()
 
     def provenance(self, population: RuntimePopulation) -> dict[str, Any]:
         """What the fieldwork dataset records about where its respondents came from."""
@@ -71,7 +73,15 @@ class PanelPlans:
                 "weight_role": binding.weight_role,
             },
             "sample": self.sample.provenance(),
-            "personas": self.personas.provenance(),
+            "personas": {
+                **self.personas.provenance(),
+                # Only when a selection applied, so a run without one records what it did.
+                **(
+                    {"persona_topic_allowlist": list(self.topic_allowlist)}
+                    if self.topic_allowlist
+                    else {}
+                ),
+            },
             "fictional": False,
         }
 
@@ -94,7 +104,9 @@ def panel_plans(
     sample = draw_panel_sample(population, filters, spec.n, seed)
     personas = panel_personas(population, sample, response=response)
     plans = tuple(personas.plan(spec, persona) for persona in personas.personas)
-    return PanelPlans(sample=sample, personas=personas, plans=plans)
+    return PanelPlans(
+        sample=sample, personas=personas, plans=plans, topic_allowlist=persona_allowlist(spec)
+    )
 
 
 def respondent_system(population: RuntimePopulation, *, model_binding: str) -> dict[str, str]:

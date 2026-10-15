@@ -248,3 +248,37 @@ def test_a_retry_keeps_the_persona_source_its_original_pinned(
     retry = runs().retry(first.run_id, fieldwork_source=AI)
     assert retry.created
     assert runs().get(retry.run_id)["metadata"]["persona_source"] == original.value
+
+
+def test_a_panel_run_with_selected_dimensions_is_its_own_run_and_records_them(
+    runs: Any, session: Any, scoped: Any, population: Any
+) -> None:
+    """Plan run-recovery-and-truth 5c: a panel run's personas read the selected dimensions as
+    their topic allowlist, so such a run never shares an identity with a panel run made
+    before the allowlist applied; a roster run is unchanged by them."""
+    from aia_core.infrastructure.tables import WorkflowRunRow
+
+    population.establish()
+    repo = StudyDesignRepository(session, scoped.scope(user="lead"))
+    chosen, _ = repo.submit(
+        content={**DESIGN, "persona_dimensions": {"approved": ["media", "nakup"]}},
+        source_stage="run",
+    )
+    panel = runs().start(
+        design_revision_id=chosen.revision_id, fieldwork_source=AI, persona_source=PANEL
+    )
+    roster = runs().start(design_revision_id=chosen.revision_id, fieldwork_source=AI)
+
+    def key(run_id: str) -> str:
+        row = session.get(WorkflowRunRow, run_id)
+        assert row is not None
+        return row.idempotency_key
+
+    assert ":personas:panel:persona-topics:" in key(panel.run_id)
+    assert ":persona-topics:" not in key(roster.run_id)
+    selection = runs().get(panel.run_id)["metadata"]["selection"]
+    assert selection["dimensions"] == ["media", "nakup"]
+    assert selection["dimensions_reason"] == "dimensions_await_population_draw"
+    assert runs().get(roster.run_id)["metadata"]["selection"]["dimensions_reason"] == (
+        "dimensions_need_population_draw"
+    )
